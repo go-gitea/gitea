@@ -6,30 +6,39 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func listUserOrgs(ctx *context.APIContext, u *models.User, all bool) {
-	if err := u.GetOrganizations(&models.SearchOrganizationsOptions{
-		ListOptions: utils.GetListOptions(ctx),
-		All:         all,
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetOrganizations", err)
+func listUserOrgs(ctx *context.APIContext, u *models.User) {
+
+	listOptions := utils.GetListOptions(ctx)
+	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
+
+	orgs, err := models.GetOrgsByUserID(u.ID, showPrivate)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgsByUserID", err)
 		return
 	}
 
-	apiOrgs := make([]*api.Organization, len(u.Orgs))
-	for i := range u.Orgs {
-		apiOrgs[i] = convert.ToOrganization(u.Orgs[i])
+	maxResults := len(orgs)
+	orgs, _ = util.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.User)
+
+	apiOrgs := make([]*api.Organization, len(orgs))
+	for i := range orgs {
+		apiOrgs[i] = convert.ToOrganization(orgs[i])
 	}
+
+	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(maxResults))
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }
 
@@ -53,7 +62,7 @@ func ListMyOrgs(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationList"
 
-	listUserOrgs(ctx, ctx.User, true)
+	listUserOrgs(ctx, ctx.User)
 }
 
 // ListUserOrgs list user's orgs
@@ -85,7 +94,7 @@ func ListUserOrgs(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	listUserOrgs(ctx, u, ctx.User != nil && (ctx.User.IsAdmin || ctx.User.ID == u.ID))
+	listUserOrgs(ctx, u)
 }
 
 // GetAll return list of all public organizations
@@ -134,13 +143,12 @@ func GetAll(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &orgs)
 }
 
 // Create api for create organization
-func Create(ctx *context.APIContext, form api.CreateOrgOption) {
+func Create(ctx *context.APIContext) {
 	// swagger:operation POST /orgs organization orgCreate
 	// ---
 	// summary: Create an organization
@@ -160,7 +168,7 @@ func Create(ctx *context.APIContext, form api.CreateOrgOption) {
 	//     "$ref": "#/responses/forbidden"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
+	form := web.GetForm(ctx).(*api.CreateOrgOption)
 	if !ctx.User.CanCreateOrganization() {
 		ctx.Error(http.StatusForbidden, "Create organization not allowed", nil)
 		return
@@ -214,15 +222,15 @@ func Get(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Organization"
 
-	if !models.HasOrgVisible(ctx.Org.Organization, ctx.User) {
-		ctx.NotFound("HasOrgVisible", nil)
+	if !models.HasOrgOrUserVisible(ctx.Org.Organization, ctx.User) {
+		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
 	ctx.JSON(http.StatusOK, convert.ToOrganization(ctx.Org.Organization))
 }
 
 // Edit change an organization's information
-func Edit(ctx *context.APIContext, form api.EditOrgOption) {
+func Edit(ctx *context.APIContext) {
 	// swagger:operation PATCH /orgs/{org} organization orgEdit
 	// ---
 	// summary: Edit an organization
@@ -244,7 +252,7 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Organization"
-
+	form := web.GetForm(ctx).(*api.EditOrgOption)
 	org := ctx.Org.Organization
 	org.FullName = form.FullName
 	org.Description = form.Description
@@ -253,7 +261,13 @@ func Edit(ctx *context.APIContext, form api.EditOrgOption) {
 	if form.Visibility != "" {
 		org.Visibility = api.VisibilityModes[form.Visibility]
 	}
-	if err := models.UpdateUserCols(org, "full_name", "description", "website", "location", "visibility"); err != nil {
+	if form.RepoAdminChangeTeamAccess != nil {
+		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
+	}
+	if err := models.UpdateUserCols(org,
+		"full_name", "description", "website", "location",
+		"visibility", "repo_admin_change_team_access",
+	); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditOrganization", err)
 		return
 	}

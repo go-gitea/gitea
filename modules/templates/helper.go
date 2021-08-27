@@ -7,8 +7,6 @@ package templates
 
 import (
 	"bytes"
-	"container/list"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -16,6 +14,7 @@ import (
 	"mime"
 	"net/url"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"runtime"
 	"strings"
@@ -26,6 +25,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -34,7 +35,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -57,8 +57,8 @@ func NewFuncMap() []template.FuncMap {
 		"AppSubUrl": func() string {
 			return setting.AppSubURL
 		},
-		"StaticUrlPrefix": func() string {
-			return setting.StaticURLPrefix
+		"AssetUrlPrefix": func() string {
+			return setting.StaticURLPrefix + "/assets"
 		},
 		"AppUrl": func() string {
 			return setting.AppURL
@@ -87,9 +87,12 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
-		"AvatarLink":    models.AvatarLink,
+		"CustomEmojis": func() map[string]string {
+			return setting.UI.CustomEmojisMap
+		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
+		"JSEscape":      JSEscape,
 		"Str2html":      Str2html,
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
@@ -122,7 +125,6 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"SizeFmt":  base.FileSize,
 		"CountFmt": base.FormatNumberSI,
-		"List":     List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -153,6 +155,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
@@ -172,6 +175,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"UseServiceWorker": func() bool {
 			return setting.UI.UseServiceWorker
+		},
+		"EnableTimetracking": func() bool {
+			return setting.Service.EnableTimetracking
 		},
 		"FilenameIsImage": func(filename string) bool {
 			mimeType := mime.TypeByExtension(filepath.Ext(filename))
@@ -207,6 +213,9 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return path
 		},
+		"DiffStatsWidth": func(adds int, dels int) string {
+			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
+		},
 		"Json": func(in interface{}) string {
 			out, err := json.Marshal(in)
 			if err != nil {
@@ -224,6 +233,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"DisableGitHooks": func() bool {
 			return setting.DisableGitHooks
+		},
+		"DisableWebhooks": func() bool {
+			return setting.DisableWebhooks
 		},
 		"DisableImportLocal": func() bool {
 			return !setting.ImportLocalPaths
@@ -252,31 +264,27 @@ func NewFuncMap() []template.FuncMap {
 		"DefaultTheme": func() string {
 			return setting.UI.DefaultTheme
 		},
+		// pass key-value pairs to a partial template which receives them as a dict
 		"dict": func(values ...interface{}) (map[string]interface{}, error) {
 			if len(values) == 0 {
 				return nil, errors.New("invalid dict call")
 			}
 
 			dict := make(map[string]interface{})
-
-			for i := 0; i < len(values); i++ {
-				switch key := values[i].(type) {
-				case string:
-					i++
-					if i == len(values) {
-						return nil, errors.New("specify the key for non array values")
-					}
-					dict[key] = values[i]
-				case map[string]interface{}:
-					m := values[i].(map[string]interface{})
-					for i, v := range m {
-						dict[i] = v
-					}
-				default:
-					return nil, errors.New("dict values must be maps")
-				}
+			return util.MergeInto(dict, values...)
+		},
+		/* like dict but merge key-value pairs into the first dict and return it */
+		"mergeinto": func(root map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
+			if len(values) == 0 {
+				return nil, errors.New("invalid mergeinto call")
 			}
-			return dict, nil
+
+			dict := make(map[string]interface{})
+			for key, value := range root {
+				dict[key] = value
+			}
+
+			return util.MergeInto(dict, values...)
 		},
 		"percentage": func(n int, values ...int) float32 {
 			var sum = 0
@@ -285,23 +293,8 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
-		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
-		"MirrorAddress":     mirror_service.Address,
-		"MirrorFullAddress": mirror_service.AddressNoCredentials,
-		"MirrorUserName":    mirror_service.Username,
-		"MirrorPassword":    mirror_service.Password,
-		"CommitType": func(commit interface{}) string {
-			switch commit.(type) {
-			case models.SignCommitWithStatuses:
-				return "SignCommitWithStatuses"
-			case models.SignCommit:
-				return "SignCommit"
-			case models.UserCommit:
-				return "UserCommit"
-			default:
-				return ""
-			}
-		},
+		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress": mirrorRemoteAddress,
 		"NotificationSettings": func() map[string]interface{} {
 			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -309,6 +302,26 @@ func NewFuncMap() []template.FuncMap {
 				"MaxTimeout":            int(setting.UI.Notification.MaxTimeout / time.Millisecond),
 				"EventSourceUpdateTime": int(setting.UI.Notification.EventSourceUpdateTime / time.Millisecond),
 			}
+		},
+		"containGeneric": func(arr interface{}, v interface{}) bool {
+			arrV := reflect.ValueOf(arr)
+			if arrV.Kind() == reflect.String && reflect.ValueOf(v).Kind() == reflect.String {
+				return strings.Contains(arr.(string), v.(string))
+			}
+
+			if arrV.Kind() == reflect.Slice {
+				for i := 0; i < arrV.Len(); i++ {
+					iV := arrV.Index(i)
+					if !iV.CanInterface() {
+						continue
+					}
+					if iV.Interface() == v {
+						return true
+					}
+				}
+			}
+
+			return false
 		},
 		"contain": func(s []int64, id int64) bool {
 			for i := 0; i < len(s); i++ {
@@ -318,7 +331,12 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg": SVG,
+		"svg":            SVG,
+		"avatar":         Avatar,
+		"avatarHTML":     AvatarHTML,
+		"avatarByAction": AvatarByAction,
+		"avatarByEmail":  AvatarByEmail,
+		"repoAvatar":     RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -344,14 +362,20 @@ func NewFuncMap() []template.FuncMap {
 			return ""
 		},
 		"RenderLabels": func(labels []*models.Label) template.HTML {
-			html := ""
-
+			html := `<span class="labels-list">`
 			for _, label := range labels {
-				html = fmt.Sprintf("%s<div class='ui label' style='color: %s; background-color: %s'>%s</div>",
-					html, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
+				if label == nil {
+					continue
+				}
+				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
+					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
-
+			html += "</span>"
 			return template.HTML(html)
+		},
+		"MermaidMaxSourceCharacters": func() int {
+			return setting.MermaidMaxSourceCharacters
 		},
 	}}
 }
@@ -390,7 +414,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"List": List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -479,17 +502,38 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 var widthRe = regexp.MustCompile(`width="[0-9]+?"`)
 var heightRe = regexp.MustCompile(`height="[0-9]+?"`)
 
-// SVG render icons - arguments icon name (string), size (int), class (string)
-func SVG(icon string, others ...interface{}) template.HTML {
-	size := 16
+func parseOthers(defaultSize int, defaultClass string, others ...interface{}) (int, string) {
+	size := defaultSize
 	if len(others) > 0 && others[0].(int) != 0 {
 		size = others[0].(int)
 	}
 
-	class := ""
+	class := defaultClass
 	if len(others) > 1 && others[1].(string) != "" {
-		class = others[1].(string)
+		if defaultClass == "" {
+			class = others[1].(string)
+		} else {
+			class = defaultClass + " " + others[1].(string)
+		}
 	}
+
+	return size, class
+}
+
+// AvatarHTML creates the HTML for an avatar
+func AvatarHTML(src string, size int, class string, name string) template.HTML {
+	sizeStr := fmt.Sprintf(`%d`, size)
+
+	if name == "" {
+		name = "avatar"
+	}
+
+	return template.HTML(`<img class="` + class + `" src="` + src + `" title="` + html.EscapeString(name) + `" width="` + sizeStr + `" height="` + sizeStr + `"/>`)
+}
+
+// SVG render icons - arguments icon name (string), size (int), class (string)
+func SVG(icon string, others ...interface{}) template.HTML {
+	size, class := parseOthers(16, "", others...)
 
 	if svgStr, ok := svg.SVGs[icon]; ok {
 		if size != 16 {
@@ -501,6 +545,54 @@ func SVG(icon string, others ...interface{}) template.HTML {
 		}
 		return template.HTML(svgStr)
 	}
+	return template.HTML("")
+}
+
+// Avatar renders user avatars. args: user, size (int), class (string)
+func Avatar(item interface{}, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+
+	if user, ok := item.(*models.User); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
+	if user, ok := item.(*models.Collaborator); ok {
+		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
+	return template.HTML("")
+}
+
+// AvatarByAction renders user avatars from action. args: action, size (int), class (string)
+func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+	action.LoadActUser()
+	return Avatar(action.ActUser, others...)
+}
+
+// RepoAvatar renders repo avatars. args: repo, size(int), class (string)
+func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+
+	src := repo.RelAvatarLink()
+	if src != "" {
+		return AvatarHTML(src, size, class, repo.FullName())
+	}
+	return template.HTML("")
+}
+
+// AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
+func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
+	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+	src := models.SizedAvatarLink(email, size*models.AvatarRenderedSizeFactor)
+
+	if src != "" {
+		return AvatarHTML(src, size, class, name)
+	}
+
 	return template.HTML("")
 }
 
@@ -524,18 +616,9 @@ func Escape(raw string) string {
 	return html.EscapeString(raw)
 }
 
-// List traversings the list
-func List(l *list.List) chan interface{} {
-	e := l.Front()
-	c := make(chan interface{})
-	go func() {
-		for e != nil {
-			c <- e.Value
-			e = e.Next()
-		}
-		close(c)
-	}()
-	return c
+// JSEscape escapes a JS string
+func JSEscape(raw string) string {
+	return template.JSEscapeString(raw)
 }
 
 // Sha1 returns sha1 sum of string
@@ -554,7 +637,11 @@ func RenderCommitMessageLink(msg, urlPrefix, urlDefault string, metas map[string
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, urlDefault, metas)
+	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix:   urlPrefix,
+		DefaultLink: urlDefault,
+		Metas:       metas,
+	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -581,7 +668,11 @@ func RenderCommitMessageLinkSubject(msg, urlPrefix, urlDefault string, metas map
 
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
-	renderedMessage, err := markup.RenderCommitMessageSubject([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, urlDefault, metas)
+	renderedMessage, err := markup.RenderCommitMessageSubject(&markup.RenderContext{
+		URLPrefix:   urlPrefix,
+		DefaultLink: urlDefault,
+		Metas:       metas,
+	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
@@ -603,7 +694,10 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 		return template.HTML("")
 	}
 
-	renderedMessage, err := markup.RenderCommitMessage([]byte(template.HTMLEscapeString(msgLine)), urlPrefix, "", metas)
+	renderedMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, template.HTMLEscapeString(msgLine))
 	if err != nil {
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
@@ -611,9 +705,22 @@ func RenderCommitBody(msg, urlPrefix string, metas map[string]string) template.H
 	return template.HTML(renderedMessage)
 }
 
+// RenderIssueTitle renders issue/pull title with defined post processors
+func RenderIssueTitle(text, urlPrefix string, metas map[string]string) template.HTML {
+	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, template.HTMLEscapeString(text))
+	if err != nil {
+		log.Error("RenderIssueTitle: %v", err)
+		return template.HTML("")
+	}
+	return template.HTML(renderedText)
+}
+
 // RenderEmoji renders html text with emoji post processors
 func RenderEmoji(text string) template.HTML {
-	renderedText, err := markup.RenderEmoji([]byte(template.HTMLEscapeString(text)))
+	renderedText, err := markup.RenderEmoji(template.HTMLEscapeString(text))
 	if err != nil {
 		log.Error("RenderEmoji: %v", err)
 		return template.HTML("")
@@ -631,13 +738,16 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
 func RenderNote(msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
-	fullMessage, err := markup.RenderCommitMessage([]byte(cleanMsg), urlPrefix, "", metas)
+	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
+		URLPrefix: urlPrefix,
+		Metas:     metas,
+	}, cleanMsg)
 	if err != nil {
 		log.Error("RenderNote: %v", err)
 		return ""
@@ -684,13 +794,15 @@ func ActionIcon(opType models.ActionType) string {
 	case models.ActionReopenIssue, models.ActionReopenPullRequest:
 		return "issue-reopened"
 	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
-		return "repo-clone"
+		return "mirror"
 	case models.ActionApprovePullRequest:
 		return "check"
 	case models.ActionRejectPullRequest:
 		return "diff"
 	case models.ActionPublishRelease:
 		return "tag"
+	case models.ActionPullReviewDismissed:
+		return "x"
 	default:
 		return "question"
 	}
@@ -699,9 +811,19 @@ func ActionIcon(opType models.ActionType) string {
 // ActionContent2Commits converts action content to push commits
 func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	push := repository.NewPushCommits()
+
+	if act == nil || act.GetContent() == "" {
+		return push
+	}
+
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
+
+	if push.Len == 0 {
+		push.Len = len(push.Commits)
+	}
+
 	return push
 }
 
@@ -816,4 +938,29 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 		Parse(string(bodyContent)); err != nil {
 		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
+}
+
+type remoteAddress struct {
+	Address  string
+	Username string
+	Password string
+}
+
+func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
+	a := remoteAddress{}
+
+	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
+	if err != nil {
+		log.Error("GetRemoteAddress %v", err)
+		return a
+	}
+
+	if u.User != nil {
+		a.Username = u.User.Username()
+		a.Password, _ = u.User.Password()
+	}
+	u.User = nil
+	a.Address = u.String()
+
+	return a
 }

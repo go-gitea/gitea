@@ -22,6 +22,9 @@ import (
 	"time"
 )
 
+// STSVersion sts version string
+const STSVersion = "2011-06-15"
+
 // A Value is the AWS credentials value for individual credential fields.
 type Value struct {
 	// AWS Access key ID
@@ -130,6 +133,10 @@ func New(provider Provider) *Credentials {
 // If Credentials.Expire() was called the credentials Value will be force
 // expired, and the next call to Get() will cause them to be refreshed.
 func (c *Credentials) Get() (Value, error) {
+	if c == nil {
+		return Value{}, nil
+	}
+
 	c.Lock()
 	defer c.Unlock()
 

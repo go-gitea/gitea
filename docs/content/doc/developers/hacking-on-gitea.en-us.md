@@ -15,6 +15,10 @@ menu:
 
 # Hacking on Gitea
 
+**Table of Contents**
+
+{{< toc >}}
+
 ## Installing go
 
 You should [install go](https://golang.org/doc/install) and set up your go
@@ -42,7 +46,7 @@ running. As of last update, it should be Go version {{< go-version >}}.
 Gitea makes heavy use of Make to automate tasks and improve development. This
 guide covers how to install Make.
 
-#### On Linux
+### On Linux
 
 Install with the package manager.
 
@@ -58,7 +62,7 @@ On Fedora/RHEL/CentOS:
 sudo yum install make
 ```
 
-#### On Windows
+### On Windows
 
 One of these three distributions of Make will run on Windows:
 
@@ -68,6 +72,8 @@ One of these three distributions of Make will run on Windows:
 - [MinGW](http://www.mingw.org/) includes a build.
   - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
+
+**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (git bash, or mingw) are recommended, however if you only have command prompt (or potentially powershell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
 
 ## Downloading and cloning the Gitea source code
 
@@ -82,7 +88,7 @@ from within the `$GOPATH`, hence the `go get` approach is no longer recommended.
 
 ## Forking Gitea
 
-Download the master Gitea source code as above. Then, fork the 
+Download the main Gitea source code as above. Then, fork the
 [Gitea repository](https://github.com/go-gitea/gitea) on GitHub,
 and either switch the git remote origin for your fork or add your fork as another remote:
 
@@ -119,15 +125,15 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build
 
 The `build` target will execute both `frontend` and `backend` sub-targets. If the `bindata` tag is present, the frontend files will be compiled into the binary. It is recommended to leave out the tag when doing frontend development so that changes will be reflected.
 
-See `make help` for all available `make` targets. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/master/.drone.yml) to see how our continuous integration works.
+See `make help` for all available `make` targets. Also see [`.drone.yml`](https://github.com/go-gitea/gitea/blob/main/.drone.yml) to see how our continuous integration works.
 
 ## Building continuously
 
-To run and continously rebuild when source files change:
+To run and continuously rebuild when source files change:
 
-````bash
+```bash
 make watch
-````
+```
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
 
@@ -181,7 +187,9 @@ SVG icons are built using the `make svg` target which compiles the icon sources 
 
 ### Building the Logo
 
-The PNG versions of the logo are built from a single SVG source file `assets/logo.svg` using the `make generate-images` target. To run it, Node.js and npm must be available. The same process can also be used to generate a custom logo PNGs from a SVG source file. It's possible to remove parts of the SVG logo for the favicon build by adding a `detail-remove` class to the SVG nodes to be removed.
+The PNG and SVG versions of the gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
+
+The same process can also be used to generate custom logo PNGs from a SVG source file by updating `assets/logo.svg` and running `make generate-images`. Omitting the `gitea` tag will update only the user-designated logo files.
 
 ### Updating the API
 
@@ -210,7 +218,7 @@ You should validate your generated Swagger file and spell-check it with:
 make swagger-validate misspell-check
 ```
 
-You should commit the changed swagger JSON file. The continous integration
+You should commit the changed swagger JSON file. The continuous integration
 server will check that this has been done using:
 
 ```bash
@@ -266,11 +274,11 @@ TAGS="bindata sqlite sqlite_unlock_notify" make build test-sqlite
 ```
 
 will run the integration tests in an sqlite environment. Integration tests
-require  `git lfs` to be installed. Other database tests are available but
+require `git lfs` to be installed. Other database tests are available but
 may need adjustment to the local environment.
 
 Look at
-[`integrations/README.md`](https://github.com/go-gitea/gitea/blob/master/integrations/README.md)
+[`integrations/README.md`](https://github.com/go-gitea/gitea/blob/main/integrations/README.md)
 for more information and how to run a single test.
 
 Our continuous integration will test the code passes its unit tests and that
@@ -298,19 +306,19 @@ be cleaned up.
 
 A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
 Visual Studio Code. Look at
-[`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/master/contrib/ide/README.md)
+[`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/main/contrib/ide/README.md)
 for more information.
 
 ## Submitting PRs
 
 Once you're happy with your changes, push them up and open a pull request. It
 is recommended that you allow Gitea Managers and Owners to modify your PR
-branches as we will need to update it to master before merging and/or may be
+branches as we will need to update it to main before merging and/or may be
 able to help fix issues directly.
 
 Any PR requires two approvals from the Gitea maintainers and needs to pass the
-continous integration. Take a look at our
-[`CONTRIBUTING.md`](https://github.com/go-gitea/gitea/blob/master/CONTRIBUTING.md)
+continuous integration. Take a look at our
+[`CONTRIBUTING.md`](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md)
 document.
 
 If you need more help pop on to [Discord](https://discord.gg/gitea) #Develop

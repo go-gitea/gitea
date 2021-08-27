@@ -2,7 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build amd64,!gccgo,!appengine
+//go:build amd64 && gc && !purego
+// +build amd64,gc,!purego
 
 #include "textflag.h"
 
@@ -118,15 +119,13 @@ TEXT ·hashBlocksSSE4(SB), 4, $288-48 // frame size = 272 + 16 byte alignment
 	MOVQ blocks_base+24(FP), SI
 	MOVQ blocks_len+32(FP), DI
 
-	MOVQ SP, BP
-	MOVQ SP, R9
-	ADDQ $15, R9
-	ANDQ $~15, R9
-	MOVQ R9, SP
+	MOVQ SP, R10
+	ADDQ $15, R10
+	ANDQ $~15, R10
 
 	MOVOU ·iv3<>(SB), X0
-	MOVO  X0, 0(SP)
-	XORQ  CX, 0(SP)     // 0(SP) = ·iv3 ^ (CX || 0)
+	MOVO  X0, 0(R10)
+	XORQ  CX, 0(R10)     // 0(R10) = ·iv3 ^ (CX || 0)
 
 	MOVOU ·c40<>(SB), X13
 	MOVOU ·c48<>(SB), X14
@@ -156,35 +155,35 @@ noinc:
 	MOVOU ·iv2<>(SB), X6
 
 	PXOR X8, X6
-	MOVO 0(SP), X7
+	MOVO 0(R10), X7
 
 	LOAD_MSG(X8, X9, X10, X11, SI, 0, 2, 4, 6, 1, 3, 5, 7)
-	MOVO X8, 16(SP)
-	MOVO X9, 32(SP)
-	MOVO X10, 48(SP)
-	MOVO X11, 64(SP)
+	MOVO X8, 16(R10)
+	MOVO X9, 32(R10)
+	MOVO X10, 48(R10)
+	MOVO X11, 64(R10)
 	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X11, X13, X14)
 	SHUFFLE(X2, X3, X4, X5, X6, X7, X8, X9)
 	LOAD_MSG(X8, X9, X10, X11, SI, 8, 10, 12, 14, 9, 11, 13, 15)
-	MOVO X8, 80(SP)
-	MOVO X9, 96(SP)
-	MOVO X10, 112(SP)
-	MOVO X11, 128(SP)
+	MOVO X8, 80(R10)
+	MOVO X9, 96(R10)
+	MOVO X10, 112(R10)
+	MOVO X11, 128(R10)
 	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X11, X13, X14)
 	SHUFFLE_INV(X2, X3, X4, X5, X6, X7, X8, X9)
 
 	LOAD_MSG(X8, X9, X10, X11, SI, 14, 4, 9, 13, 10, 8, 15, 6)
-	MOVO X8, 144(SP)
-	MOVO X9, 160(SP)
-	MOVO X10, 176(SP)
-	MOVO X11, 192(SP)
+	MOVO X8, 144(R10)
+	MOVO X9, 160(R10)
+	MOVO X10, 176(R10)
+	MOVO X11, 192(R10)
 	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X11, X13, X14)
 	SHUFFLE(X2, X3, X4, X5, X6, X7, X8, X9)
 	LOAD_MSG(X8, X9, X10, X11, SI, 1, 0, 11, 5, 12, 2, 7, 3)
-	MOVO X8, 208(SP)
-	MOVO X9, 224(SP)
-	MOVO X10, 240(SP)
-	MOVO X11, 256(SP)
+	MOVO X8, 208(R10)
+	MOVO X9, 224(R10)
+	MOVO X10, 240(R10)
+	MOVO X11, 256(R10)
 	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X11, X13, X14)
 	SHUFFLE_INV(X2, X3, X4, X5, X6, X7, X8, X9)
 
@@ -244,14 +243,14 @@ noinc:
 	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, X8, X9, X10, X11, X11, X13, X14)
 	SHUFFLE_INV(X2, X3, X4, X5, X6, X7, X8, X9)
 
-	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 16(SP), 32(SP), 48(SP), 64(SP), X11, X13, X14)
+	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 16(R10), 32(R10), 48(R10), 64(R10), X11, X13, X14)
 	SHUFFLE(X2, X3, X4, X5, X6, X7, X8, X9)
-	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 80(SP), 96(SP), 112(SP), 128(SP), X11, X13, X14)
+	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 80(R10), 96(R10), 112(R10), 128(R10), X11, X13, X14)
 	SHUFFLE_INV(X2, X3, X4, X5, X6, X7, X8, X9)
 
-	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 144(SP), 160(SP), 176(SP), 192(SP), X11, X13, X14)
+	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 144(R10), 160(R10), 176(R10), 192(R10), X11, X13, X14)
 	SHUFFLE(X2, X3, X4, X5, X6, X7, X8, X9)
-	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 208(SP), 224(SP), 240(SP), 256(SP), X11, X13, X14)
+	HALF_ROUND(X0, X1, X2, X3, X4, X5, X6, X7, 208(R10), 224(R10), 240(R10), 256(R10), X11, X13, X14)
 	SHUFFLE_INV(X2, X3, X4, X5, X6, X7, X8, X9)
 
 	MOVOU 32(AX), X10
@@ -277,5 +276,4 @@ noinc:
 	MOVQ R8, 0(BX)
 	MOVQ R9, 8(BX)
 
-	MOVQ BP, SP
 	RET

@@ -11,7 +11,6 @@ import (
 )
 
 func addProjectsInfo(x *xorm.Engine) error {
-
 	// Create new tables
 	type (
 		ProjectType      uint8

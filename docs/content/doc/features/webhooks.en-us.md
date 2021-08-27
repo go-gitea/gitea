@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Webhooks"
 slug: "webhooks"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -27,6 +27,7 @@ All event pushes are POST requests. The methods currently supported are:
 - Telegram
 - Microsoft Teams
 - Feishu
+- Wechatwork
 
 ### Event information
 
@@ -168,7 +169,7 @@ if (empty($header_signature)) {
 $payload_signature = hash_hmac('sha256', $payload, $secret_key, false);
 
 // check payload signature against header signature
-if ($header_signature != $payload_signature) {
+if ($header_signature !== $payload_signature) {
     error_log('FAILED - payload signature');
     exit();
 }

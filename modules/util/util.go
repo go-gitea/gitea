@@ -6,6 +6,9 @@ package util
 
 import (
 	"bytes"
+	"crypto/rand"
+	"errors"
+	"math/big"
 	"strings"
 )
 
@@ -99,4 +102,52 @@ func NormalizeEOL(input []byte) []byte {
 		pos++
 	}
 	return tmp[:pos]
+}
+
+// MergeInto merges pairs of values into a "dict"
+func MergeInto(dict map[string]interface{}, values ...interface{}) (map[string]interface{}, error) {
+	for i := 0; i < len(values); i++ {
+		switch key := values[i].(type) {
+		case string:
+			i++
+			if i == len(values) {
+				return nil, errors.New("specify the key for non array values")
+			}
+			dict[key] = values[i]
+		case map[string]interface{}:
+			m := values[i].(map[string]interface{})
+			for i, v := range m {
+				dict[i] = v
+			}
+		default:
+			return nil, errors.New("dict values must be maps")
+		}
+	}
+
+	return dict, nil
+}
+
+// RandomInt returns a random integer between 0 and limit, inclusive
+func RandomInt(limit int64) (int64, error) {
+	int, err := rand.Int(rand.Reader, big.NewInt(limit))
+	if err != nil {
+		return 0, err
+	}
+	return int.Int64(), nil
+}
+
+const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// RandomString generates a random alphanumerical string
+func RandomString(length int64) (string, error) {
+	bytes := make([]byte, length)
+	limit := int64(len(letters))
+	for i := range bytes {
+		num, err := RandomInt(limit)
+		if err != nil {
+			return "", err
+		}
+		bytes[i] = letters[num]
+	}
+	return string(bytes), nil
 }

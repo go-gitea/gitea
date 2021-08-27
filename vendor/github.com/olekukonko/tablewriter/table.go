@@ -48,39 +48,40 @@ type Border struct {
 }
 
 type Table struct {
-	out            io.Writer
-	rows           [][]string
-	lines          [][][]string
-	cs             map[int]int
-	rs             map[int]int
-	headers        [][]string
-	footers        [][]string
-	caption        bool
-	captionText    string
-	autoFmt        bool
-	autoWrap       bool
-	reflowText     bool
-	mW             int
-	pCenter        string
-	pRow           string
-	pColumn        string
-	tColumn        int
-	tRow           int
-	hAlign         int
-	fAlign         int
-	align          int
-	newLine        string
-	rowLine        bool
-	autoMergeCells bool
-	noWhiteSpace   bool
-	tablePadding   string
-	hdrLine        bool
-	borders        Border
-	colSize        int
-	headerParams   []string
-	columnsParams  []string
-	footerParams   []string
-	columnsAlign   []int
+	out                     io.Writer
+	rows                    [][]string
+	lines                   [][][]string
+	cs                      map[int]int
+	rs                      map[int]int
+	headers                 [][]string
+	footers                 [][]string
+	caption                 bool
+	captionText             string
+	autoFmt                 bool
+	autoWrap                bool
+	reflowText              bool
+	mW                      int
+	pCenter                 string
+	pRow                    string
+	pColumn                 string
+	tColumn                 int
+	tRow                    int
+	hAlign                  int
+	fAlign                  int
+	align                   int
+	newLine                 string
+	rowLine                 bool
+	autoMergeCells          bool
+	columnsToAutoMergeCells map[int]bool
+	noWhiteSpace            bool
+	tablePadding            string
+	hdrLine                 bool
+	borders                 Border
+	colSize                 int
+	headerParams            []string
+	columnsParams           []string
+	footerParams            []string
+	columnsAlign            []int
 }
 
 // Start New Table
@@ -274,6 +275,21 @@ func (t *Table) SetRowLine(line bool) {
 // This would enable / disable the merge of cells with identical values
 func (t *Table) SetAutoMergeCells(auto bool) {
 	t.autoMergeCells = auto
+}
+
+// Set Auto Merge Cells By Column Index
+// This would enable / disable the merge of cells with identical values for specific columns
+// If cols is empty, it is the same as `SetAutoMergeCells(true)`.
+func (t *Table) SetAutoMergeCellsByColumnIndex(cols []int) {
+	t.autoMergeCells = true
+
+	if len(cols) > 0 {
+		m := make(map[int]bool)
+		for _, col := range cols {
+			m[col] = true
+		}
+		t.columnsToAutoMergeCells = m
+	}
 }
 
 // Set Table Border
@@ -830,9 +846,19 @@ func (t *Table) printRowMergeCells(writer io.Writer, columns [][]string, rowIdx 
 			}
 
 			if t.autoMergeCells {
+				var mergeCell bool
+				if t.columnsToAutoMergeCells != nil {
+					// Check to see if the column index is in columnsToAutoMergeCells.
+					if t.columnsToAutoMergeCells[y] {
+						mergeCell = true
+					}
+				} else {
+					// columnsToAutoMergeCells was not set.
+					mergeCell = true
+				}
 				//Store the full line to merge mutli-lines cells
 				fullLine := strings.TrimRight(strings.Join(columns[y], " "), " ")
-				if len(previousLine) > y && fullLine == previousLine[y] && fullLine != "" {
+				if len(previousLine) > y && fullLine == previousLine[y] && fullLine != "" && mergeCell {
 					// If this cell is identical to the one above but not empty, we don't display the border and keep the cell empty.
 					displayCellBorder = append(displayCellBorder, false)
 					str = ""

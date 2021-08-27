@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // SearchService handles communication with the search related methods of the
@@ -31,7 +32,10 @@ type SearchService struct {
 // SearchOptions represents the available options for all search methods.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/search.html
-type SearchOptions ListOptions
+type SearchOptions struct {
+	ListOptions
+	Ref *string `url:"ref,omitempty" json:"ref,omitempty"`
+}
 
 type searchOptions struct {
 	SearchOptions
@@ -311,7 +315,7 @@ func (s *SearchService) UsersByProject(pid interface{}, query string, opt *Searc
 func (s *SearchService) search(scope, query string, result interface{}, opt *SearchOptions, options ...RequestOptionFunc) (*Response, error) {
 	opts := &searchOptions{SearchOptions: *opt, Scope: scope, Search: query}
 
-	req, err := s.client.NewRequest("GET", "search", opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, "search", opts, options)
 	if err != nil {
 		return nil, err
 	}
@@ -328,7 +332,7 @@ func (s *SearchService) searchByGroup(gid interface{}, scope, query string, resu
 
 	opts := &searchOptions{SearchOptions: *opt, Scope: scope, Search: query}
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +349,7 @@ func (s *SearchService) searchByProject(pid interface{}, scope, query string, re
 
 	opts := &searchOptions{SearchOptions: *opt, Scope: scope, Search: query}
 
-	req, err := s.client.NewRequest("GET", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opts, options)
 	if err != nil {
 		return nil, err
 	}

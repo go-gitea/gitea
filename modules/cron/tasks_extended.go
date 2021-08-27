@@ -33,7 +33,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return models.DeleteRepositoryArchives(ctx)
+		return repo_module.DeleteRepositoryArchives(ctx)
 	})
 }
 
@@ -117,6 +117,20 @@ func registerRemoveRandomAvatars() {
 	})
 }
 
+func registerDeleteOldActions() {
+	RegisterTaskFatal("delete_old_actions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		OlderThan: 365 * 24 * time.Hour,
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		olderThanConfig := config.(*OlderThanConfig)
+		return models.DeleteOldActions(olderThanConfig.OlderThan)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -127,4 +141,5 @@ func initExtendedTasks() {
 	registerReinitMissingRepositories()
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
+	registerDeleteOldActions()
 }

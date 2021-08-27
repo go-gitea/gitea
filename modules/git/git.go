@@ -14,14 +14,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/hashicorp/go-version"
 )
 
 var (
-	// Debug enables verbose logging on everything.
-	// This should be false in case Gogs starts in SSH mode.
-	Debug = false
 	// Prefix the log prefix
 	Prefix = "[git-module] "
 	// GitVersionRequired is the minimum Git version required
@@ -32,26 +30,17 @@ var (
 	GitExecutable = "git"
 
 	// DefaultContext is the default context to run git commands in
+	// will be overwritten by Init with HammerContext
 	DefaultContext = context.Background()
 
 	gitVersion *version.Version
 
 	// will be checked on Init
 	goVersionLessThan115 = true
+
+	// SupportProcReceive version >= 2.29.0
+	SupportProcReceive bool
 )
-
-func log(format string, args ...interface{}) {
-	if !Debug {
-		return
-	}
-
-	fmt.Print(Prefix)
-	if len(args) == 0 {
-		fmt.Println(format)
-	} else {
-		fmt.Printf(format+"\n", args...)
-	}
-}
 
 // LocalVersion returns current Git version from shell.
 func LocalVersion() (*version.Version, error) {
@@ -121,9 +110,41 @@ func SetExecutablePath(path string) error {
 	return nil
 }
 
+// VersionInfo returns git version information
+func VersionInfo() string {
+	var format = "Git Version: %s"
+	var args = []interface{}{gitVersion.Original()}
+	// Since git wire protocol has been released from git v2.18
+	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
+		format += ", Wire Protocol %s Enabled"
+		args = append(args, "Version 2") // for focus color
+	}
+
+	return fmt.Sprintf(format, args...)
+}
+
 // Init initializes git module
 func Init(ctx context.Context) error {
 	DefaultContext = ctx
+
+	defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
+
+	if err := SetExecutablePath(setting.Git.Path); err != nil {
+		return err
+	}
+
+	// force cleanup args
+	GlobalCommandArgs = []string{}
+
+	if CheckGitVersionAtLeast("2.9") == nil {
+		// Explicitly disable credential helper, otherwise Git credentials might leak
+		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "credential.helper=")
+	}
+
+	// Since git wire protocol has been released from git v2.18
+	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
+		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "protocol.version=2")
+	}
 
 	// Save current git version on init to gitVersion otherwise it would require an RWMutex
 	if err := LoadGitVersion(); err != nil {
@@ -163,6 +184,19 @@ func Init(ctx context.Context) error {
 		if err := checkAndSetConfig("gc.writeCommitGraph", "true", true); err != nil {
 			return err
 		}
+	}
+
+	if CheckGitVersionAtLeast("2.29") == nil {
+		// set support for AGit flow
+		if err := checkAndAddConfig("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		SupportProcReceive = true
+	} else {
+		if err := checkAndRemoveConfig("receive.procReceiveRefs", "refs/for"); err != nil {
+			return err
+		}
+		SupportProcReceive = false
 	}
 
 	if runtime.GOOS == "windows" {
@@ -208,6 +242,51 @@ func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
 	}
 
 	if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", key, defaultValue); err != nil {
+		return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+	}
+
+	return nil
+}
+
+func checkAndAddConfig(key, value string) error {
+	_, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key, value)
+	if err != nil {
+		perr, ok := err.(*process.Error)
+		if !ok {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		eerr, ok := perr.Err.(*exec.ExitError)
+		if !ok || eerr.ExitCode() != 1 {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		if eerr.ExitCode() == 1 {
+			if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", "--add", key, value); err != nil {
+				return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+			}
+			return nil
+		}
+	}
+
+	return nil
+}
+
+func checkAndRemoveConfig(key, value string) error {
+	_, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key, value)
+	if err != nil {
+		perr, ok := err.(*process.Error)
+		if !ok {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		eerr, ok := perr.Err.(*exec.ExitError)
+		if !ok || eerr.ExitCode() != 1 {
+			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+		}
+		if eerr.ExitCode() == 1 {
+			return nil
+		}
+	}
+
+	if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", "--unset-all", key, value); err != nil {
 		return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
 	}
 

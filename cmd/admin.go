@@ -10,16 +10,18 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/urfave/cli"
 )
@@ -125,9 +127,22 @@ var (
 	}
 
 	microcmdUserDelete = cli.Command{
-		Name:   "delete",
-		Usage:  "Delete specific user",
-		Flags:  []cli.Flag{idFlag},
+		Name:  "delete",
+		Usage: "Delete specific user by id, name or email",
+		Flags: []cli.Flag{
+			cli.Int64Flag{
+				Name:  "id",
+				Usage: "ID of user of the user to delete",
+			},
+			cli.StringFlag{
+				Name:  "username,u",
+				Usage: "Username of the user to delete",
+			},
+			cli.StringFlag{
+				Name:  "email,e",
+				Usage: "Email of the user to delete",
+			},
+		},
 		Action: runDeleteUser,
 	}
 
@@ -268,6 +283,11 @@ var (
 			Value: "",
 			Usage: "Use a custom Email URL (option for GitHub)",
 		},
+		cli.StringFlag{
+			Name:  "icon-url",
+			Value: "",
+			Usage: "Custom icon URL for OAuth2 login source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -330,12 +350,11 @@ func runChangePassword(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	if user.Salt, err = models.GetUserSalt(); err != nil {
+	if err = user.SetPassword(c.String("password")); err != nil {
 		return err
 	}
-	user.HashPassword(c.String("password"))
 
-	if err := models.UpdateUserCols(user, "passwd", "salt"); err != nil {
+	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -463,23 +482,42 @@ func runListUsers(c *cli.Context) error {
 }
 
 func runDeleteUser(c *cli.Context) error {
-	if !c.IsSet("id") {
-		return fmt.Errorf("--id flag is missing")
+	if !c.IsSet("id") && !c.IsSet("username") && !c.IsSet("email") {
+		return fmt.Errorf("You must provide the id, username or email of a user to delete")
 	}
 
 	if err := initDB(); err != nil {
 		return err
 	}
 
-	user, err := models.GetUserByID(c.Int64("id"))
+	if err := storage.Init(); err != nil {
+		return err
+	}
+
+	var err error
+	var user *models.User
+	if c.IsSet("email") {
+		user, err = models.GetUserByEmail(c.String("email"))
+	} else if c.IsSet("username") {
+		user, err = models.GetUserByName(c.String("username"))
+	} else {
+		user, err = models.GetUserByID(c.Int64("id"))
+	}
 	if err != nil {
 		return err
+	}
+	if c.IsSet("username") && user.LowerName != strings.ToLower(strings.TrimSpace(c.String("username"))) {
+		return fmt.Errorf("The user %s who has email %s does not match the provided username %s", user.Name, c.String("email"), c.String("username"))
+	}
+
+	if c.IsSet("id") && user.ID != c.Int64("id") {
+		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
 	return models.DeleteUser(user)
 }
 
-func runRepoSyncReleases(c *cli.Context) error {
+func runRepoSyncReleases(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
@@ -545,21 +583,21 @@ func getReleaseCount(id int64) (int64, error) {
 	)
 }
 
-func runRegenerateHooks(c *cli.Context) error {
+func runRegenerateHooks(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
 	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
-func runRegenerateKeys(c *cli.Context) error {
+func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(); err != nil {
 		return err
 	}
 	return models.RewriteAllPublicKeys()
 }
 
-func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
+func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -571,12 +609,13 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 	} else {
 		customURLMapping = nil
 	}
-	return &models.OAuth2Config{
+	return &oauth2.Source{
 		Provider:                      c.String("provider"),
 		ClientID:                      c.String("key"),
 		ClientSecret:                  c.String("secret"),
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
+		IconURL:                       c.String("icon-url"),
 	}
 }
 
@@ -586,10 +625,10 @@ func runAddOauth(c *cli.Context) error {
 	}
 
 	return models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginOAuth2,
-		Name:      c.String("name"),
-		IsActived: true,
-		Cfg:       parseOAuth2Config(c),
+		Type:     models.LoginOAuth2,
+		Name:     c.String("name"),
+		IsActive: true,
+		Cfg:      parseOAuth2Config(c),
 	})
 }
 
@@ -607,7 +646,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	oAuth2Config := source.OAuth2()
+	oAuth2Config := source.Cfg.(*oauth2.Source)
 
 	if c.IsSet("name") {
 		source.Name = c.String("name")
@@ -627,6 +666,10 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("auto-discover-url") {
 		oAuth2Config.OpenIDConnectAutoDiscoveryURL = c.String("auto-discover-url")
+	}
+
+	if c.IsSet("icon-url") {
+		oAuth2Config.IconURL = c.String("icon-url")
 	}
 
 	// update custom URL mapping
@@ -685,7 +728,7 @@ func runListAuth(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActive)
 	}
 	w.Flush()
 

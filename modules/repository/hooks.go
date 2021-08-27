@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"github.com/unknwon/com"
 
 	"xorm.io/builder"
 )
@@ -23,15 +23,67 @@ import (
 func getHookTemplates() (hookNames, hookTpls, giteaHookTpls []string) {
 	hookNames = []string{"pre-receive", "update", "post-receive"}
 	hookTpls = []string{
-		fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-		fmt.Sprintf("#!/usr/bin/env %s\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\n\"${hook}\" $1 $2 $3\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
-		fmt.Sprintf("#!/usr/bin/env %s\ndata=$(cat)\nexitcodes=\"\"\nhookname=$(basename $0)\nGIT_DIR=${GIT_DIR:-$(dirname $0)}\n\nfor hook in ${GIT_DIR}/hooks/${hookname}.d/*; do\ntest -x \"${hook}\" && test -f \"${hook}\" || continue\necho \"${data}\" | \"${hook}\"\nexitcodes=\"${exitcodes} $?\"\ndone\n\nfor i in ${exitcodes}; do\n[ ${i} -eq 0 ] || exit ${i}\ndone\n", setting.ScriptType),
+		fmt.Sprintf(`#!/usr/bin/env %s
+data=$(cat)
+exitcodes=""
+hookname=$(basename $0)
+GIT_DIR=${GIT_DIR:-$(dirname $0)/..}
+
+for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
+test -x "${hook}" && test -f "${hook}" || continue
+echo "${data}" | "${hook}"
+exitcodes="${exitcodes} $?"
+done
+
+for i in ${exitcodes}; do
+[ ${i} -eq 0 ] || exit ${i}
+done
+`, setting.ScriptType),
+		fmt.Sprintf(`#!/usr/bin/env %s
+exitcodes=""
+hookname=$(basename $0)
+GIT_DIR=${GIT_DIR:-$(dirname $0/..)}
+
+for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
+test -x "${hook}" && test -f "${hook}" || continue
+"${hook}" $1 $2 $3
+exitcodes="${exitcodes} $?"
+done
+
+for i in ${exitcodes}; do
+[ ${i} -eq 0 ] || exit ${i}
+done
+`, setting.ScriptType),
+		fmt.Sprintf(`#!/usr/bin/env %s
+data=$(cat)
+exitcodes=""
+hookname=$(basename $0)
+GIT_DIR=${GIT_DIR:-$(dirname $0)/..}
+
+for hook in ${GIT_DIR}/hooks/${hookname}.d/*; do
+test -x "${hook}" && test -f "${hook}" || continue
+echo "${data}" | "${hook}"
+exitcodes="${exitcodes} $?"
+done
+
+for i in ${exitcodes}; do
+[ ${i} -eq 0 ] || exit ${i}
+done
+`, setting.ScriptType),
 	}
 	giteaHookTpls = []string{
 		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s pre-receive\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
 		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s update $1 $2 $3\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
 		fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s post-receive\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)),
 	}
+
+	if git.SupportProcReceive {
+		hookNames = append(hookNames, "proc-receive")
+		hookTpls = append(hookTpls,
+			fmt.Sprintf("#!/usr/bin/env %s\n%s hook --config=%s proc-receive\n", setting.ScriptType, util.ShellEscape(setting.AppPath), util.ShellEscape(setting.CustomConf)))
+		giteaHookTpls = append(giteaHookTpls, "")
+	}
+
 	return
 }
 
@@ -112,15 +164,27 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		newHookPath := filepath.Join(hookDir, hookName+".d", "gitea")
 
 		cont := false
-		if !com.IsExist(oldHookPath) {
+		isExist, err := util.IsExist(oldHookPath)
+		if err != nil {
+			results = append(results, fmt.Sprintf("unable to check if %s exists. Error: %v", oldHookPath, err))
+		}
+		if err == nil && !isExist {
 			results = append(results, fmt.Sprintf("old hook file %s does not exist", oldHookPath))
 			cont = true
 		}
-		if !com.IsExist(oldHookPath + ".d") {
+		isExist, err = util.IsExist(oldHookPath + ".d")
+		if err != nil {
+			results = append(results, fmt.Sprintf("unable to check if %s exists. Error: %v", oldHookPath+".d", err))
+		}
+		if err == nil && !isExist {
 			results = append(results, fmt.Sprintf("hooks directory %s does not exist", oldHookPath+".d"))
 			cont = true
 		}
-		if !com.IsExist(newHookPath) {
+		isExist, err = util.IsExist(newHookPath)
+		if err != nil {
+			results = append(results, fmt.Sprintf("unable to check if %s exists. Error: %v", newHookPath, err))
+		}
+		if err == nil && !isExist {
 			results = append(results, fmt.Sprintf("new hook file %s does not exist", newHookPath))
 			cont = true
 		}

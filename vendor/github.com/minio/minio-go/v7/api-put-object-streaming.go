@@ -101,7 +101,7 @@ func (c Client) putObjectMultipartStreamFromReadAt(ctx context.Context, bucketNa
 	}
 
 	// Calculate the optimal parts info for a given size.
-	totalPartsCount, partSize, lastPartSize, err := optimalPartInfo(size, opts.PartSize)
+	totalPartsCount, partSize, lastPartSize, err := OptimalPartInfo(size, opts.PartSize)
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -149,7 +149,7 @@ func (c Client) putObjectMultipartStreamFromReadAt(ctx context.Context, bucketNa
 
 	var partsBuf = make([][]byte, opts.getNumThreads())
 	for i := range partsBuf {
-		partsBuf[i] = make([]byte, partSize)
+		partsBuf[i] = make([]byte, 0, partSize)
 	}
 
 	// Receive each part number from the channel allowing three parallel uploads.
@@ -231,7 +231,7 @@ func (c Client) putObjectMultipartStreamFromReadAt(ctx context.Context, bucketNa
 	// Sort all completed parts.
 	sort.Sort(completedParts(complMultipartUpload.Parts))
 
-	uploadInfo, err := c.completeMultipartUpload(ctx, bucketName, objectName, uploadID, complMultipartUpload)
+	uploadInfo, err := c.completeMultipartUpload(ctx, bucketName, objectName, uploadID, complMultipartUpload, PutObjectOptions{})
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -251,7 +251,7 @@ func (c Client) putObjectMultipartStreamOptionalChecksum(ctx context.Context, bu
 	}
 
 	// Calculate the optimal parts info for a given size.
-	totalPartsCount, partSize, lastPartSize, err := optimalPartInfo(size, opts.PartSize)
+	totalPartsCount, partSize, lastPartSize, err := OptimalPartInfo(size, opts.PartSize)
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -358,7 +358,7 @@ func (c Client) putObjectMultipartStreamOptionalChecksum(ctx context.Context, bu
 	// Sort all completed parts.
 	sort.Sort(completedParts(complMultipartUpload.Parts))
 
-	uploadInfo, err := c.completeMultipartUpload(ctx, bucketName, objectName, uploadID, complMultipartUpload)
+	uploadInfo, err := c.completeMultipartUpload(ctx, bucketName, objectName, uploadID, complMultipartUpload, PutObjectOptions{})
 	if err != nil {
 		return UploadInfo{}, err
 	}
@@ -451,15 +451,12 @@ func (c Client) putObjectDo(ctx context.Context, bucketName, objectName string, 
 		contentMD5Base64: md5Base64,
 		contentSHA256Hex: sha256Hex,
 	}
-	if opts.ReplicationVersionID != "" {
-		if _, err := uuid.Parse(opts.ReplicationVersionID); err != nil {
+	if opts.Internal.SourceVersionID != "" {
+		if _, err := uuid.Parse(opts.Internal.SourceVersionID); err != nil {
 			return UploadInfo{}, errInvalidArgument(err.Error())
 		}
 		urlValues := make(url.Values)
-		urlValues.Set("versionId", opts.ReplicationVersionID)
-		if opts.ReplicationETag != "" {
-			urlValues.Set("etag", opts.ReplicationETag)
-		}
+		urlValues.Set("versionId", opts.Internal.SourceVersionID)
 		reqMetadata.queryValues = urlValues
 	}
 

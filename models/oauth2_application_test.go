@@ -94,11 +94,12 @@ func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
 func TestOAuth2Application_CreateGrant(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
-	grant, err := app.CreateGrant(2)
+	grant, err := app.CreateGrant(2, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, grant)
 	assert.Equal(t, int64(2), grant.UserID)
 	assert.Equal(t, int64(1), grant.ApplicationID)
+	assert.Equal(t, "", grant.Scope)
 }
 
 //////////////////// Grant
@@ -120,6 +121,15 @@ func TestOAuth2Grant_IncreaseCounter(t *testing.T) {
 	assert.NoError(t, grant.IncreaseCounter())
 	assert.Equal(t, int64(2), grant.Counter)
 	AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 2})
+}
+
+func TestOAuth2Grant_ScopeContains(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+	grant := AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Scope: "openid profile"}).(*OAuth2Grant)
+	assert.True(t, grant.ScopeContains("openid"))
+	assert.True(t, grant.ScopeContains("profile"))
+	assert.False(t, grant.ScopeContains("profil"))
+	assert.False(t, grant.ScopeContains("profile2"))
 }
 
 func TestOAuth2Grant_GenerateNewAuthorizationCode(t *testing.T) {
@@ -209,11 +219,11 @@ func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {
 
 	redirect, err := code.GenerateRedirectURI("thestate")
 	assert.NoError(t, err)
-	assert.Equal(t, redirect.String(), "https://example.com/callback?code=thecode&state=thestate")
+	assert.Equal(t, "https://example.com/callback?code=thecode&state=thestate", redirect.String())
 
 	redirect, err = code.GenerateRedirectURI("")
 	assert.NoError(t, err)
-	assert.Equal(t, redirect.String(), "https://example.com/callback?code=thecode")
+	assert.Equal(t, "https://example.com/callback?code=thecode", redirect.String())
 }
 
 func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {

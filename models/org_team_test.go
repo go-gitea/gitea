@@ -286,7 +286,7 @@ func TestGetTeamMembers(t *testing.T) {
 func TestGetUserTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(userID int64) {
-		teams, err := GetUserTeams(userID, ListOptions{})
+		teams, _, err := SearchTeam(&SearchTeamOptions{UserID: userID})
 		assert.NoError(t, err)
 		for _, team := range teams {
 			AssertExistsAndLoadBean(t, &TeamUser{TeamID: team.ID, UID: userID})
@@ -364,7 +364,7 @@ func TestHasTeamRepo(t *testing.T) {
 func TestUsersInTeamsCount(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	test := func(teamIDs []int64, userIDs []int64, expected int64) {
+	test := func(teamIDs, userIDs []int64, expected int64) {
 		count, err := UsersInTeamsCount(teamIDs, userIDs)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, count)

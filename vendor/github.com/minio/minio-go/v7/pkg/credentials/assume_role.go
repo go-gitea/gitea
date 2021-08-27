@@ -144,7 +144,7 @@ func closeResponse(resp *http.Response) {
 func getAssumeRoleCredentials(clnt *http.Client, endpoint string, opts STSAssumeRoleOptions) (AssumeRoleResponse, error) {
 	v := url.Values{}
 	v.Set("Action", "AssumeRole")
-	v.Set("Version", "2011-06-15")
+	v.Set("Version", STSVersion)
 	if opts.RoleARN != "" {
 		v.Set("RoleArn", opts.RoleARN)
 	}

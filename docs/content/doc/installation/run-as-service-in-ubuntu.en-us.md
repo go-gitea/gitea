@@ -3,7 +3,7 @@ date: "2017-07-21T12:00:00+02:00"
 title: "Run as service in Linux"
 slug: "linux-service"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

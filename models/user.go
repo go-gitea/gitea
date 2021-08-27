@@ -6,7 +6,6 @@
 package models
 
 import (
-	"container/list"
 	"context"
 	"crypto/sha256"
 	"crypto/subtle"
@@ -22,24 +21,19 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/argon2"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
-	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -58,7 +52,17 @@ const (
 	algoScrypt = "scrypt"
 	algoArgon2 = "argon2"
 	algoPbkdf2 = "pbkdf2"
+)
 
+// AvailableHashAlgorithms represents the available password hashing algorithms
+var AvailableHashAlgorithms = []string{
+	algoPbkdf2,
+	algoArgon2,
+	algoScrypt,
+	algoBcrypt,
+}
+
+const (
 	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
@@ -68,12 +72,6 @@ const (
 )
 
 var (
-	// ErrUserNotKeyOwner user does not own this key error
-	ErrUserNotKeyOwner = errors.New("User does not own this public key")
-
-	// ErrEmailNotExist e-mail does not exist error
-	ErrEmailNotExist = errors.New("E-mail does not exist")
-
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
 
@@ -112,7 +110,6 @@ type User struct {
 	LoginName   string
 	Type        UserType
 	OwnedOrgs   []*User       `xorm:"-"`
-	Orgs        []*User       `xorm:"-"`
 	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
@@ -231,10 +228,10 @@ func (u *User) GetEmail() string {
 	return u.Email
 }
 
-// GetAllUsers returns a slice of all users found in DB.
+// GetAllUsers returns a slice of all individual users found in DB.
 func GetAllUsers() ([]*User, error) {
 	users := make([]*User, 0)
-	return users, x.OrderBy("id").Find(&users)
+	return users, x.OrderBy("id").Where("type = ?", UserTypeIndividual).Find(&users)
 }
 
 // IsLocal returns true if user login type is LoginPlain.
@@ -288,7 +285,7 @@ func (u *User) CanEditGitHook() bool {
 
 // CanImportLocal returns true if user can migrate repository by local path.
 func (u *User) CanImportLocal() bool {
-	if !setting.ImportLocalPaths {
+	if !setting.ImportLocalPaths || u == nil {
 		return false
 	}
 	return u.IsAdmin || u.AllowImportLocal
@@ -297,7 +294,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return setting.AppSubURL + "/org/" + u.Name + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard/"
 	}
 	return setting.AppSubURL + "/"
 }
@@ -312,20 +309,20 @@ func (u *User) HTMLURL() string {
 	return setting.AppURL + u.Name
 }
 
+// OrganisationLink returns the organization sub page link.
+func (u *User) OrganisationLink() string {
+	return setting.AppSubURL + "/org/" + u.Name
+}
+
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
 func (u *User) GenerateEmailActivateCode(email string) string {
 	code := base.CreateTimeLimitCode(
-		com.ToStr(u.ID)+email+u.LowerName+u.Passwd+u.Rands,
+		fmt.Sprintf("%d%s%s%s%s", u.ID, email, u.LowerName, u.Passwd, u.Rands),
 		setting.Service.ActiveCodeLives, nil)
 
 	// Add tail hex username
 	code += hex.EncodeToString([]byte(u.LowerName))
 	return code
-}
-
-// GenerateActivateCode generates an activate code based on user information.
-func (u *User) GenerateActivateCode() string {
-	return u.GenerateEmailActivateCode(u.Email)
 }
 
 // GetFollowers returns range of user's followers.
@@ -396,10 +393,23 @@ func hashPassword(passwd, salt, algo string) string {
 	return fmt.Sprintf("%x", tempPasswd)
 }
 
-// HashPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO.
-func (u *User) HashPassword(passwd string) {
+// SetPassword hashes a password using the algorithm defined in the config value of PASSWORD_HASH_ALGO
+// change passwd, salt and passwd_hash_algo fields
+func (u *User) SetPassword(passwd string) (err error) {
+	if len(passwd) == 0 {
+		u.Passwd = ""
+		u.Salt = ""
+		u.PasswdHashAlgo = ""
+		return nil
+	}
+
+	if u.Salt, err = GetUserSalt(); err != nil {
+		return err
+	}
 	u.PasswdHashAlgo = setting.PasswordHashAlgo
 	u.Passwd = hashPassword(passwd, u.Salt, setting.PasswordHashAlgo)
+
+	return nil
 }
 
 // ValidatePassword checks if given password matches the one belongs to the user.
@@ -417,7 +427,63 @@ func (u *User) ValidatePassword(passwd string) bool {
 
 // IsPasswordSet checks if the password is set or left empty
 func (u *User) IsPasswordSet() bool {
-	return !u.ValidatePassword("")
+	return len(u.Passwd) != 0
+}
+
+// IsVisibleToUser check if viewer is able to see user profile
+func (u *User) IsVisibleToUser(viewer *User) bool {
+	return u.isVisibleToUser(x, viewer)
+}
+
+func (u *User) isVisibleToUser(e Engine, viewer *User) bool {
+	if viewer != nil && viewer.IsAdmin {
+		return true
+	}
+
+	switch u.Visibility {
+	case structs.VisibleTypePublic:
+		return true
+	case structs.VisibleTypeLimited:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+		return true
+	case structs.VisibleTypePrivate:
+		if viewer == nil || viewer.IsRestricted {
+			return false
+		}
+
+		// If they follow - they see each over
+		follower := IsFollowing(u.ID, viewer.ID)
+		if follower {
+			return true
+		}
+
+		// Now we need to check if they in some organization together
+		count, err := x.Table("team_user").
+			Where(
+				builder.And(
+					builder.Eq{"uid": viewer.ID},
+					builder.Or(
+						builder.Eq{"org_id": u.ID},
+						builder.In("org_id",
+							builder.Select("org_id").
+								From("team_user", "t2").
+								Where(builder.Eq{"uid": u.ID}))))).
+			Count(new(TeamUser))
+		if err != nil {
+			return false
+		}
+
+		if count < 0 {
+			// No common organization
+			return false
+		}
+
+		// they are in an organization together
+		return true
+	}
+	return false
 }
 
 // IsOrganization returns true if user is actually a organization.
@@ -491,6 +557,23 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 	return ids, sess.Where("owner_id = ?", u.ID).Find(&ids)
 }
 
+// GetActiveRepositoryIDs returns non-archived repositories IDs where user owned and has unittypes
+// Caller shall check that units is not globally disabled
+func (u *User) GetActiveRepositoryIDs(units ...UnitType) ([]int64, error) {
+	var ids []int64
+
+	sess := x.Table("repository").Cols("repository.id")
+
+	if len(units) > 0 {
+		sess = sess.Join("INNER", "repo_unit", "repository.id = repo_unit.repo_id")
+		sess = sess.In("repo_unit.type", units)
+	}
+
+	sess.Where(builder.Eq{"is_archived": false})
+
+	return ids, sess.Where("owner_id = ?", u.ID).GroupBy("repository.id").Find(&ids)
+}
+
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
 // Caller shall check that units is not globally disabled
 func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
@@ -501,6 +584,28 @@ func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
 		Join("INNER", "team_repo", "(? != ? and repository.is_private != ?) OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true, u.IsRestricted, true).
 		Where("team_user.uid = ?", u.ID).
+		GroupBy("repository.id").Find(&ids); err != nil {
+		return nil, err
+	}
+
+	if len(units) > 0 {
+		return FilterOutRepoIdsWithoutUnitAccess(u, ids, units...)
+	}
+
+	return ids, nil
+}
+
+// GetActiveOrgRepositoryIDs returns non-archived repositories IDs where user's team owned and has unittypes
+// Caller shall check that units is not globally disabled
+func (u *User) GetActiveOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
+	var ids []int64
+
+	if err := x.Table("repository").
+		Cols("repository.id").
+		Join("INNER", "team_user", "repository.owner_id = team_user.org_id").
+		Join("INNER", "team_repo", "(? != ? and repository.is_private != ?) OR (team_user.team_id = team_repo.team_id AND repository.id = team_repo.repo_id)", true, u.IsRestricted, true).
+		Where("team_user.uid = ?", u.ID).
+		Where(builder.Eq{"is_archived": false}).
 		GroupBy("repository.id").Find(&ids); err != nil {
 		return nil, err
 	}
@@ -526,6 +631,20 @@ func (u *User) GetAccessRepoIDs(units ...UnitType) ([]int64, error) {
 	return append(ids, ids2...), nil
 }
 
+// GetActiveAccessRepoIDs returns all non-archived repositories IDs where user's or user is a team member organizations
+// Caller shall check that units is not globally disabled
+func (u *User) GetActiveAccessRepoIDs(units ...UnitType) ([]int64, error) {
+	ids, err := u.GetActiveRepositoryIDs(units...)
+	if err != nil {
+		return nil, err
+	}
+	ids2, err := u.GetActiveOrgRepositoryIDs(units...)
+	if err != nil {
+		return nil, err
+	}
+	return append(ids, ids2...), nil
+}
+
 // GetMirrorRepositories returns mirror repositories that user owns, including private repositories.
 func (u *User) GetMirrorRepositories() ([]*Repository, error) {
 	return GetUserMirrorRepositories(u.ID)
@@ -535,57 +654,6 @@ func (u *User) GetMirrorRepositories() ([]*Repository, error) {
 func (u *User) GetOwnedOrganizations() (err error) {
 	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID)
 	return err
-}
-
-// GetOrganizations returns paginated organizations that user belongs to.
-func (u *User) GetOrganizations(opts *SearchOrganizationsOptions) error {
-	sess := x.NewSession()
-	defer sess.Close()
-
-	schema, err := x.TableInfo(new(User))
-	if err != nil {
-		return err
-	}
-	groupByCols := &strings.Builder{}
-	for _, col := range schema.Columns() {
-		fmt.Fprintf(groupByCols, "`%s`.%s,", schema.Name, col.Name)
-	}
-	groupByStr := groupByCols.String()
-	groupByStr = groupByStr[0 : len(groupByStr)-1]
-
-	sess.Select("`user`.*, count(repo_id) as org_count").
-		Table("user").
-		Join("INNER", "org_user", "`org_user`.org_id=`user`.id").
-		Join("LEFT", builder.
-			Select("id as repo_id, owner_id as repo_owner_id").
-			From("repository").
-			Where(accessibleRepositoryCondition(u)), "`repository`.repo_owner_id = `org_user`.org_id").
-		And("`org_user`.uid=?", u.ID).
-		GroupBy(groupByStr)
-	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
-	}
-	type OrgCount struct {
-		User     `xorm:"extends"`
-		OrgCount int
-	}
-	orgCounts := make([]*OrgCount, 0, 10)
-
-	if err := sess.
-		Asc("`user`.name").
-		Find(&orgCounts); err != nil {
-		return err
-	}
-
-	orgs := make([]*User, len(orgCounts))
-	for i, orgCount := range orgCounts {
-		orgCount.User.NumRepos = orgCount.OrgCount
-		orgs[i] = &orgCount.User
-	}
-
-	u.Orgs = orgs
-
-	return nil
 }
 
 // DisplayName returns full name if it's not empty,
@@ -675,7 +743,7 @@ func IsUserExist(uid int64, name string) (bool, error) {
 
 // GetUserSalt returns a random user salt token.
 func GetUserSalt() (string, error) {
-	return generate.GetRandomString(10)
+	return util.RandomString(10)
 }
 
 // NewGhostUser creates and returns a fake user for someone has deleted his/her account.
@@ -705,7 +773,7 @@ func (u *User) IsGhost() bool {
 }
 
 var (
-	reservedUsernames = append([]string{
+	reservedUsernames = []string{
 		".",
 		"..",
 		".well-known",
@@ -714,10 +782,12 @@ var (
 		"assets",
 		"attachments",
 		"avatars",
+		"captcha",
 		"commits",
 		"debug",
 		"error",
 		"explore",
+		"favicon.ico",
 		"ghost",
 		"help",
 		"install",
@@ -736,12 +806,13 @@ var (
 		"repo",
 		"robots.txt",
 		"search",
+		"serviceworker.js",
 		"stars",
 		"template",
 		"user",
-	}, public.KnownPublicEntries...)
+	}
 
-	reservedUserPatterns = []string{"*.keys", "*.gpg"}
+	reservedUserPatterns = []string{"*.keys", "*.gpg", "*.rss", "*.atom"}
 )
 
 // isUsableName checks if name is reserved or pattern of name is not allowed
@@ -779,15 +850,39 @@ func IsUsableUsername(name string) error {
 	return isUsableName(reservedUsernames, reservedUserPatterns, name)
 }
 
+// CreateUserOverwriteOptions are an optional options who overwrite system defaults on user creation
+type CreateUserOverwriteOptions struct {
+	Visibility structs.VisibleType
+}
+
 // CreateUser creates record of a new user.
-func CreateUser(u *User) (err error) {
+func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err error) {
 	if err = IsUsableUsername(u.Name); err != nil {
 		return err
+	}
+
+	// set system defaults
+	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	u.Visibility = setting.Service.DefaultUserVisibilityMode
+	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
+	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
+	u.MaxRepoCreation = -1
+	u.Theme = setting.UI.DefaultTheme
+
+	// overwrite defaults if set
+	if len(overwriteDefault) != 0 && overwriteDefault[0] != nil {
+		u.Visibility = overwriteDefault[0].Visibility
 	}
 
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
+		return err
+	}
+
+	// validate data
+
+	if err := validateUser(u); err != nil {
 		return err
 	}
 
@@ -798,16 +893,6 @@ func CreateUser(u *User) (err error) {
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	u.Email = strings.ToLower(u.Email)
-	isExist, err = sess.
-		Where("email=?", u.Email).
-		Get(new(User))
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
-	}
-
 	isExist, err = isEmailUsed(sess, u.Email)
 	if err != nil {
 		return err
@@ -815,23 +900,35 @@ func CreateUser(u *User) (err error) {
 		return ErrEmailAlreadyUsed{u.Email}
 	}
 
-	u.KeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
+	// prepare for database
 
 	u.LowerName = strings.ToLower(u.Name)
 	u.AvatarEmail = u.Email
 	if u.Rands, err = GetUserSalt(); err != nil {
 		return err
 	}
-	if u.Salt, err = GetUserSalt(); err != nil {
+	if err = u.SetPassword(u.Passwd); err != nil {
 		return err
 	}
-	u.HashPassword(u.Passwd)
-	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
-	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
-	u.MaxRepoCreation = -1
-	u.Theme = setting.UI.DefaultTheme
+
+	// save changes to database
+
+	if err = deleteUserRedirect(sess, u.Name); err != nil {
+		return err
+	}
 
 	if _, err = sess.Insert(u); err != nil {
+		return err
+	}
+
+	// insert email address
+	if _, err := sess.Insert(&EmailAddress{
+		UID:         u.ID,
+		Email:       u.Email,
+		LowerEmail:  strings.ToLower(u.Email),
+		IsActivated: u.IsActive,
+		IsPrimary:   true,
+	}); err != nil {
 		return err
 	}
 
@@ -875,7 +972,7 @@ func VerifyUserActiveCode(code string) (user *User) {
 	if user = getVerifyUser(code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := com.ToStr(user.ID) + user.Email + user.LowerName + user.Passwd + user.Rands
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, user.Email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			return user
@@ -891,7 +988,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 	if user := getVerifyUser(code); user != nil {
 		// time limit code
 		prefix := code[:base.TimeLimitCodeLength]
-		data := com.ToStr(user.ID) + email + user.LowerName + user.Passwd + user.Rands
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			emailAddress := &EmailAddress{UID: user.ID, Email: email}
@@ -905,15 +1002,9 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 
 // ChangeUserName changes all corresponding setting from old user name to new one.
 func ChangeUserName(u *User, newUserName string) (err error) {
+	oldUserName := u.Name
 	if err = IsUsableUsername(newUserName); err != nil {
 		return err
-	}
-
-	isExist, err := IsUserExist(0, newUserName)
-	if err != nil {
-		return err
-	} else if isExist {
-		return ErrUserAlreadyExist{newUserName}
 	}
 
 	sess := x.NewSession()
@@ -922,16 +1013,35 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, u.Name); err != nil {
+	isExist, err := isUserExist(sess, 0, newUserName)
+	if err != nil {
+		return err
+	} else if isExist {
+		return ErrUserAlreadyExist{newUserName}
+	}
+
+	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
 	// Do not fail if directory does not exist
-	if err = os.Rename(UserPath(u.Name), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
+	if err = util.Rename(UserPath(oldUserName), UserPath(newUserName)); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	return sess.Commit()
+	if err = newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
+		return err
+	}
+
+	if err = sess.Commit(); err != nil {
+		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
+			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
+		}
+		return err
+	}
+
+	return nil
 }
 
 // checkDupEmail checks whether there are the same email with the user
@@ -950,7 +1060,21 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
+// validateUser check if user is valide to insert / update into database
+func validateUser(u *User) error {
+	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) {
+		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
+	}
+
+	u.Email = strings.ToLower(u.Email)
+	return ValidateEmail(u.Email)
+}
+
 func updateUser(e Engine, u *User) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
 	_, err := e.ID(u.ID).AllCols().Update(u)
 	return err
 }
@@ -966,18 +1090,30 @@ func UpdateUserCols(u *User, cols ...string) error {
 }
 
 func updateUserCols(e Engine, u *User, cols ...string) error {
+	if err := validateUser(u); err != nil {
+		return err
+	}
+
 	_, err := e.ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
 
 // UpdateUserSetting updates user's settings.
-func UpdateUserSetting(u *User) error {
+func UpdateUserSetting(u *User) (err error) {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
+	}
 	if !u.IsOrganization() {
-		if err := checkDupEmail(x, u); err != nil {
+		if err = checkDupEmail(sess, u); err != nil {
 			return err
 		}
 	}
-	return updateUser(x, u)
+	if err = updateUser(sess, u); err != nil {
+		return err
+	}
+	return sess.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.
@@ -990,8 +1126,7 @@ func deleteBeans(e Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-// FIXME: need some kind of mechanism to record failure. HINT: system notice
-func deleteUser(e *xorm.Session, u *User) error {
+func deleteUser(e Engine, u *User) error {
 	// Note: A user owns any repository or belongs to any organization
 	//	cannot perform delete operation.
 
@@ -1070,6 +1205,33 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
+	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+
+		// Delete Comments
+		const batchSize = 50
+		for start := 0; ; start += batchSize {
+			comments := make([]*Comment, 0, batchSize)
+			if err = e.Where("type=? AND poster_id=?", CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
+				return err
+			}
+			if len(comments) == 0 {
+				break
+			}
+
+			for _, comment := range comments {
+				if err = deleteComment(e, comment); err != nil {
+					return err
+				}
+			}
+		}
+
+		// Delete Reactions
+		if err = deleteReaction(e, &ReactionOptions{Doer: u}); err != nil {
+			return err
+		}
+	}
+
 	// ***** START: PublicKey *****
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
@@ -1085,6 +1247,16 @@ func deleteUser(e *xorm.Session, u *User) error {
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
+	keys, err := listGPGKeys(e, u.ID, ListOptions{})
+	if err != nil {
+		return fmt.Errorf("ListGPGKeys: %v", err)
+	}
+	// Delete GPGKeyImport(s).
+	for _, key := range keys {
+		if _, err = e.Delete(&GPGKeyImport{KeyID: key.KeyID}); err != nil {
+			return fmt.Errorf("deleteGPGKeyImports: %v", err)
+		}
+	}
 	if _, err = e.Delete(&GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
@@ -1105,18 +1277,21 @@ func deleteUser(e *xorm.Session, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := UserPath(u.Name)
-	if err := util.RemoveAll(path); err != nil {
-		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+	if err = util.RemoveAll(path); err != nil {
+		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
+		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		return err
 	}
 
 	if len(u.Avatar) > 0 {
 		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+		if err = storage.Avatars.Delete(avatarPath); err != nil {
+			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
+			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			return err
 		}
 	}
 
@@ -1124,7 +1299,8 @@ func deleteUser(e *xorm.Session, u *User) error {
 }
 
 // DeleteUser completely and permanently deletes everything of a user,
-// but issues/comments/pulls will be kept and shown as someone has been deleted.
+// but issues/comments/pulls will be kept and shown as someone has been deleted,
+// unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
 func DeleteUser(u *User) (err error) {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
@@ -1159,7 +1335,6 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 			Find(&users); err != nil {
 			return fmt.Errorf("get all inactive users: %v", err)
 		}
-
 	}
 	// FIXME: should only update authorized_keys file once after all deletions.
 	for _, u := range users {
@@ -1307,6 +1482,13 @@ func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) 
 	return ids, nil
 }
 
+// GetUsersBySource returns a list of Users for a login source
+func GetUsersBySource(s *LoginSource) ([]*User, error) {
+	var users []*User
+	err := x.Where("login_type = ? AND login_source = ?", s.Type, s.ID).Find(&users)
+	return users, err
+}
+
 // UserCommit represents a commit with validation of user.
 type UserCommit struct {
 	User *User
@@ -1326,16 +1508,13 @@ func ValidateCommitWithEmail(c *git.Commit) *User {
 }
 
 // ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
+func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
 	var (
-		u          *User
-		emails     = map[string]*User{}
-		newCommits = list.New()
-		e          = oldCommits.Front()
+		emails     = make(map[string]*User)
+		newCommits = make([]*UserCommit, 0, len(oldCommits))
 	)
-	for e != nil {
-		c := e.Value.(*git.Commit)
-
+	for _, c := range oldCommits {
+		var u *User
 		if c.Author != nil {
 			if v, ok := emails[c.Author.Email]; !ok {
 				u, _ = GetUserByEmail(c.Author.Email)
@@ -1343,15 +1522,12 @@ func ValidateCommitsWithEmails(oldCommits *list.List) *list.List {
 			} else {
 				u = v
 			}
-		} else {
-			u = nil
 		}
 
-		newCommits.PushBack(UserCommit{
+		newCommits = append(newCommits, &UserCommit{
 			User:   u,
 			Commit: c,
 		})
-		e = e.Next()
 	}
 	return newCommits
 }
@@ -1424,7 +1600,6 @@ type SearchUserOptions struct {
 
 func (opts *SearchUserOptions) toConds() builder.Cond {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
-
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
 		keywordCond := builder.Or(
@@ -1438,31 +1613,35 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(keywordCond)
 	}
 
+	// If visibility filtered
 	if len(opts.Visible) > 0 {
 		cond = cond.And(builder.In("visibility", opts.Visible))
-	} else {
-		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.Actor != nil {
-		var exprCond builder.Cond
-		if setting.Database.UseMySQL {
-			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if setting.Database.UseMSSQL {
-			exprCond = builder.Expr("org_user.org_id = [user].id")
-		} else {
-			exprCond = builder.Expr("org_user.org_id = \"user\".id")
+		var exprCond builder.Cond = builder.Expr("org_user.org_id = `user`.id")
+
+		// If Admin - they see all users!
+		if !opts.Actor.IsAdmin {
+			// Force visibility for privacy
+			var accessCond builder.Cond
+			if !opts.Actor.IsRestricted {
+				accessCond = builder.Or(
+					builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
+					builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			} else {
+				// restricted users only see orgs they are a member of
+				accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+			}
+			// Don't forget about self
+			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
+			cond = cond.And(accessCond)
 		}
-		var accessCond = builder.NewCond()
-		if !opts.Actor.IsRestricted {
-			accessCond = builder.Or(
-				builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-				builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-		} else {
-			// restricted users only see orgs they are a member of
-			accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
-		}
-		cond = cond.And(accessCond)
+
+	} else {
+		// Force visibility for privacy
+		// Not logged in - only public users
+		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
 	}
 
 	if opts.UID > 0 {
@@ -1518,7 +1697,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, int64, error) {
 	sess := x.Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
@@ -1530,338 +1709,21 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 		sess = listOptions.setSessionPagination(sess)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
-		return repos, sess.Find(&repos)
+		total, err := sess.FindAndCount(&repos)
+		return repos, total, err
 	}
 
 	repos := make([]*Repository, 0, 10)
-	return repos, sess.Find(&repos)
-}
-
-// deleteKeysMarkedForDeletion returns true if ssh keys needs update
-func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
-	// Start session
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return false, err
-	}
-
-	// Delete keys marked for deletion
-	var sshKeysNeedUpdate bool
-	for _, KeyToDelete := range keys {
-		key, err := searchPublicKeyByContentWithEngine(sess, KeyToDelete)
-		if err != nil {
-			log.Error("SearchPublicKeyByContent: %v", err)
-			continue
-		}
-		if err = deletePublicKeys(sess, key.ID); err != nil {
-			log.Error("deletePublicKeys: %v", err)
-			continue
-		}
-		sshKeysNeedUpdate = true
-	}
-
-	if err := sess.Commit(); err != nil {
-		return false, err
-	}
-
-	return sshKeysNeedUpdate, nil
-}
-
-// addLdapSSHPublicKeys add a users public keys. Returns true if there are changes.
-func addLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
-	var sshKeysNeedUpdate bool
-	for _, sshKey := range sshPublicKeys {
-		_, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshKey))
-		if err == nil {
-			sshKeyName := fmt.Sprintf("%s-%s", s.Name, sshKey[0:40])
-			if _, err := AddPublicKey(usr.ID, sshKeyName, sshKey, s.ID); err != nil {
-				if IsErrKeyAlreadyExist(err) {
-					log.Trace("addLdapSSHPublicKeys[%s]: LDAP Public SSH Key %s already exists for user", s.Name, usr.Name)
-				} else {
-					log.Error("addLdapSSHPublicKeys[%s]: Error adding LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, err)
-				}
-			} else {
-				log.Trace("addLdapSSHPublicKeys[%s]: Added LDAP Public SSH Key for user %s", s.Name, usr.Name)
-				sshKeysNeedUpdate = true
-			}
-		} else {
-			log.Warn("addLdapSSHPublicKeys[%s]: Skipping invalid LDAP Public SSH Key for user %s: %v", s.Name, usr.Name, sshKey)
-		}
-	}
-	return sshKeysNeedUpdate
-}
-
-// synchronizeLdapSSHPublicKeys updates a users public keys. Returns true if there are changes.
-func synchronizeLdapSSHPublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
-	var sshKeysNeedUpdate bool
-
-	log.Trace("synchronizeLdapSSHPublicKeys[%s]: Handling LDAP Public SSH Key synchronization for user %s", s.Name, usr.Name)
-
-	// Get Public Keys from DB with current LDAP source
-	var giteaKeys []string
-	keys, err := ListPublicLdapSSHKeys(usr.ID, s.ID)
-	if err != nil {
-		log.Error("synchronizeLdapSSHPublicKeys[%s]: Error listing LDAP Public SSH Keys for user %s: %v", s.Name, usr.Name, err)
-	}
-
-	for _, v := range keys {
-		giteaKeys = append(giteaKeys, v.OmitEmail())
-	}
-
-	// Get Public Keys from LDAP and skip duplicate keys
-	var ldapKeys []string
-	for _, v := range sshPublicKeys {
-		sshKeySplit := strings.Split(v, " ")
-		if len(sshKeySplit) > 1 {
-			ldapKey := strings.Join(sshKeySplit[:2], " ")
-			if !util.ExistsInSlice(ldapKey, ldapKeys) {
-				ldapKeys = append(ldapKeys, ldapKey)
-			}
-		}
-	}
-
-	// Check if Public Key sync is needed
-	if util.IsEqualSlice(giteaKeys, ldapKeys) {
-		log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Keys are already in sync for %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
-		return false
-	}
-	log.Trace("synchronizeLdapSSHPublicKeys[%s]: LDAP Public Key needs update for user %s (LDAP:%v/DB:%v)", s.Name, usr.Name, len(ldapKeys), len(giteaKeys))
-
-	// Add LDAP Public SSH Keys that doesn't already exist in DB
-	var newLdapSSHKeys []string
-	for _, LDAPPublicSSHKey := range ldapKeys {
-		if !util.ExistsInSlice(LDAPPublicSSHKey, giteaKeys) {
-			newLdapSSHKeys = append(newLdapSSHKeys, LDAPPublicSSHKey)
-		}
-	}
-	if addLdapSSHPublicKeys(usr, s, newLdapSSHKeys) {
-		sshKeysNeedUpdate = true
-	}
-
-	// Mark LDAP keys from DB that doesn't exist in LDAP for deletion
-	var giteaKeysToDelete []string
-	for _, giteaKey := range giteaKeys {
-		if !util.ExistsInSlice(giteaKey, ldapKeys) {
-			log.Trace("synchronizeLdapSSHPublicKeys[%s]: Marking LDAP Public SSH Key for deletion for user %s: %v", s.Name, usr.Name, giteaKey)
-			giteaKeysToDelete = append(giteaKeysToDelete, giteaKey)
-		}
-	}
-
-	// Delete LDAP keys from DB that doesn't exist in LDAP
-	needUpd, err := deleteKeysMarkedForDeletion(giteaKeysToDelete)
-	if err != nil {
-		log.Error("synchronizeLdapSSHPublicKeys[%s]: Error deleting LDAP Public SSH Keys marked for deletion for user %s: %v", s.Name, usr.Name, err)
-	}
-	if needUpd {
-		sshKeysNeedUpdate = true
-	}
-
-	return sshKeysNeedUpdate
-}
-
-// SyncExternalUsers is used to synchronize users with external authorization source
-func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
-	log.Trace("Doing: SyncExternalUsers")
-
-	ls, err := LoginSources()
-	if err != nil {
-		log.Error("SyncExternalUsers: %v", err)
-		return err
-	}
-
-	for _, s := range ls {
-		if !s.IsActived || !s.IsSyncEnabled {
-			continue
-		}
-		select {
-		case <-ctx.Done():
-			log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
-			return ErrCancelledf("Before update of %s", s.Name)
-		default:
-		}
-
-		if s.IsLDAP() {
-			log.Trace("Doing: SyncExternalUsers[%s]", s.Name)
-
-			var existingUsers []int64
-			var isAttributeSSHPublicKeySet = len(strings.TrimSpace(s.LDAP().AttributeSSHPublicKey)) > 0
-			var sshKeysNeedUpdate bool
-
-			// Find all users with this login type
-			var users []*User
-			err = x.Where("login_type = ?", LoginLDAP).
-				And("login_source = ?", s.ID).
-				Find(&users)
-			if err != nil {
-				log.Error("SyncExternalUsers: %v", err)
-				return err
-			}
-			select {
-			case <-ctx.Done():
-				log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
-				return ErrCancelledf("Before update of %s", s.Name)
-			default:
-			}
-
-			sr, err := s.LDAP().SearchEntries()
-			if err != nil {
-				log.Error("SyncExternalUsers LDAP source failure [%s], skipped", s.Name)
-				continue
-			}
-
-			if len(sr) == 0 {
-				if !s.LDAP().AllowDeactivateAll {
-					log.Error("LDAP search found no entries but did not report an error. Refusing to deactivate all users")
-					continue
-				} else {
-					log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
-				}
-			}
-
-			for _, su := range sr {
-				select {
-				case <-ctx.Done():
-					log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", s.Name)
-					// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
-					if sshKeysNeedUpdate {
-						err = RewriteAllPublicKeys()
-						if err != nil {
-							log.Error("RewriteAllPublicKeys: %v", err)
-						}
-					}
-					return ErrCancelledf("During update of %s before completed update of users", s.Name)
-				default:
-				}
-				if len(su.Username) == 0 {
-					continue
-				}
-
-				if len(su.Mail) == 0 {
-					su.Mail = fmt.Sprintf("%s@localhost", su.Username)
-				}
-
-				var usr *User
-				// Search for existing user
-				for _, du := range users {
-					if du.LowerName == strings.ToLower(su.Username) {
-						usr = du
-						break
-					}
-				}
-
-				fullName := composeFullName(su.Name, su.Surname, su.Username)
-				// If no existing user found, create one
-				if usr == nil {
-					log.Trace("SyncExternalUsers[%s]: Creating user %s", s.Name, su.Username)
-
-					usr = &User{
-						LowerName:    strings.ToLower(su.Username),
-						Name:         su.Username,
-						FullName:     fullName,
-						LoginType:    s.Type,
-						LoginSource:  s.ID,
-						LoginName:    su.Username,
-						Email:        su.Mail,
-						IsAdmin:      su.IsAdmin,
-						IsRestricted: su.IsRestricted,
-						IsActive:     true,
-					}
-
-					err = CreateUser(usr)
-
-					if err != nil {
-						log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", s.Name, su.Username, err)
-					} else if isAttributeSSHPublicKeySet {
-						log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", s.Name, usr.Name)
-						if addLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
-							sshKeysNeedUpdate = true
-						}
-					}
-				} else if updateExisting {
-					existingUsers = append(existingUsers, usr.ID)
-
-					// Synchronize SSH Public Key if that attribute is set
-					if isAttributeSSHPublicKeySet && synchronizeLdapSSHPublicKeys(usr, s, su.SSHPublicKey) {
-						sshKeysNeedUpdate = true
-					}
-
-					// Check if user data has changed
-					if (len(s.LDAP().AdminFilter) > 0 && usr.IsAdmin != su.IsAdmin) ||
-						(len(s.LDAP().RestrictedFilter) > 0 && usr.IsRestricted != su.IsRestricted) ||
-						!strings.EqualFold(usr.Email, su.Mail) ||
-						usr.FullName != fullName ||
-						!usr.IsActive {
-
-						log.Trace("SyncExternalUsers[%s]: Updating user %s", s.Name, usr.Name)
-
-						usr.FullName = fullName
-						usr.Email = su.Mail
-						// Change existing admin flag only if AdminFilter option is set
-						if len(s.LDAP().AdminFilter) > 0 {
-							usr.IsAdmin = su.IsAdmin
-						}
-						// Change existing restricted flag only if RestrictedFilter option is set
-						if !usr.IsAdmin && len(s.LDAP().RestrictedFilter) > 0 {
-							usr.IsRestricted = su.IsRestricted
-						}
-						usr.IsActive = true
-
-						err = UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
-						if err != nil {
-							log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", s.Name, usr.Name, err)
-						}
-					}
-				}
-			}
-
-			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
-			if sshKeysNeedUpdate {
-				err = RewriteAllPublicKeys()
-				if err != nil {
-					log.Error("RewriteAllPublicKeys: %v", err)
-				}
-			}
-
-			select {
-			case <-ctx.Done():
-				log.Warn("SyncExternalUsers: Cancelled during update of %s before delete users", s.Name)
-				return ErrCancelledf("During update of %s before delete users", s.Name)
-			default:
-			}
-
-			// Deactivate users not present in LDAP
-			if updateExisting {
-				for _, usr := range users {
-					found := false
-					for _, uid := range existingUsers {
-						if usr.ID == uid {
-							found = true
-							break
-						}
-					}
-					if !found {
-						log.Trace("SyncExternalUsers[%s]: Deactivating user %s", s.Name, usr.Name)
-
-						usr.IsActive = false
-						err = UpdateUserCols(usr, "is_active")
-						if err != nil {
-							log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", s.Name, usr.Name, err)
-						}
-					}
-				}
-			}
-		}
-	}
-	return nil
+	total, err := sess.FindAndCount(&repos)
+	return repos, total, err
 }
 
 // IterateUser iterate users
 func IterateUser(f func(user *User) error) error {
 	var start int
-	var batchSize = setting.Database.IterateBufferSize
+	batchSize := setting.Database.IterateBufferSize
 	for {
-		var users = make([]*User, 0, batchSize)
+		users := make([]*User, 0, batchSize)
 		if err := x.Limit(batchSize, start).Find(&users); err != nil {
 			return err
 		}

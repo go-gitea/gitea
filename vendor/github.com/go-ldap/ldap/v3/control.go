@@ -18,20 +18,25 @@ const (
 	ControlTypeVChuPasswordWarning = "2.16.840.1.113730.3.4.5"
 	// ControlTypeManageDsaIT - https://tools.ietf.org/html/rfc3296
 	ControlTypeManageDsaIT = "2.16.840.1.113730.3.4.2"
+	// ControlTypeWhoAmI - https://tools.ietf.org/html/rfc4532
+	ControlTypeWhoAmI = "1.3.6.1.4.1.4203.1.11.3"
 
 	// ControlTypeMicrosoftNotification - https://msdn.microsoft.com/en-us/library/aa366983(v=vs.85).aspx
 	ControlTypeMicrosoftNotification = "1.2.840.113556.1.4.528"
 	// ControlTypeMicrosoftShowDeleted - https://msdn.microsoft.com/en-us/library/aa366989(v=vs.85).aspx
 	ControlTypeMicrosoftShowDeleted = "1.2.840.113556.1.4.417"
+	// ControlTypeMicrosoftServerLinkTTL - https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/f4f523a8-abc0-4b3a-a471-6b2fef135481?redirectedfrom=MSDN
+	ControlTypeMicrosoftServerLinkTTL = "1.2.840.113556.1.4.2309"
 )
 
 // ControlTypeMap maps controls to text descriptions
 var ControlTypeMap = map[string]string{
-	ControlTypePaging:                "Paging",
-	ControlTypeBeheraPasswordPolicy:  "Password Policy - Behera Draft",
-	ControlTypeManageDsaIT:           "Manage DSA IT",
-	ControlTypeMicrosoftNotification: "Change Notification - Microsoft",
-	ControlTypeMicrosoftShowDeleted:  "Show Deleted Objects - Microsoft",
+	ControlTypePaging:                 "Paging",
+	ControlTypeBeheraPasswordPolicy:   "Password Policy - Behera Draft",
+	ControlTypeManageDsaIT:            "Manage DSA IT",
+	ControlTypeMicrosoftNotification:  "Change Notification - Microsoft",
+	ControlTypeMicrosoftShowDeleted:   "Show Deleted Objects - Microsoft",
+	ControlTypeMicrosoftServerLinkTTL: "Return TTL-DNs for link values with associated expiry times - Microsoft",
 }
 
 // Control defines an interface controls provide to encode and describe themselves
@@ -305,6 +310,35 @@ func NewControlMicrosoftShowDeleted() *ControlMicrosoftShowDeleted {
 	return &ControlMicrosoftShowDeleted{}
 }
 
+// ControlMicrosoftServerLinkTTL implements the control described in https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/f4f523a8-abc0-4b3a-a471-6b2fef135481?redirectedfrom=MSDN
+type ControlMicrosoftServerLinkTTL struct{}
+
+// GetControlType returns the OID
+func (c *ControlMicrosoftServerLinkTTL) GetControlType() string {
+	return ControlTypeMicrosoftServerLinkTTL
+}
+
+// Encode returns the ber packet representation
+func (c *ControlMicrosoftServerLinkTTL) Encode() *ber.Packet {
+	packet := ber.Encode(ber.ClassUniversal, ber.TypeConstructed, ber.TagSequence, nil, "Control")
+	packet.AppendChild(ber.NewString(ber.ClassUniversal, ber.TypePrimitive, ber.TagOctetString, ControlTypeMicrosoftServerLinkTTL, "Control Type ("+ControlTypeMap[ControlTypeMicrosoftServerLinkTTL]+")"))
+
+	return packet
+}
+
+// String returns a human-readable description
+func (c *ControlMicrosoftServerLinkTTL) String() string {
+	return fmt.Sprintf(
+		"Control Type: %s (%q)",
+		ControlTypeMap[ControlTypeMicrosoftServerLinkTTL],
+		ControlTypeMicrosoftServerLinkTTL)
+}
+
+// NewControlMicrosoftServerLinkTTL returns a ControlMicrosoftServerLinkTTL control
+func NewControlMicrosoftServerLinkTTL() *ControlMicrosoftServerLinkTTL {
+	return &ControlMicrosoftServerLinkTTL{}
+}
+
 // FindControl returns the first control of the given type in the list, or nil
 func FindControl(controls []Control, controlType string) Control {
 	for _, c := range controls {
@@ -449,6 +483,8 @@ func DecodeControl(packet *ber.Packet) (Control, error) {
 		return NewControlMicrosoftNotification(), nil
 	case ControlTypeMicrosoftShowDeleted:
 		return NewControlMicrosoftShowDeleted(), nil
+	case ControlTypeMicrosoftServerLinkTTL:
+		return NewControlMicrosoftServerLinkTTL(), nil
 	default:
 		c := new(ControlString)
 		c.ControlType = ControlType

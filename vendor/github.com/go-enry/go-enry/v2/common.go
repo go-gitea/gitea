@@ -22,6 +22,8 @@ var DefaultStrategies = []Strategy{
 	GetLanguagesByFilename,
 	GetLanguagesByShebang,
 	GetLanguagesByExtension,
+	GetLanguagesByXML,
+	GetLanguagesByManpage,
 	GetLanguagesByContent,
 	GetLanguagesByClassifier,
 }
@@ -116,7 +118,13 @@ func getLanguageBySpecificClassifier(content []byte, candidates []string, classi
 }
 
 // GetLanguages applies a sequence of strategies based on the given filename and content
-// to find out the most probably languages to return.
+// to find out the most probable languages to return.
+//
+// If it finds a strategy that produces a single result, it will be returned;
+// otherise the last strategy that returned multiple results will be returned.
+// If the content is binary, no results will be returned. This matches the
+// behavior of Linguist.detect: https://github.com/github/linguist/blob/aad49acc0624c70d654a8dce447887dbbc713c7a/lib/linguist.rb#L14-L49
+//
 // At least one of arguments should be set. If content is missing, language detection will be based on the filename.
 // The function won't read the file, given an empty content.
 func GetLanguages(filename string, content []byte) []string {
@@ -125,16 +133,20 @@ func GetLanguages(filename string, content []byte) []string {
 	}
 
 	var languages []string
-	candidates := []string{}
 	for _, strategy := range DefaultStrategies {
-		languages = strategy(filename, content, candidates)
-		if len(languages) == 1 {
-			return languages
+		candidates := strategy(filename, content, languages)
+		// No candidates, continue to next strategy without updating languages
+		if len(candidates) == 0 {
+			continue
 		}
 
-		if len(languages) > 0 {
-			candidates = append(candidates, languages...)
+		// Only one candidate match, return it
+		if len(candidates) == 1 {
+			return candidates
 		}
+
+		// Save the candidates from this strategy to pass onto to the next strategy, like Linguist
+		languages = candidates
 	}
 
 	return languages
@@ -328,13 +340,21 @@ func getInterpreter(data []byte) (interpreter string) {
 	return
 }
 
-func getFirstLine(content []byte) []byte {
-	nlpos := bytes.IndexByte(content, '\n')
-	if nlpos < 0 {
-		return content
+func getFirstLines(content []byte, count int) []byte {
+	nlpos := -1
+	for ; count > 0; count-- {
+		pos := bytes.IndexByte(content[nlpos+1:], '\n')
+		if pos < 0 {
+			return content
+		}
+		nlpos += pos + 1
 	}
 
 	return content[:nlpos]
+}
+
+func getFirstLine(content []byte) []byte {
+	return getFirstLines(content, 1)
 }
 
 func hasShebang(line []byte) bool {
@@ -377,6 +397,49 @@ func GetLanguagesByExtension(filename string, _ []byte, _ []string) []string {
 		languages, ok := data.LanguagesByExtension[ext]
 		if ok {
 			return languages
+		}
+	}
+
+	return nil
+}
+
+var (
+	manpageExtension = regex.MustCompile(`\.(?:[1-9](?:[a-z_]+[a-z_0-9]*)?|0p|n|man|mdoc)(?:\.in)?$`)
+)
+
+// GetLanguagesByManpage returns a slice of possible manpage languages for the given filename.
+// It complies with the signature to be a Strategy type.
+func GetLanguagesByManpage(filename string, _ []byte, _ []string) []string {
+	filename = strings.ToLower(filename)
+
+	// Check if matches Roff man page filenames
+	if manpageExtension.Match([]byte(filename)) {
+		return []string{
+			"Roff Manpage",
+			"Roff",
+		}
+	}
+
+	return nil
+}
+
+var (
+	xmlHeader = regex.MustCompile(`<?xml version=`)
+)
+
+// GetLanguagesByXML returns a slice of possible XML language for the given filename.
+// It complies with the signature to be a Strategy type.
+func GetLanguagesByXML(_ string, content []byte, candidates []string) []string {
+	if len(candidates) > 0 {
+		return candidates
+	}
+
+	header := getFirstLines(content, 2)
+
+	// Check if contains XML header
+	if xmlHeader.Match(header) {
+		return []string{
+			"XML",
 		}
 	}
 
@@ -435,6 +498,16 @@ func getLanguagesBySpecificClassifier(content []byte, candidates []string, class
 // GetLanguageExtensions returns all extensions associated with the given language.
 func GetLanguageExtensions(language string) []string {
 	return data.ExtensionsByLanguage[language]
+}
+
+// GetLanguageID returns the ID for the language. IDs are assigned by GitHub.
+// The input must be the canonical language name. Aliases are not supported.
+//
+// NOTE: The zero value (0) is a valid language ID, so this API mimics the Go
+// map API. Use the second return value to check if the language was found.
+func GetLanguageID(language string) (int, bool) {
+	id, ok := data.IDByLanguage[language]
+	return id, ok
 }
 
 // Type represent language's type. Either data, programming, markup, prose, or unknown.

@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "原始碼安裝"
 slug: "install-from-source"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -69,4 +69,3 @@ TAGS="bindata" make build
 ## 需要協助？
 
 如果本頁中無法解決您的問題，請直接到 [Discord server](https://discord.gg/Gitea)，在那邊可以快速得到協助。
-

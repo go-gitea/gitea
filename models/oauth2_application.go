@@ -9,15 +9,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/url"
-	"time"
+	"strings"
 
 	"code.gitea.io/gitea/modules/secret"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/dgrijalva/jwt-go"
 	uuid "github.com/google/uuid"
-	"github.com/unknwon/com"
 	"golang.org/x/crypto/bcrypt"
 	"xorm.io/xorm"
 )
@@ -62,7 +60,7 @@ func (app *OAuth2Application) LoadUser() (err error) {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
-	return com.IsSliceContainsStr(app.RedirectURIs, redirectURI)
+	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
 // GenerateClientSecret will generate the client secret and returns the plaintext and saves the hash at the database
@@ -103,14 +101,15 @@ func (app *OAuth2Application) getGrantByUserID(e Engine, userID int64) (grant *O
 }
 
 // CreateGrant generates a grant for an user
-func (app *OAuth2Application) CreateGrant(userID int64) (*OAuth2Grant, error) {
-	return app.createGrant(x, userID)
+func (app *OAuth2Application) CreateGrant(userID int64, scope string) (*OAuth2Grant, error) {
+	return app.createGrant(x, userID, scope)
 }
 
-func (app *OAuth2Application) createGrant(e Engine, userID int64) (*OAuth2Grant, error) {
+func (app *OAuth2Application) createGrant(e Engine, userID int64, scope string) (*OAuth2Grant, error) {
 	grant := &OAuth2Grant{
 		ApplicationID: app.ID,
 		UserID:        userID,
+		Scope:         scope,
 	}
 	_, err := e.Insert(grant)
 	if err != nil {
@@ -208,7 +207,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 		return nil, err
 	}
 	if app.UID != opts.UserID {
-		return nil, fmt.Errorf("UID missmatch")
+		return nil, fmt.Errorf("UID mismatch")
 	}
 
 	app.Name = opts.Name
@@ -233,7 +232,7 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
 		return err
 	} else if deleted == 0 {
-		return fmt.Errorf("cannot find oauth2 application")
+		return ErrOAuthApplicationNotFound{ID: id}
 	}
 	codes := make([]*OAuth2AuthorizationCode, 0)
 	// delete correlating auth codes
@@ -259,6 +258,7 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func DeleteOAuth2Application(id, userid int64) error {
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, error) {
+func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, int64, error) {
 	sess := x.
 		Where("uid=?", uid).
 		Desc("id")
@@ -278,11 +278,13 @@ func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Applic
 		sess = listOptions.setSessionPagination(sess)
 
 		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
-		return apps, sess.Find(&apps)
+		total, err := sess.FindAndCount(&apps)
+		return apps, total, err
 	}
 
 	apps := make([]*OAuth2Application, 0, 5)
-	return apps, sess.Find(&apps)
+	total, err := sess.FindAndCount(&apps)
+	return apps, total, err
 }
 
 //////////////////////////////////////////////////////
@@ -373,13 +375,15 @@ func getOAuth2AuthorizationByCode(e Engine, code string) (auth *OAuth2Authorizat
 
 //////////////////////////////////////////////////////
 
-// OAuth2Grant represents the permission of an user for a specifc application to access resources
+// OAuth2Grant represents the permission of an user for a specific application to access resources
 type OAuth2Grant struct {
 	ID            int64              `xorm:"pk autoincr"`
 	UserID        int64              `xorm:"INDEX unique(user_application)"`
 	Application   *OAuth2Application `xorm:"-"`
 	ApplicationID int64              `xorm:"INDEX unique(user_application)"`
 	Counter       int64              `xorm:"NOT NULL DEFAULT 1"`
+	Scope         string             `xorm:"TEXT"`
+	Nonce         string             `xorm:"TEXT"`
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix   timeutil.TimeStamp `xorm:"updated"`
 }
@@ -389,7 +393,7 @@ func (grant *OAuth2Grant) TableName() string {
 	return "oauth2_grant"
 }
 
-// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the databse
+// GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
 	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
 }
@@ -428,6 +432,30 @@ func (grant *OAuth2Grant) increaseCount(e Engine) error {
 		return err
 	}
 	grant.Counter = updatedGrant.Counter
+	return nil
+}
+
+// ScopeContains returns true if the grant scope contains the specified scope
+func (grant *OAuth2Grant) ScopeContains(scope string) bool {
+	for _, currentScope := range strings.Split(grant.Scope, " ") {
+		if scope == currentScope {
+			return true
+		}
+	}
+	return false
+}
+
+// SetNonce updates the current nonce value of a grant
+func (grant *OAuth2Grant) SetNonce(nonce string) error {
+	return grant.setNonce(x, nonce)
+}
+
+func (grant *OAuth2Grant) setNonce(e Engine, nonce string) error {
+	grant.Nonce = nonce
+	_, err := e.ID(grant.ID).Cols("nonce").Update(grant)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -486,50 +514,4 @@ func RevokeOAuth2Grant(grantID, userID int64) error {
 func revokeOAuth2Grant(e Engine, grantID, userID int64) error {
 	_, err := e.Delete(&OAuth2Grant{ID: grantID, UserID: userID})
 	return err
-}
-
-//////////////////////////////////////////////////////////////
-
-// OAuth2TokenType represents the type of token for an oauth application
-type OAuth2TokenType int
-
-const (
-	// TypeAccessToken is a token with short lifetime to access the api
-	TypeAccessToken OAuth2TokenType = 0
-	// TypeRefreshToken is token with long lifetime to refresh access tokens obtained by the client
-	TypeRefreshToken = iota
-)
-
-// OAuth2Token represents a JWT token used to authenticate a client
-type OAuth2Token struct {
-	GrantID int64           `json:"gnt"`
-	Type    OAuth2TokenType `json:"tt"`
-	Counter int64           `json:"cnt,omitempty"`
-	jwt.StandardClaims
-}
-
-// ParseOAuth2Token parses a singed jwt string
-func ParseOAuth2Token(jwtToken string) (*OAuth2Token, error) {
-	parsedToken, err := jwt.ParseWithClaims(jwtToken, &OAuth2Token{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
-		}
-		return setting.OAuth2.JWTSecretBytes, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	var token *OAuth2Token
-	var ok bool
-	if token, ok = parsedToken.Claims.(*OAuth2Token); !ok || !parsedToken.Valid {
-		return nil, fmt.Errorf("invalid token")
-	}
-	return token, nil
-}
-
-// SignToken signs the token with the JWT secret
-func (token *OAuth2Token) SignToken() (string, error) {
-	token.IssuedAt = time.Now().Unix()
-	jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS512, token)
-	return jwtToken.SignedString(setting.OAuth2.JWTSecretBytes)
 }

@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 )
 
 // Stringify attempts to create a reasonable string representation of types in
-// the GitHub library.  It does things like resolve pointers to their values
+// the Gitlab library.  It does things like resolve pointers to their values
 // and omits struct fields with nil values.
 func Stringify(message interface{}) string {
 	var buf bytes.Buffer

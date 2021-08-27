@@ -17,6 +17,8 @@ type FileOptions struct {
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`
 	Dates     CommitDateOptions `json:"dates"`
+	// Add a Signed-off-by trailer by the committer at the end of the commit log message.
+	Signoff bool `json:"signoff"`
 }
 
 // CreateFileOptions options for creating files

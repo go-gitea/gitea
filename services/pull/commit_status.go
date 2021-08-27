@@ -108,20 +108,28 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 	}
 	defer headGitRepo.Close()
 
-	if !headGitRepo.IsBranchExist(pr.HeadBranch) {
+	if pr.Flow == models.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
+		return "", errors.New("Head branch does not exist, can not merge")
+	}
+	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(headGitRepo.Path, pr.GetGitRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
-	sha, err := headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	var sha string
+	if pr.Flow == models.PullRequestFlowGithub {
+		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
+	} else {
+		sha, err = headGitRepo.GetRefCommitID(pr.GetGitRefName())
+	}
 	if err != nil {
-		return "", errors.Wrap(err, "GetBranchCommitID")
+		return "", err
 	}
 
 	if err := pr.LoadBaseRepo(); err != nil {
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo, sha, 0)
+	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

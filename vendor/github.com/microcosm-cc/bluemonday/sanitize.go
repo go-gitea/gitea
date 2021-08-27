@@ -31,6 +31,7 @@ package bluemonday
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -39,7 +40,7 @@ import (
 
 	"golang.org/x/net/html"
 
-	cssparser "github.com/chris-ramon/douceur/parser"
+	"github.com/aymerick/douceur/parser"
 )
 
 var (
@@ -47,10 +48,11 @@ var (
 	dataAttributeXMLPrefix    = regexp.MustCompile("^xml.+")
 	dataAttributeInvalidChars = regexp.MustCompile("[A-Z;]+")
 	cssUnicodeChar            = regexp.MustCompile(`\\[0-9a-f]{1,6} ?`)
+	dataURIbase64Prefix       = regexp.MustCompile(`^data:[^,]*;base64,`)
 )
 
 // Sanitize takes a string that contains a HTML fragment or document and applies
-// the given policy whitelist.
+// the given policy allowlist.
 //
 // It returns a HTML string that has been sanitized by the policy or an empty
 // string if an error has occurred (most likely as a consequence of extremely
@@ -60,11 +62,11 @@ func (p *Policy) Sanitize(s string) string {
 		return s
 	}
 
-	return p.sanitize(strings.NewReader(s)).String()
+	return p.sanitizeWithBuff(strings.NewReader(s)).String()
 }
 
 // SanitizeBytes takes a []byte that contains a HTML fragment or document and applies
-// the given policy whitelist.
+// the given policy allowlist.
 //
 // It returns a []byte containing the HTML that has been sanitized by the policy
 // or an empty []byte if an error has occurred (most likely as a consequence of
@@ -74,26 +76,32 @@ func (p *Policy) SanitizeBytes(b []byte) []byte {
 		return b
 	}
 
-	return p.sanitize(bytes.NewReader(b)).Bytes()
+	return p.sanitizeWithBuff(bytes.NewReader(b)).Bytes()
 }
 
 // SanitizeReader takes an io.Reader that contains a HTML fragment or document
-// and applies the given policy whitelist.
+// and applies the given policy allowlist.
 //
 // It returns a bytes.Buffer containing the HTML that has been sanitized by the
 // policy. Errors during sanitization will merely return an empty result.
 func (p *Policy) SanitizeReader(r io.Reader) *bytes.Buffer {
-	return p.sanitize(r)
+	return p.sanitizeWithBuff(r)
+}
+
+// SanitizeReaderToWriter takes an io.Reader that contains a HTML fragment or document
+// and applies the given policy allowlist and writes to the provided writer returning
+// an error if there is one.
+func (p *Policy) SanitizeReaderToWriter(r io.Reader, w io.Writer) error {
+	return p.sanitize(r, w)
 }
 
 const escapedURLChars = "'<>\"\r"
 
-func escapeUrlComponent(val string) string {
-	w := bytes.NewBufferString("")
+func escapeUrlComponent(w stringWriterWriter, val string) error {
 	i := strings.IndexAny(val, escapedURLChars)
 	for i != -1 {
 		if _, err := w.WriteString(val[:i]); err != nil {
-			return w.String()
+			return err
 		}
 		var esc string
 		switch val[i] {
@@ -114,73 +122,119 @@ func escapeUrlComponent(val string) string {
 		}
 		val = val[i+1:]
 		if _, err := w.WriteString(esc); err != nil {
-			return w.String()
+			return err
 		}
 		i = strings.IndexAny(val, escapedURLChars)
 	}
-	w.WriteString(val)
-	return w.String()
+	_, err := w.WriteString(val)
+	return err
 }
 
-func sanitizedUrl(val string) (string, error) {
+// Query represents a single part of the query string, a query param 
+type Query struct {
+	Key      string
+	Value    string
+	HasValue bool
+}
+
+func parseQuery(query string) (values []Query, err error) {
+	// This is essentially a copy of parseQuery from
+	// https://golang.org/src/net/url/url.go but adjusted to build our values
+	// based on our type, which we need to preserve the ordering of the query
+	// string
+	for query != "" {
+		key := query
+		if i := strings.IndexAny(key, "&;"); i >= 0 {
+			key, query = key[:i], key[i+1:]
+		} else {
+			query = ""
+		}
+		if key == "" {
+			continue
+		}
+		value := ""
+		hasValue := false
+		if i := strings.Index(key, "="); i >= 0 {
+			key, value = key[:i], key[i+1:]
+			hasValue = true
+		}
+		key, err1 := url.QueryUnescape(key)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		value, err1 = url.QueryUnescape(value)
+		if err1 != nil {
+			if err == nil {
+				err = err1
+			}
+			continue
+		}
+		values = append(values, Query{
+			Key:      key,
+			Value:    value,
+			HasValue: hasValue,
+		})
+	}
+	return values, err
+}
+
+func encodeQueries(queries []Query) string {
+	var buff bytes.Buffer
+	for i, query := range queries {
+		buff.WriteString(url.QueryEscape(query.Key))
+		if query.HasValue {
+			buff.WriteString("=")
+			buff.WriteString(url.QueryEscape(query.Value))
+		}
+		if i < len(queries)-1 {
+			buff.WriteString("&")
+		}
+	}
+	return buff.String()
+}
+
+func sanitizedURL(val string) (string, error) {
 	u, err := url.Parse(val)
 	if err != nil {
 		return "", err
 	}
-	// sanitize the url query params
-	sanitizedQueryValues := make(url.Values, 0)
-	queryValues := u.Query()
-	for k, vals := range queryValues {
-		sk := html.EscapeString(k)
-		for _, v := range vals {
-			sv := v
-			sanitizedQueryValues.Add(sk, sv)
-		}
+
+	// we use parseQuery but not u.Query to keep the order not change because
+	// url.Values is a map which has a random order.
+	queryValues, err := parseQuery(u.RawQuery)
+	if err != nil {
+		return "", err
 	}
-	u.RawQuery = sanitizedQueryValues.Encode()
+	// sanitize the url query params
+	for i, query := range queryValues {
+		queryValues[i].Key = html.EscapeString(query.Key)
+	}
+	u.RawQuery = encodeQueries(queryValues)
 	// u.String() will also sanitize host/scheme/user/pass
 	return u.String(), nil
 }
 
-func (p *Policy) writeLinkableBuf(buff *bytes.Buffer, token *html.Token) {
-	// do not escape multiple query parameters
-	tokenBuff := bytes.NewBufferString("")
-	tokenBuff.WriteString("<")
-	tokenBuff.WriteString(token.Data)
-	for _, attr := range token.Attr {
-		tokenBuff.WriteByte(' ')
-		tokenBuff.WriteString(attr.Key)
-		tokenBuff.WriteString(`="`)
-		switch attr.Key {
-		case "href", "src":
-			u, ok := p.validURL(attr.Val)
-			if !ok {
-				tokenBuff.WriteString(html.EscapeString(attr.Val))
-				continue
-			}
-			u, err := sanitizedUrl(u)
-			if err == nil {
-				tokenBuff.WriteString(u)
-			} else {
-				// fallthrough
-				tokenBuff.WriteString(html.EscapeString(attr.Val))
-			}
-		default:
-			// re-apply
-			tokenBuff.WriteString(html.EscapeString(attr.Val))
-		}
-		tokenBuff.WriteByte('"')
+// Performs the actual sanitization process.
+func (p *Policy) sanitizeWithBuff(r io.Reader) *bytes.Buffer {
+	var buff bytes.Buffer
+	if err := p.sanitize(r, &buff); err != nil {
+		return &bytes.Buffer{}
 	}
-	if token.Type == html.SelfClosingTagToken {
-		tokenBuff.WriteString("/")
-	}
-	tokenBuff.WriteString(">")
-	buff.WriteString(tokenBuff.String())
+	return &buff
 }
 
-// Performs the actual sanitization process.
-func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
+type asStringWriter struct {
+	io.Writer
+}
 
+func (a *asStringWriter) WriteString(s string) (int, error) {
+	return a.Write([]byte(s))
+}
+
+func (p *Policy) sanitize(r io.Reader, w io.Writer) error {
 	// It is possible that the developer has created the policy via:
 	//   p := bluemonday.Policy{}
 	// rather than:
@@ -189,8 +243,12 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 	// would initiliaze the maps, then we need to do that.
 	p.init()
 
+	buff, ok := w.(stringWriterWriter)
+	if !ok {
+		buff = &asStringWriter{w}
+	}
+
 	var (
-		buff                     bytes.Buffer
 		skipElementContent       bool
 		skippingElementsCount    int64
 		skipClosingTag           bool
@@ -204,11 +262,11 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 			err := tokenizer.Err()
 			if err == io.EOF {
 				// End of input means end of processing
-				return &buff
+				return nil
 			}
 
 			// Raw tokenizer error
-			return &bytes.Buffer{}
+			return err
 		}
 
 		token := tokenizer.Token()
@@ -226,10 +284,14 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 		case html.CommentToken:
 
 			// Comments are ignored by default
+			if p.allowComments {
+				// But if allowed then write the comment out as-is
+				buff.WriteString(token.String())
+			}
 
 		case html.StartTagToken:
 
-			mostRecentlyStartedToken = strings.ToLower(token.Data)
+			mostRecentlyStartedToken = normaliseElementName(token.Data)
 
 			aps, ok := p.elsAndAttrs[token.Data]
 			if !ok {
@@ -240,14 +302,18 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 						skippingElementsCount++
 					}
 					if p.addSpaces {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
 				aps = aa
 			}
 			if len(token.Attr) != 0 {
-				token.Attr = p.sanitizeAttrs(token.Data, token.Attr, aps)
+				token.Attr = escapeAttributes(
+					p.sanitizeAttrs(token.Data, token.Attr, aps),
+				)
 			}
 
 			if len(token.Attr) == 0 {
@@ -255,24 +321,23 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 					skipClosingTag = true
 					closingTagToSkipStack = append(closingTagToSkipStack, token.Data)
 					if p.addSpaces {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
 			}
 
 			if !skipElementContent {
-				// do not escape multiple query parameters
-				if linkable(token.Data) {
-					p.writeLinkableBuf(&buff, &token)
-				} else {
-					buff.WriteString(token.String())
+				if _, err := buff.WriteString(token.String()); err != nil {
+					return err
 				}
 			}
 
 		case html.EndTagToken:
 
-			if mostRecentlyStartedToken == strings.ToLower(token.Data) {
+			if mostRecentlyStartedToken == normaliseElementName(token.Data) {
 				mostRecentlyStartedToken = ""
 			}
 
@@ -282,7 +347,9 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 					skipClosingTag = false
 				}
 				if p.addSpaces {
-					buff.WriteString(" ")
+					if _, err := buff.WriteString(" "); err != nil {
+						return err
+					}
 				}
 				break
 			}
@@ -303,14 +370,18 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 				}
 				if !match {
 					if p.addSpaces {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
 			}
 
 			if !skipElementContent {
-				buff.WriteString(token.String())
+				if _, err := buff.WriteString(token.String()); err != nil {
+					return err
+				}
 			}
 
 		case html.SelfClosingTagToken:
@@ -320,7 +391,9 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 				aa, matched := p.matchRegex(token.Data)
 				if !matched {
 					if p.addSpaces && !matched {
-						buff.WriteString(" ")
+						if _, err := buff.WriteString(" "); err != nil {
+							return err
+						}
 					}
 					break
 				}
@@ -328,21 +401,20 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 			}
 
 			if len(token.Attr) != 0 {
-				token.Attr = p.sanitizeAttrs(token.Data, token.Attr, aps)
+				token.Attr = escapeAttributes(p.sanitizeAttrs(token.Data, token.Attr, aps))
 			}
 
 			if len(token.Attr) == 0 && !p.allowNoAttrs(token.Data) {
 				if p.addSpaces {
-					buff.WriteString(" ")
+					if _, err := buff.WriteString(" "); err != nil {
+						return err
+					}
 					break
 				}
 			}
 			if !skipElementContent {
-				// do not escape multiple query parameters
-				if linkable(token.Data) {
-					p.writeLinkableBuf(&buff, &token)
-				} else {
-					buff.WriteString(token.String())
+				if _, err := buff.WriteString(token.String()); err != nil {
+					return err
 				}
 			}
 
@@ -350,23 +422,29 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 
 			if !skipElementContent {
 				switch mostRecentlyStartedToken {
-				case "script":
+				case `script`:
 					// not encouraged, but if a policy allows JavaScript we
 					// should not HTML escape it as that would break the output
-					buff.WriteString(token.Data)
+					if _, err := buff.WriteString(token.Data); err != nil {
+						return err
+					}
 				case "style":
 					// not encouraged, but if a policy allows CSS styles we
 					// should not HTML escape it as that would break the output
-					buff.WriteString(token.Data)
+					if _, err := buff.WriteString(token.Data); err != nil {
+						return err
+					}
 				default:
 					// HTML escape the text
-					buff.WriteString(token.String())
+					if _, err := buff.WriteString(token.String()); err != nil {
+						return err
+					}
 				}
 			}
 
 		default:
 			// A token that didn't exist in the html package when we wrote this
-			return &bytes.Buffer{}
+			return fmt.Errorf("unknown token: %v", token)
 		}
 	}
 }
@@ -377,7 +455,7 @@ func (p *Policy) sanitize(r io.Reader) *bytes.Buffer {
 func (p *Policy) sanitizeAttrs(
 	elementName string,
 	attrs []html.Attribute,
-	aps map[string]attrPolicy,
+	aps map[string][]attrPolicy,
 ) []html.Attribute {
 
 	if len(attrs) == 0 {
@@ -402,8 +480,9 @@ func (p *Policy) sanitizeAttrs(
 	}
 
 	// Builds a new attribute slice based on the whether the attribute has been
-	// whitelisted explicitly or globally.
+	// allowed explicitly or globally.
 	cleanAttrs := []html.Attribute{}
+attrsLoop:
 	for _, htmlAttr := range attrs {
 		if p.allowDataAttributes {
 			// If we see a data attribute, let it through.
@@ -426,27 +505,32 @@ func (p *Policy) sanitizeAttrs(
 		}
 
 		// Is there an element specific attribute policy that applies?
-		if ap, ok := aps[htmlAttr.Key]; ok {
-			if ap.regexp != nil {
-				if ap.regexp.MatchString(htmlAttr.Val) {
+		if apl, ok := aps[htmlAttr.Key]; ok {
+			for _, ap := range apl {
+				if ap.regexp != nil {
+					if ap.regexp.MatchString(htmlAttr.Val) {
+						cleanAttrs = append(cleanAttrs, htmlAttr)
+						continue attrsLoop
+					}
+				} else {
 					cleanAttrs = append(cleanAttrs, htmlAttr)
-					continue
+					continue attrsLoop
 				}
-			} else {
-				cleanAttrs = append(cleanAttrs, htmlAttr)
-				continue
 			}
 		}
 
 		// Is there a global attribute policy that applies?
-		if ap, ok := p.globalAttrs[htmlAttr.Key]; ok {
-
-			if ap.regexp != nil {
-				if ap.regexp.MatchString(htmlAttr.Val) {
+		if apl, ok := p.globalAttrs[htmlAttr.Key]; ok {
+			for _, ap := range apl {
+				if ap.regexp != nil {
+					if ap.regexp.MatchString(htmlAttr.Val) {
+				htmlAttr.Val = escapeAttribute(htmlAttr.Val)
+						cleanAttrs = append(cleanAttrs, htmlAttr)
+					}
+				} else {
+				htmlAttr.Val = escapeAttribute(htmlAttr.Val)
 					cleanAttrs = append(cleanAttrs, htmlAttr)
 				}
-			} else {
-				cleanAttrs = append(cleanAttrs, htmlAttr)
 			}
 		}
 	}
@@ -470,7 +554,7 @@ func (p *Policy) sanitizeAttrs(
 			tmpAttrs := []html.Attribute{}
 			for _, htmlAttr := range cleanAttrs {
 				switch elementName {
-				case "a", "area", "link":
+				case "a", "area", "base", "link":
 					if htmlAttr.Key == "href" {
 						if u, ok := p.validURL(htmlAttr.Val); ok {
 							htmlAttr.Val = u
@@ -479,7 +563,7 @@ func (p *Policy) sanitizeAttrs(
 						break
 					}
 					tmpAttrs = append(tmpAttrs, htmlAttr)
-				case "blockquote", "q":
+				case "blockquote", "del", "ins", "q":
 					if htmlAttr.Key == "cite" {
 						if u, ok := p.validURL(htmlAttr.Val); ok {
 							htmlAttr.Val = u
@@ -488,7 +572,7 @@ func (p *Policy) sanitizeAttrs(
 						break
 					}
 					tmpAttrs = append(tmpAttrs, htmlAttr)
-				case "img", "script":
+				case "audio", "embed", "iframe", "img", "script", "source", "track", "video":
 					if htmlAttr.Key == "src" {
 						if u, ok := p.validURL(htmlAttr.Val); ok {
 							htmlAttr.Val = u
@@ -513,7 +597,7 @@ func (p *Policy) sanitizeAttrs(
 
 			// Add rel="nofollow" if a "href" exists
 			switch elementName {
-			case "a", "area", "link":
+			case "a", "area", "base", "link":
 				var hrefFound bool
 				var externalLink bool
 				for _, htmlAttr := range cleanAttrs {
@@ -664,20 +748,40 @@ func (p *Policy) sanitizeAttrs(
 		}
 	}
 
+	if p.requireCrossOriginAnonymous && len(cleanAttrs) > 0 {
+		switch elementName {
+		case "audio", "img", "link", "script", "video":
+			var crossOriginFound bool
+			for _, htmlAttr := range cleanAttrs {
+				if htmlAttr.Key == "crossorigin" {
+					crossOriginFound = true
+					htmlAttr.Val = "anonymous"
+				}
+			}
+
+			if !crossOriginFound {
+				crossOrigin := html.Attribute{}
+				crossOrigin.Key = "crossorigin"
+				crossOrigin.Val = "anonymous"
+				cleanAttrs = append(cleanAttrs, crossOrigin)
+			}
+		}
+	}
+
 	return cleanAttrs
 }
 
 func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.Attribute {
 	sps := p.elsAndStyles[elementName]
 	if len(sps) == 0 {
-		sps = map[string]stylePolicy{}
+		sps = map[string][]stylePolicy{}
 		// check for any matching elements, if we don't already have a policy found
 		// if multiple matches are found they will be overwritten, it's best
 		// to not have overlapping matchers
 		for regex, policies := range p.elsMatchingAndStyles {
 			if regex.MatchString(elementName) {
 				for k, v := range policies {
-					sps[k] = v
+					sps[k] = append(sps[k], v...)
 				}
 			}
 		}
@@ -687,7 +791,7 @@ func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.At
 	if len(attr.Val) > 0 && attr.Val[len(attr.Val)-1] != ';' {
 		attr.Val = attr.Val + ";"
 	}
-	decs, err := cssparser.ParseDeclarations(attr.Val)
+	decs, err := parser.ParseDeclarations(attr.Val)
 	if err != nil {
 		attr.Val = ""
 		return attr
@@ -695,46 +799,51 @@ func (p *Policy) sanitizeStyles(attr html.Attribute, elementName string) html.At
 	clean := []string{}
 	prefixes := []string{"-webkit-", "-moz-", "-ms-", "-o-", "mso-", "-xv-", "-atsc-", "-wap-", "-khtml-", "prince-", "-ah-", "-hp-", "-ro-", "-rim-", "-tc-"}
 
+decLoop:
 	for _, dec := range decs {
-		addedProperty := false
 		tempProperty := strings.ToLower(dec.Property)
 		tempValue := removeUnicode(strings.ToLower(dec.Value))
 		for _, i := range prefixes {
 			tempProperty = strings.TrimPrefix(tempProperty, i)
 		}
-		if sp, ok := sps[tempProperty]; ok {
-			if sp.handler != nil {
-				if sp.handler(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-					addedProperty = true
+		if spl, ok := sps[tempProperty]; ok {
+			for _, sp := range spl {
+				if sp.handler != nil {
+					if sp.handler(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if len(sp.enum) > 0 {
+					if stringInSlice(tempValue, sp.enum) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if sp.regexp != nil {
+					if sp.regexp.MatchString(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
 				}
-			} else if len(sp.enum) > 0 {
-				if stringInSlice(tempValue, sp.enum) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-					addedProperty = true
-				}
-			} else if sp.regexp != nil {
-				if sp.regexp.MatchString(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-					addedProperty = true
-				}
-				continue
 			}
 		}
-		if sp, ok := p.globalStyles[tempProperty]; ok && !addedProperty {
-			if sp.handler != nil {
-				if sp.handler(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
+		if spl, ok := p.globalStyles[tempProperty]; ok {
+			for _, sp := range spl {
+				if sp.handler != nil {
+					if sp.handler(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if len(sp.enum) > 0 {
+					if stringInSlice(tempValue, sp.enum) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
+				} else if sp.regexp != nil {
+					if sp.regexp.MatchString(tempValue) {
+						clean = append(clean, dec.Property+": "+dec.Value)
+						continue decLoop
+					}
 				}
-			} else if len(sp.enum) > 0 {
-				if stringInSlice(tempValue, sp.enum) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-				}
-			} else if sp.regexp != nil {
-				if sp.regexp.MatchString(tempValue) {
-					clean = append(clean, dec.Property+": "+dec.Value)
-				}
-				continue
 			}
 		}
 	}
@@ -765,11 +874,28 @@ func (p *Policy) validURL(rawurl string) (string, bool) {
 		rawurl = strings.TrimSpace(rawurl)
 
 		// URLs cannot contain whitespace, unless it is a data-uri
-		if (strings.Contains(rawurl, " ") ||
+		if strings.Contains(rawurl, " ") ||
 			strings.Contains(rawurl, "\t") ||
-			strings.Contains(rawurl, "\n")) &&
-			!strings.HasPrefix(rawurl, `data:`) {
-			return "", false
+			strings.Contains(rawurl, "\n") {
+			if !strings.HasPrefix(rawurl, `data:`) {
+				return "", false
+			}
+
+			// Remove \r and \n from base64 encoded data to pass url.Parse.
+			matched := dataURIbase64Prefix.FindString(rawurl)
+			if matched != "" {
+				rawurl = matched + strings.Replace(
+					strings.Replace(
+						rawurl[len(matched):],
+						"\r",
+						"",
+						-1,
+					),
+					"\n",
+					"",
+					-1,
+				)
+			}
 		}
 
 		// URLs are valid if they parse
@@ -780,14 +906,19 @@ func (p *Policy) validURL(rawurl string) (string, bool) {
 
 		if u.Scheme != "" {
 
-			urlPolicy, ok := p.allowURLSchemes[u.Scheme]
+			urlPolicies, ok := p.allowURLSchemes[u.Scheme]
 			if !ok {
 				return "", false
-
 			}
 
-			if urlPolicy == nil || urlPolicy(u) == true {
+			if len(urlPolicies) == 0 {
 				return u.String(), true
+			}
+
+			for _, urlPolicy := range urlPolicies {
+				if urlPolicy(u) == true {
+					return u.String(), true
+				}
 			}
 
 			return "", false
@@ -807,7 +938,14 @@ func (p *Policy) validURL(rawurl string) (string, bool) {
 
 func linkable(elementName string) bool {
 	switch elementName {
-	case "a", "area", "blockquote", "img", "link", "script":
+	case "a", "area", "base", "link":
+		// elements that allow .href
+		return true
+	case "blockquote", "del", "ins", "q":
+		// elements that allow .cite
+		return true
+	case "audio", "embed", "iframe", "img", "input", "script", "track", "video":
+		// elements that allow .src
 		return true
 	default:
 		return false
@@ -874,16 +1012,50 @@ func removeUnicode(value string) string {
 	return substitutedValue
 }
 
-func (p *Policy) matchRegex(elementName string) (map[string]attrPolicy, bool) {
-	aps := make(map[string]attrPolicy, 0)
+func (p *Policy) matchRegex(elementName string) (map[string][]attrPolicy, bool) {
+	aps := make(map[string][]attrPolicy, 0)
 	matched := false
 	for regex, attrs := range p.elsMatchingAndAttrs {
 		if regex.MatchString(elementName) {
 			matched = true
 			for k, v := range attrs {
-				aps[k] = v
+				aps[k] = append(aps[k], v...)
 			}
 		}
 	}
 	return aps, matched
+}
+
+// normaliseElementName takes a HTML element like <script> which is user input
+// and returns a lower case version of it that is immune to UTF-8 to ASCII
+// conversion tricks (like the use of upper case cyrillic i scrİpt which a
+// strings.ToLower would convert to script). Instead this func will preserve
+// all non-ASCII as their escaped equivalent, i.e. \u0130 which reveals the
+// characters when lower cased
+func normaliseElementName(str string) string {
+	// that useful QuoteToASCII put quote marks at the start and end
+	// so those are trimmed off
+	return strings.TrimSuffix(
+		strings.TrimPrefix(
+			strings.ToLower(
+				strconv.QuoteToASCII(str),
+			),
+			`"`),
+		`"`,
+	)
+}
+
+func escapeAttributes(attrs []html.Attribute) []html.Attribute {
+	escapedAttrs := []html.Attribute{}
+	for _, attr := range attrs {
+		attr.Val = escapeAttribute(attr.Val)
+		escapedAttrs = append(escapedAttrs, attr)
+	}
+	return escapedAttrs
+}
+
+func escapeAttribute(val string) string {
+	val = strings.Replace(val, string([]rune{'\u00A0'}), `&nbsp;`, -1)
+	val = strings.Replace(val, `"`, `&quot;`, -1)
+	return val
 }

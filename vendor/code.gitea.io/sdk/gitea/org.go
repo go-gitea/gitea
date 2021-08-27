@@ -52,6 +52,9 @@ func (c *Client) ListMyOrgs(opt ListOrgsOptions) ([]*Organization, *Response, er
 
 // ListUserOrgs list all of some user's organizations
 func (c *Client) ListUserOrgs(user string, opt ListOrgsOptions) ([]*Organization, *Response, error) {
+	if err := escapeValidatePathSegments(&user); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	orgs := make([]*Organization, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/orgs?%s", user, opt.getURLQuery().Encode()), nil, nil, &orgs)
@@ -60,6 +63,9 @@ func (c *Client) ListUserOrgs(user string, opt ListOrgsOptions) ([]*Organization
 
 // GetOrg get one organization by name
 func (c *Client) GetOrg(orgname string) (*Organization, *Response, error) {
+	if err := escapeValidatePathSegments(&orgname); err != nil {
+		return nil, nil, err
+	}
 	org := new(Organization)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/orgs/%s", orgname), nil, nil, org)
 	return org, resp, err
@@ -124,6 +130,9 @@ func (opt EditOrgOption) Validate() error {
 
 // EditOrg modify one organization via options
 func (c *Client) EditOrg(orgname string, opt EditOrgOption) (*Response, error) {
+	if err := escapeValidatePathSegments(&orgname); err != nil {
+		return nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, err
 	}
@@ -137,6 +146,9 @@ func (c *Client) EditOrg(orgname string, opt EditOrgOption) (*Response, error) {
 
 // DeleteOrg deletes an organization
 func (c *Client) DeleteOrg(orgname string) (*Response, error) {
+	if err := escapeValidatePathSegments(&orgname); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/orgs/%s", orgname), jsonHeader, nil)
 	return resp, err
 }

@@ -15,8 +15,9 @@ import (
 
 // HTMLWriter exports an org document into a html document.
 type HTMLWriter struct {
-	ExtendingWriter    Writer
-	HighlightCodeBlock func(source, lang string, inline bool) string
+	ExtendingWriter     Writer
+	HighlightCodeBlock  func(source, lang string, inline bool) string
+	PrettyRelativeLinks bool
 
 	strings.Builder
 	document   *Document
@@ -54,6 +55,7 @@ var listItemStatuses = map[string]string{
 }
 
 var cleanHeadlineTitleForHTMLAnchorRegexp = regexp.MustCompile(`</?a[^>]*>`) // nested a tags are not valid HTML
+var tocHeadlineMaxLvlRegexp = regexp.MustCompile(`headlines\s+(\d+)`)
 
 func NewHTMLWriter() *HTMLWriter {
 	defaultConfig := New()
@@ -99,7 +101,10 @@ func (w *HTMLWriter) Before(d *Document) {
 		}
 		w.WriteString(fmt.Sprintf(`<h1 class="title">%s</h1>`+"\n", title))
 	}
-	w.WriteOutline(d)
+	if w.document.GetOption("toc") != "nil" {
+		maxLvl, _ := strconv.Atoi(w.document.GetOption("toc"))
+		w.WriteOutline(d, maxLvl)
+	}
 }
 
 func (w *HTMLWriter) After(d *Document) {
@@ -167,6 +172,11 @@ func (w *HTMLWriter) WriteDrawer(d Drawer) {
 func (w *HTMLWriter) WriteKeyword(k Keyword) {
 	if k.Key == "HTML" {
 		w.WriteString(k.Value + "\n")
+	} else if k.Key == "TOC" {
+		if m := tocHeadlineMaxLvlRegexp.FindStringSubmatch(k.Value); m != nil {
+			maxLvl, _ := strconv.Atoi(m[1])
+			w.WriteOutline(w.document, maxLvl)
+		}
 	}
 }
 
@@ -206,9 +216,8 @@ func (w *HTMLWriter) WriteFootnotes(d *Document) {
 	w.WriteString("</div>\n</div>\n")
 }
 
-func (w *HTMLWriter) WriteOutline(d *Document) {
-	if w.document.GetOption("toc") != "nil" && len(d.Outline.Children) != 0 {
-		maxLvl, _ := strconv.Atoi(w.document.GetOption("toc"))
+func (w *HTMLWriter) WriteOutline(d *Document, maxLvl int) {
+	if len(d.Outline.Children) != 0 {
 		w.WriteString("<nav>\n<ul>\n")
 		for _, section := range d.Outline.Children {
 			w.writeSection(section, maxLvl)
@@ -341,6 +350,16 @@ func (w *HTMLWriter) WriteRegularLink(l RegularLink) {
 	url := html.EscapeString(l.URL)
 	if l.Protocol == "file" {
 		url = url[len("file:"):]
+	}
+	if isRelative := l.Protocol == "file" || l.Protocol == ""; isRelative && w.PrettyRelativeLinks {
+		if !strings.HasPrefix(url, "/") {
+			url = "../" + url
+		}
+		if strings.HasSuffix(url, ".org") {
+			url = strings.TrimSuffix(url, ".org") + "/"
+		}
+	} else if isRelative && strings.HasSuffix(url, ".org") {
+		url = strings.TrimSuffix(url, ".org") + ".html"
 	}
 	if prefix := w.document.Links[l.Protocol]; prefix != "" {
 		url = html.EscapeString(prefix) + strings.TrimPrefix(url, l.Protocol+":")

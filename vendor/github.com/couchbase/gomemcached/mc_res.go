@@ -38,7 +38,7 @@ func (res *MCResponse) Error() string {
 }
 
 func errStatus(e error) Status {
-	status := Status(0xffff)
+	status := UNKNOWN_STATUS
 	if res, ok := e.(*MCResponse); ok {
 		status = res.Status
 	}

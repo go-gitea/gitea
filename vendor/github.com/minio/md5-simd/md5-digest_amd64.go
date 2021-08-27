@@ -10,6 +10,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sync"
 	"sync/atomic"
 )
 
@@ -121,6 +122,14 @@ func (d *md5Digest) Close() {
 	}
 }
 
+var sumChPool sync.Pool
+
+func init() {
+	sumChPool.New = func() interface{} {
+		return make(chan sumResult, 1)
+	}
+}
+
 // Sum - Return MD5 sum in bytes
 func (d *md5Digest) Sum(in []byte) (result []byte) {
 	if d.blocksCh == nil {
@@ -148,10 +157,11 @@ func (d *md5Digest) Sum(in []byte) (result []byte) {
 	if len(trail)%BlockSize != 0 {
 		panic(fmt.Errorf("internal error: sum block was not aligned. len=%d, nx=%d", len(trail), d.nx))
 	}
-	sumCh := make(chan sumResult, 1)
+	sumCh := sumChPool.Get().(chan sumResult)
 	d.sendBlock(blockInput{uid: d.uid, msg: trail, sumCh: sumCh}, true)
 
 	sum := <-sumCh
+	sumChPool.Put(sumCh)
 
 	return append(in, sum.digest[:]...)
 }

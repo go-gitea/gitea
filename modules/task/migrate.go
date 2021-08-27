@@ -5,16 +5,19 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -54,7 +57,7 @@ func runMigrateTask(t *models.Task) (err error) {
 
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
-		t.Errors = err.Error()
+		t.Message = err.Error()
 		t.RepoID = 0
 		if err := t.UpdateCols("status", "errors", "repo_id", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %v", err)
@@ -71,7 +74,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	// if repository is ready, then just finsih the task
+	// if repository is ready, then just finish the task
 	if t.Repo.Status == models.RepositoryReady {
 		return nil
 	}
@@ -80,11 +83,6 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 	if err = t.LoadOwner(); err != nil {
-		return
-	}
-	t.StartTime = timeutil.TimeStampNow()
-	t.Status = structs.TaskStatusRunning
-	if err = t.UpdateCols("start_time", "status"); err != nil {
 		return
 	}
 
@@ -96,7 +94,28 @@ func runMigrateTask(t *models.Task) (err error) {
 
 	opts.MigrateToRepoID = t.RepoID
 	var repo *models.Repository
-	repo, err = migrations.MigrateRepository(graceful.GetManager().HammerContext(), t.Doer, t.Owner.Name, *opts)
+
+	ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
+	defer cancel()
+	pm := process.GetManager()
+	pid := pm.Add(fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName), cancel)
+	defer pm.Remove(pid)
+
+	t.StartTime = timeutil.TimeStampNow()
+	t.Status = structs.TaskStatusRunning
+	if err = t.UpdateCols("start_time", "status"); err != nil {
+		return
+	}
+
+	repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
+		message := models.TranslatableMessage{
+			Format: format,
+			Args:   args,
+		}
+		bs, _ := json.Marshal(message)
+		t.Message = string(bs)
+		_ = t.UpdateCols("message")
+	})
 	if err == nil {
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return
@@ -108,7 +127,7 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	// remoteAddr may contain credentials, so we sanitize it
-	err = util.URLSanitizedError(err, opts.CloneAddr)
+	err = util.NewStringURLSanitizedError(err, opts.CloneAddr, true)
 	if strings.Contains(err.Error(), "Authentication failed") ||
 		strings.Contains(err.Error(), "could not read Username") {
 		return fmt.Errorf("Authentication failed: %v", err.Error())

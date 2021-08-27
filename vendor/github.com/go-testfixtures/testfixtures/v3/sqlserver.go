@@ -56,7 +56,7 @@ func (*sqlserver) databaseName(q queryable) (string, error) {
 }
 
 func (*sqlserver) tableNames(q queryable) ([]string, error) {
-	rows, err := q.Query("SELECT table_schema + '.' + table_name FROM information_schema.tables WHERE table_name <> 'spt_values'")
+	rows, err := q.Query("SELECT table_schema + '.' + table_name FROM information_schema.tables WHERE table_name <> 'spt_values' AND table_type = 'BASE TABLE'")
 	if err != nil {
 		return nil, err
 	}
@@ -114,20 +114,20 @@ func (h *sqlserver) whileInsertOnTable(tx *sql.Tx, tableName string, fn func() e
 func (h *sqlserver) disableReferentialIntegrity(db *sql.DB, loadFn loadFunction) (err error) {
 	// ensure the triggers are re-enable after all
 	defer func() {
-		var sql string
+		var b strings.Builder
 		for _, table := range h.tables {
-			sql += fmt.Sprintf("ALTER TABLE %s WITH CHECK CHECK CONSTRAINT ALL;", h.quoteKeyword(table))
+			b.WriteString(fmt.Sprintf("ALTER TABLE %s WITH CHECK CHECK CONSTRAINT ALL;", h.quoteKeyword(table)))
 		}
-		if _, err2 := db.Exec(sql); err2 != nil && err == nil {
+		if _, err2 := db.Exec(b.String()); err2 != nil && err == nil {
 			err = err2
 		}
 	}()
 
-	var sql string
+	var b strings.Builder
 	for _, table := range h.tables {
-		sql += fmt.Sprintf("ALTER TABLE %s NOCHECK CONSTRAINT ALL;", h.quoteKeyword(table))
+		b.WriteString(fmt.Sprintf("ALTER TABLE %s NOCHECK CONSTRAINT ALL;", h.quoteKeyword(table)))
 	}
-	if _, err := db.Exec(sql); err != nil {
+	if _, err := db.Exec(b.String()); err != nil {
 		return err
 	}
 

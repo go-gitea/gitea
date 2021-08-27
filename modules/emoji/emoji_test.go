@@ -8,6 +8,8 @@ package emoji
 import (
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestDumpInfo(t *testing.T) {
@@ -63,5 +65,36 @@ func TestReplacers(t *testing.T) {
 		if s != x.exp {
 			t.Errorf("test %d `%s` expected `%s`, got: `%s`", i, x.v, x.exp, s)
 		}
+	}
+}
+
+func TestFindEmojiSubmatchIndex(t *testing.T) {
+	type testcase struct {
+		teststring string
+		expected   []int
+	}
+
+	testcases := []testcase{
+		{
+			"\U0001f44d",
+			[]int{0, len("\U0001f44d")},
+		},
+		{
+			"\U0001f44d +1 \U0001f44d \U0001f37a",
+			[]int{0, 4},
+		},
+		{
+			" \U0001f44d",
+			[]int{1, 1 + len("\U0001f44d")},
+		},
+		{
+			string([]byte{'\u0001'}) + "\U0001f44d",
+			[]int{1, 1 + len("\U0001f44d")},
+		},
+	}
+
+	for _, kase := range testcases {
+		actual := FindEmojiSubmatchIndex(kase.teststring)
+		assert.Equal(t, kase.expected, actual)
 	}
 }

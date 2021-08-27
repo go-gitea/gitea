@@ -170,7 +170,9 @@ func lookupIntSlice(name string, set *flag.FlagSet) []int {
 func removeFromIntSlice(slice []int, val int) []int {
 	for i, v := range slice {
 		if v == val {
-			return append(slice[:i], slice[i+1:]...)
+			ret := append([]int{}, slice[:i]...)
+			ret = append(ret, slice[i+1:]...)
+			return ret
 		}
 	}
 	return slice

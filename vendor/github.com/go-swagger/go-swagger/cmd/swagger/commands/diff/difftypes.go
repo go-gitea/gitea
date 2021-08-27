@@ -43,8 +43,6 @@ const (
 	AddedRequiredParam
 	// DeletedRequiredParam - A required parameter has been deleted in the new spec
 	DeletedRequiredParam
-	// ChangedRequiredToOptional - A required parameter has been made optional in the new spec
-	ChangedRequiredToOptional
 	// AddedEndpoint - An endpoint has been added in the new spec
 	AddedEndpoint
 	// WidenedType - An type has been changed to a more permissive type eg int->string
@@ -61,10 +59,10 @@ const (
 	DeletedEnumValue
 	// AddedOptionalParam - A new optional parameter has been added to the new spec
 	AddedOptionalParam
-	// ChangedOptionalToRequiredParam - An optional parameter is now required in the new spec
-	ChangedOptionalToRequiredParam
-	// ChangedRequiredToOptionalParam - An required parameter is now optional in the new spec
-	ChangedRequiredToOptionalParam
+	// ChangedOptionalToRequired - An optional parameter is now required in the new spec
+	ChangedOptionalToRequired
+	// ChangedRequiredToOptional - An required parameter is now optional in the new spec
+	ChangedRequiredToOptional
 	// AddedResponse An endpoint has new response code in the new spec
 	AddedResponse
 	// AddedConsumesFormat - a new consumes format (json/xml/yaml etc) has been added in the new spec
@@ -89,88 +87,112 @@ const (
 	ChangedResponseHeader
 	// DeletedResponseHeader Added a header Item
 	DeletedResponseHeader
+	// RefTargetChanged Changed a ref to point to a different object
+	RefTargetChanged
+	// RefTargetRenamed Renamed a ref to point to the same object
+	RefTargetRenamed
+	// DeletedConstraint Deleted a schema constraint
+	DeletedConstraint
+	// AddedConstraint Added a schema constraint
+	AddedConstraint
+	// DeletedDefinition removed one of the definitions
+	DeletedDefinition
+	// AddedDefinition removed one of the definitions
+	AddedDefinition
 )
 
 var toLongStringSpecChangeCode = map[SpecChangeCode]string{
-	NoChangeDetected:               "No Change detected",
-	AddedEndpoint:                  "Added endpoint",
-	DeletedEndpoint:                "Deleted endpoint",
-	DeletedDeprecatedEndpoint:      "Deleted a deprecated endpoint",
-	AddedRequiredProperty:          "Added required property",
-	DeletedProperty:                "Deleted property",
-	ChangedDescripton:              "Changed a description",
-	AddedDescripton:                "Added a description",
-	DeletedDescripton:              "Deleted a description",
-	ChangedTag:                     "Changed a tag",
-	AddedTag:                       "Added a tag",
-	DeletedTag:                     "Deleted a tag",
-	AddedProperty:                  "Added property",
-	AddedOptionalParam:             "Added optional param",
-	AddedRequiredParam:             "Added required param",
-	DeletedOptionalParam:           "Deleted optional param",
-	DeletedRequiredParam:           "Deleted required param",
-	DeletedResponse:                "Deleted response",
-	AddedResponse:                  "Added response",
-	WidenedType:                    "Widened type",
-	NarrowedType:                   "Narrowed type",
-	ChangedType:                    "Changed type",
-	ChangedToCompatibleType:        "Changed type to equivalent type",
-	ChangedOptionalToRequiredParam: "Changed optional param to required",
-	ChangedRequiredToOptionalParam: "Changed required param to optional",
-	AddedEnumValue:                 "Added possible enumeration(s)",
-	DeletedEnumValue:               "Deleted possible enumeration(s)",
-	AddedConsumesFormat:            "Added a consumes format",
-	DeletedConsumesFormat:          "Deleted a consumes format",
-	AddedProducesFormat:            "Added produces format",
-	DeletedProducesFormat:          "Deleted produces format",
-	AddedSchemes:                   "Added schemes",
-	DeletedSchemes:                 "Deleted schemes",
-	ChangedHostURL:                 "Changed host URL",
-	ChangedBasePath:                "Changed base path",
-	AddedResponseHeader:            "Added response header",
-	ChangedResponseHeader:          "Changed response header",
-	DeletedResponseHeader:          "Deleted response header",
+	NoChangeDetected:          "No Change detected",
+	AddedEndpoint:             "Added endpoint",
+	DeletedEndpoint:           "Deleted endpoint",
+	DeletedDeprecatedEndpoint: "Deleted a deprecated endpoint",
+	AddedRequiredProperty:     "Added required property",
+	DeletedProperty:           "Deleted property",
+	ChangedDescripton:         "Changed a description",
+	AddedDescripton:           "Added a description",
+	DeletedDescripton:         "Deleted a description",
+	ChangedTag:                "Changed a tag",
+	AddedTag:                  "Added a tag",
+	DeletedTag:                "Deleted a tag",
+	AddedProperty:             "Added property",
+	AddedOptionalParam:        "Added optional param",
+	AddedRequiredParam:        "Added required param",
+	DeletedOptionalParam:      "Deleted optional param",
+	DeletedRequiredParam:      "Deleted required param",
+	DeletedResponse:           "Deleted response",
+	AddedResponse:             "Added response",
+	WidenedType:               "Widened type",
+	NarrowedType:              "Narrowed type",
+	ChangedType:               "Changed type",
+	ChangedToCompatibleType:   "Changed type to equivalent type",
+	ChangedOptionalToRequired: "Changed optional param to required",
+	ChangedRequiredToOptional: "Changed required param to optional",
+	AddedEnumValue:            "Added possible enumeration(s)",
+	DeletedEnumValue:          "Deleted possible enumeration(s)",
+	AddedConsumesFormat:       "Added a consumes format",
+	DeletedConsumesFormat:     "Deleted a consumes format",
+	AddedProducesFormat:       "Added produces format",
+	DeletedProducesFormat:     "Deleted produces format",
+	AddedSchemes:              "Added schemes",
+	DeletedSchemes:            "Deleted schemes",
+	ChangedHostURL:            "Changed host URL",
+	ChangedBasePath:           "Changed base path",
+	AddedResponseHeader:       "Added response header",
+	ChangedResponseHeader:     "Changed response header",
+	DeletedResponseHeader:     "Deleted response header",
+	RefTargetChanged:          "Changed ref to different object",
+	RefTargetRenamed:          "Changed ref to renamed object",
+	DeletedConstraint:         "Deleted a schema constraint",
+	AddedConstraint:           "Added a schema constraint",
+	DeletedDefinition:         "Deleted a schema definition",
+	AddedDefinition:           "Added a schema definition",
 }
 
 var toStringSpecChangeCode = map[SpecChangeCode]string{
-	AddedEndpoint:                  "AddedEndpoint",
-	NoChangeDetected:               "NoChangeDetected",
-	DeletedEndpoint:                "DeletedEndpoint",
-	DeletedDeprecatedEndpoint:      "DeletedDeprecatedEndpoint",
-	AddedRequiredProperty:          "AddedRequiredProperty",
-	DeletedProperty:                "DeletedProperty",
-	AddedProperty:                  "AddedProperty",
-	ChangedDescripton:              "ChangedDescription",
-	AddedDescripton:                "AddedDescription",
-	DeletedDescripton:              "DeletedDescription",
-	ChangedTag:                     "ChangedTag",
-	AddedTag:                       "AddedTag",
-	DeletedTag:                     "DeletedTag",
-	AddedOptionalParam:             "AddedOptionalParam",
-	AddedRequiredParam:             "AddedRequiredParam",
-	DeletedOptionalParam:           "DeletedRequiredParam",
-	DeletedRequiredParam:           "Deleted required param",
-	DeletedResponse:                "DeletedResponse",
-	AddedResponse:                  "AddedResponse",
-	WidenedType:                    "WidenedType",
-	NarrowedType:                   "NarrowedType",
-	ChangedType:                    "ChangedType",
-	ChangedToCompatibleType:        "ChangedToCompatibleType",
-	ChangedOptionalToRequiredParam: "ChangedOptionalToRequiredParam",
-	ChangedRequiredToOptionalParam: "ChangedRequiredToOptionalParam",
-	AddedEnumValue:                 "AddedEnumValue",
-	DeletedEnumValue:               "DeletedEnumValue",
-	AddedConsumesFormat:            "AddedConsumesFormat",
-	DeletedConsumesFormat:          "DeletedConsumesFormat",
-	AddedProducesFormat:            "AddedProducesFormat",
-	DeletedProducesFormat:          "DeletedProducesFormat",
-	AddedSchemes:                   "AddedSchemes",
-	DeletedSchemes:                 "DeletedSchemes",
-	ChangedHostURL:                 "ChangedHostURL",
-	ChangedBasePath:                "ChangedBasePath",
-	AddedResponseHeader:            "AddedResponseHeader",
-	ChangedResponseHeader:          "ChangedResponseHeader",
-	DeletedResponseHeader:          "DeletedResponseHeader",
+	AddedEndpoint:             "AddedEndpoint",
+	NoChangeDetected:          "NoChangeDetected",
+	DeletedEndpoint:           "DeletedEndpoint",
+	DeletedDeprecatedEndpoint: "DeletedDeprecatedEndpoint",
+	AddedRequiredProperty:     "AddedRequiredProperty",
+	DeletedProperty:           "DeletedProperty",
+	AddedProperty:             "AddedProperty",
+	ChangedDescripton:         "ChangedDescription",
+	AddedDescripton:           "AddedDescription",
+	DeletedDescripton:         "DeletedDescription",
+	ChangedTag:                "ChangedTag",
+	AddedTag:                  "AddedTag",
+	DeletedTag:                "DeletedTag",
+	AddedOptionalParam:        "AddedOptionalParam",
+	AddedRequiredParam:        "AddedRequiredParam",
+	DeletedOptionalParam:      "DeletedRequiredParam",
+	DeletedRequiredParam:      "Deleted required param",
+	DeletedResponse:           "DeletedResponse",
+	AddedResponse:             "AddedResponse",
+	WidenedType:               "WidenedType",
+	NarrowedType:              "NarrowedType",
+	ChangedType:               "ChangedType",
+	ChangedToCompatibleType:   "ChangedToCompatibleType",
+	ChangedOptionalToRequired: "ChangedOptionalToRequiredParam",
+	ChangedRequiredToOptional: "ChangedRequiredToOptionalParam",
+	AddedEnumValue:            "AddedEnumValue",
+	DeletedEnumValue:          "DeletedEnumValue",
+	AddedConsumesFormat:       "AddedConsumesFormat",
+	DeletedConsumesFormat:     "DeletedConsumesFormat",
+	AddedProducesFormat:       "AddedProducesFormat",
+	DeletedProducesFormat:     "DeletedProducesFormat",
+	AddedSchemes:              "AddedSchemes",
+	DeletedSchemes:            "DeletedSchemes",
+	ChangedHostURL:            "ChangedHostURL",
+	ChangedBasePath:           "ChangedBasePath",
+	AddedResponseHeader:       "AddedResponseHeader",
+	ChangedResponseHeader:     "ChangedResponseHeader",
+	DeletedResponseHeader:     "DeletedResponseHeader",
+	RefTargetChanged:          "RefTargetChanged",
+	RefTargetRenamed:          "RefTargetRenamed",
+	DeletedConstraint:         "DeletedConstraint",
+	AddedConstraint:           "AddedConstraint",
+	DeletedDefinition:         "DeletedDefinition",
+	AddedDefinition:           "AddedDefinition",
 }
 
 var toIDSpecChangeCode = map[string]SpecChangeCode{}
@@ -273,5 +295,4 @@ func init() {
 	for key, val := range toStringCompatibility {
 		toIDCompatibility[val] = key
 	}
-
 }

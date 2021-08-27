@@ -17,14 +17,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
-
-	"gitea.com/macaron/macaron"
+	"code.gitea.io/gitea/routers/install"
 
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"github.com/urfave/cli"
-	"golang.org/x/crypto/acme/autocert"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -51,6 +47,14 @@ and it takes care of all the other things for you`,
 			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
 		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Only display Fatal logging errors until logging is set-up",
+		},
+		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "Set initial logging to TRACE level until logging is properly set-up",
+		},
 	},
 }
 
@@ -67,44 +71,27 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, context2.ClearHandler(handler))
+	var err = runHTTP("tcp", source, "HTTP Redirector", context2.ClearHandler(handler))
 
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
 }
 
-func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
-	certManager := autocert.Manager{
-		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(domain),
-		Cache:      autocert.DirCache(directory),
-		Email:      email,
+func runWeb(ctx *cli.Context) error {
+	if ctx.Bool("verbose") {
+		_ = log.DelLogger("console")
+		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	} else if ctx.Bool("quiet") {
+		_ = log.DelLogger("console")
+		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 	}
-	go func() {
-		log.Info("Running Let's Encrypt handler on %s", setting.HTTPAddr+":"+setting.PortToRedirect)
-		// all traffic coming into HTTP will be redirect to HTTPS automatically (LE HTTP-01 validation happens here)
-		var err = runHTTP("tcp", setting.HTTPAddr+":"+setting.PortToRedirect, certManager.HTTPHandler(http.HandlerFunc(runLetsEncryptFallbackHandler)))
-		if err != nil {
-			log.Fatal("Failed to start the Let's Encrypt handler on port %s: %v", setting.PortToRedirect, err)
+	defer func() {
+		if panicked := recover(); panicked != nil {
+			log.Fatal("PANIC: %v\n%s", panicked, string(log.Stack(2)))
 		}
 	}()
-	return runHTTPSWithTLSConfig("tcp", listenAddr, certManager.TLSConfig(), context2.ClearHandler(m))
-}
 
-func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" && r.Method != "HEAD" {
-		http.Error(w, "Use HTTPS", http.StatusBadRequest)
-		return
-	}
-	// Remove the trailing slash at the end of setting.AppURL, the request
-	// URI always contains a leading slash, which would result in a double
-	// slash
-	target := strings.TrimSuffix(setting.AppURL, "/") + r.URL.RequestURI()
-	http.Redirect(w, r, target, http.StatusFound)
-}
-
-func runWeb(ctx *cli.Context) error {
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
@@ -122,7 +109,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform pre-initialization
-	needsInstall := routers.PreInstallInit(graceful.GetManager().HammerContext())
+	needsInstall := install.PreloadSettings(graceful.GetManager().HammerContext())
 	if needsInstall {
 		// Flag for port number in case first time run conflict
 		if ctx.IsSet("port") {
@@ -135,9 +122,8 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		m := routes.NewMacaron()
-		routes.RegisterInstallRoute(m)
-		err := listen(m, false)
+		c := install.Routes()
+		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
 			<-graceful.GetManager().Done()
@@ -167,11 +153,10 @@ func runWeb(ctx *cli.Context) error {
 			return err
 		}
 	}
-	// Set up Macaron
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
 
-	err := listen(m, true)
+	// Set up Chi routes
+	c := routers.NormalRoutes()
+	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
@@ -187,15 +172,6 @@ func setPort(port string) error {
 	case setting.FCGI:
 	case setting.FCGIUnix:
 	default:
-		// Save LOCAL_ROOT_URL if port changed
-		cfg := ini.Empty()
-		if com.IsFile(setting.CustomConf) {
-			// Keeps custom settings if there is already something.
-			if err := cfg.Append(setting.CustomConf); err != nil {
-				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-			}
-		}
-
 		defaultLocalURL := string(setting.Protocol) + "://"
 		if setting.HTTPAddr == "0.0.0.0" {
 			defaultLocalURL += "localhost"
@@ -204,15 +180,15 @@ func setPort(port string) error {
 		}
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
-		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		if err := cfg.SaveTo(setting.CustomConf); err != nil {
-			return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)
-		}
+		// Save LOCAL_ROOT_URL if port changed
+		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		})
 	}
 	return nil
 }
 
-func listen(m *macaron.Macaron, handleRedirector bool) error {
+func listen(m http.Handler, handleRedirector bool) error {
 	listenAddr := setting.HTTPAddr
 	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
@@ -229,7 +205,7 @@ func listen(m *macaron.Macaron, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, context2.ClearHandler(m))
+		err = runHTTP("tcp", listenAddr, "Web", context2.ClearHandler(m))
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
 			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
@@ -242,22 +218,22 @@ func listen(m *macaron.Macaron, handleRedirector bool) error {
 				NoHTTPRedirector()
 			}
 		}
-		err = runHTTPS("tcp", listenAddr, setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, context2.ClearHandler(m))
+		err = runFCGI("tcp", listenAddr, "FCGI Web", context2.ClearHandler(m))
 	case setting.UnixSocket:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, context2.ClearHandler(m))
+		err = runHTTP("unix", listenAddr, "Web", context2.ClearHandler(m))
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, context2.ClearHandler(m))
+		err = runFCGI("unix", listenAddr, "Web", context2.ClearHandler(m))
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}

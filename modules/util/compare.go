@@ -4,7 +4,10 @@
 
 package util
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 // Int64Slice attaches the methods of Interface to []int64, sorting in increasing order.
 type Int64Slice []int64
@@ -36,10 +39,22 @@ func ExistsInSlice(target string, slice []string) bool {
 }
 
 // IsStringInSlice sequential searches if string exists in slice.
-func IsStringInSlice(target string, slice []string) bool {
+func IsStringInSlice(target string, slice []string, insensitive ...bool) bool {
+	caseInsensitive := false
+	if len(insensitive) != 0 && insensitive[0] {
+		caseInsensitive = true
+		target = strings.ToLower(target)
+	}
+
 	for i := 0; i < len(slice); i++ {
-		if slice[i] == target {
-			return true
+		if caseInsensitive {
+			if strings.ToLower(slice[i]) == target {
+				return true
+			}
+		} else {
+			if slice[i] == target {
+				return true
+			}
 		}
 	}
 	return false

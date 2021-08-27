@@ -22,8 +22,11 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 	if err != nil {
 		return nil, err
 	}
-
-	notification.NotifyCreateIssueComment(doer, repo, issue, comment)
+	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+	if err != nil {
+		return nil, err
+	}
+	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 
 	return comment, nil
 }
@@ -40,8 +43,8 @@ func UpdateComment(c *models.Comment, doer *models.User, oldContent string) erro
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(comment *models.Comment, doer *models.User) error {
-	if err := models.DeleteComment(comment, doer); err != nil {
+func DeleteComment(doer *models.User, comment *models.Comment) error {
+	if err := models.DeleteComment(comment); err != nil {
 		return err
 	}
 

@@ -13,11 +13,10 @@ import (
 // PullRequest defines a standard pull request information
 type PullRequest struct {
 	Number         int64
-	OriginalNumber int64
 	Title          string
-	PosterName     string
-	PosterID       int64
-	PosterEmail    string
+	PosterName     string `yaml:"poster_name"`
+	PosterID       int64  `yaml:"poster_id"`
+	PosterEmail    string `yaml:"poster_email"`
 	Content        string
 	Milestone      string
 	State          string
@@ -25,15 +24,16 @@ type PullRequest struct {
 	Updated        time.Time
 	Closed         *time.Time
 	Labels         []*Label
-	PatchURL       string
+	PatchURL       string `yaml:"patch_url"`
 	Merged         bool
-	MergedTime     *time.Time
-	MergeCommitSHA string
+	MergedTime     *time.Time `yaml:"merged_time"`
+	MergeCommitSHA string     `yaml:"merge_commit_sha"`
 	Head           PullRequestBranch
 	Base           PullRequestBranch
 	Assignees      []string
-	IsLocked       bool
+	IsLocked       bool `yaml:"is_locked"`
 	Reactions      []*Reaction
+	Context        IssueContext `yaml:"-"`
 }
 
 // IsForkPullRequest returns true if the pull request from a forked repository but not the same repository
@@ -43,11 +43,11 @@ func (p *PullRequest) IsForkPullRequest() bool {
 
 // PullRequestBranch represents a pull request branch
 type PullRequestBranch struct {
-	CloneURL  string
+	CloneURL  string `yaml:"clone_url"`
 	Ref       string
 	SHA       string
-	RepoName  string
-	OwnerName string
+	RepoName  string `yaml:"repo_name"`
+	OwnerName string `yaml:"owner_name"`
 }
 
 // RepoPath returns pull request repo path

@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -21,13 +22,13 @@ import (
 func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == models.AccessModeRead
 	if repository.ID == key.RepoID {
-		apiKey.Repository = repository.APIFormat(key.Mode)
+		apiKey.Repository = convert.ToRepo(repository, key.Mode)
 	} else {
 		repo, err := models.GetRepositoryByID(key.RepoID)
 		if err != nil {
 			return apiKey, err
 		}
-		apiKey.Repository = repo.APIFormat(key.Mode)
+		apiKey.Repository = convert.ToRepo(repo, key.Mode)
 	}
 	return apiKey, nil
 }
@@ -74,26 +75,29 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
 
-	var keys []*models.DeployKey
-	var err error
-
-	fingerprint := ctx.Query("fingerprint")
-	keyID := ctx.QueryInt64("key_id")
-	if fingerprint != "" || keyID != 0 {
-		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
-	} else {
-		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &models.ListDeployKeysOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		KeyID:       ctx.FormInt64("key_id"),
+		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
+	keys, err := models.ListDeployKeys(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListDeployKeys", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	count, err := models.CountDeployKeys(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
-		if err = keys[i].GetContent(); err != nil {
+		if err := keys[i].GetContent(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetContent", err)
 			return
 		}
@@ -103,6 +107,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
@@ -185,7 +190,7 @@ func HandleAddKeyError(ctx *context.APIContext, err error) {
 }
 
 // CreateDeployKey create deploy key for a repository
-func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreateDeployKey(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/keys repository repoCreateKey
 	// ---
 	// summary: Add a key to a repository
@@ -214,6 +219,7 @@ func CreateDeployKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
 	content, err := models.CheckPublicKeyString(form.Key)
 	if err != nil {
 		HandleCheckKeyStringError(ctx, err)

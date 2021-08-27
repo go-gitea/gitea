@@ -156,7 +156,9 @@ func lookupStringSlice(name string, set *flag.FlagSet) []string {
 func removeFromStringSlice(slice []string, val string) []string {
 	for i, v := range slice {
 		if v == val {
-			return append(slice[:i], slice[i+1:]...)
+			ret := append([]string{}, slice[:i]...)
+			ret = append(ret, slice[i+1:]...)
+			return ret
 		}
 	}
 	return slice

@@ -8,8 +8,9 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"hash"
+	"hash/fnv"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -25,22 +26,22 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
-	"gitea.com/macaron/macaron"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
-var mac *macaron.Macaron
+var c *web.Route
 
 type NilResponseRecorder struct {
 	httptest.ResponseRecorder
@@ -59,6 +60,26 @@ func NewNilResponseRecorder() *NilResponseRecorder {
 	}
 }
 
+type NilResponseHashSumRecorder struct {
+	httptest.ResponseRecorder
+	Hash   hash.Hash
+	Length int
+}
+
+func (n *NilResponseHashSumRecorder) Write(b []byte) (int, error) {
+	_, _ = n.Hash.Write(b)
+	n.Length += len(b)
+	return len(b), nil
+}
+
+// NewRecorder returns an initialized ResponseRecorder.
+func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
+	return &NilResponseHashSumRecorder{
+		Hash:             fnv.New32(),
+		ResponseRecorder: *httptest.NewRecorder(),
+	}
+}
+
 func TestMain(m *testing.M) {
 	defer log.Close()
 
@@ -67,8 +88,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	mac = routes.NewMacaron()
-	routes.RegisterRoutes(mac)
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -143,7 +163,7 @@ func initIntegrationTest() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 	util.RemoveAll(models.LocalCopyPath())
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
@@ -230,8 +250,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
-	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	return deferFn
 }
 
@@ -278,6 +297,23 @@ func (s *TestSession) MakeRequestNilResponseRecorder(t testing.TB, req *http.Req
 		req.AddCookie(c)
 	}
 	resp := MakeRequestNilResponseRecorder(t, req, expectedStatus)
+
+	ch := http.Header{}
+	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
+	cr := http.Request{Header: ch}
+	s.jar.SetCookies(baseURL, cr.Cookies())
+
+	return resp
+}
+
+func (s *TestSession) MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	baseURL, err := url.Parse(setting.AppURL)
+	assert.NoError(t, err)
+	for _, c := range s.jar.Cookies(baseURL) {
+		req.AddCookie(c)
+	}
+	resp := MakeRequestNilResponseHashSumRecorder(t, req, expectedStatus)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -379,6 +415,7 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	t.Helper()
+
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -388,6 +425,9 @@ func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *htt
 
 func NewRequestWithBody(t testing.TB, method, urlStr string, body io.Reader) *http.Request {
 	t.Helper()
+	if !strings.HasPrefix(urlStr, "http") && !strings.HasPrefix(urlStr, "/") {
+		urlStr = "/" + urlStr
+	}
 	request, err := http.NewRequest(method, urlStr, body)
 	assert.NoError(t, err)
 	request.RequestURI = urlStr
@@ -404,7 +444,7 @@ const NoExpectedStatus = -1
 func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.ResponseRecorder {
 	t.Helper()
 	recorder := httptest.NewRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -417,7 +457,20 @@ func MakeRequest(t testing.TB, req *http.Request, expectedStatus int) *httptest.
 func MakeRequestNilResponseRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseRecorder {
 	t.Helper()
 	recorder := NewNilResponseRecorder()
-	mac.ServeHTTP(recorder, req)
+	c.ServeHTTP(recorder, req)
+	if expectedStatus != NoExpectedStatus {
+		if !assert.EqualValues(t, expectedStatus, recorder.Code,
+			"Request: %s %s", req.Method, req.URL.String()) {
+			logUnexpectedResponse(t, &recorder.ResponseRecorder)
+		}
+	}
+	return recorder
+}
+
+func MakeRequestNilResponseHashSumRecorder(t testing.TB, req *http.Request, expectedStatus int) *NilResponseHashSumRecorder {
+	t.Helper()
+	recorder := NewNilResponseHashSumRecorder()
+	c.ServeHTTP(recorder, req)
 	if expectedStatus != NoExpectedStatus {
 		if !assert.EqualValues(t, expectedStatus, recorder.Code,
 			"Request: %s %s", req.Method, req.URL.String()) {
@@ -453,6 +506,7 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 	t.Helper()
+
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
@@ -472,6 +526,5 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
 	assert.NoError(t, models.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, com.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 }

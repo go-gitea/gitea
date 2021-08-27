@@ -106,12 +106,12 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 }
 
 // PerformSearch perform a search on a repository
-func PerformSearch(repoIDs []int64, language, keyword string, page, pageSize int) (int, []*Result, []*SearchResultLanguages, error) {
+func PerformSearch(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int, []*Result, []*SearchResultLanguages, error) {
 	if len(keyword) == 0 {
 		return 0, nil, nil, nil
 	}
 
-	total, results, resultLanguages, err := indexer.Search(repoIDs, language, keyword, page, pageSize)
+	total, results, resultLanguages, err := indexer.Search(repoIDs, language, keyword, page, pageSize, isMatch)
 	if err != nil {
 		return 0, nil, nil, err
 	}

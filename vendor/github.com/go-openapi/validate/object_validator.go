@@ -271,9 +271,9 @@ func (o *objectValidator) validatePatternProperty(key string, value interface{},
 
 	// BUG(fredbi): can't get to here. Should remove dead code (commented out).
 
-	//if succeededOnce {
+	// if succeededOnce {
 	//	result.Inc()
-	//}
+	// }
 
 	return matched, succeededOnce, patterns
 }

@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -75,6 +74,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 
 	setting.RepoAvatar.Storage.Path = filepath.Join(setting.AppDataPath, "repo-avatars")
 
+	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
@@ -82,8 +83,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	if err = util.RemoveAll(setting.RepoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = com.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
-		fatalTestError("com.CopyDir: %v\n", err)
+	if err = util.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
 	exitStatus := m.Run()
@@ -104,7 +105,7 @@ func CreateTestEngine(fixturesDir string) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+	if err = syncTables(); err != nil {
 		return err
 	}
 	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
@@ -126,7 +127,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
-	assert.NoError(t, com.CopyDir(metaPath, setting.RepoRootPath))
+	assert.NoError(t, util.CopyDir(metaPath, setting.RepoRootPath))
 	base.SetupGiteaRoot() // Makes sure GITEA_ROOT is set
 }
 
@@ -208,7 +209,7 @@ func AssertSuccessfulInsert(t testing.TB, beans ...interface{}) {
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t testing.TB, bean interface{}, expected interface{}) {
+func AssertCount(t testing.TB, bean, expected interface{}) {
 	assert.EqualValues(t, expected, GetCount(t, bean))
 }
 

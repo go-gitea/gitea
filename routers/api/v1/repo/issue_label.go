@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
@@ -64,7 +65,7 @@ func ListIssueLabels(ctx *context.APIContext) {
 }
 
 // AddIssueLabels add labels for an issue
-func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
+func AddIssueLabels(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/labels issue issueAddLabel
 	// ---
 	// summary: Add a label to an issue
@@ -99,7 +100,8 @@ func AddIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	issue, labels, err := prepareForReplaceOrAdd(ctx, form)
+	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return
 	}
@@ -190,7 +192,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 }
 
 // ReplaceIssueLabels replace labels for an issue
-func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
+func ReplaceIssueLabels(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/issues/{index}/labels issue issueReplaceLabels
 	// ---
 	// summary: Replace an issue's labels
@@ -224,8 +226,8 @@ func ReplaceIssueLabels(ctx *context.APIContext, form api.IssueLabelsOption) {
 	//     "$ref": "#/responses/LabelList"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
-
-	issue, labels, err := prepareForReplaceOrAdd(ctx, form)
+	form := web.GetForm(ctx).(*api.IssueLabelsOption)
+	issue, labels, err := prepareForReplaceOrAdd(ctx, *form)
 	if err != nil {
 		return
 	}

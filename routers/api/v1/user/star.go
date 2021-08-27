@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -28,7 +29,7 @@ func getStarredRepos(user *models.User, private bool, listOptions models.ListOpt
 		if err != nil {
 			return nil, err
 		}
-		repos[i] = starred.APIFormat(access)
+		repos[i] = convert.ToRepo(starred, access)
 	}
 	return repos, nil
 }
@@ -91,6 +92,8 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.User.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 

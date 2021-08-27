@@ -6,7 +6,6 @@
 package pull
 
 import (
-	"context"
 	"strconv"
 	"testing"
 	"time"
@@ -15,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/com"
 )
 
 func TestPullRequest_AddToTaskQueue(t *testing.T) {
@@ -25,8 +23,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	q, err := queue.NewChannelUniqueQueue(func(data ...queue.Data) {
 		for _, datum := range data {
-			prID := datum.(string)
-			id := com.StrTo(prID).MustInt64()
+			id, _ := strconv.ParseInt(datum.(string), 10, 64)
 			idChan <- id
 		}
 	}, queue.ChannelUniqueQueueConfiguration{
@@ -56,9 +53,9 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.True(t, has)
 	assert.NoError(t, err)
 
-	prQueue.Run(func(_ context.Context, shutdown func()) {
+	prQueue.Run(func(shutdown func()) {
 		queueShutdown = append(queueShutdown, shutdown)
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
 		queueTerminate = append(queueTerminate, terminate)
 	})
 

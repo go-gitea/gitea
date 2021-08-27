@@ -5,20 +5,21 @@
 package private
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // Shutdown calls the internal shutdown function
-func Shutdown() (int, string) {
+func Shutdown(ctx context.Context) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/shutdown"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
@@ -33,10 +34,10 @@ func Shutdown() (int, string) {
 }
 
 // Restart calls the internal restart function
-func Restart() (int, string) {
+func Restart(ctx context.Context) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/restart"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
@@ -57,10 +58,10 @@ type FlushOptions struct {
 }
 
 // FlushQueues calls the internal flush-queues function
-func FlushQueues(timeout time.Duration, nonBlocking bool) (int, string) {
+func FlushQueues(ctx context.Context, timeout time.Duration, nonBlocking bool) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/flush-queues"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	if timeout > 0 {
 		req.SetTimeout(timeout+10*time.Second, timeout+10*time.Second)
 	}
@@ -84,10 +85,10 @@ func FlushQueues(timeout time.Duration, nonBlocking bool) (int, string) {
 }
 
 // PauseLogging pauses logging
-func PauseLogging() (int, string) {
+func PauseLogging(ctx context.Context) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/pause-logging"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
@@ -102,10 +103,10 @@ func PauseLogging() (int, string) {
 }
 
 // ResumeLogging resumes logging
-func ResumeLogging() (int, string) {
+func ResumeLogging(ctx context.Context) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/resume-logging"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
@@ -120,10 +121,10 @@ func ResumeLogging() (int, string) {
 }
 
 // ReleaseReopenLogging releases and reopens logging files
-func ReleaseReopenLogging() (int, string) {
+func ReleaseReopenLogging(ctx context.Context) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/release-and-reopen-logging"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
@@ -146,10 +147,10 @@ type LoggerOptions struct {
 }
 
 // AddLogger adds a logger
-func AddLogger(group, name, mode string, config map[string]interface{}) (int, string) {
+func AddLogger(ctx context.Context, group, name, mode string, config map[string]interface{}) (int, string) {
 	reqURL := setting.LocalURL + "api/internal/manager/add-logger"
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
 	jsonBytes, _ := json.Marshal(LoggerOptions{
 		Group:  group,
@@ -173,10 +174,10 @@ func AddLogger(group, name, mode string, config map[string]interface{}) (int, st
 }
 
 // RemoveLogger removes a logger
-func RemoveLogger(group, name string) (int, string) {
+func RemoveLogger(ctx context.Context, group, name string) (int, string) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/remove-logger/%s/%s", url.PathEscape(group), url.PathEscape(name))
 
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	resp, err := req.Response()
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())

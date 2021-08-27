@@ -4,32 +4,37 @@
 
 package base
 
-import "time"
+import (
+	"io"
+	"time"
+)
 
 // ReleaseAsset represents a release asset
 type ReleaseAsset struct {
 	ID            int64
 	Name          string
-	ContentType   *string
+	ContentType   *string `yaml:"content_type"`
 	Size          *int
-	DownloadCount *int
+	DownloadCount *int `yaml:"download_count"`
 	Created       time.Time
 	Updated       time.Time
-	DownloadURL   *string
+	DownloadURL   *string `yaml:"download_url"`
+	// if DownloadURL is nil, the function should be invoked
+	DownloadFunc func() (io.ReadCloser, error) `yaml:"-"`
 }
 
 // Release represents a release
 type Release struct {
-	TagName         string
-	TargetCommitish string
+	TagName         string `yaml:"tag_name"`
+	TargetCommitish string `yaml:"target_commitish"`
 	Name            string
 	Body            string
 	Draft           bool
 	Prerelease      bool
-	PublisherID     int64
-	PublisherName   string
-	PublisherEmail  string
-	Assets          []ReleaseAsset
+	PublisherID     int64  `yaml:"publisher_id"`
+	PublisherName   string `yaml:"publisher_name"`
+	PublisherEmail  string `yaml:"publisher_email"`
+	Assets          []*ReleaseAsset
 	Created         time.Time
 	Published       time.Time
 }

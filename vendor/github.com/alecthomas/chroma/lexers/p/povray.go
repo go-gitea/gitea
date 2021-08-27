@@ -6,14 +6,18 @@ import (
 )
 
 // Povray lexer.
-var Povray = internal.Register(MustNewLexer(
+var Povray = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "POVRay",
 		Aliases:   []string{"pov"},
 		Filenames: []string{"*.pov", "*.inc"},
 		MimeTypes: []string{"text/x-povray"},
 	},
-	Rules{
+	povrayRules,
+))
+
+func povrayRules() Rules {
+	return Rules{
 		"root": {
 			{`/\*[\w\W]*?\*/`, CommentMultiline, nil},
 			{`//.*\n`, CommentSingle, nil},
@@ -31,5 +35,5 @@ var Povray = internal.Register(MustNewLexer(
 			{`"(\\\\|\\"|[^"])*"`, LiteralString, nil},
 			{`\s+`, Text, nil},
 		},
-	},
-))
+	}
+}

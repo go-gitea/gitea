@@ -6,14 +6,18 @@ import (
 )
 
 // Tcl lexer.
-var Tcl = internal.Register(MustNewLexer(
+var Tcl = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Tcl",
 		Aliases:   []string{"tcl"},
 		Filenames: []string{"*.tcl", "*.rvt"},
 		MimeTypes: []string{"text/x-tcl", "text/x-script.tcl", "application/x-tcl"},
 	},
-	Rules{
+	tclRules,
+))
+
+func tclRules() Rules {
+	return Rules{
 		"root": {
 			Include("command"),
 			Include("basic"),
@@ -112,5 +116,5 @@ var Tcl = internal.Register(MustNewLexer(
 			{`.*[^\\]\n`, Comment, Pop(1)},
 			{`.*\\\n`, Comment, nil},
 		},
-	},
-))
+	}
+}

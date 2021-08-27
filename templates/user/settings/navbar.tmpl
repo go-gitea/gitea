@@ -1,23 +1,25 @@
 <div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
-	<a class="{{if .PageIsSettingsProfile}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
-		{{.i18n.Tr "settings.profile"}}
-	</a>
-	<a class="{{if .PageIsSettingsAccount}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account">
-		{{.i18n.Tr "settings.account"}}
-	</a>
-	<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
-		{{.i18n.Tr "settings.security"}}
-	</a>
-	<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
-		{{.i18n.Tr "settings.applications"}}
-	</a>
-	<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
-		{{.i18n.Tr "settings.ssh_gpg_keys"}}
-	</a>
-	<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
-		{{.i18n.Tr "settings.organization"}}
-	</a>
-	<a class="{{if .PageIsSettingsRepos}}active{{end}} item" href="{{AppSubUrl}}/user/settings/repos">
-		{{.i18n.Tr "settings.repos"}}
-	</a>
+	<div class="new-menu-inner">
+		<a class="{{if .PageIsSettingsProfile}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
+			{{.i18n.Tr "settings.profile"}}
+		</a>
+		<a class="{{if .PageIsSettingsAccount}}active{{end}} item" href="{{AppSubUrl}}/user/settings/account">
+			{{.i18n.Tr "settings.account"}}
+		</a>
+		<a class="{{if .PageIsSettingsSecurity}}active{{end}} item" href="{{AppSubUrl}}/user/settings/security">
+			{{.i18n.Tr "settings.security"}}
+		</a>
+		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{AppSubUrl}}/user/settings/applications">
+			{{.i18n.Tr "settings.applications"}}
+		</a>
+		<a class="{{if .PageIsSettingsKeys}}active{{end}} item" href="{{AppSubUrl}}/user/settings/keys">
+			{{.i18n.Tr "settings.ssh_gpg_keys"}}
+		</a>
+		<a class="{{if .PageIsSettingsOrganization}}active{{end}} item" href="{{AppSubUrl}}/user/settings/organization">
+			{{.i18n.Tr "settings.organization"}}
+		</a>
+		<a class="{{if .PageIsSettingsRepos}}active{{end}} item" href="{{AppSubUrl}}/user/settings/repos">
+			{{.i18n.Tr "settings.repos"}}
+		</a>
+	</div>
 </div>

@@ -1,0 +1,14 @@
+// here a standard set of media queries is defined, that is compatible with the
+// responsive grid used in fomantic css. As there only is a precompiled build
+// of fomantic checked in (since 946bbbe), we can't use their less variables
+// here, but these breakpoints shouldn't change in the foreseeable future.
+
+@mediaMdAndUp:   ~"(min-width: 768px)";
+@mediaMdAndDown: ~"(max-width: 991px)";
+@mediaLgAndUp:   ~"(min-width: 992px)";
+@mediaLgAndDown: ~"(max-width: 1200px)";
+
+@mediaSm: ~"(max-width: 767px)";
+@mediaMd: @mediaMdAndUp and @mediaMdAndDown;
+@mediaLg: @mediaLgAndUp and @mediaLgAndDown;
+@mediaXl: ~"(min-width: 1201px)";

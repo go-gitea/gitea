@@ -21,8 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 // prQueue represents a queue to handle update pull request tests
@@ -30,21 +28,19 @@ var prQueue queue.UniqueQueue
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *models.PullRequest) {
-	go func() {
-		err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
-			pr.Status = models.PullRequestStatusChecking
-			err := pr.UpdateColsIfNotMerged("status")
-			if err != nil {
-				log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
-			} else {
-				log.Trace("Adding PR ID: %d to the test pull requests queue", pr.ID)
-			}
-			return err
-		})
-		if err != nil && err != queue.ErrAlreadyInQueue {
-			log.Error("Error adding prID %d to the test pull requests queue: %v", pr.ID, err)
+	err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+		pr.Status = models.PullRequestStatusChecking
+		err := pr.UpdateColsIfNotMerged("status")
+		if err != nil {
+			log.Error("AddToTaskQueue.UpdateCols[%d].(add to queue): %v", pr.ID, err)
+		} else {
+			log.Trace("Adding PR ID: %d to the test pull requests queue", pr.ID)
 		}
-	}()
+		return err
+	})
+	if err != nil && err != queue.ErrAlreadyInQueue {
+		log.Error("Error adding prID %d to the test pull requests queue: %v", pr.ID, err)
+	}
 }
 
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
@@ -118,7 +114,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
-		// PR was fast-forwarded, so just use last commit of PR
+		// PR was maybe fast-forwarded, so just use last commit of PR
 		mergeCommit = commitID[:40]
 	}
 
@@ -139,6 +135,21 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(pr *models.PullRequest) bool {
+	if err := pr.LoadBaseRepo(); err != nil {
+		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
+		return false
+	}
+
+	if unit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests); err == nil {
+		config := unit.PullRequestsConfig()
+		if !config.AutodetectManualMerge {
+			return false
+		}
+	} else {
+		log.Error("PullRequest[%d].BaseRepo.GetUnit(models.UnitTypePullRequests): %v", pr.ID, err)
+		return false
+	}
+
 	commit, err := getMergeCommit(pr)
 	if err != nil {
 		log.Error("PullRequest[%d].getMergeCommit: %v", pr.ID, err)
@@ -203,14 +214,13 @@ func InitializePullRequests(ctx context.Context) {
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) {
 	for _, datum := range data {
-		prID := datum.(string)
-		id := com.StrTo(prID).MustInt64()
+		id, _ := strconv.ParseInt(datum.(string), 10, 64)
 
 		log.Trace("Testing PR ID %d from the pull requests patch checking queue", id)
 
 		pr, err := models.GetPullRequestByID(id)
 		if err != nil {
-			log.Error("GetPullRequestByID[%s]: %v", prID, err)
+			log.Error("GetPullRequestByID[%s]: %v", datum, err)
 			continue
 		} else if pr.HasMerged {
 			continue

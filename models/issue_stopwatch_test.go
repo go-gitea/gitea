@@ -67,7 +67,7 @@ func TestCreateOrStopIssueStopwatch(t *testing.T) {
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user3, issue1))
 	sw := AssertExistsAndLoadBean(t, &Stopwatch{UserID: 3, IssueID: 1}).(*Stopwatch)
-	assert.Equal(t, true, sw.CreatedUnix <= timeutil.TimeStampNow())
+	assert.LessOrEqual(t, sw.CreatedUnix, timeutil.TimeStampNow())
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user2, issue2))
 	AssertNotExistsBean(t, &Stopwatch{UserID: 2, IssueID: 2})

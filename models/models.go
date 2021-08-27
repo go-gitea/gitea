@@ -17,6 +17,7 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
+	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -33,7 +34,7 @@ type Engine interface {
 	Table(tableNameOrBean interface{}) *xorm.Session
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
-	Delete(interface{}) (int64, error)
+	Delete(...interface{}) (int64, error)
 	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
@@ -128,9 +129,16 @@ func init() {
 		new(Task),
 		new(LanguageStat),
 		new(EmailHash),
+		new(UserRedirect),
 		new(Project),
 		new(ProjectBoard),
 		new(ProjectIssue),
+		new(Session),
+		new(RepoTransfer),
+		new(IssueIndex),
+		new(PushMirror),
+		new(RepoArchiver),
+		new(ProtectedTag),
 	)
 
 	gonicNames := []string{"SSL", "UID"}
@@ -139,13 +147,23 @@ func init() {
 	}
 }
 
-func getEngine() (*xorm.Engine, error) {
+// GetNewEngine returns a new xorm engine from the configuration
+func GetNewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
 	}
 
-	engine, err := xorm.NewEngine(setting.Database.Type, connStr)
+	var engine *xorm.Engine
+
+	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
+		// OK whilst we sort out our schema issues - create a schema aware postgres
+		registerPostgresSchemaDriver()
+		engine, err = xorm.NewEngine("postgresschema", connStr)
+	} else {
+		engine, err = xorm.NewEngine(setting.Database.Type, connStr)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -155,35 +173,29 @@ func getEngine() (*xorm.Engine, error) {
 		engine.Dialect().SetParams(map[string]string{"DEFAULT_VARCHAR": "nvarchar"})
 	}
 	engine.SetSchema(setting.Database.Schema)
-	if setting.Database.UsePostgreSQL && len(setting.Database.Schema) > 0 {
-		// Add the schema to the search path
-		if _, err := engine.Exec(`SELECT set_config(
-			'search_path',
-			? || ',' || current_setting('search_path'),
-			false)`,
-			setting.Database.Schema); err != nil {
-			return nil, err
-		}
-	}
 	return engine, nil
+}
+
+func syncTables() error {
+	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
 // NewTestEngine sets a new test xorm.Engine
 func NewTestEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
 	}
 
 	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.ProdMode))
-	x.ShowSQL(!setting.ProdMode)
-	return x.StoreEngine("InnoDB").Sync2(tables...)
+	x.SetLogger(NewXORMLogger(!setting.IsProd()))
+	x.ShowSQL(!setting.IsProd())
+	return syncTables()
 }
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (err error) {
-	x, err = getEngine()
+	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -219,8 +231,17 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	if err = x.StoreEngine("InnoDB").Sync2(tables...); err != nil {
+	if err = syncTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
+	}
+
+	if setting.SuccessfulTokensCacheSize > 0 {
+		successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+		if err != nil {
+			return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+		}
+	} else {
+		successfulAccessTokenCache = nil
 	}
 
 	return nil
@@ -261,7 +282,8 @@ type Statistic struct {
 	Counter struct {
 		User, Org, PublicKey,
 		Repo, Watch, Star, Action, Access,
-		Issue, Comment, Oauth, Follow,
+		Issue, IssueClosed, IssueOpen,
+		Comment, Oauth, Follow,
 		Mirror, Release, LoginSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Attachment int64
@@ -278,7 +300,24 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Star, _ = x.Count(new(Star))
 	stats.Counter.Action, _ = x.Count(new(Action))
 	stats.Counter.Access, _ = x.Count(new(Access))
-	stats.Counter.Issue, _ = x.Count(new(Issue))
+
+	type IssueCount struct {
+		Count    int64
+		IsClosed bool
+	}
+	issueCounts := []IssueCount{}
+
+	_ = x.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
+	for _, c := range issueCounts {
+		if c.IsClosed {
+			stats.Counter.IssueClosed = c.Count
+		} else {
+			stats.Counter.IssueOpen = c.Count
+		}
+	}
+
+	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
+
 	stats.Counter.Comment, _ = x.Count(new(Comment))
 	stats.Counter.Oauth = 0
 	stats.Counter.Follow, _ = x.Count(new(Follow))
@@ -303,7 +342,7 @@ func Ping() error {
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
-func DumpDatabase(filePath string, dbType string) error {
+func DumpDatabase(filePath, dbType string) error {
 	var tbs []*schemas.Table
 	for _, t := range tables {
 		t, err := x.TableInfo(t)
@@ -317,7 +356,7 @@ func DumpDatabase(filePath string, dbType string) error {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	t, err := x.TableInfo(Version{})
+	t, err := x.TableInfo(&Version{})
 	if err != nil {
 		return err
 	}

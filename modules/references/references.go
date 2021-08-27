@@ -5,6 +5,7 @@
 package references
 
 import (
+	"bytes"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/yuin/goldmark/util"
 )
 
 var (
@@ -26,10 +29,10 @@ var (
 	// While fast, this is also incorrect and lead to false positives.
 	// TODO: fix invalid linking issue
 
-	// mentionPattern matches all mentions in the form of "@user"
-	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
+	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
+	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_]+\/?[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+\/?[0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\')([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
@@ -235,40 +238,78 @@ func findAllIssueReferencesMarkdown(content string) []*rawReference {
 	return findAllIssueReferencesBytes(bcontent, links)
 }
 
+func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byte) {
+	// We will iterate through the content, rewrite and simplify full references.
+	//
+	// We want to transform something like:
+	//
+	// this is a https://ourgitea.com/git/owner/repo/issues/123456789, foo
+	// https://ourgitea.com/git/owner/repo/pulls/123456789
+	//
+	// Into something like:
+	//
+	// this is a #123456789, foo
+	// !123456789
+
+	pos := 0
+	for {
+		// re looks for something like: (\s|^|\(|\[)https://ourgitea.com/git/(owner/repo)/(issues)/(123456789)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)
+		match := re.FindSubmatchIndex((*contentBytes)[pos:])
+		if match == nil {
+			break
+		}
+		// match is a bunch of indices into the content from pos onwards so
+		// to simplify things let's just add pos to all of the indices in match
+		for i := range match {
+			match[i] += pos
+		}
+
+		// match[0]-match[1] is whole string
+		// match[2]-match[3] is preamble
+
+		// move the position to the end of the preamble
+		pos = match[3]
+
+		// match[4]-match[5] is owner/repo
+		// now copy the owner/repo to end of the preamble
+		endPos := pos + match[5] - match[4]
+		copy((*contentBytes)[pos:endPos], (*contentBytes)[match[4]:match[5]])
+
+		// move the current position to the end of the newly copied owner/repo
+		pos = endPos
+
+		// Now set the issue/pull marker:
+		//
+		// match[6]-match[7] == 'issues'
+		(*contentBytes)[pos] = '#'
+		if string((*contentBytes)[match[6]:match[7]]) == "pulls" {
+			(*contentBytes)[pos] = '!'
+		}
+		pos++
+
+		// Then add the issue/pull number
+		//
+		// match[8]-match[9] is the number
+		endPos = pos + match[9] - match[8]
+		copy((*contentBytes)[pos:endPos], (*contentBytes)[match[8]:match[9]])
+
+		// Now copy what's left at the end of the string to the new end position
+		copy((*contentBytes)[endPos:], (*contentBytes)[match[9]:])
+		// now we reset the length
+
+		// our new section has length endPos - match[3]
+		// our old section has length match[9] - match[3]
+		*contentBytes = (*contentBytes)[:len(*contentBytes)-match[9]+endPos]
+		pos = endPos
+	}
+}
+
 // FindAllIssueReferences returns a list of unvalidated references found in a string.
 func FindAllIssueReferences(content string) []IssueReference {
 	// Need to convert fully qualified html references to local system to #/! short codes
 	contentBytes := []byte(content)
 	if re := getGiteaIssuePullPattern(); re != nil {
-		pos := 0
-		for {
-			match := re.FindSubmatchIndex(contentBytes[pos:])
-			if match == nil {
-				break
-			}
-			// match[0]-match[1] is whole string
-			// match[2]-match[3] is preamble
-			pos += match[3]
-			// match[4]-match[5] is owner/repo
-			endPos := pos + match[5] - match[4]
-			copy(contentBytes[pos:endPos], contentBytes[match[4]:match[5]])
-			pos = endPos
-			// match[6]-match[7] == 'issues'
-			contentBytes[pos] = '#'
-			if string(contentBytes[match[6]:match[7]]) == "pulls" {
-				contentBytes[pos] = '!'
-			}
-			pos++
-			// match[8]-match[9] is the number
-			endPos = pos + match[9] - match[8]
-			copy(contentBytes[pos:endPos], contentBytes[match[8]:match[9]])
-			copy(contentBytes[endPos:], contentBytes[match[9]:])
-			// now we reset the length
-			// our new section has length endPos - match[3]
-			// our old section has length match[9] - match[3]
-			contentBytes = contentBytes[:len(contentBytes)-match[9]+endPos]
-			pos = endPos
-		}
+		convertFullHTMLReferencesToShortRefs(re, &contentBytes)
 	} else {
 		log.Debug("No GiteaIssuePullPattern pattern")
 	}
@@ -283,7 +324,7 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 			return false, nil
 		}
 	}
-	r := getCrossReference([]byte(content), match[2], match[3], false, prOnly)
+	r := getCrossReference(util.StringToReadOnlyBytes(content), match[2], match[3], false, prOnly)
 	if r == nil {
 		return false, nil
 	}
@@ -427,18 +468,17 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 }
 
 func getCrossReference(content []byte, start, end int, fromLink bool, prOnly bool) *rawReference {
-	refid := string(content[start:end])
-	sep := strings.IndexAny(refid, "#!")
+	sep := bytes.IndexAny(content[start:end], "#!")
 	if sep < 0 {
 		return nil
 	}
-	isPull := refid[sep] == '!'
+	isPull := content[start+sep] == '!'
 	if prOnly && !isPull {
 		return nil
 	}
-	repo := refid[:sep]
-	issue := refid[sep+1:]
-	index, err := strconv.ParseInt(issue, 10, 64)
+	repo := string(content[start : start+sep])
+	issue := string(content[start+sep+1 : end])
+	index, err := strconv.ParseInt(string(issue), 10, 64)
 	if err != nil {
 		return nil
 	}

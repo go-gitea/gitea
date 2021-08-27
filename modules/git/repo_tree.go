@@ -13,45 +13,6 @@ import (
 	"time"
 )
 
-func (repo *Repository) getTree(id SHA1) (*Tree, error) {
-	gogitTree, err := repo.gogitRepo.TreeObject(id)
-	if err != nil {
-		return nil, err
-	}
-
-	tree := NewTree(repo, id)
-	tree.gogitTree = gogitTree
-	return tree, nil
-}
-
-// GetTree find the tree object in the repository.
-func (repo *Repository) GetTree(idStr string) (*Tree, error) {
-	if len(idStr) != 40 {
-		res, err := NewCommand("rev-parse", "--verify", idStr).RunInDir(repo.Path)
-		if err != nil {
-			return nil, err
-		}
-		if len(res) > 0 {
-			idStr = res[:len(res)-1]
-		}
-	}
-	id, err := NewIDFromString(idStr)
-	if err != nil {
-		return nil, err
-	}
-	resolvedID := id
-	commitObject, err := repo.gogitRepo.CommitObject(id)
-	if err == nil {
-		id = SHA1(commitObject.TreeHash)
-	}
-	treeObject, err := repo.getTree(id)
-	if err != nil {
-		return nil, err
-	}
-	treeObject.ResolvedID = resolvedID
-	return treeObject, nil
-}
-
 // CommitTreeOpts represents the possible options to CommitTree
 type CommitTreeOpts struct {
 	Parents    []string
@@ -102,7 +63,7 @@ func (repo *Repository) CommitTree(author *Signature, committer *Signature, tree
 	err = cmd.RunInDirTimeoutEnvFullPipeline(env, -1, repo.Path, stdout, stderr, messageBytes)
 
 	if err != nil {
-		return SHA1{}, concatenateError(err, stderr.String())
+		return SHA1{}, ConcatenateError(err, stderr.String())
 	}
 	return NewIDFromString(strings.TrimSpace(stdout.String()))
 }

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -53,7 +54,9 @@ func TestRepoEdit(t *testing.T) {
 		Archived:                  &archived,
 	}
 
-	Edit(&context.APIContext{Context: ctx, Org: nil}, opts)
+	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
+	web.SetForm(apiCtx, &opts)
+	Edit(apiCtx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	models.AssertExistsAndLoadBean(t, &models.Repository{
@@ -73,7 +76,9 @@ func TestRepoEditNameChange(t *testing.T) {
 		Name: &name,
 	}
 
-	Edit(&context.APIContext{Context: ctx, Org: nil}, opts)
+	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
+	web.SetForm(apiCtx, &opts)
+	Edit(apiCtx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
 	models.AssertExistsAndLoadBean(t, &models.Repository{

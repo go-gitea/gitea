@@ -1,0 +1,52 @@
+{{$file := .file}}
+{{range $j, $section := $file.Sections}}
+	{{range $k, $line := $section.Lines}}
+		<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}" data-line-type="{{DiffLineTypeToStr .GetType}}">
+			{{if eq .GetType 4}}
+				<td class="lines-num lines-num-old">
+					{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+						<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							{{svg "octicon-fold-down"}}
+						</a>
+					{{end}}
+					{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+						<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							{{svg "octicon-fold-up"}}
+						</a>
+					{{end}}
+					{{if eq $line.GetExpandDirection 2}}
+						<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							{{svg "octicon-fold"}}
+						</a>
+					{{end}}
+				</td>
+				<td colspan="5" class="lines-code lines-code-old "><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</span></td>
+			{{else}}
+				<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
+				<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
+				<td class="lines-code lines-code-old halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}" data-new-comment-url="{{$.root.Issue.HTMLURL}}/files/reviews/new_comment">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+				<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
+				<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
+				<td class="lines-code lines-code-new halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}" data-new-comment-url="{{$.root.Issue.HTMLURL}}/files/reviews/new_comment">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+			{{end}}
+		</tr>
+		{{if gt (len $line.Comments) 0}}
+			<tr class="add-comment" data-line-type="{{DiffLineTypeToStr .GetType}}">
+				<td class="lines-num"></td>
+				<td class="lines-type-marker"></td>
+				<td class="add-comment-left">
+					{{if eq $line.GetCommentSide "previous"}}
+						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+					{{end}}
+				</td>
+				<td class="lines-num"></td>
+				<td class="lines-type-marker"></td>
+				<td class="add-comment-right">
+					{{if eq $line.GetCommentSide "proposed"}}
+						{{template "repo/diff/conversation" mergeinto $.root "comments" $line.Comments}}
+					{{end}}
+				</td>
+			</tr>
+		{{end}}
+	{{end}}
+{{end}}

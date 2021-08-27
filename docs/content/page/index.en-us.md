@@ -4,7 +4,7 @@ title: "Documentation"
 slug: "documentation"
 url: "/en-us/"
 weight: 10
-toc: true
+toc: false
 draft: false
 ---
 
@@ -117,7 +117,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - Configuration viewer
             - Everything in config file
         - System notices
-            - When somthing unexpected happens
+            - When something unexpected happens
         - Monitoring
             - Current processes
             - Cron jobs
@@ -155,7 +155,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
             - Libravatar
             - Custom
         - Password
-        - Mutiple email addresses
+        - Multiple email addresses
         - SSH Keys
         - Connected applications
         - Two factor authentication
@@ -262,13 +262,13 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Browser Support
 
-- Last 2 versions of Chrome, Firefox, Safari, Edge (EdgeHTML) and Edge (Chromium)
+- Last 2 versions of Chrome, Firefox, Safari and Edge
 - Firefox ESR
 
 ## Components
 
-* Web framework: [Macaron](http://go-macaron.com/)
-* ORM: [XORM](https://github.com/go-xorm/xorm)
+* Web framework: [Chi](http://github.com/go-chi/chi)
+* ORM: [XORM](https://xorm.io)
 * UI components:
   * [Semantic UI](http://semantic-ui.com/)
   * [GitHub Octicons](https://octicons.github.com/)

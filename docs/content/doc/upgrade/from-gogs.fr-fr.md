@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Mise à jour depuis Gogs"
 slug: "upgrade-from-gogs"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

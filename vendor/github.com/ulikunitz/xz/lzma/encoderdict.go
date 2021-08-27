@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -19,7 +19,7 @@ type matcher interface {
 }
 
 // encoderDict provides the dictionary of the encoder. It includes an
-// addtional buffer atop of the actual dictionary.
+// additional buffer atop of the actual dictionary.
 type encoderDict struct {
 	buf      buffer
 	m        matcher

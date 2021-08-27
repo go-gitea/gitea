@@ -3,7 +3,7 @@ date: "2017-08-23T09:00:00+02:00"
 title: "Installation avec Docker"
 slug: "install-with-docker"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -16,6 +16,8 @@ menu:
 # Installation avec Docker
 
 Nous fournissons des images Docker mises à jour automatiquement via le Docker Hub de notre organisation. C'est à vous, lors devotre déploiement, de vous assurez d'utiliser toujours la dernière version stable ou d'utiliser un autre service qui met à jour l'image Docker pour vous.
+
+{{< toc >}}
 
 ## Données stockées sur l'hôte
 
@@ -39,7 +41,7 @@ docker run -d --name=gitea -p 10022:22 -p 10080:3000 -v /var/lib/gitea:/data git
 
 Vous devriez avoir une instance fonctionnelle de Gitea. Pour accèder à l'interface web, visitez l'adresse http://hostname:10080 avec votre navigateur web préféré. Si vous voulez clôner un dépôt, vous pouvez le faire avec la commande  `git clone ssh://git@hostname:10022/username/repo.git`.
 
-## Named Volumes 
+## Named Volumes
 
 Ce guide aboutira à une installation avec les données Gita et PostgreSQL stockées dans des volumes nommés. Cela permet une sauvegarde, une restauration et des mises à niveau en toute simplicité.
 

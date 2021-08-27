@@ -1,5 +1,7 @@
 const {AppSubUrl, csrf, NotificationSettings} = window.config;
 
+let notificationSequenceNumber = 0;
+
 export function initNotificationsTable() {
   $('#notification_table .button').on('click', async function () {
     const data = await updateNotification(
@@ -10,8 +12,10 @@ export function initNotificationsTable() {
       $(this).data('notification-id'),
     );
 
-    $('#notification_div').replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      $('#notification_div').replaceWith(data);
+      initNotificationsTable();
+    }
     await updateNotificationCount();
 
     return false;
@@ -43,53 +47,56 @@ export async function initNotificationCount() {
     return;
   }
 
-  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource) {
+  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    if (window.SharedWorker) {
-      const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
-      worker.addEventListener('error', (event) => {
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    worker.addEventListener('error', (event) => {
+      console.error(event);
+    });
+    worker.port.addEventListener('messageerror', () => {
+      console.error('Unable to deserialize message');
+    });
+    worker.port.postMessage({
+      type: 'start',
+      url: `${window.location.origin}${AppSubUrl}/user/events`,
+    });
+    worker.port.addEventListener('message', (event) => {
+      if (!event.data || !event.data.type) {
         console.error(event);
-      });
-      worker.port.onmessageerror = () => {
-        console.error('Unable to deserialize message');
-      };
-      worker.port.postMessage({
-        type: 'start',
-        url: `${window.location.origin}${AppSubUrl}/user/events`,
-      });
-      worker.port.addEventListener('message', (event) => {
-        if (!event.data || !event.data.type) {
-          console.error(event);
+        return;
+      }
+      if (event.data.type === 'notification-count') {
+        receiveUpdateCount(event.data);
+      } else if (event.data.type === 'error') {
+        console.error(event.data);
+      } else if (event.data.type === 'logout') {
+        if (event.data.data !== 'here') {
           return;
         }
-        if (event.data.type === 'notification-count') {
-          receiveUpdateCount(event.data);
-        } else if (event.data.type === 'error') {
-          console.error(event.data);
-        } else if (event.data.type === 'logout') {
-          if (event.data !== 'here') {
-            return;
-          }
-          worker.port.postMessage({
-            type: 'close',
-          });
-          worker.port.close();
-          window.location.href = AppSubUrl;
-        }
-      });
-      worker.port.addEventListener('error', (e) => {
-        console.error(e);
-      });
-      worker.port.start();
-      window.addEventListener('beforeunload', () => {
         worker.port.postMessage({
           type: 'close',
         });
         worker.port.close();
+        window.location.href = AppSubUrl;
+      } else if (event.data.type === 'close') {
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
+      }
+    });
+    worker.port.addEventListener('error', (e) => {
+      console.error(e);
+    });
+    worker.port.start();
+    window.addEventListener('beforeunload', () => {
+      worker.port.postMessage({
+        type: 'close',
       });
+      worker.port.close();
+    });
 
-      return;
-    }
+    return;
   }
 
   if (NotificationSettings.MinTimeout <= 0) {
@@ -136,10 +143,13 @@ async function updateNotificationTable() {
       url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
       data: {
         'div-only': true,
+        'sequence-number': ++notificationSequenceNumber,
       }
     });
-    notificationDiv.replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      notificationDiv.replaceWith(data);
+      initNotificationsTable();
+    }
   }
 }
 
@@ -179,6 +189,7 @@ async function updateNotification(url, status, page, q, notificationID) {
       page,
       q,
       noredirect: true,
+      'sequence-number': ++notificationSequenceNumber,
     },
   });
 }

@@ -12,7 +12,6 @@ import (
 // GetYamlFixturesAccess returns a string containing the contents
 // for the access table, as recalculated using repo.RecalculateAccesses()
 func GetYamlFixturesAccess() (string, error) {
-
 	repos := make([]*Repository, 0, 50)
 	if err := x.Find(&repos); err != nil {
 		return "", err

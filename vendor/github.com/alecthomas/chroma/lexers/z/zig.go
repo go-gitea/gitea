@@ -6,14 +6,18 @@ import (
 )
 
 // Zig lexer.
-var Zig = internal.Register(MustNewLexer(
+var Zig = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Zig",
 		Aliases:   []string{"zig"},
 		Filenames: []string{"*.zig"},
 		MimeTypes: []string{"text/zig"},
 	},
-	Rules{
+	zigRules,
+))
+
+func zigRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, TextWhitespace, nil},
 			{`\s+`, TextWhitespace, nil},
@@ -30,10 +34,10 @@ var Zig = internal.Register(MustNewLexer(
 			{`0x[0-9a-fA-F]+\.?[pP][\-+]?[0-9a-fA-F]+`, LiteralNumberFloat, nil},
 			{`[0-9]+\.[0-9]+([eE][-+]?[0-9]+)?`, LiteralNumberFloat, nil},
 			{`[0-9]+\.?[eE][-+]?[0-9]+`, LiteralNumberFloat, nil},
-			{`0b[01]+`, LiteralNumberBin, nil},
-			{`0o[0-7]+`, LiteralNumberOct, nil},
-			{`0x[0-9a-fA-F]+`, LiteralNumberHex, nil},
-			{`[0-9]+`, LiteralNumberInteger, nil},
+			{`0b(?:_?[01])+`, LiteralNumberBin, nil},
+			{`0o(?:_?[0-7])+`, LiteralNumberOct, nil},
+			{`0x(?:_?[0-9a-fA-F])+`, LiteralNumberHex, nil},
+			{`(?:_?[0-9])+`, LiteralNumberInteger, nil},
 			{`@[a-zA-Z_]\w*`, NameBuiltin, nil},
 			{`[a-zA-Z_]\w*`, Name, nil},
 			{`\'\\\'\'`, LiteralStringEscape, nil},
@@ -50,5 +54,5 @@ var Zig = internal.Register(MustNewLexer(
 			{`[^\\"\n]+`, LiteralString, nil},
 			{`"`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

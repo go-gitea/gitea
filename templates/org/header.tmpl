@@ -3,7 +3,7 @@
 		<div class="ui vertically grid head">
 			<div class="column">
 				<div class="ui header">
-					<img class="ui image" src="{{.SizedRelAvatarLink 100}}">
+					{{avatar . 100}}
 					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
 					<span class="org-visibility">
 						{{if .Visibility.IsLimited}}<div class="ui medium orange horizontal label">{{$.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}

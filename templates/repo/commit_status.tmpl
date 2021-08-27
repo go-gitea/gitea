@@ -1,15 +1,15 @@
 {{if eq .State "pending"}}
-	<a class="commit-status-link" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer"><i class="commit-status circle icon yellow"></i></a>
+	<i class="commit-status circle icon yellow"></i>
 {{end}}
 {{if eq .State "success"}}
-	<a class="commit-status-link" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer"><i class="commit-status check icon green"></i></a>
+	<i class="commit-status check icon green"></i>
 {{end}}
 {{if eq .State "error"}}
-	<a class="commit-status-link" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer"><i class="commit-status warning icon red"></i></a>
+	<i class="commit-status warning icon red"></i>
 {{end}}
 {{if eq .State "failure"}}
-	<a class="commit-status-link" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer"><i class="commit-status remove icon red"></i></a>
+	<i class="commit-status remove icon red"></i>
 {{end}}
 {{if eq .State "warning"}}
-	<a class="commit-status-link" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer"><i class="commit-status warning sign icon yellow"></i></a>
+	<i class="commit-status warning sign icon yellow"></i>
 {{end}}

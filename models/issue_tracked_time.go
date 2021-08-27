@@ -79,8 +79,8 @@ type FindTrackedTimesOptions struct {
 	CreatedBeforeUnix int64
 }
 
-// ToCond will convert each condition into a xorm-Cond
-func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
+// toCond will convert each condition into a xorm-Cond
+func (opts *FindTrackedTimesOptions) toCond() builder.Cond {
 	cond := builder.NewCond().And(builder.Eq{"tracked_time.deleted": false})
 	if opts.IssueID != 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
@@ -103,14 +103,14 @@ func (opts *FindTrackedTimesOptions) ToCond() builder.Cond {
 	return cond
 }
 
-// ToSession will convert the given options to a xorm Session by using the conditions from ToCond and joining with issue table if required
-func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
+// toSession will convert the given options to a xorm Session by using the conditions from toCond and joining with issue table if required
+func (opts *FindTrackedTimesOptions) toSession(e Engine) Engine {
 	sess := e
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = e.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
 
-	sess = sess.Where(opts.ToCond())
+	sess = sess.Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = opts.setEnginePagination(sess)
@@ -119,18 +119,27 @@ func (opts *FindTrackedTimesOptions) ToSession(e Engine) Engine {
 	return sess
 }
 
-func getTrackedTimes(e Engine, options FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
-	err = options.ToSession(e).Find(&trackedTimes)
+func getTrackedTimes(e Engine, options *FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
+	err = options.toSession(e).Find(&trackedTimes)
 	return
 }
 
 // GetTrackedTimes returns all tracked times that fit to the given options.
-func GetTrackedTimes(opts FindTrackedTimesOptions) (TrackedTimeList, error) {
+func GetTrackedTimes(opts *FindTrackedTimesOptions) (TrackedTimeList, error) {
 	return getTrackedTimes(x, opts)
 }
 
+// CountTrackedTimes returns count of tracked times that fit to the given options.
+func CountTrackedTimes(opts *FindTrackedTimesOptions) (int64, error) {
+	sess := x.Where(opts.toCond())
+	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
+		sess = sess.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
+	}
+	return sess.Count(&TrackedTime{})
+}
+
 func getTrackedSeconds(e Engine, opts FindTrackedTimesOptions) (trackedSeconds int64, err error) {
-	return opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	return opts.toSession(e).SumInt(&TrackedTime{}, "time")
 }
 
 // GetTrackedSeconds return sum of seconds
@@ -162,6 +171,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		Doer:    user,
 		Content: SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
+		TimeID:  t.ID,
 	}); err != nil {
 		return nil, err
 	}
@@ -187,19 +197,19 @@ func addTime(e Engine, user *User, issue *Issue, amount int64, created time.Time
 }
 
 // TotalTimes returns the spent time for each user by an issue
-func TotalTimes(options FindTrackedTimesOptions) (map[*User]string, error) {
+func TotalTimes(options *FindTrackedTimesOptions) (map[*User]string, error) {
 	trackedTimes, err := GetTrackedTimes(options)
 	if err != nil {
 		return nil, err
 	}
-	//Adding total time per user ID
+	// Adding total time per user ID
 	totalTimesByUser := make(map[int64]int64)
 	for _, t := range trackedTimes {
 		totalTimesByUser[t.UserID] += t.Time
 	}
 
 	totalTimes := make(map[*User]string)
-	//Fetching User and making time human readable
+	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
 		user, err := GetUserByID(userID)
 		if err != nil {
@@ -282,13 +292,12 @@ func DeleteTime(t *TrackedTime) error {
 }
 
 func deleteTimes(e Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-
 	removedTime, err = getTrackedSeconds(e, opts)
 	if err != nil || removedTime == 0 {
 		return
 	}
 
-	_, err = opts.ToSession(e).Table("tracked_time").Cols("deleted").Update(&TrackedTime{Deleted: true})
+	_, err = opts.toSession(e).Table("tracked_time").Cols("deleted").Update(&TrackedTime{Deleted: true})
 	return
 }
 

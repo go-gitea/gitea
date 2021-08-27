@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
@@ -24,38 +25,19 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = convert.ToUser(defaultUser, true, true)
+			apiKey.Owner = convert.ToUser(defaultUser, defaultUser)
 		} else {
 			user, err := models.GetUserByID(key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = convert.ToUser(user, true, true)
+			apiKey.Owner = convert.ToUser(user, user)
 		}
 	} else {
 		apiKey.KeyType = "unknown"
 	}
 	apiKey.ReadOnly = key.Mode == models.AccessModeRead
 	return apiKey, nil
-}
-
-// GetUserByParamsName get user by name
-func GetUserByParamsName(ctx *context.APIContext, name string) *models.User {
-	user, err := models.GetUserByName(ctx.Params(name))
-	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-		}
-		return nil
-	}
-	return user
-}
-
-// GetUserByParams returns user whose name is presented in URL paramenter.
-func GetUserByParams(ctx *context.APIContext) *models.User {
-	return GetUserByParamsName(ctx, ":username")
 }
 
 func composePublicKeysAPILink() string {
@@ -65,8 +47,9 @@ func composePublicKeysAPILink() string {
 func listPublicKeys(ctx *context.APIContext, user *models.User) {
 	var keys []*models.PublicKey
 	var err error
+	var count int
 
-	fingerprint := ctx.Query("fingerprint")
+	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.Params("username")
 
 	if fingerprint != "" {
@@ -78,7 +61,15 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 			// Unrestricted
 			keys, err = models.SearchPublicKey(0, fingerprint)
 		}
+		count = len(keys)
 	} else {
+		total, err2 := models.CountPublicKeys(user.ID)
+		if err2 != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		count = int(total)
+
 		// Use ListPublicKeys
 		keys, err = models.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
 	}
@@ -97,6 +88,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	}
 
+	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
@@ -223,7 +215,7 @@ func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid 
 }
 
 // CreatePublicKey create one public key for me
-func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
+func CreatePublicKey(ctx *context.APIContext) {
 	// swagger:operation POST /user/keys user userCurrentPostKey
 	// ---
 	// summary: Create a public key
@@ -242,7 +234,8 @@ func CreatePublicKey(ctx *context.APIContext, form api.CreateKeyOption) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	CreateUserPublicKey(ctx, form, ctx.User.ID)
+	form := web.GetForm(ctx).(*api.CreateKeyOption)
+	CreateUserPublicKey(ctx, *form, ctx.User.ID)
 }
 
 // DeletePublicKey delete one public key
@@ -267,7 +260,16 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if err := models.DeletePublicKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
+	id := ctx.ParamsInt64(":id")
+	externallyManaged, err := models.PublicKeyIsExternallyManaged(id)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
+	}
+	if externallyManaged {
+		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
+	}
+
+	if err := models.DeletePublicKey(ctx.User, id); err != nil {
 		if models.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else if models.IsErrKeyAccessDenied(err) {

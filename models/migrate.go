@@ -39,6 +39,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*Issue) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -55,8 +56,8 @@ func insertIssue(sess *xorm.Session, issue *Issue) error {
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
-	var issueLabels = make([]IssueLabel, 0, len(issue.Labels))
-	var labelIDs = make([]int64, 0, len(issue.Labels))
+	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
+	labelIDs := make([]int64, 0, len(issue.Labels))
 	for _, label := range issue.Labels {
 		issueLabels = append(issueLabels, IssueLabel{
 			IssueID: issue.ID,
@@ -137,7 +138,7 @@ func InsertIssueComments(comments []*Comment) error {
 		return nil
 	}
 
-	var issueIDs = make(map[int64]bool)
+	issueIDs := make(map[int64]bool)
 	for _, comment := range comments {
 		issueIDs[comment.IssueID] = true
 	}
@@ -194,6 +195,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 // InsertReleases migrates release
 func InsertReleases(rels ...*Release) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}

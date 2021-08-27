@@ -13,7 +13,6 @@ import (
 	"os"
 	"reflect"
 	"runtime"
-	"strconv"
 	"strings"
 	"time"
 
@@ -34,6 +33,7 @@ type Engine struct {
 	cacherMgr      *caches.Manager
 	defaultContext context.Context
 	dialect        dialects.Dialect
+	driver         dialects.Driver
 	engineGroup    *EngineGroup
 	logger         log.ContextLogger
 	tagParser      *tags.Parser
@@ -61,12 +61,17 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 		return nil, err
 	}
 
+	return newEngine(driverName, dataSourceName, dialect, db)
+}
+
+func newEngine(driverName, dataSourceName string, dialect dialects.Dialect, db *core.DB) (*Engine, error) {
 	cacherMgr := caches.NewManager()
 	mapper := names.NewCacheMapper(new(names.SnakeMapper))
 	tagParser := tags.NewParser("xorm", dialect, mapper, mapper, cacherMgr)
 
 	engine := &Engine{
 		dialect:        dialect,
+		driver:         dialects.QueryDriver(driverName),
 		TZLocation:     time.Local,
 		defaultContext: context.Background(),
 		cacherMgr:      cacherMgr,
@@ -88,7 +93,7 @@ func NewEngine(driverName string, dataSourceName string) (*Engine, error) {
 	engine.SetLogger(log.NewLoggerAdapter(logger))
 
 	runtime.SetFinalizer(engine, func(engine *Engine) {
-		engine.Close()
+		_ = engine.Close()
 	})
 
 	return engine, nil
@@ -99,6 +104,23 @@ func NewEngineWithParams(driverName string, dataSourceName string, params map[st
 	engine, err := NewEngine(driverName, dataSourceName)
 	engine.dialect.SetParams(params)
 	return engine, err
+}
+
+// NewEngineWithDB new a db manager with db. The params will be passed to db.
+func NewEngineWithDB(driverName string, dataSourceName string, db *core.DB) (*Engine, error) {
+	dialect, err := dialects.OpenDialect(driverName, dataSourceName)
+	if err != nil {
+		return nil, err
+	}
+	return newEngine(driverName, dataSourceName, dialect, db)
+}
+
+// NewEngineWithDialectAndDB new a db manager according to the parameter.
+// If you do not want to use your own dialect or db, please use NewEngine.
+// For creating dialect, you can call dialects.OpenDialect. And, for creating db,
+// you can call core.Open or core.FromDB.
+func NewEngineWithDialectAndDB(driverName, dataSourceName string, dialect dialects.Dialect, db *core.DB) (*Engine, error) {
+	return newEngine(driverName, dataSourceName, dialect, db)
 }
 
 // EnableSessionID if enable session id
@@ -147,6 +169,8 @@ func (engine *Engine) SetLogger(logger interface{}) {
 		realLogger = t
 	case log.Logger:
 		realLogger = log.NewLoggerAdapter(t)
+	default:
+		panic("logger should implement either log.ContextLogger or log.Logger")
 	}
 	engine.logger = realLogger
 	engine.DB().Logger = realLogger
@@ -186,6 +210,11 @@ func (engine *Engine) SetTableMapper(mapper names.Mapper) {
 // SetColumnMapper set the column name mapping rule
 func (engine *Engine) SetColumnMapper(mapper names.Mapper) {
 	engine.tagParser.SetColumnMapper(mapper)
+}
+
+// SetTagIdentifier set the tag identifier
+func (engine *Engine) SetTagIdentifier(tagIdentifier string) {
+	engine.tagParser.SetIdentifier(tagIdentifier)
 }
 
 // Quote Use QuoteStr quote the string sql
@@ -347,13 +376,16 @@ func (engine *Engine) loadTableInfo(table *schemas.Table) error {
 	var seq int
 	for _, index := range indexes {
 		for _, name := range index.Cols {
-			parts := strings.Split(name, " ")
+			parts := strings.Split(strings.TrimSpace(name), " ")
 			if len(parts) > 1 {
 				if parts[1] == "DESC" {
 					seq = 1
+				} else if parts[1] == "ASC" {
+					seq = 0
 				}
 			}
-			if col := table.GetColumn(parts[0]); col != nil {
+			var colName = strings.Trim(parts[0], `"`)
+			if col := table.GetColumn(colName); col != nil {
 				col.Indexes[index.Name] = index.Type
 			} else {
 				return fmt.Errorf("Unknown col %s seq %d, in index %v of table %v, columns %v", name, seq, index.Name, table.Name, table.ColumnsSeq())
@@ -412,78 +444,14 @@ func (engine *Engine) DumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 	return engine.dumpTables(tables, w, tp...)
 }
 
-func formatColumnValue(dstDialect dialects.Dialect, d interface{}, col *schemas.Column) string {
-	if d == nil {
-		return "NULL"
-	}
-
-	if dq, ok := d.(bool); ok && (dstDialect.URI().DBType == schemas.SQLITE ||
-		dstDialect.URI().DBType == schemas.MSSQL) {
-		if dq {
+func formatBool(s string, dstDialect dialects.Dialect) string {
+	if dstDialect.URI().DBType == schemas.MSSQL {
+		switch s {
+		case "true":
 			return "1"
+		case "false":
+			return "0"
 		}
-		return "0"
-	}
-
-	if col.SQLType.IsText() {
-		var v = fmt.Sprintf("%s", d)
-		return "'" + strings.Replace(v, "'", "''", -1) + "'"
-	} else if col.SQLType.IsTime() {
-		var v = fmt.Sprintf("%s", d)
-		if strings.HasSuffix(v, " +0000 UTC") {
-			return fmt.Sprintf("'%s'", v[0:len(v)-len(" +0000 UTC")])
-		} else if strings.HasSuffix(v, " +0000 +0000") {
-			return fmt.Sprintf("'%s'", v[0:len(v)-len(" +0000 +0000")])
-		}
-		return "'" + strings.Replace(v, "'", "''", -1) + "'"
-	} else if col.SQLType.IsBlob() {
-		if reflect.TypeOf(d).Kind() == reflect.Slice {
-			return fmt.Sprintf("%s", dstDialect.FormatBytes(d.([]byte)))
-		} else if reflect.TypeOf(d).Kind() == reflect.String {
-			return fmt.Sprintf("'%s'", d.(string))
-		}
-	} else if col.SQLType.IsNumeric() {
-		switch reflect.TypeOf(d).Kind() {
-		case reflect.Slice:
-			if col.SQLType.Name == schemas.Bool {
-				return fmt.Sprintf("%v", strconv.FormatBool(d.([]byte)[0] != byte('0')))
-			}
-			return fmt.Sprintf("%s", string(d.([]byte)))
-		case reflect.Int16, reflect.Int8, reflect.Int32, reflect.Int64, reflect.Int:
-			if col.SQLType.Name == schemas.Bool {
-				v := reflect.ValueOf(d).Int() > 0
-				if dstDialect.URI().DBType == schemas.SQLITE {
-					if v {
-						return "1"
-					}
-					return "0"
-				}
-				return fmt.Sprintf("%v", strconv.FormatBool(v))
-			}
-			return fmt.Sprintf("%v", d)
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			if col.SQLType.Name == schemas.Bool {
-				v := reflect.ValueOf(d).Uint() > 0
-				if dstDialect.URI().DBType == schemas.SQLITE {
-					if v {
-						return "1"
-					}
-					return "0"
-				}
-				return fmt.Sprintf("%v", strconv.FormatBool(v))
-			}
-			return fmt.Sprintf("%v", d)
-		default:
-			return fmt.Sprintf("%v", d)
-		}
-	}
-
-	s := fmt.Sprintf("%v", d)
-	if strings.Contains(s, ":") || strings.Contains(s, "-") {
-		if strings.HasSuffix(s, " +0000 UTC") {
-			return fmt.Sprintf("'%s'", s[0:len(s)-len(" +0000 UTC")])
-		}
-		return fmt.Sprintf("'%s'", s)
 	}
 	return s
 }
@@ -496,16 +464,19 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 	} else {
 		dstDialect = dialects.QueryDialect(tp[0])
 		if dstDialect == nil {
-			return errors.New("Unsupported database type")
+			return fmt.Errorf("unsupported database type %v", tp[0])
 		}
 
 		uri := engine.dialect.URI()
 		destURI := dialects.URI{
 			DBType: tp[0],
 			DBName: uri.DBName,
+			Schema: uri.Schema,
 		}
 		dstDialect.Init(&destURI)
 	}
+	cacherMgr := caches.NewManager()
+	dstTableCache := tags.NewParser("xorm", dstDialect, engine.GetTableMapper(), engine.GetColumnMapper(), cacherMgr)
 
 	_, err := io.WriteString(w, fmt.Sprintf("/*Generated by xorm %s, from %s to %s*/\n\n",
 		time.Now().In(engine.TZLocation).Format("2006-01-02 15:04:05"), engine.dialect.URI().DBType, dstDialect.URI().DBType))
@@ -514,9 +485,18 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 	}
 
 	for i, table := range tables {
-		tableName := table.Name
+		dstTable := table
+		if table.Type != nil {
+			dstTable, err = dstTableCache.Parse(reflect.New(table.Type).Elem())
+			if err != nil {
+				engine.logger.Errorf("Unable to infer table for %s in new dialect. Error: %v", table.Name)
+				dstTable = table
+			}
+		}
+
+		dstTableName := dstTable.Name
 		if dstDialect.URI().Schema != "" {
-			tableName = fmt.Sprintf("%s.%s", dstDialect.URI().Schema, table.Name)
+			dstTableName = fmt.Sprintf("%s.%s", dstDialect.URI().Schema, dstTable.Name)
 		}
 		originalTableName := table.Name
 		if engine.dialect.URI().Schema != "" {
@@ -528,27 +508,30 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 				return err
 			}
 		}
-		sqls, _ := dstDialect.CreateTableSQL(table, tableName)
+
+		sqls, _ := dstDialect.CreateTableSQL(dstTable, dstTableName)
 		for _, s := range sqls {
 			_, err = io.WriteString(w, s+";\n")
 			if err != nil {
 				return err
 			}
 		}
-		if len(table.PKColumns()) > 0 && dstDialect.URI().DBType == schemas.MSSQL {
-			fmt.Fprintf(w, "SET IDENTITY_INSERT [%s] ON;\n", table.Name)
+		if len(dstTable.PKColumns()) > 0 && dstDialect.URI().DBType == schemas.MSSQL {
+			fmt.Fprintf(w, "SET IDENTITY_INSERT [%s] ON;\n", dstTable.Name)
 		}
 
-		for _, index := range table.Indexes {
-			_, err = io.WriteString(w, dstDialect.CreateIndexSQL(table.Name, index)+";\n")
+		for _, index := range dstTable.Indexes {
+			_, err = io.WriteString(w, dstDialect.CreateIndexSQL(dstTable.Name, index)+";\n")
 			if err != nil {
 				return err
 			}
 		}
 
 		cols := table.ColumnsSeq()
+		dstCols := dstTable.ColumnsSeq()
+
 		colNames := engine.dialect.Quoter().Join(cols, ", ")
-		destColNames := dstDialect.Quoter().Join(cols, ", ")
+		destColNames := dstDialect.Quoter().Join(dstCols, ", ")
 
 		rows, err := engine.DB().QueryContext(engine.defaultContext, "SELECT "+colNames+" FROM "+engine.Quote(originalTableName))
 		if err != nil {
@@ -556,35 +539,82 @@ func (engine *Engine) dumpTables(tables []*schemas.Table, w io.Writer, tp ...sch
 		}
 		defer rows.Close()
 
+		types, err := rows.ColumnTypes()
+		if err != nil {
+			return err
+		}
+
+		fields, err := rows.Columns()
+		if err != nil {
+			return err
+		}
+
+		sess := engine.NewSession()
+		defer sess.Close()
 		for rows.Next() {
-			dest := make([]interface{}, len(cols))
-			err = rows.ScanSlice(&dest)
+			_, err = io.WriteString(w, "INSERT INTO "+dstDialect.Quoter().Quote(dstTableName)+" ("+destColNames+") VALUES (")
 			if err != nil {
 				return err
 			}
 
-			_, err = io.WriteString(w, "INSERT INTO "+dstDialect.Quoter().Quote(tableName)+" ("+destColNames+") VALUES (")
+			scanResults, err := sess.engine.scanStringInterface(rows, fields, types)
 			if err != nil {
 				return err
 			}
-
-			var temp string
-			for i, d := range dest {
-				col := table.GetColumn(cols[i])
-				if col == nil {
-					return errors.New("unknow column error")
+			for i, scanResult := range scanResults {
+				stp := schemas.SQLType{Name: types[i].DatabaseTypeName()}
+				if stp.IsNumeric() {
+					s := scanResult.(*sql.NullString)
+					if s.Valid {
+						if _, err = io.WriteString(w, formatBool(s.String, dstDialect)); err != nil {
+							return err
+						}
+					} else {
+						if _, err = io.WriteString(w, "NULL"); err != nil {
+							return err
+						}
+					}
+				} else if stp.IsBool() {
+					s := scanResult.(*sql.NullString)
+					if s.Valid {
+						if _, err = io.WriteString(w, formatBool(s.String, dstDialect)); err != nil {
+							return err
+						}
+					} else {
+						if _, err = io.WriteString(w, "NULL"); err != nil {
+							return err
+						}
+					}
+				} else {
+					s := scanResult.(*sql.NullString)
+					if s.Valid {
+						if _, err = io.WriteString(w, "'"+strings.ReplaceAll(s.String, "'", "''")+"'"); err != nil {
+							return err
+						}
+					} else {
+						if _, err = io.WriteString(w, "NULL"); err != nil {
+							return err
+						}
+					}
 				}
-				temp += "," + formatColumnValue(dstDialect, d, col)
+				if i < len(scanResults)-1 {
+					if _, err = io.WriteString(w, ","); err != nil {
+						return err
+					}
+				}
 			}
-			_, err = io.WriteString(w, temp[1:]+");\n")
+			_, err = io.WriteString(w, ");\n")
 			if err != nil {
 				return err
 			}
 		}
+		if rows.Err() != nil {
+			return rows.Err()
+		}
 
 		// FIXME: Hack for postgres
 		if dstDialect.URI().DBType == schemas.POSTGRES && table.AutoIncrColumn() != nil {
-			_, err = io.WriteString(w, "SELECT setval('"+tableName+"_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") + 1 FROM "+dstDialect.Quoter().Quote(tableName)+"), 1), false);\n")
+			_, err = io.WriteString(w, "SELECT setval('"+dstTableName+"_id_seq', COALESCE((SELECT MAX("+table.AutoIncrColumn().Name+") + 1 FROM "+dstDialect.Quoter().Quote(dstTableName)+"), 1), false);\n")
 			if err != nil {
 				return err
 			}
@@ -814,15 +844,9 @@ func (engine *Engine) Having(conditions string) *Session {
 	return session.Having(conditions)
 }
 
-// Table table struct
-type Table struct {
-	*schemas.Table
-	Name string
-}
-
-// IsValid if table is valid
-func (t *Table) IsValid() bool {
-	return t.Table != nil && len(t.Name) > 0
+// DBVersion returns the database version
+func (engine *Engine) DBVersion() (*schemas.Version, error) {
+	return engine.dialect.Version(engine.defaultContext, engine.db)
 }
 
 // TableInfo get table info according to bean's content
@@ -1101,10 +1125,10 @@ func (engine *Engine) Update(bean interface{}, condiBeans ...interface{}) (int64
 }
 
 // Delete records, bean's non-empty fields are conditions
-func (engine *Engine) Delete(bean interface{}) (int64, error) {
+func (engine *Engine) Delete(beans ...interface{}) (int64, error) {
 	session := engine.NewSession()
 	defer session.Close()
-	return session.Delete(bean)
+	return session.Delete(beans...)
 }
 
 // Get retrieve one record from table, bean's non-empty fields
@@ -1203,13 +1227,13 @@ func (engine *Engine) Import(r io.Reader) ([]sql.Result, error) {
 }
 
 // nowTime return current time
-func (engine *Engine) nowTime(col *schemas.Column) (interface{}, time.Time) {
+func (engine *Engine) nowTime(col *schemas.Column) (interface{}, time.Time, error) {
 	t := time.Now()
-	var tz = engine.DatabaseTZ
-	if !col.DisableTimeZone && col.TimeZone != nil {
-		tz = col.TimeZone
+	result, err := dialects.FormatColumnTime(engine.dialect, engine.DatabaseTZ, col, t)
+	if err != nil {
+		return nil, time.Time{}, err
 	}
-	return dialects.FormatTime(engine.dialect, col.SQLType.Name, t.In(tz)), t.In(engine.TZLocation)
+	return result, t.In(engine.TZLocation), nil
 }
 
 // GetColumnMapper returns the column name mapper
@@ -1247,6 +1271,7 @@ func (engine *Engine) SetSchema(schema string) {
 	engine.dialect.URI().SetSchema(schema)
 }
 
+// AddHook adds a context Hook
 func (engine *Engine) AddHook(hook contexts.Hook) {
 	engine.db.AddHook(hook)
 }
@@ -1262,7 +1287,7 @@ func (engine *Engine) tbNameWithSchema(v string) string {
 	return dialects.TableNameWithSchema(engine.dialect, v)
 }
 
-// ContextHook creates a session with the context
+// Context creates a session with the context
 func (engine *Engine) Context(ctx context.Context) *Session {
 	session := engine.NewSession()
 	session.isAutoClose = true

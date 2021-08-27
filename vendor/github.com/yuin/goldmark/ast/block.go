@@ -7,7 +7,7 @@ import (
 	textm "github.com/yuin/goldmark/text"
 )
 
-// A BaseBlock struct implements the Node interface.
+// A BaseBlock struct implements the Node interface partialliy.
 type BaseBlock struct {
 	BaseNode
 	blankPreviousLines bool
@@ -50,6 +50,8 @@ func (b *BaseBlock) SetLines(v *textm.Segments) {
 // A Document struct is a root node of Markdown text.
 type Document struct {
 	BaseBlock
+
+	meta map[string]interface{}
 }
 
 // KindDocument is a NodeKind of the Document node.
@@ -70,10 +72,29 @@ func (n *Document) Kind() NodeKind {
 	return KindDocument
 }
 
+// OwnerDocument implements Node.OwnerDocument
+func (n *Document) OwnerDocument() *Document {
+	return n
+}
+
+// Meta returns metadata of this document.
+func (n *Document) Meta() map[string]interface{} {
+	if n.meta == nil {
+		n.meta = map[string]interface{}{}
+	}
+	return n.meta
+}
+
+// SetMeta sets given metadata to this document.
+func (n *Document) SetMeta(meta map[string]interface{}) {
+	n.meta = meta
+}
+
 // NewDocument returns a new Document node.
 func NewDocument() *Document {
 	return &Document{
 		BaseBlock: BaseBlock{},
+		meta:      nil,
 	}
 }
 
@@ -311,7 +332,7 @@ type List struct {
 	Marker byte
 
 	// IsTight is a true if this list is a 'tight' list.
-	// See https://spec.commonmark.org/0.29/#loose for details.
+	// See https://spec.commonmark.org/0.30/#loose for details.
 	IsTight bool
 
 	// Start is an initial number of this ordered list.
@@ -393,7 +414,7 @@ func NewListItem(offset int) *ListItem {
 }
 
 // HTMLBlockType represents kinds of an html blocks.
-// See https://spec.commonmark.org/0.29/#html-blocks
+// See https://spec.commonmark.org/0.30/#html-blocks
 type HTMLBlockType int
 
 const (

@@ -3,7 +3,7 @@ date: "2019-02-14T11:51:04+08:00"
 title: "横向对比 Gitea 与其它 Git 托管工具"
 slug: "comparison"
 weight: 5
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:

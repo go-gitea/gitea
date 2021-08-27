@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -46,15 +47,24 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
+	count, err := ctx.Repo.Repository.CountCollaborators()
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	collaborators, err := ctx.Repo.Repository.GetCollaborators(utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
+
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = convert.ToUser(collaborator.User, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(collaborator.User, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, users)
 }
 
@@ -111,7 +121,7 @@ func IsCollaborator(ctx *context.APIContext) {
 }
 
 // AddCollaborator add a collaborator to a repository
-func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
+func AddCollaborator(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/collaborators/{collaborator} repository repoAddCollaborator
 	// ---
 	// summary: Add a collaborator to a repository
@@ -142,6 +152,8 @@ func AddCollaborator(ctx *context.APIContext, form api.AddCollaboratorOption) {
 	//     "$ref": "#/responses/empty"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
 	collaborator, err := models.GetUserByName(ctx.Params(":collaborator"))
 	if err != nil {
@@ -217,4 +229,64 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// GetReviewers return all users that can be requested to review in this repo
+func GetReviewers(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/reviewers repository repoGetReviewers
+	// ---
+	// summary: Return all users that can be requested to review in this repo
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
+
+	reviewers, err := ctx.Repo.Repository.GetReviewers(ctx.User.ID, 0)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.User, reviewers))
+}
+
+// GetAssignees return all users that have write access and can be assigned to issues
+func GetAssignees(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/assignees repository repoGetAssignees
+	// ---
+	// summary: Return all users that have write access and can be assigned to issues
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/UserList"
+
+	assignees, err := ctx.Repo.Repository.GetAssignees()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
+		return
+	}
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.User, assignees))
 }

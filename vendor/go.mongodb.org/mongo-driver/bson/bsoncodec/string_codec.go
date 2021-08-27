@@ -15,14 +15,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
-var defaultStringCodec = NewStringCodec()
-
 // StringCodec is the Codec used for struct values.
 type StringCodec struct {
 	DecodeObjectIDAsHex bool
 }
 
-var _ ValueCodec = &StringCodec{}
+var (
+	defaultStringCodec = NewStringCodec()
+
+	_ ValueCodec  = defaultStringCodec
+	_ typeDecoder = defaultStringCodec
+)
 
 // NewStringCodec returns a StringCodec with options opts.
 func NewStringCodec(opts ...*bsonoptions.StringCodecOptions) *StringCodec {
@@ -43,23 +46,27 @@ func (sc *StringCodec) EncodeValue(ectx EncodeContext, vw bsonrw.ValueWriter, va
 	return vw.WriteString(val.String())
 }
 
-// DecodeValue is the ValueDecoder for string types.
-func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
-	if !val.CanSet() || val.Kind() != reflect.String {
-		return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
+func (sc *StringCodec) decodeType(dc DecodeContext, vr bsonrw.ValueReader, t reflect.Type) (reflect.Value, error) {
+	if t.Kind() != reflect.String {
+		return emptyValue, ValueDecoderError{
+			Name:     "StringDecodeValue",
+			Kinds:    []reflect.Kind{reflect.String},
+			Received: reflect.Zero(t),
+		}
 	}
+
 	var str string
 	var err error
 	switch vr.Type() {
 	case bsontype.String:
 		str, err = vr.ReadString()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 	case bsontype.ObjectID:
 		oid, err := vr.ReadObjectID()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 		if sc.DecodeObjectIDAsHex {
 			str = oid.Hex()
@@ -70,25 +77,43 @@ func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, va
 	case bsontype.Symbol:
 		str, err = vr.ReadSymbol()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 	case bsontype.Binary:
 		data, subtype, err := vr.ReadBinary()
 		if err != nil {
-			return err
+			return emptyValue, err
 		}
 		if subtype != bsontype.BinaryGeneric && subtype != bsontype.BinaryBinaryOld {
-			return fmt.Errorf("SliceDecodeValue can only be used to decode subtype 0x00 or 0x02 for %s, got %v", bsontype.Binary, subtype)
+			return emptyValue, decodeBinaryError{subtype: subtype, typeName: "string"}
 		}
 		str = string(data)
 	case bsontype.Null:
 		if err = vr.ReadNull(); err != nil {
-			return err
+			return emptyValue, err
+		}
+	case bsontype.Undefined:
+		if err = vr.ReadUndefined(); err != nil {
+			return emptyValue, err
 		}
 	default:
-		return fmt.Errorf("cannot decode %v into a string type", vr.Type())
+		return emptyValue, fmt.Errorf("cannot decode %v into a string type", vr.Type())
 	}
 
-	val.SetString(str)
+	return reflect.ValueOf(str), nil
+}
+
+// DecodeValue is the ValueDecoder for string types.
+func (sc *StringCodec) DecodeValue(dctx DecodeContext, vr bsonrw.ValueReader, val reflect.Value) error {
+	if !val.CanSet() || val.Kind() != reflect.String {
+		return ValueDecoderError{Name: "StringDecodeValue", Kinds: []reflect.Kind{reflect.String}, Received: val}
+	}
+
+	elem, err := sc.decodeType(dctx, vr, val.Type())
+	if err != nil {
+		return err
+	}
+
+	val.SetString(elem.String())
 	return nil
 }

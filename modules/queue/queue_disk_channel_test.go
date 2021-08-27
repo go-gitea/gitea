@@ -5,10 +5,9 @@
 package queue
 
 import (
-	"context"
 	"io/ioutil"
+	"sync"
 	"testing"
-	"time"
 
 	"code.gitea.io/gitea/modules/util"
 	"github.com/stretchr/testify/assert"
@@ -17,13 +16,13 @@ import (
 func TestPersistableChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) {
-		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
 	}
 
+	lock := sync.Mutex{}
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
@@ -32,17 +31,23 @@ func TestPersistableChannelQueue(t *testing.T) {
 	defer util.RemoveAll(tmpDir)
 
 	queue, err := NewPersistableChannelQueue(handle, PersistableChannelQueueConfiguration{
-		DataDir:     tmpDir,
-		BatchLength: 2,
-		QueueLength: 20,
-		Workers:     1,
-		MaxWorkers:  10,
+		DataDir:      tmpDir,
+		BatchLength:  2,
+		QueueLength:  20,
+		Workers:      1,
+		BoostWorkers: 0,
+		MaxWorkers:   10,
+		Name:         "first",
 	}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueShutdown = append(queueShutdown, shutdown)
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -64,13 +69,22 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.Equal(t, test2.TestString, result2.TestString)
 	assert.Equal(t, test2.TestInt, result2.TestInt)
 
+	// test1 is a testData not a *testData so will be rejected
 	err = queue.Push(test1)
 	assert.Error(t, err)
 
-	for _, callback := range queueShutdown {
+	// Now shutdown the queue
+	lock.Lock()
+	callbacks := make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
-	time.Sleep(200 * time.Millisecond)
+
+	// Wait til it is closed
+	<-queue.(*PersistableChannelQueue).closed
+
 	err = queue.Push(&test1)
 	assert.NoError(t, err)
 	err = queue.Push(&test2)
@@ -80,23 +94,41 @@ func TestPersistableChannelQueue(t *testing.T) {
 		assert.Fail(t, "Handler processing should have stopped")
 	default:
 	}
-	for _, callback := range queueTerminate {
+
+	// terminate the queue
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
+	}
+
+	select {
+	case <-handleChan:
+		assert.Fail(t, "Handler processing should have stopped")
+	default:
 	}
 
 	// Reopen queue
 	queue, err = NewPersistableChannelQueue(handle, PersistableChannelQueueConfiguration{
-		DataDir:     tmpDir,
-		BatchLength: 2,
-		QueueLength: 20,
-		Workers:     1,
-		MaxWorkers:  10,
+		DataDir:      tmpDir,
+		BatchLength:  2,
+		QueueLength:  20,
+		Workers:      1,
+		BoostWorkers: 0,
+		MaxWorkers:   10,
+		Name:         "second",
 	}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(_ context.Context, shutdown func()) {
+	go queue.Run(func(shutdown func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueShutdown = append(queueShutdown, shutdown)
-	}, func(_ context.Context, terminate func()) {
+	}, func(terminate func()) {
+		lock.Lock()
+		defer lock.Unlock()
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -107,10 +139,19 @@ func TestPersistableChannelQueue(t *testing.T) {
 	result4 := <-handleChan
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
-	for _, callback := range queueShutdown {
+
+	lock.Lock()
+	callbacks = make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
-	for _, callback := range queueTerminate {
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	lock.Unlock()
+	for _, callback := range callbacks {
 		callback()
 	}
 

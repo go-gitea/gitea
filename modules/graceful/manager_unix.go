@@ -1,8 +1,9 @@
-// +build !windows
-
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build !windows
+// +build !windows
 
 package graceful
 
@@ -25,13 +26,21 @@ type Manager struct {
 	forked                 bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdownCtx            context.Context
+	hammerCtx              context.Context
+	terminateCtx           context.Context
+	doneCtx                context.Context
+	shutdownCtxCancel      context.CancelFunc
+	hammerCtxCancel        context.CancelFunc
+	terminateCtxCancel     context.CancelFunc
+	doneCtxCancel          context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -45,11 +54,11 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start(ctx context.Context) {
-	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
+	// Make contexts
+	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(ctx)
+	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(ctx)
+	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(ctx)
+	g.doneCtx, g.doneCtxCancel = context.WithCancel(ctx)
 
 	// Set the running state & handle signals
 	g.setState(stateRunning)

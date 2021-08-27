@@ -117,6 +117,27 @@ func (u *CacheOnReadFs) Chmod(name string, mode os.FileMode) error {
 	return u.layer.Chmod(name, mode)
 }
 
+func (u *CacheOnReadFs) Chown(name string, uid, gid int) error {
+	st, _, err := u.cacheStatus(name)
+	if err != nil {
+		return err
+	}
+	switch st {
+	case cacheLocal:
+	case cacheHit:
+		err = u.base.Chown(name, uid, gid)
+	case cacheStale, cacheMiss:
+		if err := u.copyToLayer(name); err != nil {
+			return err
+		}
+		err = u.base.Chown(name, uid, gid)
+	}
+	if err != nil {
+		return err
+	}
+	return u.layer.Chown(name, uid, gid)
+}
+
 func (u *CacheOnReadFs) Stat(name string) (os.FileInfo, error) {
 	st, fi, err := u.cacheStatus(name)
 	if err != nil {

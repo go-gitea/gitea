@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="repository file editor upload">
+<div class="page-content repository file editor upload">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -26,7 +26,6 @@
 				</div>
 			</div>
 			<div class="field">
-				<div class="files"></div>
 				{{template "repo/upload" .}}
 			</div>
 			{{template "repo/editor/commit_form" .}}

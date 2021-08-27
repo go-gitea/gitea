@@ -1,10 +1,10 @@
 module github.com/microcosm-cc/bluemonday
 
-go 1.9
+go 1.16
 
 require (
-	github.com/aymerick/douceur v0.2.0 // indirect
-	github.com/chris-ramon/douceur v0.2.0
+	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
+	github.com/aymerick/douceur v0.2.0
 	github.com/gorilla/css v1.0.0 // indirect
-	golang.org/x/net v0.0.0-20181220203305-927f97764cc3
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e
 )

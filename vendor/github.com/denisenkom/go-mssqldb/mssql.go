@@ -58,6 +58,7 @@ func (d *Driver) OpenConnector(dsn string) (*Connector, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Connector{
 		params: params,
 		driver: d,
@@ -99,6 +100,12 @@ func NewConnector(dsn string) (*Connector, error) {
 type Connector struct {
 	params connectParams
 	driver *Driver
+
+	// callback that can provide a security token during login
+	securityTokenProvider func(ctx context.Context) (string, error)
+
+	// callback that can provide a security token during ADAL login
+	adalTokenProvider func(ctx context.Context, serverSPN, stsURL string) (string, error)
 
 	// SessionInitSQL is executed after marking a given session to be reset.
 	// When not present, the next query will still reset the session to the
@@ -148,15 +155,7 @@ type Conn struct {
 	processQueryText bool
 	connectionGood   bool
 
-	outs         map[string]interface{}
-	returnStatus *ReturnStatus
-}
-
-func (c *Conn) setReturnStatus(s ReturnStatus) {
-	if c.returnStatus == nil {
-		return
-	}
-	*c.returnStatus = s
+	outs map[string]interface{}
 }
 
 func (c *Conn) checkBadConn(err error) error {
@@ -201,20 +200,15 @@ func (c *Conn) clearOuts() {
 }
 
 func (c *Conn) simpleProcessResp(ctx context.Context) error {
-	tokchan := make(chan tokenStruct, 5)
-	go processResponse(ctx, c.sess, tokchan, c.outs)
+	reader := startReading(c.sess, ctx, c.outs)
 	c.clearOuts()
-	for tok := range tokchan {
-		switch token := tok.(type) {
-		case doneStruct:
-			if token.isError() {
-				return c.checkBadConn(token.getError())
-			}
-		case error:
-			return c.checkBadConn(token)
-		}
+
+	var resultError error
+	err := reader.iterateResponse()
+	if err != nil {
+		return c.checkBadConn(err)
 	}
-	return nil
+	return resultError
 }
 
 func (c *Conn) Commit() error {
@@ -239,7 +233,7 @@ func (c *Conn) sendCommitRequest() error {
 			c.sess.log.Printf("Failed to send CommitXact with %v", err)
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Faild to send CommitXact: %v", err)
+		return fmt.Errorf("faild to send CommitXact: %v", err)
 	}
 	return nil
 }
@@ -266,7 +260,7 @@ func (c *Conn) sendRollbackRequest() error {
 			c.sess.log.Printf("Failed to send RollbackXact with %v", err)
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Failed to send RollbackXact: %v", err)
+		return fmt.Errorf("failed to send RollbackXact: %v", err)
 	}
 	return nil
 }
@@ -285,7 +279,7 @@ func (c *Conn) begin(ctx context.Context, tdsIsolation isoLevel) (tx driver.Tx, 
 	}
 	tx, err = c.processBeginResponse(ctx)
 	if err != nil {
-		return nil, c.checkBadConn(err)
+		return nil, err
 	}
 	return
 }
@@ -303,7 +297,7 @@ func (c *Conn) sendBeginRequest(ctx context.Context, tdsIsolation isoLevel) erro
 			c.sess.log.Printf("Failed to send BeginXact with %v", err)
 		}
 		c.connectionGood = false
-		return fmt.Errorf("Failed to send BeginXact: %v", err)
+		return fmt.Errorf("failed to send BeginXact: %v", err)
 	}
 	return nil
 }
@@ -478,7 +472,7 @@ func (s *Stmt) sendQuery(args []namedValue) (err error) {
 				conn.sess.log.Printf("Failed to send Rpc with %v", err)
 			}
 			conn.connectionGood = false
-			return fmt.Errorf("Failed to send RPC: %v", err)
+			return fmt.Errorf("failed to send RPC: %v", err)
 		}
 	}
 	return
@@ -595,38 +589,46 @@ func (s *Stmt) queryContext(ctx context.Context, args []namedValue) (rows driver
 }
 
 func (s *Stmt) processQueryResponse(ctx context.Context) (res driver.Rows, err error) {
-	tokchan := make(chan tokenStruct, 5)
 	ctx, cancel := context.WithCancel(ctx)
-	go processResponse(ctx, s.c.sess, tokchan, s.c.outs)
+	reader := startReading(s.c.sess, ctx, s.c.outs)
 	s.c.clearOuts()
 	// process metadata
 	var cols []columnStruct
 loop:
-	for tok := range tokchan {
-		switch token := tok.(type) {
-		// By ignoring DONE token we effectively
-		// skip empty result-sets.
-		// This improves results in queries like that:
-		// set nocount on; select 1
-		// see TestIgnoreEmptyResults test
-		//case doneStruct:
-		//break loop
-		case []columnStruct:
-			cols = token
-			break loop
-		case doneStruct:
-			if token.isError() {
-				cancel()
-				return nil, s.c.checkBadConn(token.getError())
+	for {
+		tok, err := reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				break
+			} else {
+				switch token := tok.(type) {
+				// By ignoring DONE token we effectively
+				// skip empty result-sets.
+				// This improves results in queries like that:
+				// set nocount on; select 1
+				// see TestIgnoreEmptyResults test
+				//case doneStruct:
+				//break loop
+				case []columnStruct:
+					cols = token
+					break loop
+				case doneStruct:
+					if token.isError() {
+						// need to cleanup cancellable context
+						cancel()
+						return nil, s.c.checkBadConn(token.getError())
+					}
+				case ReturnStatus:
+					s.c.sess.setReturnStatus(token)
+				}
 			}
-		case ReturnStatus:
-			s.c.setReturnStatus(token)
-		case error:
+		} else {
+			// need to cleanup cancellable context
 			cancel()
-			return nil, s.c.checkBadConn(token)
+			return nil, s.c.checkBadConn(err)
 		}
 	}
-	res = &Rows{stmt: s, tokchan: tokchan, cols: cols, cancel: cancel}
+	res = &Rows{stmt: s, reader: reader, cols: cols, cancel: cancel}
 	return
 }
 
@@ -648,48 +650,46 @@ func (s *Stmt) exec(ctx context.Context, args []namedValue) (res driver.Result, 
 }
 
 func (s *Stmt) processExec(ctx context.Context) (res driver.Result, err error) {
-	tokchan := make(chan tokenStruct, 5)
-	go processResponse(ctx, s.c.sess, tokchan, s.c.outs)
+	reader := startReading(s.c.sess, ctx, s.c.outs)
 	s.c.clearOuts()
-	var rowCount int64
-	for token := range tokchan {
-		switch token := token.(type) {
-		case doneInProcStruct:
-			if token.Status&doneCount != 0 {
-				rowCount += int64(token.RowCount)
-			}
-		case doneStruct:
-			if token.Status&doneCount != 0 {
-				rowCount += int64(token.RowCount)
-			}
-			if token.isError() {
-				return nil, token.getError()
-			}
-		case ReturnStatus:
-			s.c.setReturnStatus(token)
-		case error:
-			return nil, token
-		}
+	err = reader.iterateResponse()
+	if err != nil {
+		return nil, s.c.checkBadConn(err)
 	}
-	return &Result{s.c, rowCount}, nil
+	return &Result{s.c, reader.rowCount}, nil
 }
 
 type Rows struct {
-	stmt    *Stmt
-	cols    []columnStruct
-	tokchan chan tokenStruct
-
+	stmt     *Stmt
+	cols     []columnStruct
+	reader   *tokenProcessor
 	nextCols []columnStruct
 
 	cancel func()
 }
 
 func (rc *Rows) Close() error {
+	// need to add a test which returns lots of rows
+	// and check closing after reading only few rows
 	rc.cancel()
-	for _ = range rc.tokchan {
+
+	for {
+		tok, err := rc.reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				return nil
+			} else {
+				// continue consuming tokens
+				continue
+			}
+		} else {
+			if err == rc.reader.ctx.Err() {
+				return nil
+			} else {
+				return err
+			}
+		}
 	}
-	rc.tokchan = nil
-	return nil
 }
 
 func (rc *Rows) Columns() (res []string) {
@@ -707,27 +707,34 @@ func (rc *Rows) Next(dest []driver.Value) error {
 	if rc.nextCols != nil {
 		return io.EOF
 	}
-	for tok := range rc.tokchan {
-		switch tokdata := tok.(type) {
-		case []columnStruct:
-			rc.nextCols = tokdata
-			return io.EOF
-		case []interface{}:
-			for i := range dest {
-				dest[i] = tokdata[i]
+	for {
+		tok, err := rc.reader.nextToken()
+		if err == nil {
+			if tok == nil {
+				return io.EOF
+			} else {
+				switch tokdata := tok.(type) {
+				case []columnStruct:
+					rc.nextCols = tokdata
+					return io.EOF
+				case []interface{}:
+					for i := range dest {
+						dest[i] = tokdata[i]
+					}
+					return nil
+				case doneStruct:
+					if tokdata.isError() {
+						return rc.stmt.c.checkBadConn(tokdata.getError())
+					}
+				case ReturnStatus:
+					rc.stmt.c.sess.setReturnStatus(tokdata)
+				}
 			}
-			return nil
-		case doneStruct:
-			if tokdata.isError() {
-				return rc.stmt.c.checkBadConn(tokdata.getError())
-			}
-		case ReturnStatus:
-			rc.stmt.c.setReturnStatus(tokdata)
-		case error:
-			return rc.stmt.c.checkBadConn(tokdata)
+
+		} else {
+			return rc.stmt.c.checkBadConn(err)
 		}
 	}
-	return io.EOF
 }
 
 func (rc *Rows) HasNextResultSet() bool {
@@ -895,35 +902,41 @@ func (c *Conn) Ping(ctx context.Context) error {
 
 var _ driver.ConnBeginTx = &Conn{}
 
+func convertIsolationLevel(level sql.IsolationLevel) (isoLevel, error) {
+	switch level {
+	case sql.LevelDefault:
+		return isolationUseCurrent, nil
+	case sql.LevelReadUncommitted:
+		return isolationReadUncommited, nil
+	case sql.LevelReadCommitted:
+		return isolationReadCommited, nil
+	case sql.LevelWriteCommitted:
+		return isolationUseCurrent, errors.New("LevelWriteCommitted isolation level is not supported")
+	case sql.LevelRepeatableRead:
+		return isolationRepeatableRead, nil
+	case sql.LevelSnapshot:
+		return isolationSnapshot, nil
+	case sql.LevelSerializable:
+		return isolationSerializable, nil
+	case sql.LevelLinearizable:
+		return isolationUseCurrent, errors.New("LevelLinearizable isolation level is not supported")
+	default:
+		return isolationUseCurrent, errors.New("isolation level is not supported or unknown")
+	}
+}
+
 // BeginTx satisfies ConnBeginTx.
 func (c *Conn) BeginTx(ctx context.Context, opts driver.TxOptions) (driver.Tx, error) {
 	if !c.connectionGood {
 		return nil, driver.ErrBadConn
 	}
 	if opts.ReadOnly {
-		return nil, errors.New("Read-only transactions are not supported")
+		return nil, errors.New("read-only transactions are not supported")
 	}
 
-	var tdsIsolation isoLevel
-	switch sql.IsolationLevel(opts.Isolation) {
-	case sql.LevelDefault:
-		tdsIsolation = isolationUseCurrent
-	case sql.LevelReadUncommitted:
-		tdsIsolation = isolationReadUncommited
-	case sql.LevelReadCommitted:
-		tdsIsolation = isolationReadCommited
-	case sql.LevelWriteCommitted:
-		return nil, errors.New("LevelWriteCommitted isolation level is not supported")
-	case sql.LevelRepeatableRead:
-		tdsIsolation = isolationRepeatableRead
-	case sql.LevelSnapshot:
-		tdsIsolation = isolationSnapshot
-	case sql.LevelSerializable:
-		tdsIsolation = isolationSerializable
-	case sql.LevelLinearizable:
-		return nil, errors.New("LevelLinearizable isolation level is not supported")
-	default:
-		return nil, errors.New("Isolation level is not supported or unknown")
+	tdsIsolation, err := convertIsolationLevel(sql.IsolationLevel(opts.Isolation))
+	if err != nil {
+		return nil, err
 	}
 	return c.begin(ctx, tdsIsolation)
 }

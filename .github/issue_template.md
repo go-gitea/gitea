@@ -2,10 +2,11 @@
 
 <!--
     1. Please speak English, this is the language all maintainers can speak and write.
-    2. Please ask questions or configuration/deploy problems on our Discord 
+    2. Please ask questions or configuration/deploy problems on our Discord
        server (https://discord.gg/gitea) or forum (https://discourse.gitea.io).
     3. Please take a moment to check that your issue doesn't already exist.
-    4. Please give all relevant information below for bug reports, because 
+    4. Make sure it's not mentioned in the FAQ (https://docs.gitea.io/en-us/faq)
+    5. Please give all relevant information below for bug reports, because
        incomplete details will be handled as an invalid report.
 -->
 
@@ -29,6 +30,9 @@
 <!-- In addition, if your problem relates to git commands set `RUN_MODE=dev` at the top of app.ini -->
 
 ## Description
+<!-- If using a proxy or a CDN (e.g. CloudFlare) in front of gitea, please
+     disable the proxy/CDN fully and connect to gitea directly to confirm
+     the issue still persists without those services. -->
 
 ...
 

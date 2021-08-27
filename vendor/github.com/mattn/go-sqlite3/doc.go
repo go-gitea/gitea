@@ -79,9 +79,8 @@ Then, you can use this extension.
 
 Connection Hook
 
-You can hook and inject your code when the connection is established. database/sql
-doesn't provide a way to get native go-sqlite3 interfaces. So if you want,
-you need to set ConnectHook and get the SQLiteConn.
+You can hook and inject your code when the connection is established by setting
+ConnectHook to get the SQLiteConn.
 
 	sql.Register("sqlite3_with_hook_example",
 			&sqlite3.SQLiteDriver{
@@ -91,20 +90,44 @@ you need to set ConnectHook and get the SQLiteConn.
 					},
 			})
 
+You can also use database/sql.Conn.Raw (Go >= 1.13):
+
+	conn, err := db.Conn(context.Background())
+	// if err != nil { ... }
+	defer conn.Close()
+	err = conn.Raw(func (driverConn interface{}) error {
+		sqliteConn := driverConn.(*sqlite3.SQLiteConn)
+		// ... use sqliteConn
+	})
+	// if err != nil { ... }
+
 Go SQlite3 Extensions
 
-If you want to register Go functions as SQLite extension functions,
-call RegisterFunction from ConnectHook.
+If you want to register Go functions as SQLite extension functions
+you can make a custom driver by calling RegisterFunction from
+ConnectHook.
 
 	regex = func(re, s string) (bool, error) {
 		return regexp.MatchString(re, s)
 	}
-	sql.Register("sqlite3_with_go_func",
+	sql.Register("sqlite3_extended",
 			&sqlite3.SQLiteDriver{
 					ConnectHook: func(conn *sqlite3.SQLiteConn) error {
 						return conn.RegisterFunc("regexp", regex, true)
 					},
 			})
+
+You can then use the custom driver by passing its name to sql.Open.
+
+	var i int
+	conn, err := sql.Open("sqlite3_extended", "./foo.db")
+	if err != nil {
+		panic(err)
+	}
+	err = db.QueryRow(`SELECT regexp("foo.*", "seafood")`).Scan(&i)
+	if err != nil {
+		panic(err)
+	}
 
 See the documentation of RegisterFunc for more details.
 

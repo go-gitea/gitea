@@ -57,7 +57,7 @@ var zeroes = map[string]string{
 	"strfmt.UUID3":      "strfmt.UUID3(\"\")",
 	"strfmt.UUID4":      "strfmt.UUID4(\"\")",
 	"strfmt.UUID5":      "strfmt.UUID5(\"\")",
-	//"file":       "runtime.File",
+	// "file":       "runtime.File",
 }
 
 // conversion functions from string representation to a numerical or boolean

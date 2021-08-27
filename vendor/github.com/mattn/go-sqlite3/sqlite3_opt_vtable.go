@@ -226,10 +226,42 @@ static sqlite3_module goModule = {
 	0	                     // xRollbackTo
 };
 
+// See https://sqlite.org/vtab.html#eponymous_only_virtual_tables
+static sqlite3_module goModuleEponymousOnly = {
+	0,                       // iVersion
+	0,                       // xCreate - create a table, which here is null
+	cXConnect,               // xConnect - connect to an existing table
+	cXBestIndex,             // xBestIndex - Determine search strategy
+	cXDisconnect,            // xDisconnect - Disconnect from a table
+	cXDestroy,               // xDestroy - Drop a table
+	cXOpen,                  // xOpen - open a cursor
+	cXClose,                 // xClose - close a cursor
+	cXFilter,                // xFilter - configure scan constraints
+	cXNext,                  // xNext - advance a cursor
+	cXEof,                   // xEof
+	cXColumn,                // xColumn - read data
+	cXRowid,                 // xRowid - read data
+	cXUpdate,                // xUpdate - write data
+// Not implemented
+	0,                       // xBegin - begin transaction
+	0,                       // xSync - sync transaction
+	0,                       // xCommit - commit transaction
+	0,                       // xRollback - rollback transaction
+	0,                       // xFindFunction - function overloading
+	0,                       // xRename - rename the table
+	0,                       // xSavepoint
+	0,                       // xRelease
+	0	                     // xRollbackTo
+};
+
 void goMDestroy(void*);
 
 static int _sqlite3_create_module(sqlite3 *db, const char *zName, uintptr_t pClientData) {
   return sqlite3_create_module_v2(db, zName, &goModule, (void*) pClientData, goMDestroy);
+}
+
+static int _sqlite3_create_module_eponymous_only(sqlite3 *db, const char *zName, uintptr_t pClientData) {
+  return sqlite3_create_module_v2(db, zName, &goModuleEponymousOnly, (void*) pClientData, goMDestroy);
 }
 */
 import "C"
@@ -595,6 +627,13 @@ type Module interface {
 	DestroyModule()
 }
 
+// EponymousOnlyModule is a "virtual table module" (as above), but
+// for defining "eponymous only" virtual tables See: https://sqlite.org/vtab.html#eponymous_only_virtual_tables
+type EponymousOnlyModule interface {
+	Module
+	EponymousOnlyModule()
+}
+
 // VTab describes a particular instance of the virtual table.
 // See: http://sqlite.org/c3ref/vtab.html
 type VTab interface {
@@ -652,9 +691,19 @@ func (c *SQLiteConn) CreateModule(moduleName string, module Module) error {
 	mname := C.CString(moduleName)
 	defer C.free(unsafe.Pointer(mname))
 	udm := sqliteModule{c, moduleName, module}
-	rv := C._sqlite3_create_module(c.db, mname, C.uintptr_t(uintptr(newHandle(c, &udm))))
-	if rv != C.SQLITE_OK {
-		return c.lastError()
+	switch module.(type) {
+	case EponymousOnlyModule:
+		rv := C._sqlite3_create_module_eponymous_only(c.db, mname, C.uintptr_t(uintptr(newHandle(c, &udm))))
+		if rv != C.SQLITE_OK {
+			return c.lastError()
+		}
+		return nil
+	case Module:
+		rv := C._sqlite3_create_module(c.db, mname, C.uintptr_t(uintptr(newHandle(c, &udm))))
+		if rv != C.SQLITE_OK {
+			return c.lastError()
+		}
+		return nil
 	}
 	return nil
 }

@@ -26,18 +26,17 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	context2 "github.com/gorilla/context"
-	"github.com/unknwon/com"
 	"xorm.io/xorm"
 )
 
@@ -81,7 +80,7 @@ func runPR() {
 	setting.RunUser = curUser.Username
 
 	log.Printf("[PR] Loading fixtures data ...\n")
-	setting.CheckLFSVersion()
+	gitea_git.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
 		setting.Database.Type = "sqlite3"
@@ -111,14 +110,13 @@ func runPR() {
 	models.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(models.LocalCopyPath())
-	com.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
+	util.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	//routers.GlobalInit()
-	external.RegisterParsers()
+	external.RegisterRenderers()
 	markup.Init()
-	m := routes.NewMacaron()
-	routes.RegisterRoutes(m)
+	c := routers.NormalRoutes()
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")
@@ -138,7 +136,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(m))
+	http.ListenAndServe(":8080", context2.ClearHandler(c))
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*

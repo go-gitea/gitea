@@ -63,9 +63,10 @@ type Review struct {
 	IssueID          int64  `xorm:"index"`
 	Content          string `xorm:"TEXT"`
 	// Official is a review made by an assigned approver (counts towards approval)
-	Official bool   `xorm:"NOT NULL DEFAULT false"`
-	CommitID string `xorm:"VARCHAR(40)"`
-	Stale    bool   `xorm:"NOT NULL DEFAULT false"`
+	Official  bool   `xorm:"NOT NULL DEFAULT false"`
+	CommitID  string `xorm:"VARCHAR(40)"`
+	Stale     bool   `xorm:"NOT NULL DEFAULT false"`
+	Dismissed bool   `xorm:"NOT NULL DEFAULT false"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -174,7 +175,7 @@ type FindReviewOptions struct {
 }
 
 func (opts *FindReviewOptions) toCond() builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"issue_id": opts.IssueID})
 	}
@@ -205,6 +206,11 @@ func findReviews(e Engine, opts FindReviewOptions) ([]*Review, error) {
 // FindReviews returns reviews passing FindReviewOptions
 func FindReviews(opts FindReviewOptions) ([]*Review, error) {
 	return findReviews(x, opts)
+}
+
+// CountReviews returns count of reviews passing FindReviewOptions
+func CountReviews(opts FindReviewOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&Review{})
 }
 
 // CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
@@ -333,8 +339,7 @@ func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
 }
 
 // ContentEmptyErr represents an content empty error
-type ContentEmptyErr struct {
-}
+type ContentEmptyErr struct{}
 
 func (ContentEmptyErr) Error() string {
 	return "Review content is empty"
@@ -347,14 +352,14 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool) (*Review, *Comment, error) {
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, nil, err
 	}
 
-	var official = false
+	official := false
 
 	review, err := getCurrentReview(sess, doer, issue)
 	if err != nil {
@@ -419,12 +424,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	}
 
 	comm, err := createComment(sess, &CreateCommentOptions{
-		Type:     CommentTypeReview,
-		Doer:     doer,
-		Content:  review.Content,
-		Issue:    issue,
-		Repo:     issue.Repo,
-		ReviewID: review.ID,
+		Type:        CommentTypeReview,
+		Doer:        doer,
+		Content:     review.Content,
+		Issue:       issue,
+		Repo:        issue.Repo,
+		ReviewID:    review.ID,
+		Attachments: attachmentUUIDs,
 	})
 	if err != nil || comm == nil {
 		return nil, nil, err
@@ -465,9 +471,9 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 		return nil, err
 	}
 
-	// Get latest review of each reviwer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
+	// Get latest review of each reviewer, sorted in order they were made
+	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
+		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
 		return nil, err
 	}
@@ -490,7 +496,7 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
-	// Get latest review of each reviwer, sorted in order they were made
+	// Get latest review of each reviewer, sorted in order they were made
 	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {
@@ -554,6 +560,23 @@ func MarkReviewsAsStale(issueID int64) (err error) {
 // MarkReviewsAsNotStale marks existing reviews as not stale for a giving commit SHA
 func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 	_, err = x.Exec("UPDATE `review` SET stale=? WHERE issue_id=? AND commit_id=?", false, issueID, commitID)
+
+	return
+}
+
+// DismissReview change the dismiss status of a review
+func DismissReview(review *Review, isDismiss bool) (err error) {
+	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
+		return nil
+	}
+
+	review.Dismissed = isDismiss
+
+	if review.ID == 0 {
+		return ErrReviewNotExist{}
+	}
+
+	_, err = x.ID(review.ID).Cols("dismissed").Update(review)
 
 	return
 }
@@ -654,7 +677,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	return comment, sess.Commit()
 }
 
-//RemoveReviewRequest remove a review request from one reviewer
+// RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
@@ -766,7 +789,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 	return comment, sess.Commit()
 }
 
-//RemoveTeamReviewRequest remove a review request from one team
+// RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()

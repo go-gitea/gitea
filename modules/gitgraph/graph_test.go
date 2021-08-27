@@ -22,7 +22,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 	defer currentRepo.Close()
 
 	for i := 0; i < b.N; i++ {
-		graph, err := GetCommitGraph(currentRepo, 1, 0)
+		graph, err := GetCommitGraph(currentRepo, 1, 0, false, nil, nil)
 		if err != nil {
 			b.Error("Could get commit graph")
 		}
@@ -34,7 +34,7 @@ func BenchmarkGetCommitGraph(b *testing.B) {
 }
 
 func BenchmarkParseCommitString(b *testing.B) {
-	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|Kjell Kvinge|kjell@kvinge.biz|4e61bac|Add route for graph"
+	testString := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|Add route for graph"
 
 	parser := &Parser{}
 	parser.Reset()
@@ -44,7 +44,7 @@ func BenchmarkParseCommitString(b *testing.B) {
 		if err := parser.AddLineToGraph(graph, 0, []byte(testString)); err != nil {
 			b.Error("could not parse teststring")
 		}
-		if graph.Flows[1].Commits[0].Author != "Kjell Kvinge" {
+		if graph.Flows[1].Commits[0].Rev != "4e61bacab44e9b4730e44a6615d04098dd3a8eaf" {
 			b.Error("Did not get expected data")
 		}
 	}
@@ -244,7 +244,7 @@ func TestParseGlyphs(t *testing.T) {
 }
 
 func TestCommitStringParsing(t *testing.T) {
-	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|Author|user@mail.something|4e61bac|"
+	dataFirstPart := "* DATA:|4e61bacab44e9b4730e44a6615d04098dd3a8eaf|2016-12-20 21:10:41 +0100|4e61bac|"
 	tests := []struct {
 		shouldPass    bool
 		testName      string

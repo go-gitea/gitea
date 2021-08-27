@@ -1,13 +1,25 @@
-@import "~font-awesome/css/font-awesome.css";
+@import "font-awesome/css/font-awesome.css";
 
-@import "./features/gitgraph.less";
+@import "./variables.less";
+@import "./shared/issuelist.less";
 @import "./features/animations.less";
-@import "./markdown/mermaid.less";
+@import "./features/dropzone.less";
+@import "./features/gitgraph.less";
+@import "./features/heatmap.less";
+@import "./features/imagediff.less";
+@import "./features/codeeditor.less";
+@import "./features/projects.less";
+@import "./markup/content.less";
+@import "./markup/mermaid.less";
+@import "./code/linebutton.less";
+
+@import "./chroma/base.less";
+@import "./chroma/light.less";
 
 @import "_svg";
 @import "_tribute";
+@import "_font_i18n";
 @import "_base";
-@import "_markdown";
 @import "_home";
 @import "_install";
 @import "_form";
@@ -19,6 +31,5 @@
 @import "_admin";
 @import "_explore";
 @import "_review";
-@import "_chroma";
 
 @import "./helpers.less";

@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/huandu/xstrings"
-	"github.com/unknwon/com"
 )
 
 type transformer struct {
@@ -208,6 +207,14 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 	}
 
 	repo.DefaultBranch = templateRepo.DefaultBranch
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("openRepository: %v", err)
+	}
+	defer gitRepo.Close()
+	if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+		return fmt.Errorf("setDefaultBranch: %v", err)
+	}
 	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
@@ -252,7 +259,12 @@ func GenerateRepository(ctx models.DBContext, doer, owner *models.User, template
 	}
 
 	repoPath := generateRepo.RepoPath()
-	if com.IsExist(repoPath) {
+	isExist, err := util.IsExist(repoPath)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
+		return nil, err
+	}
+	if isExist {
 		return nil, models.ErrRepoFilesAlreadyExist{
 			Uname: generateRepo.OwnerName,
 			Name:  generateRepo.Name,

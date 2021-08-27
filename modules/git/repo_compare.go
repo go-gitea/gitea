@@ -7,7 +7,6 @@ package git
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"io"
 	"regexp"
@@ -20,9 +19,11 @@ import (
 
 // CompareInfo represents needed information for comparing references.
 type CompareInfo struct {
-	MergeBase string
-	Commits   *list.List
-	NumFiles  int
+	MergeBase    string
+	BaseCommitID string
+	HeadCommitID string
+	Commits      []*Commit
+	NumFiles     int
 }
 
 // GetMergeBase checks and returns merge base of two branches and the reference used as base.
@@ -66,8 +67,18 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	}
 
 	compareInfo := new(CompareInfo)
+
+	compareInfo.HeadCommitID, err = GetFullCommitID(repo.Path, headBranch)
+	if err != nil {
+		compareInfo.HeadCommitID = headBranch
+	}
+
 	compareInfo.MergeBase, remoteBranch, err = repo.GetMergeBase(tmpRemote, baseBranch, headBranch)
 	if err == nil {
+		compareInfo.BaseCommitID, err = GetFullCommitID(repo.Path, remoteBranch)
+		if err != nil {
+			compareInfo.BaseCommitID = remoteBranch
+		}
 		// We have a common base - therefore we know that ... should work
 		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
 		if err != nil {
@@ -78,11 +89,12 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
 		}
 	} else {
-		compareInfo.Commits = list.New()
+		compareInfo.Commits = []*Commit{}
 		compareInfo.MergeBase, err = GetFullCommitID(repo.Path, remoteBranch)
 		if err != nil {
 			compareInfo.MergeBase = remoteBranch
 		}
+		compareInfo.BaseCommitID = compareInfo.MergeBase
 	}
 
 	// Count number of changed files.

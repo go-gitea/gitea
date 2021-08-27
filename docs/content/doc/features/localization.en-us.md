@@ -3,7 +3,7 @@ date: "2016-12-01T16:00:00+02:00"
 title: "Localization"
 slug: "localization"
 weight: 10
-toc: true
+toc: false
 draft: false
 menu:
   sidebar:
@@ -17,7 +17,7 @@ menu:
 
 Gitea's localization happens through our [Crowdin project](https://crowdin.com/project/gitea).
 
-For changes to an **English** translation, a pull request can be made that changes the appropriate key in 
+For changes to an **English** translation, a pull request can be made that changes the appropriate key in
 the [english locale](https://github.com/go-gitea/gitea/blob/master/options/locale/locale_en-US.ini).
 
 For changes to a **non-English** translation, refer to the Crowdin project above.

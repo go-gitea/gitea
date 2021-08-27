@@ -14,11 +14,12 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // Transfer transfers the ownership of a repository
-func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
+func Transfer(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/transfer repository repoTransfer
 	// ---
 	// summary: Transfer a repo ownership
@@ -50,6 +51,8 @@ func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
 	//     "$ref": "#/responses/notFound"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
+
+	opts := web.GetForm(ctx).(*api.TransferRepoOption)
 
 	newOwner, err := models.GetUserByName(opts.NewOwner)
 	if err != nil {
@@ -93,17 +96,27 @@ func Transfer(ctx *context.APIContext, opts api.TransferRepoOption) {
 		}
 	}
 
-	if err = repo_service.TransferOwnership(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
+	if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, ctx.Repo.Repository, teams); err != nil {
+		if models.IsErrRepoTransferInProgress(err) {
+			ctx.Error(http.StatusConflict, "CreatePendingRepositoryTransfer", err)
+			return
+		}
+
+		if models.IsErrRepoAlreadyExist(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "CreatePendingRepositoryTransfer", err)
+			return
+		}
+
 		ctx.InternalServerError(err)
 		return
 	}
 
-	newRepo, err := models.GetRepositoryByName(newOwner.ID, ctx.Repo.Repository.Name)
-	if err != nil {
-		ctx.InternalServerError(err)
+	if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
+		log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, models.AccessModeAdmin))
 		return
 	}
 
 	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
-	ctx.JSON(http.StatusAccepted, newRepo.APIFormat(models.AccessModeAdmin))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, models.AccessModeAdmin))
 }
