@@ -700,7 +700,7 @@ function initIssueComments() {
     $dismissReviewModal.modal('show');
   });
 
-  $(document).on('click', (event) => {
+  $(document).on('click.cleanhash', (event) => {
     const urlTarget = $(':target');
     if (urlTarget.length === 0) return;
 
