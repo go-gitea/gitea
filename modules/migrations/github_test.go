@@ -216,7 +216,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 
 	// downloader.GetComments()
 	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		IssueNumber: 2,
+		Context: base.BasicIssueContext(2),
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -286,6 +286,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Merged:         true,
 			MergedTime:     timePtr(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			MergeCommitSHA: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
+			Context:        base.BasicIssueContext(3),
 		},
 		{
 			Number:     4,
@@ -332,10 +333,11 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Content:  "+1",
 				},
 			},
+			Context: base.BasicIssueContext(4),
 		},
 	}, prs)
 
-	reviews, err := downloader.GetReviews(3)
+	reviews, err := downloader.GetReviews(base.BasicIssueContext(3))
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -367,7 +369,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 		},
 	}, reviews)
 
-	reviews, err = downloader.GetReviews(4)
+	reviews, err = downloader.GetReviews(base.BasicIssueContext(4))
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

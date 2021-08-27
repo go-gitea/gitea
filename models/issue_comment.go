@@ -155,12 +155,12 @@ type Comment struct {
 	CommitID        int64
 	Line            int64 // - previous line / + proposed line
 	TreePath        string
-	Content         string `xorm:"TEXT"`
+	Content         string `xorm:"LONGTEXT"`
 	RenderedContent string `xorm:"-"`
 
 	// Path represents the 4 lines of code cemented by this comment
 	Patch       string `xorm:"-"`
-	PatchQuoted string `xorm:"TEXT patch"`
+	PatchQuoted string `xorm:"LONGTEXT patch"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
