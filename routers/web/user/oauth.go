@@ -265,7 +265,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
-	token, err := oauth2.ParseToken(form.Token)
+	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
 	if err == nil {
 		if token.Valid() == nil {
 			grant, err := models.GetOAuth2GrantByID(token.GrantID)
