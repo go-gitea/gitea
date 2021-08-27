@@ -26,6 +26,7 @@ type SearchResult struct {
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
 	IsRestricted bool     // if user is restricted
+	AvatarJPEG   []byte
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -295,6 +296,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	var sshPublicKey []string
+	var avatarJPEG []byte
 
 	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
@@ -362,6 +364,10 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		}
 	}
 
+	if ls.AttributeAvatarJPEG != "" {
+		avatarJPEG = sr.Entries[0].GetRawAttributeValue(ls.AttributeAvatarJPEG)
+	}
+
 	return &SearchResult{
 		Username:     username,
 		Name:         firstname,
@@ -370,6 +376,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		SSHPublicKey: sshPublicKey,
 		IsAdmin:      isAdmin,
 		IsRestricted: isRestricted,
+		AvatarJPEG:   avatarJPEG,
 	}
 }
 
@@ -439,6 +446,9 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		}
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
+		}
+		if ls.AttributeAvatarJPEG != "" {
+			result[i].AvatarJPEG = v.GetRawAttributeValue(ls.AttributeAvatarJPEG)
 		}
 	}
 

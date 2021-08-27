@@ -95,5 +95,9 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		err = models.RewriteAllPublicKeys()
 	}
 
+	if err == nil && source.AttributeAvatarJPEG != "" {
+		_ = user.UploadAvatar(sr.AvatarJPEG)
+	}
+
 	return user, err
 }
