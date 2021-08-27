@@ -6,9 +6,11 @@ package smtp
 
 import (
 	"crypto/tls"
-	"errors"
 	"fmt"
+	"net"
 	"net/smtp"
+	"os"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 )
@@ -42,40 +44,62 @@ func (auth *loginAuthenticator) Next(fromServer []byte, more bool) ([]byte, erro
 
 // SMTP authentication type names.
 const (
-	PlainAuthentication = "PLAIN"
-	LoginAuthentication = "LOGIN"
+	PlainAuthentication   = "PLAIN"
+	LoginAuthentication   = "LOGIN"
+	CRAMMD5Authentication = "CRAM-MD5"
 )
 
 // Authenticators contains available SMTP authentication type names.
-var Authenticators = []string{PlainAuthentication, LoginAuthentication}
+var Authenticators = []string{PlainAuthentication, LoginAuthentication, CRAMMD5Authentication}
 
 // Authenticate performs an SMTP authentication.
 func Authenticate(a smtp.Auth, source *Source) error {
-	c, err := smtp.Dial(fmt.Sprintf("%s:%d", source.Host, source.Port))
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: source.SkipVerify,
+		ServerName:         source.Host,
+	}
+
+	conn, err := net.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer conn.Close()
 
-	if err = c.Hello("gogs"); err != nil {
-		return err
+	if source.UseTLS() {
+		conn = tls.Client(conn, tlsConfig)
 	}
 
-	if source.TLS {
-		if ok, _ := c.Extension("STARTTLS"); ok {
-			if err = c.StartTLS(&tls.Config{
-				InsecureSkipVerify: source.SkipVerify,
-				ServerName:         source.Host,
-			}); err != nil {
-				return err
+	client, err := smtp.NewClient(conn, source.Host)
+	if err != nil {
+		return fmt.Errorf("failed to create NewClient: %w", err)
+	}
+	defer client.Close()
+
+	if !source.DisableHelo {
+		hostname := source.HeloHostname
+		if len(hostname) == 0 {
+			hostname, err = os.Hostname()
+			if err != nil {
+				return fmt.Errorf("failed to find Hostname: %w", err)
 			}
-		} else {
-			return errors.New("SMTP server unsupports TLS")
+		}
+
+		if err = client.Hello(hostname); err != nil {
+			return fmt.Errorf("failed to send Helo: %w", err)
 		}
 	}
 
-	if ok, _ := c.Extension("AUTH"); ok {
-		return c.Auth(a)
+	// If not using SMTPS, always use STARTTLS if available
+	hasStartTLS, _ := client.Extension("STARTTLS")
+	if !source.UseTLS() && hasStartTLS {
+		if err = client.StartTLS(tlsConfig); err != nil {
+			return fmt.Errorf("failed to start StartTLS: %v", err)
+		}
 	}
+
+	if ok, _ := client.Extension("AUTH"); ok {
+		return client.Auth(a)
+	}
+
 	return models.ErrUnsupportedLoginType
 }

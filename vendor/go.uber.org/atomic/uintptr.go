@@ -36,8 +36,8 @@ type Uintptr struct {
 }
 
 // NewUintptr creates a new Uintptr.
-func NewUintptr(i uintptr) *Uintptr {
-	return &Uintptr{v: i}
+func NewUintptr(val uintptr) *Uintptr {
+	return &Uintptr{v: val}
 }
 
 // Load atomically loads the wrapped value.
@@ -46,13 +46,13 @@ func (i *Uintptr) Load() uintptr {
 }
 
 // Add atomically adds to the wrapped uintptr and returns the new value.
-func (i *Uintptr) Add(n uintptr) uintptr {
-	return atomic.AddUintptr(&i.v, n)
+func (i *Uintptr) Add(delta uintptr) uintptr {
+	return atomic.AddUintptr(&i.v, delta)
 }
 
 // Sub atomically subtracts from the wrapped uintptr and returns the new value.
-func (i *Uintptr) Sub(n uintptr) uintptr {
-	return atomic.AddUintptr(&i.v, ^(n - 1))
+func (i *Uintptr) Sub(delta uintptr) uintptr {
+	return atomic.AddUintptr(&i.v, ^(delta - 1))
 }
 
 // Inc atomically increments the wrapped uintptr and returns the new value.
@@ -66,18 +66,18 @@ func (i *Uintptr) Dec() uintptr {
 }
 
 // CAS is an atomic compare-and-swap.
-func (i *Uintptr) CAS(old, new uintptr) bool {
+func (i *Uintptr) CAS(old, new uintptr) (swapped bool) {
 	return atomic.CompareAndSwapUintptr(&i.v, old, new)
 }
 
 // Store atomically stores the passed value.
-func (i *Uintptr) Store(n uintptr) {
-	atomic.StoreUintptr(&i.v, n)
+func (i *Uintptr) Store(val uintptr) {
+	atomic.StoreUintptr(&i.v, val)
 }
 
 // Swap atomically swaps the wrapped uintptr and returns the old value.
-func (i *Uintptr) Swap(n uintptr) uintptr {
-	return atomic.SwapUintptr(&i.v, n)
+func (i *Uintptr) Swap(val uintptr) (old uintptr) {
+	return atomic.SwapUintptr(&i.v, val)
 }
 
 // MarshalJSON encodes the wrapped uintptr into JSON.

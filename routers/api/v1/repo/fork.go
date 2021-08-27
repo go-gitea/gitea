@@ -62,6 +62,8 @@ func ListForks(ctx *context.APIContext) {
 		}
 		apiForks[i] = convert.ToRepo(fork, access)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
 	ctx.JSON(http.StatusOK, apiForks)
 }
 

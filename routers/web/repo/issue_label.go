@@ -53,7 +53,7 @@ func InitializeLabels(ctx *context.Context) {
 
 // RetrieveLabels find all the labels of a repository and organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Form("sort"), models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), models.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -66,7 +66,7 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.Form("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -93,7 +93,7 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 	}
 	ctx.Data["NumLabels"] = len(labels)
-	ctx.Data["SortType"] = ctx.Form("sort")
+	ctx.Data["SortType"] = ctx.FormString("sort")
 }
 
 // NewLabel create new label for repository
@@ -165,7 +165,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 		return
 	}
 
-	switch action := ctx.Form("action"); action {
+	switch action := ctx.FormString("action"); action {
 	case "clear":
 		for _, issue := range issues {
 			if err := issue_service.ClearLabels(issue, ctx.User); err != nil {

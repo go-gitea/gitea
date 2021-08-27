@@ -135,19 +135,19 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.User,
-		Keyword:            strings.Trim(ctx.Form("q"), " "),
+		Keyword:            ctx.FormTrim("q"),
 		OwnerID:            ctx.FormInt64("uid"),
 		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
 		TeamID:             ctx.FormInt64("team_id"),
 		TopicOnly:          ctx.FormBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
-		Private:            ctx.IsSigned && (ctx.Form("private") == "" || ctx.FormBool("private")),
+		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
 		Template:           util.OptionalBoolNone,
 		StarredByID:        ctx.FormInt64("starredBy"),
 		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
 
-	if ctx.Form("template") != "" {
+	if ctx.FormString("template") != "" {
 		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
 	}
 
@@ -155,7 +155,7 @@ func Search(ctx *context.APIContext) {
 		opts.Collaborate = util.OptionalBoolFalse
 	}
 
-	var mode = ctx.Form("mode")
+	var mode = ctx.FormString("mode")
 	switch mode {
 	case "source":
 		opts.Fork = util.OptionalBoolFalse
@@ -173,17 +173,17 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Form("archived") != "" {
+	if ctx.FormString("archived") != "" {
 		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
 	}
 
-	if ctx.Form("is_private") != "" {
+	if ctx.FormString("is_private") != "" {
 		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
 	}
 
-	var sortMode = ctx.Form("sort")
+	var sortMode = ctx.FormString("sort")
 	if len(sortMode) > 0 {
-		var sortOrder = ctx.Form("order")
+		var sortOrder = ctx.FormString("order")
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
@@ -230,8 +230,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,

@@ -50,7 +50,7 @@ func ListTags(ctx *context.APIContext) {
 
 	listOpts := utils.GetListOptions(ctx)
 
-	tags, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
+	tags, total, err := ctx.Repo.GitRepo.GetTagInfos(listOpts.Page, listOpts.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTags", err)
 		return
@@ -61,6 +61,7 @@ func ListTags(ctx *context.APIContext) {
 		apiTags[i] = convert.ToTag(ctx.Repo.Repository, tags[i])
 	}
 
+	ctx.SetTotalCountHeader(int64(total))
 	ctx.JSON(http.StatusOK, &apiTags)
 }
 

@@ -147,7 +147,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		listOptions.PageSize = setting.Git.CommitsRangeSize
 	}
 
-	sha := ctx.Form("sha")
+	sha := ctx.FormString("sha")
 
 	var baseCommit *git.Commit
 	if len(sha) == 0 {
@@ -190,21 +190,18 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	userCache := make(map[string]*models.User)
 
-	apiCommits := make([]*api.Commit, commits.Len())
-
-	i := 0
-	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
-		commit := commitPointer.Value.(*git.Commit)
-
+	apiCommits := make([]*api.Commit, len(commits))
+	for i, commit := range commits {
 		// Create json struct
 		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
 		}
-
-		i++
 	}
+
+	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.SetTotalCountHeader(commitsCountTotal)
 
 	// kept for backwards compatibility
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
@@ -212,10 +209,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
-
-	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-Total", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }

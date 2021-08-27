@@ -31,9 +31,9 @@ export async function initStopwatch() {
     worker.addEventListener('error', (event) => {
       console.error(event);
     });
-    worker.port.onmessageerror = () => {
+    worker.port.addEventListener('messageerror', () => {
       console.error('Unable to deserialize message');
-    };
+    });
     worker.port.postMessage({
       type: 'start',
       url: `${window.location.origin}${AppSubUrl}/user/events`,
