@@ -325,6 +325,36 @@ func (err ErrReachLimitOfRepo) Error() string {
 	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
 }
 
+// ErrUserSettingExists represents a "setting already exists for user" error.
+type ErrUserSettingExists struct {
+	Setting setting
+}
+
+// IsErrUserSettingExists checks if an error is a ErrUserSettingExists.
+func IsErrUserSettingExists(err error) bool {
+	_, ok := err.(ErrUserSettingExists)
+	return ok
+}
+
+func (err ErrUserSettingExists) Error() string {
+	return fmt.Sprintf("setting already exists for user [uid: %d, key: %s]", err.Setting.UserID, err.Setting.Key)
+}
+
+// ErrUserSettingNotExists represents a "setting already exists for user" error.
+type ErrUserSettingNotExists struct {
+	Setting setting
+}
+
+// IsErrUserSettingNotExists checks if an error is a ErrUserSettingNotExists.
+func IsErrUserSettingExists(err error) bool {
+	_, ok := err.(ErrUserSettingNotExists)
+	return ok
+}
+
+func (err ErrUserSettingNotExists) Error() string {
+	return fmt.Sprintf("setting already exists for user [uid: %d, key: %s]", err.Setting.UserID, err.Setting.Key)
+}
+
 //  __      __.__ __   .__
 // /  \    /  \__|  | _|__|
 // \   \/\/   /  |  |/ /  |
