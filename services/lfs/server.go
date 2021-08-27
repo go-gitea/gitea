@@ -21,6 +21,7 @@ import (
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
 	"github.com/golang-jwt/jwt"
 )
@@ -401,6 +402,13 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			if setting.LFS.ServeDirect {
+				//If we have a signed url (S3, object storage), redirect to this directly.
+				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
+				if u != nil && err == nil {
+					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}
+				}
+			}
 		}
 		if upload {
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}

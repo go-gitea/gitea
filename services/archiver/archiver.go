@@ -54,6 +54,9 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 	case strings.HasSuffix(uri, ".tar.gz"):
 		ext = ".tar.gz"
 		r.Type = git.TARGZ
+	case strings.HasSuffix(uri, ".bundle"):
+		ext = ".bundle"
+		r.Type = git.BUNDLE
 	default:
 		return nil, fmt.Errorf("Unknown format: %s", uri)
 	}
@@ -165,13 +168,21 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 			}
 		}()
 
-		err = gitRepo.CreateArchive(
-			graceful.GetManager().ShutdownContext(),
-			archiver.Type,
-			w,
-			setting.Repository.PrefixArchiveFiles,
-			archiver.CommitID,
-		)
+		if archiver.Type == git.BUNDLE {
+			err = gitRepo.CreateBundle(
+				graceful.GetManager().ShutdownContext(),
+				archiver.CommitID,
+				w,
+			)
+		} else {
+			err = gitRepo.CreateArchive(
+				graceful.GetManager().ShutdownContext(),
+				archiver.Type,
+				w,
+				setting.Repository.PrefixArchiveFiles,
+				archiver.CommitID,
+			)
+		}
 		_ = w.CloseWithError(err)
 		done <- err
 	}(done, w, archiver, gitRepo)

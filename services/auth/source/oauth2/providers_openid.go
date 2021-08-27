@@ -18,7 +18,7 @@ type OpenIDProvider struct {
 
 // Name provides the technical name for this provider
 func (o *OpenIDProvider) Name() string {
-	return "openidconnect"
+	return "openidConnect"
 }
 
 // DisplayName returns the friendly name for this provider

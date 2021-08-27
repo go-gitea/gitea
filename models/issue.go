@@ -36,7 +36,7 @@ type Issue struct {
 	OriginalAuthor   string
 	OriginalAuthorID int64      `xorm:"index"`
 	Title            string     `xorm:"name"`
-	Content          string     `xorm:"TEXT"`
+	Content          string     `xorm:"LONGTEXT"`
 	RenderedContent  string     `xorm:"-"`
 	Labels           []*Label   `xorm:"-"`
 	MilestoneID      int64      `xorm:"INDEX"`
