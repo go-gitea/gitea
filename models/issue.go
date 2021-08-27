@@ -1186,6 +1186,9 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
+	Org            *User // issues permission scope
+	Team           *Team // issues permission scope
+	User           *User // issues permission scope
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1328,6 +1331,28 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 			builder.Select("id").
 				From("milestone").
 				Where(builder.In("name", opts.IncludeMilestones)))
+	}
+
+	if opts.User != nil {
+		if opts.Org != nil {
+			var unitType = UnitTypeIssues
+			if opts.IsPull.IsTrue() {
+				unitType = UnitTypePullRequests
+			}
+
+			if opts.Team != nil {
+				sess.And(teamUnitsRepoCond("issue.repo_id", opts.User.ID, opts.Org.ID, opts.Team.ID, unitType))
+			} else {
+				sess.And(orgUnitsRepoCond("issue.repo_id", opts.User.ID, opts.Org.ID, unitType))
+			}
+		} else {
+			sess.And(
+				builder.Or(
+					userRepoCond(opts.User.ID),
+					userCollaborationRepoCond("issue.repo_id", opts.User.ID),
+				),
+			)
+		}
 	}
 }
 

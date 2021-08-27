@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -143,6 +144,101 @@ type SearchRepoOptions struct {
 	HasMilestones util.OptionalBool
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
+}
+
+// SearchOrderBy is used to sort the result
+type SearchOrderBy string
+
+func (s SearchOrderBy) String() string {
+	return string(s)
+}
+
+// Strings for sorting result
+const (
+	SearchOrderByAlphabetically        SearchOrderBy = "name ASC"
+	SearchOrderByAlphabeticallyReverse SearchOrderBy = "name DESC"
+	SearchOrderByLeastUpdated          SearchOrderBy = "updated_unix ASC"
+	SearchOrderByRecentUpdated         SearchOrderBy = "updated_unix DESC"
+	SearchOrderByOldest                SearchOrderBy = "created_unix ASC"
+	SearchOrderByNewest                SearchOrderBy = "created_unix DESC"
+	SearchOrderBySize                  SearchOrderBy = "size ASC"
+	SearchOrderBySizeReverse           SearchOrderBy = "size DESC"
+	SearchOrderByID                    SearchOrderBy = "id ASC"
+	SearchOrderByIDReverse             SearchOrderBy = "id DESC"
+	SearchOrderByStars                 SearchOrderBy = "num_stars ASC"
+	SearchOrderByStarsReverse          SearchOrderBy = "num_stars DESC"
+	SearchOrderByForks                 SearchOrderBy = "num_forks ASC"
+	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
+)
+
+// userRepoCond returns user ownered repositories
+func userRepoCond(userID int64) builder.Cond {
+	return builder.Eq{
+		"repository.owner_id": userID,
+	}
+}
+
+// userCollaborationRepoCond return user as collabrators repositories list
+func userCollaborationRepoCond(id string, userID int64) builder.Cond {
+	return builder.In(id,
+		builder.Select("repo_id").From("collaboration").
+			Where(builder.Eq{
+				"user_id": userID,
+			}),
+	)
+}
+
+func orgUnitsRepoCond(id string, userID, orgID int64, units ...unit.Type) builder.Cond {
+	return builder.In(id,
+		builder.Select("repo_id").From("team_repo").Where(
+			builder.Eq{
+				"org_id": orgID,
+			}.And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_user").Where(
+						builder.Eq{
+							"uid": userID,
+						},
+					),
+				),
+			).And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_unit").Where(
+						builder.Eq{
+							"org_id": orgID,
+						}.And(
+							builder.In("type", units),
+						),
+					),
+				),
+			),
+		))
+}
+
+func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
+	return builder.In(id,
+		builder.Select("repo_id").From("team_repo").Where(
+			builder.Eq{
+				"team_id": teamID,
+			}.And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_user").Where(
+						builder.Eq{
+							"uid": userID,
+						},
+					),
+				)).And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_unit").Where(
+						builder.Eq{
+							"org_id": orgID,
+						}.And(
+							builder.In("type", units),
+						),
+					),
+				),
+			),
+		))
 }
 
 // SearchRepositoryCondition creates a query condition according search repository options
