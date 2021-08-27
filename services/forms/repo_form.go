@@ -804,8 +804,9 @@ func (f *DeleteRepoFileForm) Validate(req *http.Request, errs binding.Errors) bi
 
 // AddTimeManuallyForm form that adds spent time manually.
 type AddTimeManuallyForm struct {
-	Hours   int `binding:"Range(0,1000)"`
-	Minutes int `binding:"Range(0,1000)"`
+	Created string `form:"created" binding:"OmitEmpty;Size(10)"`
+	Hours   int    `binding:"Range(0,1000)"`
+	Minutes int    `binding:"Range(0,1000)"`
 }
 
 // Validate validates the fields
