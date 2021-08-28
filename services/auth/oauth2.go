@@ -29,9 +29,9 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
-	token, err := oauth2.ParseToken(accessToken)
+	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
 	if err != nil {
-		log.Trace("ParseOAuth2Token: %v", err)
+		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
 	}
 	var grant *models.OAuth2Grant
@@ -113,7 +113,7 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 		return nil
 	}
 
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
 		return nil
 	}
 
@@ -133,4 +133,14 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user
+}
+
+func isAuthenticatedTokenRequest(req *http.Request) bool {
+	switch req.URL.Path {
+	case "/login/oauth/userinfo":
+		fallthrough
+	case "/login/oauth/introspect":
+		return true
+	}
+	return false
 }
