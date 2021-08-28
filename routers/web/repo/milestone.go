@@ -89,6 +89,7 @@ func Milestones(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -282,6 +283,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
