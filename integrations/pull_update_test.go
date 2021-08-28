@@ -60,7 +60,11 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	assert.NoError(t, err)
 	assert.NotEmpty(t, baseRepo)
 
-	headRepo, err := repo_module.ForkRepository(actor, forkOrg, baseRepo, "repo-pr-update", "desc")
+	headRepo, err := repo_module.ForkRepository(actor, forkOrg, models.ForkRepoOptions{
+		BaseRepo:    baseRepo,
+		Name:        "repo-pr-update",
+		Description: "desc",
+	})
 	assert.NoError(t, err)
 	assert.NotEmpty(t, headRepo)
 
