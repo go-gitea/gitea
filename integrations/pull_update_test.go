@@ -61,7 +61,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	assert.NotEmpty(t, baseRepo)
 
 	headRepo, err := repo_module.ForkRepository(actor, forkOrg, models.ForkRepoOptions{
-		BaseRepo:     baseRepo,
+		BaseRepo:    baseRepo,
 		Name:        "repo-pr-update",
 		Description: "desc",
 	})

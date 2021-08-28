@@ -1006,7 +1006,7 @@ type CreateRepoOptions struct {
 
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
-	BaseRepo     *Repository
+	BaseRepo    *Repository
 	Name        string
 	Description string
 }

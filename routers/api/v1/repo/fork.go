@@ -124,7 +124,7 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	fork, err := repo_service.ForkRepository(ctx.User, forker, models.ForkRepoOptions{
-		BaseRepo:     repo,
+		BaseRepo:    repo,
 		Name:        repo.Name,
 		Description: repo.Description,
 	})
