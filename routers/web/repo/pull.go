@@ -225,7 +225,11 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, models.ForkRepoOptions{
+		BaseRepo:    forkRepo,
+		Name:        form.RepoName,
+		Description: form.Description,
+	})
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
