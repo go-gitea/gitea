@@ -8,6 +8,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 	"time"
@@ -208,20 +209,18 @@ func (statement *Statement) quote(s string) string {
 
 // And add Where & and statement
 func (statement *Statement) And(query interface{}, args ...interface{}) *Statement {
-	switch query.(type) {
+	switch qr := query.(type) {
 	case string:
-		cond := builder.Expr(query.(string), args...)
+		cond := builder.Expr(qr, args...)
 		statement.cond = statement.cond.And(cond)
 	case map[string]interface{}:
-		queryMap := query.(map[string]interface{})
-		newMap := make(map[string]interface{})
-		for k, v := range queryMap {
-			newMap[statement.quote(k)] = v
+		cond := make(builder.Eq)
+		for k, v := range qr {
+			cond[statement.quote(k)] = v
 		}
-		statement.cond = statement.cond.And(builder.Eq(newMap))
-	case builder.Cond:
-		cond := query.(builder.Cond)
 		statement.cond = statement.cond.And(cond)
+	case builder.Cond:
+		statement.cond = statement.cond.And(qr)
 		for _, v := range args {
 			if vv, ok := v.(builder.Cond); ok {
 				statement.cond = statement.cond.And(vv)
@@ -236,23 +235,25 @@ func (statement *Statement) And(query interface{}, args ...interface{}) *Stateme
 
 // Or add Where & Or statement
 func (statement *Statement) Or(query interface{}, args ...interface{}) *Statement {
-	switch query.(type) {
+	switch qr := query.(type) {
 	case string:
-		cond := builder.Expr(query.(string), args...)
+		cond := builder.Expr(qr, args...)
 		statement.cond = statement.cond.Or(cond)
 	case map[string]interface{}:
-		cond := builder.Eq(query.(map[string]interface{}))
+		cond := make(builder.Eq)
+		for k, v := range qr {
+			cond[statement.quote(k)] = v
+		}
 		statement.cond = statement.cond.Or(cond)
 	case builder.Cond:
-		cond := query.(builder.Cond)
-		statement.cond = statement.cond.Or(cond)
+		statement.cond = statement.cond.Or(qr)
 		for _, v := range args {
 			if vv, ok := v.(builder.Cond); ok {
 				statement.cond = statement.cond.Or(vv)
 			}
 		}
 	default:
-		// TODO: not support condition type
+		statement.LastError = ErrConditionType
 	}
 	return statement
 }
@@ -324,9 +325,9 @@ func (statement *Statement) TableName() string {
 // Incr Generate  "Update ... Set column = column + arg" statement
 func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 	if len(arg) > 0 {
-		statement.IncrColumns.addParam(column, arg[0])
+		statement.IncrColumns.Add(column, arg[0])
 	} else {
-		statement.IncrColumns.addParam(column, 1)
+		statement.IncrColumns.Add(column, 1)
 	}
 	return statement
 }
@@ -334,9 +335,9 @@ func (statement *Statement) Incr(column string, arg ...interface{}) *Statement {
 // Decr Generate  "Update ... Set column = column - arg" statement
 func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 	if len(arg) > 0 {
-		statement.DecrColumns.addParam(column, arg[0])
+		statement.DecrColumns.Add(column, arg[0])
 	} else {
-		statement.DecrColumns.addParam(column, 1)
+		statement.DecrColumns.Add(column, 1)
 	}
 	return statement
 }
@@ -344,9 +345,9 @@ func (statement *Statement) Decr(column string, arg ...interface{}) *Statement {
 // SetExpr Generate  "Update ... Set column = {expression}" statement
 func (statement *Statement) SetExpr(column string, expression interface{}) *Statement {
 	if e, ok := expression.(string); ok {
-		statement.ExprColumns.addParam(column, statement.dialect.Quoter().Replace(e))
+		statement.ExprColumns.Add(column, statement.dialect.Quoter().Replace(e))
 	} else {
-		statement.ExprColumns.addParam(column, expression)
+		statement.ExprColumns.Add(column, expression)
 	}
 	return statement
 }
@@ -662,10 +663,6 @@ func (statement *Statement) GenIndexSQL() []string {
 	return sqls
 }
 
-func uniqueName(tableName, uqeName string) string {
-	return fmt.Sprintf("UQE_%v_%v", tableName, uqeName)
-}
-
 // GenUniqueSQL generates unique SQL
 func (statement *Statement) GenUniqueSQL() []string {
 	var sqls []string
@@ -691,6 +688,142 @@ func (statement *Statement) GenDelIndexSQL() []string {
 		sqls = append(sqls, statement.dialect.DropIndexSQL(tbName, index))
 	}
 	return sqls
+}
+
+func (statement *Statement) asDBCond(fieldValue reflect.Value, fieldType reflect.Type, col *schemas.Column, allUseBool, requiredField bool) (interface{}, bool, error) {
+	switch fieldType.Kind() {
+	case reflect.Ptr:
+		if fieldValue.IsNil() {
+			return nil, true, nil
+		}
+		return statement.asDBCond(fieldValue.Elem(), fieldType.Elem(), col, allUseBool, requiredField)
+	case reflect.Bool:
+		if allUseBool || requiredField {
+			return fieldValue.Interface(), true, nil
+		}
+		// if a bool in a struct, it will not be as a condition because it default is false,
+		// please use Where() instead
+		return nil, false, nil
+	case reflect.String:
+		if !requiredField && fieldValue.String() == "" {
+			return nil, false, nil
+		}
+		// for MyString, should convert to string or panic
+		if fieldType.String() != reflect.String.String() {
+			return fieldValue.String(), true, nil
+		}
+		return fieldValue.Interface(), true, nil
+	case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
+		if !requiredField && fieldValue.Int() == 0 {
+			return nil, false, nil
+		}
+		return fieldValue.Interface(), true, nil
+	case reflect.Float32, reflect.Float64:
+		if !requiredField && fieldValue.Float() == 0.0 {
+			return nil, false, nil
+		}
+		return fieldValue.Interface(), true, nil
+	case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
+		if !requiredField && fieldValue.Uint() == 0 {
+			return nil, false, nil
+		}
+		return fieldValue.Interface(), true, nil
+	case reflect.Struct:
+		if fieldType.ConvertibleTo(schemas.TimeType) {
+			t := fieldValue.Convert(schemas.TimeType).Interface().(time.Time)
+			if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
+				return nil, false, nil
+			}
+			res, err := dialects.FormatColumnTime(statement.dialect, statement.defaultTimeZone, col, t)
+			if err != nil {
+				return nil, false, err
+			}
+			return res, true, nil
+		} else if fieldType.ConvertibleTo(schemas.BigFloatType) {
+			t := fieldValue.Convert(schemas.BigFloatType).Interface().(big.Float)
+			v := t.String()
+			if v == "0" {
+				return nil, false, nil
+			}
+			return t.String(), true, nil
+		} else if _, ok := reflect.New(fieldType).Interface().(convert.Conversion); ok {
+			return nil, false, nil
+		} else if valNul, ok := fieldValue.Interface().(driver.Valuer); ok {
+			val, _ := valNul.Value()
+			if val == nil && !requiredField {
+				return nil, false, nil
+			}
+			return val, true, nil
+		} else {
+			if col.IsJSON {
+				if col.SQLType.IsText() {
+					bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
+					if err != nil {
+						return nil, false, err
+					}
+					return string(bytes), true, nil
+				} else if col.SQLType.IsBlob() {
+					var bytes []byte
+					var err error
+					bytes, err = json.DefaultJSONHandler.Marshal(fieldValue.Interface())
+					if err != nil {
+						return nil, false, err
+					}
+					return bytes, true, nil
+				}
+			} else {
+				table, err := statement.tagParser.ParseWithCache(fieldValue)
+				if err != nil {
+					return fieldValue.Interface(), true, nil
+				}
+
+				if len(table.PrimaryKeys) == 1 {
+					pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
+					// fix non-int pk issues
+					//if pkField.Int() != 0 {
+					if pkField.IsValid() && !utils.IsZero(pkField.Interface()) {
+						return pkField.Interface(), true, nil
+					}
+					return nil, false, nil
+				}
+				return nil, false, fmt.Errorf("not supported %v as %v", fieldValue.Interface(), table.PrimaryKeys)
+			}
+		}
+	case reflect.Array:
+		return nil, false, nil
+	case reflect.Slice, reflect.Map:
+		if fieldValue == reflect.Zero(fieldType) {
+			return nil, false, nil
+		}
+		if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
+			return nil, false, nil
+		}
+
+		if col.SQLType.IsText() {
+			bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
+			if err != nil {
+				return nil, false, err
+			}
+			return string(bytes), true, nil
+		} else if col.SQLType.IsBlob() {
+			var bytes []byte
+			var err error
+			if (fieldType.Kind() == reflect.Array || fieldType.Kind() == reflect.Slice) &&
+				fieldType.Elem().Kind() == reflect.Uint8 {
+				if fieldValue.Len() > 0 {
+					return fieldValue.Bytes(), true, nil
+				}
+				return nil, false, nil
+			}
+			bytes, err = json.DefaultJSONHandler.Marshal(fieldValue.Interface())
+			if err != nil {
+				return nil, false, err
+			}
+			return bytes, true, nil
+		}
+		return nil, false, nil
+	}
+	return fieldValue.Interface(), true, nil
 }
 
 func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
@@ -734,6 +867,8 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 				//engine.logger.Warn(err)
 			}
 			continue
+		} else if fieldValuePtr == nil {
+			continue
 		}
 
 		if col.IsDeleted && !unscoped { // tag "deleted" is enabled
@@ -745,9 +880,7 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 			continue
 		}
 
-		fieldType := reflect.TypeOf(fieldValue.Interface())
 		requiredField := useAllCols
-
 		if b, ok := getFlagForColumn(mustColumnMap, col); ok {
 			if b {
 				requiredField = true
@@ -756,6 +889,7 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 			}
 		}
 
+		fieldType := reflect.TypeOf(fieldValue.Interface())
 		if fieldType.Kind() == reflect.Ptr {
 			if fieldValue.IsNil() {
 				if includeNil {
@@ -772,131 +906,12 @@ func (statement *Statement) buildConds2(table *schemas.Table, bean interface{},
 			}
 		}
 
-		var val interface{}
-		switch fieldType.Kind() {
-		case reflect.Bool:
-			if allUseBool || requiredField {
-				val = fieldValue.Interface()
-			} else {
-				// if a bool in a struct, it will not be as a condition because it default is false,
-				// please use Where() instead
-				continue
-			}
-		case reflect.String:
-			if !requiredField && fieldValue.String() == "" {
-				continue
-			}
-			// for MyString, should convert to string or panic
-			if fieldType.String() != reflect.String.String() {
-				val = fieldValue.String()
-			} else {
-				val = fieldValue.Interface()
-			}
-		case reflect.Int8, reflect.Int16, reflect.Int, reflect.Int32, reflect.Int64:
-			if !requiredField && fieldValue.Int() == 0 {
-				continue
-			}
-			val = fieldValue.Interface()
-		case reflect.Float32, reflect.Float64:
-			if !requiredField && fieldValue.Float() == 0.0 {
-				continue
-			}
-			val = fieldValue.Interface()
-		case reflect.Uint8, reflect.Uint16, reflect.Uint, reflect.Uint32, reflect.Uint64:
-			if !requiredField && fieldValue.Uint() == 0 {
-				continue
-			}
-			val = fieldValue.Interface()
-		case reflect.Struct:
-			if fieldType.ConvertibleTo(schemas.TimeType) {
-				t := fieldValue.Convert(schemas.TimeType).Interface().(time.Time)
-				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
-					continue
-				}
-				val = dialects.FormatColumnTime(statement.dialect, statement.defaultTimeZone, col, t)
-			} else if _, ok := reflect.New(fieldType).Interface().(convert.Conversion); ok {
-				continue
-			} else if valNul, ok := fieldValue.Interface().(driver.Valuer); ok {
-				val, _ = valNul.Value()
-				if val == nil && !requiredField {
-					continue
-				}
-			} else {
-				if col.IsJSON {
-					if col.SQLType.IsText() {
-						bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-						if err != nil {
-							return nil, err
-						}
-						val = string(bytes)
-					} else if col.SQLType.IsBlob() {
-						var bytes []byte
-						var err error
-						bytes, err = json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-						if err != nil {
-							return nil, err
-						}
-						val = bytes
-					}
-				} else {
-					table, err := statement.tagParser.ParseWithCache(fieldValue)
-					if err != nil {
-						val = fieldValue.Interface()
-					} else {
-						if len(table.PrimaryKeys) == 1 {
-							pkField := reflect.Indirect(fieldValue).FieldByName(table.PKColumns()[0].FieldName)
-							// fix non-int pk issues
-							//if pkField.Int() != 0 {
-							if pkField.IsValid() && !utils.IsZero(pkField.Interface()) {
-								val = pkField.Interface()
-							} else {
-								continue
-							}
-						} else {
-							//TODO: how to handler?
-							return nil, fmt.Errorf("not supported %v as %v", fieldValue.Interface(), table.PrimaryKeys)
-						}
-					}
-				}
-			}
-		case reflect.Array:
+		val, ok, err := statement.asDBCond(fieldValue, fieldType, col, allUseBool, requiredField)
+		if err != nil {
+			return nil, err
+		}
+		if !ok {
 			continue
-		case reflect.Slice, reflect.Map:
-			if fieldValue == reflect.Zero(fieldType) {
-				continue
-			}
-			if fieldValue.IsNil() || !fieldValue.IsValid() || fieldValue.Len() == 0 {
-				continue
-			}
-
-			if col.SQLType.IsText() {
-				bytes, err := json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-				if err != nil {
-					return nil, err
-				}
-				val = string(bytes)
-			} else if col.SQLType.IsBlob() {
-				var bytes []byte
-				var err error
-				if (fieldType.Kind() == reflect.Array || fieldType.Kind() == reflect.Slice) &&
-					fieldType.Elem().Kind() == reflect.Uint8 {
-					if fieldValue.Len() > 0 {
-						val = fieldValue.Bytes()
-					} else {
-						continue
-					}
-				} else {
-					bytes, err = json.DefaultJSONHandler.Marshal(fieldValue.Interface())
-					if err != nil {
-						return nil, err
-					}
-					val = bytes
-				}
-			} else {
-				continue
-			}
-		default:
-			val = fieldValue.Interface()
 		}
 
 		conds = append(conds, builder.Eq{colName: val})
@@ -940,16 +955,29 @@ func (statement *Statement) quoteColumnStr(columnStr string) string {
 
 // ConvertSQLOrArgs converts sql or args
 func (statement *Statement) ConvertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
-	sql, args, err := convertSQLOrArgs(sqlOrArgs...)
+	sql, args, err := statement.convertSQLOrArgs(sqlOrArgs...)
 	if err != nil {
 		return "", nil, err
 	}
 	return statement.ReplaceQuote(sql), args, nil
 }
 
-func convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
+func (statement *Statement) convertSQLOrArgs(sqlOrArgs ...interface{}) (string, []interface{}, error) {
 	switch sqlOrArgs[0].(type) {
 	case string:
+		if len(sqlOrArgs) > 1 {
+			var newArgs = make([]interface{}, 0, len(sqlOrArgs)-1)
+			for _, arg := range sqlOrArgs[1:] {
+				if v, ok := arg.(*time.Time); ok {
+					newArgs = append(newArgs, v.In(statement.defaultTimeZone).Format("2006-01-02 15:04:05"))
+				} else if v, ok := arg.(time.Time); ok {
+					newArgs = append(newArgs, v.In(statement.defaultTimeZone).Format("2006-01-02 15:04:05"))
+				} else {
+					newArgs = append(newArgs, arg)
+				}
+			}
+			return sqlOrArgs[0].(string), newArgs, nil
+		}
 		return sqlOrArgs[0].(string), sqlOrArgs[1:], nil
 	case *builder.Builder:
 		return sqlOrArgs[0].(*builder.Builder).ToSQL()
@@ -976,7 +1004,7 @@ func (statement *Statement) joinColumns(cols []*schemas.Column, includeTableName
 
 // CondDeleted returns the conditions whether a record is soft deleted.
 func (statement *Statement) CondDeleted(col *schemas.Column) builder.Cond {
-	var colName = col.Name
+	var colName = statement.quote(col.Name)
 	if statement.JoinStr != "" {
 		var prefix string
 		if statement.TableAlias != "" {
