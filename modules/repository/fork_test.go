@@ -19,7 +19,7 @@ func TestForkRepository(t *testing.T) {
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 
 	fork, err := ForkRepository(user, user, models.ForkRepoOptions{
-		OldRepo:     repo,
+		BaseRepo:     repo,
 		Name:        "test",
 		Description: "test",
 	})

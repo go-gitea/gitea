@@ -53,7 +53,7 @@ func ForkRepository(doer, u *models.User, opts models.ForkRepoOptions) (*models.
 		return nil, err
 	}
 
-	notification.NotifyForkRepository(doer, opts.OldRepo, repo)
+	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }
