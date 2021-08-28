@@ -241,21 +241,6 @@ func TestGetUserIssueStats(t *testing.T) {
 		},
 		{
 			UserIssueStatsOptions{
-				UserID:      2,
-				UserRepoIDs: []int64{1, 2},
-				FilterMode:  FilterModeAll,
-				IsClosed:    true,
-			},
-			IssueStats{
-				YourRepositoriesCount: 2,
-				AssignCount:           0,
-				CreateCount:           2,
-				OpenCount:             2,
-				ClosedCount:           2,
-			},
-		},
-		{
-			UserIssueStatsOptions{
 				UserID:     1,
 				FilterMode: FilterModeMention,
 			},
