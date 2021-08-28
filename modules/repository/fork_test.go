@@ -18,7 +18,11 @@ func TestForkRepository(t *testing.T) {
 	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 13}).(*models.User)
 	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 
-	fork, err := ForkRepository(user, user, repo, "test", "test")
+	fork, err := ForkRepository(user, user, models.ForkRepoOptions{
+		BaseRepo:    repo,
+		Name:        "test",
+		Description: "test",
+	})
 	assert.Nil(t, fork)
 	assert.Error(t, err)
 	assert.True(t, models.IsErrForkAlreadyExist(err))

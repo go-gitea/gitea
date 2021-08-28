@@ -18,9 +18,8 @@ func createAndParseToken(t *testing.T, grant *models.OAuth2Grant) *oauth2.OIDCTo
 	signingKey, err := oauth2.CreateJWTSigningKey("HS256", make([]byte, 32))
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)
-	oauth2.DefaultSigningKey = signingKey
 
-	response, terr := newAccessTokenResponse(grant, signingKey)
+	response, terr := newAccessTokenResponse(grant, signingKey, signingKey)
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
