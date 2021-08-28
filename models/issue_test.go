@@ -267,11 +267,13 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 	} {
-		stats, err := GetUserIssueStats(test.Opts)
-		if !assert.NoError(t, err) {
-			continue
-		}
-		assert.Equal(t, test.ExpectedIssueStats, *stats)
+		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
+			stats, err := GetUserIssueStats(test.Opts)
+			if !assert.NoError(t, err) {
+				return
+			}
+			assert.Equal(t, test.ExpectedIssueStats, *stats)
+		})
 	}
 }
 

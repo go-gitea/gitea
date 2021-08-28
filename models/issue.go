@@ -1335,13 +1335,13 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 
 	if opts.User != nil {
 		sess.And(
-			accessibleRepositoryCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
+			issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
 		)
 	}
 }
 
-// accessibleRepositoryCond user must not be nil
-func accessibleRepositoryCond(repoIDstr string, userID int64, org *User, team *Team, isPull bool) builder.Cond {
+// issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *User, team *Team, isPull bool) builder.Cond {
 	var cond = builder.NewCond()
 	if org != nil {
 		var unitType = UnitTypeIssues
@@ -1350,15 +1350,16 @@ func accessibleRepositoryCond(repoIDstr string, userID int64, org *User, team *T
 		}
 
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType))
+			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
 		} else {
-			cond = cond.And(orgUnitsRepoCond(repoIDstr, userID, org.ID, unitType))
+			cond = cond.And(orgUnitsRepoCond(repoIDstr, userID, org.ID, unitType)) // team member repos
 		}
 	} else {
 		cond = cond.And(
 			builder.Or(
-				userRepoCond(userID),
-				userCollaborationRepoCond(repoIDstr, userID),
+				userRepoCond(userID),                         // owned repos
+				userCollaborationRepoCond(repoIDstr, userID), // collaboration repos
+				// created issue/pull repos
 			),
 		)
 	}
@@ -1699,18 +1700,18 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	if opts.UserID > 0 {
-		cond = cond.And(accessibleRepositoryCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
+		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
 		s := db.GetEngine(db.DefaultContext).Where(cond)
+		s.Join("INNER", "repository", "issue.repo_id = repository.id")
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
 		}
 		if opts.IsArchived != util.OptionalBoolNone {
-			s.Join("INNER", "repository", "issue.repo_id = repository.id").
-				And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
+			s.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 		}
 		return s
 	}
