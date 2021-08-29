@@ -1004,6 +1004,13 @@ type CreateRepoOptions struct {
 	MirrorInterval string
 }
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *Repository
+	Name        string
+	Description string
+}
+
 // GetRepoInitFile returns repository init files
 func GetRepoInitFile(tp, name string) ([]byte, error) {
 	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
@@ -1125,8 +1132,8 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		if err := u.loadTeams(ctx.e); err != nil {
+			return fmt.Errorf("loadTeams: %v", err)
 		}
 		for _, t := range u.Teams {
 			if t.IncludesAllRepositories {
@@ -1439,7 +1446,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.getTeams(sess); err != nil {
+		if err = org.loadTeams(sess); err != nil {
 			return err
 		}
 	}
@@ -1453,7 +1460,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, repo.ID, ListOptions{})
+	deployKeys, err := listDeployKeys(sess, &ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}

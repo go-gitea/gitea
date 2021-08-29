@@ -8,6 +8,8 @@ package ldap
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -103,26 +105,27 @@ func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	return userDN, true
 }
 
-func dial(ls *Source) (*ldap.Conn, error) {
-	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", ls.SecurityProtocol, ls.SkipVerify)
+func dial(source *Source) (*ldap.Conn, error) {
+	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", source.SecurityProtocol, source.SkipVerify)
 
-	tlsCfg := &tls.Config{
-		ServerName:         ls.Host,
-		InsecureSkipVerify: ls.SkipVerify,
-	}
-	if ls.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialTLS("tcp", fmt.Sprintf("%s:%d", ls.Host, ls.Port), tlsCfg)
+	tlsConfig := &tls.Config{
+		ServerName:         source.Host,
+		InsecureSkipVerify: source.SkipVerify,
 	}
 
-	conn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", ls.Host, ls.Port))
+	if source.SecurityProtocol == SecurityProtocolLDAPS {
+		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig)
+	}
+
+	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
 	if err != nil {
-		return nil, fmt.Errorf("Dial: %v", err)
+		return nil, fmt.Errorf("error during Dial: %v", err)
 	}
 
-	if ls.SecurityProtocol == SecurityProtocolStartTLS {
-		if err = conn.StartTLS(tlsCfg); err != nil {
+	if source.SecurityProtocol == SecurityProtocolStartTLS {
+		if err = conn.StartTLS(tlsConfig); err != nil {
 			conn.Close()
-			return nil, fmt.Errorf("StartTLS: %v", err)
+			return nil, fmt.Errorf("error during StartTLS: %v", err)
 		}
 	}
 

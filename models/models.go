@@ -17,6 +17,7 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
+	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -33,7 +34,7 @@ type Engine interface {
 	Table(tableNameOrBean interface{}) *xorm.Session
 	Count(...interface{}) (int64, error)
 	Decr(column string, arg ...interface{}) *xorm.Session
-	Delete(interface{}) (int64, error)
+	Delete(...interface{}) (int64, error)
 	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
 	Get(interface{}) (bool, error)
@@ -234,6 +235,15 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 
+	if setting.SuccessfulTokensCacheSize > 0 {
+		successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+		if err != nil {
+			return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+		}
+	} else {
+		successfulAccessTokenCache = nil
+	}
+
 	return nil
 }
 
@@ -272,7 +282,8 @@ type Statistic struct {
 	Counter struct {
 		User, Org, PublicKey,
 		Repo, Watch, Star, Action, Access,
-		Issue, Comment, Oauth, Follow,
+		Issue, IssueClosed, IssueOpen,
+		Comment, Oauth, Follow,
 		Mirror, Release, LoginSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Attachment int64
@@ -289,7 +300,24 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Star, _ = x.Count(new(Star))
 	stats.Counter.Action, _ = x.Count(new(Action))
 	stats.Counter.Access, _ = x.Count(new(Access))
-	stats.Counter.Issue, _ = x.Count(new(Issue))
+
+	type IssueCount struct {
+		Count    int64
+		IsClosed bool
+	}
+	issueCounts := []IssueCount{}
+
+	_ = x.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
+	for _, c := range issueCounts {
+		if c.IsClosed {
+			stats.Counter.IssueClosed = c.Count
+		} else {
+			stats.Counter.IssueOpen = c.Count
+		}
+	}
+
+	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
+
 	stats.Counter.Comment, _ = x.Count(new(Comment))
 	stats.Counter.Oauth = 0
 	stats.Counter.Follow, _ = x.Count(new(Follow))

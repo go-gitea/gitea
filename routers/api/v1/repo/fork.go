@@ -62,6 +62,8 @@ func ListForks(ctx *context.APIContext) {
 		}
 		apiForks[i] = convert.ToRepo(fork, access)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumForks))
 	ctx.JSON(http.StatusOK, apiForks)
 }
 
@@ -121,7 +123,11 @@ func CreateFork(ctx *context.APIContext) {
 		forker = org
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.User, forker, repo, repo.Name, repo.Description)
+	fork, err := repo_service.ForkRepository(ctx.User, forker, models.ForkRepoOptions{
+		BaseRepo:    repo,
+		Name:        repo.Name,
+		Description: repo.Description,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ForkRepository", err)
 		return

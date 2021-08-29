@@ -264,17 +264,40 @@ func deleteDeployKey(sess Engine, doer *User, id int64) error {
 	return nil
 }
 
-// ListDeployKeys returns all deploy keys by given repository ID.
-func ListDeployKeys(repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
-	return listDeployKeys(x, repoID, listOptions)
+// ListDeployKeysOptions are options for ListDeployKeys
+type ListDeployKeysOptions struct {
+	ListOptions
+	RepoID      int64
+	KeyID       int64
+	Fingerprint string
 }
 
-func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployKey, error) {
-	sess := e.Where("repo_id = ?", repoID)
-	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+func (opt ListDeployKeysOptions) toCond() builder.Cond {
+	cond := builder.NewCond()
+	if opt.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opt.RepoID})
+	}
+	if opt.KeyID != 0 {
+		cond = cond.And(builder.Eq{"key_id": opt.KeyID})
+	}
+	if opt.Fingerprint != "" {
+		cond = cond.And(builder.Eq{"fingerprint": opt.Fingerprint})
+	}
+	return cond
+}
 
-		keys := make([]*DeployKey, 0, listOptions.PageSize)
+// ListDeployKeys returns a list of deploy keys matching the provided arguments.
+func ListDeployKeys(opts *ListDeployKeysOptions) ([]*DeployKey, error) {
+	return listDeployKeys(x, opts)
+}
+
+func listDeployKeys(e Engine, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
+	sess := e.Where(opts.toCond())
+
+	if opts.Page != 0 {
+		sess = opts.setSessionPagination(sess)
+
+		keys := make([]*DeployKey, 0, opts.PageSize)
 		return keys, sess.Find(&keys)
 	}
 
@@ -282,18 +305,7 @@ func listDeployKeys(e Engine, repoID int64, listOptions ListOptions) ([]*DeployK
 	return keys, sess.Find(&keys)
 }
 
-// SearchDeployKeys returns a list of deploy keys matching the provided arguments.
-func SearchDeployKeys(repoID, keyID int64, fingerprint string) ([]*DeployKey, error) {
-	keys := make([]*DeployKey, 0, 5)
-	cond := builder.NewCond()
-	if repoID != 0 {
-		cond = cond.And(builder.Eq{"repo_id": repoID})
-	}
-	if keyID != 0 {
-		cond = cond.And(builder.Eq{"key_id": keyID})
-	}
-	if fingerprint != "" {
-		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
-	}
-	return keys, x.Where(cond).Find(&keys)
+// CountDeployKeys returns count deploy keys matching the provided arguments.
+func CountDeployKeys(opts *ListDeployKeysOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&DeployKey{})
 }

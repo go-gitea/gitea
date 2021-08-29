@@ -6,6 +6,7 @@ package dialects
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/url"
@@ -263,6 +264,9 @@ func (db *mssql) Version(ctx context.Context, queryer core.Queryer) (*schemas.Ve
 
 	var version, level, edition string
 	if !rows.Next() {
+		if rows.Err() != nil {
+			return nil, rows.Err()
+		}
 		return nil, errors.New("unknow version")
 	}
 
@@ -281,7 +285,7 @@ func (db *mssql) Version(ctx context.Context, queryer core.Queryer) (*schemas.Ve
 func (db *mssql) SQLType(c *schemas.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case schemas.Bool:
+	case schemas.Bool, schemas.Boolean:
 		res = schemas.Bit
 		if strings.EqualFold(c.Default, "true") {
 			c.Default = "1"
@@ -299,17 +303,26 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 		c.IsPrimaryKey = true
 		c.Nullable = false
 		res = schemas.BigInt
-	case schemas.Bytea, schemas.Blob, schemas.Binary, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob:
+	case schemas.Bytea, schemas.Binary:
 		res = schemas.VarBinary
 		if c.Length == 0 {
 			c.Length = 50
 		}
-	case schemas.TimeStamp:
-		res = schemas.DateTime
+	case schemas.Blob, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob:
+		res = schemas.VarBinary
+		if c.Length == 0 {
+			res += "(MAX)"
+		}
+	case schemas.TimeStamp, schemas.DateTime:
+		if c.Length > 3 {
+			res = "DATETIME2"
+		} else {
+			return schemas.DateTime
+		}
 	case schemas.TimeStampz:
 		res = "DATETIMEOFFSET"
 		c.Length = 7
-	case schemas.MediumInt:
+	case schemas.MediumInt, schemas.TinyInt, schemas.SmallInt, schemas.UnsignedMediumInt, schemas.UnsignedTinyInt, schemas.UnsignedSmallInt:
 		res = schemas.Int
 	case schemas.Text, schemas.MediumText, schemas.TinyText, schemas.LongText, schemas.Json:
 		res = db.defaultVarchar + "(MAX)"
@@ -348,7 +361,7 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 		res = t
 	}
 
-	if res == schemas.Int || res == schemas.Bit || res == schemas.DateTime {
+	if res == schemas.Int || res == schemas.Bit {
 		return res
 	}
 
@@ -361,6 +374,19 @@ func (db *mssql) SQLType(c *schemas.Column) string {
 		res += "(" + strconv.Itoa(c.Length) + ")"
 	}
 	return res
+}
+
+func (db *mssql) ColumnTypeKind(t string) int {
+	switch strings.ToUpper(t) {
+	case "DATE", "DATETIME", "DATETIME2", "TIME":
+		return schemas.TIME_TYPE
+	case "VARCHAR", "TEXT", "CHAR", "NVARCHAR", "NCHAR", "NTEXT":
+		return schemas.TEXT_TYPE
+	case "FLOAT", "REAL", "BIGINT", "DATETIMEOFFSET", "TINYINT", "SMALLINT", "INT":
+		return schemas.NUMERIC_TYPE
+	default:
+		return schemas.UNKNOW_TYPE
+	}
 }
 
 func (db *mssql) IsReserved(name string) bool {
@@ -476,6 +502,12 @@ func (db *mssql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 				col.Length /= 2
 				col.Length2 /= 2
 			}
+		case "DATETIME2":
+			col.SQLType = schemas.SQLType{Name: schemas.DateTime, DefaultLength: 7, DefaultLength2: 0}
+			col.Length = scale
+		case "DATETIME":
+			col.SQLType = schemas.SQLType{Name: schemas.DateTime, DefaultLength: 3, DefaultLength2: 0}
+			col.Length = scale
 		case "IMAGE":
 			col.SQLType = schemas.SQLType{Name: schemas.VarBinary, DefaultLength: 0, DefaultLength2: 0}
 		case "NCHAR":
@@ -494,6 +526,9 @@ func (db *mssql) GetColumns(queryer core.Queryer, ctx context.Context, tableName
 
 		cols[col.Name] = col
 		colSeq = append(colSeq, col.Name)
+	}
+	if rows.Err() != nil {
+		return nil, nil, rows.Err()
 	}
 	return colSeq, cols, nil
 }
@@ -519,6 +554,9 @@ func (db *mssql) GetTables(queryer core.Queryer, ctx context.Context) ([]*schema
 		table.Name = strings.Trim(name, "` ")
 		tables = append(tables, table)
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 	return tables, nil
 }
 
@@ -542,7 +580,7 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 	}
 	defer rows.Close()
 
-	indexes := make(map[string]*schemas.Index, 0)
+	indexes := make(map[string]*schemas.Index)
 	for rows.Next() {
 		var indexType int
 		var indexName, colName, isUnique string
@@ -580,6 +618,9 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 			indexes[indexName] = index
 		}
 		index.AddColumn(colName)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
 	}
 	return indexes, nil
 }
@@ -624,6 +665,13 @@ func (db *mssql) Filters() []Filter {
 }
 
 type odbcDriver struct {
+	baseDriver
+}
+
+func (p *odbcDriver) Features() *DriverFeatures {
+	return &DriverFeatures{
+		SupportReturnInsertedID: false,
+	}
 }
 
 func (p *odbcDriver) Parse(driverName, dataSourceName string) (*URI, error) {
@@ -640,8 +688,7 @@ func (p *odbcDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 		for _, c := range kv {
 			vv := strings.Split(strings.TrimSpace(c), "=")
 			if len(vv) == 2 {
-				switch strings.ToLower(vv[0]) {
-				case "database":
+				if strings.ToLower(vv[0]) == "database" {
 					dbName = vv[1]
 				}
 			}
@@ -651,4 +698,27 @@ func (p *odbcDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 		return nil, errors.New("no db name provided")
 	}
 	return &URI{DBName: dbName, DBType: schemas.MSSQL}, nil
+}
+
+func (p *odbcDriver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "VARCHAR", "TEXT", "CHAR", "NVARCHAR", "NCHAR", "NTEXT":
+		fallthrough
+	case "DATE", "DATETIME", "DATETIME2", "TIME":
+		var s sql.NullString
+		return &s, nil
+	case "FLOAT", "REAL":
+		var s sql.NullFloat64
+		return &s, nil
+	case "BIGINT", "DATETIMEOFFSET":
+		var s sql.NullInt64
+		return &s, nil
+	case "TINYINT", "SMALLINT", "INT":
+		var s sql.NullInt32
+		return &s, nil
+
+	default:
+		var r sql.RawBytes
+		return &r, nil
+	}
 }

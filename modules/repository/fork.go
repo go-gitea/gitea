@@ -16,15 +16,15 @@ import (
 )
 
 // ForkRepository forks a repository
-func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, desc string) (_ *models.Repository, err error) {
-	forkedRepo, err := oldRepo.GetUserFork(owner.ID)
+func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
+	forkedRepo, err := opts.BaseRepo.GetUserFork(owner.ID)
 	if err != nil {
 		return nil, err
 	}
 	if forkedRepo != nil {
 		return nil, models.ErrForkAlreadyExist{
 			Uname:    owner.Name,
-			RepoName: oldRepo.FullName(),
+			RepoName: opts.BaseRepo.FullName(),
 			ForkName: forkedRepo.FullName(),
 		}
 	}
@@ -33,17 +33,17 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 		OwnerID:       owner.ID,
 		Owner:         owner,
 		OwnerName:     owner.Name,
-		Name:          name,
-		LowerName:     strings.ToLower(name),
-		Description:   desc,
-		DefaultBranch: oldRepo.DefaultBranch,
-		IsPrivate:     oldRepo.IsPrivate || oldRepo.Owner.Visibility == structs.VisibleTypePrivate,
-		IsEmpty:       oldRepo.IsEmpty,
+		Name:          opts.Name,
+		LowerName:     strings.ToLower(opts.Name),
+		Description:   opts.Description,
+		DefaultBranch: opts.BaseRepo.DefaultBranch,
+		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
+		IsEmpty:       opts.BaseRepo.IsEmpty,
 		IsFork:        true,
-		ForkID:        oldRepo.ID,
+		ForkID:        opts.BaseRepo.ID,
 	}
 
-	oldRepoPath := oldRepo.RepoPath()
+	oldRepoPath := opts.BaseRepo.RepoPath()
 
 	err = models.WithTx(func(ctx models.DBContext) error {
 		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
@@ -59,13 +59,13 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			}
 		}
 
-		if err = models.IncrementRepoForkNum(ctx, oldRepo.ID); err != nil {
+		if err = models.IncrementRepoForkNum(ctx, opts.BaseRepo.ID); err != nil {
 			rollbackRemoveFn()
 			return err
 		}
 
 		// copy lfs files failure should not be ignored
-		if err := models.CopyLFS(ctx, repo, oldRepo); err != nil {
+		if err := models.CopyLFS(ctx, repo, opts.BaseRepo); err != nil {
 			rollbackRemoveFn()
 			return err
 		}
@@ -73,9 +73,9 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 		repoPath := models.RepoPath(owner.Name, repo.Name)
 		if stdout, err := git.NewCommand(
 			"clone", "--bare", oldRepoPath, repoPath).
-			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", oldRepo.FullName(), repo.FullName())).
+			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunInDirTimeout(10*time.Minute, ""); err != nil {
-			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, oldRepo, stdout, err)
+			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			rollbackRemoveFn()
 			return fmt.Errorf("git clone: %v", err)
 		}
@@ -103,7 +103,7 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 	if err = repo.UpdateSize(ctx); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := models.CopyLanguageStat(oldRepo, repo); err != nil {
+	if err := models.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed")
 	}
 

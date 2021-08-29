@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
@@ -145,6 +146,21 @@ func Routes() *web.Route {
 
 		routes.Get("/metrics", append(common, Metrics)...)
 	}
+
+	routes.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
+		if !git.SupportProcReceive {
+			rw.WriteHeader(404)
+			return
+		}
+		rw.Header().Set("content-type", "text/json;charset=UTF-8")
+		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
+		if err != nil {
+			log.Error("fail to write result: err: %v", err)
+			rw.WriteHeader(500)
+			return
+		}
+		rw.WriteHeader(200)
+	})
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
@@ -295,6 +311,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, user.OIDCKeys)
+	m.Post("/login/oauth/introspect", CorsHandler(), bindIgnErr(forms.IntrospectTokenForm{}), ignSignInAndCsrf, user.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)

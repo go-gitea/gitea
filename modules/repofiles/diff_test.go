@@ -83,6 +83,7 @@ func TestGetDiffPreview(t *testing.T) {
 							{
 								LeftIdx:  3,
 								RightIdx: 0,
+								Match:    4,
 								Type:     3,
 								Content:  "-Description for repo1",
 								Comments: nil,
@@ -90,6 +91,7 @@ func TestGetDiffPreview(t *testing.T) {
 							{
 								LeftIdx:  0,
 								RightIdx: 3,
+								Match:    3,
 								Type:     2,
 								Content:  "+Description for repo1",
 								Comments: nil,
@@ -97,6 +99,7 @@ func TestGetDiffPreview(t *testing.T) {
 							{
 								LeftIdx:  0,
 								RightIdx: 4,
+								Match:    -1,
 								Type:     2,
 								Content:  "+this is a new line",
 								Comments: nil,

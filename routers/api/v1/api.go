@@ -93,7 +93,7 @@ import (
 
 func sudo() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		sudo := ctx.Query("sudo")
+		sudo := ctx.FormString("sudo")
 		if len(sudo) == 0 {
 			sudo = ctx.Req.Header.Get("Sudo")
 		}
@@ -569,6 +569,7 @@ func Routes() *web.Route {
 			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			AllowedHeaders:   []string{"Authorization", "X-CSRFToken", "X-Gitea-OTP"},
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
@@ -952,6 +953,7 @@ func Routes() *web.Route {
 					m.Get("/trees/{sha}", context.RepoRefForAPI, repo.GetTree)
 					m.Get("/blobs/{sha}", context.RepoRefForAPI, repo.GetBlob)
 					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
+					m.Get("/notes/{sha}", repo.GetNote)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)

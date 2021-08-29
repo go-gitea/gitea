@@ -27,7 +27,7 @@ func Notices(ctx *context.Context) {
 	ctx.Data["PageIsAdminNotices"] = true
 
 	total := models.CountNotices()
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -48,7 +48,7 @@ func Notices(ctx *context.Context) {
 
 // DeleteNotices delete the specific notices
 func DeleteNotices(ctx *context.Context) {
-	strs := ctx.QueryStrings("ids[]")
+	strs := ctx.FormStrings("ids[]")
 	ids := make([]int64, 0, len(strs))
 	for i := range strs {
 		id, _ := strconv.ParseInt(strs[i], 10, 64)

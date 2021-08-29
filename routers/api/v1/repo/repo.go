@@ -135,27 +135,27 @@ func Search(ctx *context.APIContext) {
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.User,
-		Keyword:            strings.Trim(ctx.Query("q"), " "),
-		OwnerID:            ctx.QueryInt64("uid"),
-		PriorityOwnerID:    ctx.QueryInt64("priority_owner_id"),
-		TeamID:             ctx.QueryInt64("team_id"),
-		TopicOnly:          ctx.QueryBool("topic"),
+		Keyword:            ctx.FormTrim("q"),
+		OwnerID:            ctx.FormInt64("uid"),
+		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
+		TeamID:             ctx.FormInt64("team_id"),
+		TopicOnly:          ctx.FormBool("topic"),
 		Collaborate:        util.OptionalBoolNone,
-		Private:            ctx.IsSigned && (ctx.Query("private") == "" || ctx.QueryBool("private")),
+		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
 		Template:           util.OptionalBoolNone,
-		StarredByID:        ctx.QueryInt64("starredBy"),
-		IncludeDescription: ctx.QueryBool("includeDesc"),
+		StarredByID:        ctx.FormInt64("starredBy"),
+		IncludeDescription: ctx.FormBool("includeDesc"),
 	}
 
-	if ctx.Query("template") != "" {
-		opts.Template = util.OptionalBoolOf(ctx.QueryBool("template"))
+	if ctx.FormString("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
 	}
 
-	if ctx.QueryBool("exclusive") {
+	if ctx.FormBool("exclusive") {
 		opts.Collaborate = util.OptionalBoolFalse
 	}
 
-	var mode = ctx.Query("mode")
+	var mode = ctx.FormString("mode")
 	switch mode {
 	case "source":
 		opts.Fork = util.OptionalBoolFalse
@@ -173,17 +173,17 @@ func Search(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Query("archived") != "" {
-		opts.Archived = util.OptionalBoolOf(ctx.QueryBool("archived"))
+	if ctx.FormString("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
 	}
 
-	if ctx.Query("is_private") != "" {
-		opts.IsPrivate = util.OptionalBoolOf(ctx.QueryBool("is_private"))
+	if ctx.FormString("is_private") != "" {
+		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
 	}
 
-	var sortMode = ctx.Query("sort")
+	var sortMode = ctx.FormString("sort")
 	if len(sortMode) > 0 {
-		var sortOrder = ctx.Query("order")
+		var sortOrder = ctx.FormString("order")
 		if len(sortOrder) == 0 {
 			sortOrder = "asc"
 		}
@@ -230,8 +230,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", count))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,

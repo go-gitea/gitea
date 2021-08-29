@@ -551,14 +551,12 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	compareInfo.Commits = models.ValidateCommitsWithEmails(compareInfo.Commits)
-	compareInfo.Commits = models.ParseCommitsWithSignature(compareInfo.Commits, headRepo)
-	compareInfo.Commits = models.ParseCommitsWithStatus(compareInfo.Commits, headRepo)
-	ctx.Data["Commits"] = compareInfo.Commits
-	ctx.Data["CommitCount"] = compareInfo.Commits.Len()
+	commits := models.ConvertFromGitCommit(compareInfo.Commits, headRepo)
+	ctx.Data["Commits"] = commits
+	ctx.Data["CommitCount"] = len(commits)
 
-	if compareInfo.Commits.Len() == 1 {
-		c := compareInfo.Commits.Front().Value.(models.SignCommitWithStatuses)
+	if len(commits) == 1 {
+		c := commits[0]
 		title = strings.TrimSpace(c.UserCommit.Summary())
 
 		body := strings.Split(strings.TrimSpace(c.UserCommit.Message()), "\n")
@@ -653,7 +651,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["HeadTags"] = headTags
 
 	if ctx.Data["PageIsComparePull"] == true {
-		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
+		pr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, models.PullRequestFlowGithub)
 		if err != nil {
 			if !models.IsErrPullRequestNotExist(err) {
 				ctx.ServerError("GetUnmergedPullRequest", err)
@@ -696,15 +694,15 @@ func CompareDiff(ctx *context.Context) {
 // ExcerptBlob render blob excerpt contents
 func ExcerptBlob(ctx *context.Context) {
 	commitID := ctx.Params("sha")
-	lastLeft := ctx.QueryInt("last_left")
-	lastRight := ctx.QueryInt("last_right")
-	idxLeft := ctx.QueryInt("left")
-	idxRight := ctx.QueryInt("right")
-	leftHunkSize := ctx.QueryInt("left_hunk_size")
-	rightHunkSize := ctx.QueryInt("right_hunk_size")
-	anchor := ctx.Query("anchor")
-	direction := ctx.Query("direction")
-	filePath := ctx.Query("path")
+	lastLeft := ctx.FormInt("last_left")
+	lastRight := ctx.FormInt("last_right")
+	idxLeft := ctx.FormInt("left")
+	idxRight := ctx.FormInt("right")
+	leftHunkSize := ctx.FormInt("left_hunk_size")
+	rightHunkSize := ctx.FormInt("right_hunk_size")
+	anchor := ctx.FormString("anchor")
+	direction := ctx.FormString("direction")
+	filePath := ctx.FormString("path")
 	gitRepo := ctx.Repo.GitRepo
 	chunkSize := gitdiff.BlobExcerptChunkSize
 	commit, err := gitRepo.GetCommit(commitID)

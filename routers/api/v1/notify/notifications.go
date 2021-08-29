@@ -37,12 +37,12 @@ func getFindNotificationOptions(ctx *context.APIContext) *models.FindNotificatio
 		UpdatedBeforeUnix: before,
 		UpdatedAfterUnix:  since,
 	}
-	if !ctx.QueryBool("all") {
-		statuses := ctx.QueryStrings("status-types")
+	if !ctx.FormBool("all") {
+		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread", "pinned"})
 	}
 
-	subjectTypes := ctx.QueryStrings("subject-type")
+	subjectTypes := ctx.FormStrings("subject-type")
 	if len(subjectTypes) != 0 {
 		opts.Source = subjectToSource(subjectTypes)
 	}

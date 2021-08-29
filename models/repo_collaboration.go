@@ -102,6 +102,11 @@ func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborat
 	return repo.getCollaborators(x, listOptions)
 }
 
+// CountCollaborators returns total number of collaborators for a repository
+func (repo *Repository) CountCollaborators() (int64, error) {
+	return x.Where("repo_id = ? ", repo.ID).Count(&Collaboration{})
+}
+
 func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,

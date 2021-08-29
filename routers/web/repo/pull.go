@@ -7,7 +7,6 @@
 package repo
 
 import (
-	"container/list"
 	"crypto/subtle"
 	"errors"
 	"fmt"
@@ -226,7 +225,11 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, forkRepo, form.RepoName, form.Description)
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, models.ForkRepoOptions{
+		BaseRepo:    forkRepo,
+		Name:        form.RepoName,
+		Description: form.Description,
+	})
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
@@ -327,11 +330,11 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
 	}
-	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+	ctx.Data["NumCommits"] = len(compareInfo.Commits)
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
 
-	if compareInfo.Commits.Len() != 0 {
-		sha := compareInfo.Commits.Front().Value.(*git.Commit).ID.String()
+	if len(compareInfo.Commits) != 0 {
+		sha := compareInfo.Commits[0].ID.String()
 		commitStatuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, sha, models.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
@@ -411,7 +414,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			return nil
 		}
 
-		ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+		ctx.Data["NumCommits"] = len(compareInfo.Commits)
 		ctx.Data["NumFiles"] = compareInfo.NumFiles
 		return compareInfo
 	}
@@ -427,10 +430,18 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 		defer headGitRepo.Close()
 
-		headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+		if pull.Flow == models.PullRequestFlowGithub {
+			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
+		} else {
+			headBranchExist = git.IsReferenceExist(baseGitRepo.Path, pull.GetGitRefName())
+		}
 
 		if headBranchExist {
-			headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			if pull.Flow != models.PullRequestFlowGithub {
+				headBranchSha, err = baseGitRepo.GetRefCommitID(pull.GetGitRefName())
+			} else {
+				headBranchSha, err = headGitRepo.GetBranchCommitID(pull.HeadBranch)
+			}
 			if err != nil {
 				ctx.ServerError("GetBranchCommitID", err)
 				return nil
@@ -519,6 +530,10 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
+	if compareInfo.HeadCommitID == compareInfo.MergeBase {
+		ctx.Data["IsNothingToCompare"] = true
+	}
+
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 
 	if pull.IsWorkInProgress() {
@@ -531,7 +546,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		ctx.Data["ConflictedFiles"] = pull.ConflictedFiles
 	}
 
-	ctx.Data["NumCommits"] = compareInfo.Commits.Len()
+	ctx.Data["NumCommits"] = len(compareInfo.Commits)
 	ctx.Data["NumFiles"] = compareInfo.NumFiles
 	return compareInfo
 }
@@ -547,7 +562,6 @@ func ViewPullCommits(ctx *context.Context) {
 	}
 	pull := issue.PullRequest
 
-	var commits *list.List
 	var prInfo *git.CompareInfo
 	if pull.HasMerged {
 		prInfo = PrepareMergedViewPullInfo(ctx, issue)
@@ -564,12 +578,10 @@ func ViewPullCommits(ctx *context.Context) {
 
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	commits = prInfo.Commits
-	commits = models.ValidateCommitsWithEmails(commits)
-	commits = models.ParseCommitsWithSignature(commits, ctx.Repo.Repository)
-	commits = models.ParseCommitsWithStatus(commits, ctx.Repo.Repository)
+
+	commits := models.ConvertFromGitCommit(prInfo.Commits, ctx.Repo.Repository)
 	ctx.Data["Commits"] = commits
-	ctx.Data["CommitCount"] = commits.Len()
+	ctx.Data["CommitCount"] = len(commits)
 
 	getBranchData(ctx, issue)
 	ctx.HTML(http.StatusOK, tplPullCommits)
@@ -1120,9 +1132,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 // TriggerTask response for a trigger task request
 func TriggerTask(ctx *context.Context) {
-	pusherID := ctx.QueryInt64("pusher")
-	branch := ctx.Query("branch")
-	secret := ctx.Query("secret")
+	pusherID := ctx.FormInt64("pusher")
+	branch := ctx.FormString("branch")
+	secret := ctx.FormString("secret")
 	if len(branch) == 0 || len(secret) == 0 || pusherID <= 0 {
 		ctx.Error(http.StatusNotFound)
 		log.Trace("TriggerTask: branch or secret is empty, or pusher ID is not valid")
@@ -1339,7 +1351,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 		return
 	}
 
-	targetBranch := ctx.QueryTrim("target_branch")
+	targetBranch := ctx.FormTrim("target_branch")
 	if len(targetBranch) == 0 {
 		ctx.Error(http.StatusNoContent)
 		return

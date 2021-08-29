@@ -140,6 +140,7 @@ func Profile(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, ctxUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -159,15 +160,15 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
 
-	tab := ctx.Query("tab")
+	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	topicOnly := ctx.QueryBool("topic")
+	topicOnly := ctx.FormBool("topic")
 
 	var (
 		repos   []*models.Repository
@@ -176,8 +177,8 @@ func Profile(ctx *context.Context) {
 		orderBy models.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -203,7 +204,7 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
@@ -236,7 +237,7 @@ func Profile(ctx *context.Context) {
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
-			Date:            ctx.Query("date"),
+			Date:            ctx.FormString("date"),
 		})
 		if ctx.Written() {
 			return
@@ -381,5 +382,5 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.Query("redirect_to"), u.HomeLink())
+	ctx.RedirectToFirst(ctx.FormString("redirect_to"), u.HomeLink())
 }
