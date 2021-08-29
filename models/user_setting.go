@@ -27,7 +27,7 @@ func (setting *UserSetting) BeforeInsert() {
 func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
 	settings := make([]*UserSetting, 0, 5)
 	if err := x.
-		Where("uid=?", uid).
+		Where("user_id=?", uid).
 		And(builder.In("key", keys)).
 		Asc("id").
 		Find(&settings); err != nil {
@@ -40,7 +40,7 @@ func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
 func GetUserAllSettings(uid int64) ([]*UserSetting, error) {
 	settings := make([]*UserSetting, 0, 5)
 	if err := x.
-		Where("uid=?", uid).
+		Where("user_id=?", uid).
 		Asc("id").
 		Find(&settings); err != nil {
 		return nil, err

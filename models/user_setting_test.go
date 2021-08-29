@@ -22,6 +22,7 @@ func TestUserSettings(t *testing.T) {
 	// get specific setting
 	userSettings, err := GetUserSetting(99, []string{"test_user_setting"})
 	assert.NoError(t, err)
+	assert.Len(t, userSettings, 1)
 	assert.EqualValues(t, newSetting.Value, userSettings[0].Value)
 
 	// updated setting
