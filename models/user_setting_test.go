@@ -20,17 +20,17 @@ func TestUserSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get specific setting
-	userSetting, err := GetUserSetting(99, "test_user_setting")
+	userSettings, err := GetUserSetting(99, []string{"test_user_setting"})
 	assert.NoError(t, err)
-	assert.EqualValues(t, newSetting.Value, userSetting.Value)
+	assert.EqualValues(t, newSetting.Value, userSettings[0].Value)
 
 	// updated setting
-	updatedSetting := &UserSetting{UserID: 99, Key: "test_user_setting", Value: "Updated", ID: userSetting.ID}
+	updatedSetting := &UserSetting{UserID: 99, Key: "test_user_setting", Value: "Updated", ID: userSettings[0].ID}
 	err = UpdateUserSettingValue(updatedSetting)
 	assert.NoError(t, err)
 
 	// get all settings
-	userSettings, err := GetUserAllSettings(99)
+	userSettings, err = GetUserAllSettings(99)
 	assert.NoError(t, err)
 	assert.Len(t, userSettings, 1)
 	assert.EqualValues(t, userSettings[0].Value, updatedSetting.Value)
