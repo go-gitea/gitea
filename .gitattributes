@@ -4,3 +4,4 @@
 /templates/**/*.tmpl linguist-language=Handlebars
 /.eslintrc linguist-language=YAML
 /.stylelintrc linguist-language=YAML
+/web_src/fomantic/build/** linguist-generated
