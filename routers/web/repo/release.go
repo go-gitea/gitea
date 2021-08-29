@@ -92,18 +92,18 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
-	page := ctx.FormInt("limit")
-	if page == 0 {
-		page = setting.Repository.Release.DefaultPagingNum
+	limit := ctx.FormInt("limit")
+	if limit == 0 {
+		limit = setting.Repository.Release.DefaultPagingNum
 	}
-	if page > setting.API.MaxResponseItems {
-		page = setting.API.MaxResponseItems
+	if limit > setting.API.MaxResponseItems {
+		limit = setting.API.MaxResponseItems
 	}
 
 	opts := models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
 			Page:     ctx.FormInt("page"),
-			PageSize: page,
+			PageSize: limit,
 		},
 		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
