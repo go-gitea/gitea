@@ -36,6 +36,11 @@ menu:
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
 
+### Repository - Release (`repository.release`)
+
+- `ALLOWED_TYPES`: **\<empty\>**: 允许扩展名的列表，用逗号分隔 (`.zip`), mime 类型 (`text/plain`) 或者匹配符号 (`image/*`, `audio/*`, `video/*`). 空值或者 `*/*` 允许所有类型。
+- `DEFAULT_PAGING_NUM`: **10**: 默认的发布版本页面分页。
+
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: 探索页面每页显示的仓库数量。
