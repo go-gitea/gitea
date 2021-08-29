@@ -3,15 +3,36 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
 
 import (
 	"bufio"
+	"bytes"
 	"io"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
+
+// IsObjectExist returns true if given reference exists in the repository.
+func (repo *Repository) IsObjectExist(name string) bool {
+	if name == "" {
+		return false
+	}
+
+	wr, rd, cancel := repo.CatFileBatchCheck()
+	defer cancel()
+	_, err := wr.Write([]byte(name + "\n"))
+	if err != nil {
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
+		return false
+	}
+	sha, _, _, err := ReadBatchLine(rd)
+	return err == nil && bytes.HasPrefix(sha, []byte(strings.TrimSpace(name)))
+}
 
 // IsReferenceExist returns true if given reference exists in the repository.
 func (repo *Repository) IsReferenceExist(name string) bool {
@@ -23,7 +44,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
-		log("Error writing to CatFileBatchCheck %v", err)
+		log.Debug("Error writing to CatFileBatchCheck %v", err)
 		return false
 	}
 	_, _, _, err = ReadBatchLine(rd)

@@ -208,6 +208,11 @@ func FindReviews(opts FindReviewOptions) ([]*Review, error) {
 	return findReviews(x, opts)
 }
 
+// CountReviews returns count of reviews passing FindReviewOptions
+func CountReviews(opts FindReviewOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&Review{})
+}
+
 // CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
 type CreateReviewOptions struct {
 	Content      string
@@ -347,7 +352,7 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool) (*Review, *Comment, error) {
+func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -419,12 +424,13 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	}
 
 	comm, err := createComment(sess, &CreateCommentOptions{
-		Type:     CommentTypeReview,
-		Doer:     doer,
-		Content:  review.Content,
-		Issue:    issue,
-		Repo:     issue.Repo,
-		ReviewID: review.ID,
+		Type:        CommentTypeReview,
+		Doer:        doer,
+		Content:     review.Content,
+		Issue:       issue,
+		Repo:        issue.Repo,
+		ReviewID:    review.ID,
+		Attachments: attachmentUUIDs,
 	})
 	if err != nil || comm == nil {
 		return nil, nil, err
@@ -465,7 +471,7 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 		return nil, err
 	}
 
-	// Get latest review of each reviwer, sorted in order they were made
+	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
@@ -490,7 +496,7 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
-	// Get latest review of each reviwer, sorted in order they were made
+	// Get latest review of each reviewer, sorted in order they were made
 	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {

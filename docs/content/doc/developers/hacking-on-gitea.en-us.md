@@ -73,6 +73,8 @@ One of these three distributions of Make will run on Windows:
   - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
+**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (git bash, or mingw) are recommended, however if you only have command prompt (or potentially powershell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
+
 ## Downloading and cloning the Gitea source code
 
 The recommended method of obtaining the source code is by using `git clone`.
@@ -127,7 +129,7 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 
 ## Building continuously
 
-To run and continously rebuild when source files change:
+To run and continuously rebuild when source files change:
 
 ```bash
 make watch
@@ -216,7 +218,7 @@ You should validate your generated Swagger file and spell-check it with:
 make swagger-validate misspell-check
 ```
 
-You should commit the changed swagger JSON file. The continous integration
+You should commit the changed swagger JSON file. The continuous integration
 server will check that this has been done using:
 
 ```bash
@@ -307,6 +309,19 @@ Visual Studio Code. Look at
 [`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/main/contrib/ide/README.md)
 for more information.
 
+## GoLand
+
+Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
+can quickly start a debuggable gitea instance.
+
+The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
+gitea project directory (which contains `main.go` and `go.mod`), 
+otherwise, the started instance's working directory is a GoLand's temporary directory 
+and prevents gitea from loading dynamic resources (eg: templates) in a development environment.  
+
+To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
+in `Go tool arguments` of `Run/Debug Configuration`.
+
 ## Submitting PRs
 
 Once you're happy with your changes, push them up and open a pull request. It
@@ -315,7 +330,7 @@ branches as we will need to update it to main before merging and/or may be
 able to help fix issues directly.
 
 Any PR requires two approvals from the Gitea maintainers and needs to pass the
-continous integration. Take a look at our
+continuous integration. Take a look at our
 [`CONTRIBUTING.md`](https://github.com/go-gitea/gitea/blob/main/CONTRIBUTING.md)
 document.
 

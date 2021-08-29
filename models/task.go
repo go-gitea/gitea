@@ -7,10 +7,13 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/json"
 	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -29,8 +32,14 @@ type Task struct {
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
 	PayloadContent string             `xorm:"TEXT"`
-	Errors         string             `xorm:"TEXT"` // if task failed, saved the error reason
+	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason
 	Created        timeutil.TimeStamp `xorm:"created"`
+}
+
+// TranslatableMessage represents JSON struct that can be translated with a Locale
+type TranslatableMessage struct {
+	Format string
+	Args   []interface{} `json:"omitempty"`
 }
 
 // LoadRepo loads repository of the task
@@ -105,11 +114,28 @@ func (task *Task) UpdateCols(cols ...string) error {
 func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
 		var opts migration.MigrateOptions
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
 		}
+
+		// decrypt credentials
+		if opts.CloneAddrEncrypted != "" {
+			if opts.CloneAddr, err = secret.DecryptSecret(setting.SecretKey, opts.CloneAddrEncrypted); err != nil {
+				return nil, err
+			}
+		}
+		if opts.AuthPasswordEncrypted != "" {
+			if opts.AuthPassword, err = secret.DecryptSecret(setting.SecretKey, opts.AuthPasswordEncrypted); err != nil {
+				return nil, err
+			}
+		}
+		if opts.AuthTokenEncrypted != "" {
+			if opts.AuthToken, err = secret.DecryptSecret(setting.SecretKey, opts.AuthTokenEncrypted); err != nil {
+				return nil, err
+			}
+		}
+
 		return &opts, nil
 	}
 	return nil, fmt.Errorf("Task type is %s, not Migrate Repo", task.Type.Name())
@@ -163,7 +189,6 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 	}
 
 	var opts migration.MigrateOptions
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
 		return nil, nil, err
 	}
@@ -205,12 +230,30 @@ func createTask(e Engine, task *Task) error {
 func FinishMigrateTask(task *Task) error {
 	task.Status = structs.TaskStatusFinished
 	task.EndTime = timeutil.TimeStampNow()
+
+	// delete credentials when we're done, they're a liability.
+	conf, err := task.MigrateConfig()
+	if err != nil {
+		return err
+	}
+	conf.AuthPassword = ""
+	conf.AuthToken = ""
+	conf.CloneAddr = util.NewStringURLSanitizer(conf.CloneAddr, true).Replace(conf.CloneAddr)
+	conf.AuthPasswordEncrypted = ""
+	conf.AuthTokenEncrypted = ""
+	conf.CloneAddrEncrypted = ""
+	confBytes, err := json.Marshal(conf)
+	if err != nil {
+		return err
+	}
+	task.PayloadContent = string(confBytes)
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
+	if _, err := sess.ID(task.ID).Cols("status", "end_time", "payload_content").Update(task); err != nil {
 		return err
 	}
 

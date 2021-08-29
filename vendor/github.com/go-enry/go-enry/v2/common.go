@@ -118,7 +118,13 @@ func getLanguageBySpecificClassifier(content []byte, candidates []string, classi
 }
 
 // GetLanguages applies a sequence of strategies based on the given filename and content
-// to find out the most probably languages to return.
+// to find out the most probable languages to return.
+//
+// If it finds a strategy that produces a single result, it will be returned;
+// otherise the last strategy that returned multiple results will be returned.
+// If the content is binary, no results will be returned. This matches the
+// behavior of Linguist.detect: https://github.com/github/linguist/blob/aad49acc0624c70d654a8dce447887dbbc713c7a/lib/linguist.rb#L14-L49
+//
 // At least one of arguments should be set. If content is missing, language detection will be based on the filename.
 // The function won't read the file, given an empty content.
 func GetLanguages(filename string, content []byte) []string {
@@ -127,16 +133,20 @@ func GetLanguages(filename string, content []byte) []string {
 	}
 
 	var languages []string
-	candidates := []string{}
 	for _, strategy := range DefaultStrategies {
-		languages = strategy(filename, content, candidates)
-		if len(languages) == 1 {
-			return languages
+		candidates := strategy(filename, content, languages)
+		// No candidates, continue to next strategy without updating languages
+		if len(candidates) == 0 {
+			continue
 		}
 
-		if len(languages) > 0 {
-			candidates = append(candidates, languages...)
+		// Only one candidate match, return it
+		if len(candidates) == 1 {
+			return candidates
 		}
+
+		// Save the candidates from this strategy to pass onto to the next strategy, like Linguist
+		languages = candidates
 	}
 
 	return languages
@@ -488,6 +498,16 @@ func getLanguagesBySpecificClassifier(content []byte, candidates []string, class
 // GetLanguageExtensions returns all extensions associated with the given language.
 func GetLanguageExtensions(language string) []string {
 	return data.ExtensionsByLanguage[language]
+}
+
+// GetLanguageID returns the ID for the language. IDs are assigned by GitHub.
+// The input must be the canonical language name. Aliases are not supported.
+//
+// NOTE: The zero value (0) is a valid language ID, so this API mimics the Go
+// map API. Use the second return value to check if the language was found.
+func GetLanguageID(language string) (int, bool) {
+	id, ok := data.IDByLanguage[language]
+	return id, ok
 }
 
 // Type represent language's type. Either data, programming, markup, prose, or unknown.

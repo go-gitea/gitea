@@ -97,6 +97,7 @@
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
   --color-light: #00000006;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
   --color-hover: #0000000f;
   --color-active: #00000014;
@@ -106,6 +107,7 @@
   --color-markup-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
+  --color-code-sidebar-bg: #f5f5f5;
   --color-shadow: #00000030;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
@@ -132,7 +134,7 @@ pre,
 code,
 kbd,
 samp {
-  font-size: .9em; /* compensate for monospace fonts being usually slighty larger */
+  font-size: .9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
 }
 
@@ -164,8 +166,15 @@ table {
   border-collapse: collapse;
 }
 
+details summary {
+  cursor: pointer;
+}
+
+details summary > * {
+  display: inline;
+}
+
 * {
-  scrollbar-width: thin;
   scrollbar-color: var(--color-primary) transparent;
   caret-color: var(--color-caret);
 }
@@ -560,6 +569,19 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.link.list.list a.item:hover,
+.ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:active,
+.ui.link.list.list .item a:not(.ui):active {
+  color: var(--color-text-dark);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -669,8 +691,14 @@ a.ui.card:hover,
   height: auto;
 }
 
-.ui.loading.segment::before {
+.ui.loading.segment::before,
+.ui.loading.form::before {
   background: none;
+}
+
+.ui.loading.form > *,
+.ui.loading.segment > * {
+  opacity: .35;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -719,7 +747,7 @@ a.ui.card:hover,
     box-shadow: none;
   }
 
-  /* Overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
+  /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
   /* This fixes the commit graph button on the commits page */
 
   .menu:not(.vertical) .item > .button.compact {
@@ -1143,12 +1171,6 @@ footer {
     padding: 0 .5rem;
     max-width: calc(100vw - 1rem) !important;
 
-    .fa {
-      width: 16px;
-      text-align: center;
-      color: var(--color-primary);
-    }
-
     .links > * {
       border-left: 1px solid var(--color-secondary);
       padding-left: 8px;
@@ -1421,6 +1443,14 @@ a.ui.label:hover {
   margin-right: 0;
 }
 
+.lines-blame-btn {
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align: right !important;
+  background-color: var(--color-code-sidebar-bg);
+  width: 2%;
+}
+
 .lines-num {
   padding-left: 10px;
   padding-right: 10px;
@@ -1486,7 +1516,7 @@ a.ui.label:hover {
 
 .blame .lines-num {
   padding: 0 !important;
-  background-color: #f5f5f5;
+  background-color: var(--color-code-sidebar-bg);
 }
 
 .blame .lines-code {
@@ -1511,7 +1541,7 @@ a.ui.label:hover {
   vertical-align: top;
   color: #999999;
   padding: 0 !important;
-  background: #f5f5f5;
+  background: var(--color-code-sidebar-bg);
   width: 1%;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -1553,26 +1583,18 @@ a.ui.label:hover {
   }
 }
 
+.top-line-blame {
+  border-top: 1px solid var(--color-secondary);
+}
+
 .lines-code,
 .lines-commit {
   .bottom-line {
     border-bottom: 1px solid var(--color-secondary);
   }
 }
-.code-view {
-  overflow: auto;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  &.has-context-menu {
-    overflow: visible;
-    overflow-x: visible;
-    overflow-y: visible;
-  }
-
-  table {
-    width: 100%;
-  }
+.code-view table {
+  width: 100%;
 }
 
 .octicon-tiny {
@@ -1589,8 +1611,16 @@ a.ui.label:hover {
   box-shadow: none !important;
 }
 
+.ui.button:focus,
 .ui.button:hover {
   background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
   color: var(--color-text);
 }
 

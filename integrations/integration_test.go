@@ -26,7 +26,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,10 +36,8 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
 
 	"github.com/PuerkitoBio/goquery"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +88,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routes.NormalRoutes()
+	c = routers.NormalRoutes()
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -163,7 +163,7 @@ func initIntegrationTest() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 	util.RemoveAll(models.LocalCopyPath())
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
@@ -416,7 +416,6 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	t.Helper()
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -508,7 +507,6 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 	t.Helper()
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }

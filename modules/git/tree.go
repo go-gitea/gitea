@@ -6,6 +6,7 @@
 package git
 
 import (
+	"bytes"
 	"strings"
 )
 
@@ -44,4 +45,24 @@ func (t *Tree) SubTree(rpath string) (*Tree, error) {
 		p = g
 	}
 	return g, nil
+}
+
+// LsTree checks if the given filenames are in the tree
+func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error) {
+	cmd := NewCommand("ls-tree", "-z", "--name-only", "--", ref)
+	for _, arg := range filenames {
+		if arg != "" {
+			cmd.AddArguments(arg)
+		}
+	}
+	res, err := cmd.RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	filelist := make([]string, 0, len(filenames))
+	for _, line := range bytes.Split(res, []byte{'\000'}) {
+		filelist = append(filelist, string(line))
+	}
+
+	return filelist, err
 }

@@ -13,7 +13,7 @@
 	{{if eq .Type 0}}
 		<div class="timeline-item comment" id="{{.HashTag}}">
 		{{if .OriginalAuthor }}
-			<span class="timeline-avatar"><img src="{{AppSubUrl}}/img/avatar_default.png"></span>
+			<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 		{{else}}
 			<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 				{{avatar .Poster}}
@@ -64,7 +64,7 @@
 					</div>
 				</div>
 				<div class="ui attached segment comment-body">
-					<div class="render-content markup">
+					<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 						{{if .RenderedContent}}
 							{{.RenderedContent|Str2html}}
 						{{else}}
@@ -449,6 +449,9 @@
 								<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
+						{{if .Attachments}}
+							{{template "repo/issue/view_content/attachments" Dict "ctx" $ "Attachments" .Attachments "Content" .RenderedContent}}
+						{{end}}
 					</div>
 				</div>
 			</div>
@@ -459,7 +462,7 @@
 				{{ range $filename, $lines := .Review.CodeComments}}
 					{{range $line, $comms := $lines}}
 							<div class="ui segments">
-								<div class="ui segment py-3 df ac sb">
+								<div class="ui segment py-3 df ac sb word-break">
 									{{$invalid := (index $comms 0).Invalidated}}
 									{{$resolved := (index $comms 0).IsResolved}}
 									{{$resolveDoer := (index $comms 0).ResolveDoer}}
@@ -552,7 +555,7 @@
 														</div>
 													</div>
 													<div class="text comment-content">
-														<div class="render-content markup">
+														<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
 														{{if .RenderedContent}}
 															{{.RenderedContent|Str2html}}
 														{{else}}
@@ -696,7 +699,7 @@
 				{{ if .IsForcePush }}
 					{{$.i18n.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit)  (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr | Safe}}
 				{{else}}
-					{{$.i18n.Tr (TrN $.i18n.Lang .Commits.Len "repo.issues.push_commit_1" "repo.issues.push_commits_n") .Commits.Len $createdStr | Safe}}
+					{{$.i18n.Tr (TrN $.i18n.Lang (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n") (len .Commits) $createdStr | Safe}}
 				{{end}}
 			</span>
 		</div>

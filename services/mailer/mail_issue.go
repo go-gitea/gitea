@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func fallbackMailSubject(issue *models.Issue) string {
@@ -30,7 +31,7 @@ const (
 
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
-// 1. Repository watchers and users who are participated in comments.
+// 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.User) error {
 
@@ -74,11 +75,13 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
-	ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
-	if err != nil {
-		return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
+	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
+		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
+		}
+		unfiltered = append(ids, unfiltered...)
 	}
-	unfiltered = append(ids, unfiltered...)
 
 	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
 
@@ -116,7 +119,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		checkUnit = models.UnitTypePullRequests
 	}
 
-	langMap := make(map[string][]string)
+	langMap := make(map[string][]*models.User)
 	for _, user := range users {
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
@@ -138,7 +141,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 			continue
 		}
 
-		langMap[user.Language] = append(langMap[user.Language], user.Email)
+		langMap[user.Language] = append(langMap[user.Language], user)
 	}
 
 	for lang, receivers := range langMap {
@@ -161,12 +164,23 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
+	content := issue.Content
+	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
+		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||
+		opType == models.ActionMergePullRequest {
+		content = ""
+	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,
-			Content:    issue.Content,
+			Content:    content,
 			Comment:    nil,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)

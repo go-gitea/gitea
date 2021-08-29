@@ -7,8 +7,6 @@ package templates
 
 import (
 	"bytes"
-	"container/list"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"html"
@@ -27,6 +25,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/repository"
@@ -35,10 +35,8 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
-	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Used from static.go && dynamic.go
@@ -46,7 +44,6 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
-	jsonED := jsoniter.ConfigCompatibleWithStandardLibrary
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
 			return strings.Title(runtime.Version())
@@ -90,6 +87,9 @@ func NewFuncMap() []template.FuncMap {
 		"AllowedReactions": func() []string {
 			return setting.UI.Reactions
 		},
+		"CustomEmojis": func() map[string]string {
+			return setting.UI.CustomEmojisMap
+		},
 		"Safe":          Safe,
 		"SafeJS":        SafeJS,
 		"JSEscape":      JSEscape,
@@ -125,7 +125,6 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"SizeFmt":  base.FileSize,
 		"CountFmt": base.FormatNumberSI,
-		"List":     List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -218,7 +217,7 @@ func NewFuncMap() []template.FuncMap {
 			return fmt.Sprintf("%f", float64(adds)/(float64(adds)+float64(dels))*100)
 		},
 		"Json": func(in interface{}) string {
-			out, err := jsonED.Marshal(in)
+			out, err := json.Marshal(in)
 			if err != nil {
 				return ""
 			}
@@ -294,23 +293,8 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return float32(n) * 100 / float32(sum)
 		},
-		"CommentMustAsDiff": gitdiff.CommentMustAsDiff,
-		"MirrorAddress":     mirror_service.Address,
-		"MirrorFullAddress": mirror_service.AddressNoCredentials,
-		"MirrorUserName":    mirror_service.Username,
-		"MirrorPassword":    mirror_service.Password,
-		"CommitType": func(commit interface{}) string {
-			switch commit.(type) {
-			case models.SignCommitWithStatuses:
-				return "SignCommitWithStatuses"
-			case models.SignCommit:
-				return "SignCommit"
-			case models.UserCommit:
-				return "UserCommit"
-			default:
-				return ""
-			}
-		},
+		"CommentMustAsDiff":   gitdiff.CommentMustAsDiff,
+		"MirrorRemoteAddress": mirrorRemoteAddress,
 		"NotificationSettings": func() map[string]interface{} {
 			return map[string]interface{}{
 				"MinTimeout":            int(setting.UI.Notification.MinTimeout / time.Millisecond),
@@ -390,6 +374,9 @@ func NewFuncMap() []template.FuncMap {
 			html += "</span>"
 			return template.HTML(html)
 		},
+		"MermaidMaxSourceCharacters": func() int {
+			return setting.MermaidMaxSourceCharacters
+		},
 	}}
 }
 
@@ -427,7 +414,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"List": List,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
 				return ""
@@ -635,20 +621,6 @@ func JSEscape(raw string) string {
 	return template.JSEscapeString(raw)
 }
 
-// List traversings the list
-func List(l *list.List) chan interface{} {
-	e := l.Front()
-	c := make(chan interface{})
-	go func() {
-		for e != nil {
-			c <- e.Value
-			e = e.Next()
-		}
-		close(c)
-	}()
-	return c
-}
-
 // Sha1 returns sha1 sum of string
 func Sha1(str string) string {
 	return base.EncodeSha1(str)
@@ -844,10 +816,14 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 		return push
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
+
+	if push.Len == 0 {
+		push.Len = len(push.Commits)
+	}
+
 	return push
 }
 
@@ -962,4 +938,29 @@ func buildSubjectBodyTemplate(stpl *texttmpl.Template, btpl *template.Template, 
 		Parse(string(bodyContent)); err != nil {
 		log.Warn("Failed to parse template [%s/body]: %v", name, err)
 	}
+}
+
+type remoteAddress struct {
+	Address  string
+	Username string
+	Password string
+}
+
+func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
+	a := remoteAddress{}
+
+	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
+	if err != nil {
+		log.Error("GetRemoteAddress %v", err)
+		return a
+	}
+
+	if u.User != nil {
+		a.Username = u.User.Username()
+		a.Password, _ = u.User.Password()
+	}
+	u.User = nil
+	a.Address = u.String()
+
+	return a
 }

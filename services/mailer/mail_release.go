@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
@@ -22,6 +23,11 @@ const (
 
 // MailNewRelease send new release notify to all all repo watchers.
 func MailNewRelease(rel *models.Release) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+
 	watcherIDList, err := models.GetRepoWatchersIDs(rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
@@ -63,13 +69,15 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 	mailMeta := map[string]interface{}{
 		"Release":  rel,
 		"Subject":  subject,
-		"i18n":     locale,
 		"Language": locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var mailBody bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return

@@ -99,7 +99,8 @@
 				{{else}}
 				<table>
 					<tbody>
-						{{range $line, $code := .FileContent}}
+						{{range $idx, $code := .FileContent}}
+						{{$line := Add $idx 1}}
 						<tr>
 							<td id="L{{$line}}" class="lines-num">
 								<span id="L{{$line}}" data-line-number="{{$line}}"></span>
@@ -112,7 +113,7 @@
 					</tbody>
 				</table>
 					{{if $.Permission.CanRead $.UnitTypeIssues}}
-						<div class="code-view-menu-list ui fluid popup transition hidden">
+						<div class="code-line-menu ui fluid popup transition hidden">
 							<div class="ui column relaxed equal height">
 								<div class="column">
 									<div class="ui link list">

@@ -30,7 +30,7 @@ type Interface interface {
 	CreateUniques(bean interface{}) error
 	Decr(column string, arg ...interface{}) *Session
 	Desc(...string) *Session
-	Delete(interface{}) (int64, error)
+	Delete(...interface{}) (int64, error)
 	Distinct(columns ...string) *Session
 	DropIndexes(bean interface{}) error
 	Exec(sqlOrArgs ...interface{}) (sql.Result, error)
@@ -51,6 +51,7 @@ type Interface interface {
 	MustCols(columns ...string) *Session
 	NoAutoCondition(...bool) *Session
 	NotIn(string, ...interface{}) *Session
+	Nullable(...string) *Session
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *Session
 	Omit(columns ...string) *Session
 	OrderBy(order string) *Session
@@ -83,6 +84,7 @@ type EngineInterface interface {
 	Context(context.Context) *Session
 	CreateTables(...interface{}) error
 	DBMetas() ([]*schemas.Table, error)
+	DBVersion() (*schemas.Version, error)
 	Dialect() dialects.Dialect
 	DriverName() string
 	DropTables(...interface{}) error
