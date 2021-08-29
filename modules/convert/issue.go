@@ -187,32 +187,36 @@ func ToLabel(label *models.Label, repoCache map[int64]*models.Repository, orgCac
 		if repoCache == nil {
 			repoCache = make(map[int64]*models.Repository)
 		}
-		_, ok := repoCache[label.RepoID]
+		repo, ok := repoCache[label.RepoID]
 		if !ok {
 			var err error
-			repoCache[label.RepoID], err = models.GetRepositoryByID(label.RepoID)
+			repo, err = models.GetRepositoryByID(label.RepoID)
 			if err != nil {
 				log.Error("cant load repo of label [%d]: %v", label.ID, err)
+			} else {
+				repoCache[label.RepoID] = repo
 			}
 		}
 
-		if repo := repoCache[label.RepoID]; repo != nil {
+		if repo != nil {
 			result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
 		}
 	} else { // BelongsToOrg
 		if orgCache == nil {
 			orgCache = make(map[int64]*models.User)
 		}
-		_, ok := orgCache[label.OrgID]
+		org, ok := orgCache[label.OrgID]
 		if !ok {
 			var err error
-			orgCache[label.OrgID], err = models.GetUserByID(label.OrgID)
+			org, err = models.GetUserByID(label.OrgID)
 			if err != nil {
 				log.Error("cant load org of label [%d]: %v", label.ID, err)
+			} else {
+				orgCache[label.OrgID] = org
 			}
 		}
 
-		if org := orgCache[label.OrgID]; org != nil {
+		if org != nil {
 			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, org.Name, label.ID)
 		}
 	}
