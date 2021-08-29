@@ -20,12 +20,13 @@ import (
 func TestLabel_ToLabel(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 	label := models.AssertExistsAndLoadBean(t, &models.Label{ID: 1}).(*models.Label)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: label.RepoID}).(*models.Repository)
 	assert.Equal(t, &api.Label{
 		ID:    label.ID,
 		Name:  label.Name,
 		Color: "abcdef",
 		URL:   fmt.Sprintf("%sapi/v1/repos/user2/repo1/labels/%d", setting.AppURL, label.ID),
-	}, ToLabel(label, nil, nil))
+	}, ToLabel(label, repo, nil))
 }
 
 func TestMilestone_APIFormat(t *testing.T) {
