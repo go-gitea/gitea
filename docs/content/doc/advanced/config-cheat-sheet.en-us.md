@@ -115,6 +115,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### Repository - Release (`repository.release`)
 
 - `ALLOWED_TYPES`: **\<empty\>**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
+- `DEFAULT_PAGING_NUM`: **10**: The default paging number of releases user interface
 
 ### Repository - Signing (`repository.signing`)
 
