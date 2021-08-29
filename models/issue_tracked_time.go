@@ -20,7 +20,7 @@ type TrackedTime struct {
 	UserID      int64     `xorm:"INDEX"`
 	User        *User     `xorm:"-"`
 	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"created"`
+	CreatedUnix int64     `xorm:"created_unix"`
 	Time        int64     `xorm:"NOT NULL"`
 	Deleted     bool      `xorm:"NOT NULL DEFAULT false"`
 }
@@ -184,10 +184,11 @@ func addTime(e Engine, user *User, issue *Issue, amount int64, created time.Time
 		created = time.Now()
 	}
 	tt := &TrackedTime{
-		IssueID: issue.ID,
-		UserID:  user.ID,
-		Time:    amount,
-		Created: created,
+		IssueID:     issue.ID,
+		UserID:      user.ID,
+		Time:        amount,
+		Created:     created,
+		CreatedUnix: created.Unix(),
 	}
 	if _, err := e.Insert(tt); err != nil {
 		return nil, err
