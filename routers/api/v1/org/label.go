@@ -49,14 +49,14 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	orgCache := make(map[int64]*models.User)
-	orgCache[ctx.Org.Organization.ID] = ctx.Org.Organization
-
 	count, err := models.CountLabelsByOrgID(ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
+
+	orgCache := make(map[int64]*models.User)
+	orgCache[ctx.Org.Organization.ID] = ctx.Org.Organization
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, nil, orgCache))
@@ -106,6 +106,7 @@ func CreateLabel(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
+
 	orgCache := make(map[int64]*models.User)
 	orgCache[ctx.Org.Organization.ID] = ctx.Org.Organization
 	ctx.JSON(http.StatusCreated, convert.ToLabel(label, nil, orgCache))

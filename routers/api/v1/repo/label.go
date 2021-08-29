@@ -55,14 +55,14 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	repoCache := make(map[int64]*models.Repository)
-	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
-
 	count, err := models.CountLabelsByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
+
+	repoCache := make(map[int64]*models.Repository)
+	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
 
 	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, repoCache, nil))
