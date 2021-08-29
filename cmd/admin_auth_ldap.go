@@ -90,7 +90,7 @@ var (
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
 		},
 		cli.StringFlag{
-			Name:  "jpeg-avatar-attribute",
+			Name:  "avatar-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s avatar.",
 		},
 	}
@@ -234,8 +234,8 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("public-ssh-key-attribute") {
 		config.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
 	}
-	if c.IsSet("jpeg-avatar-attribute") {
-		config.AttributeAvatarJPEG = c.String("jpeg-avatar-attribute")
+	if c.IsSet("avatar-attribute") {
+		config.AttributeAvatar = c.String("avatar-attribute")
 	}
 	if c.IsSet("page-size") {
 		config.SearchPageSize = uint32(c.Uint("page-size"))

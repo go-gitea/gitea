@@ -110,8 +110,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 			}
 
-			if err == nil && source.AttributeAvatarJPEG != "" {
-				_ = usr.UploadAvatar(su.AvatarJPEG)
+			if err == nil && source.AttributeAvatar != "" {
+				_ = usr.UploadAvatar(su.Avatar)
 			}
 		} else if updateExisting {
 			existingUsers = append(existingUsers, usr.ID)
@@ -147,8 +147,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
 
-				if err == nil && source.AttributeAvatarJPEG != "" {
-					_ = usr.UploadAvatar(su.AvatarJPEG)
+				if err == nil && source.AttributeAvatar != "" {
+					_ = usr.UploadAvatar(su.Avatar)
 				}
 			}
 		}
