@@ -309,6 +309,19 @@ Visual Studio Code. Look at
 [`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/main/contrib/ide/README.md)
 for more information.
 
+## GoLand
+
+Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
+can quickly start a debuggable gitea instance.
+
+The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
+gitea project directory (which contains `main.go` and `go.mod`), 
+otherwise, the started instance's working directory is a GoLand's temporary directory 
+and prevents gitea from loading dynamic resources (eg: templates) in a development environment.  
+
+To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
+in `Go tool arguments` of `Run/Debug Configuration`.
+
 ## Submitting PRs
 
 Once you're happy with your changes, push them up and open a pull request. It
