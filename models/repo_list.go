@@ -171,8 +171,8 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
-// userRepoCond returns user ownered repositories
-func userRepoCond(userID int64) builder.Cond {
+// userOwnedRepoCond returns user ownered repositories
+func userOwnedRepoCond(userID int64) builder.Cond {
 	return builder.Eq{
 		"repository.owner_id": userID,
 	}
@@ -185,6 +185,59 @@ func userCollaborationRepoCond(id string, userID int64) builder.Cond {
 			Where(builder.Eq{
 				"user_id": userID,
 			}),
+	)
+}
+
+// userAssignedRepoCond return user as assignee repositories list
+func userAssignedRepoCond(id string, userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In(id,
+			builder.Select("issue.repo_id").From("issue_assignees").
+				InnerJoin("issue", "issue.id = issue_assignees.issue_id").
+				Where(builder.Eq{
+					"issue_assignees.assignee_id": userID,
+				}),
+		),
+	)
+}
+
+// userCreateIssueRepoCond return user created issues repositories list
+func userCreateIssueRepoCond(id string, userID int64, unitType unit.Type) builder.Cond {
+	var isPull = false
+	if unitType == unit.TypePullRequests {
+		isPull = true
+	}
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In(id,
+			builder.Select("issue.repo_id").From("issue").
+				Where(builder.Eq{
+					"issue.poster_id": userID,
+					"issue.is_pull":   isPull,
+				}),
+		),
+	)
+}
+
+// userMentionedRepoCond return user metinoed repositories list
+func userMentionedRepoCond(id string, userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{
+			"repository.is_private": false,
+		},
+		builder.In(id,
+			builder.Select("issue.repo_id").From("issue_user").
+				InnerJoin("issue", "issue.id = issue_user.issue_id").
+				Where(builder.Eq{
+					"issue_user.is_mentioned": true,
+					"issue_user.uid":          userID,
+				}),
+		),
 	)
 }
 

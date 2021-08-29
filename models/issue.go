@@ -1343,12 +1343,11 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
 func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *User, team *Team, isPull bool) builder.Cond {
 	var cond = builder.NewCond()
+	var unitType = UnitTypeIssues
+	if isPull {
+		unitType = UnitTypePullRequests
+	}
 	if org != nil {
-		var unitType = UnitTypeIssues
-		if isPull {
-			unitType = UnitTypePullRequests
-		}
-
 		if team != nil {
 			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
 		} else {
@@ -1357,9 +1356,11 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *User, team
 	} else {
 		cond = cond.And(
 			builder.Or(
-				userRepoCond(userID),                         // owned repos
-				userCollaborationRepoCond(repoIDstr, userID), // collaboration repos
-				// created issue/pull repos
+				userOwnedRepoCond(userID),                            // owned repos
+				userCollaborationRepoCond(repoIDstr, userID),         // collaboration repos
+				userAssignedRepoCond(repoIDstr, userID),              // user has been assigned accessible repos
+				userMentionedRepoCond(repoIDstr, userID),             // user has been mentioned accessible repos
+				userCreateIssueRepoCond(repoIDstr, userID, unitType), // user has created issue/pr accessible repos
 			),
 		)
 	}
