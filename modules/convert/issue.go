@@ -28,9 +28,9 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	if err := issue.LoadRepo(); err != nil {
 		return &api.Issue{}
 	}
-
-	repoCache := make(map[int64]*models.Repository)
-	repoCache[issue.RepoID] = issue.Repo
+	if err := issue.Repo.GetOwner(); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
@@ -41,7 +41,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		Title:    issue.Title,
 		Body:     issue.Content,
 		Ref:      issue.Ref,
-		Labels:   ToLabelList(issue.Labels, repoCache, nil),
+		Labels:   ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
 		State:    issue.State(),
 		IsLocked: issue.IsLocked,
 		Comments: issue.NumComments,
@@ -174,7 +174,7 @@ func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 }
 
 // ToLabel converts Label to API format
-func ToLabel(label *models.Label, repoCache map[int64]*models.Repository, orgCache map[int64]*models.User) *api.Label {
+func ToLabel(label *models.Label, repo *models.Repository, org *models.User) *api.Label {
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
@@ -183,41 +183,17 @@ func ToLabel(label *models.Label, repoCache map[int64]*models.Repository, orgCac
 	}
 
 	// calculate URL
-	if label.BelongsToRepo() {
-		if repoCache == nil {
-			repoCache = make(map[int64]*models.Repository)
-		}
-		repo, ok := repoCache[label.RepoID]
-		if !ok {
-			var err error
-			repo, err = models.GetRepositoryByID(label.RepoID)
-			if err != nil {
-				log.Error("cant load repo of label [%d]: %v", label.ID, err)
-			} else {
-				repoCache[label.RepoID] = repo
-			}
-		}
-
+	if label.BelongsToRepo() && repo != nil {
 		if repo != nil {
 			result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
+		} else {
+			log.Error("ToLabel did not get repo to calculate url for label with id '%d'", label.ID)
 		}
 	} else { // BelongsToOrg
-		if orgCache == nil {
-			orgCache = make(map[int64]*models.User)
-		}
-		org, ok := orgCache[label.OrgID]
-		if !ok {
-			var err error
-			org, err = models.GetUserByID(label.OrgID)
-			if err != nil {
-				log.Error("cant load org of label [%d]: %v", label.ID, err)
-			} else {
-				orgCache[label.OrgID] = org
-			}
-		}
-
 		if org != nil {
 			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, org.Name, label.ID)
+		} else {
+			log.Error("ToLabel did not get org to calculate url for label with id '%d'", label.ID)
 		}
 	}
 
@@ -225,16 +201,10 @@ func ToLabel(label *models.Label, repoCache map[int64]*models.Repository, orgCac
 }
 
 // ToLabelList converts list of Label to API format
-func ToLabelList(labels []*models.Label, repoCache map[int64]*models.Repository, orgCache map[int64]*models.User) []*api.Label {
+func ToLabelList(labels []*models.Label, repo *models.Repository, org *models.User) []*api.Label {
 	result := make([]*api.Label, len(labels))
-	if repoCache == nil {
-		repoCache = make(map[int64]*models.Repository)
-	}
-	if orgCache == nil {
-		orgCache = make(map[int64]*models.User)
-	}
 	for i := range labels {
-		result[i] = ToLabel(labels[i], repoCache, orgCache)
+		result[i] = ToLabel(labels[i], repo, org)
 	}
 	return result
 }

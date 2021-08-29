@@ -61,11 +61,8 @@ func ListLabels(ctx *context.APIContext) {
 		return
 	}
 
-	repoCache := make(map[int64]*models.Repository)
-	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
-
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, repoCache, nil))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, nil))
 }
 
 // GetLabel get label by repository and label id
@@ -115,9 +112,7 @@ func GetLabel(ctx *context.APIContext) {
 		return
 	}
 
-	repoCache := make(map[int64]*models.Repository)
-	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
-	ctx.JSON(http.StatusOK, convert.ToLabel(label, repoCache, nil))
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // CreateLabel create a label for a repository
@@ -171,9 +166,7 @@ func CreateLabel(ctx *context.APIContext) {
 		return
 	}
 
-	repoCache := make(map[int64]*models.Repository)
-	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
-	ctx.JSON(http.StatusCreated, convert.ToLabel(label, repoCache, nil))
+	ctx.JSON(http.StatusCreated, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // EditLabel modify a label for a repository
@@ -244,9 +237,7 @@ func EditLabel(ctx *context.APIContext) {
 		return
 	}
 
-	repoCache := make(map[int64]*models.Repository)
-	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
-	ctx.JSON(http.StatusOK, convert.ToLabel(label, repoCache, nil))
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // DeleteLabel delete a label for a repository
