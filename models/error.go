@@ -327,7 +327,7 @@ func (err ErrReachLimitOfRepo) Error() string {
 
 // ErrUserSettingExists represents a "setting already exists for user" error.
 type ErrUserSettingExists struct {
-	Setting setting
+	Setting *UserSetting
 }
 
 // IsErrUserSettingExists checks if an error is a ErrUserSettingExists.
@@ -342,11 +342,11 @@ func (err ErrUserSettingExists) Error() string {
 
 // ErrUserSettingNotExists represents a "setting already exists for user" error.
 type ErrUserSettingNotExists struct {
-	Setting setting
+	Setting *UserSetting
 }
 
 // IsErrUserSettingNotExists checks if an error is a ErrUserSettingNotExists.
-func IsErrUserSettingExists(err error) bool {
+func IsErrUserSettingNotExists(err error) bool {
 	_, ok := err.(ErrUserSettingNotExists)
 	return ok
 }
