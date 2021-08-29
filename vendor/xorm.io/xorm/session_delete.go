@@ -83,7 +83,7 @@ func (session *Session) cacheDelete(table *schemas.Table, tableName, sqlStr stri
 }
 
 // Delete records, bean's non-empty fields are conditions
-func (session *Session) Delete(bean interface{}) (int64, error) {
+func (session *Session) Delete(beans ...interface{}) (int64, error) {
 	if session.isAutoClose {
 		defer session.Close()
 	}
@@ -92,20 +92,32 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		return 0, session.statement.LastError
 	}
 
-	if err := session.statement.SetRefBean(bean); err != nil {
-		return 0, err
+	var (
+		condSQL  string
+		condArgs []interface{}
+		err      error
+		bean     interface{}
+	)
+	if len(beans) > 0 {
+		bean = beans[0]
+		if err = session.statement.SetRefBean(bean); err != nil {
+			return 0, err
+		}
+
+		executeBeforeClosures(session, bean)
+
+		if processor, ok := interface{}(bean).(BeforeDeleteProcessor); ok {
+			processor.BeforeDelete()
+		}
+
+		condSQL, condArgs, err = session.statement.GenConds(bean)
+	} else {
+		condSQL, condArgs, err = session.statement.GenCondSQL(session.statement.Conds())
 	}
-
-	executeBeforeClosures(session, bean)
-
-	if processor, ok := interface{}(bean).(BeforeDeleteProcessor); ok {
-		processor.BeforeDelete()
-	}
-
-	condSQL, condArgs, err := session.statement.GenConds(bean)
 	if err != nil {
 		return 0, err
 	}
+
 	pLimitN := session.statement.LimitN
 	if len(condSQL) == 0 && (pLimitN == nil || *pLimitN == 0) {
 		return 0, ErrNeedDeletedCond
@@ -156,7 +168,7 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 
 	var realSQL string
 	argsForCache := make([]interface{}, 0, len(condArgs)*2)
-	if session.statement.GetUnscoped() || table.DeletedColumn() == nil { // tag "deleted" is disabled
+	if session.statement.GetUnscoped() || table == nil || table.DeletedColumn() == nil { // tag "deleted" is disabled
 		realSQL = deleteSQL
 		copy(argsForCache, condArgs)
 		argsForCache = append(condArgs, argsForCache...)
@@ -200,7 +212,10 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		paramsLen := len(condArgs)
 		copy(condArgs[1:paramsLen], condArgs[0:paramsLen-1])
 
-		val, t := session.engine.nowTime(deletedColumn)
+		val, t, err := session.engine.nowTime(deletedColumn)
+		if err != nil {
+			return 0, err
+		}
 		condArgs[0] = val
 
 		var colName = deletedColumn.Name
@@ -220,27 +235,29 @@ func (session *Session) Delete(bean interface{}) (int64, error) {
 		return 0, err
 	}
 
-	// handle after delete processors
-	if session.isAutoCommit {
-		for _, closure := range session.afterClosures {
-			closure(bean)
-		}
-		if processor, ok := interface{}(bean).(AfterDeleteProcessor); ok {
-			processor.AfterDelete()
-		}
-	} else {
-		lenAfterClosures := len(session.afterClosures)
-		if lenAfterClosures > 0 {
-			if value, has := session.afterDeleteBeans[bean]; has && value != nil {
-				*value = append(*value, session.afterClosures...)
-			} else {
-				afterClosures := make([]func(interface{}), lenAfterClosures)
-				copy(afterClosures, session.afterClosures)
-				session.afterDeleteBeans[bean] = &afterClosures
+	if bean != nil {
+		// handle after delete processors
+		if session.isAutoCommit {
+			for _, closure := range session.afterClosures {
+				closure(bean)
+			}
+			if processor, ok := interface{}(bean).(AfterDeleteProcessor); ok {
+				processor.AfterDelete()
 			}
 		} else {
-			if _, ok := interface{}(bean).(AfterDeleteProcessor); ok {
-				session.afterDeleteBeans[bean] = nil
+			lenAfterClosures := len(session.afterClosures)
+			if lenAfterClosures > 0 && len(beans) > 0 {
+				if value, has := session.afterDeleteBeans[beans[0]]; has && value != nil {
+					*value = append(*value, session.afterClosures...)
+				} else {
+					afterClosures := make([]func(interface{}), lenAfterClosures)
+					copy(afterClosures, session.afterClosures)
+					session.afterDeleteBeans[bean] = &afterClosures
+				}
+			} else {
+				if _, ok := interface{}(bean).(AfterDeleteProcessor); ok {
+					session.afterDeleteBeans[bean] = nil
+				}
 			}
 		}
 	}

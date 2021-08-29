@@ -87,6 +87,14 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter pulls requesting your review, default is false
 	//   type: boolean
+	// - name: owner
+	//   in: query
+	//   description: filter by owner
+	//   type: string
+	// - name: team
+	//   in: query
+	//   description: filter by team (requires organization owner parameter to be provided)
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -106,7 +114,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Form("state") {
+	switch ctx.FormString("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -130,6 +138,37 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.Private = true
 		opts.AllLimited = true
 	}
+	if ctx.FormString("owner") != "" {
+		owner, err := models.GetUserByName(ctx.FormString("owner"))
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Owner not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+			return
+		}
+		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Team not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.TeamID = team.ID
+	}
 
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
 	if err != nil {
@@ -140,7 +179,7 @@ func SearchIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -153,7 +192,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	var isPull util.OptionalBool
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -162,13 +201,13 @@ func SearchIssues(ctx *context.APIContext) {
 		isPull = util.OptionalBoolNone
 	}
 
-	labels := strings.TrimSpace(ctx.Form("labels"))
+	labels := ctx.FormTrim("labels")
 	var includedLabelNames []string
 	if len(labels) > 0 {
 		includedLabelNames = strings.Split(labels, ",")
 	}
 
-	milestones := strings.TrimSpace(ctx.Form("milestones"))
+	milestones := ctx.FormTrim("milestones")
 	var includedMilestones []string
 	if len(milestones) > 0 {
 		includedMilestones = strings.Split(milestones, ",")
@@ -232,8 +271,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), setting.UI.IssuePagingNum)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
@@ -319,7 +357,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var isClosed util.OptionalBool
-	switch ctx.Form("state") {
+	switch ctx.FormString("state") {
 	case "closed":
 		isClosed = util.OptionalBoolTrue
 	case "all":
@@ -331,7 +369,7 @@ func ListIssues(ctx *context.APIContext) {
 	var issues []*models.Issue
 	var filteredCount int64
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	if strings.IndexByte(keyword, 0) >= 0 {
 		keyword = ""
 	}
@@ -345,7 +383,7 @@ func ListIssues(ctx *context.APIContext) {
 		}
 	}
 
-	if splitted := strings.Split(ctx.Form("labels"), ","); len(splitted) > 0 {
+	if splitted := strings.Split(ctx.FormString("labels"), ","); len(splitted) > 0 {
 		labelIDs, err = models.GetLabelIDsInRepoByNames(ctx.Repo.Repository.ID, splitted)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelIDsInRepoByNames", err)
@@ -354,7 +392,7 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	var mileIDs []int64
-	if part := strings.Split(ctx.Form("milestones"), ","); len(part) > 0 {
+	if part := strings.Split(ctx.FormString("milestones"), ","); len(part) > 0 {
 		for i := range part {
 			// uses names and fall back to ids
 			// non existent milestones are discarded
@@ -386,7 +424,7 @@ func ListIssues(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	var isPull util.OptionalBool
-	switch ctx.Form("type") {
+	switch ctx.FormString("type") {
 	case "pulls":
 		isPull = util.OptionalBoolTrue
 	case "issues":
@@ -442,13 +480,12 @@ func ListIssues(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
 }
 
 func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
-	userName := ctx.Form(queryName)
+	userName := ctx.FormString(queryName)
 	if len(userName) == 0 {
 		return 0
 	}

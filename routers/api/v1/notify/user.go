@@ -6,7 +6,6 @@ package notify
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -69,6 +68,12 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	totalCount, err := models.CountNotifications(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -80,6 +85,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 
@@ -122,7 +128,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	lastRead := int64(0)
-	qLastRead := strings.Trim(ctx.Form("last_read_at"), " ")
+	qLastRead := ctx.FormTrim("last_read_at")
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
@@ -147,7 +153,7 @@ func ReadNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Form("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
 		targetStatus = models.NotificationStatusRead
 	}

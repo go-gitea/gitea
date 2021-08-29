@@ -71,6 +71,11 @@ func listGPGKeys(e Engine, uid int64, listOptions ListOptions) ([]*GPGKey, error
 	return keys, sess.Find(&keys)
 }
 
+// CountUserGPGKeys return number of gpg keys a user own
+func CountUserGPGKeys(userID int64) (int64, error) {
+	return x.Where("owner_id=? AND primary_key_id=''", userID).Count(&GPGKey{})
+}
+
 // GetGPGKeyByID returns public key by given ID.
 func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)

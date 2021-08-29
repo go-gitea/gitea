@@ -170,6 +170,8 @@ To configure PAM, set the 'PAM Service Name' to a filename in `/etc/pam.d/`. To
 work with normal Linux passwords, the user running Gitea must have read access
 to `/etc/shadow`.
 
+**Note**: PAM support is added via [build-time flags](https://docs.gitea.io/en-us/install-from-source/#build), and the official binaries provided do not have this enabled.
+
 ## SMTP (Simple Mail Transfer Protocol)
 
 This option allows Gitea to log in to an SMTP host as a Gitea user. To
@@ -199,16 +201,18 @@ configure this, set the fields below:
     with multiple domains.
   - Example: `gitea.io,mydomain.com,mydomain2.com`
 
-- Enable TLS Encryption
+- Force SMTPS
 
-  - Enable TLS encryption on authentication.
+  - SMTPS will be used by default for connections to port 465, if you wish to use SMTPS 
+  for other ports. Set this value.
+  - Otherwise if the server provides the `STARTTLS` extension this will be used.
 
 - Skip TLS Verify
 
   - Disable TLS verify on authentication.
 
-- This authentication is activate
-  - Enable or disable this auth.
+- This Authentication Source is Activated
+  - Enable or disable this authentication source.
 
 ## FreeIPA
 

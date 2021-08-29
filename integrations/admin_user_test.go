@@ -15,7 +15,7 @@ import (
 )
 
 func TestAdminViewUsers(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users")
@@ -27,7 +27,7 @@ func TestAdminViewUsers(t *testing.T) {
 }
 
 func TestAdminViewUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users/1")
@@ -39,7 +39,7 @@ func TestAdminViewUser(t *testing.T) {
 }
 
 func TestAdminEditUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	testSuccessfullEdit(t, models.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
 }

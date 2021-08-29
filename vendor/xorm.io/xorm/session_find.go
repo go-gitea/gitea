@@ -6,11 +6,11 @@ package xorm
 
 import (
 	"errors"
-	"fmt"
 	"reflect"
 
 	"xorm.io/builder"
 	"xorm.io/xorm/caches"
+	"xorm.io/xorm/convert"
 	"xorm.io/xorm/internal/statements"
 	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
@@ -172,6 +172,11 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 		return err
 	}
 
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return err
+	}
+
 	var newElemFunc func(fields []string) reflect.Value
 	elemType := containerValue.Type().Elem()
 	var isPointer bool
@@ -241,7 +246,7 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 		if err != nil {
 			return err
 		}
-		err = session.rows2Beans(rows, fields, tb, newElemFunc, containerValueSetFunc)
+		err = session.rows2Beans(rows, fields, types, tb, newElemFunc, containerValueSetFunc)
 		rows.Close()
 		if err != nil {
 			return err
@@ -270,13 +275,13 @@ func (session *Session) noCacheFind(table *schemas.Table, containerValue reflect
 			return err
 		}
 	}
-	return nil
+	return rows.Err()
 }
 
 func convertPKToValue(table *schemas.Table, dst interface{}, pk schemas.PK) error {
 	cols := table.PKColumns()
 	if len(cols) == 1 {
-		return convertAssign(dst, pk[0])
+		return convert.Assign(dst, pk[0], nil, nil)
 	}
 
 	dst = pk
@@ -336,6 +341,9 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 			}
 
 			ids = append(ids, pk)
+		}
+		if rows.Err() != nil {
+			return rows.Err()
 		}
 
 		session.engine.logger.Debugf("[cache] cache sql: %v, %v, %v, %v, %v", ids, tableName, sqlStr, newsql, args)
@@ -468,12 +476,13 @@ func (session *Session) cacheFind(t reflect.Type, sqlStr string, rowsSlicePtr in
 		} else if sliceValue.Kind() == reflect.Map {
 			var key = ids[j]
 			keyType := sliceValue.Type().Key()
+			keyValue := reflect.New(keyType)
 			var ikey interface{}
 			if len(key) == 1 {
-				ikey, err = str2PK(fmt.Sprintf("%v", key[0]), keyType)
-				if err != nil {
+				if err := convert.AssignValue(keyValue, key[0]); err != nil {
 					return err
 				}
+				ikey = keyValue.Elem().Interface()
 			} else {
 				if keyType.Kind() != reflect.Slice {
 					return errors.New("table have multiple primary keys, key is not schemas.PK or slice")

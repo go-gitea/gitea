@@ -28,6 +28,13 @@ func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOpti
 		apiKeys[i] = convert.ToGPGKey(keys[i])
 	}
 
+	total, err := models.CountUserGPGKeys(uid)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(total)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

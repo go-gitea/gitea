@@ -96,24 +96,6 @@ func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
-// BearerTokenErrorCode represents an error code specified in RFC 6750
-type BearerTokenErrorCode string
-
-const (
-	// BearerTokenErrorCodeInvalidRequest represents an error code specified in RFC 6750
-	BearerTokenErrorCodeInvalidRequest BearerTokenErrorCode = "invalid_request"
-	// BearerTokenErrorCodeInvalidToken represents an error code specified in RFC 6750
-	BearerTokenErrorCodeInvalidToken BearerTokenErrorCode = "invalid_token"
-	// BearerTokenErrorCodeInsufficientScope represents an error code specified in RFC 6750
-	BearerTokenErrorCodeInsufficientScope BearerTokenErrorCode = "insufficient_scope"
-)
-
-// BearerTokenError represents an error response specified in RFC 6750
-type BearerTokenError struct {
-	ErrorCode        BearerTokenErrorCode `json:"error" form:"error"`
-	ErrorDescription string               `json:"error_description"`
-}
-
 // TokenType specifies the kind of token
 type TokenType string
 
@@ -133,7 +115,7 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(grant *models.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(); err != nil {
 			return nil, &AccessTokenError{
@@ -151,7 +133,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			ExpiresAt: expirationDate.AsTime().Unix(),
 		},
 	}
-	signedAccessToken, err := accessToken.SignToken()
+	signedAccessToken, err := accessToken.SignToken(serverKey)
 	if err != nil {
 		return nil, &AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -169,7 +151,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			ExpiresAt: refreshExpirationDate,
 		},
 	}
-	signedRefreshToken, err := refreshToken.SignToken()
+	signedRefreshToken, err := refreshToken.SignToken(serverKey)
 	if err != nil {
 		return nil, &AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -187,7 +169,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 				ErrorDescription: "cannot find application",
 			}
 		}
-		err = app.LoadUser()
+		user, err := models.GetUserByID(grant.UserID)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
@@ -212,20 +194,20 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, signingKey oauth2.JWTSign
 			Nonce: grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
-			idToken.Name = app.User.FullName
-			idToken.PreferredUsername = app.User.Name
-			idToken.Profile = app.User.HTMLURL()
-			idToken.Picture = app.User.AvatarLink()
-			idToken.Website = app.User.Website
-			idToken.Locale = app.User.Language
-			idToken.UpdatedAt = app.User.UpdatedUnix
+			idToken.Name = user.FullName
+			idToken.PreferredUsername = user.Name
+			idToken.Profile = user.HTMLURL()
+			idToken.Picture = user.AvatarLink()
+			idToken.Website = user.Website
+			idToken.Locale = user.Language
+			idToken.UpdatedAt = user.UpdatedUnix
 		}
 		if grant.ScopeContains("email") {
-			idToken.Email = app.User.Email
-			idToken.EmailVerified = app.User.IsActive
+			idToken.Email = user.Email
+			idToken.EmailVerified = user.IsActive
 		}
 
-		signedIDToken, err = idToken.SignToken(signingKey)
+		signedIDToken, err = idToken.SignToken(clientKey)
 		if err != nil {
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -253,32 +235,53 @@ type userInfoResponse struct {
 
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
-	header := ctx.Req.Header.Get("Authorization")
-	auths := strings.Fields(header)
-	if len(auths) != 2 || auths[0] != "Bearer" {
-		ctx.HandleText(http.StatusUnauthorized, "no valid auth token authorization")
-		return
-	}
-	uid := auth.CheckOAuthAccessToken(auths[1])
-	if uid == 0 {
-		handleBearerTokenError(ctx, BearerTokenError{
-			ErrorCode:        BearerTokenErrorCodeInvalidToken,
-			ErrorDescription: "Access token not assigned to any user",
-		})
-		return
-	}
-	authUser, err := models.GetUserByID(uid)
-	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+	if ctx.User == nil || ctx.Data["AuthedMethod"] != (&auth.OAuth2{}).Name() {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 	response := &userInfoResponse{
-		Sub:      fmt.Sprint(authUser.ID),
-		Name:     authUser.FullName,
-		Username: authUser.Name,
-		Email:    authUser.Email,
-		Picture:  authUser.AvatarLink(),
+		Sub:      fmt.Sprint(ctx.User.ID),
+		Name:     ctx.User.FullName,
+		Username: ctx.User.Name,
+		Email:    ctx.User.Email,
+		Picture:  ctx.User.AvatarLink(),
 	}
+	ctx.JSON(http.StatusOK, response)
+}
+
+// IntrospectOAuth introspects an oauth token
+func IntrospectOAuth(ctx *context.Context) {
+	if ctx.User == nil {
+		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
+		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
+		return
+	}
+
+	var response struct {
+		Active bool   `json:"active"`
+		Scope  string `json:"scope,omitempty"`
+		jwt.StandardClaims
+	}
+
+	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
+	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
+	if err == nil {
+		if token.Valid() == nil {
+			grant, err := models.GetOAuth2GrantByID(token.GrantID)
+			if err == nil && grant != nil {
+				app, err := models.GetOAuth2ApplicationByID(grant.ApplicationID)
+				if err == nil && app != nil {
+					response.Active = true
+					response.Scope = grant.Scope
+					response.Issuer = setting.AppURL
+					response.Audience = app.ClientID
+					response.Subject = fmt.Sprint(grant.UserID)
+				}
+			}
+		}
+	}
+
 	ctx.JSON(http.StatusOK, response)
 }
 
@@ -541,9 +544,11 @@ func AccessTokenOAuth(ctx *context.Context) {
 		}
 	}
 
-	signingKey := oauth2.DefaultSigningKey
-	if signingKey.IsSymmetric() {
-		clientKey, err := oauth2.CreateJWTSingingKey(signingKey.SigningMethod().Alg(), []byte(form.ClientSecret))
+	serverKey := oauth2.DefaultSigningKey
+	clientKey := serverKey
+	if serverKey.IsSymmetric() {
+		var err error
+		clientKey, err = oauth2.CreateJWTSigningKey(serverKey.SigningMethod().Alg(), []byte(form.ClientSecret))
 		if err != nil {
 			handleAccessTokenError(ctx, AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -551,14 +556,13 @@ func AccessTokenOAuth(ctx *context.Context) {
 			})
 			return
 		}
-		signingKey = clientKey
 	}
 
 	switch form.GrantType {
 	case "refresh_token":
-		handleRefreshToken(ctx, form, signingKey)
+		handleRefreshToken(ctx, form, serverKey, clientKey)
 	case "authorization_code":
-		handleAuthorizationCode(ctx, form, signingKey)
+		handleAuthorizationCode(ctx, form, serverKey, clientKey)
 	default:
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnsupportedGrantType,
@@ -567,8 +571,8 @@ func AccessTokenOAuth(ctx *context.Context) {
 	}
 }
 
-func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, signingKey oauth2.JWTSigningKey) {
-	token, err := oauth2.ParseToken(form.RefreshToken)
+func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
+	token, err := oauth2.ParseToken(form.RefreshToken, serverKey)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
@@ -595,7 +599,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, signin
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-	accessToken, tokenErr := newAccessTokenResponse(grant, signingKey)
+	accessToken, tokenErr := newAccessTokenResponse(grant, serverKey, clientKey)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -603,7 +607,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, signin
 	ctx.JSON(http.StatusOK, accessToken)
 }
 
-func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, signingKey oauth2.JWTSigningKey) {
+func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
 	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
@@ -657,7 +661,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, signingKey)
+	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -696,19 +700,4 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
 	ctx.Redirect(redirect.String(), 302)
-}
-
-func handleBearerTokenError(ctx *context.Context, beErr BearerTokenError) {
-	ctx.Resp.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer realm=\"\", error=\"%s\", error_description=\"%s\"", beErr.ErrorCode, beErr.ErrorDescription))
-	switch beErr.ErrorCode {
-	case BearerTokenErrorCodeInvalidRequest:
-		ctx.JSON(http.StatusBadRequest, beErr)
-	case BearerTokenErrorCodeInvalidToken:
-		ctx.JSON(http.StatusUnauthorized, beErr)
-	case BearerTokenErrorCodeInsufficientScope:
-		ctx.JSON(http.StatusForbidden, beErr)
-	default:
-		log.Error("Invalid BearerTokenErrorCode: %v", beErr.ErrorCode)
-		ctx.ServerError("Unhandled BearerTokenError", fmt.Errorf("BearerTokenError: error=\"%v\", error_description=\"%v\"", beErr.ErrorCode, beErr.ErrorDescription))
-	}
 }
