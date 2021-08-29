@@ -338,6 +338,8 @@ var migrations = []Migration{
 	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", alterIssueAndCommentTextFieldsToLongText),
 	// v192 -> v193
 	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
+	// v193 -> v194
+	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 }
 
 // GetCurrentDBVersion returns the current db version
