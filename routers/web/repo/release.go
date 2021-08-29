@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -93,11 +92,18 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
+	page := ctx.FormInt("limit")
+	if page == 0 {
+		page = setting.Repository.Release.DefaultPagingNum
+	}
+	if page > setting.API.MaxResponseItems {
+		page = setting.API.MaxResponseItems
+	}
 
 	opts := models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
 			Page:     ctx.FormInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+			PageSize: page,
 		},
 		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
