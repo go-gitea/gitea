@@ -293,6 +293,7 @@ func UploadHandler(ctx *context.Context) {
 		if exists {
 			accessible, err := models.LFSObjectAccessible(ctx.User, p.Oid)
 			if err != nil {
+				log.Error("Unable to check if LFS MetaObject [%s] is accessible. Error: %v", p.Oid, err)
 				return err
 			}
 			if !accessible {
@@ -301,6 +302,7 @@ func UploadHandler(ctx *context.Context) {
 				hash := sha256.New()
 				written, err := io.Copy(hash, ctx.Req.Body)
 				if err != nil {
+					log.Error("Error creating hash. Error: %v", err)
 					return err
 				}
 
@@ -312,6 +314,7 @@ func UploadHandler(ctx *context.Context) {
 				}
 			}
 		} else if err := contentStore.Put(p, ctx.Req.Body); err != nil {
+			log.Error("Error putting LFS MetaObject [%s] into content store. Error: %v", p.Oid, err)
 			return err
 		}
 		_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repository.ID})
@@ -321,9 +324,9 @@ func UploadHandler(ctx *context.Context) {
 	defer ctx.Req.Body.Close()
 	if err := uploadOrVerify(); err != nil {
 		if errors.Is(err, lfs_module.ErrSizeMismatch) || errors.Is(err, lfs_module.ErrHashMismatch) {
+			log.Error("Upload does not match LFS MetaObject [%s]. Error: %v", p.Oid, err)
 			writeStatusMessage(ctx, http.StatusUnprocessableEntity, err.Error())
 		} else {
-			log.Error("Error whilst uploading LFS MetaObject [%s]. Error: %v", p.Oid, err)
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
 		if _, err = repository.RemoveLFSMetaObjectByOid(p.Oid); err != nil {
