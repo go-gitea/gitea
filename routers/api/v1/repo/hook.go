@@ -48,9 +48,20 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &models.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	}
+
+	count, err := models.CountWebhooksByOpts(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByRepoID", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	hooks, err := models.ListWebhooksByOpts(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -58,6 +69,8 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiHooks)
 }
 
@@ -140,16 +153,17 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
+	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
+
 	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
-		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before: ctx.Repo.Commit.ID.String(),
-		After:  ctx.Repo.Commit.ID.String(),
-		Commits: []*api.PayloadCommit{
-			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
-		},
-		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
-		Pusher: convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
-		Sender: convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
+		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Before:     ctx.Repo.Commit.ID.String(),
+		After:      ctx.Repo.Commit.ID.String(),
+		Commits:    []*api.PayloadCommit{commit},
+		HeadCommit: commit,
+		Repo:       convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
+		Pusher:     convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
+		Sender:     convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return

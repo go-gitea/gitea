@@ -34,7 +34,7 @@ const commentMDEditors = {};
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
 
-// Silence Vue's console advertisments in dev mode
+// Silence Vue's console advertisements in dev mode
 // To use the Vue browser extension, enable the devtools option temporarily
 Vue.config.productionTip = false;
 Vue.config.devtools = false;
@@ -461,7 +461,7 @@ function initCommentForm() {
       }
 
       // TODO: Which thing should be done for choosing review requests
-      // to make choosed items be shown on time here?
+      // to make chosen items be shown on time here?
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
         return false;
       }
@@ -942,6 +942,26 @@ async function initRepository() {
       action: 'hide'
     });
 
+    // Previous/Next code review conversation
+    $(document).on('click', '.previous-conversation', (e) => {
+      const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
+      const $conversations = $('.comment-code-cloud:not(.hide)');
+      const index = $conversations.index($conversation);
+      const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
+      const $previousConversation = $conversations.eq(previousIndex);
+      const anchor = $previousConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
+    });
+    $(document).on('click', '.next-conversation', (e) => {
+      const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
+      const $conversations = $('.comment-code-cloud:not(.hide)');
+      const index = $conversations.index($conversation);
+      const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
+      const $nextConversation = $conversations.eq(nextIndex);
+      const anchor = $nextConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
+    });
+
     // Quote reply
     $(document).on('click', '.quote-reply', function (event) {
       $(this).closest('.dropdown').find('.menu').toggle('visible');
@@ -1343,7 +1363,7 @@ function initPullRequestReview() {
         $(`#code-comments-${id}`).removeClass('hide');
         $(`#code-preview-${id}`).removeClass('hide');
         $(`#hide-outdated-${id}`).removeClass('hide');
-        $(window).scrollTop(commentDiv.offset().top);
+        commentDiv[0].scrollIntoView();
       }
     }
   }
@@ -1805,7 +1825,7 @@ async function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
+  const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -1828,6 +1848,14 @@ async function initEditor() {
       $commitButton.prop('disabled', !dirty);
     }
   });
+
+  // Update the editor from query params, if available,
+  // only after the dirtyFileClass initialization
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get('value');
+  if (value) {
+    editor.setValue(value);
+  }
 
   $commitButton.on('click', (event) => {
     // A modal which asks if an empty file should be committed
@@ -1964,7 +1992,9 @@ function initAdmin() {
           $('#password').attr('required', 'required');
         }
       } else {
-        $('#user_name').attr('disabled', 'disabled');
+        if ($('.admin.edit.user').length > 0) {
+          $('#user_name').attr('disabled', 'disabled');
+        }
         $('#login_name').attr('required', 'required');
         $('.non-local').show();
         $('.local').hide();
@@ -1999,19 +2029,17 @@ function initAdmin() {
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'gitea':
-      case 'nextcloud':
-      case 'mastodon':
-        $('#oauth2_use_custom_url').attr('checked', 'checked');
-        // fallthrough intentional
-      case 'github':
-      case 'gitlab':
-        $('.oauth2_use_custom_url').show();
-        break;
       case 'openidConnect':
         $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
         $('.open_id_connect_auto_discovery_url').show();
         break;
+      default:
+        if ($(`#${provider}_customURLSettings`).data('required')) {
+          $('#oauth2_use_custom_url').attr('checked', 'checked');
+        }
+        if ($(`#${provider}_customURLSettings`).data('available')) {
+          $('.oauth2_use_custom_url').show();
+        }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
@@ -2022,29 +2050,14 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (applyDefaultValues) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
-
-      switch (provider) {
-        case 'github':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
-          break;
-        case 'nextcloud':
-        case 'gitea':
-        case 'gitlab':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
-          $('#oauth2_email_url').val('');
-          break;
-        case 'mastodon':
-          $('.oauth2_auth_url input').attr('required', 'required');
-          $('.oauth2_auth_url').show();
-          break;
+      for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
+        if (applyDefaultValues) {
+          $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
+        }
+        if ($(`#${provider}_${custom}`).data('available')) {
+          $(`.oauth2_${custom} input`).attr('required', 'required');
+          $(`.oauth2_${custom}`).show();
+        }
       }
     }
   }
@@ -2261,20 +2274,24 @@ function initCodeView() {
       const $select = $(this);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-      showLineButton();
+
+      // show code view menu marker (don't show in blame page)
+      if ($('div.blame').length === 0) {
+        showLineButton();
+      }
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
@@ -2282,7 +2299,12 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
-        showLineButton();
+
+        // show code view menu marker (don't show in blame page)
+        if ($('div.blame').length === 0) {
+          showLineButton();
+        }
+
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2290,7 +2312,12 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
-        showLineButton();
+
+        // show code view menu marker (don't show in blame page)
+        if ($('div.blame').length === 0) {
+          showLineButton();
+        }
+
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
@@ -2387,7 +2414,7 @@ function u2fError(errorType) {
   u2fErrors[errorType].removeClass('hide');
 
   Object.keys(u2fErrors).forEach((type) => {
-    if (type !== errorType) {
+    if (type !== `${errorType}`) {
       u2fErrors[type].addClass('hide');
     }
   });
@@ -2729,7 +2756,7 @@ $(document).ready(async () => {
     let {action, elementId, url} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.dataset.issueId;
-    }).get().join();
+    }).get().join(',');
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2889,7 +2916,6 @@ function selectRange($list, $select, $from) {
       } else {
         $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
       }
-
       return;
     }
   }
@@ -2930,13 +2956,19 @@ $(() => {
 
 function showDeletePopup() {
   const $this = $(this);
+  const dataArray = $this.data();
   let filter = '';
-  if ($this.attr('id')) {
-    filter += `#${$this.attr('id')}`;
+  if ($this.data('modal-id')) {
+    filter += `#${$this.data('modal-id')}`;
   }
 
   const dialog = $(`.delete.modal${filter}`);
   dialog.find('.name').text($this.data('name'));
+  for (const [key, value] of Object.entries(dataArray)) {
+    if (key && key.startsWith('data')) {
+      dialog.find(`.${key}`).text(value);
+    }
+  }
 
   dialog.modal({
     closable: false,
@@ -2946,10 +2978,19 @@ function showDeletePopup() {
         return;
       }
 
-      $.post($this.data('url'), {
+      const postData = {
         _csrf: csrf,
-        id: $this.data('id')
-      }).done((data) => {
+      };
+      for (const [key, value] of Object.entries(dataArray)) {
+        if (key && key.startsWith('data')) {
+          postData[key.substr(4)] = value;
+        }
+        if (key === 'id') {
+          postData['id'] = value;
+        }
+      }
+
+      $.post($this.data('url'), postData).done((data) => {
         window.location.href = data.redirect;
       });
     }
@@ -3356,7 +3397,7 @@ function initVueComponents() {
               this.reposTotalCount = count;
             }
             Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
-            this.finalPage = Math.floor(count / this.searchLimit) + 1;
+            this.finalPage = Math.ceil(count / this.searchLimit);
             this.updateHistory();
           }
         }).always(() => {

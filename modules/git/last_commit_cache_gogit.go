@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build gogit
 // +build gogit
 
 package git
@@ -9,6 +10,8 @@ package git
 import (
 	"context"
 	"path"
+
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-git/go-git/v5/plumbing/object"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
@@ -41,9 +44,9 @@ func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl func() int64, 
 func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
 	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
-		log("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
+		log.Debug("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
 		if commit, ok := c.commitCache[vs]; ok {
-			log("LastCommitCache hit level 2: [%s:%s:%s]", ref, entryPath, vs)
+			log.Debug("LastCommitCache hit level 2: [%s:%s:%s]", ref, entryPath, vs)
 			return commit, nil
 		}
 		id, err := c.repo.ConvertToSHA1(vs)

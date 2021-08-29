@@ -30,7 +30,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiTimes api.TrackedTimeList
 	DecodeJSON(t, resp, &apiTimes)
-	expect, err := models.GetTrackedTimes(models.FindTrackedTimesOptions{IssueID: issue2.ID})
+	expect, err := models.GetTrackedTimes(&models.FindTrackedTimesOptions{IssueID: issue2.ID})
 	assert.NoError(t, err)
 	assert.Len(t, apiTimes, 3)
 

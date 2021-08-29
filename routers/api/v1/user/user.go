@@ -6,9 +6,7 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -57,8 +55,9 @@ func Search(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	opts := &models.SearchUserOptions{
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         ctx.QueryInt64("uid"),
+		Actor:       ctx.User,
+		Keyword:     ctx.FormTrim("q"),
+		UID:         ctx.FormInt64("uid"),
 		Type:        models.UserTypeIndividual,
 		ListOptions: listOptions,
 	}
@@ -73,8 +72,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
@@ -102,10 +100,16 @@ func GetInfo(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	u := GetUserByParams(ctx)
+
 	if ctx.Written() {
 		return
 	}
 
+	if !u.IsVisibleToUser(ctx.User) {
+		// fake ErrUserNotExist error message to not leak information about existence
+		ctx.NotFound("GetUserByName", models.ErrUserNotExist{Name: ctx.Params(":username")})
+		return
+	}
 	ctx.JSON(http.StatusOK, convert.ToUser(u, ctx.User))
 }
 

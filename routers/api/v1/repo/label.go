@@ -49,7 +49,7 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.Query("sort"), utils.GetListOptions(ctx))
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return
@@ -57,6 +57,14 @@ func ListLabels(ctx *context.APIContext) {
 
 	repoCache := make(map[int64]*models.Repository)
 	repoCache[ctx.Repo.Repository.ID] = ctx.Repo.Repository
+
+	count, err := models.CountLabelsByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, repoCache, nil))
 }
 

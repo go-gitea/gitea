@@ -148,11 +148,11 @@ type SearchRepoOptions struct {
 	AllLimited      bool // Include also all public repositories of limited organisations
 	// None -> include public and private
 	// True -> include just private
-	// False -> incude just public
+	// False -> include just public
 	IsPrivate util.OptionalBool
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
-	// False -> incude just non-collaborative
+	// False -> include just non-collaborative
 	Collaborate util.OptionalBool
 	// None -> include forks AND non-forks
 	// True -> include just forks
@@ -217,16 +217,14 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			cond = cond.And(accessibleRepositoryCondition(opts.Actor))
 		}
 	} else {
-		// Not looking at private organisations
+		// Not looking at private organisations and users
 		// We should be able to see all non-private repositories that
 		// isn't in a private or limited organisation.
 		cond = cond.And(
 			builder.Eq{"is_private": false},
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
-				builder.And(
-					builder.Eq{"type": UserTypeOrganization},
-					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-				))))
+				builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+			)))
 	}
 
 	if opts.IsPrivate != util.OptionalBoolNone {

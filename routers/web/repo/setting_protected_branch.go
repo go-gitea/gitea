@@ -60,14 +60,14 @@ func ProtectedBranchPost(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	switch ctx.Query("action") {
+	switch ctx.FormString("action") {
 	case "default_branch":
 		if ctx.HasError() {
 			ctx.HTML(http.StatusOK, tplBranches)
 			return
 		}
 
-		branch := ctx.Query("branch")
+		branch := ctx.FormString("branch")
 		if !ctx.Repo.GitRepo.IsBranchExist(branch) {
 			ctx.Status(404)
 			return

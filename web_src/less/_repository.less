@@ -2932,8 +2932,23 @@ tbody.commit-list {
   align-items: center;
 }
 
+.repo-buttons .ui.labeled.button > .label:hover {
+  color: var(--color-primary-light-2);
+  background: var(--color-light);
+}
+
+.label-mimic-enabled() {
+  color: var(--color-text-dark);
+  background: var(--color-light-mimic-enabled) !important;
+
+  &:hover {
+    color: var(--color-primary-dark-1);
+  }
+}
+
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
+  .label-mimic-enabled();
 }
 
 .repo-buttons .ui.labeled.button {
@@ -2946,6 +2961,10 @@ tbody.commit-list {
 
   &.disabled {
     pointer-events: inherit !important;
+
+    > .label {
+      .label-mimic-enabled();
+    }
 
     > .button {
       pointer-events: none !important;
@@ -3142,6 +3161,7 @@ td.blob-excerpt {
   transition: all .1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
+  color: var(--color-text);
 }
 
 .repository.migrate .card:hover {

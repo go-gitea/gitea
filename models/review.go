@@ -208,6 +208,11 @@ func FindReviews(opts FindReviewOptions) ([]*Review, error) {
 	return findReviews(x, opts)
 }
 
+// CountReviews returns count of reviews passing FindReviewOptions
+func CountReviews(opts FindReviewOptions) (int64, error) {
+	return x.Where(opts.toCond()).Count(&Review{})
+}
+
 // CreateReviewOptions represent the options to create a review. Type, Issue and Reviewer are required.
 type CreateReviewOptions struct {
 	Content      string
@@ -466,7 +471,7 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 		return nil, err
 	}
 
-	// Get latest review of each reviwer, sorted in order they were made
+	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
 		Find(&reviews); err != nil {
@@ -491,7 +496,7 @@ func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
-	// Get latest review of each reviwer, sorted in order they were made
+	// Get latest review of each reviewer, sorted in order they were made
 	if err := x.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND original_author_id <> 0 GROUP BY issue_id, original_author_id) ORDER BY review.updated_unix ASC",
 		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Find(&reviews); err != nil {

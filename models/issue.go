@@ -36,7 +36,7 @@ type Issue struct {
 	OriginalAuthor   string
 	OriginalAuthorID int64      `xorm:"index"`
 	Title            string     `xorm:"name"`
-	Content          string     `xorm:"TEXT"`
+	Content          string     `xorm:"LONGTEXT"`
 	RenderedContent  string     `xorm:"-"`
 	Labels           []*Label   `xorm:"-"`
 	MilestoneID      int64      `xorm:"INDEX"`
@@ -89,7 +89,7 @@ func init() {
 
 func (issue *Issue) loadTotalTimes(e Engine) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
-	issue.TotalTrackedTime, err = opts.ToSession(e).SumInt(&TrackedTime{}, "time")
+	issue.TotalTrackedTime, err = opts.toSession(e).SumInt(&TrackedTime{}, "time")
 	if err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (issue *Issue) loadCommentsByType(e Engine, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
-	issue.Comments, err = findComments(e, FindCommentsOptions{
+	issue.Comments, err = findComments(e, &FindCommentsOptions{
 		IssueID: issue.ID,
 		Type:    tp,
 	})
@@ -647,8 +647,10 @@ func (issue *Issue) doChangeStatus(e *xorm.Session, doer *User, isMergePull bool
 	}
 
 	// Update issue count of milestone
-	if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-		return nil, err
+	if issue.MilestoneID > 0 {
+		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
+			return nil, err
+		}
 	}
 
 	if err := issue.updateClosedNum(e); err != nil {
@@ -907,7 +909,7 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	}
 
 	if opts.Issue.MilestoneID > 0 {
-		if _, err = e.Exec("UPDATE `milestone` SET num_issues=num_issues+1 WHERE id=?", opts.Issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -980,6 +982,31 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
+// RecalculateIssueIndexForRepo create issue_index for repo if not exist and
+// update it based on highest index of existing issues assigned to a repo
+func RecalculateIssueIndexForRepo(repoID int64) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if err := upsertResourceIndex(sess, "issue_index", repoID); err != nil {
+		return err
+	}
+
+	var max int64
+	if _, err := sess.Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
+		return err
+	}
+
+	if _, err := sess.Exec("UPDATE `issue_index` SET max_index=? WHERE group_id=?", max, repoID); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
 	idx, err := GetNextResourceIndex("issue_index", repo.ID)
@@ -1016,6 +1043,9 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 
 // GetIssueByIndex returns raw issue without loading attributes by index in a repository.
 func GetIssueByIndex(repoID, index int64) (*Issue, error) {
+	if index < 1 {
+		return nil, ErrIssueNotExist{}
+	}
 	issue := &Issue{
 		RepoID: repoID,
 		Index:  index,

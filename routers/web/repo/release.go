@@ -96,8 +96,8 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	opts := models.FindReleasesOptions{
 		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
+			Page:     ctx.FormInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
@@ -145,6 +145,8 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		r.Note, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
+			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, r.Note)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -213,6 +215,8 @@ func SingleRelease(ctx *context.Context) {
 	release.Note, err = markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
+		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, release.Note)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -250,7 +254,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	if tagName := ctx.Query("tag"); len(tagName) > 0 {
+	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 		if err != nil && !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
@@ -320,6 +324,18 @@ func NewReleasePost(ctx *context.Context) {
 					return
 				}
 
+				if models.IsErrInvalidTagName(err) {
+					ctx.Flash.Error(ctx.Tr("repo.release.tag_name_invalid"))
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					return
+				}
+
+				if models.IsErrProtectedTagName(err) {
+					ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+					ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+					return
+				}
+
 				ctx.ServerError("releaseservice.CreateNewTag", err)
 				return
 			}
@@ -331,7 +347,9 @@ func NewReleasePost(ctx *context.Context) {
 
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
+			Repo:         ctx.Repo.Repository,
 			PublisherID:  ctx.User.ID,
+			Publisher:    ctx.User,
 			Title:        form.Title,
 			TagName:      form.TagName,
 			Target:       form.Target,
@@ -348,6 +366,8 @@ func NewReleasePost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_already_exist"), tplReleaseNew, &form)
 			case models.IsErrInvalidTagName(err):
 				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_invalid"), tplReleaseNew, &form)
+			case models.IsErrProtectedTagName(err):
+				ctx.RenderWithErr(ctx.Tr("repo.release.tag_name_protected"), tplReleaseNew, &form)
 			default:
 				ctx.ServerError("CreateRelease", err)
 			}
@@ -489,7 +509,7 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, isDelTag); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		if isDelTag {

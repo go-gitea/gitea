@@ -24,11 +24,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	jsoniter "github.com/json-iterator/go"
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
@@ -189,6 +189,7 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	SuccessfulTokensCacheSize          int
 
 	// UI settings
 	UI = struct {
@@ -208,7 +209,9 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
-		ReactionsMap          map[string]bool
+		ReactionsMap          map[string]bool `ini:"-"`
+		CustomEmojis          []string
+		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
 
@@ -256,6 +259,8 @@ var (
 		DefaultTheme:        `gitea`,
 		Themes:              []string{`gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
+		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
+		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration
@@ -469,7 +474,8 @@ func getWorkPath(appPath string) string {
 func init() {
 	IsWindows = runtime.GOOS == "windows"
 	// We can rely on log.CanColorStdout being set properly because modules/log/console_windows.go comes before modules/setting/setting.go lexicographically
-	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	// By default set this logger at Info - we'll change it later but we need to start with something.
+	log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "info", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 
 	var err error
 	if AppPath, err = getAppPath(); err != nil {
@@ -805,7 +811,7 @@ func NewContext() {
 	}
 
 	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
-		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(CustomPath, OAuth2.JWTSigningPrivateKeyFile)
+		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
 	}
 
 	sec = Cfg.Section("admin")
@@ -835,6 +841,7 @@ func NewContext() {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadInternalToken(sec)
 
@@ -982,6 +989,10 @@ func NewContext() {
 	for _, reaction := range UI.Reactions {
 		UI.ReactionsMap[reaction] = true
 	}
+	UI.CustomEmojisMap = make(map[string]string)
+	for _, emoji := range UI.CustomEmojis {
+		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
+	}
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
@@ -1107,7 +1118,6 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		Icons     []manifestIcon `json:"icons"`
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(&manifestJSON{
 		Name:      appName,
 		ShortName: appName,
@@ -1158,6 +1168,19 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	if err := cfg.SaveTo(CustomConf); err != nil {
 		log.Fatal("error saving to custom config: %v", err)
 	}
+
+	// Change permissions to be more restrictive
+	fi, err := os.Stat(CustomConf)
+	if err != nil {
+		log.Error("Failed to determine current conf file permissions: %v", err)
+		return
+	}
+
+	if fi.Mode().Perm() > 0o600 {
+		if err = os.Chmod(CustomConf, 0o600); err != nil {
+			log.Warn("Failed changing conf file permissions to -rw-------. Consider changing them manually.")
+		}
+	}
 }
 
 // NewServices initializes the services
@@ -1172,6 +1195,7 @@ func NewServices() {
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
+	newProxyService()
 	newWebhookService()
 	newMigrationsService()
 	newIndexerService()

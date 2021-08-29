@@ -43,13 +43,22 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.Query("sort"), utils.GetListOptions(ctx))
+	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByOrgID", err)
 		return
 	}
+
 	orgCache := make(map[int64]*models.User)
 	orgCache[ctx.Org.Organization.ID] = ctx.Org.Organization
+
+	count, err := models.CountLabelsByOrgID(ctx.Org.Organization.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, nil, orgCache))
 }
 

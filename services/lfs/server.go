@@ -17,12 +17,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 
-	"github.com/dgrijalva/jwt-go"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/golang-jwt/jwt"
 )
 
 // requestContext contain variables from the HTTP request.
@@ -243,7 +244,7 @@ func BatchHandler(ctx *context.Context) {
 
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	enc := jsoniter.NewEncoder(ctx.Resp)
+	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(respobj); err != nil {
 		log.Error("Failed to encode representation as json. Error: %v", err)
 	}
@@ -336,7 +337,7 @@ func VerifyHandler(ctx *context.Context) {
 func decodeJSON(req *http.Request, v interface{}) error {
 	defer req.Body.Close()
 
-	dec := jsoniter.NewDecoder(req.Body)
+	dec := json.NewDecoder(req.Body)
 	return dec.Decode(v)
 }
 
@@ -401,6 +402,13 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 
 		if download {
 			rep.Actions["download"] = &lfs_module.Link{Href: rc.DownloadLink(pointer), Header: header}
+			if setting.LFS.ServeDirect {
+				//If we have a signed url (S3, object storage), redirect to this directly.
+				u, err := storage.LFS.URL(pointer.RelativePath(), pointer.Oid)
+				if u != nil && err == nil {
+					rep.Actions["download"] = &lfs_module.Link{Href: u.String(), Header: header}
+				}
+			}
 		}
 		if upload {
 			rep.Actions["upload"] = &lfs_module.Link{Href: rc.UploadLink(pointer), Header: header}
@@ -429,7 +437,7 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 
 	er := lfs_module.ErrorResponse{Message: message}
 
-	enc := jsoniter.NewEncoder(ctx.Resp)
+	enc := json.NewEncoder(ctx.Resp)
 	if err := enc.Encode(er); err != nil {
 		log.Error("Failed to encode error response as json. Error: %v", err)
 	}
