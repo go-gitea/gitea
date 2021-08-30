@@ -1351,16 +1351,21 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *User, team
 		if team != nil {
 			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
 		} else {
-			cond = cond.And(orgUnitsRepoCond(repoIDstr, userID, org.ID, unitType)) // team member repos
+			cond = cond.And(
+				builder.Or(
+					userOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
+					userOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+				),
+			)
 		}
 	} else {
 		cond = cond.And(
 			builder.Or(
-				userOwnedRepoCond(userID),                            // owned repos
-				userCollaborationRepoCond(repoIDstr, userID),         // collaboration repos
-				userAssignedRepoCond(repoIDstr, userID),              // user has been assigned accessible repos
-				userMentionedRepoCond(repoIDstr, userID),             // user has been mentioned accessible repos
-				userCreateIssueRepoCond(repoIDstr, userID, unitType), // user has created issue/pr accessible repos
+				userOwnedRepoCond(userID),                          // owned repos
+				userCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
+				userAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
+				userMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
+				userCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
 			),
 		)
 	}

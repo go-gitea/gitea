@@ -234,23 +234,23 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeAssign,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
-				OpenCount:             2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
 		},
-		/*{
+		{
 			UserIssueStatsOptions{
 				UserID:     1,
 				FilterMode: FilterModeCreate,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
-				OpenCount:             2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				OpenCount:             1, // 6
 				ClosedCount:           0,
 			},
 		},
@@ -260,9 +260,10 @@ func TestGetUserIssueStats(t *testing.T) {
 				FilterMode: FilterModeMention,
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           2,
-				CreateCount:           2,
+				YourRepositoriesCount: 1, // 6
+				AssignCount:           1, // 6
+				CreateCount:           1, // 6
+				MentionCount:          0,
 				OpenCount:             0,
 				ClosedCount:           0,
 			},
@@ -274,13 +275,13 @@ func TestGetUserIssueStats(t *testing.T) {
 				IssueIDs:   []int64{1},
 			},
 			IssueStats{
-				YourRepositoriesCount: 0,
-				AssignCount:           1,
-				CreateCount:           1,
-				OpenCount:             1,
+				YourRepositoriesCount: 1, // 1
+				AssignCount:           1, // 1
+				CreateCount:           1, // 1
+				OpenCount:             1, // 1
 				ClosedCount:           0,
 			},
-		},*/
+		},
 	} {
 		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
 			stats, err := GetUserIssueStats(test.Opts)

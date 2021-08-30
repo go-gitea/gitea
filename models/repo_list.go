@@ -178,16 +178,6 @@ func userOwnedRepoCond(userID int64) builder.Cond {
 	}
 }
 
-// userCollaborationRepoCond return user as collabrators repositories list
-func userCollaborationRepoCond(id string, userID int64) builder.Cond {
-	return builder.In(id,
-		builder.Select("repo_id").From("collaboration").
-			Where(builder.Eq{
-				"user_id": userID,
-			}),
-	)
-}
-
 // userAssignedRepoCond return user as assignee repositories list
 func userAssignedRepoCond(id string, userID int64) builder.Cond {
 	return builder.And(
@@ -205,11 +195,7 @@ func userAssignedRepoCond(id string, userID int64) builder.Cond {
 }
 
 // userCreateIssueRepoCond return user created issues repositories list
-func userCreateIssueRepoCond(id string, userID int64, unitType unit.Type) builder.Cond {
-	var isPull = false
-	if unitType == unit.TypePullRequests {
-		isPull = true
-	}
+func userCreateIssueRepoCond(id string, userID int64, isPull bool) builder.Cond {
 	return builder.And(
 		builder.Eq{
 			"repository.is_private": false,
@@ -241,33 +227,6 @@ func userMentionedRepoCond(id string, userID int64) builder.Cond {
 	)
 }
 
-func orgUnitsRepoCond(id string, userID, orgID int64, units ...unit.Type) builder.Cond {
-	return builder.In(id,
-		builder.Select("repo_id").From("team_repo").Where(
-			builder.Eq{
-				"org_id": orgID,
-			}.And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_user").Where(
-						builder.Eq{
-							"uid": userID,
-						},
-					),
-				),
-			).And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_unit").Where(
-						builder.Eq{
-							"org_id": orgID,
-						}.And(
-							builder.In("type", units),
-						),
-					),
-				),
-			),
-		))
-}
-
 func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
 	return builder.In(id,
 		builder.Select("repo_id").From("team_repo").Where(
@@ -292,6 +251,61 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 				),
 			),
 		))
+}
+
+// userCollaborationRepoCond return user as collabrators repositories list
+func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.In(idStr, builder.Select("repo_id").
+		From("`access`").
+		Where(builder.And(
+			builder.Eq{"user_id": userID},
+			builder.Gt{"mode": int(perm.AccessModeNone)},
+		)),
+	)
+}
+
+func userOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
+	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
+}
+
+func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
+	return builder.Select("`team_repo`.repo_id").
+		From("team_repo").
+		Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id").
+		Where(builder.Eq{"`team_user`.uid": userID})
+}
+
+func userOrgTeamUnitRepoBuilder(userID int64, unitType UnitType) *builder.Builder {
+	return userOrgTeamRepoBuilder(userID).
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
+		Where(builder.Eq{"`team_unit`.`type`": unitType})
+}
+
+func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType UnitType) builder.Cond {
+	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType))
+}
+
+func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType UnitType) builder.Cond {
+	return builder.In(idStr,
+		userOrgTeamUnitRepoBuilder(userID, unitType).
+			And(builder.Eq{"org_id": orgID}),
+	)
+}
+
+func userOrgPublicRepoCond(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.In("`repository`.owner_id",
+			builder.Select("`org_user`.org_id").
+				From("org_user").
+				Where(builder.Eq{"`org_user`.uid": userID}),
+		),
+	)
+}
+
+func userOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
+	return userOrgPublicRepoCond(userID).
+		And(builder.Eq{"`repository`.owner_id": orgID})
 }
 
 // SearchRepositoryCondition creates a query condition according search repository options
@@ -347,27 +361,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				// 2. But we can see because of:
 				builder.Or(
 					// A. We have access
-					builder.In("`repository`.id",
-						builder.Select("`access`.repo_id").
-							From("access").
-							Where(builder.Eq{"`access`.user_id": opts.OwnerID})),
+					userCollaborationRepoCond("`repository`.id", opts.OwnerID),
 					// B. We are in a team for
-					builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
-						From("team_repo").
-						Where(builder.Eq{"`team_user`.uid": opts.OwnerID}).
-						Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
-					// C. Public repositories in private organizations that we are member of
-					builder.And(
-						builder.Eq{"`repository`.is_private": false},
-						builder.In("`repository`.owner_id",
-							builder.Select("`org_user`.org_id").
-								From("org_user").
-								Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
-								Where(builder.Eq{
-									"`org_user`.uid":    opts.OwnerID,
-									"`user`.type":       user_model.UserTypeOrganization,
-									"`user`.visibility": structs.VisibleTypePrivate,
-								})))),
+					userOrgTeamRepoCond("`repository`.id", opts.OwnerID),
+					// C. Public repositories in organizations that we are member of
+					userOrgPublicRepoCond(opts.OwnerID),
+				),
 			)
 			if !opts.Private {
 				collaborateCond = collaborateCond.And(builder.Expr("owner_id NOT IN (SELECT org_id FROM org_user WHERE org_user.uid = ? AND org_user.is_public = ?)", opts.OwnerID, false))
@@ -538,24 +537,49 @@ func accessibleRepositoryCondition(user *user_model.User) builder.Cond {
 	if user != nil {
 		cond = cond.Or(
 			// 2. Be able to see all repositories that we have access to
-			builder.In("`repository`.id", builder.Select("repo_id").
-				From("`access`").
-				Where(builder.And(
-					builder.Eq{"user_id": user.ID},
-					builder.Gt{"mode": int(perm.AccessModeNone)}))),
+			userCollaborationRepoCond("`repository`.id", user.ID),
 			// 3. Repositories that we directly own
 			builder.Eq{"`repository`.owner_id": user.ID},
 			// 4. Be able to see all repositories that we are in a team
-			builder.In("`repository`.id", builder.Select("`team_repo`.repo_id").
-				From("team_repo").
-				Where(builder.Eq{"`team_user`.uid": user.ID}).
-				Join("INNER", "team_user", "`team_user`.team_id = `team_repo`.team_id")),
+			userOrgTeamRepoCond("`repository`.id", user.ID),
 			// 5. Be able to see all public repos in private organizations that we are an org_user of
-			builder.And(builder.Eq{"`repository`.is_private": false},
-				builder.In("`repository`.owner_id",
-					builder.Select("`org_user`.org_id").
-						From("org_user").
-						Where(builder.Eq{"`org_user`.uid": user.ID}))))
+			userOrgPublicRepoCond(user.ID),
+		)
+	}
+
+	return cond
+}
+
+func accessibleRepoUnitCond(user *user_mdoel.User, unitType unit.Type) builder.Cond {
+	cond := builder.NewCond()
+
+	if user == nil || !user.IsRestricted || user.ID <= 0 {
+		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
+		if user == nil || user.ID <= 0 {
+			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
+		}
+		// 1. Be able to see all non-private repositories that either:
+		cond = cond.Or(builder.And(
+			builder.Eq{"`repository`.is_private": false},
+			// 2. Aren't in an private organisation or limited organisation if we're not logged in
+			builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
+				builder.And(
+					builder.Eq{"type": user_model.UserTypeOrganization},
+					builder.In("visibility", orgVisibilityLimit)),
+			))))
+	}
+
+	if user != nil {
+		cond = cond.Or(
+			// 2. Be able to see all repositories that we have access to
+			userCollaborationRepoCond("`repository`.id", user.ID),
+			// 3. Repositories that we directly own
+			builder.Eq{"`repository`.owner_id": user.ID},
+			// 4. Be able to see all repositories that we are in a team
+			userOrgTeamRepoCond("`repository`.id", user.ID),
+			// 5. Be able to see all public repos in private organizations that we are an org_user of
+			userOrgPublicRepoCond(user.ID),
+		)
 	}
 
 	return cond
