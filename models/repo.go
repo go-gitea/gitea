@@ -1497,7 +1497,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err = sess.In("release_id", builder.Select("id").From("release").Where(builder.Eq{"release.repo_id": repoID})).
+	if _, err = sess.In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"`release`.repo_id": repoID})).
 		Delete(&Attachment{}); err != nil {
 		return err
 	}
