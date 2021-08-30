@@ -278,6 +278,7 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
 		}
+		defer gitRepo.Close()
 		repoPath = ctx.Repo.Repository.WikiPath()
 	} else {
 		gitRepo = ctx.Repo.GitRepo
