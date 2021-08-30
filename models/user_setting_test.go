@@ -16,7 +16,7 @@ func TestUserSettings(t *testing.T) {
 	newSetting := &UserSetting{UserID: 99, Key: "test_user_setting", Value: "Gitea User Setting Test"}
 
 	// create setting
-	err := AddUserSetting(newSetting)
+	err := SetUserSetting(newSetting)
 	assert.NoError(t, err)
 
 	// get specific setting
@@ -27,7 +27,7 @@ func TestUserSettings(t *testing.T) {
 
 	// updated setting
 	updatedSetting := &UserSetting{UserID: 99, Key: "test_user_setting", Value: "Updated", ID: userSettings[0].ID}
-	err = UpdateUserSettingValue(updatedSetting)
+	err = SetUserSetting(updatedSetting)
 	assert.NoError(t, err)
 
 	// get all settings

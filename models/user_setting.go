@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -20,6 +20,11 @@ type UserSetting struct {
 
 // BeforeInsert will be invoked by XORM before inserting a record
 func (setting *UserSetting) BeforeInsert() {
+	setting.Key = strings.ToLower(setting.Key)
+}
+
+// BeforeUpdate will be invoked by XORM before updating a record
+func (setting *UserSetting) BeforeUpdate() {
 	setting.Key = strings.ToLower(setting.Key)
 }
 
@@ -48,11 +53,6 @@ func GetUserAllSettings(uid int64) ([]*UserSetting, error) {
 	return settings, nil
 }
 
-// AddUserSetting adds a specific setting for a user
-func AddUserSetting(setting *UserSetting) error {
-	return addUserSetting(x, setting)
-}
-
 func addUserSetting(e Engine, setting *UserSetting) error {
 	used, err := settingExists(e, setting.UserID, setting.Key)
 	if err != nil {
@@ -69,7 +69,7 @@ func settingExists(e Engine, uid int64, key string) (bool, error) {
 		return true, nil
 	}
 
-	return e.Where("key=?", strings.ToLower(key)).And("user_id = ?", uid).Get(&UserSetting{})
+	return e.Table(&UserSetting{}).Exist(&UserSetting{UserID: uid, Key: strings.ToLower(key)})
 }
 
 // DeleteUserSetting deletes a specific setting for a user
@@ -87,9 +87,13 @@ func DeleteUserSetting(setting *UserSetting) error {
 	return sess.Commit()
 }
 
-// UpdateUserSettingValue updates a users' setting for a specific key
-func UpdateUserSettingValue(setting *UserSetting) error {
-	return updateUserSettingValue(x, setting)
+// SetUserSetting updates a users' setting for a specific key
+func SetUserSetting(setting *UserSetting) error {
+	err := addUserSetting(x, setting)
+	if err != nil && IsErrUserSettingExists(err) {
+		return updateUserSettingValue(x, setting)
+	}
+	return err
 }
 
 func updateUserSettingValue(e Engine, setting *UserSetting) error {
