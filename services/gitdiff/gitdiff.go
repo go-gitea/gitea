@@ -20,6 +20,7 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/charset"
@@ -1216,9 +1217,9 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 		return nil, err
 	}
 
-	// FIXME: graceful: These commands should likely have a timeout <- YES!!!
-	ctx, cancel := context.WithCancel(git.DefaultContext)
+	ctx, cancel := context.WithTimeout(git.DefaultContext, time.Duration(setting.Git.Timeout.Default)*time.Second)
 	defer cancel()
+
 	var cmd *exec.Cmd
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
 		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
