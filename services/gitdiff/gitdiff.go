@@ -1205,29 +1205,18 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	return name[2:], ambiguity
 }
 
-// GetDiffRange builds a Diff between two commits of a repository.
-// passing the empty string as beforeCommitID returns a diff from the
-// parent commit.
-func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID, maxLines, maxLineCharacters, maxFiles, "")
-}
-
 // GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
+func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
+	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	// FIXME: graceful: These commands should likely have a timeout
+	// FIXME: graceful: These commands should likely have a timeout <- YES!!!
 	ctx, cancel := context.WithCancel(git.DefaultContext)
 	defer cancel()
 	var cmd *exec.Cmd
@@ -1303,15 +1292,10 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	return diff, nil
 }
 
-// GetDiffCommit builds a Diff representing the given commitID.
-func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles, "")
-}
-
 // GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffCommitWithWhitespaceBehavior(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
+func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
 }
 
 // CommentAsDiff returns c.Patch as *Diff
