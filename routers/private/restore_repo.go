@@ -9,14 +9,13 @@ import (
 	"net/http"
 
 	myCtx "code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/private"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // RestoreRepo restore a repository from data
 func RestoreRepo(ctx *myCtx.PrivateContext) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bs, err := ioutil.ReadAll(ctx.Req.Body)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{

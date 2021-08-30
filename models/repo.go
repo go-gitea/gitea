@@ -1004,6 +1004,13 @@ type CreateRepoOptions struct {
 	MirrorInterval string
 }
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *Repository
+	Name        string
+	Description string
+}
+
 // GetRepoInitFile returns repository init files
 func GetRepoInitFile(tp, name string) ([]byte, error) {
 	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
@@ -1125,8 +1132,8 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		if err := u.loadTeams(ctx.e); err != nil {
+			return fmt.Errorf("loadTeams: %v", err)
 		}
 		for _, t := range u.Teams {
 			if t.IncludesAllRepositories {
@@ -1150,6 +1157,16 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	} else if err = repo.recalculateAccesses(ctx.e); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
+	}
+
+	if u.Visibility == api.VisibleTypePublic && !repo.IsPrivate {
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
 	}
 
 	if setting.Service.AutoWatchNewRepos {
@@ -1227,7 +1244,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
@@ -1238,7 +1255,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return err
 	}
 	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 	}
@@ -1310,15 +1327,16 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		isExist, err := util.IsExist(daemonExportFile)
+		isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 			return err
 		}
-		if repo.IsPrivate && isExist {
+		if !isPublic && isExist {
 			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
-		} else if !repo.IsPrivate && !isExist {
+		} else if isPublic && !isExist {
 			if f, err := os.Create(daemonExportFile); err != nil {
 				log.Error("Failed to create %s: %v", daemonExportFile, err)
 			} else {
@@ -1428,7 +1446,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.getTeams(sess); err != nil {
+		if err = org.loadTeams(sess); err != nil {
 			return err
 		}
 	}
@@ -1442,7 +1460,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, repo.ID, ListOptions{})
+	deployKeys, err := listDeployKeys(sess, &ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
@@ -1762,22 +1780,6 @@ func GetPublicRepositoryCount(u *User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *User) (int64, error) {
 	return getPrivateRepositoryCount(x, u)
-}
-
-// DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives(ctx context.Context) error {
-	return x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
-				default:
-				}
-				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
-			})
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.

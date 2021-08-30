@@ -70,13 +70,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
-	if ctx.Query("go-get") == "1" {
+	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return
 	}
 
 	var isPull, receivePack bool
-	service := ctx.Query("service")
+	service := ctx.FormString("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
@@ -196,6 +196,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
+			}
+
+			// Because of special ref "refs/for" .. , need delay write permission check
+			if git.SupportProcReceive {
+				accessMode = models.AccessModeRead
 			}
 
 			if !perm.CanAccess(accessMode, unitType) {

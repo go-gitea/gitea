@@ -33,7 +33,7 @@
 							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
 						{{else if eq .GetOpType 9}}
 							{{ $tagLink := .GetTag | EscapePound | Escape}}
-							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath .GetTag | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
@@ -89,19 +89,17 @@
 							<ul>
 								{{ $push := ActionContent2Commits .}}
 								{{ $repoLink := .GetRepoLink}}
-								{{if $push.Commits}}
-									{{range $push.Commits}}
-										{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
-										<li>
-											{{avatarHTML ($push.AvatarLink .AuthorEmail) 16 "mr-2" .AuthorName}}
-											<a class="commit-id mr-2" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
-											<span class="text truncate light grey">
-												{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}
-											</span>
-										</li>
-									{{end}}
+								{{range $push.Commits}}
+									{{ $commitLink := printf "%s/commit/%s" $repoLink .Sha1}}
+									<li>
+										{{avatarHTML ($push.AvatarLink .AuthorEmail) 16 "mr-2" .AuthorName}}
+										<a class="commit-id mr-2" href="{{$commitLink}}">{{ShortSha .Sha1}}</a>
+										<span class="text truncate light grey">
+											{{RenderCommitMessage .Message $repoLink $.ComposeMetas}}
+										</span>
+									</li>
 								{{end}}
-								{{if and (gt (len $push.Commits) 1) $push.CompareURL}}<li><a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.i18n.Tr "action.compare_commits" (len $push.Commits)}} »</a></li>{{end}}
+								{{if and (gt $push.Len 1) $push.CompareURL}}<li><a href="{{AppSubUrl}}/{{$push.CompareURL}}">{{$.i18n.Tr "action.compare_commits" $push.Len}} »</a></li>{{end}}
 							</ul>
 						</div>
 					{{else if eq .GetOpType 6}}

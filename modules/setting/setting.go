@@ -24,11 +24,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	jsoniter "github.com/json-iterator/go"
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
@@ -189,6 +189,7 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	SuccessfulTokensCacheSize          int
 
 	// UI settings
 	UI = struct {
@@ -840,6 +841,7 @@ func NewContext() {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadInternalToken(sec)
 
@@ -1116,7 +1118,6 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		Icons     []manifestIcon `json:"icons"`
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(&manifestJSON{
 		Name:      appName,
 		ShortName: appName,
@@ -1194,6 +1195,7 @@ func NewServices() {
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
+	newProxyService()
 	newWebhookService()
 	newMigrationsService()
 	newIndexerService()

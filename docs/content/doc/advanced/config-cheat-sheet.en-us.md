@@ -115,6 +115,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 ### Repository - Release (`repository.release`)
 
 - `ALLOWED_TYPES`: **\<empty\>**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
+- `DEFAULT_PAGING_NUM`: **10**: The default paging number of releases user interface
 
 ### Repository - Signing (`repository.signing`)
 
@@ -162,6 +163,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `METHODS`: **GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS**: list of methods allowed to request
 - `MAX_AGE`: **10m**: max time to cache response
 - `ALLOW_CREDENTIALS`: **false**: allow request with credentials
+- `X_FRAME_OPTIONS`: **SAMEORIGIN**: Set the `X-Frame-Options` header value.
 
 ## UI (`ui`)
 
@@ -300,7 +302,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LANDING_PAGE`: **home**: Landing page for unauthenticated users \[home, explore, organizations, login\].
 
 - `LFS_START_SERVER`: **false**: Enables git-lfs support.
-- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**:  DEPRECATED: Default LFS content path. (if it is on local storage.)
+- `LFS_CONTENT_PATH`: **%(APP_DATA_PATH)/lfs**: Default LFS content path. (if it is on local storage.) **DEPRECATED** use settings in `[lfs]`.
 - `LFS_JWT_SECRET`: **\<empty\>**: LFS authentication secret, change this a unique string.
 - `LFS_HTTP_AUTH_EXPIRY`: **20m**: LFS authentication validity period in time.Duration, pushes taking longer than this may fail.
 - `LFS_MAX_FILE_SIZE`: **0**: Maximum allowed LFS file size in bytes (Set to 0 for no limit).
@@ -440,6 +442,7 @@ relation to port exhaustion.
     - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
     - off - do not check password complexity
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
+- `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security. 
 
 ## OpenID (`openid`)
 
@@ -502,11 +505,12 @@ relation to port exhaustion.
 - `HCAPTCHA_SITEKEY`: **""**: Sign up at https://www.hcaptcha.com/ to get a sitekey for hcaptcha.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
+- `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
 - `DEFAULT_ENABLE_DEPENDENCIES`: **true**: Enable this to have dependencies enabled by default.
 - `ALLOW_CROSS_REPOSITORY_DEPENDENCIES` : **true** Enable this to allow dependencies on issues from any repository where the user is granted access.
 - `ENABLE_USER_HEATMAP`: **true**: Enable this to display the heatmap on users profiles.
 - `ENABLE_TIMETRACKING`: **true**: Enable Timetracking feature.
-- `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by deault.
+- `DEFAULT_ENABLE_TIMETRACKING`: **true**: Allow repositories to use timetracking by default.
 - `DEFAULT_ALLOW_ONLY_CONTRIBUTORS_TO_TRACK_TIME`: **true**: Only allow users with write permissions to track time.
 - `EMAIL_DOMAIN_WHITELIST`: **\<empty\>**: If non-empty, list of domain names that can only be used to register
   on this instance.
@@ -526,11 +530,10 @@ relation to port exhaustion.
 - `USER_DELETE_WITH_COMMENTS_MAX_TIME`: **0** Minimum amount of time a user must exist before comments are kept when the user is deleted.
 - `VALID_SITE_URL_SCHEMES`: **http, https**: Valid site url schemes for user profiles
 
-### Service - Expore (`service.explore`)
+### Service - Explore (`service.explore`)
 
 - `REQUIRE_SIGNIN_VIEW`: **false**: Only allow signed in users to view the explore pages.
 - `DISABLE_USERS_PAGE`: **false**: Disable the users explore page.
-
 
 ## SSH Minimum Key Sizes (`ssh.minimum_key_sizes`)
 
@@ -547,8 +550,8 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
-- `PROXY_URL`: ****: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
-- `PROXY_HOSTS`: ****: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+- `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
+- `PROXY_HOSTS`: **\<empty\>`**: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts. If not given, will use global proxy setting.
 
 ## Mailer (`mailer`)
 
@@ -590,11 +593,12 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 ## Cache (`cache`)
 
 - `ENABLED`: **true**: Enable the cache.
-- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, or `memcache`.
-- `INTERVAL`: **60**: Garbage Collection interval (sec), for memory cache only.
-- `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`.
+- `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
+- `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
+- `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`. For `twoqueue` sets configuration for the queue.
    - Redis: `redis://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
    - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
+   - TwoQueue LRU cache: `{"size":50000,"recent_ratio":0.25,"ghost_ratio":0.5}` or `50000` representing the maximum number of objects stored in the cache.
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to 0 disables caching.
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
@@ -739,7 +743,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 - `ENABLED`: **true**: Enable service.
 - `RUN_AT_START`: **true**: Run tasks at start up time (if ENABLED).
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 - `OLDER_THAN`: **24h**: Archives created more than `OLDER_THAN` ago are subject to deletion, e.g. `12h`.
 
 #### Cron - Update Mirrors (`cron.update_mirrors`)
@@ -749,31 +753,31 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 #### Cron - Repository Health Check (`cron.repo_health_check`)
 
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository health check.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository health check.
 - `TIMEOUT`: **60s**: Time duration syntax for health check execution timeout.
 - `ARGS`: **\<empty\>**: Arguments for command `git fsck`, e.g. `--unreachable --tags`. See more on http://git-scm.com/docs/git-fsck
 
 #### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: **true**: Run repository statistics check at start time.
-- `SCHEDULE`: **@every 24h**: Cron syntax for scheduling repository statistics check.
+- `SCHEDULE`: **@midnight**: Cron syntax for scheduling repository statistics check.
 
 ### Cron - Cleanup hook_task Table (`cron.cleanup_hook_task_table`)
 
 - `ENABLED`: **true**: Enable cleanup hook_task job.
 - `RUN_AT_START`: **false**: Run cleanup hook_task at start time (if ENABLED).
-- `SCHEDULE`: **@every 24h**: Cron syntax for cleaning hook_task table.
+- `SCHEDULE`: **@midnight**: Cron syntax for cleaning hook_task table.
 - `CLEANUP_TYPE` **OlderThan** OlderThan or PerWebhook Method to cleanup hook_task, either by age (i.e. how long ago hook_task record was delivered) or by the number to keep per webhook (i.e. keep most recent x deliveries per webhook).
 - `OLDER_THAN`: **168h**: If CLEANUP_TYPE is set to OlderThan, then any delivered hook_task records older than this expression will be deleted.
 - `NUMBER_TO_KEEP`: **10**: If CLEANUP_TYPE is set to PerWebhook, this is number of hook_task records to keep for a webhook (i.e. keep the most recent x deliveries).
 
 #### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
-- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
+- `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 
 #### Cron - Sync External Users (`cron.sync_external_users`)
 
-- `SCHEDULE`: **@every 24h** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
+- `SCHEDULE`: **@midnight** : Interval as a duration between each synchronization, it will always attempt synchronization when the instance starts.
 - `UPDATE_EXISTING`: **true**: Create new users, update existing user data and disable users that are not in external source anymore (default) or only create new users if UPDATE_EXISTING is set to false.
 
 ### Extended cron tasks (not enabled by default)
@@ -881,6 +885,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 ## Markup (`markup`)
 
+- `MERMAID_MAX_SOURCE_CHARACTERS`: **5000**: Set the maximum size of a Mermaid source. (Set to -1 to disable)
+
 Gitea can support Markup using external tools. The example below will add a markup named `asciidoc`.
 
 ```ini
@@ -945,6 +951,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
 - `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
+- `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
 
 ## Mirror (`mirror`)
 
@@ -1017,6 +1024,19 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `MINIO_LOCATION`: **us-east-1**: Minio location to create bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_BASE_PATH`: **repo-archive/**: Minio base path on the bucket only available when `STORAGE_TYPE` is `minio`
 - `MINIO_USE_SSL`: **false**: Minio enabled ssl only available when `STORAGE_TYPE` is `minio`
+
+## Proxy (`proxy`)
+
+- `PROXY_ENABLED`: **false**: Enable the proxy if true, all requests to external via HTTP will be affected, if false, no proxy will be used even environment http_proxy/https_proxy
+- `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy
+- `PROXY_HOSTS`: **\<empty\>**: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
+
+i.e.
+```ini
+PROXY_ENABLED = true
+PROXY_URL = socks://127.0.0.1:1080
+PROXY_HOSTS = *.github.com
+```
 
 ## Other (`other`)
 

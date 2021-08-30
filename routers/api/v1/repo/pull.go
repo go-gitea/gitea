@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListPullRequests returns a list of all PRs
@@ -84,10 +86,10 @@ func ListPullRequests(ctx *context.APIContext) {
 
 	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
 		ListOptions: listOptions,
-		State:       ctx.QueryTrim("state"),
-		SortType:    ctx.QueryTrim("sort"),
-		Labels:      ctx.QueryStrings("labels"),
-		MilestoneID: ctx.QueryInt64("milestone"),
+		State:       ctx.FormTrim("state"),
+		SortType:    ctx.FormTrim("sort"),
+		Labels:      ctx.FormStrings("labels"),
+		MilestoneID: ctx.FormInt64("milestone"),
 	})
 
 	if err != nil {
@@ -117,8 +119,7 @@ func ListPullRequests(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &apiPrs)
 }
 
@@ -308,7 +309,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	defer headGitRepo.Close()
 
 	// Check if another PR exists with the same targets
-	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch)
+	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, models.PullRequestFlowGithub)
 	if err != nil {
 		if !models.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetUnmergedPullRequest", err)
@@ -878,6 +879,38 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	log.Trace("Pull request merged: %d", pr.ID)
+
+	if form.DeleteBranchAfterMerge {
+		var headRepo *git.Repository
+		if ctx.Repo != nil && ctx.Repo.Repository != nil && ctx.Repo.Repository.ID == pr.HeadRepoID && ctx.Repo.GitRepo != nil {
+			headRepo = ctx.Repo.GitRepo
+		} else {
+			headRepo, err = git.OpenRepository(pr.HeadRepo.RepoPath())
+			if err != nil {
+				ctx.ServerError(fmt.Sprintf("OpenRepository[%s]", pr.HeadRepo.RepoPath()), err)
+				return
+			}
+			defer headRepo.Close()
+		}
+		if err := repo_service.DeleteBranch(ctx.User, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
+			switch {
+			case git.IsErrBranchNotExist(err):
+				ctx.NotFound(err)
+			case errors.Is(err, repo_service.ErrBranchIsDefault):
+				ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
+			case errors.Is(err, repo_service.ErrBranchIsProtected):
+				ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
+			default:
+				ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
+			}
+			return
+		}
+		if err := models.AddDeletePRBranchComment(ctx.User, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+			// Do not fail here as branch has already been deleted
+			log.Error("DeleteBranch: %v", err)
+		}
+	}
+
 	ctx.Status(http.StatusOK)
 }
 
@@ -1177,7 +1210,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	totalNumberOfCommits := commits.Len()
+	totalNumberOfCommits := len(commits)
 	totalNumberOfPages := int(math.Ceil(float64(totalNumberOfCommits) / float64(listOptions.PageSize)))
 
 	userCache := make(map[string]*models.User)
@@ -1188,37 +1221,24 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		end = totalNumberOfCommits
 	}
 
-	apiCommits := make([]*api.Commit, end-start)
-
-	i := 0
-	addedCommitsCount := 0
-	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
-		if i < start {
-			i++
-			continue
-		}
-		if i >= end {
-			break
-		}
-
-		commit := commitPointer.Value.(*git.Commit)
-
-		// Create json struct
-		apiCommits[addedCommitsCount], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
-		addedCommitsCount++
+	apiCommits := make([]*api.Commit, 0, end-start)
+	for i := start; i < end; i++ {
+		apiCommit, err := convert.ToCommit(ctx.Repo.Repository, commits[i], userCache)
 		if err != nil {
 			ctx.ServerError("toCommit", err)
 			return
 		}
-		i++
+		apiCommits = append(apiCommits, apiCommit)
 	}
 
-	ctx.SetLinkHeader(int(totalNumberOfCommits), listOptions.PageSize)
+	ctx.SetLinkHeader(totalNumberOfCommits, listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(totalNumberOfCommits))
 
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
 	ctx.Header().Set("X-PerPage", strconv.Itoa(listOptions.PageSize))
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumberOfCommits))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(totalNumberOfPages))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < totalNumberOfPages))
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-PageCount", "X-HasMore")
+
 	ctx.JSON(http.StatusOK, &apiCommits)
 }

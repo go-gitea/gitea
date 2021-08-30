@@ -8,7 +8,7 @@ package util
 func IntersectString(a, b []string) []string {
 	var intersection []string
 	for _, v := range a {
-		if ExistsInSlice(v, b) && !ExistsInSlice(v, intersection) {
+		if IsStringInSlice(v, b) && !IsStringInSlice(v, intersection) {
 			intersection = append(intersection, v)
 		}
 	}
@@ -19,7 +19,7 @@ func IntersectString(a, b []string) []string {
 func DifferenceString(a, b []string) []string {
 	var difference []string
 	for _, v := range a {
-		if !ExistsInSlice(v, b) && !ExistsInSlice(v, difference) {
+		if !IsStringInSlice(v, b) && !IsStringInSlice(v, difference) {
 			difference = append(difference, v)
 		}
 	}

@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -49,7 +48,8 @@ func Notifications(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if c.QueryBool("div-only") {
+	if c.FormBool("div-only") {
+		c.Data["SequenceNumber"] = c.FormString("sequence-number")
 		c.HTML(http.StatusOK, tplNotificationDiv)
 		return
 	}
@@ -58,10 +58,10 @@ func Notifications(c *context.Context) {
 
 func getNotifications(c *context.Context) {
 	var (
-		keyword = strings.Trim(c.Query("q"), " ")
+		keyword = c.FormTrim("q")
 		status  models.NotificationStatus
-		page    = c.QueryInt("page")
-		perPage = c.QueryInt("perPage")
+		page    = c.FormInt("page")
+		perPage = c.FormInt("perPage")
 	)
 	if page < 1 {
 		page = 1
@@ -86,7 +86,7 @@ func getNotifications(c *context.Context) {
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(int(total), perPage, page, 5)
 	if pager.Paginater.Current() < page {
-		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.Query("q"), pager.Paginater.Current()))
+		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.FormString("q"), pager.Paginater.Current()))
 		return
 	}
 
@@ -143,9 +143,9 @@ func getNotifications(c *context.Context) {
 // NotificationStatusPost is a route for changing the status of a notification
 func NotificationStatusPost(c *context.Context) {
 	var (
-		notificationID, _ = strconv.ParseInt(c.Req.PostFormValue("notification_id"), 10, 64)
-		statusStr         = c.Req.PostFormValue("status")
-		status            models.NotificationStatus
+		notificationID = c.FormInt64("notification_id")
+		statusStr      = c.FormString("status")
+		status         models.NotificationStatus
 	)
 
 	switch statusStr {
@@ -165,8 +165,8 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	if !c.QueryBool("noredirect") {
-		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.Query("page"))
+	if !c.FormBool("noredirect") {
+		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.FormString("page"))
 		c.Redirect(url, http.StatusSeeOther)
 	}
 
@@ -175,6 +175,7 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 	c.Data["Link"] = setting.AppURL + "notifications"
+	c.Data["SequenceNumber"] = c.Req.PostFormValue("sequence-number")
 
 	c.HTML(http.StatusOK, tplNotificationDiv)
 }

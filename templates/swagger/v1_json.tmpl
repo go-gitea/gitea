@@ -1940,6 +1940,18 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter by owner",
+            "name": "owner",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by team (requires organization owner parameter to be provided)",
+            "name": "team",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -3559,6 +3571,52 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/notes/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a note corresponding to a single commit from a repository",
+        "operationId": "repoGetNote",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "a git ref or commit sha",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Note"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -9651,7 +9709,7 @@
           "repository"
         ],
         "summary": "Add a topic to a repository",
-        "operationId": "repoAddTopíc",
+        "operationId": "repoAddTopic",
         "parameters": [
           {
             "type": "string",
@@ -10714,6 +10772,52 @@
         }
       }
     },
+    "/user/gpg_key_token": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a Token to verify",
+        "operationId": "getVerificationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/gpg_key_verify": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Verify a GPG key",
+        "operationId": "userVerifyGPGKey",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/GPGKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/user/gpg_keys": {
       "get": {
         "produces": [
@@ -11006,7 +11110,7 @@
         "tags": [
           "user"
         ],
-        "summary": "List the repos that the authenticated user owns or has access to",
+        "summary": "List the repos that the authenticated user owns",
         "operationId": "userCurrentListRepos",
         "parameters": [
           {
@@ -11871,18 +11975,10 @@
             "required": true
           },
           {
-            "name": "accessToken",
+            "name": "userCreateToken",
             "in": "body",
             "schema": {
-              "type": "object",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/CreateAccessTokenOption"
             }
           }
         ],
@@ -12608,6 +12704,17 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateAccessTokenOption": {
+      "description": "CreateAccessTokenOption options when create access token",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateBranchProtectionOption": {
       "description": "CreateBranchProtectionOption options for creating a branch protection",
       "type": "object",
@@ -12826,6 +12933,10 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "ArmoredKey"
+        },
+        "armored_signature": {
+          "type": "string",
+          "x-go-name": "Signature"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -12867,7 +12978,8 @@
             "msteams",
             "slack",
             "telegram",
-            "feishu"
+            "feishu",
+            "wechatwork"
           ],
           "x-go-name": "Type"
         }
@@ -14058,6 +14170,11 @@
           "type": "string",
           "x-go-name": "DefaultBranch"
         },
+        "default_delete_branch_after_merge": {
+          "description": "set to `true` to delete pr branch after merge by default",
+          "type": "boolean",
+          "x-go-name": "DefaultDeleteBranchAfterMerge"
+        },
         "default_merge_style": {
           "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
           "type": "string",
@@ -14479,6 +14596,10 @@
             "$ref": "#/definitions/GPGKey"
           },
           "x-go-name": "SubsKey"
+        },
+        "verified": {
+          "type": "boolean",
+          "x-go-name": "Verified"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15137,6 +15258,10 @@
         "MergeTitleField": {
           "type": "string"
         },
+        "delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DeleteBranchAfterMerge"
+        },
         "force_merge": {
           "type": "boolean",
           "x-go-name": "ForceMerge"
@@ -15382,6 +15507,20 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Note": {
+      "description": "Note contains information related to a git note",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/Commit"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16981,20 +17120,8 @@
   "responses": {
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
-      "headers": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "name": {
-          "type": "string"
-        },
-        "sha1": {
-          "type": "string"
-        },
-        "token_last_eight": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/AccessToken"
       }
     },
     "AccessTokenList": {
@@ -17355,6 +17482,12 @@
         "items": {
           "$ref": "#/definitions/Milestone"
         }
+      }
+    },
+    "Note": {
+      "description": "Note",
+      "schema": {
+        "$ref": "#/definitions/Note"
       }
     },
     "NotificationCount": {

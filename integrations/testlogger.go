@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var (
@@ -121,7 +121,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), slowFlush)
 			}
 		})
-		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
+		if err := queue.GetManager().FlushAll(context.Background(), 2*time.Minute); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		timer.Stop()
@@ -158,7 +158,6 @@ func NewTestLogger() log.LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *TestLogger) Init(config string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
 		return err

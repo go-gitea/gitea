@@ -34,29 +34,29 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 
-	serviceType := structs.GitServiceType(ctx.QueryInt("service_type"))
+	serviceType := structs.GitServiceType(ctx.FormInt("service_type"))
 
 	setMigrationContextData(ctx, serviceType)
 
 	if serviceType == 0 {
-		ctx.Data["Org"] = ctx.Query("org")
-		ctx.Data["Mirror"] = ctx.Query("mirror")
+		ctx.Data["Org"] = ctx.FormString("org")
+		ctx.Data["Mirror"] = ctx.FormString("mirror")
 
 		ctx.HTML(http.StatusOK, tplMigrate)
 		return
 	}
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
-	ctx.Data["lfs"] = ctx.Query("lfs") == "1"
-	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
-	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
-	ctx.Data["labels"] = ctx.Query("labels") == "1"
-	ctx.Data["issues"] = ctx.Query("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.Query("releases") == "1"
+	ctx.Data["mirror"] = ctx.FormString("mirror") == "1"
+	ctx.Data["lfs"] = ctx.FormString("lfs") == "1"
+	ctx.Data["wiki"] = ctx.FormString("wiki") == "1"
+	ctx.Data["milestones"] = ctx.FormString("milestones") == "1"
+	ctx.Data["labels"] = ctx.FormString("labels") == "1"
+	ctx.Data["issues"] = ctx.FormString("issues") == "1"
+	ctx.Data["pull_requests"] = ctx.FormString("pull_requests") == "1"
+	ctx.Data["releases"] = ctx.FormString("releases") == "1"
 
-	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
+	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
