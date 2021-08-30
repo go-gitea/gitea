@@ -2756,7 +2756,7 @@ $(document).ready(async () => {
     let {action, elementId, url} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.dataset.issueId;
-    }).get().join();
+    }).get().join(',');
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2956,13 +2956,19 @@ $(() => {
 
 function showDeletePopup() {
   const $this = $(this);
+  const dataArray = $this.data();
   let filter = '';
-  if ($this.attr('id')) {
-    filter += `#${$this.attr('id')}`;
+  if ($this.data('modal-id')) {
+    filter += `#${$this.data('modal-id')}`;
   }
 
   const dialog = $(`.delete.modal${filter}`);
   dialog.find('.name').text($this.data('name'));
+  for (const [key, value] of Object.entries(dataArray)) {
+    if (key && key.startsWith('data')) {
+      dialog.find(`.${key}`).text(value);
+    }
+  }
 
   dialog.modal({
     closable: false,
@@ -2972,10 +2978,19 @@ function showDeletePopup() {
         return;
       }
 
-      $.post($this.data('url'), {
+      const postData = {
         _csrf: csrf,
-        id: $this.data('id')
-      }).done((data) => {
+      };
+      for (const [key, value] of Object.entries(dataArray)) {
+        if (key && key.startsWith('data')) {
+          postData[key.substr(4)] = value;
+        }
+        if (key === 'id') {
+          postData['id'] = value;
+        }
+      }
+
+      $.post($this.data('url'), postData).done((data) => {
         window.location.href = data.redirect;
       });
     }

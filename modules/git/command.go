@@ -110,24 +110,47 @@ func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Dura
 // RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
 // it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
 func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	if timeout == -1 {
-		timeout = defaultCommandExecutionTimeout
+	return c.RunWithContext(&RunContext{
+		Env:          env,
+		Timeout:      timeout,
+		Dir:          dir,
+		Stdout:       stdout,
+		Stderr:       stderr,
+		Stdin:        stdin,
+		PipelineFunc: fn,
+	})
+}
+
+// RunContext represents parameters to run the command
+type RunContext struct {
+	Env            []string
+	Timeout        time.Duration
+	Dir            string
+	Stdout, Stderr io.Writer
+	Stdin          io.Reader
+	PipelineFunc   func(context.Context, context.CancelFunc) error
+}
+
+// RunWithContext run the command with context
+func (c *Command) RunWithContext(rc *RunContext) error {
+	if rc.Timeout == -1 {
+		rc.Timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(dir) == 0 {
+	if len(rc.Dir) == 0 {
 		log.Debug("%s", c)
 	} else {
-		log.Debug("%s: %v", dir, c)
+		log.Debug("%s: %v", rc.Dir, c)
 	}
 
-	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
+	ctx, cancel := context.WithTimeout(c.parentContext, rc.Timeout)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if env == nil {
+	if rc.Env == nil {
 		cmd.Env = os.Environ()
 	} else {
-		cmd.Env = env
+		cmd.Env = rc.Env
 	}
 
 	cmd.Env = append(
@@ -141,23 +164,23 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	if goVersionLessThan115 {
 		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
-	cmd.Dir = dir
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Stdin = stdin
+	cmd.Dir = rc.Dir
+	cmd.Stdout = rc.Stdout
+	cmd.Stderr = rc.Stderr
+	cmd.Stdin = rc.Stdin
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
+		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), rc.Dir)
 	}
 	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
 
-	if fn != nil {
-		err := fn(ctx, cancel)
+	if rc.PipelineFunc != nil {
+		err := rc.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()

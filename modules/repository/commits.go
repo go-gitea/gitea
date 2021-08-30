@@ -30,6 +30,7 @@ type PushCommits struct {
 	Commits    []*PushCommit
 	HeadCommit *PushCommit
 	CompareURL string
+	Len        int
 
 	avatars    map[string]string
 	emailUsers map[string]*models.User
@@ -180,5 +181,12 @@ func GitToPushCommits(gitCommits []*git.Commit) *PushCommits {
 	for _, commit := range gitCommits {
 		commits = append(commits, CommitToPushCommit(commit))
 	}
-	return &PushCommits{commits, nil, "", make(map[string]string), make(map[string]*models.User)}
+	return &PushCommits{
+		Commits:    commits,
+		HeadCommit: nil,
+		CompareURL: "",
+		Len:        len(commits),
+		avatars:    make(map[string]string),
+		emailUsers: make(map[string]*models.User),
+	}
 }

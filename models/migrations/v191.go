@@ -5,18 +5,25 @@
 package migrations
 
 import (
-	"fmt"
-
+	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/xorm"
 )
 
-func addBranchProtectionUnprotectedFilesColumn(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		UnprotectedFilePatterns string `xorm:"TEXT"`
+func alterIssueAndCommentTextFieldsToLongText(x *xorm.Engine) error {
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	if setting.Database.UseMySQL {
+		if _, err := sess.Exec("ALTER TABLE `issue` CHANGE `content` `content` LONGTEXT"); err != nil {
+			return err
+		}
+		if _, err := sess.Exec("ALTER TABLE `comment` CHANGE `content` `content` LONGTEXT, CHANGE `patch` `patch` LONGTEXT"); err != nil {
+			return err
+		}
 	}
-	return nil
+	return sess.Commit()
 }
