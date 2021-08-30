@@ -16,6 +16,7 @@ type DBIndexer struct {
 
 // Index repository status function
 func (db *DBIndexer) Index(id int64) error {
+	log.Debug("Indexing: Repo[%d]", id)
 	repo, err := models.GetRepositoryByID(id)
 	if err != nil {
 		return err
@@ -29,6 +30,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
+	log.Debug("Opening Git Repo for Repo: %-v", repo)
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return err
@@ -36,6 +38,7 @@ func (db *DBIndexer) Index(id int64) error {
 	defer gitRepo.Close()
 
 	// Get latest commit for default branch
+	log.Debug("Getting latest commit for default branch %s of Repo: %-v", repo.DefaultBranch, repo)
 	commitID, err := gitRepo.GetBranchCommitID(repo.DefaultBranch)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) || git.IsErrNotExist((err)) {
@@ -48,15 +51,21 @@ func (db *DBIndexer) Index(id int64) error {
 
 	// Do not recalculate stats if already calculated for this commit
 	if status.CommitSha == commitID {
+		log.Debug("Status already up-to-date for repo %-v", repo)
 		return nil
 	}
 
 	// Calculate and save language statistics to database
+	log.Debug("Calculating language statistics for commit:%s repo %-v", commitID, repo)
+
 	stats, err := gitRepo.GetLanguageStats(commitID)
 	if err != nil {
-		log.Error("Unable to get language stats for ID %s for defaultbranch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
+		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
+
+	log.Debug("Updating language statistics for commit: %s in repo %-v", commitID, repo)
+	defer log.Debug("Updated language statistics for commit: %s in repo %-v", commitID, repo)
 	return repo.UpdateLanguageStats(commitID, stats)
 }
 

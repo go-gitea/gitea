@@ -385,7 +385,7 @@ test\#%:
 
 .PHONY: coverage
 coverage:
-	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out coverage.out > coverage.all
+	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out coverage.out > coverage.all || (echo "gocovmerge failed"; cat integration.coverage.out coverage.out; exit 1)
 
 .PHONY: unit-test-coverage
 unit-test-coverage:

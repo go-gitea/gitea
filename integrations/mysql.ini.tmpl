@@ -97,14 +97,14 @@ PROVIDER        = file
 PROVIDER_CONFIG = integrations/gitea-integration-mysql/data/sessions
 
 [log]
-MODE                 = test,file
+MODE                 = test
 ROOT_PATH            = mysql-log
 ROUTER               = ,
-XORM                 = file
+XORM                 = ,
 ENABLE_SSH_LOG       = true
 
 [log.test]
-LEVEL                = Info
+LEVEL                = Debug
 COLORIZE             = true
 
 [log.file]
