@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"strings"
@@ -131,6 +132,9 @@ func wikiContentsByName(ctx *context.Context, commit *git.Commit, wikiName strin
 func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
+		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
 		if !git.IsErrNotExist(err) {
 			ctx.ServerError("GetBranchCommit", err)
 		}
@@ -354,17 +358,14 @@ func Wiki(ctx *context.Context) {
 	}
 
 	wikiRepo, entry := renderViewPage(ctx)
-	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-		return
-	}
 	defer func() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
 	}()
+	if ctx.Written() {
+		return
+	}
 	if entry == nil {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(200, tplWikiStart)
@@ -399,17 +400,15 @@ func WikiRevision(ctx *context.Context) {
 	}
 
 	wikiRepo, entry := renderRevisionPage(ctx)
-	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-		return
-	}
 	defer func() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
 	}()
+
+	if ctx.Written() {
+		return
+	}
 	if entry == nil {
 		ctx.Data["Title"] = ctx.Tr("repo.wiki")
 		ctx.HTML(200, tplWikiStart)
@@ -446,13 +445,14 @@ func WikiPages(ctx *context.Context) {
 		}
 		return
 	}
-
-	entries, err := commit.ListEntries()
-	if err != nil {
+	defer func() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
+	}()
 
+	entries, err := commit.ListEntries()
+	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
@@ -463,10 +463,6 @@ func WikiPages(ctx *context.Context) {
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
 		if err != nil {
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
-
 			ctx.ServerError("GetCommit", err)
 			return
 		}
@@ -475,10 +471,6 @@ func WikiPages(ctx *context.Context) {
 			if models.IsErrWikiInvalidFileName(err) {
 				continue
 			}
-			if wikiRepo != nil {
-				wikiRepo.Close()
-			}
-
 			ctx.ServerError("WikiFilenameToName", err)
 			return
 		}
@@ -490,21 +482,25 @@ func WikiPages(ctx *context.Context) {
 	}
 	ctx.Data["Pages"] = pages
 
-	defer func() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-	}()
-	ctx.HTML(200, tplWikiPages)
+	ctx.HTML(http.StatusOK, tplWikiPages)
 }
 
 // WikiRaw outputs raw blob requested by user (image for example)
 func WikiRaw(ctx *context.Context) {
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
-	if err != nil {
+	defer func() {
 		if wikiRepo != nil {
+			wikiRepo.Close()
+		}
+	}()
+
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("findEntryForFile", nil)
 			return
 		}
+		ctx.ServerError("findEntryForfile", err)
+		return
 	}
 
 	providedPath := ctx.Params("*")
@@ -520,9 +516,7 @@ func WikiRaw(ctx *context.Context) {
 
 		if entry == nil {
 			// Try to find a wiki page with that name
-			if strings.HasSuffix(providedPath, ".md") {
-				providedPath = providedPath[:len(providedPath)-3]
-			}
+			providedPath = strings.TrimSuffix(providedPath, ".md")
 
 			wikiPath := wiki_service.NameToFilename(providedPath)
 			entry, err = findEntryForFile(commit, wikiPath)
