@@ -47,8 +47,8 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 
 	if size < 4096 {
 		bs, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		defer cancel()
 		if err != nil {
-			cancel()
 			return nil, err
 		}
 		_, err = rd.Discard(1)
