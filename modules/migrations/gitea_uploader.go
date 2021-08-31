@@ -278,7 +278,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		if !release.Draft {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if err != nil {
-				return fmt.Errorf("GetCommit: %v", err)
+				return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
 			}
 			rel.NumCommits, err = commit.CommitsCount()
 			if err != nil {

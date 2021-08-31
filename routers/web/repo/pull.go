@@ -599,10 +599,9 @@ func ViewPullFiles(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var (
-		diffRepoPath  string
 		startCommitID string
 		endCommitID   string
-		gitRepo       *git.Repository
+		gitRepo       = ctx.Repo.GitRepo
 	)
 
 	var prInfo *git.CompareInfo
@@ -619,9 +618,6 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	diffRepoPath = ctx.Repo.GitRepo.Path
-	gitRepo = ctx.Repo.GitRepo
-
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
@@ -635,7 +631,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(gitRepo,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
@@ -1028,10 +1024,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	)
 
 	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	defer func() {
+		if headGitRepo != nil {
+			headGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}
-	defer headGitRepo.Close()
 
 	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
