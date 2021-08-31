@@ -526,7 +526,7 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(headGitRepo,
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior)
 	if err != nil {
