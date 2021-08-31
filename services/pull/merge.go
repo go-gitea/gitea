@@ -253,6 +253,8 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		}
 	case models.MergeStyleRebase:
 		fallthrough
+	case models.MergeStyleRebaseUpdate:
+		fallthrough
 	case models.MergeStyleRebaseMerge:
 		// Checkout head branch
 		if err := git.NewCommand("checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
@@ -304,6 +306,11 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		}
 		outbuf.Reset()
 		errbuf.Reset()
+
+		// not need merge, just update by rebase. so skip
+		if mergeStyle == models.MergeStyleRebaseUpdate {
+			break
+		}
 
 		// Checkout base branch again
 		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
@@ -410,8 +417,16 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		pr.ID,
 	)
 
+	var pushCmd *git.Command
+	if mergeStyle == models.MergeStyleRebaseUpdate {
+		// force push the rebase result to head brach
+		pushCmd = git.NewCommand("push", "-f", "head_repo", stagingBranch+":refs/heads/"+pr.HeadBranch)
+	} else {
+		pushCmd = git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch)
+	}
+
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := pushCmd.RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
