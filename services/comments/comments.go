@@ -26,6 +26,9 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 	if err != nil {
 		return nil, err
 	}
+
+	models.SaveIssueContentHistory(doer.ID, issue.ID, comment.ID, comment.CreatedUnix, comment.Content, true)
+
 	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 
 	return comment, nil
@@ -35,6 +38,10 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 func UpdateComment(c *models.Comment, doer *models.User, oldContent string) error {
 	if err := models.UpdateComment(c, doer); err != nil {
 		return err
+	}
+
+	if c.Type == models.CommentTypeComment && c.Content != oldContent {
+		models.SaveIssueContentHistory(doer.ID, c.IssueID, c.ID, c.UpdatedUnix, c.Content, false)
 	}
 
 	notification.NotifyUpdateComment(doer, c, oldContent)

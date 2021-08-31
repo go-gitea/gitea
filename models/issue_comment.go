@@ -1078,6 +1078,12 @@ func deleteComment(e Engine, comment *Comment) error {
 		return err
 	}
 
+	if _, err := e.Delete(&IssueContentHistory{
+		CommentID: comment.ID,
+	}); err != nil {
+		return err
+	}
+
 	if comment.Type == CommentTypeComment {
 		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
 			return err

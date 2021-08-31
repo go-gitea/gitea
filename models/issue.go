@@ -810,6 +810,8 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
+	SaveIssueContentHistory(issue.PosterID, issue.ID, 0, issue.UpdatedUnix, issue.Content, false)
+
 	if err = issue.addCrossReferences(sess, doer, true); err != nil {
 		return err
 	}
@@ -979,6 +981,9 @@ func newIssue(e *xorm.Session, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
+
+	SaveIssueContentHistory(opts.Issue.PosterID, opts.Issue.ID, 0, opts.Issue.CreatedUnix, opts.Issue.Content, true)
+
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
@@ -2132,6 +2137,12 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 
 func deleteIssuesByRepoID(sess Engine, repoID int64) (attachmentPaths []string, err error) {
 	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
+
+	// Delete content histories
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&IssueContentHistory{}); err != nil {
+		return
+	}
 
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).

@@ -739,6 +739,12 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/attachments", repo.GetIssueAttachments)
 				m.Get("/attachments/{uuid}", repo.GetAttachment)
 			})
+			m.Group("/{index}", func() {
+				m.Get("/content-history/overview", repo.GetContentHistoryOverview)
+				m.Get("/content-history/list", repo.GetContentHistoryList)
+				m.Get("/content-history/detail", repo.GetContentHistoryDetail)
+				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
+			})
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)

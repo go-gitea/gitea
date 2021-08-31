@@ -20,6 +20,7 @@ import initTableSort from './features/tablesort.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {initIssueContentHistory} from './features/issue-content-history.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {showLineButton} from './code/linebutton.js';
 import {initMarkupContent, initCommentContent} from './markup/content.js';
@@ -2839,6 +2840,7 @@ $(document).ready(async () => {
   initFileViewToggle();
   initReleaseEditor();
   initRelease();
+  initIssueContentHistory();
 
   const routes = {
     'div.user.settings': initUserSettings,
