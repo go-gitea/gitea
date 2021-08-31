@@ -373,6 +373,8 @@ const (
 	MergeStyleSquash MergeStyle = "squash"
 	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
 	MergeStyleManuallyMerged MergeStyle = "manually-merged"
+	// MergeStyleRebaseUpdate not a merge style, used to update pull head by rebase
+	MergeStyleRebaseUpdate MergeStyle = "rebase-update-only"
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
