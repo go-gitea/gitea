@@ -126,7 +126,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 
 	commit, err := gitRepo.GetCommit(mergeCommit[:40])
 	if err != nil {
-		return nil, fmt.Errorf("GetCommit: %v", err)
+		return nil, fmt.Errorf("GetMergeCommit[%v]: %v", mergeCommit[:40], err)
 	}
 
 	return commit, nil
