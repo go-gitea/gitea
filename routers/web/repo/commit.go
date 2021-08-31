@@ -268,9 +268,8 @@ func Diff(ctx *context.Context) {
 	repoName := ctx.Repo.Repository.Name
 	commitID := ctx.Params(":sha")
 	var (
-		gitRepo  *git.Repository
-		err      error
-		repoPath string
+		gitRepo *git.Repository
+		err     error
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
@@ -279,10 +278,9 @@ func Diff(ctx *context.Context) {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
 		}
-		repoPath = ctx.Repo.Repository.WikiPath()
+		defer gitRepo.Close()
 	} else {
 		gitRepo = ctx.Repo.GitRepo
-		repoPath = models.RepoPath(userName, repoName)
 	}
 
 	commit, err := gitRepo.GetCommit(commitID)
@@ -306,7 +304,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
 	ctx.Data["CommitStatuses"] = statuses
 
-	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(repoPath,
+	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(gitRepo,
 		commitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
