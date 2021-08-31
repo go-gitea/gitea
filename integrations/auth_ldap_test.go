@@ -98,7 +98,15 @@ func getLDAPServerHost() string {
 	return host
 }
 
-func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
+func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...string) {
+	teamGroupMapEnabled := "off"
+	teamGroupMapRemoval := "off"
+	teamGroupMap := ""
+	if len(groupMapParams) == 3 {
+		teamGroupMapEnabled = groupMapParams[0]
+		teamGroupMapRemoval = groupMapParams[1]
+		teamGroupMap = groupMapParams[2]
+	}
 	session := loginUser(t, "user1")
 	csrf := GetCSRF(t, session, "/admin/auths/new")
 	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
@@ -120,12 +128,12 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string) {
 		"attribute_ssh_public_key": sshKeyAttribute,
 		"is_sync_enabled":          "on",
 		"is_active":                "on",
-		"team_group_map_enabled":   "on",
-		"team_group_map_removal":   "on",
+		"team_group_map_enabled":   teamGroupMapEnabled,
+		"team_group_map_removal":   teamGroupMapRemoval,
 		"group_dn":                 "ou=people,dc=planetexpress,dc=com",
 		"group_member_uid":         "member",
 		"user_uid":                 "DN",
-		"team_group_map":           "{\"cn=ship_crew,ou=people,dc=planetexpress,dc=com\": {\"org26\": [\"team11\"]},\"cn=admin_staff,ou=people,dc=planetexpress,dc=com\": {\"non-existent\": [\"non-existent\"]},\"cn=non-existent,ou=people,dc=planetexpress,dc=com\": {\"non-existent\": [\"non-existent\"]}}",
+		"team_group_map":           teamGroupMap,
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 }
@@ -308,7 +316,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		return
 	}
 	defer prepareTestEnv(t)()
-	addAuthSourceLDAP(t, "")
+	addAuthSourceLDAP(t, "", "on", "on", "{\"cn=ship_crew,ou=people,dc=planetexpress,dc=com\":{\"org26\": [\"team11\"]},\"cn=admin_staff,ou=people,dc=planetexpress,dc=com\": {\"non-existent\": [\"non-existent\"]}}")
 	org, err := models.GetOrgByName("org26")
 	assert.NoError(t, err)
 	team, err := models.GetTeam(org.ID, "team11")
@@ -324,12 +332,14 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		assert.NoError(t, err)
 		if user.Name == "fry" || user.Name == "leela" || user.Name == "bender" {
 			// assert members of LDAP group "cn=ship_crew" are added to mapped teams
-			assert.Equal(t, len(usersOrgs), 1, "User should be member of one organization")
+			assert.Equal(t, len(usersOrgs), 1, "User [%s] should be member of one organization", user.Name)
 			assert.Equal(t, usersOrgs[0].Name, "org26", "Membership should be added to the right organization")
 			isMember, err := models.IsTeamMember(usersOrgs[0].ID, team.ID, user.ID)
 			assert.NoError(t, err)
 			assert.True(t, isMember, "Membership should be added to the right team")
 			err = team.RemoveMember(user.ID)
+			assert.NoError(t, err)
+			err = usersOrgs[0].RemoveMember(user.ID)
 			assert.NoError(t, err)
 		} else {
 			// assert members of LDAP group "cn=admin_staff" keep initial team membership since mapped team does not exist
@@ -348,14 +358,15 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 		return
 	}
 	defer prepareTestEnv(t)()
-	addAuthSourceLDAP(t, "")
-	auth.SyncExternalUsers(context.Background(), true)
+	addAuthSourceLDAP(t, "", "on", "on", "{\"cn=dispatch,ou=people,dc=planetexpress,dc=com\": {\"org26\": [\"team11\"]}}")
 	org, err := models.GetOrgByName("org26")
 	assert.NoError(t, err)
 	team, err := models.GetTeam(org.ID, "team11")
 	assert.NoError(t, err)
-	user, err := models.GetUserByName("professor")
-	assert.NoError(t, err)
+	loginUserWithPassword(t, gitLDAPUsers[0].UserName, gitLDAPUsers[0].Password)
+	user := models.AssertExistsAndLoadBean(t, &models.User{
+		Name: gitLDAPUsers[0].UserName,
+	}).(*models.User)
 	err = org.AddMember(user.ID)
 	assert.NoError(t, err)
 	err = team.AddMember(user.ID)
@@ -366,46 +377,14 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	isMember, err = models.IsTeamMember(org.ID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.True(t, isMember, "User should be member of this team")
-	// assert team member "professor" gets removed from "team11"
-	auth.SyncExternalUsers(context.Background(), true)
+	// assert team member "professor" gets removed from org26 team11
+	loginUserWithPassword(t, gitLDAPUsers[0].UserName, gitLDAPUsers[0].Password)
 	isMember, err = models.IsOrganizationMember(org.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember, "User membership should have been removed from organization")
 	isMember, err = models.IsTeamMember(org.ID, team.ID, user.ID)
 	assert.NoError(t, err)
 	assert.False(t, isMember, "User membership should have been removed from team")
-}
-
-func addBrokenLDAPMapAuthSource(t *testing.T, sshKeyAttribute string) {
-	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
-		"_csrf":                    csrf,
-		"type":                     "2",
-		"name":                     "ldap",
-		"host":                     getLDAPServerHost(),
-		"port":                     "389",
-		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
-		"bind_password":            "password",
-		"user_base":                "ou=people,dc=planetexpress,dc=com",
-		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
-		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
-		"restricted_filter":        "(uid=leela)",
-		"attribute_username":       "uid",
-		"attribute_name":           "givenName",
-		"attribute_surname":        "sn",
-		"attribute_mail":           "mail",
-		"attribute_ssh_public_key": sshKeyAttribute,
-		"is_sync_enabled":          "on",
-		"is_active":                "on",
-		"team_group_map_enabled":   "on",
-		"team_group_map_removal":   "on",
-		"group_dn":                 "ou=people,dc=planetexpress,dc=com",
-		"group_member_uid":         "member",
-		"user_uid":                 "DN",
-		"team_group_map":           "{\"NOT_A_VALID_JSON\"[\"MISSING_DOUBLE_POINT\"]}",
-	})
-	session.MakeRequest(t, req, http.StatusFound)
 }
 
 // Login should work even if Team Group Map contains a broken JSON
@@ -415,7 +394,7 @@ func TestBrokenLDAPMapUserSignin(t *testing.T) {
 		return
 	}
 	defer prepareTestEnv(t)()
-	addBrokenLDAPMapAuthSource(t, "")
+	addAuthSourceLDAP(t, "", "on", "on", "{\"NOT_A_VALID_JSON\"[\"MISSING_DOUBLE_POINT\"]}")
 
 	u := gitLDAPUsers[0]
 
