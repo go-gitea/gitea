@@ -83,7 +83,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		ctx.Data["PageIsTagList"] = false
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags()
+	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
