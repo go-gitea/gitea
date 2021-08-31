@@ -623,7 +623,6 @@ func CompareDiff(ctx *context.Context) {
 			headGitRepo.Close()
 		}
 	}()
-
 	if ctx.Written() {
 		return
 	}
