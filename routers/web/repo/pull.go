@@ -724,7 +724,7 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	rebase := ctx.Form("style") == "rebase"
+	rebase := ctx.FormString("style") == "rebase"
 
 	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
