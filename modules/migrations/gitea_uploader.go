@@ -880,7 +880,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
 			if err != nil {
-				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+				log.Warn("GetRefCommitID[%s]: %v, the review comment will be ignored", pr.GetGitRefName(), err)
+				continue
 			}
 
 			var patch string
