@@ -616,11 +616,14 @@ func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
-
+	defer func() {
+		if headGitRepo != nil {
+			headGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}
-	defer headGitRepo.Close()
 
 	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
