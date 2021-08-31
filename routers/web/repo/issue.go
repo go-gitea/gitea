@@ -419,9 +419,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	}
 
 	handleTeamMentions(ctx)
-	if ctx.Written() {
-		return
-	}
 }
 
 func retrieveProjects(ctx *context.Context, repo *models.Repository) {
