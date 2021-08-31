@@ -1065,6 +1065,11 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: style
+	//   in: query
+	//   description: how to update pull request
+	//   type: string
+	//   enum: [merge, rebase]
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
@@ -1111,13 +1116,15 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User)
+	rebase := ctx.FormString("style") == "rebase"
+
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUserAllowedToMerge", err)
 		return
 	}
 
-	if !allowedUpdate {
+	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -1125,7 +1132,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
 
-	if err = pull_service.Update(pr, ctx.User, message); err != nil {
+	if err = pull_service.Update(pr, ctx.User, message, rebase); err != nil {
 		if models.IsErrMergeConflicts(err) {
 			ctx.Error(http.StatusConflict, "Update", "merge failed because of conflict")
 			return
