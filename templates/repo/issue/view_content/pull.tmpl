@@ -281,7 +281,26 @@
 							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 						</div>
 						<div class="item-section-right">
-							{{if .UpdateAllowed}}
+							{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
+								<div class="dib">
+									<div class="ui buttons update-button">
+										<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
+											<span class="button-text">
+												{{$.i18n.Tr "repo.pulls.update_branch"}}
+											</span>
+										</button>
+
+										<div class="ui dropdown icon button no-text">
+											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+											<div class="menu">
+												<div class="item active selected" data-do="{{.Link}}/update">{{$.i18n.Tr "repo.pulls.update_branch"}}</div>
+												<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.i18n.Tr "repo.pulls.update_branch_rebase"}}</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							{{end}}
+							{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
 								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
 									{{.CsrfTokenHtml}}
 									<button class="ui compact button" data-do="update">
@@ -560,7 +579,26 @@
 						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 					</div>
 					<div>
-						{{if .UpdateAllowed}}
+						{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
+							<div class="dib">
+								<div class="ui buttons update-button">
+									<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
+										<span class="button-text">
+											{{$.i18n.Tr "repo.pulls.update_branch"}}
+										</span>
+									</button>
+
+									<div class="ui dropdown icon button no-text">
+										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+										<div class="menu">
+											<div class="item active selected" data-do="{{.Link}}/update">{{$.i18n.Tr "repo.pulls.update_branch"}}</div>
+											<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.i18n.Tr "repo.pulls.update_branch_rebase"}}</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+						{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
 							<form action="{{.Link}}/update" method="post">
 								{{.CsrfTokenHtml}}
 								<button class="ui compact button" data-do="update">
