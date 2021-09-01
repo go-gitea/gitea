@@ -1267,6 +1267,36 @@ async function initRepository() {
       $('.instruct-toggle').show();
     });
 
+    // Pull Request update button
+    const $pullUpdateButton = $('.update-button > button');
+    $pullUpdateButton.on('click', function (e) {
+      e.preventDefault();
+      const $this = $(this);
+      const redirect = $this.data('redirect');
+      $this.addClass('loading');
+      $.post($this.data('do'), {
+        _csrf: csrf
+      }).done((data) => {
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      });
+    });
+
+    $('.update-button > .dropdown').dropdown({
+      onChange(_text, _value, $choice) {
+        const $url = $choice.data('do');
+        if ($url) {
+          $pullUpdateButton.find('.button-text').text($choice.text());
+          $pullUpdateButton.data('do', $url);
+        }
+      }
+    });
+
     initReactionSelector();
   }
 
