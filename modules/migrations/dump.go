@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -481,7 +482,9 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
-						headBranch := filepath.Join(g.gitPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+						// a new branch name with <original_owner_name/original_branchname> will be created to as new head branch
+						ref := path.Join(pr.Head.OwnerName, pr.Head.Ref)
+						headBranch := filepath.Join(g.gitPath(), "refs", "heads", ref)
 						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
 							return err
 						}
@@ -494,10 +497,14 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 						if err != nil {
 							return err
 						}
+						pr.Head.Ref = ref
 					}
 				}
 			}
 		}
+		// whatever it's a forked repo PR, we have to change head info as the same as the base info
+		pr.Head.OwnerName = pr.Base.OwnerName
+		pr.Head.RepoName = pr.Base.RepoName
 	}
 
 	var err error
