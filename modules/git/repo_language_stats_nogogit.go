@@ -123,7 +123,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
 					// group languages, such as Pug -> HTML; SCSS -> CSS
 					group := enry.GetLanguageGroup(language)
-					if group != "" {
+					if len(group) == 0 {
 						language = group
 					}
 
