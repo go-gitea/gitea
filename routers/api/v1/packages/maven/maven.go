@@ -105,7 +105,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 	filename := params.Filename
 
 	ext := strings.ToLower(filepath.Ext(filename))
-	if ext == ".sha1" || ext == ".md5" {
+	if isChecksumExtension(ext) {
 		filename = filename[:len(filename)-len(ext)]
 	}
 
@@ -120,14 +120,22 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		return
 	}
 
-	if ext == ".sha1" {
-		ctx.PlainText(http.StatusOK, []byte(pf.HashSHA1))
+	if isChecksumExtension(ext) {
+		var hash string
+		switch ext {
+		case ".sha512":
+			hash = pf.HashSHA512
+		case ".sha256":
+			hash = pf.HashSHA256
+		case ".sha1":
+			hash = pf.HashSHA1
+		case ".md5":
+			hash = pf.HashMD5
+		}
+		ctx.PlainText(http.StatusOK, []byte(hash))
 		return
 	}
-	if ext == ".md5" {
-		ctx.PlainText(http.StatusOK, []byte(pf.HashMD5))
-		return
-	}
+
 	s, err := packages.NewContentStore().Get(p.ID, pf.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
@@ -180,29 +188,31 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	ext := filepath.Ext(params.Filename)
 
-	if ext == ".sha1" || ext == ".md5" {
-		if ext == ".sha1" {
-			pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-5])
-			if err != nil {
-				if err == models.ErrPackageFileNotExist {
-					ctx.Error(http.StatusNotFound, "", "")
-					return
-				}
-				log.Error("GetFileByName: %v", err)
-				ctx.Error(http.StatusInternalServerError, "", err)
+	// Do not upload checksum files but compare the hashes.
+	if isChecksumExtension(ext) {
+		pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-5])
+		if err != nil {
+			if err == models.ErrPackageFileNotExist {
+				ctx.Error(http.StatusNotFound, "", "")
 				return
 			}
+			log.Error("GetFileByName: %v", err)
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
 
-			hash, err := ioutil.ReadAll(buf)
-			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "", err)
-				return
-			}
+		hash, err := ioutil.ReadAll(buf)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "", err)
+			return
+		}
 
-			if pf.HashSHA1 != string(hash) {
-				ctx.Error(http.StatusBadRequest, "", "hash mismatch")
-				return
-			}
+		if (ext == ".md5" && pf.HashMD5 != string(hash)) ||
+			(ext == ".sha1" && pf.HashSHA1 != string(hash)) ||
+			(ext == ".sha256" && pf.HashSHA256 != string(hash)) ||
+			(ext == ".sha512" && pf.HashSHA512 != string(hash)) {
+			ctx.Error(http.StatusBadRequest, "", "hash mismatch")
+			return
 		}
 
 		ctx.PlainText(http.StatusOK, nil)
@@ -244,6 +254,10 @@ func UploadPackageFile(ctx *context.APIContext) {
 	}
 
 	ctx.PlainText(http.StatusCreated, nil)
+}
+
+func isChecksumExtension(ext string) bool {
+	return ext == ".sha512" || ext == ".sha256" || ext == ".sha1" || ext == ".md5"
 }
 
 type parameters struct {
