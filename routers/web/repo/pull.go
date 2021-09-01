@@ -450,7 +450,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	if headBranchExist {
-		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
@@ -724,6 +724,8 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
+	rebase := ctx.FormString("style") == "rebase"
+
 	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
@@ -733,14 +735,14 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
 
 	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
-	if !allowedUpdate {
+	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
@@ -749,7 +751,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	if err = pull_service.Update(issue.PullRequest, ctx.User, message); err != nil {
+	if err = pull_service.Update(issue.PullRequest, ctx.User, message, rebase); err != nil {
 		if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
