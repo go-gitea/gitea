@@ -7,6 +7,7 @@ package comments
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // CreateIssueComment creates a plain issue comment.
@@ -27,7 +28,7 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 		return nil, err
 	}
 
-	models.SaveIssueContentHistory(doer.ID, issue.ID, comment.ID, comment.CreatedUnix, comment.Content, true)
+	models.SaveIssueContentHistory(doer.ID, issue.ID, comment.ID, timeutil.TimeStampNow(), comment.Content, true)
 
 	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 
@@ -41,7 +42,7 @@ func UpdateComment(c *models.Comment, doer *models.User, oldContent string) erro
 	}
 
 	if c.Type == models.CommentTypeComment && c.Content != oldContent {
-		models.SaveIssueContentHistory(doer.ID, c.IssueID, c.ID, c.UpdatedUnix, c.Content, false)
+		models.SaveIssueContentHistory(doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 	}
 
 	notification.NotifyUpdateComment(doer, c, oldContent)
