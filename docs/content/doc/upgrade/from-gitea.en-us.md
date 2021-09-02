@@ -32,7 +32,7 @@ to a new structure that may differ from the old version.
 
 For example:
 
-| From | To |  |
+| From | To | Result |
 | --- | --- | --- |
 | 1.4.0 | 1.4.1 | ✅ |
 | 1.4.1 | 1.4.0 | ✅ |
