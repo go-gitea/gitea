@@ -25,8 +25,8 @@ If an upgrade action is required, Gitea will take some time to complete the upgr
 
 ## Backup for downgrade
 
-Gitea keeps compatibility for versions whose first two fields are the same (`a.b.x` -> `a.b.y`), 
-these versions can be upgraded and downgraded with the same database structure. 
+Gitea keeps compatibility for patch versions whose first two fields are the same (`a.b.x` -> `a.b.y`), 
+these patch versions can be upgraded and downgraded with the same database structure. 
 Otherwise (`a.b.?` -> `a.c.?`), a newer Gitea version will upgrade the old database 
 to a new structure that may differ from the old version.
 
@@ -40,7 +40,10 @@ For example:
 | 1.5.0 | 1.4.1 | ❌ Database already got upgraded and can not be used for an old Gitea |
 
 **Since you can not run an old Gitea with an upgraded database, 
-a backup should always be made before an upgrade.** 
+a backup should always be made before a database upgrade.** 
+
+If you use Gitea in production, it's always highly recommended to make a backup before upgrade,
+even if the upgrade is between patch versions.
 
 Backup steps:
 
