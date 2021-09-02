@@ -287,6 +287,15 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Remove utf8 option from installation page (#16126)
   * Use Wants= over Requires= in systemd file (#15897)
 
+## [1.14.7](https://github.com/go-gitea/gitea/releases/tag/v1.14.7) - 2021-09-02
+
+* BUGFIXES
+  * Add missing gitRepo close at GetDiffRangeWithWhitespaceBehavior (Partial #16894) (#16896)
+  * Fix wiki raw commit diff/patch view (#16891) (#16893)
+  * Ensure wiki repos are all closed (#16886) (#16889)
+  * Upgrade xorm to v1.2.2 (#16663) & Add test to ensure that dumping of login sources remains correct (#16847) (#16849)
+  * Recreate Tables should Recreate indexes on MySQL (#16718) (#16740)
+
 ## [1.14.6](https://github.com/go-gitea/gitea/releases/tag/v1.14.6) - 2021-08-04
 
 * SECURITY
