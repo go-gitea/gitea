@@ -46,12 +46,13 @@ func intializePackage(p *models.Package) (*Package, error) {
 	}, nil
 }
 
-func sortPackagesByVersionASC(packages []*Package) []*Package {
+// Maven and Gradle order packages by their creation timestamp and not by their version string
+func sortPackagesByCreationASC(packages []*Package) []*Package {
 	sortedPackages := make([]*Package, len(packages))
 	copy(sortedPackages, packages)
 
 	sort.Slice(sortedPackages, func(i, j int) bool {
-		return sortedPackages[i].Version < sortedPackages[j].Version
+		return sortedPackages[i].CreatedUnix < sortedPackages[j].CreatedUnix
 	})
 
 	return sortedPackages

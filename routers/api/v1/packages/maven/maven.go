@@ -7,6 +7,8 @@ package maven
 import (
 	"crypto/md5"
 	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -28,7 +30,13 @@ import (
 	package_service "code.gitea.io/gitea/services/packages"
 )
 
-const mavenMetadataFile = "maven-metadata.xml"
+const (
+	mavenMetadataFile = "maven-metadata.xml"
+	extensionMD5      = ".md5"
+	extensionSHA1     = ".sha1"
+	extensionSHA256   = ".sha256"
+	extensionSHA512   = ".sha512"
+)
 
 var (
 	errInvalidParameters = errors.New("Request parameters are invalid")
@@ -43,7 +51,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	if params.IsMeta {
+	if params.IsMeta && params.Version == "" {
 		serveMavenMetadata(ctx, params)
 	} else {
 		servePackageFile(ctx, params)
@@ -51,46 +59,54 @@ func DownloadPackageFile(ctx *context.APIContext) {
 }
 
 func serveMavenMetadata(ctx *context.APIContext, params parameters) {
-	if params.Version == "" {
-		// /com/foo/project/maven-metadata.xml[.sha1/.md5]
+	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
-		packageName := params.GroupID + "-" + params.ArtifactID
-		packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageMaven, packageName)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "", err)
-			return
-		}
-		if len(packages) == 0 {
-			ctx.Error(http.StatusNotFound, "", err)
-			return
-		}
-
-		mavenPackages, err := intializePackages(packages)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "", err)
-			return
-		}
-
-		xmlMetadata, err := xml.Marshal(createMetadataResponse(mavenPackages))
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "", err)
-			return
-		}
-		xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
-
-		switch strings.ToLower(filepath.Ext(params.Filename)) {
-		case ".sha1":
-			ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("%x", sha1.Sum(xmlMetadataWithHeader))))
-		case ".md5":
-			ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("%x", md5.Sum(xmlMetadataWithHeader))))
-		default:
-			ctx.PlainText(http.StatusOK, xmlMetadataWithHeader)
-		}
-	} else {
-		// /com/foo/project/1-SNAPSHOT/maven-metadata.xml[.sha1/.md5]
-
-		ctx.Error(http.StatusNotFound, "", "")
+	packageName := params.GroupID + "-" + params.ArtifactID
+	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageMaven, packageName)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
 	}
+	if len(packages) == 0 {
+		ctx.Error(http.StatusNotFound, "", "")
+		return
+	}
+
+	mavenPackages, err := intializePackages(packages)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	xmlMetadata, err := xml.Marshal(createMetadataResponse(mavenPackages))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+	xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
+
+	ext := strings.ToLower(filepath.Ext(params.Filename))
+	if isChecksumExtension(ext) {
+		var hash []byte
+		switch ext {
+		case extensionMD5:
+			tmp := md5.Sum(xmlMetadataWithHeader)
+			hash = tmp[:]
+		case extensionSHA1:
+			tmp := sha1.Sum(xmlMetadataWithHeader)
+			hash = tmp[:]
+		case extensionSHA256:
+			tmp := sha256.Sum256(xmlMetadataWithHeader)
+			hash = tmp[:]
+		case extensionSHA512:
+			tmp := sha512.Sum512(xmlMetadataWithHeader)
+			hash = tmp[:]
+		}
+		ctx.PlainText(http.StatusOK, []byte(fmt.Sprintf("%x", hash)))
+		return
+	}
+
+	ctx.PlainText(http.StatusOK, xmlMetadataWithHeader)
 }
 
 func servePackageFile(ctx *context.APIContext, params parameters) {
@@ -123,14 +139,14 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 	if isChecksumExtension(ext) {
 		var hash string
 		switch ext {
-		case ".sha512":
-			hash = pf.HashSHA512
-		case ".sha256":
-			hash = pf.HashSHA256
-		case ".sha1":
-			hash = pf.HashSHA1
-		case ".md5":
+		case extensionMD5:
 			hash = pf.HashMD5
+		case extensionSHA1:
+			hash = pf.HashSHA1
+		case extensionSHA256:
+			hash = pf.HashSHA256
+		case extensionSHA512:
+			hash = pf.HashSHA512
 		}
 		ctx.PlainText(http.StatusOK, []byte(hash))
 		return
@@ -155,7 +171,8 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	log.Trace("Parameters: %+v", params)
 
-	if params.IsMeta {
+	// Ignore the package index /<name>/maven-metadata.xml
+	if params.IsMeta && params.Version == "" {
 		ctx.PlainText(http.StatusOK, nil)
 		return
 	}
@@ -190,7 +207,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-5])
+		pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-len(ext)])
 		if err != nil {
 			if err == models.ErrPackageFileNotExist {
 				ctx.Error(http.StatusNotFound, "", "")
@@ -207,10 +224,10 @@ func UploadPackageFile(ctx *context.APIContext) {
 			return
 		}
 
-		if (ext == ".md5" && pf.HashMD5 != string(hash)) ||
-			(ext == ".sha1" && pf.HashSHA1 != string(hash)) ||
-			(ext == ".sha256" && pf.HashSHA256 != string(hash)) ||
-			(ext == ".sha512" && pf.HashSHA512 != string(hash)) {
+		if (ext == extensionMD5 && pf.HashMD5 != string(hash)) ||
+			(ext == extensionSHA1 && pf.HashSHA1 != string(hash)) ||
+			(ext == extensionSHA256 && pf.HashSHA256 != string(hash)) ||
+			(ext == extensionSHA512 && pf.HashSHA512 != string(hash)) {
 			ctx.Error(http.StatusBadRequest, "", "hash mismatch")
 			return
 		}
@@ -257,7 +274,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 }
 
 func isChecksumExtension(ext string) bool {
-	return ext == ".sha512" || ext == ".sha256" || ext == ".sha1" || ext == ".md5"
+	return ext == extensionMD5 || ext == extensionSHA1 || ext == extensionSHA256 || ext == extensionSHA512
 }
 
 type parameters struct {
@@ -275,7 +292,11 @@ func extractPathParameters(ctx *context.APIContext) (parameters, error) {
 		Filename: parts[len(parts)-1],
 	}
 
-	p.IsMeta = p.Filename == mavenMetadataFile || p.Filename == mavenMetadataFile+".sha1" || p.Filename == mavenMetadataFile+".md5"
+	p.IsMeta = p.Filename == mavenMetadataFile ||
+		p.Filename == mavenMetadataFile+extensionMD5 ||
+		p.Filename == mavenMetadataFile+extensionSHA1 ||
+		p.Filename == mavenMetadataFile+extensionSHA256 ||
+		p.Filename == mavenMetadataFile+extensionSHA512
 
 	parts = parts[:len(parts)-1]
 	if len(parts) == 0 {
