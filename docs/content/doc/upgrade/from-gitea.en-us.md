@@ -19,7 +19,7 @@ menu:
 
 {{< toc >}}
 
-Gitea provides automatically upgrade mechanism. Just get a new Gitea, stop the old one, run the new one.
+To update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
 Everytime a Gitea instance runs, it checks whether an upgrade action should be taken. 
 If an upgrade action is required, Gitea will take some time to complete the upgrade and then serve.
 
