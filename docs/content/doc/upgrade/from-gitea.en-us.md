@@ -27,8 +27,8 @@ If an upgrade action is required, Gitea will take some time to complete the upgr
 
 Gitea keeps compatibility for versions whose first two fields are the same (`a.b.x` -> `a.b.y`), 
 these versions can be upgraded and downgraded with the same database structure. 
-Otherwise (`a.b.?` -> `a.c.?`), a new Gitea will upgrade an old database 
-to a new structure which may not be used by an old Gitea.
+Otherwise (`a.b.?` -> `a.c.?`), a newer Gitea version will upgrade the old database 
+to a new structure that may differ from the old version.
 
 For example:
 
