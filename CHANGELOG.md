@@ -4,6 +4,35 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.1](https://github.com/go-gitea/gitea/releases/tag/v1.15.1) - 2021-09-02
+
+* BUGFIXES
+  * Allow BASIC authentication access to /:owner/:repo/releases/download/* (#16916) (#16923)
+  * Prevent leave changes dialogs due to autofill fields (#16912) (#16920)
+  * Ignore review comment when ref commit is missed (#16905) (#16919)
+  * Fix wrong attachment removal (#16915) (#16917)
+  * Gitlab Migrator: dont ignore reactions of last request (#16903) (#16913)
+  * Correctly return the number of Repositories for Organizations (#16807) (#16911)
+  * Test if LFS object is accessible (#16865) (#16904)
+  * Fix git.Blob.DataAsync(): close pipe since we return a NopCloser (#16899) (#16900)
+  * Fix dump and restore respository (#16698) (#16898)
+  * Repare and Improve GetDiffRangeWithWhitespaceBehavior (#16894) (#16895)
+  * Fix wiki raw commit diff/patch view (#16891) (#16892)
+  * Ensure wiki repos are all closed (#16886) (#16888)
+  * List limited and private orgs if authenticated on API (#16866) (#16879)
+  * Simplify split diff view generation and remove JS dependency (#16775) (#16863)
+  * Ensure that the default visibility is set on the user create page (#16845) (#16862)
+  * In Render tolerate not being passed a context (#16842) (#16858)
+  * Upgrade xorm to v1.2.2 (#16663) & Add test to ensure that dumping of login sources remains correct (#16847) (#16848)
+  * Report the correct number of pushes on the feeds (#16811) (#16822)
+  * Add primary_key to issue_index (#16813) (#16820)
+  * Prevent NPE on empty commit (#16812) (#16819)
+  * Fix branch pagination error (#16805) (#16816)
+  * Add missing return to handleSettingRemoteAddrError (#16794) (#16795)
+  * Remove spurious / from issues.opened_by (#16793)
+  * Ensure that template compilation panics are sent to the logs (#16788) (#16792)
+  * Update caddyserver/certmagic (#16789) (#16790)
+
 ## [1.15.0](https://github.com/go-gitea/gitea/releases/tag/v1.15.0) - 2021-08-21
 
 * BREAKING
