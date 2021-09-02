@@ -58,7 +58,7 @@ a snapshot for the Gitea data volume and related object storage is more convenie
 
 * `docker pull` the latest Gitea release.
 * Stop the running instance, backup data.
-* Use `docker` or `docker-compose` to start the Gitea Docker instance.
+* Use `docker` or `docker-compose` to start the newer Gitea Docker container.
 
 ## Upgrade from package
 
