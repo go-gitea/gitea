@@ -24,10 +24,11 @@ func (source *Source) SyncLdapGroupsToTeams(user *models.User, ldapTeamAdd map[s
 		}
 		if isMember, err := models.IsOrganizationMember(org.ID, user.ID); !isMember && err == nil {
 			log.Trace("LDAP group sync: adding user [%s] to organization [%s]", user.Name, org.Name)
-		}
-		err = org.AddMember(user.ID)
-		if err != nil {
-			log.Error("LDAP group sync: Could not add user to organization: %v", err)
+			err = org.AddMember(user.ID)
+			if err != nil {
+				log.Error("LDAP group sync: Could not add user to organization: %v", err)
+				continue
+			}
 		}
 		for _, teamName := range teamNames {
 			team, err := org.GetTeam(teamName)
@@ -38,6 +39,8 @@ func (source *Source) SyncLdapGroupsToTeams(user *models.User, ldapTeamAdd map[s
 			}
 			if isMember, err := models.IsTeamMember(org.ID, team.ID, user.ID); !isMember && err == nil {
 				log.Trace("LDAP group sync: adding user [%s] to team [%s]", user.Name, org.Name)
+			} else {
+				continue
 			}
 			err = team.AddMember(user.ID)
 			if err != nil {
@@ -67,6 +70,8 @@ func removeMappedMemberships(user *models.User, ldapTeamRemove map[string][]stri
 			}
 			if isMember, err := models.IsTeamMember(org.ID, team.ID, user.ID); isMember && err == nil {
 				log.Trace("LDAP group sync: removing user [%s] from team [%s]", user.Name, org.Name)
+			} else {
+				continue
 			}
 			err = team.RemoveMember(user.ID)
 			if err != nil {
@@ -74,8 +79,11 @@ func removeMappedMemberships(user *models.User, ldapTeamRemove map[string][]stri
 			}
 		}
 		if remainingTeams, err := models.GetUserOrgTeams(org.ID, user.ID); err == nil && len(remainingTeams) == 0 {
+			// only remove organization membership when no team memberships are left for this organization
 			if isMember, err := models.IsOrganizationMember(org.ID, user.ID); isMember && err == nil {
 				log.Trace("LDAP group sync: removing user [%s] from organization [%s]", user.Name, org.Name)
+			} else {
+				continue
 			}
 			err = org.RemoveMember(user.ID)
 			if err != nil {
