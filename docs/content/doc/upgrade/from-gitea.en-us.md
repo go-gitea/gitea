@@ -40,7 +40,6 @@ For example:
 | 1.5.0 | 1.4.1 | ❌ Database already got upgraded and can not be used for an old Gitea |
 
 **Since you can not run an old Gitea with an upgraded database, 
-if stability is the top priority and you want to make sure there is a chance to downgrade,
 a backup should always be made before upgrade.** 
 
 Backup steps:
