@@ -46,14 +46,13 @@ a backup should always be made before upgrade.**
 Backup steps:
 
 * Stop Gitea instance
-* Backup database (important)
-* Backup Gitea config (optional)
-* Backup Gitea data files in `APP_DATA_PATH` (optional)
-
-`optional` means that these data seldom have compatibility problems between different versions unless specially mentioned. 
+* Backup database
+* Backup Gitea config
+* Backup Gitea data files in `APP_DATA_PATH`
+* Backup Gitea external storage (eg: S3/MinIO or other storages if used)
 
 If you are using cloud services or filesystems with snapshot feature,
-a snapshot for the Gitea data volume is more convenient.
+a snapshot for the Gitea data volume and related object storage is more convenient.
 
 
 ## Upgrade with Docker
