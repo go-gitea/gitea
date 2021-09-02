@@ -244,7 +244,7 @@ func (ls *Source) getMappedTeams(l *ldap.Conn, uid string) (map[string][]string,
 	// unmarshall LDAP group team map from configs
 	ldapGroupsToTeams := ls.mapLdapGroupsToTeams()
 	// select all LDAP groups from settings
-	allLdapGroups := util.KeysString(ldapGroupsToTeams).([]string)
+	allLdapGroups := util.GetKeys(ldapGroupsToTeams).([]string)
 	// contains LDAP config groups, which the user is a member of
 	usersLdapGroupsToAdd := util.IntersectString(allLdapGroups, usersLdapGroups)
 	// contains LDAP config groups, which the user is not a member of

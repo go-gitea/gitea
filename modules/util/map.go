@@ -9,8 +9,8 @@ import (
 	"reflect"
 )
 
-// KeysString returns a slice of keys from a map, dict must be a map
-func KeysString(dict interface{}) interface{} {
+// GetKeys returns a slice of keys from a map, dict must be a map
+func GetKeys(dict interface{}) interface{} {
 	value := reflect.ValueOf(dict)
 	valueType := value.Type()
 	if value.Kind() == reflect.Map {
@@ -22,5 +22,5 @@ func KeysString(dict interface{}) interface{} {
 		}
 		return resultSlice.Interface()
 	}
-	panic(fmt.Sprintf("Type %s is not supported by KeysString", valueType.String()))
+	panic(fmt.Sprintf("Type %s is not supported by GetKeys", valueType.String()))
 }
