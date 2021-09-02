@@ -63,7 +63,7 @@ a snapshot for the Gitea data volume and related object storage is more convenie
 ## Upgrade from package
 
 * Stop the running instance, backup data.
-* Use package manager to upgrade Gitea to the latest version.
+* Use your package manager to upgrade Gitea to the latest version.
 * Start the Gitea instance.
 
 ## Upgrade from binary
