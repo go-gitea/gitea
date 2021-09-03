@@ -91,6 +91,7 @@ func Copy(dstStorage ObjectStorage, dstPath string, srcStorage ObjectStorage, sr
 // Clean delete all the objects in this storage
 func Clean(storage ObjectStorage) error {
 	return storage.IterateObjects(func(path string, obj Object) error {
+		_ = obj.Close()
 		return storage.Delete(path)
 	})
 }
