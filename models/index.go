@@ -14,7 +14,7 @@ import (
 // ResourceIndex represents a resource index which could be used as issue/release and others
 // We can create different tables i.e. issue_index, release_index and etc.
 type ResourceIndex struct {
-	GroupID  int64 `xorm:"pk"`
+	GroupID  int64 `xorm:"pk unique"`
 	MaxIndex int64 `xorm:"index"`
 }
 
