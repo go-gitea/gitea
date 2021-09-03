@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -36,14 +37,30 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
-	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
+	searchOpts := &models.SearchUserOptions{
 		Actor: ctx.User,
 		Type:  models.UserTypeIndividual,
 		ListOptions: models.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
 		SearchByEmail: true,
-	}, tplUsers)
+	}
+
+	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
+	statusFilterMap := map[string]string{}
+	for _, filterKey := range statusFilterKeys {
+		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
+	}
+
+	searchOpts.IsActive = util.OptionalBoolParse(statusFilterMap["is_active"])
+	searchOpts.IsAdmin = util.OptionalBoolParse(statusFilterMap["is_admin"])
+	searchOpts.IsRestricted = util.OptionalBoolParse(statusFilterMap["is_restricted"])
+	searchOpts.IsTwoFactorEnabled = util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"])
+	searchOpts.IsProhibitLogin = util.OptionalBoolParse(statusFilterMap["is_prohibit_login"])
+
+	ctx.Data["StatusFilterMap"] = statusFilterMap
+
+	explore.RenderUserSearch(ctx, searchOpts, tplUsers)
 }
 
 // NewUser render adding a new user page
