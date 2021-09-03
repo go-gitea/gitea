@@ -4,6 +4,11 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.2](https://github.com/go-gitea/gitea/releases/tag/v1.15.2) - 2021-09-03
+
+* BUGFIXES
+  * Add unique constraint back into issue_index (#16938)
+
 ## [1.15.1](https://github.com/go-gitea/gitea/releases/tag/v1.15.1) - 2021-09-02
 
 * BUGFIXES
