@@ -64,7 +64,6 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 
 	opts.Keyword = ctx.FormTrim("q")
 	opts.OrderBy = orderBy
-
 	if len(opts.Keyword) == 0 || isKeywordValid(opts.Keyword) {
 		users, count, err = models.SearchUsers(opts)
 		if err != nil {
@@ -72,7 +71,6 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 			return
 		}
 	}
-
 	ctx.Data["Keyword"] = opts.Keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Users"] = users
