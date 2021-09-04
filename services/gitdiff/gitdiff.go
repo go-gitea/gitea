@@ -1124,6 +1124,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 					curFile.IsBin = true
 					curFile.IsLFSFile = true
 					curSection.Lines = nil
+					lastLeftIdx = -1
 				}
 			}
 		}
