@@ -590,6 +590,7 @@ func Routes() *web.Route {
 			})
 		}
 		m.Get("/version", misc.Version)
+		m.Get("/nodeinfo", misc.NodeInfo)
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
