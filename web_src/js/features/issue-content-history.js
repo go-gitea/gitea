@@ -2,6 +2,11 @@ import {svg} from '../svg.js';
 
 const {AppSubUrl, csrf} = window.config;
 
+let i18nTextEdited;
+let i18nTextOptions;
+let i18nTextDeleteFromHistory;
+let i18nTextDeleteFromHistoryConfirm;
+
 function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleHtml) {
   let $dialog = $('.content-history-detail-dialog');
   if ($dialog.length) return;
@@ -12,9 +17,9 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   <div class="header">
     ${itemTitleHtml}
     <div class="ui dropdown right dialog-header-options" style="margin-right: 50px;">
-      Options <i class="dropdown icon"></i>
+      ${i18nTextOptions} <i class="dropdown icon"></i>
       <div class="menu">
-        <div class="item red text" data-option-item="delete">Delete from history</div>
+        <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
       </div>
     </div>
   </div>
@@ -30,7 +35,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
     onChange(_value, _text, $item) {
       const optionItem = $item.data('option-item');
       if (optionItem === 'delete') {
-        if (window.confirm('Delete from history?')) {
+        if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
           $.post(`${issueBaseUrl}/content-history/soft-delete?comment_id=${commentId}&history_id=${historyId}`, {
             _csrf: csrf,
           }).done((resp) => {
@@ -66,11 +71,11 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   }).modal('show');
 }
 
-function showContentHistoryMenu(issueBaseUrl, $item, commentId, historyCount) {
+function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   const $headerLeft = $item.find('.comment-header-left');
   const menuHtml = `
   <div class="ui pointing dropdown top left content-history-menu" data-comment-id="${commentId}">
-    <a>&bull; Edited (${historyCount}) ${svg('octicon-triangle-down', 17)}</a>
+    <a>&bull; ${i18nTextEdited} ${svg('octicon-triangle-down', 17)}</a>
     <div class="menu">
     </div>
   </div>`;
@@ -109,13 +114,18 @@ export function initIssueContentHistory() {
       _csrf: csrf,
     },
   }).done((resp) => {
+    i18nTextEdited = resp.i18n.textEdited;
+    i18nTextDeleteFromHistory = resp.i18n.textDeleteFromHistory;
+    i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
+    i18nTextOptions = resp.i18n.textOptions;
+
     if (resp.historyCountMap[0]) {
-      showContentHistoryMenu(issueBaseUrl, $itemIssue, '0', resp.historyCountMap[0]);
+      showContentHistoryMenu(issueBaseUrl, $itemIssue, '0');
     }
-    for (const [commentId, historyCount] of Object.entries(resp.historyCountMap)) {
+    for (const [commentId, _historyCount] of Object.entries(resp.historyCountMap)) {
       if (commentId === '0') continue;
       const $itemComment = $(`#issuecomment-${commentId}`);
-      showContentHistoryMenu(issueBaseUrl, $itemComment, commentId, historyCount);
+      showContentHistoryMenu(issueBaseUrl, $itemComment, commentId);
     }
   });
 }

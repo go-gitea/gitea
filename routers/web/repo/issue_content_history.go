@@ -25,7 +25,15 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	if issue == nil {
 		return
 	}
+
+	lang := ctx.Data["Lang"].(string)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"i18n": map[string]interface{}{
+			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
+			"textDeleteFromHistory":        i18n.Tr(lang, "repo.issues.content_history.delete_from_history"),
+			"textDeleteFromHistoryConfirm": i18n.Tr(lang, "repo.issues.content_history.delete_from_history_confirm"),
+			"textOptions":                  i18n.Tr(lang, "repo.issues.content_history.options"),
+		},
 		"historyCountMap": models.QueryIssueContentHistoryCountMap(issue.ID),
 	})
 }
