@@ -70,7 +70,7 @@
 
 		</div>
 
-		{{if or .Repository.IsMirror (not .DisabledMirrors)}}
+		{{if .MirrorsEnabled}}
 			<h4 class="ui top attached header">
 				{{.i18n.Tr "repo.settings.mirror_settings"}}
 			</h4>
@@ -191,6 +191,7 @@
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
 						</tr>
 						{{end}}
+						{{if (not .DisableNewPushMirrors)}}
 						<tr>
 							<td colspan="4">
 								<form class="ui form" method="post">
@@ -227,6 +228,7 @@
 								</form>
 							</td>
 						</tr>
+						{{end}}
 					</tbody>
 				</table>
 			</div>
