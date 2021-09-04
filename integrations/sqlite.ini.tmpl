@@ -11,6 +11,9 @@ ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-sqlite/indexers/issues.
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH    = integrations/gitea-integration-sqlite/indexers/repos.bleve
 
+[queue]
+TYPE = immediate
+
 [queue.code_indexer]
 TYPE = immediate
 

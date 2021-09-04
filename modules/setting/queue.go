@@ -7,8 +7,6 @@ package setting
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -22,12 +20,8 @@ type QueueSettings struct {
 	BatchLength      int
 	ConnectionString string
 	Type             string
-	Network          string
-	Addresses        string
-	Password         string
 	QueueName        string
 	SetName          string
-	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
 	Timeout          time.Duration
@@ -83,7 +77,6 @@ func GetQueueSettings(name string) QueueSettings {
 	q.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(Queue.BoostTimeout)
 	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
 
-	q.Network, q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
 	return q
 }
 
@@ -100,7 +93,6 @@ func NewQueueService() {
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString("")
 	defaultType := sec.Key("TYPE").String()
 	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")
-	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
@@ -166,29 +158,4 @@ func NewQueueService() {
 	if _, ok := sectionMap["LENGTH"]; !ok {
 		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
 	}
-}
-
-// ParseQueueConnStr parses a queue connection string
-func ParseQueueConnStr(connStr string) (network, addrs, password string, dbIdx int, err error) {
-	fields := strings.Fields(connStr)
-	for _, f := range fields {
-		items := strings.SplitN(f, "=", 2)
-		if len(items) < 2 {
-			continue
-		}
-		switch strings.ToLower(items[0]) {
-		case "network":
-			network = items[1]
-		case "addrs":
-			addrs = items[1]
-		case "password":
-			password = items[1]
-		case "db":
-			dbIdx, err = strconv.Atoi(items[1])
-			if err != nil {
-				return
-			}
-		}
-	}
-	return
 }

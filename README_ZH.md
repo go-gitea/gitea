@@ -15,7 +15,7 @@
   <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="Go Report Card">
+  <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
   </a>
   <a href="https://godoc.org/code.gitea.io/gitea" title="GoDoc">

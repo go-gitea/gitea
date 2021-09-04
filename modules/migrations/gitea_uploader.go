@@ -278,7 +278,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		if !release.Draft {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if err != nil {
-				return fmt.Errorf("GetCommit: %v", err)
+				return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
 			}
 			rel.NumCommits, err = commit.CommitsCount()
 			if err != nil {
@@ -609,6 +609,9 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 	// download patch file
 	err := func() error {
+		if pr.PatchURL == "" {
+			return nil
+		}
 		// pr.PatchURL maybe a local file
 		ret, err := uri.Open(pr.PatchURL)
 		if err != nil {
@@ -877,7 +880,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
 			if err != nil {
-				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+				log.Warn("GetRefCommitID[%s]: %v, the review comment will be ignored", pr.GetGitRefName(), err)
+				continue
 			}
 
 			var patch string
