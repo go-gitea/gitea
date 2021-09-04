@@ -198,7 +198,7 @@
 									<input type="hidden" name="action" value="push-mirror-add">
 									<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
 										<label for="push_mirror_address">{{.i18n.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
-										<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
+										<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" autocomplete="off" required>
 										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 									</div>
 									<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
