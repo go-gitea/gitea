@@ -1671,15 +1671,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	type Join struct {
-		Operator  string
-		Table     interface{}
-		Condition string
-		Args      []interface{}
-	}
-
-	var joins []*Join
-
+	sess = x.NewSession()
 	if !opts.IsTwoFactorEnabled.IsNone() {
 		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
 		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
@@ -1688,21 +1680,18 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		} else {
 			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
 		}
-		joins = append(joins, &Join{Operator: "LEFT OUTER", Table: "two_factor", Condition: "two_factor.uid = `user`.id"})
+		sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
 	}
-
-	sess = x.Where(cond)
-	for _, join := range joins {
-		sess = sess.Join(join.Operator, join.Table, join.Condition, join.Args...)
-	}
-
+	sess = sess.Where(cond)
 	return sess
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
 func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	count, err := opts.toSearchQueryBase().Count(new(User))
+	sessCount := opts.toSearchQueryBase()
+	defer sessCount.Close()
+	count, err := sessCount.Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
@@ -1711,13 +1700,14 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
+	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
+	defer sessQuery.Close()
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sessQuery = opts.setSessionPagination(sessQuery)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, sess.Find(&users)
+	return users, count, sessQuery.Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
