@@ -1138,6 +1138,7 @@ func UpdatePullRequest(ctx *context.APIContext) {
 			return
 		} else if models.IsErrRebaseConflicts(err) {
 			ctx.Error(http.StatusConflict, "Update", "rebase failed because of conflict")
+			return
 		}
 		ctx.Error(http.StatusInternalServerError, "pull_service.Update", err)
 		return
