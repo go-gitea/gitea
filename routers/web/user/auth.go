@@ -706,7 +706,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *mod
 	updateAvatarIfNeed(gothUser.AvatarURL, u)
 
 	needs2FA := false
-	if !source.Cfg.(*oauth2.Source).OverrideLocalTwoFA {
+	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
 		_, err := models.GetTwoFactorByUID(u.ID)
 		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)

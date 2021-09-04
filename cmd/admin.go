@@ -289,8 +289,8 @@ var (
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
 		cli.BoolFlag{
-			Name:  "override-local-2fa",
-			Usage: "Set to true to override local 2fa settings",
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
 	}
 
@@ -620,7 +620,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
-		OverrideLocalTwoFA:            c.Bool("override-local-2fa"),
+		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 	}
 }
 
