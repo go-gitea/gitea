@@ -350,6 +350,8 @@ var (
 
 	// Mirror settings
 	Mirror struct {
+		Enabled         bool
+		AllowedModes    string
 		DefaultInterval time.Duration
 		MinInterval     time.Duration
 	}
@@ -939,6 +941,10 @@ func NewContext() {
 	newGit()
 
 	sec = Cfg.Section("mirror")
+	Mirror.Enabled = sec.Key("ENABLED").MustBool(
+		// fallback to old config repository.DISABLE_MIRRORS
+		!Cfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false),
+	)
 	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
 	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
 	if Mirror.MinInterval.Minutes() < 1 {

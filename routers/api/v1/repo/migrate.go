@@ -108,7 +108,7 @@ func Migrate(ctx *context.APIContext) {
 
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
-	if form.Mirror && setting.Repository.DisableMirrors {
+	if form.Mirror && !setting.Mirror.Enabled {
 		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
 		return
 	}

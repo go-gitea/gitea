@@ -203,7 +203,7 @@ func MigratePost(ctx *context.Context) {
 		RepoName:       form.RepoName,
 		Description:    form.Description,
 		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
+		Mirror:         form.Mirror && setting.Mirror.Enabled,
 		LFS:            form.LFS,
 		LFSEndpoint:    form.LFSEndpoint,
 		AuthUsername:   form.AuthUsername,
@@ -246,7 +246,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["DisableMirrors"] = !setting.Mirror.Enabled
 
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)
