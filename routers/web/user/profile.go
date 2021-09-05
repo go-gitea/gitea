@@ -337,7 +337,7 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User) {
 		IncludePrivate:  false,
 		OnlyPerformedBy: true,
 		IncludeDeleted:  false,
-		Date:            ctx.Query("date"),
+		Date:            ctx.FormString("date"),
 	})
 	if ctx.Written() {
 		return
