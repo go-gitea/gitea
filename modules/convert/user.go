@@ -75,9 +75,9 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		result.IsAdmin = &user.IsAdmin
 		lastLogin := user.LastLoginUnix.AsTime()
 		result.LastLogin = &lastLogin
-		result.Language = user.Language
-		result.IsActive = user.IsActive
-		result.ProhibitLogin = user.ProhibitLogin
+		result.Language = &user.Language
+		result.IsActive = &user.IsActive
+		result.ProhibitLogin = &user.ProhibitLogin
 	}
 	return result
 }
