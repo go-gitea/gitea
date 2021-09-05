@@ -21,11 +21,11 @@ func addRepoIDForAttachment(x *xorm.Engine) error {
 		return err
 	}
 
-	if _, err := x.Exec("UPDATE attachment set repo_id = (SELECT repo_id FROM issue WHERE issue.id = issue_id) WHERE issue_id > 0"); err != nil {
+	if _, err := x.Exec("UPDATE `attachment` set repo_id = (SELECT repo_id FROM `issue` WHERE `issue`.id = `attachment`.issue_id) WHERE `attachment`.issue_id > 0"); err != nil {
 		return err
 	}
 
-	if _, err := x.Exec("UPDATE attachment set repo_id = (SELECT repo_id FROM release WHERE release.id = release_id) WHERE release_id > 0"); err != nil {
+	if _, err := x.Exec("UPDATE `attachment` set repo_id = (SELECT repo_id FROM `release` WHERE `release`.id = `attachment`.release_id) WHERE `attachment`.release_id > 0"); err != nil {
 		return err
 	}
 

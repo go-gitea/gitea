@@ -22,11 +22,10 @@ func Test_addRepoIDForAttachment(t *testing.T) {
 
 	// Prepare and load the testing database
 	x, deferable := prepareTestEnv(t, 0, new(Attachment))
+	defer deferable()
 	if x == nil || t.Failed() {
-		defer deferable()
 		return
 	}
-	defer deferable()
 
 	// Run the migration
 	if err := addRepoIDForAttachment(x); err != nil {
