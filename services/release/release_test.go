@@ -106,7 +106,7 @@ func TestRelease_Create(t *testing.T) {
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, []byte{}, strings.NewReader("testtest"))
+	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
 	var release = models.Release{
@@ -239,7 +239,7 @@ func TestRelease_Update(t *testing.T) {
 		RepoID:     repo.RepoID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, []byte{}, strings.NewReader("testtest"))
+	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))

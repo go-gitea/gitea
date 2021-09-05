@@ -43,24 +43,12 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
-
-	err = upload.Verify(buf, header.Filename, allowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.User.ID, repoID, 0, header.Filename, allowedTypes)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	attach, err := attachment.NewAttachment(&models.Attachment{
-		RepoID:     repoID,
-		UploaderID: ctx.User.ID,
-		Name:       header.Filename,
-	}, buf, file)
-	if err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
 		return
 	}

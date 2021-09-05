@@ -24,16 +24,11 @@ func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, err)
 	defer f.Close()
 
-	buf := make([]byte, 1024)
-	n, err := f.Read(buf)
-	assert.NoError(t, err)
-	buf = buf[:n]
-
 	attach, err := NewAttachment(&models.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
-	}, buf, f)
+	}, f)
 	assert.NoError(t, err)
 
 	attachment, err := models.GetAttachmentByUUID(attach.UUID)
