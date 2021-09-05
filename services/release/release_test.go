@@ -236,7 +236,7 @@ func TestRelease_Update(t *testing.T) {
 
 	// Add new attachments
 	attach, err := attachment.NewAttachment(&models.Attachment{
-		RepoID:     repo.RepoID,
+		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
 	}, strings.NewReader("testtest"))
