@@ -14,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMain(m *testing.M) {
+	models.MainTest(m, filepath.Join("..", ".."))
+}
+
 func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 
