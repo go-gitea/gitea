@@ -15,6 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/attachment"
 )
 
 // GetReleaseAttachment gets a single attachment of the release
@@ -195,7 +196,8 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 
 	// Create a new attachment and save the file
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     release.RepoID,
 		UploaderID: ctx.User.ID,
 		Name:       filename,
 		ReleaseID:  release.ID,

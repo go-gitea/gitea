@@ -28,6 +28,7 @@ func TestUploadAttachment(t *testing.T) {
 	buf = buf[:n]
 
 	attach, err := NewAttachment(&Attachment{
+		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
 	}, buf, f)

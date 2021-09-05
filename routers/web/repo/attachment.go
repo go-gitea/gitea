@@ -16,20 +16,21 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/attachment"
 )
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, setting.Attachment.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Attachment.AllowedTypes)
 }
 
 // UploadReleaseAttachment response for uploading release attachments
 func UploadReleaseAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, setting.Repository.Release.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Repository.Release.AllowedTypes)
 }
 
 // UploadAttachment response for uploading attachments
-func uploadAttachment(ctx *context.Context, allowedTypes string) {
+func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	if !setting.Attachment.Enabled {
 		ctx.Error(http.StatusNotFound, "attachment is not enabled")
 		return
@@ -54,7 +55,8 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 		return
 	}
 
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repoID,
 		UploaderID: ctx.User.ID,
 		Name:       header.Filename,
 	}, buf, file)

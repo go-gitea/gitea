@@ -530,12 +530,7 @@ func (repo *Repository) DeleteWiki() error {
 }
 
 func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath()}
-	for _, wikiPath := range wikiPaths {
-		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
-	}
-
-	_, err := e.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
+	_, err := x.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
 	return err
 }
 
@@ -1579,10 +1574,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	// FIXME: Remove repository files should be executed after transaction succeed.
-	repoPath := repo.RepoPath()
-	removeAllWithNotice(sess, "Delete repository files", repoPath)
-
 	err = repo.deleteWiki(sess)
 	if err != nil {
 		return err
@@ -1594,6 +1585,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	var lfsPaths = make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
@@ -1603,7 +1595,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
+		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
@@ -1616,10 +1608,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	var archivePaths = make([]string, 0, len(archives))
 	for _, v := range archives {
 		v.Repo = repo
 		p, _ := v.RelativePath()
-		removeStorageWithNotice(sess, storage.RepoArchives, "Delete repo archive file", p)
+		archivePaths = append(archivePaths, p)
 	}
 
 	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
@@ -1632,6 +1625,21 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
+	// Get all attachments with both issue_id and release_id are zero
+	var newAttachments []*Attachment
+	if err := sess.Where(builder.Eq{
+		"repo_id":    repo.ID,
+		"issue_id":   0,
+		"release_id": 0,
+	}).Find(&newAttachments); err != nil {
+		return err
+	}
+
+	var newAttachmentPaths = make([]string, 0, len(newAttachments))
+	for _, attach := range newAttachments {
+		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}
@@ -1641,6 +1649,25 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// We should always delete the files after the database transaction succeed. If
 	// we delete the file but the database rollback, the repository will be broken.
 
+	// Remove repository files.
+	repoPath := repo.RepoPath()
+	removeAllWithNotice(x, "Delete repository files", repoPath)
+
+	// Remove wiki files
+	if repo.HasWiki() {
+		removeAllWithNotice(x, "Delete repository wiki", repo.WikiPath())
+	}
+
+	// Remove archives
+	for i := range archivePaths {
+		removeStorageWithNotice(x, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+	}
+
+	// Remove lfs objects
+	for i := range lfsPaths {
+		removeStorageWithNotice(x, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+	}
+
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
 		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
@@ -1649,6 +1676,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Remove release attachment files.
 	for i := range releaseAttachments {
 		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+	}
+
+	// Remove attachment with no issue_id and release_id.
+	for i := range newAttachmentPaths {
+		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {

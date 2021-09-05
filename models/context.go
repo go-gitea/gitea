@@ -66,3 +66,9 @@ func Iterate(ctx DBContext, tableBean interface{}, cond builder.Cond, fun func(i
 		BufferSize(setting.Database.IterateBufferSize).
 		Iterate(tableBean, fun)
 }
+
+// Insert inserts records into database
+func Insert(ctx DBContext, beans ...interface{}) error {
+	_, err := ctx.e.Insert(beans...)
+	return err
+}
