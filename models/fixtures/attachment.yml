@@ -90,8 +90,7 @@
 -
   id: 10
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
-  repo_id: 1
-  release_id: 5
+  repo_id: 0 # TestGetAttachment/NotLinked
   uploader_id: 8
   name: attach1
   download_count: 0
