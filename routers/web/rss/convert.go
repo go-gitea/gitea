@@ -2,6 +2,8 @@ package rss
 
 import (
 	"fmt"
+	"html"
+	"net/url"
 	"strings"
 	"time"
 
@@ -22,79 +24,60 @@ func FeedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 		title = tmpTypeName(act.OpType)
 
 		// title
+		title = act.ActUser.DisplayName() + " "
 		{
 			switch act.OpType {
-
 			case models.ActionCreateRepo:
-				title = ctx.Tr("action.create_repo", act.GetRepoLink(), act.ShortRepoPath())
+				title += ctx.Tr("action.create_repo", act.GetRepoLink(), act.ShortRepoPath())
 			case models.ActionRenameRepo:
-				title = ctx.Tr("action.rename_repo", act.GetContent(), act.GetRepoLink(), act.ShortRepoPath())
+				title += ctx.Tr("action.rename_repo", act.GetContent(), act.GetRepoLink(), act.ShortRepoPath())
 			case models.ActionCommitRepo:
 				branchLink := act.GetBranch()
 				if len(act.Content) != 0 {
-					title = ctx.Tr("action.commit_repo", act.GetRepoLink(), branchLink, act.GetBranch(), act.ShortRepoPath())
+					title += ctx.Tr("action.commit_repo", act.GetRepoLink(), branchLink, act.GetBranch(), act.ShortRepoPath())
 				} else {
-					title = ctx.Tr("action.create_branch", act.GetRepoLink(), branchLink, act.GetBranch(), act.ShortRepoPath())
+					title += ctx.Tr("action.create_branch", act.GetRepoLink(), branchLink, act.GetBranch(), act.ShortRepoPath())
 				}
 			case models.ActionCreateIssue:
-				title = `	{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.create_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.create_issue", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionCreatePullRequest:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.create_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.create_pull_request", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionTransferRepo:
-				title = `{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.transfer_repo", act.GetContent(), act.GetRepoLink(), act.ShortRepoPath())
 			case models.ActionPushTag:
-				title = `{{ $tagLink := .GetTag | EscapePound | Escape}}
-			{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.push_tag", act.GetRepoLink(), url.QueryEscape(act.GetTag()), act.ShortRepoPath())
 			case models.ActionCommentIssue:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.comment_issue", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionMergePullRequest:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.merge_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.merge_pull_request", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionCloseIssue:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.close_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.close_issue", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionReopenIssue:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.reopen_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.reopen_issue", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionClosePullRequest:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.close_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.close_pull_request", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionReopenPullRequest:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.reopen_pull_request", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath)
 			case models.ActionDeleteTag:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetTag|Escape) .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.delete_tag", act.GetRepoLink(), html.EscapeString(act.GetTag()), act.ShortRepoPath())
 			case models.ActionDeleteBranch:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.delete_branch" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.delete_branch", act.GetRepoLink(), html.EscapeString(act.GetBranch()), act.ShortRepoPath())
 			case models.ActionMirrorSyncPush:
-				title = `{{ $branchLink := .GetBranch | EscapePound}}
-			{{$.i18n.Tr "action.mirror_sync_push" .GetRepoLink $branchLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.mirror_sync_push", act.GetRepoLink(), url.QueryEscape(act.GetBranch()), html.EscapeString(act.GetBranch()), act.ShortRepoPath())
 			case models.ActionMirrorSyncCreate:
-				title = `{{$.i18n.Tr "action.mirror_sync_create" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.mirror_sync_create", act.GetRepoLink(), html.EscapeString(act.GetBranch()), act.ShortRepoPath())
 			case models.ActionMirrorSyncDelete:
-				title = `{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.mirror_sync_delete", act.GetRepoLink(), html.EscapeString(act.GetBranch()), act.ShortRepoPath())
 			case models.ActionApprovePullRequest:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.approve_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.approve_pull_request", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionRejectPullRequest:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.reject_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.reject_pull_request", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionCommentPull:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{$.i18n.Tr "action.comment_pull" .GetRepoLink $index .ShortRepoPath | Str2html}}`
+				title += ctx.Tr("action.comment_pull", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath())
 			case models.ActionPublishRelease:
-				title = `{{ $branchLink := .GetBranch | EscapePound | Escape}}
-			{{ $linkText := .Content | RenderEmoji }}
-			{{$.i18n.Tr "action.publish_release" .GetRepoLink $branchLink .ShortRepoPath $linkText | Str2html}}`
+				title += ctx.Tr("action.publish_release", act.GetRepoLink(), html.EscapeString(act.GetBranch()), act.ShortRepoPath(), act.Content)
 			case models.ActionPullReviewDismissed:
-				title = `{{ $index := index .GetIssueInfos 0}}
-			{{ $reviewer := index .GetIssueInfos 1}}
-			{{$.i18n.Tr "action.review_dismissed" .GetRepoLink $index .ShortRepoPath $reviewer | Str2html}}`
+				title += ctx.Tr("action.review_dismissed", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath(), act.GetIssueInfos()[1])
 			}
 		}
 

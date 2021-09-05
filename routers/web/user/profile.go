@@ -336,7 +336,8 @@ func Profile(ctx *context.Context) {
 
 // ShowRSS show user activity as RSS feed
 func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
-	actions := retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+	actions := retrieveFeeds(ctx, models.GetFeedsOptions{
+		RequestedUser:   ctxUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
 		OnlyPerformedBy: true,
@@ -347,9 +348,10 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
 		return
 	}
 
+	// TODO: use time of newest action
 	now := time.Now()
 	feed := &feeds.Feed{
-		Title:       ctx.Tr("home.profile_of", ctxUser.DisplayName()),
+		Title:       ctx.Tr("home.feed_of", ctxUser.DisplayName()),
 		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
 		Description: ctxUser.Description,
 		Created:     now,
