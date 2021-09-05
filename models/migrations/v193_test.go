@@ -20,9 +20,19 @@ func Test_addRepoIDForAttachment(t *testing.T) {
 		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
 	}
 
+	type Issue struct {
+		ID     int64
+		RepoID int64
+	}
+
+	type Release struct {
+		ID     int64
+		RepoID int64
+	}
+
 	// Prepare and load the testing database
-	x, deferable := prepareTestEnv(t, 0, new(Attachment))
-	defer deferable()
+	x, deferrable := prepareTestEnv(t, 0, new(Attachment), new(Issue), new(Release))
+	defer deferrable()
 	if x == nil || t.Failed() {
 		return
 	}
@@ -31,11 +41,6 @@ func Test_addRepoIDForAttachment(t *testing.T) {
 	if err := addRepoIDForAttachment(x); err != nil {
 		assert.NoError(t, err)
 		return
-	}
-
-	type Issue struct {
-		ID     int64
-		RepoID int64
 	}
 
 	var issueAttachments []*Attachment
@@ -49,11 +54,6 @@ func Test_addRepoIDForAttachment(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, has)
 		assert.EqualValues(t, attach.RepoID, issue.RepoID)
-	}
-
-	type Release struct {
-		ID     int64
-		RepoID int64
 	}
 
 	var releaseAttachments []*Attachment
