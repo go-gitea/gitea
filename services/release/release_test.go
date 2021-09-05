@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/services/attachment"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -101,7 +102,8 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
 	}, []byte{}, strings.NewReader("testtest"))
@@ -233,7 +235,8 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repo.RepoID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
 	}, []byte{}, strings.NewReader("testtest"))
