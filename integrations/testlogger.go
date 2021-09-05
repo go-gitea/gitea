@@ -90,6 +90,21 @@ func (w *testLoggerWriterCloser) Close() error {
 	return nil
 }
 
+func (w *testLoggerWriterCloser) Reset() {
+	w.Lock()
+	if len(w.t) > 0 {
+		for _, t := range w.t {
+			if t == nil {
+				continue
+			}
+			fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", (*t).Name())
+			(*t).Errorf("Unclosed logger writer in test: %s", (*t).Name())
+		}
+		w.t = nil
+	}
+	w.Unlock()
+}
+
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	start := time.Now()
@@ -121,7 +136,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), slowFlush)
 			}
 		})
-		if err := queue.GetManager().FlushAll(context.Background(), -1); err != nil {
+		if err := queue.GetManager().FlushAll(context.Background(), 2*time.Minute); err != nil {
 			t.Errorf("Flushing queues failed with error %v", err)
 		}
 		timer.Stop()
