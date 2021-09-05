@@ -74,10 +74,14 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
-	isShowRSS := false
+	isShowRSS := ""
 	if strings.HasSuffix(uname, ".rss") {
-		isShowRSS = true
+		isShowRSS = "rss"
 		uname = strings.TrimSuffix(uname, ".rss")
+	}
+	if strings.HasSuffix(uname, ".atom") {
+		isShowRSS = "atom"
+		uname = strings.TrimSuffix(uname, ".atom")
 	}
 
 	ctxUser := GetUserByName(ctx, uname)
@@ -109,8 +113,8 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show User RSS feed
-	if isShowRSS {
-		ShowRSS(ctx, ctxUser)
+	if isShowRSS != "" {
+		ShowRSS(ctx, ctxUser, isShowRSS)
 		return
 	}
 
@@ -331,7 +335,7 @@ func Profile(ctx *context.Context) {
 }
 
 // ShowRSS show user activity as RSS feed
-func ShowRSS(ctx *context.Context, ctxUser *models.User) {
+func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
 	actions := retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 		Actor:           ctx.User,
 		IncludePrivate:  false,
@@ -353,13 +357,18 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User) {
 
 	feed.Items = rss.FeedActionsToFeedItems(ctx, actions)
 
-	//atom, err := feed.ToAtom()
-	if rss, err := feed.ToRss(); err != nil {
-		ctx.ServerError("ToRss", err)
-	} else {
-		ctx.PlainText(http.StatusOK, []byte(rss))
-	}
+	ctx.Resp.WriteHeader(http.StatusOK)
+	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 
+	if formatType == "atom" {
+		if err := feed.WriteAtom(ctx.Resp); err != nil {
+			ctx.ServerError("Render Atom failed", err)
+		}
+	} else {
+		if err := feed.WriteRss(ctx.Resp); err != nil {
+			ctx.ServerError("Render RSS failed", err)
+		}
+	}
 }
 
 // Action response for follow/unfollow user request
