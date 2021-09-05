@@ -34,6 +34,7 @@ func newMirror() {
 
 	// fallback to old config repository.DISABLE_MIRRORS
 	if Cfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
+		log.Warn("Deprecated DISABLE_MIRRORS config is used, please change your config and use the optins within [mirror] section")
 		Mirror.DisableNewPull = true
 	}
 
