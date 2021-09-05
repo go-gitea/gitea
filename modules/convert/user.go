@@ -72,7 +72,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 
 	// only site admin will get these information and possibly user himself
 	if authed {
-		result.IsAdmin = user.IsAdmin
+		result.IsAdmin = &user.IsAdmin
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive
