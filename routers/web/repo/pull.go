@@ -766,6 +766,21 @@ func UpdatePullRequest(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 			return
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
+				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
+				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+			})
+			if err != nil {
+				ctx.ServerError("UpdatePullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
+			return
+
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
