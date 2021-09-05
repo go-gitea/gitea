@@ -524,16 +524,6 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 	return repo.DocumentRenderingMetas
 }
 
-// DeleteWiki removes the actual and local copy of repository wiki.
-func (repo *Repository) DeleteWiki() error {
-	return repo.deleteWiki(x)
-}
-
-func (repo *Repository) deleteWiki(e Engine) error {
-	_, err := x.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
-	return err
-}
-
 func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
@@ -1567,11 +1557,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		if err := deleteProjectByID(sess, projects[i].ID); err != nil {
 			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
 		}
-	}
-
-	err = repo.deleteWiki(sess)
-	if err != nil {
-		return err
 	}
 
 	// Remove LFS objects
