@@ -954,7 +954,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 ## Mirror (`mirror`)
 
-- `ENABLED`: **true**: Whether gitea's mirror function can be used or not.
+- `ENABLED`: **true**: Enables the mirror functionality. Set to **false** to disable all mirrors.
 - `DISABLE_NEW_PULL`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 - `DISABLE_NEW_PUSH`: **false**: Disable the creation of **new** push mirrors. Pre-existing mirrors remain valid.
 - `DEFAULT_INTERVAL`: **8h**: Default interval between each check
