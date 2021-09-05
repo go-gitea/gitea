@@ -358,13 +358,13 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
 	feed.Items = rss.FeedActionsToFeedItems(ctx, actions)
 
 	ctx.Resp.WriteHeader(http.StatusOK)
-	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
-
 	if formatType == "atom" {
+		ctx.Resp.Header().Set("Content-Type", "application/atom+xml;charset=utf-8")
 		if err := feed.WriteAtom(ctx.Resp); err != nil {
 			ctx.ServerError("Render Atom failed", err)
 		}
 	} else {
+		ctx.Resp.Header().Set("Content-Type", "application/rss+xml;charset=utf-8")
 		if err := feed.WriteRss(ctx.Resp); err != nil {
 			ctx.ServerError("Render RSS failed", err)
 		}
