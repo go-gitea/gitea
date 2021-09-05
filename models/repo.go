@@ -1492,11 +1492,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err = sess.In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"`release`.repo_id": repoID})).
-		Delete(&Attachment{}); err != nil {
-		return err
-	}
-
 	if _, err := sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
@@ -1638,6 +1633,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	var newAttachmentPaths = make([]string, 0, len(newAttachments))
 	for _, attach := range newAttachments {
 		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
+	}
+
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(Attachment)); err != nil {
+		return err
 	}
 
 	if err = sess.Commit(); err != nil {
