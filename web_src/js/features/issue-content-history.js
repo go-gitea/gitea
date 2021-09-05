@@ -16,7 +16,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   <i class="close icon inside"></i>
   <div class="header">
     ${itemTitleHtml}
-    <div class="ui dropdown right dialog-header-options" style="margin-right: 50px;">
+    <div class="ui dropdown right dialog-header-options" style="display: none; margin-right: 50px;">
       ${i18nTextOptions} <i class="dropdown icon"></i>
       <div class="menu">
         <div class="item red text" data-option-item="delete">${i18nTextDeleteFromHistory}</div>
@@ -63,6 +63,10 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         },
       }).done((resp) => {
         $dialog.find('.content').html(resp.diffHtml);
+        // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
+        if (resp.canSoftDelete) {
+          $dialog.find('.dialog-header-options ').show();
+        }
       });
     },
     onHidden() {
@@ -119,10 +123,10 @@ export function initIssueContentHistory() {
     i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
     i18nTextOptions = resp.i18n.textOptions;
 
-    if (resp.historyCountMap[0]) {
+    if (resp.editedHistoryCountMap[0]) {
       showContentHistoryMenu(issueBaseUrl, $itemIssue, '0');
     }
-    for (const [commentId, _historyCount] of Object.entries(resp.historyCountMap)) {
+    for (const [commentId, _editedCount] of Object.entries(resp.editedHistoryCountMap)) {
       if (commentId === '0') continue;
       const $itemComment = $(`#issuecomment-${commentId}`);
       showContentHistoryMenu(issueBaseUrl, $itemComment, commentId);

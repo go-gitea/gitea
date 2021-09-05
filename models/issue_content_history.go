@@ -13,7 +13,7 @@ import (
 	"xorm.io/builder"
 )
 
-//IssueContentHistory save issue/comment content history revisions.
+// IssueContentHistory save issue/comment content history revisions.
 type IssueContentHistory struct {
 	ID             int64              `xorm:"pk autoincr"`
 	PosterID       int64              `xorm:""`
@@ -25,7 +25,7 @@ type IssueContentHistory struct {
 	IsDeleted      bool               `xorm:""`
 }
 
-//SaveIssueContentHistory save history
+// SaveIssueContentHistory save history
 func SaveIssueContentHistory(posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) {
 	ch := &IssueContentHistory{
 		PosterID:       posterID,
@@ -41,8 +41,9 @@ func SaveIssueContentHistory(posterID, issueID, commentID int64, editTime timeut
 	}
 }
 
-//QueryIssueContentHistoryCountMap query related history count of each comment (comment_id = 0 means the main issue)
-func QueryIssueContentHistoryCountMap(issueID int64) map[int64]int {
+// QueryIssueContentHistoryEditedCountMap query related history count of each comment (comment_id = 0 means the main issue)
+// only return the count map for "edited" (history revision count > 1) issues or comments.
+func QueryIssueContentHistoryEditedCountMap(issueID int64) map[int64]int {
 	type HistoryCountRecord struct {
 		CommentID    int64
 		HistoryCount int
@@ -66,7 +67,7 @@ func QueryIssueContentHistoryCountMap(issueID int64) map[int64]int {
 	return res
 }
 
-//IssueContentListItem the list for web ui
+// IssueContentListItem the list for web ui
 type IssueContentListItem struct {
 	UserID          int64
 	UserName        string
@@ -81,7 +82,7 @@ type IssueContentListItem struct {
 	IsDeleted      bool
 }
 
-//FetchIssueContentHistoryList fetch list
+// FetchIssueContentHistoryList fetch list
 func FetchIssueContentHistoryList(issueID int64, commentID int64) []*IssueContentListItem {
 	res := make([]*IssueContentListItem, 0)
 	err := x.Select("u.id as user_id, u.name as user_name,"+
@@ -120,17 +121,17 @@ func SoftDeleteIssueContentHistory(historyID int64) {
 	}
 }
 
-//ErrIssueContentHistoryNotExist not exist error
+// ErrIssueContentHistoryNotExist not exist error
 type ErrIssueContentHistoryNotExist struct {
 	ID int64
 }
 
-//Error error string
+// Error error string
 func (err ErrIssueContentHistoryNotExist) Error() string {
 	return fmt.Sprintf("issue content history does not exist [id: %d]", err.ID)
 }
 
-//GetIssueContentHistoryByID get issue content history
+// GetIssueContentHistoryByID get issue content history
 func GetIssueContentHistoryByID(id int64) (*IssueContentHistory, error) {
 	h := &IssueContentHistory{}
 	has, err := x.ID(id).Get(h)
@@ -142,7 +143,7 @@ func GetIssueContentHistoryByID(id int64) (*IssueContentHistory, error) {
 	return h, nil
 }
 
-//GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
+// GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
 func GetIssueContentHistoryAndPrev(id int64) (history, prevHistory *IssueContentHistory) {
 	history = &IssueContentHistory{}
 	has, err := x.ID(id).Get(history)

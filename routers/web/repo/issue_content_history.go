@@ -34,7 +34,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 			"textDeleteFromHistoryConfirm": i18n.Tr(lang, "repo.issues.content_history.delete_from_history_confirm"),
 			"textOptions":                  i18n.Tr(lang, "repo.issues.content_history.options"),
 		},
-		"historyCountMap": models.QueryIssueContentHistoryCountMap(issue.ID),
+		"editedHistoryCountMap": models.QueryIssueContentHistoryEditedCountMap(issue.ID),
 	})
 }
 
@@ -48,6 +48,9 @@ func GetContentHistoryList(ctx *context.Context) {
 
 	items := models.FetchIssueContentHistoryList(issue.ID, commentID)
 
+	// render history list to HTML for frontend dropdown items: (name, value)
+	// name is HTML of "avatar + userName + userAction + timeSince"
+	// value is historyId
 	lang := ctx.Data["Lang"].(string)
 	var results []map[string]interface{}
 	for _, item := range items {
@@ -64,13 +67,35 @@ func GetContentHistoryList(ctx *context.Context) {
 		results = append(results, map[string]interface{}{
 			"name": fmt.Sprintf("<img class='ui avatar image' src='%s'><strong>%s</strong> %s %s",
 				item.UserAvatarLink, html.EscapeString(item.UserName), actionText, timeSinceText),
-			"value":     item.HistoryID,
-			"isDeleted": item.IsDeleted,
+			"value": item.HistoryID,
 		})
 	}
+
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"results": results,
 	})
+}
+
+// canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
+// Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
+func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comment *models.Comment,
+	history *models.IssueContentHistory) bool {
+
+	canSoftDelete := false
+	if ctx.Repo.IsOwner() {
+		canSoftDelete = true
+	} else if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+		canSoftDelete = ctx.User.ID == history.PosterID
+		if comment == nil {
+			canSoftDelete = canSoftDelete && (ctx.User.ID == issue.PosterID)
+			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
+		} else {
+			canSoftDelete = canSoftDelete && (ctx.User.ID == comment.PosterID)
+			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
+			canSoftDelete = canSoftDelete && (history.CommentID == comment.ID)
+		}
+	}
+	return canSoftDelete
 }
 
 //GetContentHistoryDetail get detail
@@ -79,8 +104,8 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	if issue == nil {
 		return
 	}
-	historyID := ctx.FormInt64("history_id")
 
+	historyID := ctx.FormInt64("history_id")
 	history, prevHistory := models.GetIssueContentHistoryAndPrev(historyID)
 	if history == nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
@@ -89,6 +114,17 @@ func GetContentHistoryDetail(ctx *context.Context) {
 		return
 	}
 
+	// get the related comment if this history revision is for a comment, otherwise the history revision is for an issue.
+	var comment *models.Comment
+	if history.CommentID != 0 {
+		var err error
+		if comment, err = models.GetCommentByID(history.CommentID); err != nil {
+			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
+			return
+		}
+	}
+
+	// get the previous history revision (if exists)
 	var prevHistoryID int64
 	var prevHistoryContentText string
 	if prevHistory != nil {
@@ -96,6 +132,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 		prevHistoryContentText = prevHistory.ContentText
 	}
 
+	// compare the current history revision with the previous one
 	dmp := diffmatchpatch.New()
 	diff := dmp.DiffMain(prevHistoryContentText, history.ContentText, true)
 	diff = dmp.DiffCleanupEfficiency(diff)
@@ -119,6 +156,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	diffHTMLBuf.WriteString("</pre>")
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"canSoftDelete": canSoftDeleteContentHistory(ctx, issue, comment, history),
 		"historyId":     historyID,
 		"prevHistoryId": prevHistoryID,
 		"diffHtml":      diffHTMLBuf.String(),
@@ -135,7 +173,6 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	commentID := ctx.FormInt64("comment_id")
 	historyID := ctx.FormInt64("history_id")
 
-	canSoftDelete := false
 	var comment *models.Comment
 	var history *models.IssueContentHistory
 	var err error
@@ -149,20 +186,8 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		log.Error("can not get issue content history %v. err=%v", historyID, err)
 		return
 	}
-	if ctx.Repo.IsOwner() {
-		canSoftDelete = true
-	} else if ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		canSoftDelete = ctx.User.ID == history.PosterID
-		if commentID == 0 {
-			canSoftDelete = canSoftDelete && (ctx.User.ID == issue.PosterID)
-			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
-		} else {
-			canSoftDelete = canSoftDelete && (ctx.User.ID == comment.PosterID)
-			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
-			canSoftDelete = canSoftDelete && (history.CommentID == comment.ID)
-		}
-	}
 
+	canSoftDelete := canSoftDeleteContentHistory(ctx, issue, comment, history)
 	if !canSoftDelete {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"message": "Can not delete the content history",
