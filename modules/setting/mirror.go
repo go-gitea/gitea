@@ -28,15 +28,15 @@ var (
 )
 
 func newMirror() {
-	if err := Cfg.Section("mirror").MapTo(&Mirror); err != nil {
-		log.Fatal("Failed to map Mirror settings: %v", err)
-	}
-
-	// fallback to old config repository.DISABLE_MIRRORS
+	// Handle old configuration through `[repository]` `DISABLE_MIRRORS`
+	// - please note this was badly named and only disabled the creation of new pull mirrors
 	if Cfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
-		log.Warn("Deprecated DISABLE_MIRRORS config is used, please change your config and use the optins within [mirror] section")
+		log.Warn("Deprecated DISABLE_MIRRORS config is used, please change your config and use the options within the [mirror] section")
 		// TODO: enable on v1.17.0: log.Error("Deprecated fallback used, will be removed in v1.18.0")
 		Mirror.DisableNewPull = true
+	}
+	if err := Cfg.Section("mirror").MapTo(&Mirror); err != nil {
+		log.Fatal("Failed to map Mirror settings: %v", err)
 	}
 
 	if !Mirror.Enabled {
