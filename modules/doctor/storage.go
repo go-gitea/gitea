@@ -60,7 +60,6 @@ func checkStorageFiles(logger log.Logger, autofix bool) error {
 		logger.Error("storage.Init failed: %v", err)
 		return err
 	}
-
 	return checkAttachmentStorageFiles(logger, autofix)
 }
 
