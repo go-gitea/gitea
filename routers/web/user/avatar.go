@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func doRedirect(ctx *context.Context, location string) {
+func cacheableRedirect(ctx *context.Context, location string) {
 	ctx.Resp.Header().Set("Cache-Control", httpcache.GetCacheControl())
 	ctx.Redirect(location)
 }
@@ -49,7 +49,7 @@ func Avatar(ctx *context.Context) {
 		user = models.NewGhostUser()
 	}
 
-	doRedirect(ctx, user.RealSizedAvatarLink(size))
+	cacheableRedirect(ctx, user.RealSizedAvatarLink(size))
 }
 
 // AvatarByEmailHash redirects the browser to the appropriate Avatar link
@@ -69,7 +69,7 @@ func AvatarByEmailHash(ctx *context.Context) {
 		return
 	}
 	if len(email) == 0 {
-		doRedirect(ctx, models.DefaultAvatarLink())
+		cacheableRedirect(ctx, models.DefaultAvatarLink())
 		return
 	}
 	size := ctx.FormInt("size")
@@ -100,5 +100,5 @@ func AvatarByEmailHash(ctx *context.Context) {
 		}
 	}
 
-	doRedirect(ctx, models.MakeFinalAvatarURL(avatarURL, size))
+	cacheableRedirect(ctx, models.MakeFinalAvatarURL(avatarURL, size))
 }
