@@ -36,7 +36,7 @@ func NodeInfo(ctx *context.APIContext) {
 			Inbound:  []string{},
 			Outbound: []string{},
 		},
-		OpenRegistrations: false,
+		OpenRegistrations: setting.Service.ShowRegistrationButton,
 		Usage: structs.NodeInfoUsage{
 			Users: structs.NodeInfoUsageUsers{},
 		},
