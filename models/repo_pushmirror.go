@@ -6,11 +6,9 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -59,9 +57,6 @@ func (m *PushMirror) GetRemoteName() string {
 
 // InsertPushMirror inserts a push-mirror to database
 func InsertPushMirror(m *PushMirror) error {
-	if setting.Mirror.DisableNewPush {
-		return fmt.Errorf("creation of new push mirror's are disabled")
-	}
 	_, err := x.Insert(m)
 	return err
 }
