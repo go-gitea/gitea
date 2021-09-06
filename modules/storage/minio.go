@@ -151,7 +151,7 @@ type minioFileInfo struct {
 }
 
 func (m minioFileInfo) Name() string {
-	return m.ObjectInfo.Key
+	return path.Base(m.ObjectInfo.Key)
 }
 
 func (m minioFileInfo) Size() int64 {
@@ -219,7 +219,7 @@ func (m *MinioStorage) IterateObjects(fn func(path string, obj Object) error) er
 		}
 		if err := func(object *minio.Object, fn func(path string, obj Object) error) error {
 			defer object.Close()
-			return fn(strings.TrimPrefix(m.basePath, mObjInfo.Key), &minioObject{object})
+			return fn(strings.TrimPrefix(mObjInfo.Key, m.basePath), &minioObject{object})
 		}(object, fn); err != nil {
 			return convertMinioErr(err)
 		}
