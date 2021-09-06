@@ -44,7 +44,7 @@ func MirrorSync(ctx *context.APIContext) {
 	}
 
 	if !setting.Mirror.Enabled {
-		ctx.Status(http.StatusBadRequest)
+		ctx.Error(http.StatusBadRequest, "MirrorSync", "Mirror feature is disabled")
 		return
 	}
 
