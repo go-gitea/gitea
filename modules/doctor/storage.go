@@ -10,15 +10,12 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 )
 
-func checkStorageFiles(logger log.Logger, autofix bool) error {
-	if err := storage.Init(); err != nil {
-		logger.Error("storage.Init failed: %v", err)
-		return err
-	}
-
+func checkAttachmentStorageFiles(logger log.Logger, autofix bool) error {
 	var total, garbageNum int
 	var deletePaths []string
 	if err := storage.Attachments.IterateObjects(func(p string, obj storage.Object) error {
+		defer obj.Close()
+
 		total++
 		stat, err := obj.Stat()
 		if err != nil {
@@ -56,6 +53,15 @@ func checkStorageFiles(logger log.Logger, autofix bool) error {
 		}
 	}
 	return nil
+}
+
+func checkStorageFiles(logger log.Logger, autofix bool) error {
+	if err := storage.Init(); err != nil {
+		logger.Error("storage.Init failed: %v", err)
+		return err
+	}
+
+	return checkAttachmentStorageFiles(logger, autofix)
 }
 
 func init() {
