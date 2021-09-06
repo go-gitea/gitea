@@ -29,12 +29,23 @@ var (
 	ErrNuspecInvalidVersion = errors.New("Nuspec file contains an invalid version")
 )
 
+// PackageType specifies the package type the metadata describes
+type PackageType int
+
+const (
+	// DependencyPackage represents a package (*.nupkg)
+	DependencyPackage PackageType = iota + 1
+	// SymbolsPackage represents a symbol package (*.snupkg)
+	SymbolsPackage
+)
+
 var idmatch = regexp.MustCompile(`\A\w+(?:[.-]\w+)*\z`)
 
 const maxNuspecFileSize = 3 * 1024 * 1024
 
 // Metadata represents the metadata of a Nuget package
 type Metadata struct {
+	PackageType   PackageType             `json:"-"`
 	ID            string                  `json:"-"`
 	Version       string                  `json:"-"`
 	Description   string                  `json:"description"`
@@ -60,7 +71,12 @@ type nuspecPackage struct {
 		ProjectURL               string `xml:"projectUrl"`
 		Description              string `xml:"description"`
 		ReleaseNotes             string `xml:"releaseNotes"`
-		Repository               struct {
+		PackageTypes             struct {
+			PackageType []struct {
+				Name string `xml:"name,attr"`
+			} `xml:"packageType"`
+		} `xml:"packageTypes"`
+		Repository struct {
 			URL string `xml:"url,attr"`
 		} `xml:"repository"`
 		Dependencies struct {
@@ -123,7 +139,16 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 		p.Metadata.ProjectURL = ""
 	}
 
+	packageType := DependencyPackage
+	for _, pt := range p.Metadata.PackageTypes.PackageType {
+		if pt.Name == "SymbolsPackage" {
+			packageType = SymbolsPackage
+			break
+		}
+	}
+
 	m := &Metadata{
+		PackageType:   packageType,
 		ID:            p.Metadata.ID,
 		Version:       v.String(),
 		Description:   p.Metadata.Description,

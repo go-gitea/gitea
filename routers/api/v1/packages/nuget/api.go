@@ -36,6 +36,7 @@ func createServiceIndexResponse(root string) *ServiceIndexResponse {
 			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-rc"},
 			{ID: root + "/package", Type: "PackageBaseAddress/3.0.0"},
 			{ID: root, Type: "PackagePublish/2.0.0"},
+			{ID: root + "/symbolpackage", Type: "SymbolPackagePublish/4.9.0"},
 		},
 	}
 }

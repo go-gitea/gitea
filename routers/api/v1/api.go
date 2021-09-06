@@ -1009,6 +1009,7 @@ func Routes() *web.Route {
 								m.Get("/{filename}", nuget.DownloadPackageFile)
 							})
 						})
+						m.Put("/symbolpackage", nuget.UploadSymbolPackage)
 					}, reqBasicAuth())
 					m.Group("/npm", func() {
 						m.Group("/{id}", func() {

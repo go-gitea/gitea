@@ -45,6 +45,21 @@ const nuspecContent = `<?xml version="1.0" encoding="utf-8"?>
   </metadata>
 </package>`
 
+const symbolsNuspecContent = `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>` + id + `</id>
+    <version>` + semver + `</version>
+    <description>` + description + `</description>
+    <packageTypes>
+      <packageType name="SymbolsPackage" />
+    </packageTypes>
+    <dependencies>
+      <group targetFramework="` + targetFramework + `" />
+    </dependencies>
+  </metadata>
+</package>`
+
 func TestParsePackageMetaData(t *testing.T) {
 	createArchive := func(name, content string) []byte {
 		var buf bytes.Buffer
@@ -113,21 +128,36 @@ func TestParsePackageMetaData(t *testing.T) {
 }
 
 func TestParseNuspecMetaData(t *testing.T) {
-	m, err := ParseNuspecMetaData(strings.NewReader(nuspecContent))
-	assert.NoError(t, err)
-	assert.NotNil(t, m)
+	t.Run("Dependency Package", func(t *testing.T) {
+		m, err := ParseNuspecMetaData(strings.NewReader(nuspecContent))
+		assert.NoError(t, err)
+		assert.NotNil(t, m)
+		assert.Equal(t, DependencyPackage, m.PackageType)
 
-	assert.Equal(t, id, m.ID)
-	assert.Equal(t, semver, m.Version)
-	assert.Equal(t, authors, m.Authors)
-	assert.Equal(t, projectURL, m.ProjectURL)
-	assert.Equal(t, description, m.Description)
-	assert.Equal(t, releaseNotes, m.ReleaseNotes)
-	assert.Equal(t, repositoryURL, m.RepositoryURL)
-	assert.Len(t, m.Dependencies, 1)
-	assert.Contains(t, m.Dependencies, targetFramework)
-	deps := m.Dependencies[targetFramework]
-	assert.Len(t, deps, 1)
-	assert.Equal(t, dependencyID, deps[0].ID)
-	assert.Equal(t, dependencyVersion, deps[0].Version)
+		assert.Equal(t, id, m.ID)
+		assert.Equal(t, semver, m.Version)
+		assert.Equal(t, authors, m.Authors)
+		assert.Equal(t, projectURL, m.ProjectURL)
+		assert.Equal(t, description, m.Description)
+		assert.Equal(t, releaseNotes, m.ReleaseNotes)
+		assert.Equal(t, repositoryURL, m.RepositoryURL)
+		assert.Len(t, m.Dependencies, 1)
+		assert.Contains(t, m.Dependencies, targetFramework)
+		deps := m.Dependencies[targetFramework]
+		assert.Len(t, deps, 1)
+		assert.Equal(t, dependencyID, deps[0].ID)
+		assert.Equal(t, dependencyVersion, deps[0].Version)
+	})
+
+	t.Run("Symbols Package", func(t *testing.T) {
+		m, err := ParseNuspecMetaData(strings.NewReader(symbolsNuspecContent))
+		assert.NoError(t, err)
+		assert.NotNil(t, m)
+		assert.Equal(t, SymbolsPackage, m.PackageType)
+
+		assert.Equal(t, id, m.ID)
+		assert.Equal(t, semver, m.Version)
+		assert.Equal(t, description, m.Description)
+		assert.Empty(t, m.Dependencies)
+	})
 }

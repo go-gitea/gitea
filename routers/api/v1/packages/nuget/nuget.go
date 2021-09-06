@@ -165,29 +165,13 @@ func DownloadPackageFile(ctx *context.APIContext) {
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#push-a-package
 func UploadPackage(ctx *context.APIContext) {
-	upload, close, err := ctx.UploadStream()
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
-		return
-	}
-	if close {
-		defer upload.Close()
-	}
-
-	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
-		return
-	}
-	defer buf.Close()
-
-	meta, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
-		return
-	}
-	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+	meta, buf, closables := processUploadedFile(ctx, nuget_module.DependencyPackage)
+	defer func() {
+		for _, c := range closables {
+			c.Close()
+		}
+	}()
+	if meta == nil {
 		return
 	}
 
@@ -220,6 +204,89 @@ func UploadPackage(ctx *context.APIContext) {
 	}
 
 	ctx.PlainText(http.StatusCreated, nil)
+}
+
+// UploadSymbolPackage adds a symbol package to an existing package
+// https://docs.microsoft.com/en-us/nuget/api/symbol-package-publish-resource
+func UploadSymbolPackage(ctx *context.APIContext) {
+	meta, buf, closables := processUploadedFile(ctx, nuget_module.SymbolsPackage)
+	defer func() {
+		for _, c := range closables {
+			c.Close()
+		}
+	}()
+	if meta == nil {
+		return
+	}
+
+	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageNuGet, meta.ID, meta.Version)
+	if err != nil {
+		if err == models.ErrPackageNotExist {
+			ctx.Error(http.StatusNotFound, "", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	filename := strings.ToLower(fmt.Sprintf("%s.%s.snupkg", meta.ID, meta.Version))
+	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
+	if err != nil {
+		if err == models.ErrDuplicatePackageFile {
+			ctx.Error(http.StatusBadRequest, "", err)
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	filename := strings.ToLower(fmt.Sprintf("%s.%s.nupkg", meta.ID, meta.Version))
+	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
+	if err != nil {
+		if err := models.DeletePackageByID(p.ID); err != nil {
+			log.Error("Error deleting package by id: %v", err)
+		}
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return
+	}
+
+	ctx.PlainText(http.StatusCreated, nil)
+}
+
+func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.PackageType) (*nuget_module.Metadata, *filebuffer.FileBackedBuffer, []io.Closer) {
+	closables := make([]io.Closer, 0, 2)
+
+	upload, close, err := ctx.UploadStream()
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "", err)
+		return nil, nil, closables
+	}
+
+	if close {
+		closables = append(closables, upload)
+	}
+
+	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return nil, nil, closables
+	}
+	closables = append(closables, buf)
+
+	meta, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return nil, nil, closables
+	}
+	if meta.PackageType != expectedType {
+		ctx.Error(http.StatusBadRequest, "", err)
+		return nil, nil, closables
+	}
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
+		ctx.Error(http.StatusInternalServerError, "", err)
+		return nil, nil, closables
+	}
+	return meta, buf, closables
 }
 
 // DeletePackage hard deletes the package
