@@ -8,6 +8,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 
@@ -82,31 +83,77 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		t.Run("DependencyPackage", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusCreated)
+			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
-		assert.NoError(t, err)
-		assert.Len(t, ps, 1)
-		assert.Equal(t, packageName, ps[0].Name)
-		assert.Equal(t, packageVersion, ps[0].Version)
+			ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
+			assert.NoError(t, err)
+			assert.Len(t, ps, 1)
+			assert.Equal(t, packageName, ps[0].Name)
+			assert.Equal(t, packageVersion, ps[0].Version)
 
-		pfs, err := ps[0].GetFiles()
-		assert.NoError(t, err)
-		assert.Len(t, pfs, 1)
-		assert.Equal(t, fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion), pfs[0].Name)
-		assert.Equal(t, int64(len(content)), pfs[0].Size)
-	})
+			pfs, err := ps[0].GetFiles()
+			assert.NoError(t, err)
+			assert.Len(t, pfs, 1)
+			assert.Equal(t, fmt.Sprintf("%s.%s.nupkg", packageName, packageVersion), pfs[0].Name)
+			assert.Equal(t, int64(len(content)), pfs[0].Size)
 
-	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+		})
 
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-		req = AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusBadRequest)
+		t.Run("SymbolPackage", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			createPackage := func(id, packageType string) io.Reader {
+				var buf bytes.Buffer
+				archive := zip.NewWriter(&buf)
+				w, _ := archive.Create("package.nuspec")
+				w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
+				<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+				<metadata>
+					<id>` + id + `</id>
+					<version>` + packageVersion + `</version>
+					<authors>` + packageAuthors + `</authors>
+					<description>` + packageDescription + `</description>
+					<packageTypes><packageType name="` + packageType + `" /></packageTypes>
+				</metadata>
+				</package>`))
+				archive.Close()
+				return &buf
+			}
+	
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage("unknown-package", "SymbolsPackage"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "DummyPackage"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+
+			ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
+			assert.NoError(t, err)
+			assert.Len(t, ps, 1)
+
+			pfs, err := ps[0].GetFiles()
+			assert.NoError(t, err)
+			assert.Len(t, pfs, 2)
+			assert.Equal(t, fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion), pfs[1].Name)
+			assert.Equal(t, int64(368), pfs[1].Size)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+		})
 	})
 
 	t.Run("Download", func(t *testing.T) {
@@ -117,6 +164,10 @@ func TestPackageNuGet(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion))
+		req = AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusOK)
 	})
 
 	t.Run("SearchService", func(t *testing.T) {
@@ -150,8 +201,6 @@ func TestPackageNuGet(t *testing.T) {
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
-
 		indexURL := fmt.Sprintf("%s%s/registration/%s/index.json", setting.AppURL, url[1:], packageName)
 		leafURL := fmt.Sprintf("%s%s/registration/%s/%s.json", setting.AppURL, url[1:], packageName, packageVersion)
 		contentURL := fmt.Sprintf("%s%s/package/%s/%s/%s.%s.nupkg", setting.AppURL, url[1:], packageName, packageVersion, packageName, packageVersion)
@@ -228,6 +277,10 @@ func TestPackageNuGet(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
+		req = AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.snupkg", url, packageName, packageVersion, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusNotFound)
 	})

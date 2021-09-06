@@ -240,16 +240,6 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 		return
 	}
 
-	filename := strings.ToLower(fmt.Sprintf("%s.%s.nupkg", meta.ID, meta.Version))
-	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
-	if err != nil {
-		if err := models.DeletePackageByID(p.ID); err != nil {
-			log.Error("Error deleting package by id: %v", err)
-		}
-		ctx.Error(http.StatusInternalServerError, "", err)
-		return
-	}
-
 	ctx.PlainText(http.StatusCreated, nil)
 }
 
