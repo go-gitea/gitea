@@ -120,7 +120,7 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
-	writerCloser.t = nil
+	writerCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)

@@ -87,7 +87,8 @@ var (
 		} `ini:"repository.issue"`
 
 		Release struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -223,9 +224,11 @@ var (
 		},
 
 		Release: struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		}{
-			AllowedTypes: "",
+			AllowedTypes:     "",
+			DefaultPagingNum: 10,
 		},
 
 		// Signing settings

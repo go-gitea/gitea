@@ -1004,6 +1004,13 @@ type CreateRepoOptions struct {
 	MirrorInterval string
 }
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *Repository
+	Name        string
+	Description string
+}
+
 // GetRepoInitFile returns repository init files
 func GetRepoInitFile(tp, name string) ([]byte, error) {
 	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
@@ -1488,6 +1495,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	releaseAttachments := make([]string, 0, len(attachments))
 	for i := 0; i < len(attachments); i++ {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
+	}
+
+	if _, err = sess.In("release_id", builder.Select("id").From("`release`").Where(builder.Eq{"`release`.repo_id": repoID})).
+		Delete(&Attachment{}); err != nil {
+		return err
 	}
 
 	if _, err := sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {

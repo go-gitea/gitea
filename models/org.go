@@ -421,23 +421,67 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
-// queryUserOrgIDs returns a condition to return user's organization id
-func queryUserOrgIDs(uid int64) *builder.Builder {
-	return builder.Select("team.org_id").
-		From("team_user").InnerJoin("team", "team.id = team_user.team_id").
-		Where(builder.Eq{"team_user.uid": uid})
-}
-
 // MinimalOrg represents a simple orgnization with only needed columns
 type MinimalOrg = User
 
 // GetUserOrgsList returns one user's all orgs list
-func GetUserOrgsList(uid int64) ([]*MinimalOrg, error) {
-	var orgs = make([]*MinimalOrg, 0, 20)
-	return orgs, x.Select("id, name, full_name, visibility, avatar, avatar_email, use_custom_avatar").
+func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	schema, err := x.TableInfo(new(User))
+	if err != nil {
+		return nil, err
+	}
+
+	outputCols := []string{
+		"id",
+		"name",
+		"full_name",
+		"visibility",
+		"avatar",
+		"avatar_email",
+		"use_custom_avatar",
+	}
+
+	groupByCols := &strings.Builder{}
+	for _, col := range outputCols {
+		fmt.Fprintf(groupByCols, "`%s`.%s,", schema.Name, col)
+	}
+	groupByStr := groupByCols.String()
+	groupByStr = groupByStr[0 : len(groupByStr)-1]
+
+	sess.Select(groupByStr+", count(repo_id) as org_count").
 		Table("user").
-		In("id", queryUserOrgIDs(uid)).
-		Find(&orgs)
+		Join("INNER", "team", "`team`.org_id = `user`.id").
+		Join("INNER", "team_user", "`team`.id = `team_user`.team_id").
+		Join("LEFT", builder.
+			Select("id as repo_id, owner_id as repo_owner_id").
+			From("repository").
+			Where(accessibleRepositoryCondition(user)), "`repository`.repo_owner_id = `team`.org_id").
+		Where("`team_user`.uid = ?", user.ID).
+		GroupBy(groupByStr)
+
+	type OrgCount struct {
+		User     `xorm:"extends"`
+		OrgCount int
+	}
+
+	orgCounts := make([]*OrgCount, 0, 10)
+
+	if err := sess.
+		Asc("`user`.name").
+		Find(&orgCounts); err != nil {
+		return nil, err
+	}
+
+	orgs := make([]*MinimalOrg, len(orgCounts))
+	for i, orgCount := range orgCounts {
+		orgCount.User.NumRepos = orgCount.OrgCount
+		orgs[i] = &orgCount.User
+	}
+
+	return orgs, nil
 }
 
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {

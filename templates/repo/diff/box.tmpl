@@ -154,33 +154,5 @@
 		{{end}}
 
 		{{template "repo/issue/view_content/reference_issue_dialog" .}}
-
-		{{if .IsSplitStyle}}
-			<script>
-				document.addEventListener('DOMContentLoaded', () => {
-					$('tr.add-code').each(function() {
-						let prev = $(this).prev();
-						if (prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
-							while (prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
-								prev = prev.prev();
-							}
-							prev.children().eq(3).attr('data-line-num', $(this).children().eq(3).attr('data-line-num'));
-							prev.children().eq(3).html($(this).children().eq(3).html());
-							prev.children().eq(4).html($(this).children().eq(4).html());
-							prev.children().eq(5).html($(this).children().eq(5).html());
-
-							prev.children().eq(0).addClass('del-code');
-							prev.children().eq(1).addClass('del-code');
-							prev.children().eq(2).addClass('del-code');
-							prev.children().eq(3).addClass('add-code');
-							prev.children().eq(4).addClass('add-code');
-							prev.children().eq(5).addClass('add-code');
-
-							$(this).remove();
-						}
-					});
-				});
-			</script>
-		{{end}}
 	</div>
 {{end}}
