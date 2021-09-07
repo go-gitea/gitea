@@ -127,7 +127,7 @@ func TestPackageNuGet(t *testing.T) {
 				archive.Close()
 				return &buf
 			}
-	
+
 			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage("unknown-package", "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusNotFound)

@@ -34,42 +34,8 @@ end</textarea>
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{if .Metadata.RuntimeDependencies}}
-				<div class="item">
-					<div class="content">
-						<div class="header"><strong>Runtime Dependencies</strong></div>
-						<div class="list">
-							{{range .Metadata.RuntimeDependencies}}
-								<div class="item">
-									<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
-									<div class="content">
-										<div class="header">{{.Name}}</div>
-										<div class="description text small">{{range $i, $v := .Version}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</div>
-									</div>
-								</div>
-							{{end}}
-						</div>
-					</div>
-				</div>
-				{{end}}
-				{{if .Metadata.DevelopmentDependencies}}
-				<div class="item">
-					<div class="content">
-						<div class="header"><strong>Development Dependencies</strong></div>
-						<div class="list">
-							{{range .Metadata.DevelopmentDependencies}}
-								<div class="item">
-									<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
-									<div class="content">
-										<div class="header">{{.Name}}</div>
-										<div class="description text small">{{range $i, $v := .Version}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</div>
-									</div>
-								</div>
-							{{end}}
-						</div>
-					</div>
-				</div>
-				{{end}}
+				{{template "repo/packages/content/rubygems_dependencies" dict "dependencies" .Metadata.RuntimeDependencies "title" (.i18n.Tr "repo.packages.rubygems.dependencies.runtime")}}
+				{{template "repo/packages/content/rubygems_dependencies" dict "dependencies" .Metadata.DevelopmentDependencies "title" (.i18n.Tr "repo.packages.rubygems.dependencies.development")}}
 			</div>
 		</div>
 	{{end}}

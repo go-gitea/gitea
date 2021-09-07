@@ -37,7 +37,7 @@ var (
 
 var nameMatch = regexp.MustCompile(`\A(@[^\/~'!\(\)\*]+?)[\/]([^_.][^\/~'!\(\)\*]+)\z`)
 
-// Package represents a NPM package
+// Package represents a npm package
 type Package struct {
 	Name     string
 	Version  string
@@ -67,20 +67,22 @@ type PackageMetadata struct {
 
 // PackageMetadataVersion https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
 type PackageMetadataVersion struct {
-	ID              string              `json:"_id"`
-	Name            string              `json:"name"`
-	Version         string              `json:"version"`
-	Description     string              `json:"description"`
-	Author          User                `json:"author"`
-	Homepage        string              `json:"homepage,omitempty"`
-	License         string              `json:"license,omitempty"`
-	Repository      Repository          `json:"repository,omitempty"`
-	Keywords        []string            `json:"keywords,omitempty"`
-	Dependencies    map[string]string   `json:"dependencies,omitempty"`
-	DevDependencies map[string]string   `json:"devDependencies,omitempty"`
-	Readme          string              `json:"readme,omitempty"`
-	Dist            PackageDistribution `json:"dist"`
-	Maintainers     []User              `json:"maintainers,omitempty"`
+	ID                   string              `json:"_id"`
+	Name                 string              `json:"name"`
+	Version              string              `json:"version"`
+	Description          string              `json:"description"`
+	Author               User                `json:"author"`
+	Homepage             string              `json:"homepage,omitempty"`
+	License              string              `json:"license,omitempty"`
+	Repository           Repository          `json:"repository,omitempty"`
+	Keywords             []string            `json:"keywords,omitempty"`
+	Dependencies         map[string]string   `json:"dependencies,omitempty"`
+	DevDependencies      map[string]string   `json:"devDependencies,omitempty"`
+	PeerDependencies     map[string]string   `json:"peerDependencies,omitempty"`
+	OptionalDependencies map[string]string   `json:"optionalDependencies,omitempty"`
+	Readme               string              `json:"readme,omitempty"`
+	Dist                 PackageDistribution `json:"dist"`
+	Maintainers          []User              `json:"maintainers,omitempty"`
 }
 
 // PackageDistribution https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#version
@@ -144,7 +146,7 @@ type packageUpload struct {
 	Attachments map[string]*PackageAttachment `json:"_attachments"`
 }
 
-// ParsePackage parses the content into a NPM package
+// ParsePackage parses the content into a npm package
 func ParsePackage(r io.Reader) (*Package, error) {
 	var upload packageUpload
 	if err := json.NewDecoder(r).Decode(&upload); err != nil {
@@ -171,14 +173,18 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			Name:    meta.Name,
 			Version: meta.Version,
 			Metadata: Metadata{
-				Scope:        nameParts[0],
-				Name:         nameParts[1],
-				Description:  meta.Description,
-				Author:       meta.Author.Name,
-				License:      meta.License,
-				ProjectURL:   meta.Homepage,
-				Dependencies: meta.Dependencies,
-				Readme:       meta.Readme,
+				Scope:                   nameParts[0],
+				Name:                    nameParts[1],
+				Description:             meta.Description,
+				Author:                  meta.Author.Name,
+				License:                 meta.License,
+				ProjectURL:              meta.Homepage,
+				Keywords:                meta.Keywords,
+				Dependencies:            meta.Dependencies,
+				DevelopmentDependencies: meta.DevDependencies,
+				PeerDependencies:        meta.PeerDependencies,
+				OptionalDependencies:    meta.OptionalDependencies,
+				Readme:                  meta.Readme,
 			},
 		}
 

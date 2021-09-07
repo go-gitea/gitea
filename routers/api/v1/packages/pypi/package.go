@@ -10,7 +10,7 @@ import (
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 )
 
-// Package represents a package with NPM metadata
+// Package represents a package with PyPI metadata
 type Package struct {
 	*models.Package
 	Files    []*models.PackageFile

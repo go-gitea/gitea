@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// Package represents a package with NPM metadata
+// Package represents a package with npm metadata
 type Package struct {
 	*models.Package
 	*models.PackageFile
