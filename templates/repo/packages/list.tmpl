@@ -33,7 +33,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="issue list">
+		<div class="ui segment issue list">
 			{{range .Packages}}
 				<li class="item df py-3">
 					<div class="issue-item-main f1 fc df">
@@ -48,6 +48,16 @@
 						</div>
 					</div>
 				</li>
+			{{else}}
+				{{if not .HasPackages}}
+					<div class="empty center">
+						{{svg "octicon-package" 32}}
+						<h2>{{.i18n.Tr "repo.packages.empty"}}</h2>
+						<p>{{.i18n.Tr "repo.packages.empty.documentation" | Safe}}</p>
+					</div>
+				{{else}}
+					{{.i18n.Tr "repo.packages.filter.no_result"}}
+				{{end}}
 			{{end}}
 			{{template "base/paginate" .}}
 		</div>

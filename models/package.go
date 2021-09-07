@@ -256,6 +256,11 @@ func GetPackageByID(packageID int64) (*Package, error) {
 	return p, nil
 }
 
+// HasRepositoryPackages tests if a repository has packages
+func HasRepositoryPackages(repositoryID int64) (bool, error) {
+	return x.Where("repo_id = ?", repositoryID).Exist(&Package{})
+}
+
 // GetPackagesByRepository returns all packages of a repository
 func GetPackagesByRepository(repositoryID int64) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)

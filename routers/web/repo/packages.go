@@ -69,6 +69,13 @@ func Packages(ctx *context.Context) {
 		}
 	}
 
+	hasPackages, err := models.HasRepositoryPackages(repo.ID)
+	if err != nil {
+		ctx.ServerError("HasRepositoryPackages", err)
+		return
+	}
+
+	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["Packages"] = packages
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
