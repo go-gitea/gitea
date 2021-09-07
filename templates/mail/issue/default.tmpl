@@ -62,7 +62,7 @@
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>
-			{{.i18n.Tr "mail.issue.in_tree_path" .TreePath}}
+			{{$.i18n.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent | Safe}}</div>
