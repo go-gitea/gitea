@@ -514,8 +514,6 @@ func EditProjectBoard(ctx *context.Context) {
 
 	if form.Color != "" {
 		board.Color = form.Color
-	} else {
-		board.Color = "#f8f8f8"
 	}
 
 	if form.Sorting != 0 {

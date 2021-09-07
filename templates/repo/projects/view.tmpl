@@ -111,7 +111,12 @@
 
 											<div class="field color-field">
 												<label for="new_board_color">{{$.i18n.Tr "color"}}</label>
-												<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color" name="color" value="{{.Color}}">
+												<div class="ui fluid input">
+													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color" name="color" value="{{.Color}}">
+													<button class="ui red tiny button delete-board-color" id="delete_board_color" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
+														{{svg "octicon-trash" 16 "mr-2"}}
+													</button>
+												</div>
 											</div>
 
 											<div class="text right actions">

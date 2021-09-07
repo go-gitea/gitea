@@ -67,7 +67,7 @@ export default async function initProject() {
     const projectTitleInput = $(this).find(
       '.content > .form > .field > .project-board-title',
     );
-    const projectColorInput = $(this).find('.content > .form > .field > #new_board_color');
+    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
     const boardColumn = $(this).closest('.board-column');
 
     setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
@@ -147,6 +147,27 @@ export default async function initProject() {
       method: 'POST',
     }).done(() => {
       boardTitle.closest('form').removeClass('dirty');
+      window.location.reload();
+    });
+  });
+
+  $(document).on('click', '#delete_board_color', function (e) {    
+    e.preventDefault();
+
+    const projectHeader = $(this).closest('.board-column-header');
+
+    projectHeader.removeClass('light-label').addClass('dark-label');
+
+    $.ajax({
+      url: $(this).data('url'),
+      data: JSON.stringify({color: "#f8f8f8"}),
+      headers: {
+        'X-Csrf-Token': csrf,
+        'X-Remote': true,
+      },
+      contentType: 'application/json',
+      method: 'PUT',
+    }).done(() => {
       window.location.reload();
     });
   });
