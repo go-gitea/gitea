@@ -70,7 +70,9 @@ export default async function initProject() {
     const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
     const boardColumn = $(this).closest('.board-column');
 
-    setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
+    if (boardColumn.css('backgroundColor')) {
+      setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
+    }
 
     $(this)
       .find('.content > .form > .actions > .red')
@@ -89,8 +91,10 @@ export default async function initProject() {
         }).done(() => {
           projectTitleLabel.text(projectTitleInput.val());
           projectTitleInput.closest('form').removeClass('dirty');
-          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
-          setLabelColor(projectHeader, projectColorInput.val());
+          if (projectColorInput.val()) {
+            boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+            setLabelColor(projectHeader, projectColorInput.val());
+          }
           $('.ui.modal').modal('hide');
         });
       });
