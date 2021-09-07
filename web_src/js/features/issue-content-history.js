@@ -65,7 +65,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
         $dialog.find('.content').html(resp.diffHtml);
         // there is only one option "item[data-option-item=delete]", so the dropdown can be entirely shown/hidden.
         if (resp.canSoftDelete) {
-          $dialog.find('.dialog-header-options ').show();
+          $dialog.find('.dialog-header-options').show();
         }
       });
     },
@@ -105,12 +105,12 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
 }
 
 export function initIssueContentHistory() {
-  const issueId = $('#issueIndex').val();
+  const issueIndex = $('#issueIndex').val();
   const $itemIssue = $('.timeline-item.comment.first');
-  if (!issueId || !$itemIssue.length) return;
+  if (!issueIndex || !$itemIssue.length) return;
 
   const repoLink = $('#repolink').val();
-  const issueBaseUrl = `${AppSubUrl}/${repoLink}/issues/${issueId}`;
+  const issueBaseUrl = `${AppSubUrl}/${repoLink}/issues/${issueIndex}`;
 
   $.ajax({
     url: `${issueBaseUrl}/content-history/overview`,
