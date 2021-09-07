@@ -90,6 +90,21 @@ func (w *testLoggerWriterCloser) Close() error {
 	return nil
 }
 
+func (w *testLoggerWriterCloser) Reset() {
+	w.Lock()
+	if len(w.t) > 0 {
+		for _, t := range w.t {
+			if t == nil {
+				continue
+			}
+			fmt.Fprintf(os.Stdout, "Unclosed logger writer in test: %s", (*t).Name())
+			(*t).Errorf("Unclosed logger writer in test: %s", (*t).Name())
+		}
+		w.t = nil
+	}
+	w.Unlock()
+}
+
 // PrintCurrentTest prints the current test to os.Stdout
 func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	start := time.Now()

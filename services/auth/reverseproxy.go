@@ -70,7 +70,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
 			handleSignIn(w, req, sess, user)
 		}
