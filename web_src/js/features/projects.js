@@ -155,7 +155,7 @@ export default async function initProject() {
     });
   });
 
-  $(document).on('click', '#delete_board_color', function (e) {    
+  $(document).on('click', '#delete_board_color', function (e) {
     e.preventDefault();
 
     const projectHeader = $(this).closest('.board-column-header');
@@ -164,7 +164,7 @@ export default async function initProject() {
 
     $.ajax({
       url: $(this).data('url'),
-      data: JSON.stringify({color: "#f8f8f8"}),
+      data: JSON.stringify({color: '#f8f8f8'}),
       headers: {
         'X-Csrf-Token': csrf,
         'X-Remote': true,
