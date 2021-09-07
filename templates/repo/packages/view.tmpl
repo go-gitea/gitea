@@ -35,7 +35,7 @@
 							{{template "repo/packages/metadata/rubygems" .}}
 						</div>
 						<div class="ui divider"></div>
-						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}}</strong></span>
+						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}} ({{len .Files}})</strong></span>
 						<div class="ui relaxed list">
 						{{range .Files}}
 							<div class="item">
