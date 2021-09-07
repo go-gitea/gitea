@@ -44,7 +44,7 @@
 			{{end}}
 			{{if .Diff.IsIncomplete}}
 				<li id="diff-too-many-files-stats" class="pt-2">
-					<span class="file mono df ac sb">{{$.i18n.Tr "repo.diff.too_many_files"}}
+					<span class="file df ac sb">{{$.i18n.Tr "repo.diff.too_many_files"}}
 						<a class="ui basic tiny button" id="diff-show-more-files-stats" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.i18n.Tr "repo.diff.show_more"}}</a>
 					</span>
 				</li>
