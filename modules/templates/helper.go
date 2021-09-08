@@ -75,8 +75,8 @@ func NewFuncMap() []template.FuncMap {
 			if len(matches) > 1 {
 				prefix := template.HTMLEscapeString(matches[1])
 				hash := template.HTMLEscapeString(matches[2])
-				return fmt.Sprintf(`%s<a class="muted" target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea/commit/%s">%s</a>`,
-					prefix, hash, hash)
+				return fmt.Sprintf(`<a class="muted" target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea/commit/%s">%s%s</a>`,
+					hash, prefix, hash)
 			}
 
 			return template.HTMLEscapeString(setting.AppVer)
