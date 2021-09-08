@@ -25,7 +25,7 @@ Gitea ist ein [Gogs](http://gogs.io)-Fork.
 - Ein Raspberry Pi 3 ist leistungsstark genug, um Gitea für kleine Belastungen laufen zu lassen.
 - 2 CPU Kerne und 1GB RAM sind für kleine Teams/Projekte ausreichend.
 - Gitea sollte unter einem seperaten nicht-root Account auf UNIX-Systemen ausgeführt werden.
-   - Bemerke: Gitea verwaltet die `~/.ssh/authorized_keys` Datei. Gitea unter einem normalen Benutzer auszuführen könnte dazu führen, dass dieser sich nicht mehr anmelden kann.
+   - Achtung: Gitea verwaltet die `~/.ssh/authorized_keys` Datei. Gitea unter einem normalen Benutzer auszuführen könnte dazu führen, dass dieser sich nicht mehr anmelden kann.
 - [Git](https://git-scm.com/) Version 1.7.2 oder später wird benötigt. Version 1.9.0 oder später wird empfohlen. Bemerke außerdem:
    - Wenn git >= 2.1.2. und [Git large file storage](https://git-lfs.github.com/) aktiviert ist, dann wird es auch in Gitea verwendbar sein.
    - Git Commit-Graph rendern wird automatisch aktiviert wenn git >= 2.18.
