@@ -895,7 +895,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{:patch|diff}", repo.RawDiff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).
