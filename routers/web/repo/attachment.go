@@ -16,20 +16,21 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/services/attachment"
 )
 
 // UploadIssueAttachment response for Issue/PR attachments
 func UploadIssueAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, setting.Attachment.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Attachment.AllowedTypes)
 }
 
 // UploadReleaseAttachment response for uploading release attachments
 func UploadReleaseAttachment(ctx *context.Context) {
-	uploadAttachment(ctx, setting.Repository.Release.AllowedTypes)
+	uploadAttachment(ctx, ctx.Repo.Repository.ID, setting.Repository.Release.AllowedTypes)
 }
 
 // UploadAttachment response for uploading attachments
-func uploadAttachment(ctx *context.Context, allowedTypes string) {
+func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	if !setting.Attachment.Enabled {
 		ctx.Error(http.StatusNotFound, "attachment is not enabled")
 		return
@@ -42,23 +43,12 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
-
-	err = upload.Verify(buf, header.Filename, allowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.User.ID, repoID, 0, header.Filename, allowedTypes)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, err.Error())
-		return
-	}
-
-	attach, err := models.NewAttachment(&models.Attachment{
-		UploaderID: ctx.User.ID,
-		Name:       header.Filename,
-	}, buf, file)
-	if err != nil {
+		if upload.IsErrFileTypeForbidden(err) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewAttachment: %v", err))
 		return
 	}
