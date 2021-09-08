@@ -170,7 +170,7 @@
 							{{$address := MirrorRemoteAddress .}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label poping up" data-content="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}

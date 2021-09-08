@@ -339,6 +339,8 @@ var migrations = []Migration{
 	// v192 -> v193
 	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
 	// v193 -> v194
+	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
+	// v194 -> v195
 	NewMigration("Add package tables", addPackageTables),
 }
 

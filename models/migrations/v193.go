@@ -5,44 +5,29 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func addPackageTables(x *xorm.Engine) error {
-	type Package struct {
-		ID          int64 `xorm:"pk autoincr"`
-		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatorID   int64
-		Type        int `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name        string
-		LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Version     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		MetadataRaw string `xorm:"TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func addRepoIDForAttachment(x *xorm.Engine) error {
+	type Attachment struct {
+		ID         int64  `xorm:"pk autoincr"`
+		UUID       string `xorm:"uuid UNIQUE"`
+		RepoID     int64  `xorm:"INDEX"` // this should not be zero
+		IssueID    int64  `xorm:"INDEX"` // maybe zero when creating
+		ReleaseID  int64  `xorm:"INDEX"` // maybe zero when creating
+		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
 	}
-
-	if err := x.Sync2(new(Package)); err != nil {
+	if err := x.Sync2(new(Attachment)); err != nil {
 		return err
 	}
 
-	type PackageFile struct {
-		ID         int64 `xorm:"pk autoincr"`
-		PackageID  int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Size       int64
-		Name       string
-		LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		HashMD5    string `xorm:"hash_md5"`
-		HashSHA1   string `xorm:"hash_sha1"`
-		HashSHA256 string `xorm:"hash_sha256"`
-		HashSHA512 string `xorm:"hash_sha512"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+	if _, err := x.Exec("UPDATE `attachment` set repo_id = (SELECT repo_id FROM `issue` WHERE `issue`.id = `attachment`.issue_id) WHERE `attachment`.issue_id > 0"); err != nil {
+		return err
 	}
 
-	return x.Sync2(new(PackageFile))
+	if _, err := x.Exec("UPDATE `attachment` set repo_id = (SELECT repo_id FROM `release` WHERE `release`.id = `attachment`.release_id) WHERE `attachment`.release_id > 0"); err != nil {
+		return err
+	}
+
+	return nil
 }
