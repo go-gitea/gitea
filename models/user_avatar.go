@@ -152,6 +152,12 @@ func (u *User) UploadAvatar(data []byte) error {
 	return sess.Commit()
 }
 
+// IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data
+func (u *User) IsUploadAvatarChanged(data []byte) bool {
+	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	return !u.UseCustomAvatar || u.Avatar != avatarID
+}
+
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
 	aPath := u.CustomAvatarRelativePath()

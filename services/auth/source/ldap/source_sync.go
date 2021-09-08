@@ -146,10 +146,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
+			}
 
+			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && source.AttributeAvatar != "" {
 					_ = usr.UploadAvatar(su.Avatar)
 				}
+
 			}
 		}
 	}
