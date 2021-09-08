@@ -44,7 +44,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return false, fmt.Errorf("GetCommit: %v", err)
+				return false, fmt.Errorf("createTag::GetCommit[%v]: %v", rel.Target, err)
 			}
 
 			// Trim '--' prefix to prevent command line argument vulnerability.

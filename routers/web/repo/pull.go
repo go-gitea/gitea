@@ -450,7 +450,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	if headBranchExist {
-		ctx.Data["UpdateAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
+		ctx.Data["UpdateAllowed"], ctx.Data["UpdateByRebaseAllowed"], err = pull_service.IsUserAllowedToUpdate(pull, ctx.User)
 		if err != nil {
 			ctx.ServerError("IsUserAllowedToUpdate", err)
 			return nil
@@ -599,10 +599,9 @@ func ViewPullFiles(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var (
-		diffRepoPath  string
 		startCommitID string
 		endCommitID   string
-		gitRepo       *git.Repository
+		gitRepo       = ctx.Repo.GitRepo
 	)
 
 	var prInfo *git.CompareInfo
@@ -619,9 +618,6 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	diffRepoPath = ctx.Repo.GitRepo.Path
-	gitRepo = ctx.Repo.GitRepo
-
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
@@ -635,7 +631,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(gitRepo,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
@@ -728,6 +724,8 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
+	rebase := ctx.FormString("style") == "rebase"
+
 	if err := issue.PullRequest.LoadBaseRepo(); err != nil {
 		ctx.ServerError("LoadBaseRepo", err)
 		return
@@ -737,14 +735,14 @@ func UpdatePullRequest(ctx *context.Context) {
 		return
 	}
 
-	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(issue.PullRequest, ctx.User)
 	if err != nil {
 		ctx.ServerError("IsUserAllowedToMerge", err)
 		return
 	}
 
 	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
-	if !allowedUpdate {
+	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 		return
@@ -753,7 +751,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", issue.PullRequest.BaseBranch, issue.PullRequest.HeadBranch)
 
-	if err = pull_service.Update(issue.PullRequest, ctx.User, message); err != nil {
+	if err = pull_service.Update(issue.PullRequest, ctx.User, message, rebase); err != nil {
 		if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
@@ -768,6 +766,21 @@ func UpdatePullRequest(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 			return
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
+				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
+				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+			})
+			if err != nil {
+				ctx.ServerError("UpdatePullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
+			return
+
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
@@ -1028,10 +1041,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	)
 
 	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	defer func() {
+		if headGitRepo != nil {
+			headGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}
-	defer headGitRepo.Close()
 
 	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
