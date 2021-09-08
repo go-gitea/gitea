@@ -28,7 +28,7 @@ Gitea ist ein [Gogs](http://gogs.io)-Fork.
    - Achtung: Gitea verwaltet die `~/.ssh/authorized_keys` Datei. Gitea unter einem normalen Benutzer auszuführen könnte dazu führen, dass dieser sich nicht mehr anmelden kann.
 - [Git](https://git-scm.com/) Version 1.7.2 oder später wird benötigt. Version 1.9.0 oder später wird empfohlen. Außerdem zu beachten:
    - Wenn git >= 2.1.2. und [Git large file storage](https://git-lfs.github.com/) aktiviert ist, dann wird es auch in Gitea verwendbar sein.
-   - Git Commit-Graph rendern wird automatisch aktiviert wenn git >= 2.18.
+   - Wenn git >= 2.18, dann wird das Rendern von Commit-Graphen automatisch aktiviert.
 
 ## Browser Unterstützung
 
