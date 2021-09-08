@@ -67,8 +67,8 @@ func NewFuncMap() []template.FuncMap {
 		"AppVer": func() string {
 			return setting.AppVer
 		},
-		// render the application version with a link arount it
-		// if the version string contains a git commit hash one
+		// render the application version with a link around it
+		// if the version string contains a git commit hash
 		"AppVerLink": func() string {
 			matches := commitHashRe.FindStringSubmatch(setting.AppVer)
 
