@@ -92,7 +92,6 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	opts.MigrateToRepoID = t.RepoID
-	var repo *models.Repository
 
 	ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
 	defer cancel()
@@ -106,9 +105,9 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts)
+	t.Repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts)
 	if err == nil {
-		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
+		log.Trace("Repository migrated [%d]: %s/%s", t.Repo.ID, t.Owner.Name, t.Repo.Name)
 		return
 	}
 
