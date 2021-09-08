@@ -24,19 +24,19 @@ type User struct {
 	// URL to the user's avatar
 	AvatarURL string `json:"avatar_url"`
 	// User locale
-	Language *string `json:"language"`
+	Language *string `json:"language,omitempty"`
 	// Is the user an administrator
-	IsAdmin *bool `json:"is_admin"`
+	IsAdmin *bool `json:"is_admin,omitempty"`
 	// swagger:strfmt date-time
-	LastLogin *time.Time `json:"last_login"`
+	LastLogin *time.Time `json:"last_login,omitempty"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created,omitempty"`
 	// Is user restricted
 	Restricted bool `json:"restricted"`
 	// Is user active
-	IsActive *bool `json:"active"`
+	IsActive *bool `json:"active,omitempty"`
 	// Is user login prohibited
-	ProhibitLogin *bool `json:"prohibit_login"`
+	ProhibitLogin *bool `json:"prohibit_login,omitempty"`
 	// the user's location
 	Location string `json:"location"`
 	// the user's website
