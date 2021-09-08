@@ -119,7 +119,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 			PosterName: "User 336",
 			Created:    time.Unix(1628549791, 128000000),
 			Updated:    time.Unix(1628549791, 128000000),
-			Content:    "it has a comment\r\n\r\nEDIT: that got edited",
+			Content:    "it has a comment\n\nEDIT: that got edited",
 		},
 	}, comments)
 
