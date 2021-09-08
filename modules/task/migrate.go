@@ -117,6 +117,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		_ = t.UpdateCols("message")
 	})
 	if err == nil {
+		t.Repo = repo
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return
 	}
