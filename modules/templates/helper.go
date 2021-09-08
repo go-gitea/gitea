@@ -72,7 +72,7 @@ func NewFuncMap() []template.FuncMap {
 		"AppVerLink": func() string {
 			matches := commitHashRe.FindStringSubmatch(setting.AppVer)
 
-			if len(matches) > 1 {
+			if len(matches) == 3 {
 				prefix := template.HTMLEscapeString(matches[1])
 				hash := template.HTMLEscapeString(matches[2])
 				return fmt.Sprintf(`<a class="muted" target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea/commit/%s">%s%s</a>`,
