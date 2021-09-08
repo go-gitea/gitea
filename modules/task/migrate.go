@@ -107,7 +107,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
+	t.Repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
 		message := models.TranslatableMessage{
 			Format: format,
 			Args:   args,
@@ -117,7 +117,6 @@ func runMigrateTask(t *models.Task) (err error) {
 		_ = t.UpdateCols("message")
 	})
 	if err == nil {
-		t.Repo = repo
 		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
 		return
 	}
