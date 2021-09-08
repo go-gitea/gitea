@@ -459,49 +459,48 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	var allComments = make([]*base.Comment, 0, g.maxPerPage)
 
-	// for i := 1; ; i++ {
-	// make sure gitea can shutdown gracefully
-	select {
-	case <-g.ctx.Done():
-		return nil, false, nil
-	default:
-	}
-
-	comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
-		// PageSize: g.maxPerPage,
-		// Page:     i,
-	}})
-	if err != nil {
-		return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", opts.Context.ForeignID(), err)
-	}
-
-	for _, comment := range comments {
-		reactions, err := g.getCommentReactions(comment.ID)
-		if err != nil {
-			log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)
-			if err2 := models.CreateRepositoryNotice(
-				fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
-				log.Error("create repository notice failed: ", err2)
-			}
+	for i := 1; ; i++ {
+		// make sure gitea can shutdown gracefully
+		select {
+		case <-g.ctx.Done():
+			return nil, false, nil
+		default:
 		}
 
-		allComments = append(allComments, &base.Comment{
-			IssueIndex:  opts.Context.LocalID(),
-			PosterID:    comment.Poster.ID,
-			PosterName:  comment.Poster.UserName,
-			PosterEmail: comment.Poster.Email,
-			Content:     comment.Body,
-			Created:     comment.Created,
-			Updated:     comment.Updated,
-			Reactions:   reactions,
-		})
-	}
+		comments, _, err := g.client.ListIssueComments(g.repoOwner, g.repoName, opts.Context.ForeignID(), gitea_sdk.ListIssueCommentOptions{ListOptions: gitea_sdk.ListOptions{
+			PageSize: g.maxPerPage,
+			Page:     i,
+		}})
+		if err != nil {
+			return nil, false, fmt.Errorf("error while listing comments for issue #%d. Error: %v", opts.Context.ForeignID(), err)
+		}
 
-	// TODO enable pagination vor (gitea >= 1.14) when it got implemented
-	// 	if !g.pagination || len(comments) < g.maxPerPage {
-	//		break
-	//	}
-	//}
+		for _, comment := range comments {
+			reactions, err := g.getCommentReactions(comment.ID)
+			if err != nil {
+				log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)
+				if err2 := models.CreateRepositoryNotice(
+					fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
+					log.Error("create repository notice failed: ", err2)
+				}
+			}
+
+			allComments = append(allComments, &base.Comment{
+				IssueIndex:  opts.Context.LocalID(),
+				PosterID:    comment.Poster.ID,
+				PosterName:  comment.Poster.UserName,
+				PosterEmail: comment.Poster.Email,
+				Content:     comment.Body,
+				Created:     comment.Created,
+				Updated:     comment.Updated,
+				Reactions:   reactions,
+			})
+		}
+
+		if !g.pagination || len(comments) < g.maxPerPage {
+			break
+		}
+	}
 	return allComments, true, nil
 }
 

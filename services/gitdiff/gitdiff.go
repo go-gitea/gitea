@@ -1000,6 +1000,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 
 			// Create a new section to represent this hunk
 			curSection = &DiffSection{}
+			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
 			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
@@ -1040,6 +1041,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
+				lastLeftIdx = -1
 			}
 			if lastLeftIdx > -1 {
 				diffLine.Match = lastLeftIdx
@@ -1065,6 +1067,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
+				lastLeftIdx = -1
 			}
 			if len(curSection.Lines) == 0 || curSection.Lines[len(curSection.Lines)-1].Type != DiffLineDel {
 				lastLeftIdx = len(curSection.Lines)
@@ -1125,6 +1128,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 					curFile.IsBin = true
 					curFile.IsLFSFile = true
 					curSection.Lines = nil
+					lastLeftIdx = -1
 				}
 			}
 		}
