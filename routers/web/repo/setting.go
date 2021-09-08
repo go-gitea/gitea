@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 const (
@@ -682,7 +683,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		err := repo.DeleteWiki()
+		err := wiki_service.DeleteWiki(repo)
 		if err != nil {
 			log.Error("Delete Wiki: %v", err.Error())
 		}
