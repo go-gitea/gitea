@@ -41,6 +41,7 @@ import (
 
 // Used from static.go && dynamic.go
 var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
+var commitHashRe = regexp.MustCompile(`^(.+-g)([0-9a-f]+)$`)
 
 // NewFuncMap returns functions for injecting to templates
 func NewFuncMap() []template.FuncMap {
@@ -65,6 +66,20 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"AppVer": func() string {
 			return setting.AppVer
+		},
+		// render the application version with a link on the git commit hash
+		// if the version string contains one
+		"AppVerHTML": func() string {
+			matches := commitHashRe.FindStringSubmatch(setting.AppVer)
+
+			if len(matches) > 1 {
+				prefix := template.HTMLEscapeString(matches[1])
+				hash := template.HTMLEscapeString(matches[2])
+				return fmt.Sprintf(`%s<a class="muted" target="_blank" rel="noopener noreferrer" href="https://github.com/go-gitea/gitea/commit/%s">%s</a>`,
+					prefix, hash, hash)
+			}
+
+			return template.HTMLEscapeString(setting.AppVer)
 		},
 		"AppBuiltWith": func() string {
 			return setting.AppBuiltWith
