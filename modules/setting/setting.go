@@ -348,12 +348,6 @@ var (
 
 	ManifestData string
 
-	// Mirror settings
-	Mirror struct {
-		DefaultInterval time.Duration
-		MinInterval     time.Duration
-	}
-
 	// API settings
 	API = struct {
 		EnableSwagger          bool
@@ -938,17 +932,7 @@ func NewContext() {
 
 	newGit()
 
-	sec = Cfg.Section("mirror")
-	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
-	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
-	if Mirror.MinInterval.Minutes() < 1 {
-		log.Warn("Mirror.MinInterval is too low")
-		Mirror.MinInterval = 1 * time.Minute
-	}
-	if Mirror.DefaultInterval < Mirror.MinInterval {
-		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
-		Mirror.DefaultInterval = time.Hour * 8
-	}
+	newMirror()
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
