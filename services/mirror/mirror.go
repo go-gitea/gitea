@@ -22,6 +22,10 @@ var mirrorQueue = sync.NewUniqueQueue(setting.Repository.MirrorQueueLength)
 
 // Update checks and updates mirror repositories.
 func Update(ctx context.Context) error {
+	if !setting.Mirror.Enabled {
+		log.Warn("Mirror feature disabled, but cron job enabled: skip update")
+		return nil
+	}
 	log.Trace("Doing: Update")
 
 	handler := func(idx int, bean interface{}) error {
@@ -89,15 +93,24 @@ func syncMirrors(ctx context.Context) {
 
 // InitSyncMirrors initializes a go routine to sync the mirrors
 func InitSyncMirrors() {
+	if !setting.Mirror.Enabled {
+		return
+	}
 	go graceful.GetManager().RunWithShutdownContext(syncMirrors)
 }
 
 // StartToMirror adds repoID to mirror queue
 func StartToMirror(repoID int64) {
+	if !setting.Mirror.Enabled {
+		return
+	}
 	go mirrorQueue.Add(fmt.Sprintf("pull %d", repoID))
 }
 
 // AddPushMirrorToQueue adds the push mirror to the queue
 func AddPushMirrorToQueue(mirrorID int64) {
+	if !setting.Mirror.Enabled {
+		return
+	}
 	go mirrorQueue.Add(fmt.Sprintf("push %d", mirrorID))
 }
