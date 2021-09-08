@@ -26,7 +26,7 @@
 			<div class="ui eleven wide column">
 				{{if .CanCreateOrgRepo}}
 					<div class="text right">
-						{{if not .DisabledMirrors}}
+						{{if not .DisableNewPullMirrors}}
 							<a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_migrate"}}</a>
 						{{end}}
 						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.i18n.Tr "new_repo"}}</a>
