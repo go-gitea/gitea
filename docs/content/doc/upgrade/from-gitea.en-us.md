@@ -83,4 +83,4 @@ do pay attention if your templates are compatible with the Gitea you are using.
 
 If the customized templates don't match Gitea version, you may experience: 
 `50x` server error, page components missing or malfunctioning, strange page layout, ... 
-Remove the incompatible templates and Gitea web will work again.
+Remove or update the incompatible templates and Gitea web will work again.
