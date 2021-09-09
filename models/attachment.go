@@ -144,6 +144,11 @@ func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
 }
 
+// ExistAttachmentsByUUID returns true if attachment is exist by given UUID
+func ExistAttachmentsByUUID(uuid string) (bool, error) {
+	return x.Where("`uuid`=?", uuid).Exist(new(Attachment))
+}
+
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
 	return getAttachmentByReleaseIDFileName(x, releaseID, fileName)

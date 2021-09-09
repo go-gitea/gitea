@@ -52,7 +52,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
@@ -144,7 +145,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror":
-		if !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -220,7 +221,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror-sync":
-		if !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -231,6 +232,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-sync":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		m, err := selectPushMirrorByForm(form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
@@ -243,6 +249,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -267,6 +278,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-add":
+		if setting.Mirror.DisableNewPush {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -698,6 +714,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	case "unarchive":
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusForbidden)

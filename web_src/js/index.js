@@ -1035,7 +1035,7 @@ async function initRepository() {
         if ($dropzone.length === 1) {
           $dropzone.data('saved', false);
 
-          const filenameDict = {};
+          const fileUuidDict = {};
           dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
             headers: {'X-Csrf-Token': csrf},
@@ -1053,28 +1053,24 @@ async function initRepository() {
             thumbnailHeight: 480,
             init() {
               this.on('success', (file, data) => {
-                filenameDict[file.name] = {
-                  uuid: data.uuid,
+                fileUuidDict[file.uuid] = {
                   submitted: false
                 };
                 const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
                 $dropzone.find('.files').append(input);
               });
               this.on('removedfile', (file) => {
-                if (!(file.name in filenameDict)) {
-                  return;
-                }
-                $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
+                $(`#${file.uuid}`).remove();
+                if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
                   $.post($dropzone.data('remove-url'), {
-                    file: filenameDict[file.name].uuid,
+                    file: file.uuid,
                     _csrf: csrf,
                   });
                 }
               });
               this.on('submit', () => {
-                $.each(filenameDict, (name) => {
-                  filenameDict[name].submitted = true;
+                $.each(fileUuidDict, (fileUuid) => {
+                  fileUuidDict[fileUuid].submitted = true;
                 });
               });
               this.on('reload', () => {
@@ -1087,9 +1083,8 @@ async function initRepository() {
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
                     dz.files.push(this);
-                    filenameDict[this.name] = {
+                    fileUuidDict[this.uuid] = {
                       submitted: true,
-                      uuid: this.uuid
                     };
                     $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                     const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
@@ -1270,6 +1265,36 @@ async function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
+    });
+
+    // Pull Request update button
+    const $pullUpdateButton = $('.update-button > button');
+    $pullUpdateButton.on('click', function (e) {
+      e.preventDefault();
+      const $this = $(this);
+      const redirect = $this.data('redirect');
+      $this.addClass('loading');
+      $.post($this.data('do'), {
+        _csrf: csrf
+      }).done((data) => {
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      });
+    });
+
+    $('.update-button > .dropdown').dropdown({
+      onChange(_text, _value, $choice) {
+        const $url = $choice.data('do');
+        if ($url) {
+          $pullUpdateButton.find('.button-text').text($choice.text());
+          $pullUpdateButton.data('do', $url);
+        }
+      }
     });
 
     initReactionSelector();
@@ -2670,7 +2695,6 @@ $(document).ready(async () => {
 
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
-    const filenameDict = {};
     const $dropzone = $(el);
     await createDropzone(el, {
       url: $dropzone.data('upload-url'),
@@ -2688,18 +2712,15 @@ $(document).ready(async () => {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
-        this.on('success', (file, data) => {
-          filenameDict[file.name] = data.uuid;
+        this.on('success', (_file, data) => {
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
-          if (file.name in filenameDict) {
-            $(`#${filenameDict[file.name]}`).remove();
-          }
+          $(`#${file.uuid}`).remove();
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
-              file: filenameDict[file.name],
+              file: file.uuid,
               _csrf: csrf
             });
           }

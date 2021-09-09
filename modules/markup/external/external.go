@@ -14,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
@@ -99,7 +100,12 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 	}
 
 	if ctx == nil || ctx.Ctx == nil {
-		return fmt.Errorf("RenderContext did not provide context")
+		if ctx == nil {
+			log.Warn("RenderContext not provided defaulting to empty ctx")
+			ctx = &markup.RenderContext{}
+		}
+		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
+		ctx.Ctx = graceful.GetManager().ShutdownContext()
 	}
 
 	processCtx, cancel := context.WithCancel(ctx.Ctx)
