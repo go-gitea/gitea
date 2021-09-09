@@ -37,7 +37,7 @@ For example:
 | 1.4.0 | 1.4.1 | ✅ |
 | 1.4.1 | 1.4.0 | ⚠️ Not recommended, take your own risk! Although it may work if the database structure doesn't change, it's highly recommended to use a backup to downgrade. |
 | 1.4.x | 1.5.y | ✅ Database gets upgraded. You can upgrade from 1.4.x to the latest 1.5.y directly. |
-| 1.5.y | 1.4.1 | ❌ Database already got upgraded and can not be used for an old Gitea, use a backup to downgrade. |
+| 1.5.y | 1.4.x | ❌ Database already got upgraded and can not be used for an old Gitea, use a backup to downgrade. |
 
 **Since you can not run an old Gitea with an upgraded database, 
 a backup should always be made before a database upgrade.** 
