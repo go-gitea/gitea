@@ -5,3 +5,4 @@
 @bold: 500;
 @useCustomScrollbars: false;
 @disabledOpacity: var(--opacity-disabled);
+@variationPopupTooltip: false;
