@@ -111,11 +111,11 @@
 
 											<div class="field color-field">
 												<label for="new_board_color">{{$.i18n.Tr "color"}}</label>
-												<div class="ui fluid input">
+												<div class="color picker column">
 													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color" name="color" value="{{.Color}}">
-													<button class="ui red tiny button delete-board-color" id="delete_board_color" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
-														{{svg "octicon-trash" 16 "mr-2"}}
-													</button>
+													<div class="column precolors">
+														{{template "repo/issue/label_precolors"}}
+													</div>
 												</div>
 											</div>
 

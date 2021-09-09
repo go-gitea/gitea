@@ -23,7 +23,7 @@ export default async function initProject() {
           if (parseInt($(column).data('sorting')) !== i) {
             $.ajax({
               url: $(column).data('url'),
-              data: JSON.stringify({sorting: i}),
+              data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
               headers: {
                 'X-Csrf-Token': csrf,
                 'X-Remote': true,
@@ -92,9 +92,9 @@ export default async function initProject() {
           projectTitleLabel.text(projectTitleInput.val());
           projectTitleInput.closest('form').removeClass('dirty');
           if (projectColorInput.val()) {
-            boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
             setLabelColor(projectHeader, projectColorInput.val());
           }
+          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
           $('.ui.modal').modal('hide');
         });
       });
@@ -151,27 +151,6 @@ export default async function initProject() {
       method: 'POST',
     }).done(() => {
       boardTitle.closest('form').removeClass('dirty');
-      window.location.reload();
-    });
-  });
-
-  $(document).on('click', '#delete_board_color', function (e) {
-    e.preventDefault();
-
-    const projectHeader = $(this).closest('.board-column-header');
-
-    projectHeader.removeClass('light-label').addClass('dark-label');
-
-    $.ajax({
-      url: $(this).data('url'),
-      data: JSON.stringify({color: '#f8f8f8'}),
-      headers: {
-        'X-Csrf-Token': csrf,
-        'X-Remote': true,
-      },
-      contentType: 'application/json',
-      method: 'PUT',
-    }).done(() => {
       window.location.reload();
     });
   });

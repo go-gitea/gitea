@@ -516,6 +516,8 @@ func EditProjectBoard(ctx *context.Context) {
 
 	if len(form.Color) != 0 {
 		board.Color = form.Color
+	} else {
+		board.Color = ""
 	}
 
 	if form.Sorting != 0 {
