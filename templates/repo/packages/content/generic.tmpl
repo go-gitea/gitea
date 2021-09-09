@@ -4,7 +4,7 @@
 		<div class="ui form">
 			<div class="field">
 				<label for="download-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.generic.download"}}</label>
-				<input id="download-input" type="text" readonly="readonly" value="curl --user your_username:your_token {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/generic/{{.Package.LowerName}}/{{.Package.Version}}/{{(index .Files 0).LowerName}}">
+				<input id="download-input" type="text" readonly="readonly" value="curl {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/generic/{{.Package.LowerName}}/{{.Package.Version}}/{{(index .Files 0).LowerName}}">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "repo.packages.generic.documentation" | Safe}}</label>

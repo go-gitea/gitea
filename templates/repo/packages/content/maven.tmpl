@@ -37,7 +37,7 @@
 			</div>
 			<div class="field">
 				<label for="command-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.maven.download"}}</label>
-				<input id="command-input" type="text" readonly="readonly" value="mvn dependency:get -Dartifact={{.Metadata.GroupID}}:{{.Metadata.ArtifactID}}:{{.Package.Version}}">
+				<input id="command-input" type="text" readonly="readonly" value="mvn dependency:get -DremoteRepositories={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/maven -Dartifact={{.Metadata.GroupID}}:{{.Metadata.ArtifactID}}:{{.Package.Version}}">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "repo.packages.maven.documentation" | Safe}}</label>
