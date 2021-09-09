@@ -124,6 +124,7 @@ func Profile(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, ctxUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)

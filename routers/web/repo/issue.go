@@ -419,9 +419,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	}
 
 	handleTeamMentions(ctx)
-	if ctx.Written() {
-		return
-	}
 }
 
 func retrieveProjects(ctx *context.Context, repo *models.Repository) {
@@ -1138,6 +1135,7 @@ func ViewIssue(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -1303,6 +1301,7 @@ func ViewIssue(ctx *context.Context) {
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
 				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:       ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1379,6 +1378,7 @@ func ViewIssue(ctx *context.Context) {
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
 				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:       ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1728,16 +1728,19 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	files := ctx.QueryStrings("files[]")
-	if err := updateAttachments(issue, files); err != nil {
-		ctx.ServerError("UpdateAttachments", err)
-		return
+	// when update the request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+	if !ctx.QueryBool("ignore_attachments") {
+		if err := updateAttachments(issue, ctx.QueryStrings("files[]")); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Query("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -2128,13 +2131,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type == models.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-	}
-
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
@@ -2156,16 +2152,26 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	files := ctx.QueryStrings("files[]")
-	if err := updateAttachments(comment, files); err != nil {
-		ctx.ServerError("UpdateAttachments", err)
-		return
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
+	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+	if !ctx.QueryBool("ignore_attachments") {
+		if err := updateAttachments(comment, ctx.QueryStrings("files[]")); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.Query("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, comment.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

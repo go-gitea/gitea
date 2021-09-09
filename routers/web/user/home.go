@@ -49,7 +49,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetUserOrgsList(ctx.User.ID)
+	orgs, err := models.GetUserOrgsList(ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -272,6 +272,7 @@ func Milestones(ctx *context.Context) {
 		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: milestones[i].Repo.Link(),
 			Metas:     milestones[i].Repo.ComposeMetas(),
+			Ctx:       ctx,
 		}, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)

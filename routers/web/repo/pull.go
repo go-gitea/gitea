@@ -587,10 +587,9 @@ func ViewPullFiles(ctx *context.Context) {
 	pull := issue.PullRequest
 
 	var (
-		diffRepoPath  string
 		startCommitID string
 		endCommitID   string
-		gitRepo       *git.Repository
+		gitRepo       = ctx.Repo.GitRepo
 	)
 
 	var prInfo *git.CompareInfo
@@ -607,9 +606,6 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	diffRepoPath = ctx.Repo.GitRepo.Path
-	gitRepo = ctx.Repo.GitRepo
-
 	headCommitID, err := gitRepo.GetRefCommitID(pull.GetGitRefName())
 	if err != nil {
 		ctx.ServerError("GetRefCommitID", err)
@@ -623,7 +619,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(diffRepoPath,
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(gitRepo,
 		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
@@ -756,6 +752,21 @@ func UpdatePullRequest(ctx *context.Context) {
 			ctx.Flash.Error(flashError)
 			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
 			return
+		} else if models.IsErrRebaseConflicts(err) {
+			conflictError := err.(models.ErrRebaseConflicts)
+			flashError, err := ctx.HTMLString(string(tplAlertDetails), map[string]interface{}{
+				"Message": ctx.Tr("repo.pulls.rebase_conflict", utils.SanitizeFlashErrorString(conflictError.CommitSHA)),
+				"Summary": ctx.Tr("repo.pulls.rebase_conflict_summary"),
+				"Details": utils.SanitizeFlashErrorString(conflictError.StdErr) + "<br>" + utils.SanitizeFlashErrorString(conflictError.StdOut),
+			})
+			if err != nil {
+				ctx.ServerError("UpdatePullRequest.HTMLString", err)
+				return
+			}
+			ctx.Flash.Error(flashError)
+			ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
+			return
+
 		}
 		ctx.Flash.Error(err.Error())
 		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
@@ -1016,10 +1027,14 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	)
 
 	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	defer func() {
+		if headGitRepo != nil {
+			headGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}
-	defer headGitRepo.Close()
 
 	labelIDs, assigneeIDs, milestoneID, _ := ValidateRepoMetas(ctx, *form, true)
 	if ctx.Written() {
