@@ -44,6 +44,25 @@ func (pt PackageType) String() string {
 	return ""
 }
 
+// SVGName returns the name of the package type svg image
+func (pt PackageType) SVGName() string {
+	switch pt {
+	case PackageGeneric:
+		return "octicon-package"
+	case PackageNuGet:
+		return "gitea-nuget"
+	case PackageNpm:
+		return "gitea-npm"
+	case PackageMaven:
+		return "gitea-maven"
+	case PackagePyPI:
+		return "gitea-python"
+	case PackageRubyGems:
+		return "gitea-rubygems"
+	}
+	return ""
+}
+
 var (
 	// ErrDuplicatePackage indicates a duplicated package error
 	ErrDuplicatePackage = errors.New("Package does exist already")

@@ -9,7 +9,7 @@
 						<h1>{{.Package.Name}} ({{.Package.Version}})</h1>
 					</div>
 					{{ $timeStr := TimeSinceUnix .Package.CreatedUnix $.Lang }}
-					<div>{{.i18n.Tr "repo.packages.published_by" $timeStr .Package.Creator.HomeLink (.Package.Creator.GetDisplayName | Escape) | Safe}} {{svg "octicon-package"}} {{.Package.Type.String}}</div>
+					<div>{{.i18n.Tr "repo.packages.published_by" $timeStr .Package.Creator.HomeLink (.Package.Creator.GetDisplayName | Escape) | Safe}} {{svg .Package.Type.SVGName}} {{.Package.Type.String}}</div>
 					<div class="ui divider"></div>
 				</div>
 				<div class="twelve wide column">

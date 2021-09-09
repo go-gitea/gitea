@@ -39,8 +39,7 @@
 					<div class="issue-item-main f1 fc df">
 						<div class="issue-item-top-row">
 							<a class="title" href="{{$.RepoLink}}/packages/{{.ID}}">{{.Name}}</a>
-							{{.Version}}
-							<span class="ui label">{{.Type.String}}</span>
+							<span class="ui label">{{svg .Type.SVGName 16}} {{.Type.String}}</span>
 						</div>
 						<div class="desc issue-item-bottom-row df ac fw my-1">
 							{{ $timeStr := TimeSinceUnix .CreatedUnix $.Lang }}
