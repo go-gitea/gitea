@@ -20,7 +20,7 @@ menu:
 {{< toc >}}
 
 To update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
-Everytime a Gitea instance runs, it checks whether an upgrade action should be taken. 
+Every time a Gitea instance starts up, it checks whether a database migration should be run. 
 If an upgrade action is required, Gitea will take some time to complete the upgrade and then serve.
 
 ## Backup for downgrade
