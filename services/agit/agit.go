@@ -213,7 +213,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				return nil
 			} else if len(output) > 0 {
 				results = append(results, private.HookProcReceiveRefResult{
-					OriginalRef: oldCommitID,
+					OriginalRef: opts.RefFullNames[i],
 					OldOID:      opts.OldCommitIDs[i],
 					NewOID:      opts.NewCommitIDs[i],
 					Err:         "request `force-push` push option",
