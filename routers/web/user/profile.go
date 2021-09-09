@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"path"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -20,8 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/rss"
-
-	"github.com/gorilla/feeds"
 )
 
 // GetUserByName get user by name
@@ -91,10 +88,10 @@ func Profile(ctx *context.Context) {
 
 	if ctxUser.IsOrganization() {
 		/*
-			// TODO: enable after retrieveFeeds() do handle org correctly
+			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
 			// Show Org RSS feed
-			if isShowRSS != "" {
-				ShowRSS(ctx, ctxUser, isShowRSS)
+			if len(isShowRSS) != 0 {
+				rss.ShowRSS(ctx, ctxUser, isShowRSS)
 				return
 			}
 		*/
@@ -122,8 +119,8 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show User RSS feed
-	if isShowRSS != "" {
-		ShowRSS(ctx, ctxUser, isShowRSS)
+	if len(isShowRSS) != 0 {
+		rss.ShowRSS(ctx, ctxUser, isShowRSS)
 		return
 	}
 
@@ -245,7 +242,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		ctx.Data["Feeds"] = retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = rss.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
@@ -340,45 +337,6 @@ func Profile(ctx *context.Context) {
 	ctx.Data["ShowUserEmail"] = len(ctxUser.Email) > 0 && ctx.IsSigned && (!ctxUser.KeepEmailPrivate || ctxUser.ID == ctx.User.ID)
 
 	ctx.HTML(http.StatusOK, tplProfile)
-}
-
-// ShowRSS show user activity as RSS feed
-func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
-	actions := retrieveFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   ctxUser,
-		Actor:           ctx.User,
-		IncludePrivate:  false,
-		OnlyPerformedBy: true,
-		IncludeDeleted:  false,
-		Date:            ctx.FormString("date"),
-	})
-	if ctx.Written() {
-		return
-	}
-
-	// TODO: use time of newest action
-	now := time.Now()
-	feed := &feeds.Feed{
-		Title:       ctx.Tr("home.feed_of", ctxUser.DisplayName()),
-		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
-		Description: ctxUser.Description,
-		Created:     now,
-	}
-
-	feed.Items = rss.FeedActionsToFeedItems(ctx, actions)
-
-	ctx.Resp.WriteHeader(http.StatusOK)
-	if formatType == "atom" {
-		ctx.Resp.Header().Set("Content-Type", "application/atom+xml;charset=utf-8")
-		if err := feed.WriteAtom(ctx.Resp); err != nil {
-			ctx.ServerError("Render Atom failed", err)
-		}
-	} else {
-		ctx.Resp.Header().Set("Content-Type", "application/rss+xml;charset=utf-8")
-		if err := feed.WriteRss(ctx.Resp); err != nil {
-			ctx.ServerError("Render RSS failed", err)
-		}
-	}
 }
 
 // Action response for follow/unfollow user request
