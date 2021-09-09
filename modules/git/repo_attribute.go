@@ -176,9 +176,13 @@ func (c *CheckAttributeReader) CheckPath(path string) (map[string]string, error)
 		return nil, c.ctx.Err()
 	case <-c.running:
 	}
-	_, err := c.stdinWriter.Write([]byte(path + "\x00"))
-	_ = c.stdinWriter.Sync()
-	if err != nil {
+
+	if _, err := c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
+		defer c.cancel()
+		return nil, err
+	}
+
+	if err := c.stdinWriter.Sync(); err != nil {
 		defer c.cancel()
 		return nil, err
 	}
