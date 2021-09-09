@@ -512,7 +512,7 @@ func EditProjectBoard(ctx *context.Context) {
 		board.Title = form.Title
 	}
 
-	if form.Color != "" {
+	if len(form.Color) != 0 {
 		board.Color = form.Color
 	}
 
