@@ -10,7 +10,7 @@
 				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
 					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 				{{end}}
-				{{if and (not .Repository.IsArchived) .PageIsProjects}}
+				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
 				{{end}}
 				<div class="ui small modal" id="new-board-item">
