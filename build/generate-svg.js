@@ -29,6 +29,7 @@ async function processFile(file, {prefix, fullName} = {}) {
     plugins: extendDefaultPlugins([
       'removeXMLNS',
       'removeDimensions',
+      {name: 'prefixIds', params: {prefix: () => name}},
       {
         name: 'addClassesToSVGElement',
         params: {classNames: ['svg', name]},
