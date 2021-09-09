@@ -331,6 +331,14 @@ func Diff(ctx *context.Context) {
 		return
 	}
 
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, models.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCommitStatus: %v", err)
+	}
+
+	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["CommitStatuses"] = statuses
+
 	verification := models.ParseCommitWithSignature(commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
