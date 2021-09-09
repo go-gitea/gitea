@@ -150,7 +150,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	actions := retrieveFeeds(ctx, models.GetFeedsOptions{
+	ctx.Data["Feeds"] = retrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
@@ -159,10 +159,10 @@ func Dashboard(ctx *context.Context) {
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
 	})
+
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["Feeds"] = actions
 
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
