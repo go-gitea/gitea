@@ -90,6 +90,15 @@ func Profile(ctx *context.Context) {
 	}
 
 	if ctxUser.IsOrganization() {
+		/*
+			// TODO: enable after retrieveFeeds() do handle org correctly
+			// Show Org RSS feed
+			if isShowRSS != "" {
+				ShowRSS(ctx, ctxUser, isShowRSS)
+				return
+			}
+		*/
+
 		org.Home(ctx)
 		return
 	}
