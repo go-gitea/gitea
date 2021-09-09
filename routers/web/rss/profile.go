@@ -5,11 +5,13 @@
 package rss
 
 import (
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/context"
-	"github.com/gorilla/feeds"
 	"net/http"
 	"time"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/context"
+
+	"github.com/gorilla/feeds"
 )
 
 // RetrieveFeeds loads feeds for the specified user
