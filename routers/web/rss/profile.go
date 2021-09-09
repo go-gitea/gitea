@@ -62,17 +62,20 @@ func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
 		return
 	}
 
-	// TODO: use time of newest action
-	now := time.Now()
 	feed := &feeds.Feed{
 		Title:       ctx.Tr("home.feed_of", ctxUser.DisplayName()),
 		Link:        &feeds.Link{Href: ctxUser.HTMLURL()},
 		Description: ctxUser.Description,
-		Created:     now,
+		Created:     time.Now(),
 	}
 
-	feed.Items = FeedActionsToFeedItems(ctx, actions)
+	feed.Items = feedActionsToFeedItems(ctx, actions)
 
+	writeFeed(ctx, feed, formatType)
+}
+
+// writeFeed write a feeds.Feed as atom or rss to ctx.Resp
+func writeFeed(ctx *context.Context, feed *feeds.Feed, formatType string) {
 	ctx.Resp.WriteHeader(http.StatusOK)
 	if formatType == "atom" {
 		ctx.Resp.Header().Set("Content-Type", "application/atom+xml;charset=utf-8")
