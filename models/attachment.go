@@ -5,16 +5,13 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
@@ -22,8 +19,9 @@ import (
 type Attachment struct {
 	ID            int64  `xorm:"pk autoincr"`
 	UUID          string `xorm:"uuid UNIQUE"`
-	IssueID       int64  `xorm:"INDEX"`
-	ReleaseID     int64  `xorm:"INDEX"`
+	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
@@ -79,23 +77,6 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 		return repo, UnitTypeReleases, err
 	}
 	return nil, -1, nil
-}
-
-// NewAttachment creates a new attachment object.
-func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
-	attach.UUID = gouuid.New().String()
-
-	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file), -1)
-	if err != nil {
-		return nil, fmt.Errorf("Create: %v", err)
-	}
-	attach.Size = size
-
-	if _, err := x.Insert(attach); err != nil {
-		return nil, err
-	}
-
-	return attach, nil
 }
 
 // GetAttachmentByID returns attachment by given id
