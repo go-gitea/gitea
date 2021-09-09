@@ -2,12 +2,14 @@
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
-			<label for="installation-input">{{.i18n.Tr "repo.packages.pypi.use"}}</label>
-			<div>
+			<div class="field">
+				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.pypi.install"}}</label>
 				<input id="installation-input" type="text" readonly="readonly" value="pip install --index-url {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/pypi/simple --no-deps {{.Package.Name}}">
 			</div>
+			<div class="field">
+				<label>{{.i18n.Tr "repo.packages.pypi.documentation" | Safe}}</label>
+			</div>
 		</div>
-		{{.i18n.Tr "repo.packages.pypi.documentation" | Safe}}
 	</div>
 	{{if or .Metadata.Description .Metadata.LongDescription .Metadata.Summary}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>

@@ -2,8 +2,8 @@
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
-			<label for="registry-input">{{.i18n.Tr "repo.packages.maven.registry" | Safe}}</label>
-			<div>
+			<div class="field">
+				<label for="registry-input">{{svg "octicon-code"}} {{.i18n.Tr "repo.packages.maven.registry" | Safe}}</label>
 				<textarea id="registry-input" readonly="readonly" rows="18"><repositories>
 	<repository>
 		<id>gitea</id>
@@ -23,22 +23,26 @@
 	</snapshotRepository>
 </distributionManagement></textarea>
 			</div>
-		</div>
-		<div class="ui form">
-			<label for="pom-input">{{.i18n.Tr "repo.packages.maven.use" | Safe}}</label>
-			<div>
+			<div class="field">
+				<label for="pom-input">{{svg "octicon-code"}} {{.i18n.Tr "repo.packages.maven.install" | Safe}}</label>
 				<textarea id="pom-input" readonly="readonly" rows="5"><dependency>
 	<groupId>{{.Metadata.GroupID}}</groupId>
 	<artifactId>{{.Metadata.ArtifactID}}</artifactId>
 	<version>{{.Package.Version}}</version>
 </dependency></textarea>
 			</div>
-			<label for="command-input">{{.i18n.Tr "repo.packages.maven.use_2"}}</label>
-			<div>
+			<div class="field">
+				<label for="command-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.maven.install2"}}</label>
+				<input id="command-input" type="text" readonly="readonly" value="mvn install">
+			</div>
+			<div class="field">
+				<label for="command-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.maven.download"}}</label>
 				<input id="command-input" type="text" readonly="readonly" value="mvn dependency:get -Dartifact={{.Metadata.GroupID}}:{{.Metadata.ArtifactID}}:{{.Package.Version}}">
 			</div>
+			<div class="field">
+				<label>{{.i18n.Tr "repo.packages.maven.documentation" | Safe}}</label>
+			</div>
 		</div>
-		{{.i18n.Tr "repo.packages.maven.documentation" | Safe}}
 	</div>
 
 	{{if .Metadata.Description}}

@@ -2,18 +2,20 @@
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
-			<label for="use1-input">{{.i18n.Tr "repo.packages.rubygems.use_1" | Safe}}:</label>
-			<div>
+			<div class="field">
+				<label for="use1-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.rubygems.install" | Safe}}:</label>
 				<input id="use1-input" type="text" readonly="readonly" value="gem install {{.Package.Name}} --version &quot;{{.Package.Version}}&quot; --source &quot;{{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/rubygems&quot;">
 			</div>
-			<label for="use2-input">{{.i18n.Tr "repo.packages.rubygems.use_2"}}:</label>
-			<div>
+			<div class="field">
+				<label for="use2-input">{{svg "octicon-code"}} {{.i18n.Tr "repo.packages.rubygems.install2"}}:</label>
 				<textarea id="use2-input" readonly="readonly" rows="3">source "{{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/rubygems" do
 	gem "{{.Package.Name}}", "{{.Package.Version}}"
 end</textarea>
 			</div>
+			<div class="field">
+				<label>{{.i18n.Tr "repo.packages.rubygems.documentation" | Safe}}</label>
+			</div>
 		</div>
-		{{.i18n.Tr "repo.packages.rubygems.documentation" | Safe}}
 	</div>
 	{{if .Metadata.Description}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>

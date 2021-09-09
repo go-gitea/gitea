@@ -2,16 +2,22 @@
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
-			<label for="registry-input">{{.i18n.Tr "repo.packages.npm.registry" | Safe}}</label>
-			<div>
+			<div class="field">
+				<label for="registry-input">{{svg "octicon-code"}} {{.i18n.Tr "repo.packages.npm.registry" | Safe}}</label>
 				<input id="registry-input" type="text" readonly="readonly" value="{{.Metadata.Scope}}:registry={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/npm">
 			</div>
-			<label for="installation-input">{{.i18n.Tr "repo.packages.npm.use"}}</label>
-			<div>
-				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.Package.Name}}">
+			<div class="field">
+				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.npm.install"}}</label>
+				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.Package.Name}}@{{.Package.Version}}">
+			</div>
+			<div class="field">
+				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.npm.install2"}}</label>
+				<input id="installation-input" type="text" readonly="readonly" value="&quot;{{.Package.Name}}&quot;: &quot;{{.Package.Version}}&quot;">
+			</div>
+			<div class="field">
+				<label>{{.i18n.Tr "repo.packages.npm.documentation" | Safe}}</label>
 			</div>
 		</div>
-		{{.i18n.Tr "repo.packages.npm.documentation" | Safe}}
 	</div>
 
 	{{if or .Metadata.Description .Metadata.Readme}}
