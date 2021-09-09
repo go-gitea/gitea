@@ -35,7 +35,7 @@ For example:
 | From | To | Result |
 | --- | --- | --- |
 | 1.4.0 | 1.4.1 | ✅ |
-| 1.4.1 | 1.4.0 | ✅ |
+| 1.4.1 | 1.4.0 | ⚠️ Not recommended, take your own risk! Althgouht it may work if the database structure doesn't change, it's highly recommended to use a backup to downgrade. |
 | 1.4.1 | 1.5.0 | ✅ Database gets upgraded |
 | 1.5.0 | 1.4.1 | ❌ Database already got upgraded and can not be used for an old Gitea |
 
