@@ -250,7 +250,7 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags()
+	tags, err := gitRepo.GetTags(0, 0)
 	if err != nil {
 		return fmt.Errorf("GetTags: %v", err)
 	}
