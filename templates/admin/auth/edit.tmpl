@@ -255,6 +255,13 @@
 						<label for="open_id_connect_auto_discovery_url">{{.i18n.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
 					</div>
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
+					</div>
 
 					<div class="oauth2_use_custom_url inline field">
 						<div class="ui checkbox">
