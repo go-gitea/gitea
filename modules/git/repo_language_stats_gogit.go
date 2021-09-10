@@ -9,10 +9,12 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/go-git/go-git/v5"
@@ -42,9 +44,73 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
+	var checker *CheckAttributeReader
+
+	if CheckGitVersionAtLeast("1.7.8") == nil {
+		indexFilename, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+
+			checker = &CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
+				Repo:       repo,
+				IndexFile:  indexFilename,
+			}
+			ctx, cancel := context.WithCancel(DefaultContext)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			} else {
+				go func() {
+					err = checker.Run()
+					if err != nil {
+						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+						cancel()
+					}
+				}()
+			}
+			defer cancel()
+		}
+	}
+
 	sizes := make(map[string]int64)
 	err = tree.Files().ForEach(func(f *object.File) error {
-		if f.Size == 0 || analyze.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
+		if f.Size == 0 {
+			return nil
+		}
+
+		notVendored := false
+		notGenerated := false
+
+		if checker != nil {
+			attrs, err := checker.CheckPath(f.Name)
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						return nil
+					}
+					notVendored = vendored == "false"
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						return nil
+					}
+					notGenerated = generated == "false"
+				}
+				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					// group languages, such as Pug -> HTML; SCSS -> CSS
+					group := enry.GetLanguageGroup(language)
+					if len(group) == 0 {
+						language = group
+					}
+
+					sizes[language] += f.Size
+
+					return nil
+				}
+			}
+		}
+
+		if (!notVendored && analyze.IsVendor(f.Name)) || enry.IsDotFile(f.Name) ||
 			enry.IsDocumentation(f.Name) || enry.IsConfiguration(f.Name) {
 			return nil
 		}
@@ -54,7 +120,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		if f.Size <= bigFileSize {
 			content, _ = readFile(f, fileSizeLimit)
 		}
-		if enry.IsGenerated(f.Name, content) {
+		if !notGenerated && enry.IsGenerated(f.Name, content) {
 			return nil
 		}
 
