@@ -526,7 +526,7 @@ func PrepareCompareDiff(
 		return true
 	}
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(models.RepoPath(headUser.Name, headRepo.Name),
+	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(headGitRepo,
 		compareInfo.MergeBase, headCommitID, setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior)
 	if err != nil {
@@ -616,11 +616,14 @@ func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool
 // CompareDiff show different from one commit to another commit
 func CompareDiff(ctx *context.Context) {
 	headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
-
+	defer func() {
+		if headGitRepo != nil {
+			headGitRepo.Close()
+		}
+	}()
 	if ctx.Written() {
 		return
 	}
-	defer headGitRepo.Close()
 
 	nothingToCompare := PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, compareInfo, baseBranch, headBranch,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))

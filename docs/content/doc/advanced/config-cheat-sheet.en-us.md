@@ -73,7 +73,6 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DISABLED_REPO_UNITS`: **_empty_**: Comma separated list of globally disabled repo units. Allowed values: \[repo.issues, repo.ext_issues, repo.pulls, repo.wiki, repo.ext_wiki, repo.projects\]
 - `DEFAULT_REPO_UNITS`: **repo.code,repo.releases,repo.issues,repo.pulls,repo.wiki,repo.projects**: Comma separated list of default repo units. Allowed values: \[repo.code, repo.releases, repo.issues, repo.pulls, repo.wiki, repo.projects\]. Note: Code and Releases can currently not be deactivated. If you specify default repo units you should still list them for future compatibility. External wiki and issue tracker can't be enabled by default as it requires additional settings. Disabled repo units will not be added to new repositories regardless if it is in the default list.
 - `PREFIX_ARCHIVE_FILES`: **true**: Prefix archive files by placing them in a directory named after the repository.
-- `DISABLE_MIRRORS`: **false**: Disable the creation of **new** mirrors. Pre-existing mirrors remain valid.
 - `DISABLE_MIGRATIONS`: **false**: Disable migrating feature.
 - `DISABLE_STARS`: **false**: Disable stars feature.
 - `DEFAULT_BRANCH`: **master**: Default branch name of all repositories.
@@ -876,8 +875,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 ## i18n (`i18n`)
 
-- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR**: List of locales shown in language selector
-- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어**: Visible names corresponding to the locales
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR,el-GR,fa-IR,hu-HU,id-ID,ml-IN**: List of locales shown in language selector
+- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어,ελληνικά,فارسی,magyar nyelv,bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
 
 ## U2F (`U2F`)
 - `APP_ID`: **`ROOT_URL`**: Declares the facet of the application. Requires HTTPS.
@@ -955,6 +954,9 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 ## Mirror (`mirror`)
 
+- `ENABLED`: **true**: Enables the mirror functionality. Set to **false** to disable all mirrors.
+- `DISABLE_NEW_PULL`: **false**: Disable the creation of **new** pull mirrors. Pre-existing mirrors remain valid. Will be ignored if `mirror.ENABLED` is `false`.
+- `DISABLE_NEW_PUSH`: **false**: Disable the creation of **new** push mirrors. Pre-existing mirrors remain valid. Will be ignored if `mirror.ENABLED` is `false`.
 - `DEFAULT_INTERVAL`: **8h**: Default interval between each check
 - `MIN_INTERVAL`: **10m**: Minimum interval for checking. (Must be >1m).
 
