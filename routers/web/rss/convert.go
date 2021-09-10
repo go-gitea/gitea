@@ -9,7 +9,6 @@ import (
 	"html"
 	"net/url"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -84,9 +83,11 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 		case models.ActionPullReviewDismissed:
 			title += ctx.Tr("action.review_dismissed", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath(), act.GetIssueInfos()[1])
 		case models.ActionStarRepo:
-			title += "ActionStarRepo" // TODO
+			title += ctx.Tr("action.stared_repo", act.GetRepoLink(), act.GetRepoPath())
+			link = &feeds.Link{Href: act.GetRepoLink()}
 		case models.ActionWatchRepo:
-			title += "ActionWatchRepo" // TODO
+			title += ctx.Tr("action.watched_repo", act.GetRepoLink(), act.GetRepoPath())
+			link = &feeds.Link{Href: act.GetRepoLink()}
 		default:
 			log.Error("unknown action type: %v", act.OpType)
 		}
@@ -145,7 +146,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 				Email: act.ActUser.GetEmail(),
 			},
 			Id:      fmt.Sprint(act.ID),
-			Created: time.Now(), // TODO: Created:     act.CreatedUnix.AsTime(),
+			Created: act.CreatedUnix.AsTime(),
 			Content: content,
 		})
 	}
