@@ -5,18 +5,29 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addBranchProtectionUnprotectedFilesColumn(x *xorm.Engine) error {
-	type ProtectedBranch struct {
-		UnprotectedFilePatterns string `xorm:"TEXT"`
+func addRepoIDForAttachment(x *xorm.Engine) error {
+	type Attachment struct {
+		ID         int64  `xorm:"pk autoincr"`
+		UUID       string `xorm:"uuid UNIQUE"`
+		RepoID     int64  `xorm:"INDEX"` // this should not be zero
+		IssueID    int64  `xorm:"INDEX"` // maybe zero when creating
+		ReleaseID  int64  `xorm:"INDEX"` // maybe zero when creating
+		UploaderID int64  `xorm:"INDEX DEFAULT 0"`
+	}
+	if err := x.Sync2(new(Attachment)); err != nil {
+		return err
 	}
 
-	if err := x.Sync2(new(ProtectedBranch)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	if _, err := x.Exec("UPDATE `attachment` set repo_id = (SELECT repo_id FROM `issue` WHERE `issue`.id = `attachment`.issue_id) WHERE `attachment`.issue_id > 0"); err != nil {
+		return err
 	}
+
+	if _, err := x.Exec("UPDATE `attachment` set repo_id = (SELECT repo_id FROM `release` WHERE `release`.id = `attachment`.release_id) WHERE `attachment`.release_id > 0"); err != nil {
+		return err
+	}
+
 	return nil
 }

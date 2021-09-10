@@ -606,7 +606,7 @@ func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool
 	if err != nil {
 		return false, nil, nil, err
 	}
-	tags, err := gitRepo.GetTags()
+	tags, err := gitRepo.GetTags(0, 0)
 	if err != nil {
 		return false, nil, nil, err
 	}
@@ -632,7 +632,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 
 	baseGitRepo := ctx.Repo.GitRepo
-	baseTags, err := baseGitRepo.GetTags()
+	baseTags, err := baseGitRepo.GetTags(0, 0)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -646,7 +646,7 @@ func CompareDiff(ctx *context.Context) {
 	}
 	ctx.Data["HeadBranches"] = headBranches
 
-	headTags, err := headGitRepo.GetTags()
+	headTags, err := headGitRepo.GetTags(0, 0)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return

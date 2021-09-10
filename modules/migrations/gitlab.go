@@ -421,12 +421,15 @@ func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			if err != nil {
 				return nil, false, fmt.Errorf("error while listing issue awards: %v", err)
 			}
-			if len(awards) < perPage {
-				break
-			}
+
 			for i := range awards {
 				reactions = append(reactions, g.awardToReaction(awards[i]))
 			}
+
+			if len(awards) < perPage {
+				break
+			}
+
 			awardPage++
 		}
 
@@ -584,12 +587,15 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			if err != nil {
 				return nil, false, fmt.Errorf("error while listing merge requests awards: %v", err)
 			}
-			if len(awards) < perPage {
-				break
-			}
+
 			for i := range awards {
 				reactions = append(reactions, g.awardToReaction(awards[i]))
 			}
+
+			if len(awards) < perPage {
+				break
+			}
+
 			awardPage++
 		}
 
