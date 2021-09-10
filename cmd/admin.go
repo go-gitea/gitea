@@ -288,6 +288,10 @@ var (
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -616,6 +620,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
+		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 	}
 }
 
