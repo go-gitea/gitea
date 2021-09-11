@@ -275,7 +275,7 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	return strings.Join(newHunk, "\n"), nil
 }
 
-// Get the affected files between two commits
+// GetAffectedFiles returns the affected files between two commits
 func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repository) ([]string, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
