@@ -11,18 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Set DRONE_TAG env
-        run: echo ::set-env name=DRONE_TAG::$(echo ${GITHUB_REF:10})
+        run: echo "DRONE_TAG=$(echo ${GITHUB_REF:10})" >> $GITHUB_ENV
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
         with:
-          node-version: '12.x'
+          node-version: '14.x'
       - uses: actions/setup-go@v1
         with:
-          go-version: 1.13
+          go-version: 1.16
       - name: Make Release
         run: |
           export PATH=${PATH}:`go env GOPATH`/bin
-          go get src.techknowlogick.com/xgo
+          go install src.techknowlogick.com/xgo@v1.4.0+1.16.2
           make release
         env:
           TAGS: bindata sqlite sqlite_unlock_notify
