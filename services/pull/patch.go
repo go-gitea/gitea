@@ -245,12 +245,60 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 // CheckFileProtection check file Protection
 func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string, repo *git.Repository) ([]string, error) {
-	// 1. If there are no patterns short-circuit and just return nil
 	if len(patterns) == 0 {
 		return nil, nil
 	}
+	affectedFiles, err := getAffectedFiles(oldCommitID, newCommitID, env, repo)
+	if err != nil {
+		return nil, err
+	}
+	changedProtectedFiles := make([]string, 0, limit)
+	for _, affectedFile := range affectedFiles {
+		lpath := strings.ToLower(affectedFile)
+		for _, pat := range patterns {
+			if pat.Match(lpath) {
+				changedProtectedFiles = append(changedProtectedFiles, lpath)
+				break
+			}
+		}
+		if len(changedProtectedFiles) >= limit {
+			break
+		}
+	}
+	if len(changedProtectedFiles) > 0 {
+		err = models.ErrFilePathProtected{
+			Path: changedProtectedFiles[0],
+		}
+	}
+	return changedProtectedFiles, err
+}
 
-	// 2. Prep the pipe
+// CheckUnprotectedFiles check if the commit only touches unprotected files
+func CheckUnprotectedFiles(oldCommitID, newCommitID string, patterns []glob.Glob, env []string, repo *git.Repository) (bool, error) {
+	if len(patterns) == 0 {
+		return false, nil
+	}
+	affectedFiles, err := getAffectedFiles(oldCommitID, newCommitID, env, repo)
+	if err != nil {
+		return false, err
+	}
+	for _, affectedFile := range affectedFiles {
+		lpath := strings.ToLower(affectedFile)
+		unprotected := false
+		for _, pat := range patterns {
+			if pat.Match(lpath) {
+				unprotected = true
+				break
+			}
+		}
+		if !unprotected {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func getAffectedFiles(oldCommitID, newCommitID string, env []string, repo *git.Repository) ([]string, error) {
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
 		log.Error("Unable to create os.Pipe for %s", repo.Path)
@@ -261,9 +309,9 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 		_ = stdoutWriter.Close()
 	}()
 
-	changedProtectedFiles := make([]string, 0, limit)
+	affectedFiles := make([]string, 0, 32)
 
-	// 3. Run `git diff --name-only` to get the names of the changed files
+	// Run `git diff --name-only` to get the names of the changed files
 	err = git.NewCommand("diff", "--name-only", oldCommitID, newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
@@ -274,7 +322,6 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 					// Close the reader on return to terminate the git command if necessary
 					_ = stdoutReader.Close()
 				}()
-
 				// Now scan the output from the command
 				scanner := bufio.NewScanner(stdoutReader)
 				for scanner.Scan() {
@@ -282,94 +329,15 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 					if len(path) == 0 {
 						continue
 					}
-					lpath := strings.ToLower(path)
-					for _, pat := range patterns {
-						if pat.Match(lpath) {
-							changedProtectedFiles = append(changedProtectedFiles, path)
-							break
-						}
-					}
-					if len(changedProtectedFiles) >= limit {
-						break
-					}
-				}
-
-				if len(changedProtectedFiles) > 0 {
-					return models.ErrFilePathProtected{
-						Path: changedProtectedFiles[0],
-					}
+					affectedFiles = append(affectedFiles, path)
 				}
 				return scanner.Err()
 			})
-	// 4. log real errors if there are any...
-	if err != nil && !models.IsErrFilePathProtected(err) {
-		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
-	}
-
-	return changedProtectedFiles, err
-}
-
-// CheckUnprotectedFiles check if the commit only touches unprotected files
-func CheckUnprotectedFiles(oldCommitID, newCommitID string, patterns []glob.Glob, env []string, repo *git.Repository) (bool, error) {
-	// 1. If there are no patterns short-circuit and just return false
-	if len(patterns) == 0 {
-		return false, nil
-	}
-
-	// 2. Prep the pipe
-	stdoutReader, stdoutWriter, err := os.Pipe()
 	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
-		return false, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
-	unprotectedFilesOnly := true
-
-	// 3. Run `git diff --name-only` to get the names of the changed files
-	err = git.NewCommand("diff", "--name-only", oldCommitID, newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stdoutWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stdoutReader.Close()
-				}()
-
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stdoutReader)
-				for scanner.Scan() {
-					path := strings.TrimSpace(scanner.Text())
-					if len(path) == 0 {
-						continue
-					}
-					lpath := strings.ToLower(path)
-					unprotected := false
-					for _, pat := range patterns {
-						if pat.Match(lpath) {
-							unprotected = true
-							break
-						}
-					}
-					if !unprotected {
-						unprotectedFilesOnly = false
-						break
-					}
-				}
-
-				return scanner.Err()
-			})
-	// 4. log errors if there are any...
-	if err != nil {
-		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
 	}
 
-	return unprotectedFilesOnly, err
+	return affectedFiles, err
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
