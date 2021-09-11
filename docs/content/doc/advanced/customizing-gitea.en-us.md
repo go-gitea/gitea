@@ -321,8 +321,21 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.
-As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
+The default built-in themes are `gitea` (light) and `arc-green` (dark).
+The default theme can be changed via `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+
+Gitea also has support for user themes, which means every user can select which theme should be used.
+The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+
+To make a custom theme available to all users:
+
+1. Add a CSS file to `$GITEA_PUBLIC/public/css/theme-<theme-name>.css`.
+  The value of `$GITEA_PUBLIC` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
+2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
+
+Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
+
+The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
 
 ## Customizing fonts
 

@@ -8128,6 +8128,16 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "merge",
+              "rebase"
+            ],
+            "type": "string",
+            "description": "how to update pull request",
+            "name": "style",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12377,6 +12387,10 @@
           },
           "x-go-name": "StatusCheckContexts"
         },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -12824,6 +12838,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13826,6 +13844,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
