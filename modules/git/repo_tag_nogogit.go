@@ -18,7 +18,8 @@ func (repo *Repository) IsTagExist(name string) bool {
 }
 
 // GetTags returns all tags of the repository.
-func (repo *Repository) GetTags() (tags []string, err error) {
-	tags, _, err = callShowRef(repo.Path, TagPrefix, "--tags", 0, 0)
+// returning at most limit tags, or all if limit is 0.
+func (repo *Repository) GetTags(skip, limit int) (tags []string, err error) {
+	tags, _, err = callShowRef(repo.Path, TagPrefix, "--tags", skip, limit)
 	return
 }
