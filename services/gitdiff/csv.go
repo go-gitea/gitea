@@ -161,31 +161,6 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 	createDiffRow := func(aline int, bline int) (*TableDiffRow, error) {
 		cells := make([]*TableDiffCell, columns)
 
-		if aline == 0 || bline == 0 {
-			var (
-				row      []string
-				celltype TableDiffCellType
-				err      error
-			)
-			if bline == 0 {
-				row, err = a.GetRow(aline - 1)
-				celltype = TableDiffCellDel
-			} else {
-				row, err = b.GetRow(bline - 1)
-				celltype = TableDiffCellAdd
-			}
-			if err != nil {
-				return nil, err
-			}
-			if row == nil {
-				return nil, nil
-			}
-			for i := 0; i < len(row); i++ {
-				cells[i] = &TableDiffCell{LeftCell: row[i], Type: celltype}
-			}
-			return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
-		}
-
 		arow, err := a.GetRow(aline - 1)
 		if err != nil {
 			return nil, err
@@ -216,7 +191,14 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
 				bcell, _ := getCell(brow, i)
-				cells[i] = &TableDiffCell{LeftCell: bcell, Type: TableDiffCellAdd}
+				cells_index := i
+				if len(a2b) >= i+1 && a2b[i] <= i {
+					cells_index = i + 1
+				}
+				if cells[cells_index] != nil && len(cells) >= cells_index+1 {
+					copy(cells[cells_index+1:], cells[cells_index:])
+				}
+				cells[cells_index] = &TableDiffCell{LeftCell: bcell, Type: TableDiffCellAdd}
 			}
 		}
 

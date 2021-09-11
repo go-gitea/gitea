@@ -123,3 +123,90 @@ func TestCSVDiff(t *testing.T) {
 		}
 	}
 }
+
+func TestCSVDiffHeadingChange(t *testing.T) {
+	var cases = []struct {
+		diff  string
+		base  string
+		head  string
+		cells [][4]TableDiffCellType
+	}{
+		// case 0 - renames first column
+		{
+			diff: `diff --git a/unittest.csv b/unittest.csv
+--- a/unittest.csv
++++ b/unittest.csv
+@@ -1,3 +1,3 @@
+-col1,col2,col3
++cola,col2,col3
+ a,b,c`,
+			base:  "col1,col2,col3\na,b,c",
+			head:  "cola,col2,col3\na,b,c",
+			cells: [][4]TableDiffCellType{{TableDiffCellDel, TableDiffCellAdd, TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellDel, TableDiffCellAdd, TableDiffCellEqual, TableDiffCellEqual}},
+		},
+		// case 1 - inserts a column after first, deletes last column
+		{
+			diff: `diff --git a/unittest.csv b/unittest.csv
+--- a/unittest.csv
++++ b/unittest.csv
+@@ -1,2 +1,2 @@
+-col1,col2,col3
+-a,b,c
++col1,col1a,col2
++a,d,b`,
+			base:  "col1,col2,col3\na,b,c",
+			head:  "col1,col1a,col2\na,d,b",
+			cells: [][4]TableDiffCellType{{TableDiffCellEqual, TableDiffCellAdd, TableDiffCellEqual, TableDiffCellDel}, {TableDiffCellEqual, TableDiffCellAdd, TableDiffCellEqual, TableDiffCellDel}},
+		},
+		// case 2 - deletes first column, inserts column after last
+		{
+			diff: `diff --git a/unittest.csv b/unittest.csv
+--- a/unittest.csv
++++ b/unittest.csv
+@@ -1,2 +1,2 @@
+-col1,col2,col3
+-a,b,c
++col2,col3,col4
++b,c,d`,
+			base:  "col1,col2,col3\na,b,c",
+			head:  "col2,col3,col4\nb,c,d",
+			cells: [][4]TableDiffCellType{{TableDiffCellDel, TableDiffCellEqual, TableDiffCellEqual, TableDiffCellAdd}, {TableDiffCellDel, TableDiffCellEqual, TableDiffCellEqual, TableDiffCellAdd}},
+		},
+	}
+
+	for n, c := range cases {
+		diff, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff))
+		if err != nil {
+			t.Errorf("ParsePatch failed: %s", err)
+		}
+
+		var baseReader *csv.Reader
+		if len(c.base) > 0 {
+			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			if err != nil {
+				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+			}
+		}
+		var headReader *csv.Reader
+		if len(c.head) > 0 {
+			headReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
+			if err != nil {
+				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+			}
+		}
+
+		result, err := CreateCsvDiff(diff.Files[0], baseReader, headReader)
+		assert.NoError(t, err)
+		assert.Len(t, result, 1, "case %d: should be one section", n)
+
+		section := result[0]
+		assert.Len(t, section.Rows, len(c.cells), "case %d: should be %d rows", n, len(c.cells))
+
+		for i, row := range section.Rows {
+			assert.Len(t, row.Cells, 4, "case %d: row %d should have four cells", n, i)
+			for j, cell := range row.Cells {
+				assert.Equal(t, c.cells[i][j], cell.Type, "case %d: row %d cell %d should be equal", n, i, j)
+			}
+		}
+	}
+}

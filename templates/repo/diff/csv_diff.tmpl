@@ -12,7 +12,9 @@
 						{{if and (eq $i 0) (eq $j 0)}}
 							<th class="line-num">{{.RowIdx}}</th>
 							{{range $j, $cell := $row.Cells}}
-								{{if eq $cell.Type 2}}
+								{{if not $cell}}
+									<th></th>
+								{{else if eq $cell.Type 2}}
 									<th class="modified"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></th>
 								{{else if eq $cell.Type 3}}
 									<th class="added"><span class="added-code">{{.LeftCell}}</span></th>
@@ -25,7 +27,9 @@
 						{{else}}
 							<td class="line-num">{{if .RowIdx}}{{.RowIdx}}{{end}}</td>
 							{{range $j, $cell := $row.Cells}}
-								{{if eq $cell.Type 2}}
+								{{if not $cell}}
+									<td></td>
+								{{else if eq $cell.Type 2}}
 									<td class="modified"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></td>
 								{{else if eq $cell.Type 3}}
 									<td class="added"><span class="added-code">{{.LeftCell}}</span></td>
