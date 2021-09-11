@@ -248,7 +248,7 @@ func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, 
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-	affectedFiles, err := getAffectedFiles(oldCommitID, newCommitID, env, repo)
+	affectedFiles, err := git.GetAffectedFiles(oldCommitID, newCommitID, env, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -278,7 +278,7 @@ func CheckUnprotectedFiles(oldCommitID, newCommitID string, patterns []glob.Glob
 	if len(patterns) == 0 {
 		return false, nil
 	}
-	affectedFiles, err := getAffectedFiles(oldCommitID, newCommitID, env, repo)
+	affectedFiles, err := git.GetAffectedFiles(oldCommitID, newCommitID, env, repo)
 	if err != nil {
 		return false, err
 	}
@@ -296,48 +296,6 @@ func CheckUnprotectedFiles(oldCommitID, newCommitID string, patterns []glob.Glob
 		}
 	}
 	return true, nil
-}
-
-func getAffectedFiles(oldCommitID, newCommitID string, env []string, repo *git.Repository) ([]string, error) {
-	stdoutReader, stdoutWriter, err := os.Pipe()
-	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
-		return nil, err
-	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
-	affectedFiles := make([]string, 0, 32)
-
-	// Run `git diff --name-only` to get the names of the changed files
-	err = git.NewCommand("diff", "--name-only", oldCommitID, newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stdoutWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stdoutReader.Close()
-				}()
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stdoutReader)
-				for scanner.Scan() {
-					path := strings.TrimSpace(scanner.Text())
-					if len(path) == 0 {
-						continue
-					}
-					affectedFiles = append(affectedFiles, path)
-				}
-				return scanner.Err()
-			})
-	if err != nil {
-		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
-	}
-
-	return affectedFiles, err
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
