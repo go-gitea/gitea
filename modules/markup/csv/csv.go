@@ -89,6 +89,9 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	// FIXME: don't read all to memory
 	rawBytes, err := ioutil.ReadAll(input)
 	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
 		return err
 	}
 
@@ -105,6 +108,9 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 
 	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
 	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
 		return err
 	}
 

@@ -518,7 +518,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
 				GitRepo:   ctx.Repo.GitRepo,
 			}, rd, &result)
-			if err != nil && err != io.EOF {
+			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
