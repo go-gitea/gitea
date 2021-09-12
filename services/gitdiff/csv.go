@@ -210,7 +210,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 			} else if cellsIndex < b2a[i] {
 				cellsIndex = b2a[i]
 			}
-			cellsIndex += 1
+			cellsIndex++
 		}
 
 		return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
@@ -311,7 +311,7 @@ func tryMapColumnsByContent(a *csvReader, a2b []int, b *csvReader, b2a []int) {
 					b2a[bStart] = i
 				}
 			}
-			bStart += 1
+			bStart++
 		}
 	}
 }
