@@ -45,7 +45,7 @@ func TestCSVDiff(t *testing.T) {
 +b,b`,
 			base:  "col1,col2\na,a",
 			head:  "col1,col2\na,a\nb,b",
-			cells: [][2]TableDiffCellType{{TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellChanged, TableDiffCellChanged}},
+			cells: [][2]TableDiffCellType{{TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellAdd, TableDiffCellAdd}},
 		},
 		// case 2 - row deleted
 		{
