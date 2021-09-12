@@ -344,7 +344,7 @@ heaploop:
 			if ctx.Err() == context.DeadlineExceeded {
 				break heaploop
 			}
-      g.Close()
+			g.Close()
 			return nil, ctx.Err()
 		default:
 		}
