@@ -199,18 +199,18 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 				cells[i] = &TableDiffCell{LeftCell: acell, RightCell: bcell, Type: celltype}
 			}
 		}
-		cells_index := 0
+		cellsIndex := 0
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
 				bcell, _ := getCell(brow, i)
-				if cells[cells_index] != nil && len(cells) >= cells_index+1 {
-					copy(cells[cells_index+1:], cells[cells_index:])
+				if cells[cellsIndex] != nil && len(cells) >= cellsIndex+1 {
+					copy(cells[cellsIndex+1:], cells[cellsIndex:])
 				}
-				cells[cells_index] = &TableDiffCell{RightCell: bcell, Type: TableDiffCellAdd}
-			} else if cells_index < b2a[i] {
-				cells_index = b2a[i]
+				cells[cellsIndex] = &TableDiffCell{RightCell: bcell, Type: TableDiffCellAdd}
+			} else if cellsIndex < b2a[i] {
+				cellsIndex = b2a[i]
 			}
-			cells_index += 1
+			cellsIndex += 1
 		}
 
 		return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
@@ -294,24 +294,24 @@ func getColumnMapping(a *csvReader, b *csvReader) ([]int, []int) {
 // tryMapColumnsByContent tries to map missing columns by the content of the first lines.
 func tryMapColumnsByContent(a *csvReader, a2b []int, b *csvReader, b2a []int) {
 	for i := 0; i < len(a2b); i++ {
-		b_start := 0
-		for a2b[i] == unmappedColumn && b_start < len(b2a) {
-			if b2a[b_start] == unmappedColumn {
+		bStart := 0
+		for a2b[i] == unmappedColumn && bStart < len(b2a) {
+			if b2a[bStart] == unmappedColumn {
 				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(a.buffer), len(b.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
 					acell, ea := getCell(a.buffer[j], i)
-					bcell, eb := getCell(b.buffer[j], b_start)
+					bcell, eb := getCell(b.buffer[j], bStart)
 					if ea == nil && eb == nil && acell == bcell {
 						same++
 					}
 				}
 				if (float32(same) / float32(rows)) > minRatioToMatch {
-					a2b[i] = b_start
-					b2a[b_start] = i
+					a2b[i] = bStart
+					b2a[bStart] = i
 				}
 			}
-			b_start += 1
+			bStart += 1
 		}
 	}
 }
