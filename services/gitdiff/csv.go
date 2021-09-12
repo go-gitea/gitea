@@ -178,35 +178,35 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		}
 
 		for i := 0; i < len(a2b); i++ {
-			acell, ae := getCell(arow, i)
+			aCell, aErr := getCell(arow, i)
 
 			if a2b[i] == unmappedColumn {
-				cells[i] = &TableDiffCell{LeftCell: acell, Type: TableDiffCellDel}
+				cells[i] = &TableDiffCell{LeftCell: aCell, Type: TableDiffCellDel}
 			} else {
-				bcell, be := getCell(brow, a2b[i])
+				bCell, bErr := getCell(brow, a2b[i])
 
-				var celltype TableDiffCellType
-				if ae != nil {
-					celltype = TableDiffCellAdd
-				} else if be != nil {
-					celltype = TableDiffCellDel
-				} else if acell == bcell {
-					celltype = TableDiffCellEqual
+				var cellType TableDiffCellType
+				if aErr != nil {
+					cellType = TableDiffCellAdd
+				} else if bErr != nil {
+					cellType = TableDiffCellDel
+				} else if aCell == bCell {
+					cellType = TableDiffCellEqual
 				} else {
-					celltype = TableDiffCellChanged
+					cellType = TableDiffCellChanged
 				}
 
-				cells[i] = &TableDiffCell{LeftCell: acell, RightCell: bcell, Type: celltype}
+				cells[i] = &TableDiffCell{LeftCell: aCell, RightCell: bCell, Type: cellType}
 			}
 		}
 		cellsIndex := 0
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
-				bcell, _ := getCell(brow, i)
+				bCell, _ := getCell(brow, i)
 				if cells[cellsIndex] != nil && len(cells) >= cellsIndex+1 {
 					copy(cells[cellsIndex+1:], cells[cellsIndex:])
 				}
-				cells[cellsIndex] = &TableDiffCell{RightCell: bcell, Type: TableDiffCellAdd}
+				cells[cellsIndex] = &TableDiffCell{RightCell: bCell, Type: TableDiffCellAdd}
 			} else if cellsIndex < b2a[i] {
 				cellsIndex = b2a[i]
 			}
@@ -300,9 +300,9 @@ func tryMapColumnsByContent(a *csvReader, a2b []int, b *csvReader, b2a []int) {
 				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(a.buffer), len(b.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
-					acell, ea := getCell(a.buffer[j], i)
-					bcell, eb := getCell(b.buffer[j], bStart)
-					if ea == nil && eb == nil && acell == bcell {
+					aCell, aErr := getCell(a.buffer[j], i)
+					bCell, bErr := getCell(b.buffer[j], bStart)
+					if aErr == nil && bErr == nil && aCell == bCell {
 						same++
 					}
 				}
