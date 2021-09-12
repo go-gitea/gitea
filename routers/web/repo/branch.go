@@ -84,7 +84,7 @@ func Branches(ctx *context.Context) {
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
-	branchName := ctx.Form("name")
+	branchName := ctx.FormString("name")
 
 	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
@@ -113,7 +113,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 
 	branchID := ctx.FormInt64("branch_id")
-	branchName := ctx.Form("name")
+	branchName := ctx.FormString("name")
 
 	deletedBranch, err := ctx.Repo.Repository.GetDeletedBranchByID(branchID)
 	if err != nil {
@@ -217,7 +217,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, totalNumOfBranches - 1
+	return branches, totalNumOfBranches
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,

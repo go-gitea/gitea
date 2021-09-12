@@ -86,7 +86,7 @@ func TestUser_GetOwnerTeam(t *testing.T) {
 func TestUser_GetTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.NoError(t, org.GetTeams(&SearchTeamOptions{}))
+	assert.NoError(t, org.LoadTeams())
 	if assert.Len(t, org.Teams, 4) {
 		assert.Equal(t, int64(1), org.Teams[0].ID)
 		assert.Equal(t, int64(2), org.Teams[1].ID)

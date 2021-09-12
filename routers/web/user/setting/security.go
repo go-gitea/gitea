@@ -25,7 +25,7 @@ func Security(ctx *context.Context) {
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["RequireU2F"] = true
 
-	if ctx.Form("openid.return_to") != "" {
+	if ctx.FormString("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
 		return
 	}

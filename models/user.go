@@ -1060,9 +1060,9 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-// validateUser check if user is valide to insert / update into database
+// validateUser check if user is valid to insert / update into database
 func validateUser(u *User) error {
-	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) {
+	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 	}
 
@@ -1619,14 +1619,7 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 	}
 
 	if opts.Actor != nil {
-		var exprCond builder.Cond
-		if setting.Database.UseMySQL {
-			exprCond = builder.Expr("org_user.org_id = user.id")
-		} else if setting.Database.UseMSSQL {
-			exprCond = builder.Expr("org_user.org_id = [user].id")
-		} else {
-			exprCond = builder.Expr("org_user.org_id = \"user\".id")
-		}
+		var exprCond builder.Cond = builder.Expr("org_user.org_id = `user`.id")
 
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
@@ -1704,7 +1697,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, int64, error) {
 	sess := x.Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
@@ -1716,11 +1709,13 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 		sess = listOptions.setSessionPagination(sess)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
-		return repos, sess.Find(&repos)
+		total, err := sess.FindAndCount(&repos)
+		return repos, total, err
 	}
 
 	repos := make([]*Repository, 0, 10)
-	return repos, sess.Find(&repos)
+	total, err := sess.FindAndCount(&repos)
+	return repos, total, err
 }
 
 // IterateUser iterate users

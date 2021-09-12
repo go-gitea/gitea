@@ -126,7 +126,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 
 		if opts.LFS {
 			ep := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
-			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep); err != nil {
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep, setting.Migrations.SkipTLSVerify); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
 		}
@@ -250,7 +250,7 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags()
+	tags, err := gitRepo.GetTags(0, 0)
 	if err != nil {
 		return fmt.Errorf("GetTags: %v", err)
 	}
@@ -316,8 +316,8 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
-func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL) error {
-	client := lfs.NewClient(endpoint)
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL, skipTLSVerify bool) error {
+	client := lfs.NewClient(endpoint, skipTLSVerify)
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)

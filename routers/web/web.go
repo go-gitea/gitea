@@ -311,6 +311,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, user.OIDCKeys)
+	m.Post("/login/oauth/introspect", CorsHandler(), bindIgnErr(forms.IntrospectTokenForm{}), ignSignInAndCsrf, user.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -894,7 +895,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{:patch|diff}", repo.RawDiff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).

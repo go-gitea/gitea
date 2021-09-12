@@ -334,6 +334,14 @@ var migrations = []Migration{
 	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
 	// v190 -> v191
 	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
+	// v191 -> v192
+	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", alterIssueAndCommentTextFieldsToLongText),
+	// v192 -> v193
+	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
+	// v193 -> v194
+	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
+	// v194 -> v195
+	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -427,7 +435,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("do migrate: %v", err)
+			return fmt.Errorf("migration[%d]: %s failed: %v", v+int64(i), m.Description(), err)
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
@@ -597,9 +605,24 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 
+		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
+			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			return err
+		}
+
 		// SQLite and MySQL will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
+			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
+			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
 			return err
 		}
 	case setting.Database.UsePostgreSQL:

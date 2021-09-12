@@ -83,6 +83,7 @@ const (
 	AVX512DQ                            // AVX-512 Doubleword and Quadword Instructions
 	AVX512ER                            // AVX-512 Exponential and Reciprocal Instructions
 	AVX512F                             // AVX-512 Foundation
+	AVX512FP16                          // AVX-512 FP16 Instructions
 	AVX512IFMA                          // AVX-512 Integer Fused Multiply-Add Instructions
 	AVX512PF                            // AVX-512 Prefetch Instructions
 	AVX512VBMI                          // AVX-512 Vector Bit Manipulation Instructions
@@ -980,6 +981,7 @@ func support() flagSet {
 				// edx
 				fs.setIf(edx&(1<<8) != 0, AVX512VP2INTERSECT)
 				fs.setIf(edx&(1<<22) != 0, AMXBF16)
+				fs.setIf(edx&(1<<23) != 0, AVX512FP16)
 				fs.setIf(edx&(1<<24) != 0, AMXTILE)
 				fs.setIf(edx&(1<<25) != 0, AMXINT8)
 				// eax1 = CPUID.(EAX=7, ECX=1).EAX

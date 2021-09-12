@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 const (
@@ -52,7 +53,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
@@ -70,7 +72,7 @@ func SettingsPost(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	switch ctx.Form("action") {
+	switch ctx.FormString("action") {
 	case "update":
 		if ctx.HasError() {
 			ctx.HTML(http.StatusOK, tplSettingsOptions)
@@ -144,7 +146,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror":
-		if !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -220,7 +222,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror-sync":
-		if !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -231,6 +233,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-sync":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		m, err := selectPushMirrorByForm(form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
@@ -243,6 +250,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -267,6 +279,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-add":
+		if setting.Mirror.DisableNewPush {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -560,7 +577,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		newOwner, err := models.GetUserByName(ctx.Form("new_owner_name"))
+		newOwner, err := models.GetUserByName(ctx.FormString("new_owner_name"))
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -666,7 +683,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		err := repo.DeleteWiki()
+		err := wiki_service.DeleteWiki(repo)
 		if err != nil {
 			log.Error("Delete Wiki: %v", err.Error())
 		}
@@ -698,6 +715,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	case "unarchive":
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusForbidden)
@@ -742,6 +760,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		default:
 			ctx.ServerError("Unknown error", err)
 		}
+		return
 	}
 	ctx.RenderWithErr(ctx.Tr("repo.mirror_address_url_invalid"), tplSettingsOptions, form)
 }
@@ -775,7 +794,7 @@ func Collaboration(ctx *context.Context) {
 
 // CollaborationPost response for actions for a collaboration of a repository
 func CollaborationPost(ctx *context.Context) {
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Form("collaborator")))
+	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
 		return
@@ -854,7 +873,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Form("team")))
+	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("team")))
 	if len(name) == 0 {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -988,7 +1007,7 @@ func GitHooksEditPost(ctx *context.Context) {
 		}
 		return
 	}
-	hook.Content = ctx.Form("content")
+	hook.Content = ctx.FormString("content")
 	if err = hook.Update(); err != nil {
 		ctx.ServerError("hook.Update", err)
 		return
@@ -1002,7 +1021,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
+	keys, err := models.ListDeployKeys(&models.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1018,7 +1037,7 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 
-	keys, err := models.ListDeployKeys(ctx.Repo.Repository.ID, models.ListOptions{})
+	keys, err := models.ListDeployKeys(&models.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return

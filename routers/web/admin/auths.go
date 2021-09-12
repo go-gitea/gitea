@@ -154,8 +154,10 @@ func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 		Host:           form.SMTPHost,
 		Port:           form.SMTPPort,
 		AllowedDomains: form.AllowedDomains,
-		TLS:            form.TLS,
+		ForceSMTPS:     form.ForceSMTPS,
 		SkipVerify:     form.SkipVerify,
+		HeloHostname:   form.HeloHostname,
+		DisableHelo:    form.DisableHelo,
 	}
 }
 
@@ -179,6 +181,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
+		SkipLocalTwoFA:                form.SkipLocalTwoFA,
 	}
 }
 

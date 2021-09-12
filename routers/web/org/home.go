@@ -6,7 +6,6 @@ package org
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
@@ -51,8 +50,8 @@ func Home(ctx *context.Context) {
 	}
 
 	var orderBy models.SearchOrderBy
-	ctx.Data["SortType"] = ctx.Form("sort")
-	switch ctx.Form("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -78,7 +77,7 @@ func Home(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Form("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 
 	page := ctx.FormInt("page")
@@ -108,7 +107,7 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	var opts = models.FindOrgMembersOpts{
+	var opts = &models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
 		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
@@ -123,7 +122,7 @@ func Home(ctx *context.Context) {
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(&opts)
+	members, _, err := models.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
@@ -142,7 +141,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = org.Teams
 
-	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

@@ -1940,6 +1940,18 @@
             "in": "query"
           },
           {
+            "type": "string",
+            "description": "filter by owner",
+            "name": "owner",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by team (requires organization owner parameter to be provided)",
+            "name": "team",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -3559,6 +3571,52 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Commit"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/notes/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a note corresponding to a single commit from a repository",
+        "operationId": "repoGetNote",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "a git ref or commit sha",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Note"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -8070,6 +8128,16 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "merge",
+              "rebase"
+            ],
+            "type": "string",
+            "description": "how to update pull request",
+            "name": "style",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12319,6 +12387,10 @@
           },
           "x-go-name": "StatusCheckContexts"
         },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -12766,6 +12838,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13768,6 +13844,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15449,6 +15529,20 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Note": {
+      "description": "Note contains information related to a git note",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/Commit"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17410,6 +17504,12 @@
         "items": {
           "$ref": "#/definitions/Milestone"
         }
+      }
+    },
+    "Note": {
+      "description": "Note",
+      "schema": {
+        "$ref": "#/definitions/Note"
       }
     },
     "NotificationCount": {

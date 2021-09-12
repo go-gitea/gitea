@@ -34,7 +34,7 @@ const (
 func SignInOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	if ctx.Form("openid.return_to") != "" {
+	if ctx.FormString("openid.return_to") != "" {
 		signInOpenIDVerify(ctx)
 		return
 	}
@@ -46,7 +46,7 @@ func SignInOpenID(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.Form("redirect_to")
+	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {

@@ -25,7 +25,7 @@ gitea.com/go-chi/session/couchbase
 gitea.com/go-chi/session/memcache
 gitea.com/go-chi/session/mysql
 gitea.com/go-chi/session/postgres
-# gitea.com/lunny/levelqueue v0.4.0
+# gitea.com/lunny/levelqueue v0.4.1
 ## explicit
 gitea.com/lunny/levelqueue
 # github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c
@@ -194,7 +194,7 @@ github.com/boombuler/barcode/utils
 # github.com/bradfitz/gomemcache v0.0.0-20190913173617-a41fca850d0b
 ## explicit
 github.com/bradfitz/gomemcache/memcache
-# github.com/caddyserver/certmagic v0.14.0
+# github.com/caddyserver/certmagic v0.14.1
 ## explicit
 github.com/caddyserver/certmagic
 # github.com/cespare/xxhash/v2 v2.1.1
@@ -419,6 +419,16 @@ github.com/gobwas/glob/syntax/ast
 github.com/gobwas/glob/syntax/lexer
 github.com/gobwas/glob/util/runes
 github.com/gobwas/glob/util/strings
+# github.com/goccy/go-json v0.7.4
+github.com/goccy/go-json
+github.com/goccy/go-json/internal/decoder
+github.com/goccy/go-json/internal/encoder
+github.com/goccy/go-json/internal/encoder/vm
+github.com/goccy/go-json/internal/encoder/vm_color
+github.com/goccy/go-json/internal/encoder/vm_color_indent
+github.com/goccy/go-json/internal/encoder/vm_indent
+github.com/goccy/go-json/internal/errors
+github.com/goccy/go-json/internal/runtime
 # github.com/gogs/chardet v0.0.0-20191104214054-4b6791f73a28
 ## explicit
 github.com/gogs/chardet
@@ -442,9 +452,9 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-github/v32 v32.1.0
+# github.com/google/go-github/v37 v37.0.0
 ## explicit
-github.com/google/go-github/v32/github
+github.com/google/go-github/v37/github
 # github.com/google/go-querystring v1.1.0
 ## explicit
 github.com/google/go-querystring/query
@@ -539,7 +549,7 @@ github.com/klauspost/compress/gzip
 github.com/klauspost/compress/huff0
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.0.8
+# github.com/klauspost/cpuid/v2 v2.0.9
 ## explicit
 github.com/klauspost/cpuid/v2
 # github.com/klauspost/pgzip v1.2.5
@@ -598,7 +608,7 @@ github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.13
 ## explicit
 github.com/mattn/go-runewidth
-# github.com/mattn/go-sqlite3 v1.14.7
+# github.com/mattn/go-sqlite3 v1.14.8
 ## explicit
 github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.1
@@ -836,13 +846,13 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# go.uber.org/atomic v1.8.0
+# go.uber.org/atomic v1.9.0
 ## explicit
 go.uber.org/atomic
 # go.uber.org/multierr v1.7.0
 ## explicit
 go.uber.org/multierr
-# go.uber.org/zap v1.18.1
+# go.uber.org/zap v1.19.0
 ## explicit
 go.uber.org/zap
 go.uber.org/zap/buffer
@@ -850,7 +860,7 @@ go.uber.org/zap/internal/bufferpool
 go.uber.org/zap/internal/color
 go.uber.org/zap/internal/exit
 go.uber.org/zap/zapcore
-# golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e
+# golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 ## explicit
 golang.org/x/crypto/argon2
 golang.org/x/crypto/bcrypt
@@ -881,7 +891,7 @@ golang.org/x/crypto/ssh/knownhosts
 # golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver
-# golang.org/x/net v0.0.0-20210716203947-853a461950ff
+# golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d
 ## explicit
 golang.org/x/net/bpf
 golang.org/x/net/context
@@ -907,7 +917,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210630005230-0f9fa26af87c
+# golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -916,7 +926,7 @@ golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/debug
-# golang.org/x/text v0.3.6
+# golang.org/x/text v0.3.7
 ## explicit
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
@@ -1042,7 +1052,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.9
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.1.2
+# xorm.io/xorm v1.2.2
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches
