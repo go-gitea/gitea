@@ -73,7 +73,7 @@ func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
 	sess := x.Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &opts)
 
 		users := make([]*User, 0, opts.PageSize)
 		return users, sess.Find(&users)

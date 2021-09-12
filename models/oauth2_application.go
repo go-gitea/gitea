@@ -275,7 +275,7 @@ func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Applic
 		Desc("id")
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&apps)
