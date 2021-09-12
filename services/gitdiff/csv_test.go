@@ -21,7 +21,7 @@ func TestCSVDiff(t *testing.T) {
 		head  string
 		cells [][2]TableDiffCellType
 	}{
-		// case 0
+		// case 0 - initial commit of a csv
 		{
 			diff: `diff --git a/unittest.csv b/unittest.csv
 --- a/unittest.csv
@@ -33,7 +33,7 @@ func TestCSVDiff(t *testing.T) {
 			head:  "col1,col2\na,a",
 			cells: [][2]TableDiffCellType{{TableDiffCellAdd, TableDiffCellAdd}, {TableDiffCellAdd, TableDiffCellAdd}},
 		},
-		// case 1
+		// case 1 - adding 1 row at end
 		{
 			diff: `diff --git a/unittest.csv b/unittest.csv
 --- a/unittest.csv
@@ -45,9 +45,9 @@ func TestCSVDiff(t *testing.T) {
 +b,b`,
 			base:  "col1,col2\na,a",
 			head:  "col1,col2\na,a\nb,b",
-			cells: [][2]TableDiffCellType{{TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellAdd, TableDiffCellAdd}},
+			cells: [][2]TableDiffCellType{{TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellChanged, TableDiffCellChanged}},
 		},
-		// case 2
+		// case 2 - row deleted
 		{
 			diff: `diff --git a/unittest.csv b/unittest.csv
 --- a/unittest.csv
@@ -60,7 +60,7 @@ func TestCSVDiff(t *testing.T) {
 			head:  "col1,col2\nb,b",
 			cells: [][2]TableDiffCellType{{TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellDel, TableDiffCellDel}, {TableDiffCellEqual, TableDiffCellEqual}},
 		},
-		// case 3
+		// case 3 - row changed
 		{
 			diff: `diff --git a/unittest.csv b/unittest.csv
 --- a/unittest.csv
@@ -73,7 +73,7 @@ func TestCSVDiff(t *testing.T) {
 			head:  "col1,col2\nb,c",
 			cells: [][2]TableDiffCellType{{TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellEqual, TableDiffCellChanged}},
 		},
-		// case 4
+		// case 4 - all deleted
 		{
 			diff: `diff --git a/unittest.csv b/unittest.csv
 --- a/unittest.csv
@@ -142,7 +142,7 @@ func TestCSVDiffHeadingChange(t *testing.T) {
  a,b,c`,
 			base:  "col1,col2,col3\na,b,c",
 			head:  "cola,col2,col3\na,b,c",
-			cells: [][4]TableDiffCellType{{TableDiffCellDel, TableDiffCellAdd, TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellDel, TableDiffCellAdd, TableDiffCellEqual, TableDiffCellEqual}},
+			cells: [][4]TableDiffCellType{{TableDiffCellAdd, TableDiffCellDel, TableDiffCellEqual, TableDiffCellEqual}, {TableDiffCellAdd, TableDiffCellDel, TableDiffCellEqual, TableDiffCellEqual}},
 		},
 		// case 1 - inserts a column after first, deletes last column
 		{
@@ -204,6 +204,66 @@ func TestCSVDiffHeadingChange(t *testing.T) {
 
 		for i, row := range section.Rows {
 			assert.Len(t, row.Cells, 4, "case %d: row %d should have four cells", n, i)
+			for j, cell := range row.Cells {
+				assert.Equal(t, c.cells[i][j], cell.Type, "case %d: row %d cell %d should be equal", n, i, j)
+			}
+		}
+	}
+}
+
+func TestCSVDiffMultipleHeadingChanges(t *testing.T) {
+	var cases = []struct {
+		diff  string
+		base  string
+		head  string
+		cells [][5]TableDiffCellType
+	}{
+		// case 0 - two columns deleted, 2 added
+		{
+			diff: `diff --git a/unittest.csv b/unittest.csv
+--- a/unittest.csv
++++ b/unittest.csv
+@@ -1,2 +1,2 @@
+-col1,col2,col
+-a,b,c
++col3,col4,col5
++c,d,e`,
+			base:  "col1,col2,col3\na,b,c",
+			head:  "col3,col4,col5\nc,d,e",
+			cells: [][5]TableDiffCellType{{TableDiffCellDel, TableDiffCellDel, TableDiffCellEqual, TableDiffCellAdd, TableDiffCellAdd}, {TableDiffCellDel, TableDiffCellDel, TableDiffCellEqual, TableDiffCellAdd, TableDiffCellAdd}},
+		},
+	}
+
+	for n, c := range cases {
+		diff, err := ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.diff))
+		if err != nil {
+			t.Errorf("ParsePatch failed: %s", err)
+		}
+
+		var baseReader *csv.Reader
+		if len(c.base) > 0 {
+			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			if err != nil {
+				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+			}
+		}
+		var headReader *csv.Reader
+		if len(c.head) > 0 {
+			headReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
+			if err != nil {
+				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+			}
+		}
+
+		result, err := CreateCsvDiff(diff.Files[0], baseReader, headReader)
+		assert.NoError(t, err)
+		assert.Len(t, result, 1, "case %d: should be one section", n)
+
+		section := result[0]
+		assert.Len(t, section.Rows, len(c.cells), "case %d: should be %d rows", n, len(c.cells))
+
+		for i, row := range section.Rows {
+			assert.Len(t, row.Cells, 5, "case %d: row %d should have five cells", n, i)
 			for j, cell := range row.Cells {
 				assert.Equal(t, c.cells[i][j], cell.Type, "case %d: row %d cell %d should be equal", n, i, j)
 			}

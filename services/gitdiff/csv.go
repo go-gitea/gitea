@@ -70,7 +70,7 @@ func createCsvReader(reader *csv.Reader, bufferRowCount int) (*csvReader, error)
 
 // GetRow gets a row from the buffer if present or advances the reader to the requested row. On the end of the file only nil gets returned.
 func (csv *csvReader) GetRow(row int) ([]string, error) {
-	if row < len(csv.buffer) {
+	if row < len(csv.buffer) && row >= 0 {
 		return csv.buffer[row], nil
 	}
 	if csv.eof {
@@ -131,7 +131,11 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 		}
 		cells := make([]*TableDiffCell, len(row))
 		for j := 0; j < len(row); j++ {
-			cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
+			if celltype == TableDiffCellDel {
+				cells[j] = &TableDiffCell{LeftCell: row[j], Type: celltype}
+			} else {
+				cells[j] = &TableDiffCell{RightCell: row[j], Type: celltype}
+			}
 		}
 		rows = append(rows, &TableDiffRow{RowIdx: i, Cells: cells})
 		i++
@@ -174,32 +178,39 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		}
 
 		for i := 0; i < len(a2b); i++ {
-			acell, _ := getCell(arow, i)
+			acell, ae := getCell(arow, i)
+
 			if a2b[i] == unmappedColumn {
 				cells[i] = &TableDiffCell{LeftCell: acell, Type: TableDiffCellDel}
 			} else {
-				bcell, _ := getCell(brow, a2b[i])
+				bcell, be := getCell(brow, a2b[i])
 
-				celltype := TableDiffCellChanged
-				if acell == bcell {
+				var celltype TableDiffCellType
+				if ae != nil {
+					celltype = TableDiffCellAdd
+				} else if be != nil {
+					celltype = TableDiffCellDel
+				} else if acell == bcell {
 					celltype = TableDiffCellEqual
+				} else {
+					celltype = TableDiffCellChanged
 				}
 
 				cells[i] = &TableDiffCell{LeftCell: acell, RightCell: bcell, Type: celltype}
 			}
 		}
+		cells_index := 0
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
 				bcell, _ := getCell(brow, i)
-				cells_index := i
-				if len(a2b) >= i+1 && a2b[i] <= i {
-					cells_index = i + 1
-				}
 				if cells[cells_index] != nil && len(cells) >= cells_index+1 {
 					copy(cells[cells_index+1:], cells[cells_index:])
 				}
-				cells[cells_index] = &TableDiffCell{LeftCell: bcell, Type: TableDiffCellAdd}
+				cells[cells_index] = &TableDiffCell{RightCell: bcell, Type: TableDiffCellAdd}
+			} else if cells_index < b2a[i] {
+				cells_index = b2a[i]
 			}
+			cells_index += 1
 		}
 
 		return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
@@ -282,26 +293,26 @@ func getColumnMapping(a *csvReader, b *csvReader) ([]int, []int) {
 
 // tryMapColumnsByContent tries to map missing columns by the content of the first lines.
 func tryMapColumnsByContent(a *csvReader, a2b []int, b *csvReader, b2a []int) {
-	start := 0
 	for i := 0; i < len(a2b); i++ {
-		if a2b[i] == unmappedColumn {
-			if b2a[start] == unmappedColumn {
+		b_start := 0
+		for a2b[i] == unmappedColumn && b_start < len(b2a) {
+			if b2a[b_start] == unmappedColumn {
 				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(a.buffer), len(b.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
 					acell, ea := getCell(a.buffer[j], i)
-					bcell, eb := getCell(b.buffer[j], start+1)
+					bcell, eb := getCell(b.buffer[j], b_start)
 					if ea == nil && eb == nil && acell == bcell {
 						same++
 					}
 				}
 				if (float32(same) / float32(rows)) > minRatioToMatch {
-					a2b[i] = start + 1
-					b2a[start+1] = i
+					a2b[i] = b_start
+					b2a[b_start] = i
 				}
 			}
+			b_start += 1
 		}
-		start = a2b[i]
 	}
 }
 
