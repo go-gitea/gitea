@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -147,8 +148,12 @@ func TestPackageNuGet(t *testing.T) {
 			pfs, err := ps[0].GetFiles()
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2)
-			assert.Equal(t, fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion), pfs[1].Name)
-			assert.Equal(t, int64(368), pfs[1].Size)
+			i := 0
+			if strings.HasSuffix(pfs[1].Name, ".snupkg") {
+				i = 1
+			}
+			assert.Equal(t, fmt.Sprintf("%s.%s.snupkg", packageName, packageVersion), pfs[i].Name)
+			assert.Equal(t, int64(368), pfs[i].Size)
 
 			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
