@@ -1122,6 +1122,7 @@ type IssuesOptions struct {
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
+	SubscribedID	   int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
@@ -1219,6 +1220,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 	}
 
+	if opts.SubscribedID > 0 {
+		applySubscribedCondition(sess, opts.SubscribedID)
+	}
+
 	if len(opts.MilestoneIDs) > 0 {
 		sess.In("issue.milestone_id", opts.MilestoneIDs)
 	}
@@ -1307,6 +1312,12 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+}
+
+func applySubscribedCondition(sess *xorm.Session, subscribedId int64) *xorm.Session {
+	return sess.Join("INNER", "issue_watch", "issue.id = issue_watch.issue_id").
+		And("issue_watch.user_id = ?", subscribedId).
+		And("issue_watch.is_watching = 1")
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1447,6 +1458,7 @@ type IssueStats struct {
 	CreateCount            int64
 	MentionCount           int64
 	ReviewRequestedCount   int64
+	SubscribedCount		   int64
 }
 
 // Filter modes.
@@ -1456,6 +1468,7 @@ const (
 	FilterModeCreate
 	FilterModeMention
 	FilterModeReviewRequested
+	FilterModeSubscribed
 )
 
 func parseCountResult(results []map[string][]byte) int64 {
@@ -1478,6 +1491,7 @@ type IssueStatsOptions struct {
 	MentionedID       int64
 	PosterID          int64
 	ReviewRequestedID int64
+	SubscribedID	  int64
 	IsPull            util.OptionalBool
 	IssueIDs          []int64
 }
@@ -1559,6 +1573,10 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.ReviewRequestedID > 0 {
 			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+		}
+
+		if opts.SubscribedID > 0 {
+			applySubscribedCondition(sess, opts.SubscribedID)
 		}
 
 		switch opts.IsPull {
@@ -1690,6 +1708,19 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 		if err != nil {
 			return nil, err
 		}
+	case FilterModeSubscribed:
+		stats.OpenCount, err = applySubscribedCondition(sess(cond), opts.UserID).
+			And("issue.is_closed = ?", false).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
+		stats.ClosedCount, err = applySubscribedCondition(sess(cond), opts.UserID).
+			And("issue.is_closed = ?", true).
+			Count(new(Issue))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
@@ -1714,6 +1745,11 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	stats.ReviewRequestedCount, err = applyReviewRequestedCondition(sess(cond), opts.UserID).Count(new(Issue))
+	if err != nil {
+		return nil, err
+	}
+	
+	stats.SubscribedCount, err = applySubscribedCondition(sess(cond), opts.UserID).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}

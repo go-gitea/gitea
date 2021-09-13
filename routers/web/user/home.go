@@ -408,6 +408,8 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 		filterMode = models.FilterModeMention
 	case "review_requested":
 		filterMode = models.FilterModeReviewRequested
+	case "subscribed":
+		filterMode = models.FilterModeSubscribed
 	case "your_repositories": // filterMode already set to All
 	default:
 		viewType = "your_repositories"
@@ -450,6 +452,8 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 		opts.MentionedID = ctx.User.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.User.ID
+	case models.FilterModeSubscribed:
+		opts.SubscribedID = ctx.User.ID
 	}
 
 	if ctxUser.IsOrganization() {
