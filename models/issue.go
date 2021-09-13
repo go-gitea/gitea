@@ -1122,7 +1122,7 @@ type IssuesOptions struct {
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
-	SubscribedID	   int64
+	SubscribedID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
@@ -1458,7 +1458,7 @@ type IssueStats struct {
 	CreateCount            int64
 	MentionCount           int64
 	ReviewRequestedCount   int64
-	SubscribedCount		   int64
+	SubscribedCount        int64
 }
 
 // Filter modes.
@@ -1491,7 +1491,7 @@ type IssueStatsOptions struct {
 	MentionedID       int64
 	PosterID          int64
 	ReviewRequestedID int64
-	SubscribedID	  int64
+	SubscribedID      int64
 	IsPull            util.OptionalBool
 	IssueIDs          []int64
 }
@@ -1748,7 +1748,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	stats.SubscribedCount, err = applySubscribedCondition(sess(cond), opts.UserID).Count(new(Issue))
 	if err != nil {
 		return nil, err
