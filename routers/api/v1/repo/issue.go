@@ -83,6 +83,10 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter (issues / pulls) mentioning you, default is false
 	//   type: boolean
+	// - name: subscribed
+	//   in: query
+	//   description: filter (issues / pulls) subscribed by you, default is false
+	//   type: boolean
 	// - name: review_requested
 	//   in: query
 	//   description: filter pulls requesting your review, default is false
@@ -254,6 +258,9 @@ func SearchIssues(ctx *context.APIContext) {
 		}
 		if ctx.FormBool("review_requested") {
 			issuesOpt.ReviewRequestedID = ctx.User.ID
+		}
+		if ctx.FormBool("subscribed") {
+			issuesOpt.SubscribedID = ctx.User.ID
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {
