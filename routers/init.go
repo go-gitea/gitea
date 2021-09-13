@@ -41,6 +41,8 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
+
+	"gitea.com/go-chi/session"
 )
 
 // NewServices init new services
@@ -145,8 +147,20 @@ func NormalRoutes() *web.Route {
 		r.Use(middle)
 	}
 
-	r.Mount("/", web_routers.Routes())
-	r.Mount("/api/v1", apiv1.Routes())
+	sessioner := session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
+		Domain:         setting.SessionConfig.Domain,
+	})
+
+	r.Mount("/", web_routers.Routes(sessioner))
+	r.Mount("/api/v1", apiv1.Routes(sessioner))
 	r.Mount("/api/internal", private.Routes())
 	return r
 }
