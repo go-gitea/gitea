@@ -18,11 +18,16 @@ import (
 )
 
 // LogNameStatusRepo opens git log --raw in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func LogNameStatusRepo(repository, head, treepath string, paths ...string) (*bufio.Reader, func()) {
+func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, paths ...string) (*bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
 	stdoutReader, stdoutWriter := nio.Pipe(buffer.New(32 * 1024))
+
+	// Lets also create a context so that we can absolutely ensure that the command should die when we're done
+	ctx, ctxCancel := context.WithCancel(ctx)
+
 	cancel := func() {
+		ctxCancel()
 		_ = stdoutReader.Close()
 		_ = stdoutWriter.Close()
 	}
@@ -50,7 +55,7 @@ func LogNameStatusRepo(repository, head, treepath string, paths ...string) (*buf
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(args...).RunInDirFullPipeline(repository, stdoutWriter, &stderr, nil)
+		err := NewCommandContext(ctx, args...).RunInDirFullPipeline(repository, stdoutWriter, &stderr, nil)
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -75,8 +80,8 @@ type LogNameStatusRepoParser struct {
 }
 
 // NewLogNameStatusRepoParser returns a new parser for a git log raw output
-func NewLogNameStatusRepoParser(repository, head, treepath string, paths ...string) *LogNameStatusRepoParser {
-	rd, cancel := LogNameStatusRepo(repository, head, treepath, paths...)
+func NewLogNameStatusRepoParser(ctx context.Context, repository, head, treepath string, paths ...string) *LogNameStatusRepoParser {
+	rd, cancel := LogNameStatusRepo(ctx, repository, head, treepath, paths...)
 	return &LogNameStatusRepoParser{
 		treepath: treepath,
 		paths:    paths,
@@ -311,8 +316,11 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 		}
 	}
 
-	g := NewLogNameStatusRepoParser(repo.Path, head.ID.String(), treepath, paths...)
-	defer g.Close()
+	g := NewLogNameStatusRepoParser(ctx, repo.Path, head.ID.String(), treepath, paths...)
+	// don't use defer g.Close() here as g may change its value - instead wrap in a func
+	defer func() {
+		g.Close()
+	}()
 
 	results := make([]string, len(paths))
 	remaining := len(paths)
@@ -331,6 +339,7 @@ heaploop:
 	for {
 		select {
 		case <-ctx.Done():
+			g.Close()
 			return nil, ctx.Err()
 		default:
 		}
@@ -380,7 +389,7 @@ heaploop:
 						remainingPaths = append(remainingPaths, pth)
 					}
 				}
-				g = NewLogNameStatusRepoParser(repo.Path, lastEmptyParent, treepath, remainingPaths...)
+				g = NewLogNameStatusRepoParser(ctx, repo.Path, lastEmptyParent, treepath, remainingPaths...)
 				parentRemaining = map[string]bool{}
 				nextRestart = (remaining * 3) / 4
 				continue heaploop

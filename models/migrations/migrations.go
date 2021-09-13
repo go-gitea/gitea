@@ -341,6 +341,8 @@ var migrations = []Migration{
 	// v193 -> v194
 	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
 	// v194 -> v195
+	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
+	// v195 -> v196
 	NewMigration("Add package tables", addPackageTables),
 }
 
