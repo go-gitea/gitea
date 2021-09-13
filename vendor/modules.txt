@@ -18,7 +18,7 @@ gitea.com/go-chi/cache/memcache
 # gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
 ## explicit
 gitea.com/go-chi/captcha
-# gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
+# gitea.com/go-chi/session v0.0.0-20210913064732-2ac132b0fa07
 ## explicit
 gitea.com/go-chi/session
 gitea.com/go-chi/session/couchbase
