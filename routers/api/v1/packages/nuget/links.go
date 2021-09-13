@@ -17,12 +17,12 @@ func (l *linkBuilder) GetRegistrationIndexURL(id string) string {
 	return fmt.Sprintf("%s/registration/%s/index.json", l.Base, id)
 }
 
-// GetRegistrationIndexURL builds the registration leaf url
+// GetRegistrationLeafURL builds the registration leaf url
 func (l *linkBuilder) GetRegistrationLeafURL(id, version string) string {
 	return fmt.Sprintf("%s/registration/%s/%s.json", l.Base, id, version)
 }
 
-// GetRegistrationIndexURL builds the download url
+// GetPackageDownloadURL builds the download url
 func (l *linkBuilder) GetPackageDownloadURL(id, version string) string {
 	return fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", l.Base, id, version, id, version)
 }
