@@ -109,3 +109,34 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 
 	return repo, nil
 }
+
+// ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
+func ConvertForkToNormalRepository(repo *models.Repository) error {
+	err := models.WithTx(func(ctx models.DBContext) error {
+		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
+		if err != nil {
+			return err
+		}
+
+		if !repo.IsFork {
+			return nil
+		}
+
+		if err := models.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
+			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %v", repo.ForkID, repo, err)
+			return err
+		}
+
+		repo.IsFork = false
+		repo.ForkID = 0
+
+		if err := models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
+			return err
+		}
+
+		return nil
+	})
+
+	return err
+}
