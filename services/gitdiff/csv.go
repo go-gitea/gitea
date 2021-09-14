@@ -214,7 +214,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 					bIsUndefined = true
 				}
 				var cellType TableDiffCellType
-				if aIsUndefined && bIsUndefined {
+				if aIsUndefined && !bIsUndefined {
 					cellType = TableDiffCellAdd
 				} else if bIsUndefined {
 					cellType = TableDiffCellDel
