@@ -447,7 +447,7 @@ func ParseCompareInfo(ctx *context.Context) (*models.User, *models.Repository, *
 				ctx.ServerError("GetUserRepoPermission", err)
 				return nil, nil, nil, nil, "", ""
 			}
-			if !perm.CanRead(models.UnitTypeCode) {
+			if perm.CanRead(models.UnitTypeCode) {
 				ctx.Data["RootRepo"] = rootRepo
 			}
 		}
