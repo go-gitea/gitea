@@ -87,7 +87,7 @@ func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page != 0 {
-		e = opts.setEnginePagination(e)
+		e = setEnginePagination(e, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
 		return reactions, e.Find(&reactions)
