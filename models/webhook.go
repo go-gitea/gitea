@@ -423,7 +423,7 @@ func listWebhooksByOpts(e Engine, opts *ListWebhookOptions) ([]*Webhook, error) 
 	sess := e.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = opts.SetSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 		webhooks := make([]*Webhook, 0, opts.PageSize)
 		err := sess.Find(&webhooks)
 		return webhooks, err

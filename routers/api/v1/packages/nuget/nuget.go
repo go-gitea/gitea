@@ -35,10 +35,10 @@ func SearchService(ctx *context.APIContext) {
 		RepoID: ctx.Repo.Repository.ID,
 		Type:   "nuget",
 		Query:  ctx.FormTrim("q"),
-		Paginator: &models.AbsoluteSessionPaginator{
-			Skip: ctx.FormInt("skip"),
-			Take: ctx.FormInt("take"),
-		},
+		Paginator: models.NewAbsoluteListOptions(
+			ctx.FormInt("skip"),
+			ctx.FormInt("take"),
+		),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)

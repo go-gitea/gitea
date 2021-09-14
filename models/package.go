@@ -201,10 +201,10 @@ func DeletePackagesByRepositoryID(repositoryID int64) error {
 
 // PackageSearchOptions are options for GetLatestPackagesGrouped
 type PackageSearchOptions struct {
-	RepoID    int64
-	Type      string
-	Query     string
-	Paginator SessionPaginator
+	RepoID int64
+	Type   string
+	Query  string
+	Paginator
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
@@ -237,7 +237,7 @@ func GetPackages(opts *PackageSearchOptions) ([]*Package, int64, error) {
 	sess := x.Where(opts.toConds())
 
 	if opts.Paginator != nil {
-		sess = opts.Paginator.SetSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 
 	packages := make([]*Package, 0, 10)
@@ -255,7 +255,7 @@ func GetLatestPackagesGrouped(opts *PackageSearchOptions) ([]*Package, int64, er
 		Join("left", "package p2", "package.repo_id = p2.repo_id AND package.type = p2.type AND package.lower_name = p2.lower_name AND package.version < p2.version")
 
 	if opts.Paginator != nil {
-		sess = opts.Paginator.SetSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 
 	packages := make([]*Package, 0, 10)
