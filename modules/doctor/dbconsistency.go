@@ -262,6 +262,78 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		}
 	}
 
+	// find collaborations without users
+	count, err = models.CountOrphanedObjects("collaboration", "user", "collaboration.user_id=user.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned collaborations", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("collaboration", "user", "collaboration.user_id=user.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned collaborations", err)
+				return err
+			}
+			logger.Info("%d collaborations without existing users deleted", count)
+		} else {
+			logger.Warn("%d collaborations without existing users", count)
+		}
+	}
+
+	// find collaborations without repository
+	count, err = models.CountOrphanedObjects("collaboration", "repository", "collaboration.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned collaborations", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("collaboration", "repository", "collaboration.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned collaborations", err)
+				return err
+			}
+			logger.Info("%d collaborations without existing repository deleted", count)
+		} else {
+			logger.Warn("%d collaborations without existing repository", count)
+		}
+	}
+
+	// find access without users
+	count, err = models.CountOrphanedObjects("access", "user", "access.user_id=user.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned access", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("access", "user", "access.user_id=user.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned access", err)
+				return err
+			}
+			logger.Info("%d access without existing users deleted", count)
+		} else {
+			logger.Warn("%d access without existing users", count)
+		}
+	}
+
+	// find access without repository
+	count, err = models.CountOrphanedObjects("access", "repository", "access.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned access", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("access", "repository", "access.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned access", err)
+				return err
+			}
+			logger.Info("%d access without existing repository deleted", count)
+		} else {
+			logger.Warn("%d access without existing repository", count)
+		}
+	}
+
 	return nil
 }
 
