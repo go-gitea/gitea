@@ -88,7 +88,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 
 	// FIXME: don't read all to memory
 	rawBytes, err := ioutil.ReadAll(input)
-	if err != nil && err != io.EOF {
+	if err != nil {
 		return err
 	}
 
