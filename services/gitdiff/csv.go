@@ -53,6 +53,9 @@ type csvReader struct {
 	eof    bool
 }
 
+// ErrorUndefinedCell is for when a row, column coordinates do not exist in the CSV
+var ErrorUndefinedCell = errors.New("undefined cell")
+
 // createCsvReader creates a csvReader and fills the buffer
 func createCsvReader(reader *csv.Reader, bufferRowCount int) (*csvReader, error) {
 	csv := &csvReader{reader: reader}
@@ -178,35 +181,78 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		}
 
 		for i := 0; i < len(a2b); i++ {
-			aCell, aErr := getCell(arow, i)
+			var aCell string
+			aIsUndefined := false
+			if aline > 0 {
+				if cell, err := getCell(arow, i); err != nil {
+					if err != ErrorUndefinedCell {
+						return nil, err
+					}
+					aIsUndefined = true
+				} else {
+					aCell = cell
+				}
+			} else {
+				aIsUndefined = true
+			}
 
 			if a2b[i] == unmappedColumn {
 				cells[i] = &TableDiffCell{LeftCell: aCell, Type: TableDiffCellDel}
 			} else {
-				bCell, bErr := getCell(brow, a2b[i])
-
+				var bCell string
+				bIsUndefined := false
+				if bline > 0 {
+					if cell, err := getCell(brow, a2b[i]); err != nil {
+						if err != ErrorUndefinedCell {
+							return nil, err
+						}
+						bIsUndefined = true
+					} else {
+						bCell = cell
+					}
+				} else {
+					bIsUndefined = true
+				}
 				var cellType TableDiffCellType
-				if aErr != nil {
+				if aIsUndefined && bIsUndefined {
 					cellType = TableDiffCellAdd
-				} else if bErr != nil {
+				} else if bIsUndefined {
 					cellType = TableDiffCellDel
 				} else if aCell == bCell {
 					cellType = TableDiffCellEqual
 				} else {
 					cellType = TableDiffCellChanged
 				}
-
 				cells[i] = &TableDiffCell{LeftCell: aCell, RightCell: bCell, Type: cellType}
 			}
 		}
 		cellsIndex := 0
 		for i := 0; i < len(b2a); i++ {
 			if b2a[i] == unmappedColumn {
-				bCell, _ := getCell(brow, i)
+				var bCell string
+				bIsUndefined := false
+				if bline > 0 {
+					if cell, err := getCell(brow, i); err != nil {
+						if err != ErrorUndefinedCell {
+							return nil, err
+						}
+						bIsUndefined = true
+					} else {
+						bCell = cell
+					}
+				} else {
+					bIsUndefined = true
+				}
 				if cells[cellsIndex] != nil && len(cells) >= cellsIndex+1 {
 					copy(cells[cellsIndex+1:], cells[cellsIndex:])
 				}
-				cells[cellsIndex] = &TableDiffCell{RightCell: bCell, Type: TableDiffCellAdd}
+				var cellType TableDiffCellType
+				if bIsUndefined {
+					cellType = TableDiffCellDel
+				} else {
+					cellType = TableDiffCellAdd
+				}
+				cells[cellsIndex] = &TableDiffCell{RightCell: bCell, Type: cellType}
 			} else if cellsIndex < b2a[i] {
 				cellsIndex = b2a[i]
 			}
@@ -321,7 +367,7 @@ func getCell(row []string, column int) (string, error) {
 	if column < len(row) {
 		return row[column], nil
 	}
-	return "", errors.New("Undefined column")
+	return "", ErrorUndefinedCell
 }
 
 // countUnmappedColumns returns the count of unmapped columns.
