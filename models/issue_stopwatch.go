@@ -45,7 +45,7 @@ func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, er
 	sws := make([]*Stopwatch, 0, 8)
 	sess := x.Where("stopwatch.user_id = ?", userID)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 	}
 
 	err := sess.Find(&sws)
