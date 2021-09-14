@@ -74,6 +74,24 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		}
 	}
 
+	// find releases without existing repository
+	count, err = models.CountOrphanedObjects("release", "repository", "release.repo_id=repository.id")
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedObjects("release", "repository", "release.repo_id=repository.id"); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
+				return err
+			}
+			logger.Info("%d releases without existing repository deleted", count)
+		} else {
+			logger.Warn("%d releases without existing repository", count)
+		}
+	}
+
 	// find pulls without existing issues
 	count, err = models.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
 	if err != nil {
@@ -107,6 +125,24 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			logger.Info("%d tracked times without existing issue deleted", count)
 		} else {
 			logger.Warn("%d tracked times without existing issue", count)
+		}
+	}
+
+	// find attachments without existing issues or releases
+	count, err = models.CountOrphanedAttachments()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting orphaned objects", err)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			if err = models.DeleteOrphanedAttachments(); err != nil {
+				logger.Critical("Error: %v whilst deleting orphaned objects", err)
+				return err
+			}
+			logger.Info("%d attachments without existing issue or release deleted", count)
+		} else {
+			logger.Warn("%d attachments without existing issue or release", count)
 		}
 	}
 
