@@ -1007,7 +1007,7 @@ func findComments(e Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 	}
 
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment

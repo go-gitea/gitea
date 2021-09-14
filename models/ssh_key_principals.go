@@ -114,7 +114,7 @@ func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 func ListPrincipalKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 	sess := x.Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		keys := make([]*PublicKey, 0, listOptions.PageSize)
 		return keys, sess.Find(&keys)

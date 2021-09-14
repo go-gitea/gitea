@@ -168,7 +168,7 @@ func (t *Team) GetRepositories(opts *SearchTeamOptions) error {
 		return t.getRepositories(x)
 	}
 
-	return t.getRepositories(opts.getPaginatedSession())
+	return t.getRepositories(getPaginatedSession(opts))
 }
 
 func (t *Team) getMembers(e Engine) (err error) {
@@ -182,7 +182,7 @@ func (t *Team) GetMembers(opts *SearchMembersOptions) (err error) {
 		return t.getMembers(x)
 	}
 
-	return t.getMembers(opts.getPaginatedSession())
+	return t.getMembers(getPaginatedSession(opts))
 }
 
 // AddMember adds new membership of the team to the organization,
