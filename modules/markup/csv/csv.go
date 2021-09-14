@@ -104,7 +104,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 	}
 
 	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
-	if err != nil && err != io.EOF {
+	if err != nil {
 		return err
 	}
 
