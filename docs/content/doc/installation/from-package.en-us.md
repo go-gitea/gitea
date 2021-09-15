@@ -64,7 +64,7 @@ sudo apt install nginx mariadb-server
 ```
 sudo mysql -u root -p
         CREATE DATABASE gitea;
-        GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'localhost' IDENTIFIED BY "StrongPassword";
+        GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'localhost' IDENTIFIED BY 'the same password for gitea config';
         FLUSH PRIVILEGES;
         QUIT;
 ```
