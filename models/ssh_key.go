@@ -195,7 +195,7 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 	sess := x.Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		keys := make([]*PublicKey, 0, listOptions.PageSize)
 		return keys, sess.Find(&keys)

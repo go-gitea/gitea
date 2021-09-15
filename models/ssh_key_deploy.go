@@ -295,7 +295,7 @@ func listDeployKeys(e Engine, opts *ListDeployKeysOptions) ([]*DeployKey, error)
 	sess := e.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 
 		keys := make([]*DeployKey, 0, opts.PageSize)
 		return keys, sess.Find(&keys)

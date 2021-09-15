@@ -272,3 +272,16 @@ func IterateAttachment(f func(attach *Attachment) error) error {
 		}
 	}
 }
+
+// CountOrphanedAttachments returns the number of bad attachments
+func CountOrphanedAttachments() (int64, error) {
+	return x.Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+		Count(new(Attachment))
+}
+
+// DeleteOrphanedAttachments delete all bad attachments
+func DeleteOrphanedAttachments() error {
+	_, err := x.Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+		Delete(new(Attachment))
+	return err
+}

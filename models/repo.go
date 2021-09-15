@@ -1209,6 +1209,12 @@ func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
 	return err
 }
 
+// DecrementRepoForkNum decrement repository fork number
+func DecrementRepoForkNum(ctx DBContext, repoID int64) error {
+	_, err := ctx.e.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repoID)
+	return err
+}
+
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
 func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
@@ -1764,7 +1770,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, count, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, setSessionPagination(sess, opts).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -2055,7 +2061,7 @@ func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error)
 		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
-	sess := listOptions.getPaginatedSession()
+	sess := getPaginatedSession(&listOptions)
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
