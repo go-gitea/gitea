@@ -830,7 +830,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 		if exttrack && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
-			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue")
+			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
