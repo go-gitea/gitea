@@ -772,20 +772,20 @@ func setRepoNotificationStatusReadIfUnread(e Engine, userID, repoID int64) error
 }
 
 // SetNotificationStatus change the notification status
-func SetNotificationStatus(notificationID int64, user *User, status NotificationStatus) error {
+func SetNotificationStatus(notificationID int64, user *User, status NotificationStatus) (*Notification, error) {
 	notification, err := getNotificationByID(x, notificationID)
 	if err != nil {
-		return err
+		return notification, err
 	}
 
 	if notification.UserID != user.ID {
-		return fmt.Errorf("Can't change notification of another user: %d, %d", notification.UserID, user.ID)
+		return nil, fmt.Errorf("Can't change notification of another user: %d, %d", notification.UserID, user.ID)
 	}
 
 	notification.Status = status
 
 	_, err = x.ID(notificationID).Update(notification)
-	return err
+	return notification, err
 }
 
 // GetNotificationByID return notification by ID
