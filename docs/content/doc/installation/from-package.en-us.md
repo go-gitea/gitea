@@ -49,7 +49,7 @@ There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the la
 
 ### This guide was tested with Ubuntu 20.04 and MySQL:
 
-* Install needed Packages and the snap:
+* Install needed packages:
 
 ```sh
 sudo snap install gitea
