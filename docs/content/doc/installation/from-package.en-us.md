@@ -61,7 +61,7 @@ sudo apt install nginx mariadb-server
 sudo mysql_secure_installation``
 More information can be found on this website: https://mariadb.com/kb/en/mysql_secure_installation/
 
-* Create your Database and Database User:
+* Create your database and database user:
 
 ```
 sudo mysql -u root -p
