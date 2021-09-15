@@ -122,7 +122,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		posterID          int64
 		mentionedID       int64
 		reviewRequestedID int64
-		subscribedID	  int64
+		subscribedID      int64
 		forceEmpty        bool
 	)
 
@@ -181,7 +181,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
 			ReviewRequestedID: reviewRequestedID,
-			SubscribedID:	   subscribedID,
+			SubscribedID:      subscribedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
 		})
@@ -229,7 +229,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
-			SubscribedID:	   subscribedID,
+			SubscribedID:      subscribedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
