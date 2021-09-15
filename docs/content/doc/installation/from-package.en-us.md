@@ -63,7 +63,7 @@ More information can be found on this website: https://mariadb.com/kb/en/mysql_s
 
 * Create your database and database user:
 
-```
+```sql
 sudo mysql -u root -p
         CREATE DATABASE gitea;
         GRANT ALL PRIVILEGES ON gitea.* TO 'gitea'@'localhost' IDENTIFIED BY 'the same password for gitea config';
