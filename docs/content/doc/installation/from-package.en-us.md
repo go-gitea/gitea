@@ -90,7 +90,8 @@ server {
     }
 }
 ```
-
+More information about reverse proxies can be found here:
+https://docs.gitea.io/en-us/reverse-proxies/
 * Restart nginx
 ```bash
 sudo systemctl restart nginx
