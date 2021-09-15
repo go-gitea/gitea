@@ -416,8 +416,11 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
+	if ls.AttributeAvatar != "" {
+		attribs = append(attribs, ls.AttributeAvatar)
+	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, ls.UserBase)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, userFilter, ls.UserBase)
 	search := ldap.NewSearchRequest(
 		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
