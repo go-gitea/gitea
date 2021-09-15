@@ -112,7 +112,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
-	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested"}
+	types := []string{"all", "your_repositories", "assigned", "created_by", "mentioned", "review_requested", "subscribed"}
 	if !util.IsStringInSlice(viewType, types, true) {
 		viewType = "all"
 	}
@@ -122,6 +122,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		posterID          int64
 		mentionedID       int64
 		reviewRequestedID int64
+		subscribedID	  int64
 		forceEmpty        bool
 	)
 
@@ -135,6 +136,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			assigneeID = ctx.User.ID
 		case "review_requested":
 			reviewRequestedID = ctx.User.ID
+		case "subscribed":
+			subscribedID = ctx.User.ID
 		}
 	}
 
@@ -178,6 +181,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			MentionedID:       mentionedID,
 			PosterID:          posterID,
 			ReviewRequestedID: reviewRequestedID,
+			SubscribedID:	   subscribedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
 		})
@@ -225,6 +229,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
+			SubscribedID:	   subscribedID,
 			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
