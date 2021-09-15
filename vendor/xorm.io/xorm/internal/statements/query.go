@@ -203,14 +203,42 @@ func (statement *Statement) GenCountSQL(beans ...interface{}) (string, []interfa
 	return sqlStr, append(statement.joinArgs, condArgs...), nil
 }
 
+func (statement *Statement) fromBuilder() *strings.Builder {
+	var builder strings.Builder
+	var quote = statement.quote
+	var dialect = statement.dialect
+
+	builder.WriteString(" FROM ")
+
+	if dialect.URI().DBType == schemas.MSSQL && strings.Contains(statement.TableName(), "..") {
+		builder.WriteString(statement.TableName())
+	} else {
+		builder.WriteString(quote(statement.TableName()))
+	}
+
+	if statement.TableAlias != "" {
+		if dialect.URI().DBType == schemas.ORACLE {
+			builder.WriteString(" ")
+		} else {
+			builder.WriteString(" AS ")
+		}
+		builder.WriteString(quote(statement.TableAlias))
+	}
+	if statement.JoinStr != "" {
+		builder.WriteString(" ")
+		builder.WriteString(statement.JoinStr)
+	}
+	return &builder
+}
+
 func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderBy bool) (string, []interface{}, error) {
 	var (
 		distinct                  string
 		dialect                   = statement.dialect
-		quote                     = statement.quote
-		fromStr                   = " FROM "
+		fromStr                   = statement.fromBuilder().String()
 		top, mssqlCondi, whereStr string
 	)
+
 	if statement.IsDistinct && !strings.HasPrefix(columnStr, "count") {
 		distinct = "DISTINCT "
 	}
@@ -220,24 +248,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 		return "", nil, err
 	}
 	if len(condSQL) > 0 {
-		whereStr = " WHERE " + condSQL
-	}
-
-	if dialect.URI().DBType == schemas.MSSQL && strings.Contains(statement.TableName(), "..") {
-		fromStr += statement.TableName()
-	} else {
-		fromStr += quote(statement.TableName())
-	}
-
-	if statement.TableAlias != "" {
-		if dialect.URI().DBType == schemas.ORACLE {
-			fromStr += " " + quote(statement.TableAlias)
-		} else {
-			fromStr += " AS " + quote(statement.TableAlias)
-		}
-	}
-	if statement.JoinStr != "" {
-		fromStr = fmt.Sprintf("%v %v", fromStr, statement.JoinStr)
+		whereStr = fmt.Sprintf(" WHERE %s", condSQL)
 	}
 
 	pLimitN := statement.LimitN
@@ -266,20 +277,20 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 			}
 			if statement.needTableName() {
 				if len(statement.TableAlias) > 0 {
-					column = statement.TableAlias + "." + column
+					column = fmt.Sprintf("%s.%s", statement.TableAlias, column)
 				} else {
-					column = statement.TableName() + "." + column
+					column = fmt.Sprintf("%s.%s", statement.TableName(), column)
 				}
 			}
 
 			var orderStr string
 			if needOrderBy && len(statement.OrderStr) > 0 {
-				orderStr = " ORDER BY " + statement.OrderStr
+				orderStr = fmt.Sprintf(" ORDER BY %s", statement.OrderStr)
 			}
 
 			var groupStr string
 			if len(statement.GroupByStr) > 0 {
-				groupStr = " GROUP BY " + statement.GroupByStr
+				groupStr = fmt.Sprintf(" GROUP BY %s", statement.GroupByStr)
 			}
 			mssqlCondi = fmt.Sprintf("(%s NOT IN (SELECT TOP %d %s%s%s%s%s))",
 				column, statement.Start, column, fromStr, whereStr, orderStr, groupStr)
@@ -311,7 +322,7 @@ func (statement *Statement) genSelectSQL(columnStr string, needLimit, needOrderB
 				if pLimitN != nil {
 					fmt.Fprintf(&buf, " LIMIT %v OFFSET %v", *pLimitN, statement.Start)
 				} else {
-					fmt.Fprintf(&buf, "LIMIT 0 OFFSET %v", statement.Start)
+					fmt.Fprintf(&buf, " LIMIT 0 OFFSET %v", statement.Start)
 				}
 			} else if pLimitN != nil {
 				fmt.Fprint(&buf, " LIMIT ", *pLimitN)

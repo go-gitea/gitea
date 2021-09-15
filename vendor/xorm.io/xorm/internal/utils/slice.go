@@ -11,12 +11,21 @@ func SliceEq(left, right []string) bool {
 	if len(left) != len(right) {
 		return false
 	}
-	sort.Sort(sort.StringSlice(left))
-	sort.Sort(sort.StringSlice(right))
+	sort.Strings(left)
+	sort.Strings(right)
 	for i := 0; i < len(left); i++ {
 		if left[i] != right[i] {
 			return false
 		}
 	}
 	return true
+}
+
+func IndexSlice(s []string, c string) int {
+	for i, ss := range s {
+		if c == ss {
+			return i
+		}
+	}
+	return -1
 }

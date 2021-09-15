@@ -941,6 +941,12 @@ func (db *postgres) SQLType(c *schemas.Column) string {
 	return res
 }
 
+func (db *postgres) Features() *DialectFeatures {
+	return &DialectFeatures{
+		AutoincrMode: IncrAutoincrMode,
+	}
+}
+
 func (db *postgres) ColumnTypeKind(t string) int {
 	switch strings.ToUpper(t) {
 	case "DATETIME", "TIMESTAMP":

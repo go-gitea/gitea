@@ -123,6 +123,12 @@ func (session *Session) insertMultipleStruct(rowsSlicePtr interface{}) (int64, e
 			}
 			fieldValue := *ptrFieldValue
 			if col.IsAutoIncrement && utils.IsZero(fieldValue.Interface()) {
+				if session.engine.dialect.Features().AutoincrMode == dialects.SequenceAutoincrMode {
+					if i == 0 {
+						colNames = append(colNames, col.Name)
+					}
+					colPlaces = append(colPlaces, utils.SeqName(tableName)+".nextval")
+				}
 				continue
 			}
 			if col.MapType == schemas.ONLYFROMDB {
@@ -277,6 +283,7 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
+	sqlStr = session.engine.dialect.Quoter().Replace(sqlStr)
 
 	handleAfterInsertProcessorFunc := func(bean interface{}) {
 		if session.isAutoCommit {
@@ -307,16 +314,49 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 
 	// if there is auto increment column and driver don't support return it
 	if len(table.AutoIncrement) > 0 && !session.engine.driver.Features().SupportReturnInsertedID {
-		var sql = sqlStr
-		if session.engine.dialect.URI().DBType == schemas.ORACLE {
-			sql = "select seq_atable.currval from dual"
+		var sql string
+		var newArgs []interface{}
+		var needCommit bool
+		var id int64
+		if session.engine.dialect.URI().DBType == schemas.ORACLE || session.engine.dialect.URI().DBType == schemas.DAMENG {
+			if session.isAutoCommit { // if it's not in transaction
+				if err := session.Begin(); err != nil {
+					return 0, err
+				}
+				needCommit = true
+			}
+			_, err := session.exec(sqlStr, args...)
+			if err != nil {
+				return 0, err
+			}
+			i := utils.IndexSlice(colNames, table.AutoIncrement)
+			if i > -1 {
+				id, err = convert.AsInt64(args[i])
+				if err != nil {
+					return 0, err
+				}
+			} else {
+				sql = fmt.Sprintf("select %s.currval from dual", utils.SeqName(tableName))
+			}
+		} else {
+			sql = sqlStr
+			newArgs = args
 		}
 
-		rows, err := session.queryRows(sql, args...)
-		if err != nil {
-			return 0, err
+		if id == 0 {
+			err := session.queryRow(sql, newArgs...).Scan(&id)
+			if err != nil {
+				return 0, err
+			}
+			if needCommit {
+				if err := session.Commit(); err != nil {
+					return 0, err
+				}
+			}
+			if id == 0 {
+				return 0, errors.New("insert successfully but not returned id")
+			}
 		}
-		defer rows.Close()
 
 		defer handleAfterInsertProcessorFunc(bean)
 
@@ -331,16 +371,6 @@ func (session *Session) insertStruct(bean interface{}) (int64, error) {
 			}
 		}
 
-		var id int64
-		if !rows.Next() {
-			if rows.Err() != nil {
-				return 0, rows.Err()
-			}
-			return 0, errors.New("insert successfully but not returned id")
-		}
-		if err := rows.Scan(&id); err != nil {
-			return 1, err
-		}
 		aiValue, err := table.AutoIncrColumn().ValueOf(bean)
 		if err != nil {
 			session.engine.logger.Errorf("%v", err)
@@ -628,6 +658,7 @@ func (session *Session) insertMap(columns []string, args []interface{}) (int64, 
 	if err != nil {
 		return 0, err
 	}
+	sql = session.engine.dialect.Quoter().Replace(sql)
 
 	if err := session.cacheInsert(tableName); err != nil {
 		return 0, err
@@ -654,6 +685,7 @@ func (session *Session) insertMultipleMap(columns []string, argss [][]interface{
 	if err != nil {
 		return 0, err
 	}
+	sql = session.engine.dialect.Quoter().Replace(sql)
 
 	if err := session.cacheInsert(tableName); err != nil {
 		return 0, err

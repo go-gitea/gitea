@@ -129,57 +129,6 @@ func genScanResultsByBean(bean interface{}) (interface{}, bool, error) {
 	}
 }
 
-func (engine *Engine) row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string]string, error) {
-	var scanResults = make([]interface{}, len(fields))
-	for i := 0; i < len(fields); i++ {
-		var s sql.NullString
-		scanResults[i] = &s
-	}
-
-	if err := rows.Scan(scanResults...); err != nil {
-		return nil, err
-	}
-
-	result := make(map[string]string, len(fields))
-	for i, key := range fields {
-		s := scanResults[i].(*sql.NullString)
-		if s.String == "" {
-			result[key] = ""
-			continue
-		}
-
-		if schemas.TIME_TYPE == engine.dialect.ColumnTypeKind(types[i].DatabaseTypeName()) {
-			t, err := convert.String2Time(s.String, engine.DatabaseTZ, engine.TZLocation)
-			if err != nil {
-				return nil, err
-			}
-			result[key] = t.Format("2006-01-02 15:04:05")
-		} else {
-			result[key] = s.String
-		}
-	}
-	return result, nil
-}
-
-func row2mapBytes(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string][]byte, error) {
-	var scanResults = make([]interface{}, len(fields))
-	for i := 0; i < len(fields); i++ {
-		var s sql.NullString
-		scanResults[i] = &s
-	}
-
-	if err := rows.Scan(scanResults...); err != nil {
-		return nil, err
-	}
-
-	result := make(map[string][]byte, len(fields))
-	for ii, key := range fields {
-		s := scanResults[ii].(*sql.NullString)
-		result[key] = []byte(s.String)
-	}
-	return result, nil
-}
-
 func (engine *Engine) scanStringInterface(rows *core.Rows, fields []string, types []*sql.ColumnType) ([]interface{}, error) {
 	var scanResults = make([]interface{}, len(types))
 	for i := 0; i < len(types); i++ {
@@ -259,41 +208,8 @@ func (engine *Engine) scanInterfaces(rows *core.Rows, fields []string, types []*
 	return scanResultContainers, nil
 }
 
-func (engine *Engine) row2sliceStr(rows *core.Rows, types []*sql.ColumnType, fields []string) ([]string, error) {
-	scanResults, err := engine.scanStringInterface(rows, fields, types)
-	if err != nil {
-		return nil, err
-	}
-
-	var results = make([]string, 0, len(fields))
-	for i := 0; i < len(fields); i++ {
-		results = append(results, scanResults[i].(*sql.NullString).String)
-	}
-	return results, nil
-}
-
-func rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
-	fields, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	types, err := rows.ColumnTypes()
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		result, err := row2mapBytes(rows, types, fields)
-		if err != nil {
-			return nil, err
-		}
-		resultsSlice = append(resultsSlice, result)
-	}
-	if rows.Err() != nil {
-		return nil, rows.Err()
-	}
-
-	return resultsSlice, nil
-}
+////////////////////
+// row -> map[string]interface{}
 
 func (engine *Engine) row2mapInterface(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string]interface{}, error) {
 	var resultsMap = make(map[string]interface{}, len(fields))
@@ -317,4 +233,201 @@ func (engine *Engine) row2mapInterface(rows *core.Rows, types []*sql.ColumnType,
 		resultsMap[key] = res
 	}
 	return resultsMap, nil
+}
+
+func (engine *Engine) ScanInterfaceMap(rows *core.Rows) (map[string]interface{}, error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	return engine.row2mapInterface(rows, types, fields)
+}
+
+func (engine *Engine) ScanInterfaceMaps(rows *core.Rows) (resultsSlice []map[string]interface{}, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		result, err := engine.row2mapInterface(rows, types, fields)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, result)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return resultsSlice, nil
+}
+
+////////////////////
+// row -> map[string]string
+
+func (engine *Engine) row2mapStr(rows *core.Rows, types []*sql.ColumnType, fields []string) (map[string]string, error) {
+	var scanResults = make([]interface{}, len(fields))
+	for i := 0; i < len(fields); i++ {
+		var s sql.NullString
+		scanResults[i] = &s
+	}
+
+	if err := engine.driver.Scan(&dialects.ScanContext{
+		DBLocation:   engine.DatabaseTZ,
+		UserLocation: engine.TZLocation,
+	}, rows, types, scanResults...); err != nil {
+		return nil, err
+	}
+
+	result := make(map[string]string, len(fields))
+	for i, key := range fields {
+		s := scanResults[i].(*sql.NullString)
+		if s.String == "" {
+			result[key] = ""
+			continue
+		}
+
+		if schemas.TIME_TYPE == engine.dialect.ColumnTypeKind(types[i].DatabaseTypeName()) {
+			t, err := convert.String2Time(s.String, engine.DatabaseTZ, engine.TZLocation)
+			if err != nil {
+				return nil, err
+			}
+			result[key] = t.Format("2006-01-02 15:04:05")
+		} else {
+			result[key] = s.String
+		}
+	}
+	return result, nil
+}
+
+func (engine *Engine) ScanStringMap(rows *core.Rows) (map[string]string, error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+	return engine.row2mapStr(rows, types, fields)
+}
+
+func (engine *Engine) ScanStringMaps(rows *core.Rows) (resultsSlice []map[string]string, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		result, err := engine.row2mapStr(rows, types, fields)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, result)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return resultsSlice, nil
+}
+
+////////////////////
+// row -> map[string][]byte
+
+func convertMapStr2Bytes(m map[string]string) map[string][]byte {
+	var r = make(map[string][]byte, len(m))
+	for k, v := range m {
+		r[k] = []byte(v)
+	}
+	return r
+}
+
+func (engine *Engine) scanByteMaps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		result, err := engine.row2mapStr(rows, types, fields)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, convertMapStr2Bytes(result))
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return resultsSlice, nil
+}
+
+////////////////////
+// row -> []string
+
+func (engine *Engine) row2sliceStr(rows *core.Rows, types []*sql.ColumnType, fields []string) ([]string, error) {
+	scanResults, err := engine.scanStringInterface(rows, fields, types)
+	if err != nil {
+		return nil, err
+	}
+
+	var results = make([]string, 0, len(fields))
+	for i := 0; i < len(fields); i++ {
+		results = append(results, scanResults[i].(*sql.NullString).String)
+	}
+	return results, nil
+}
+
+func (engine *Engine) ScanStringSlice(rows *core.Rows) ([]string, error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	return engine.row2sliceStr(rows, types, fields)
+}
+
+func (engine *Engine) ScanStringSlices(rows *core.Rows) (resultsSlice [][]string, err error) {
+	fields, err := rows.Columns()
+	if err != nil {
+		return nil, err
+	}
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		record, err := engine.row2sliceStr(rows, types, fields)
+		if err != nil {
+			return nil, err
+		}
+		resultsSlice = append(resultsSlice, record)
+	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
+
+	return resultsSlice, nil
 }

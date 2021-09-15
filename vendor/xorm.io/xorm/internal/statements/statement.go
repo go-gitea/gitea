@@ -308,7 +308,7 @@ func (statement *Statement) colName(col *schemas.Column, tableName string) strin
 		if len(statement.TableAlias) > 0 {
 			nm = statement.TableAlias
 		}
-		return statement.quote(nm) + "." + statement.quote(col.Name)
+		return fmt.Sprintf("%s.%s", statement.quote(nm), statement.quote(col.Name))
 	}
 	return statement.quote(col.Name)
 }
@@ -539,7 +539,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		aliasName := statement.dialect.Quoter().Trim(fields[len(fields)-1])
 		aliasName = schemas.CommonQuoter.Trim(aliasName)
 
-		fmt.Fprintf(&buf, "(%s) %s ON %v", statement.ReplaceQuote(subSQL), aliasName, statement.ReplaceQuote(condition))
+		fmt.Fprintf(&buf, "(%s) %s ON %v", statement.ReplaceQuote(subSQL), statement.quote(aliasName), statement.ReplaceQuote(condition))
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	case *builder.Builder:
 		subSQL, subQueryArgs, err := tp.ToSQL()
@@ -552,7 +552,7 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 		aliasName := statement.dialect.Quoter().Trim(fields[len(fields)-1])
 		aliasName = schemas.CommonQuoter.Trim(aliasName)
 
-		fmt.Fprintf(&buf, "(%s) %s ON %v", statement.ReplaceQuote(subSQL), aliasName, statement.ReplaceQuote(condition))
+		fmt.Fprintf(&buf, "(%s) %s ON %v", statement.ReplaceQuote(subSQL), statement.quote(aliasName), statement.ReplaceQuote(condition))
 		statement.joinArgs = append(statement.joinArgs, subQueryArgs...)
 	default:
 		tbName := dialects.FullTableName(statement.dialect, statement.tagParser.GetTableMapper(), tablename, true)
@@ -560,6 +560,8 @@ func (statement *Statement) Join(joinOP string, tablename interface{}, condition
 			var buf strings.Builder
 			statement.dialect.Quoter().QuoteTo(&buf, tbName)
 			tbName = buf.String()
+		} else {
+			tbName = statement.ReplaceQuote(tbName)
 		}
 		fmt.Fprintf(&buf, "%s ON %v", tbName, statement.ReplaceQuote(condition))
 	}
@@ -640,14 +642,6 @@ func (statement *Statement) genColumnStr() string {
 	}
 
 	return buf.String()
-}
-
-// GenCreateTableSQL generated create table SQL
-func (statement *Statement) GenCreateTableSQL() []string {
-	statement.RefTable.StoreEngine = statement.StoreEngine
-	statement.RefTable.Charset = statement.Charset
-	s, _ := statement.dialect.CreateTableSQL(statement.RefTable, statement.TableName())
-	return s
 }
 
 // GenIndexSQL generated create index SQL
@@ -968,9 +962,9 @@ func (statement *Statement) convertSQLOrArgs(sqlOrArgs ...interface{}) (string, 
 		if len(sqlOrArgs) > 1 {
 			var newArgs = make([]interface{}, 0, len(sqlOrArgs)-1)
 			for _, arg := range sqlOrArgs[1:] {
-				if v, ok := arg.(*time.Time); ok {
+				if v, ok := arg.(time.Time); ok {
 					newArgs = append(newArgs, v.In(statement.defaultTimeZone).Format("2006-01-02 15:04:05"))
-				} else if v, ok := arg.(time.Time); ok {
+				} else if v, ok := arg.(*time.Time); ok && v != nil {
 					newArgs = append(newArgs, v.In(statement.defaultTimeZone).Format("2006-01-02 15:04:05"))
 				} else {
 					newArgs = append(newArgs, arg)

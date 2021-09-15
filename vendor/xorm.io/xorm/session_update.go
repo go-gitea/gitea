@@ -278,7 +278,11 @@ func (session *Session) Update(bean interface{}, condiBean ...interface{}) (int6
 		condBeanIsStruct := false
 		if len(condiBean) > 0 {
 			if c, ok := condiBean[0].(map[string]interface{}); ok {
-				autoCond = builder.Eq(c)
+				var eq = make(builder.Eq)
+				for k, v := range c {
+					eq[session.engine.Quote(k)] = v
+				}
+				autoCond = builder.Eq(eq)
 			} else {
 				ct := reflect.TypeOf(condiBean[0])
 				k := ct.Kind()

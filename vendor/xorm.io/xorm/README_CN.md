@@ -84,7 +84,7 @@ type User struct {
     Updated time.Time `xorm:"updated"`
 }
 
-err := engine.Sync2(new(User))
+err := engine.Sync(new(User))
 ```
 
 * 创建Engine组
@@ -157,6 +157,11 @@ var id int64
 has, err := engine.Table(&user).Where("name = ?", name).Cols("id").Get(&id)
 has, err := engine.SQL("select id from user").Get(&id)
 // SELECT id FROM user WHERE name = ?
+
+var id int64
+var name string
+has, err := engine.Table(&user).Cols("id", "name").Get(&id, &name)
+// SELECT id, name FROM user LIMIT 1
 
 var valuesMap = make(map[string]string)
 has, err := engine.Table(&user).Where("id = ?", id).Get(&valuesMap)
@@ -231,13 +236,30 @@ err := engine.BufferSize(100).Iterate(&User{Name:name}, func(idx int, bean inter
 })
 // SELECT * FROM user Limit 0, 100
 // SELECT * FROM user Limit 101, 100
+```
 
+Rows 的用法类似 `sql.Rows`。
+
+```Go
 rows, err := engine.Rows(&User{Name:name})
 // SELECT * FROM user
 defer rows.Close()
 bean := new(Struct)
 for rows.Next() {
     err = rows.Scan(bean)
+}
+```
+
+或者
+
+```Go
+rows, err := engine.Cols("name", "age").Rows(&User{Name:name})
+// SELECT * FROM user
+defer rows.Close()
+for rows.Next() {
+    var name string
+    var age int
+    err = rows.Scan(&name, &age)
 }
 ```
 

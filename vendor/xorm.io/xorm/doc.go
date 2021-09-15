@@ -67,6 +67,11 @@ There are 8 major ORM methods and many helpful methods to use to operate databas
     has, err := engine.Table("user").Where("name = ?", name).Get(&id)
     // SELECT id FROM user WHERE name = ? LIMIT 1
 
+    var id int64
+    var name string
+    has, err := engine.Table(&user).Cols("id", "name").Get(&id, &name)
+    // SELECT id, name FROM user LIMIT 1
+
 3. Query multiple records from database
 
     var sliceOfStructs []Struct
@@ -95,6 +100,17 @@ another is Rows
     bean := new(Struct)
     for rows.Next() {
         err = rows.Scan(bean)
+    }
+
+or
+
+    rows, err := engine.Cols("name", "age").Rows(...)
+    // SELECT * FROM user
+    defer rows.Close()
+    for rows.Next() {
+        var name string
+        var age int
+        err = rows.Scan(&name, &age)
     }
 
 5. Update one or more records

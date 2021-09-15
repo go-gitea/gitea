@@ -6,12 +6,14 @@ package xorm
 
 import (
 	"bufio"
+	"context"
 	"database/sql"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
@@ -40,13 +42,28 @@ func (session *Session) createTable(bean interface{}) error {
 		return err
 	}
 
-	sqlStrs := session.statement.GenCreateTableSQL()
-	for _, s := range sqlStrs {
-		_, err := session.exec(s)
+	session.statement.RefTable.StoreEngine = session.statement.StoreEngine
+	session.statement.RefTable.Charset = session.statement.Charset
+	tableName := session.statement.TableName()
+	refTable := session.statement.RefTable
+	if refTable.AutoIncrement != "" && session.engine.dialect.Features().AutoincrMode == dialects.SequenceAutoincrMode {
+		sqlStr, err := session.engine.dialect.CreateSequenceSQL(context.Background(), session.engine.db, utils.SeqName(tableName))
 		if err != nil {
 			return err
 		}
+		if _, err := session.exec(sqlStr); err != nil {
+			return err
+		}
 	}
+
+	sqlStr, _, err := session.engine.dialect.CreateTableSQL(context.Background(), session.engine.db, refTable, tableName)
+	if err != nil {
+		return err
+	}
+	if _, err := session.exec(sqlStr); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -141,11 +158,32 @@ func (session *Session) dropTable(beanOrTableName interface{}) error {
 		checkIfExist = exist
 	}
 
-	if checkIfExist {
-		_, err := session.exec(sqlStr)
+	if !checkIfExist {
+		return nil
+	}
+	if _, err := session.exec(sqlStr); err != nil {
 		return err
 	}
-	return nil
+
+	if session.engine.dialect.Features().AutoincrMode == dialects.IncrAutoincrMode {
+		return nil
+	}
+
+	var seqName = utils.SeqName(tableName)
+	exist, err := session.engine.dialect.IsSequenceExist(session.ctx, session.getQueryer(), seqName)
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return nil
+	}
+
+	sqlStr, err = session.engine.dialect.DropSequenceSQL(seqName)
+	if err != nil {
+		return err
+	}
+	_, err = session.exec(sqlStr)
+	return err
 }
 
 // IsTableExist if a table is exist
@@ -225,7 +263,13 @@ func (session *Session) addUnique(tableName, uqeName string) error {
 }
 
 // Sync2 synchronize structs to database tables
+// Depricated
 func (session *Session) Sync2(beans ...interface{}) error {
+	return session.Sync(beans...)
+}
+
+// Sync synchronize structs to database tables
+func (session *Session) Sync(beans ...interface{}) error {
 	engine := session.engine
 
 	if session.isAutoClose {

@@ -3,6 +3,7 @@ module xorm.io/xorm
 go 1.13
 
 require (
+	gitee.com/travelliu/dm v1.8.11192
 	github.com/denisenkom/go-mssqldb v0.10.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/goccy/go-json v0.7.4

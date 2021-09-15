@@ -283,11 +283,9 @@ func Assign(dest, src interface{}, originalLocation *time.Location, convertedLoc
 		}
 	}
 
-	var sv reflect.Value
-
 	switch d := dest.(type) {
 	case *string:
-		sv = reflect.ValueOf(src)
+		var sv = reflect.ValueOf(src)
 		switch sv.Kind() {
 		case reflect.Bool,
 			reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,

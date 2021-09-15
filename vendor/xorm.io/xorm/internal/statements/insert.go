@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
 
@@ -42,7 +43,19 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 		return "", nil, err
 	}
 
-	if len(colNames) <= 0 {
+	var hasInsertColumns = len(colNames) > 0
+	var needSeq = len(table.AutoIncrement) > 0 && (statement.dialect.URI().DBType == schemas.ORACLE || statement.dialect.URI().DBType == schemas.DAMENG)
+	if needSeq {
+		for _, col := range colNames {
+			if strings.EqualFold(col, table.AutoIncrement) {
+				needSeq = false
+				break
+			}
+		}
+	}
+
+	if !hasInsertColumns && statement.dialect.URI().DBType != schemas.ORACLE &&
+		statement.dialect.URI().DBType != schemas.DAMENG {
 		if statement.dialect.URI().DBType == schemas.MYSQL {
 			if _, err := buf.WriteString(" VALUES ()"); err != nil {
 				return "", nil, err
@@ -58,6 +71,10 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 	} else {
 		if _, err := buf.WriteString(" ("); err != nil {
 			return "", nil, err
+		}
+
+		if needSeq {
+			colNames = append(colNames, table.AutoIncrement)
 		}
 
 		if err := statement.dialect.Quoter().JoinWrite(buf.Builder, append(colNames, exprs.ColNames()...), ","); err != nil {
@@ -80,13 +97,23 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 				return "", nil, err
 			}
 
+			if needSeq {
+				if len(args) > 0 {
+					if _, err := buf.WriteString(","); err != nil {
+						return "", nil, err
+					}
+				}
+				if _, err := buf.WriteString(utils.SeqName(tableName) + ".nextval"); err != nil {
+					return "", nil, err
+				}
+			}
 			if len(exprs) > 0 {
 				if _, err := buf.WriteString(","); err != nil {
 					return "", nil, err
 				}
-			}
-			if err := exprs.WriteArgs(buf); err != nil {
-				return "", nil, err
+				if err := exprs.WriteArgs(buf); err != nil {
+					return "", nil, err
+				}
 			}
 
 			if _, err := buf.WriteString(" FROM "); err != nil {
@@ -111,6 +138,18 @@ func (statement *Statement) GenInsertSQL(colNames []string, args []interface{}) 
 
 			if err := statement.WriteArgs(buf, args); err != nil {
 				return "", nil, err
+			}
+
+			// Insert tablename (id) Values(seq_tablename.nextval)
+			if needSeq {
+				if hasInsertColumns {
+					if _, err := buf.WriteString(","); err != nil {
+						return "", nil, err
+					}
+				}
+				if _, err := buf.WriteString(utils.SeqName(tableName) + ".nextval"); err != nil {
+					return "", nil, err
+				}
 			}
 
 			if len(exprs) > 0 {

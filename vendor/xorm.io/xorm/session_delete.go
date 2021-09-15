@@ -40,7 +40,13 @@ func (session *Session) cacheDelete(table *schemas.Table, tableName, sqlStr stri
 	pkColumns := table.PKColumns()
 	ids, err := caches.GetCacheSql(cacher, tableName, newsql, args)
 	if err != nil {
-		resultsSlice, err := session.queryBytes(newsql, args...)
+		rows, err := session.queryRows(newsql, args...)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		resultsSlice, err := session.engine.ScanStringMaps(rows)
 		if err != nil {
 			return err
 		}
@@ -53,9 +59,9 @@ func (session *Session) cacheDelete(table *schemas.Table, tableName, sqlStr stri
 					if v, ok := data[col.Name]; !ok {
 						return errors.New("no id")
 					} else if col.SQLType.IsText() {
-						pk = append(pk, string(v))
+						pk = append(pk, v)
 					} else if col.SQLType.IsNumeric() {
-						id, err = strconv.ParseInt(string(v), 10, 64)
+						id, err = strconv.ParseInt(v, 10, 64)
 						if err != nil {
 							return err
 						}

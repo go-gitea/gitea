@@ -1,4 +1,4 @@
-// Copyright 2015 The Xorm Authors. All rights reserved.
+// Copyright 2021 The Xorm Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -9,16 +9,25 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"regexp"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"xorm.io/xorm/convert"
 	"xorm.io/xorm/core"
+	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
 
+func init() {
+	RegisterDriver("dm", &damengDriver{})
+	RegisterDialect(schemas.DAMENG, func() Dialect {
+		return &dameng{}
+	})
+}
+
 var (
-	oracleReservedWords = map[string]bool{
+	damengReservedWords = map[string]bool{
 		"ACCESS":                    true,
 		"ACCOUNT":                   true,
 		"ACTIVATE":                  true,
@@ -500,24 +509,24 @@ var (
 		"ZONE":                      true,
 	}
 
-	oracleQuoter = schemas.Quoter{
+	damengQuoter = schemas.Quoter{
 		Prefix:     '"',
 		Suffix:     '"',
 		IsReserved: schemas.AlwaysReserve,
 	}
 )
 
-type oracle struct {
+type dameng struct {
 	Base
 }
 
-func (db *oracle) Init(uri *URI) error {
-	db.quoter = oracleQuoter
+func (db *dameng) Init(uri *URI) error {
+	db.quoter = damengQuoter
 	return db.Base.Init(db, uri)
 }
 
-func (db *oracle) Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error) {
-	rows, err := queryer.QueryContext(ctx, "select * from v$version where banner like 'Oracle%'")
+func (db *dameng) Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error) {
+	rows, err := queryer.QueryContext(ctx, "SELECT * FROM V$VERSION") // select id_code
 	if err != nil {
 		return nil, err
 	}
@@ -539,26 +548,69 @@ func (db *oracle) Version(ctx context.Context, queryer core.Queryer) (*schemas.V
 	}, nil
 }
 
-func (db *oracle) Features() *DialectFeatures {
+func (db *dameng) Features() *DialectFeatures {
 	return &DialectFeatures{
 		AutoincrMode: SequenceAutoincrMode,
 	}
 }
 
-func (db *oracle) SQLType(c *schemas.Column) string {
+// DropIndexSQL returns a SQL to drop index
+func (db *dameng) DropIndexSQL(tableName string, index *schemas.Index) string {
+	quote := db.dialect.Quoter().Quote
+	var name string
+	if index.IsRegular {
+		name = index.XName(tableName)
+	} else {
+		name = index.Name
+	}
+	return fmt.Sprintf("DROP INDEX %v", quote(name))
+}
+
+func (db *dameng) SQLType(c *schemas.Column) string {
 	var res string
 	switch t := c.SQLType.Name; t {
-	case schemas.Bit, schemas.TinyInt, schemas.SmallInt, schemas.MediumInt, schemas.Int, schemas.Integer, schemas.BigInt, schemas.Bool, schemas.Serial, schemas.BigSerial:
-		res = "NUMBER"
-	case schemas.Binary, schemas.VarBinary, schemas.Blob, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob, schemas.Bytea:
-		return schemas.Blob
-	case schemas.Time, schemas.DateTime, schemas.TimeStamp:
+	case schemas.TinyInt, "BYTE":
+		return "TINYINT"
+	case schemas.SmallInt, schemas.MediumInt, schemas.Int, schemas.Integer, schemas.UnsignedTinyInt:
+		return "INTEGER"
+	case schemas.BigInt,
+		schemas.UnsignedBigInt, schemas.UnsignedBit, schemas.UnsignedInt,
+		schemas.Serial, schemas.BigSerial:
+		return "BIGINT"
+	case schemas.Bit, schemas.Bool, schemas.Boolean:
+		return schemas.Bit
+	case schemas.Uuid:
+		res = schemas.Varchar
+		c.Length = 40
+	case schemas.Binary:
+		if c.Length == 0 {
+			return schemas.Binary + "(MAX)"
+		}
+	case schemas.VarBinary, schemas.Blob, schemas.TinyBlob, schemas.MediumBlob, schemas.LongBlob, schemas.Bytea:
+		return schemas.VarBinary
+	case schemas.Date:
+		return schemas.Date
+	case schemas.Time:
+		if c.Length > 0 {
+			return fmt.Sprintf("%s(%d)", schemas.Time, c.Length)
+		}
+		return schemas.Time
+	case schemas.DateTime, schemas.TimeStamp:
 		res = schemas.TimeStamp
 	case schemas.TimeStampz:
-		res = "TIMESTAMP WITH TIME ZONE"
-	case schemas.Float, schemas.Double, schemas.Numeric, schemas.Decimal:
-		res = "NUMBER"
-	case schemas.Text, schemas.MediumText, schemas.LongText, schemas.Json:
+		if c.Length > 0 {
+			return fmt.Sprintf("TIMESTAMP(%d) WITH TIME ZONE", c.Length)
+		}
+		return "TIMESTAMP WITH TIME ZONE"
+	case schemas.Float:
+		res = "FLOAT"
+	case schemas.Real, schemas.Double:
+		res = "REAL"
+	case schemas.Numeric, schemas.Decimal, "NUMBER":
+		res = "NUMERIC"
+	case schemas.Text, schemas.Json:
+		return "TEXT"
+	case schemas.MediumText, schemas.LongText:
 		res = "CLOB"
 	case schemas.Char, schemas.Varchar, schemas.TinyText:
 		res = "VARCHAR2"
@@ -577,7 +629,7 @@ func (db *oracle) SQLType(c *schemas.Column) string {
 	return res
 }
 
-func (db *oracle) ColumnTypeKind(t string) int {
+func (db *dameng) ColumnTypeKind(t string) int {
 	switch strings.ToUpper(t) {
 	case "DATE":
 		return schemas.TIME_TYPE
@@ -592,92 +644,214 @@ func (db *oracle) ColumnTypeKind(t string) int {
 	}
 }
 
-func (db *oracle) AutoIncrStr() string {
-	return "AUTO_INCREMENT"
+func (db *dameng) AutoIncrStr() string {
+	return "IDENTITY"
 }
 
-func (db *oracle) IsReserved(name string) bool {
-	_, ok := oracleReservedWords[strings.ToUpper(name)]
+func (db *dameng) IsReserved(name string) bool {
+	_, ok := damengReservedWords[strings.ToUpper(name)]
 	return ok
 }
 
-func (db *oracle) DropTableSQL(tableName string) (string, bool) {
-	return fmt.Sprintf("DROP TABLE `%s`", tableName), false
+func (db *dameng) DropTableSQL(tableName string) (string, bool) {
+	return fmt.Sprintf("DROP TABLE %s", db.quoter.Quote(tableName)), false
 }
 
-func (db *oracle) CreateTableSQL(ctx context.Context, queryer core.Queryer, table *schemas.Table, tableName string) (string, bool, error) {
-	var sql = "CREATE TABLE "
+// ModifyColumnSQL returns a SQL to modify SQL
+func (db *dameng) ModifyColumnSQL(tableName string, col *schemas.Column) string {
+	s, _ := ColumnString(db.dialect, col, false)
+	return fmt.Sprintf("ALTER TABLE %s MODIFY %s", db.quoter.Quote(tableName), s)
+}
+
+func (db *dameng) CreateTableSQL(ctx context.Context, queryer core.Queryer, table *schemas.Table, tableName string) (string, bool, error) {
 	if tableName == "" {
 		tableName = table.Name
 	}
 
 	quoter := db.Quoter()
-	sql += quoter.Quote(tableName) + " ("
+	var b strings.Builder
+	b.WriteString("CREATE TABLE ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
 
 	pkList := table.PrimaryKeys
 
-	for _, colName := range table.ColumnsSeq() {
+	for i, colName := range table.ColumnsSeq() {
 		col := table.GetColumn(colName)
-		/*if col.IsPrimaryKey && len(pkList) == 1 {
-			sql += col.String(b.dialect)
-		} else {*/
+		if col.SQLType.IsBool() && !col.DefaultIsEmpty {
+			if col.Default == "true" {
+				col.Default = "1"
+			} else if col.Default == "false" {
+				col.Default = "0"
+			}
+		}
+
 		s, _ := ColumnString(db, col, false)
-		sql += s
-		// }
-		sql = strings.TrimSpace(sql)
-		sql += ", "
+		b.WriteString(s)
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
+		}
 	}
 
 	if len(pkList) > 0 {
-		sql += "PRIMARY KEY ( "
-		sql += quoter.Join(pkList, ",")
-		sql += " ), "
+		if len(table.ColumnsSeq()) > 0 {
+			b.WriteString(", ")
+		}
+		b.WriteString(fmt.Sprintf("CONSTRAINT PK_%s PRIMARY KEY (", tableName))
+		quoter.JoinWrite(&b, pkList, ",")
+		b.WriteString(")")
 	}
+	b.WriteString(")")
 
-	sql = sql[:len(sql)-2] + ")"
-	return sql, false, nil
+	return b.String(), false, nil
 }
 
-func (db *oracle) SetQuotePolicy(quotePolicy QuotePolicy) {
+func (db *dameng) SetQuotePolicy(quotePolicy QuotePolicy) {
 	switch quotePolicy {
 	case QuotePolicyNone:
-		var q = oracleQuoter
+		var q = damengQuoter
 		q.IsReserved = schemas.AlwaysNoReserve
 		db.quoter = q
 	case QuotePolicyReserved:
-		var q = oracleQuoter
+		var q = damengQuoter
 		q.IsReserved = db.IsReserved
 		db.quoter = q
 	case QuotePolicyAlways:
 		fallthrough
 	default:
-		db.quoter = oracleQuoter
+		db.quoter = damengQuoter
 	}
 }
 
-func (db *oracle) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
+func (db *dameng) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
 	args := []interface{}{tableName, idxName}
 	return `SELECT INDEX_NAME FROM USER_INDEXES ` +
-		`WHERE TABLE_NAME = :1 AND INDEX_NAME = :2`, args
+		`WHERE TABLE_NAME = ? AND INDEX_NAME = ?`, args
 }
 
-func (db *oracle) IsTableExist(queryer core.Queryer, ctx context.Context, tableName string) (bool, error) {
-	return db.HasRecords(queryer, ctx, `SELECT table_name FROM user_tables WHERE table_name = :1`, tableName)
+func (db *dameng) IsTableExist(queryer core.Queryer, ctx context.Context, tableName string) (bool, error) {
+	return db.HasRecords(queryer, ctx, `SELECT table_name FROM user_tables WHERE table_name = ?`, tableName)
 }
 
-func (db *oracle) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
+func (db *dameng) IsSequenceExist(ctx context.Context, queryer core.Queryer, seqName string) (bool, error) {
+	var cnt int
+	rows, err := queryer.QueryContext(ctx, "SELECT COUNT(*) FROM user_sequences WHERE sequence_name = ?", seqName)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		if rows.Err() != nil {
+			return false, rows.Err()
+		}
+		return false, errors.New("query sequence failed")
+	}
+
+	if err := rows.Scan(&cnt); err != nil {
+		return false, err
+	}
+	return cnt > 0, nil
+}
+
+func (db *dameng) IsColumnExist(queryer core.Queryer, ctx context.Context, tableName, colName string) (bool, error) {
 	args := []interface{}{tableName, colName}
-	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = :1" +
-		" AND column_name = :2"
+	query := "SELECT column_name FROM USER_TAB_COLUMNS WHERE table_name = ?" +
+		" AND column_name = ?"
 	return db.HasRecords(queryer, ctx, query, args...)
 }
 
-func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
-	args := []interface{}{tableName}
-	s := "SELECT column_name,data_default,data_type,data_length,data_precision,data_scale," +
-		"nullable FROM USER_TAB_COLUMNS WHERE table_name = :1"
+var _ sql.Scanner = &dmClobScanner{}
 
-	rows, err := queryer.QueryContext(ctx, s, args...)
+type dmClobScanner struct {
+	valid bool
+	data  string
+}
+
+type dmClobObject interface {
+	GetLength() (int64, error)
+	ReadString(int, int) (string, error)
+}
+
+//var _ dmClobObject = &dm.DmClob{}
+
+func (d *dmClobScanner) Scan(data interface{}) error {
+	if data == nil {
+		return nil
+	}
+
+	switch t := data.(type) {
+	case dmClobObject: // *dm.DmClob
+		if t == nil {
+			return nil
+		}
+		l, err := t.GetLength()
+		if err != nil {
+			return err
+		}
+		if l == 0 {
+			d.valid = true
+			return nil
+		}
+		d.data, err = t.ReadString(1, int(l))
+		if err != nil {
+			return err
+		}
+		d.valid = true
+		return nil
+	case []byte:
+		if t == nil {
+			return nil
+		}
+		d.data = string(t)
+		d.valid = true
+		return nil
+	default:
+		return fmt.Errorf("cannot convert %T as dmClobScanner", data)
+	}
+}
+
+func addSingleQuote(name string) string {
+	if len(name) < 2 {
+		return name
+	}
+	if name[0] == '\'' && name[len(name)-1] == '\'' {
+		return name
+	}
+	return fmt.Sprintf("'%s'", name)
+}
+
+func (db *dameng) GetColumns(queryer core.Queryer, ctx context.Context, tableName string) ([]string, map[string]*schemas.Column, error) {
+	s := `select   column_name   from   user_cons_columns   
+  where   constraint_name   =   (select   constraint_name   from   user_constraints   
+			  where   table_name   =   ?  and   constraint_type   ='P')`
+	rows, err := queryer.QueryContext(ctx, s, tableName)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var pkNames []string
+	for rows.Next() {
+		var pkName string
+		err = rows.Scan(&pkName)
+		if err != nil {
+			return nil, nil, err
+		}
+		pkNames = append(pkNames, pkName)
+	}
+	if rows.Err() != nil {
+		return nil, nil, rows.Err()
+	}
+	rows.Close()
+
+	s = `SELECT USER_TAB_COLS.COLUMN_NAME, USER_TAB_COLS.DATA_DEFAULT, USER_TAB_COLS.DATA_TYPE, USER_TAB_COLS.DATA_LENGTH, 
+		USER_TAB_COLS.data_precision, USER_TAB_COLS.data_scale, USER_TAB_COLS.NULLABLE,
+		user_col_comments.comments
+		FROM USER_TAB_COLS 
+		LEFT JOIN user_col_comments on user_col_comments.TABLE_NAME=USER_TAB_COLS.TABLE_NAME 
+		AND user_col_comments.COLUMN_NAME=USER_TAB_COLS.COLUMN_NAME
+		WHERE USER_TAB_COLS.table_name = ?`
+	rows, err = queryer.QueryContext(ctx, s, tableName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -689,32 +863,54 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 		col := new(schemas.Column)
 		col.Indexes = make(map[string]int)
 
-		var colName, colDefault, nullable, dataType, dataPrecision, dataScale *string
-		var dataLen int
+		var colDefault dmClobScanner
+		var colName, nullable, dataType, dataPrecision, comment sql.NullString
+		var dataScale, dataLen sql.NullInt64
 
 		err = rows.Scan(&colName, &colDefault, &dataType, &dataLen, &dataPrecision,
-			&dataScale, &nullable)
+			&dataScale, &nullable, &comment)
 		if err != nil {
 			return nil, nil, err
 		}
 
-		col.Name = strings.Trim(*colName, `" `)
-		if colDefault != nil {
-			col.Default = *colDefault
-			col.DefaultIsEmpty = false
+		if !colName.Valid {
+			return nil, nil, errors.New("column name is nil")
 		}
 
-		if *nullable == "Y" {
+		col.Name = strings.Trim(colName.String, `" `)
+		if colDefault.valid {
+			col.Default = colDefault.data
+		} else {
+			col.DefaultIsEmpty = true
+		}
+
+		if nullable.String == "Y" {
 			col.Nullable = true
 		} else {
 			col.Nullable = false
 		}
 
-		var ignore bool
+		if !comment.Valid {
+			col.Comment = comment.String
+		}
+		if utils.IndexSlice(pkNames, col.Name) > -1 {
+			col.IsPrimaryKey = true
+			has, err := db.HasRecords(queryer, ctx, "SELECT * FROM USER_SEQUENCES WHERE SEQUENCE_NAME = ?", utils.SeqName(tableName))
+			if err != nil {
+				return nil, nil, err
+			}
+			if has {
+				col.IsAutoIncrement = true
+			}
+		}
 
-		var dt string
-		var len1, len2 int
-		dts := strings.Split(*dataType, "(")
+		var (
+			ignore     bool
+			dt         string
+			len1, len2 int
+		)
+
+		dts := strings.Split(dataType.String, "(")
 		dt = dts[0]
 		if len(dts) > 1 {
 			lens := strings.Split(dts[1][:len(dts[1])-1], ",")
@@ -728,14 +924,14 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 
 		switch dt {
 		case "VARCHAR2":
+			col.SQLType = schemas.SQLType{Name: "VARCHAR2", DefaultLength: len1, DefaultLength2: len2}
+		case "VARCHAR":
 			col.SQLType = schemas.SQLType{Name: schemas.Varchar, DefaultLength: len1, DefaultLength2: len2}
-		case "NVARCHAR2":
-			col.SQLType = schemas.SQLType{Name: schemas.NVarchar, DefaultLength: len1, DefaultLength2: len2}
 		case "TIMESTAMP WITH TIME ZONE":
 			col.SQLType = schemas.SQLType{Name: schemas.TimeStampz, DefaultLength: 0, DefaultLength2: 0}
 		case "NUMBER":
-			col.SQLType = schemas.SQLType{Name: schemas.Double, DefaultLength: len1, DefaultLength2: len2}
-		case "LONG", "LONG RAW":
+			col.SQLType = schemas.SQLType{Name: "NUMBER", DefaultLength: len1, DefaultLength2: len2}
+		case "LONG", "LONG RAW", "NCLOB", "CLOB", "TEXT":
 			col.SQLType = schemas.SQLType{Name: schemas.Text, DefaultLength: 0, DefaultLength2: 0}
 		case "RAW":
 			col.SQLType = schemas.SQLType{Name: schemas.Binary, DefaultLength: 0, DefaultLength2: 0}
@@ -752,14 +948,18 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 		}
 
 		if _, ok := schemas.SqlTypes[col.SQLType.Name]; !ok {
-			return nil, nil, fmt.Errorf("Unknown colType %v %v", *dataType, col.SQLType)
+			return nil, nil, fmt.Errorf("unknown colType %v %v", dataType.String, col.SQLType)
 		}
 
-		col.Length = dataLen
+		if col.SQLType.Name == "TIMESTAMP" {
+			col.Length = int(dataScale.Int64)
+		} else {
+			col.Length = int(dataLen.Int64)
+		}
 
-		if col.SQLType.IsText() || col.SQLType.IsTime() {
-			if !col.DefaultIsEmpty {
-				col.Default = "'" + col.Default + "'"
+		if col.SQLType.IsTime() {
+			if !col.DefaultIsEmpty && !strings.EqualFold(col.Default, "CURRENT_TIMESTAMP") {
+				col.Default = addSingleQuote(col.Default)
 			}
 		}
 		cols[col.Name] = col
@@ -772,9 +972,9 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 	return colSeq, cols, nil
 }
 
-func (db *oracle) GetTables(queryer core.Queryer, ctx context.Context) ([]*schemas.Table, error) {
-	args := []interface{}{}
-	s := "SELECT table_name FROM user_tables"
+func (db *dameng) GetTables(queryer core.Queryer, ctx context.Context) ([]*schemas.Table, error) {
+	s := "SELECT table_name FROM user_tables WHERE temporary = 'N' AND table_name NOT LIKE ?"
+	args := []interface{}{strings.ToUpper(db.uri.User), "%$%"}
 
 	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
@@ -798,10 +998,11 @@ func (db *oracle) GetTables(queryer core.Queryer, ctx context.Context) ([]*schem
 	return tables, nil
 }
 
-func (db *oracle) GetIndexes(queryer core.Queryer, ctx context.Context, tableName string) (map[string]*schemas.Index, error) {
-	args := []interface{}{tableName}
+func (db *dameng) GetIndexes(queryer core.Queryer, ctx context.Context, tableName string) (map[string]*schemas.Index, error) {
+	args := []interface{}{tableName, tableName}
 	s := "SELECT t.column_name,i.uniqueness,i.index_name FROM user_ind_columns t,user_indexes i " +
-		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =:1"
+		"WHERE t.index_name = i.index_name and t.table_name = i.table_name and t.table_name =?" +
+		" AND t.index_name not in (SELECT index_name FROM ALL_CONSTRAINTS WHERE CONSTRAINT_TYPE='P' AND table_name = ?)"
 
 	rows, err := queryer.QueryContext(ctx, s, args...)
 	if err != nil {
@@ -850,45 +1051,46 @@ func (db *oracle) GetIndexes(queryer core.Queryer, ctx context.Context, tableNam
 	return indexes, nil
 }
 
-func (db *oracle) Filters() []Filter {
-	return []Filter{
-		&SeqFilter{Prefix: ":", Start: 1},
-	}
+func (db *dameng) Filters() []Filter {
+	return []Filter{}
 }
 
-type godrorDriver struct {
+type damengDriver struct {
 	baseDriver
 }
 
-func (g *godrorDriver) Features() *DriverFeatures {
+// Features return features
+func (d *damengDriver) Features() *DriverFeatures {
 	return &DriverFeatures{
 		SupportReturnInsertedID: false,
 	}
 }
 
-func (g *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) {
-	db := &URI{DBType: schemas.ORACLE}
-	dsnPattern := regexp.MustCompile(
-		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
-			`(?:(?P<net>[^\(]*)(?:\((?P<addr>[^\)]*)\))?)?` + // [net[(addr)]]
-			`\/(?P<dbname>.*?)` + // /dbname
-			`(?:\?(?P<params>[^\?]*))?$`) // [?param1=value1&paramN=valueN]
-	matches := dsnPattern.FindStringSubmatch(dataSourceName)
-	// tlsConfigRegister := make(map[string]*tls.Config)
-	names := dsnPattern.SubexpNames()
+// Parse parse the datasource
+// dm://userName:password@ip:port
+func (d *damengDriver) Parse(driverName, dataSourceName string) (*URI, error) {
+	u, err := url.Parse(dataSourceName)
+	if err != nil {
+		return nil, err
+	}
 
-	for i, match := range matches {
-		if names[i] == "dbname" {
-			db.DBName = match
-		}
+	if u.User == nil {
+		return nil, errors.New("user/password needed")
 	}
-	if db.DBName == "" {
-		return nil, errors.New("dbname is empty")
-	}
-	return db, nil
+
+	passwd, _ := u.User.Password()
+	return &URI{
+		DBType: schemas.DAMENG,
+		Proto:  u.Scheme,
+		Host:   u.Hostname(),
+		Port:   u.Port(),
+		DBName: u.User.Username(),
+		User:   u.User.Username(),
+		Passwd: passwd,
+	}, nil
 }
 
-func (g *godrorDriver) GenScanResult(colType string) (interface{}, error) {
+func (d *damengDriver) GenScanResult(colType string) (interface{}, error) {
 	switch colType {
 	case "CHAR", "NCHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "LONG", "CLOB", "NCLOB":
 		var s sql.NullString
@@ -896,39 +1098,84 @@ func (g *godrorDriver) GenScanResult(colType string) (interface{}, error) {
 	case "NUMBER":
 		var s sql.NullString
 		return &s, nil
-	case "DATE":
-		var s sql.NullTime
+	case "BIGINT":
+		var s sql.NullInt64
+		return &s, nil
+	case "INTEGER":
+		var s sql.NullInt32
+		return &s, nil
+	case "DATE", "TIMESTAMP":
+		var s sql.NullString
 		return &s, nil
 	case "BLOB":
 		var r sql.RawBytes
 		return &r, nil
+	case "FLOAT":
+		var s sql.NullFloat64
+		return &s, nil
 	default:
 		var r sql.RawBytes
 		return &r, nil
 	}
 }
 
-type oci8Driver struct {
-	godrorDriver
-}
+func (d *damengDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.ColumnType, vv ...interface{}) error {
+	var scanResults = make([]interface{}, 0, len(types))
+	var replaces = make([]bool, 0, len(types))
+	var err error
+	for i, v := range vv {
+		var replaced bool
+		var scanResult interface{}
+		switch types[i].DatabaseTypeName() {
+		case "CLOB", "TEXT":
+			scanResult = &dmClobScanner{}
+			replaced = true
+		case "TIMESTAMP":
+			scanResult = &sql.NullString{}
+			replaced = true
+		default:
+			scanResult = v
+		}
 
-// dataSourceName=user/password@ipv4:port/dbname
-// dataSourceName=user/password@[ipv6]:port/dbname
-func (o *oci8Driver) Parse(driverName, dataSourceName string) (*URI, error) {
-	db := &URI{DBType: schemas.ORACLE}
-	dsnPattern := regexp.MustCompile(
-		`^(?P<user>.*)\/(?P<password>.*)@` + // user:password@
-			`(?P<net>.*)` + // ip:port
-			`\/(?P<dbname>.*)`) // dbname
-	matches := dsnPattern.FindStringSubmatch(dataSourceName)
-	names := dsnPattern.SubexpNames()
-	for i, match := range matches {
-		if names[i] == "dbname" {
-			db.DBName = match
+		scanResults = append(scanResults, scanResult)
+		replaces = append(replaces, replaced)
+	}
+
+	if err = rows.Scan(scanResults...); err != nil {
+		return err
+	}
+
+	for i, replaced := range replaces {
+		if replaced {
+			switch t := scanResults[i].(type) {
+			case *dmClobScanner:
+				var d interface{}
+				if t.valid {
+					d = t.data
+				} else {
+					d = nil
+				}
+				if err := convert.Assign(vv[i], d, ctx.DBLocation, ctx.UserLocation); err != nil {
+					return err
+				}
+			default:
+				switch types[i].DatabaseTypeName() {
+				case "TIMESTAMP":
+					ns := t.(*sql.NullString)
+					if !ns.Valid {
+						return nil
+					}
+					s := ns.String
+					fields := strings.Split(s, "+")
+					if err := convert.Assign(vv[i], strings.Replace(fields[0], "T", " ", -1), ctx.DBLocation, ctx.UserLocation); err != nil {
+						return err
+					}
+				default:
+					return fmt.Errorf("don't support convert %T to %T", t, vv[i])
+				}
+			}
 		}
 	}
-	if db.DBName == "" && len(matches) != 0 {
-		return nil, errors.New("dbname is empty")
-	}
-	return db, nil
+
+	return nil
 }

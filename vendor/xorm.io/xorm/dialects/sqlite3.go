@@ -184,6 +184,12 @@ func (db *sqlite3) Version(ctx context.Context, queryer core.Queryer) (*schemas.
 	}, nil
 }
 
+func (db *sqlite3) Features() *DialectFeatures {
+	return &DialectFeatures{
+		AutoincrMode: IncrAutoincrMode,
+	}
+}
+
 func (db *sqlite3) SetQuotePolicy(quotePolicy QuotePolicy) {
 	switch quotePolicy {
 	case QuotePolicyNone:

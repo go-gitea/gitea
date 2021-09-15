@@ -244,6 +244,12 @@ func (db *mysql) Version(ctx context.Context, queryer core.Queryer) (*schemas.Ve
 	}, nil
 }
 
+func (db *mysql) Features() *DialectFeatures {
+	return &DialectFeatures{
+		AutoincrMode: IncrAutoincrMode,
+	}
+}
+
 func (db *mysql) SetParams(params map[string]string) {
 	rowFormat, ok := params["rowFormat"]
 	if ok {
@@ -625,7 +631,7 @@ func (db *mysql) GetIndexes(queryer core.Queryer, ctx context.Context, tableName
 	return indexes, nil
 }
 
-func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
+func (db *mysql) CreateTableSQL(ctx context.Context, queryer core.Queryer, table *schemas.Table, tableName string) (string, bool, error) {
 	if tableName == "" {
 		tableName = table.Name
 	}
@@ -678,7 +684,8 @@ func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]strin
 		b.WriteString(" ROW_FORMAT=")
 		b.WriteString(db.rowFormat)
 	}
-	return []string{b.String()}, true
+
+	return b.String(), true, nil
 }
 
 func (db *mysql) Filters() []Filter {

@@ -363,6 +363,41 @@ services:
   commands:
   - /cockroach/cockroach start --insecure
 
+# ---
+# kind: pipeline
+# name: test-dameng
+# depends_on:
+#   - test-cockroach
+# trigger:
+#   ref:
+#   - refs/heads/master
+#   - refs/pull/*/head
+# steps:
+# - name: test-dameng
+#   pull: never
+#   image: golang:1.15
+#   volumes:
+#   - name: cache
+#     path: /go/pkg/mod
+#   environment:
+#     TEST_DAMENG_HOST: "dameng:5236"
+#     TEST_DAMENG_USERNAME: SYSDBA
+#     TEST_DAMENG_PASSWORD: SYSDBA
+#   commands:
+#   - sleep 30
+#   - make test-dameng
+
+# volumes:
+# - name: cache
+#   host:
+#     path: /tmp/cache
+
+# services:
+# - name: dameng
+#   image: lunny/dm:v1.0
+#   commands:
+#   - /bin/bash /startDm.sh
+
 ---
 kind: pipeline
 name: merge_coverage
@@ -374,6 +409,7 @@ depends_on:
   - test-mssql
   - test-tidb
   - test-cockroach
+  #- test-dameng
 trigger:
   ref:
   - refs/heads/master
