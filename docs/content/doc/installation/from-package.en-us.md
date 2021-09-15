@@ -92,7 +92,9 @@ server {
 ```
 
 * Restart nginx
-`` sudo systemctl restart nginx ``
+```bash
+sudo systemctl restart nginx
+```
 
 * Create correct DNS entry on your DNS Server if not done already
 * Configure your gitea settings
