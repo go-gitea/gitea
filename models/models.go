@@ -37,7 +37,7 @@ type Engine interface {
 	Delete(...interface{}) (int64, error)
 	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
-	Get(interface{}) (bool, error)
+	Get(...interface{}) (bool, error)
 	ID(interface{}) *xorm.Session
 	In(string, ...interface{}) *xorm.Session
 	Incr(column string, arg ...interface{}) *xorm.Session

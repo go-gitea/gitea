@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -95,7 +96,10 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 	tempTableName := "tmp_recreate__user"
 	column.Default = "'argon2'"
 
-	createTableSQL, _ := x.Dialect().CreateTableSQL(table, tempTableName)
+	createTableSQL, _, err := x.Dialect().CreateTableSQL(context.Background(), x.DB(), table, tempTableName)
+	if err != nil {
+		return err
+	}
 	for _, sql := range createTableSQL {
 		if _, err := sess.Exec(sql); err != nil {
 			log.Error("Unable to create table %s. Error: %v\n", tempTableName, err, createTableSQL)
