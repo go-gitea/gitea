@@ -268,7 +268,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
-				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(oldCommitID, newCommitID, globs, env, gitRepo)
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(oldCommitID, newCommitID, globs, ctx.env, gitRepo)
 				if err != nil {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, private.Response{
