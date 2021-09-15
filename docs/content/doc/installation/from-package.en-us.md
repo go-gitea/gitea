@@ -51,7 +51,7 @@ There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the la
 
 * Install needed Packages and the snap:
 
-```
+```sh
 sudo snap install gitea
 sudo apt install nginx mariadb-server
 ```
