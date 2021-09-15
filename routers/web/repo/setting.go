@@ -555,10 +555,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repo.IsFork = false
-		repo.ForkID = 0
-		if err := models.UpdateRepository(repo, false); err != nil {
-			log.Error("Unable to update repository %-v whilst converting from fork", repo)
+		if err := repository.ConvertForkToNormalRepository(repo); err != nil {
+			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
