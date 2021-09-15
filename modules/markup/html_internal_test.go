@@ -96,12 +96,14 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 	// numeric: render inputs with valid mentions
 	test := func(s, expectedFmt, marker string, indices ...int) {
 		var path, prefix string
+		isExternal := false
 		if marker == "!" {
 			path = "pulls"
 			prefix = "http://localhost:3000/someUser/someRepo/pulls/"
 		} else {
 			path = "issues"
 			prefix = "https://someurl.com/someUser/someRepo/"
+			isExternal = true
 		}
 
 		links := make([]interface{}, len(indices))
@@ -111,8 +113,13 @@ func TestRender_IssueIndexPattern2(t *testing.T) {
 		expectedNil := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNil, &RenderContext{Metas: localMetas})
 
+		class := "ref-issue"
+		if isExternal {
+			class += " ref-external-issue"
+		}
+
 		for i, index := range indices {
-			links[i] = numericIssueLink(prefix, "ref-issue", index, marker)
+			links[i] = numericIssueLink(prefix, class, index, marker)
 		}
 		expectedNum := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expectedNum, &RenderContext{Metas: numericMetas})
@@ -178,7 +185,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test := func(s, expectedFmt string, names ...string) {
 		links := make([]interface{}, len(names))
 		for i, name := range names {
-			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue", name)
+			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: alphanumericMetas})
