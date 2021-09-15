@@ -47,7 +47,7 @@ pacman -S gitea
 
 There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version.
 
-### This guide was tested with Ubuntu 20.04 and MySQL:
+### This guide was tested with Ubuntu 20.04 and MariaDB:
 
 * Install needed packages:
 
@@ -55,9 +55,11 @@ There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the la
 sudo snap install gitea
 sudo apt install nginx mariadb-server
 ```
-* Secure your mysql Installation
+* Improve the security of your MariaDB Installation
 
-``sudo mysql_secure_installation``
+``sh
+sudo mysql_secure_installation``
+More information can be found on this website: https://mariadb.com/kb/en/mysql_secure_installation/
 
 * Create your Database and Database User:
 
@@ -68,10 +70,11 @@ sudo mysql -u root -p
         FLUSH PRIVILEGES;
         QUIT;
 ```
+Detailed information about Database preperation can be found by following this link: https://docs.gitea.io/en-us/database-prep/
 
 * Create nginx Config to pass traffic to port 3000:
  
- ``sudo nano /etc/nginx/conf.d/gitea.conf``
+``sudo nano /etc/nginx/conf.d/gitea.conf``
  
 * This could look something like this for a secure Installation you should redirect all Traffic to port 443 and use a Certificate.
 This can help: https://ssl-config.mozilla.org/#server=apache&version=2.4.41&config=intermediate&openssl=1.1.1d&guideline=5.6
