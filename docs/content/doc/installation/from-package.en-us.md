@@ -80,7 +80,7 @@ Detailed information about Database preperation can be found by following this l
 To use `HTTPS`, you should additionally pass a certificate and redirect all traffic to port 443.
 This can help: https://ssl-config.mozilla.org/#server=apache&version=2.4.41&config=intermediate&openssl=1.1.1d&guideline=5.6
 
-```
+```nginx
 server {
     listen 80;
     server_name gitea.example.com;
