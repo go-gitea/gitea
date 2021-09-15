@@ -342,6 +342,8 @@ var migrations = []Migration{
 	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
 	// v194 -> v195
 	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
+	// v196 -> v197
+	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
 }
 
 // GetCurrentDBVersion returns the current db version
