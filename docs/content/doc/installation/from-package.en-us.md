@@ -72,7 +72,7 @@ sudo mysql -u root -p
 ```
 Detailed information about Database preperation can be found by following this link: https://docs.gitea.io/en-us/database-prep/
 
-* Create nginx Config to pass traffic to port 3000:
+* Create nginx config to pass traffic to port 3000:
  
 ``sudo nano /etc/nginx/conf.d/gitea.conf``
  
