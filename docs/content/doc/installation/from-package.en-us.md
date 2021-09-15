@@ -76,7 +76,8 @@ Detailed information about Database preperation can be found by following this l
  
 ``sudo nano /etc/nginx/conf.d/gitea.conf``
  
-* This could look something like this for a secure Installation you should redirect all Traffic to port 443 and use a Certificate.
+* The Nginx config should look something like the following code block.
+To use `HTTPS`, you should additionally pass a certificate and redirect all traffic to port 443.
 This can help: https://ssl-config.mozilla.org/#server=apache&version=2.4.41&config=intermediate&openssl=1.1.1d&guideline=5.6
 
 ```
