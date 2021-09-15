@@ -45,19 +45,16 @@ func WithContext(f func(ctx DBContext) error) error {
 // WithTx represents executing database operations on a transaction
 func WithTx(f func(ctx DBContext) error) error {
 	sess := x.NewSession()
+	defer sess.Close()
 	if err := sess.Begin(); err != nil {
-		sess.Close()
 		return err
 	}
 
 	if err := f(DBContext{sess}); err != nil {
-		sess.Close()
 		return err
 	}
 
-	err := sess.Commit()
-	sess.Close()
-	return err
+	return sess.Commit()
 }
 
 // Iterate iterates the databases and doing something

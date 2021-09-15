@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ForkRepository forks a repository
@@ -45,30 +46,53 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 
 	oldRepoPath := oldRepo.RepoPath()
 
+	needsRollback := false
+	rollbackFn := func() {
+		if !needsRollback {
+			return
+		}
+
+		repoPath := models.RepoPath(owner.Name, repo.Name)
+
+		if exists, _ := util.IsExist(repoPath); !exists {
+			return
+		}
+
+		// As the transaction will be failed and hence database changes will be destroyed we only need
+		// to delete the related repository on the filesystem
+		if errDelete := util.RemoveAll(repoPath); errDelete != nil {
+			log.Error("Failed to remove fork repo")
+		}
+	}
+
+	needsRollbackInPanic := true
+	defer func() {
+		panicErr := recover()
+		if panicErr == nil {
+			return
+		}
+
+		if needsRollbackInPanic {
+			rollbackFn()
+		}
+		panic(panicErr)
+	}()
+
 	err = models.WithTx(func(ctx models.DBContext) error {
 		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
 			return err
 		}
 
-		rollbackRemoveFn := func() {
-			if repo.ID == 0 {
-				return
-			}
-			if errDelete := models.DeleteRepository(doer, owner.ID, repo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
-
 		if err = models.IncrementRepoForkNum(ctx, oldRepo.ID); err != nil {
-			rollbackRemoveFn()
 			return err
 		}
 
 		// copy lfs files failure should not be ignored
-		if err := models.CopyLFS(ctx, repo, oldRepo); err != nil {
-			rollbackRemoveFn()
+		if err = models.CopyLFS(ctx, repo, oldRepo); err != nil {
 			return err
 		}
+
+		needsRollback = true
 
 		repoPath := models.RepoPath(owner.Name, repo.Name)
 		if stdout, err := git.NewCommand(
@@ -76,7 +100,6 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", oldRepo.FullName(), repo.FullName())).
 			RunInDirTimeout(10*time.Minute, ""); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, oldRepo, stdout, err)
-			rollbackRemoveFn()
 			return fmt.Errorf("git clone: %v", err)
 		}
 
@@ -84,23 +107,23 @@ func ForkRepository(doer, owner *models.User, oldRepo *models.Repository, name, 
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunInDir(repoPath); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
-			rollbackRemoveFn()
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
 
 		if err = createDelegateHooks(repoPath); err != nil {
-			rollbackRemoveFn()
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 		return nil
 	})
+	needsRollbackInPanic = false
 	if err != nil {
+		rollbackFn()
 		return nil, err
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
 	ctx := models.DefaultDBContext()
-	if err = repo.UpdateSize(ctx); err != nil {
+	if err := repo.UpdateSize(ctx); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 	if err := models.CopyLanguageStat(oldRepo, repo); err != nil {
