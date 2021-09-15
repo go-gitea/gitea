@@ -110,7 +110,7 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
 	sess := e.Where(opts.ToCond())
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 	return sess
 }

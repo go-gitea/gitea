@@ -265,6 +265,23 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 				return
 			}
 
+			// Allow commits that only touch unprotected files
+			globs := protectBranch.GetUnprotectedFilePatterns()
+			if len(globs) > 0 {
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(oldCommitID, newCommitID, globs, env, gitRepo)
+				if err != nil {
+					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
+					ctx.JSON(http.StatusInternalServerError, private.Response{
+						Err: fmt.Sprintf("Unable to check file protection for commits from %s to %s: %v", oldCommitID, newCommitID, err),
+					})
+					return
+				}
+				if unprotectedFilesOnly {
+					// Commit only touches unprotected files, this is allowed
+					return
+				}
+			}
+
 			// Or we're simply not able to push to this protected branch
 			log.Warn("Forbidden: User %d is not allowed to push to protected branch: %s in %-v", ctx.opts.UserID, branchName, repo)
 			ctx.JSON(http.StatusForbidden, private.Response{

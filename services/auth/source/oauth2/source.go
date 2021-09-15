@@ -24,6 +24,7 @@ type Source struct {
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
+	SkipLocalTwoFA                bool
 
 	// reference to the loginSource
 	loginSource *models.LoginSource
