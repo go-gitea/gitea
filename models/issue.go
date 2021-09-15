@@ -1315,9 +1315,13 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 }
 
 func applySubscribedCondition(sess *xorm.Session, subscribedId int64) *xorm.Session {
-	return sess.Join("INNER", "issue_watch", "issue.id = issue_watch.issue_id").
-		And("issue_watch.user_id = ?", subscribedId).
-		And("issue_watch.is_watching = 1")
+	return sess.
+		And("(issue.id IN (SELECT issue_id FROM issue_watch WHERE is_watching = 1 AND user_id = "+
+		"?)) OR ((issue.id IN ((SELECT issue_id FROM comment WHERE poster_id = "+
+		"?))) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = "+
+		"? AND is_watching = 0))) OR ((issue.id IN (SELECT id FROM issue WHERE poster_id = "+
+		"?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = "+
+		"? AND is_watching = 0)))", subscribedId, subscribedId, subscribedId, subscribedId, subscribedId)
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
