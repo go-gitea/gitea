@@ -74,7 +74,9 @@ Detailed information about Database preperation can be found by following this l
 
 * Create nginx config to pass traffic to port 3000:
  
-``sudo nano /etc/nginx/conf.d/gitea.conf``
+```sh
+sudo nano /etc/nginx/conf.d/gitea.conf
+```
  
 * The Nginx config should look something like the following code block.
 To use `HTTPS`, you should additionally pass a certificate and redirect all traffic to port 443.
@@ -100,7 +102,7 @@ server {
 More information about reverse proxies can be found here:
 https://docs.gitea.io/en-us/reverse-proxies/
 * Restart nginx
-```bash
+```sh
 sudo systemctl restart nginx
 ```
 
