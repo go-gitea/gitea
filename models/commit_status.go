@@ -70,7 +70,7 @@ func upsertCommitStatusIndex(e db.Engine, repoID int64, sha string) (err error) 
 	return
 }
 
-// GetNextResourceIndex retried 3 times to generate a resource index
+// GetNextCommitStatusIndex retried 3 times to generate a resource index
 func GetNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 	for i := 0; i < db.MaxDupIndexAttempts; i++ {
 		idx, err := getNextCommitStatusIndex(repoID, sha)
