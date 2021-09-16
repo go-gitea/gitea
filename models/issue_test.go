@@ -204,6 +204,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				CreateCount:           1,
 				OpenCount:             0,
 				ClosedCount:           0,
+				SubscribedCount:       1,
 			},
 		},
 		{
@@ -217,6 +218,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				CreateCount:           2,
 				OpenCount:             2,
 				ClosedCount:           0,
+				SubscribedCount:       2,
 			},
 		},
 		{
@@ -230,6 +232,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				CreateCount:           2,
 				OpenCount:             2,
 				ClosedCount:           0,
+				SubscribedCount:       2,
 			},
 		},
 		{
@@ -245,6 +248,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				CreateCount:           2,
 				OpenCount:             2,
 				ClosedCount:           2,
+				SubscribedCount:       2,
 			},
 		},
 		{
@@ -258,6 +262,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				CreateCount:           2,
 				OpenCount:             0,
 				ClosedCount:           0,
+				SubscribedCount:       2,
 			},
 		},
 		{
@@ -272,6 +277,7 @@ func TestGetUserIssueStats(t *testing.T) {
 				CreateCount:           1,
 				OpenCount:             1,
 				ClosedCount:           0,
+				SubscribedCount:       1,
 			},
 		},
 	} {
