@@ -177,7 +177,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/notificationthreadlist"
+	//     "$ref": "#/responses/NotificationThreadList"
 
 	lastRead := int64(0)
 	qLastRead := ctx.FormTrim("last_read_at")
