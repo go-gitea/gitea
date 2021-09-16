@@ -20,7 +20,7 @@ func GenerateKeyPair() (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
-	pubPem, err := pemBlockForPub(publicKey(priv))
+	pubPem, err := pemBlockForPub(&priv.PublicKey)
 	if err != nil {
 		return "", "", err
 	}
@@ -47,11 +47,3 @@ func pemBlockForPub(pub interface{}) (string, error) {
 	return string(pubBytes), nil
 }
 
-func publicKey(priv interface{}) interface{} {
-	switch k := priv.(type) {
-	case *rsa.PrivateKey:
-		return &k.PublicKey
-	default:
-		return nil
-	}
-}
