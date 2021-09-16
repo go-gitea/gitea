@@ -78,7 +78,14 @@ Detailed information about Database preperation can be found by following this l
  
 * The Nginx config should look something like the following code block.
 To use `HTTPS`, you should additionally pass a certificate and redirect all traffic to port 443.
-This can help: https://ssl-config.mozilla.org/#server=apache&version=2.4.41&config=intermediate&openssl=1.1.1d&guideline=5.6
+The following link covers some information about a secure setup:
+https://docs.gitea.io/en-us/https-setup/
+
+This link may help to create a secure nginx configuration: https://ssl-config.mozilla.org/#server=nginx&version=2.4.41&config=intermediate&openssl=1.1.1d&guideline=5.6
+
+For junior users this blogpost may help to get you started with securing your installation with nginx as reverse proxy and certbot for certificate issuing:
+https://www.nginx.com/blog/using-free-ssltls-certificates-from-lets-encrypt-with-nginx/
+
 
 ```nginx
 server {
