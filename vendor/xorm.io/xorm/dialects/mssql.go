@@ -626,34 +626,37 @@ WHERE IXS.TYPE_DESC='NONCLUSTERED' and OBJECT_NAME(IXS.OBJECT_ID) =?
 }
 
 func (db *mssql) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
-	var sql string
 	if tableName == "" {
 		tableName = table.Name
 	}
 
-	sql = "IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '" + tableName + "' ) CREATE TABLE "
+	quoter := db.dialect.Quoter()
+	var b strings.Builder
+	b.WriteString("IF NOT EXISTS (SELECT [name] FROM sys.tables WHERE [name] = '")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString("' ) CREATE TABLE ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
 
-	sql += db.Quoter().Quote(tableName) + " ("
-
-	pkList := table.PrimaryKeys
-
-	for _, colName := range table.ColumnsSeq() {
+	for i, colName := range table.ColumnsSeq() {
 		col := table.GetColumn(colName)
-		s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
-		sql += s
-		sql = strings.TrimSpace(sql)
-		sql += ", "
+		s, _ := ColumnString(db.dialect, col, col.IsPrimaryKey && len(table.PrimaryKeys) == 1)
+		b.WriteString(s)
+
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
+		}
 	}
 
-	if len(pkList) > 1 {
-		sql += "PRIMARY KEY ( "
-		sql += strings.Join(pkList, ",")
-		sql += " ), "
+	if len(table.PrimaryKeys) > 1 {
+		b.WriteString(", PRIMARY KEY (")
+		b.WriteString(quoter.Join(table.PrimaryKeys, ","))
+		b.WriteString(")")
 	}
 
-	sql = sql[:len(sql)-2] + ")"
-	sql += ";"
-	return []string{sql}, true
+	b.WriteString(")")
+
+	return []string{b.String()}, true
 }
 
 func (db *mssql) ForUpdateSQL(query string) string {
