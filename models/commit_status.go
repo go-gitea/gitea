@@ -97,7 +97,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
-	countSession = opts.setSessionPagination(countSession)
+	countSession = setSessionPagination(countSession, opts)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
@@ -106,7 +106,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 
 	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
-	findSession = opts.setSessionPagination(findSession)
+	findSession = setSessionPagination(findSession, opts)
 	sortCommitStatusesSession(findSession, opts.SortType)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
@@ -149,7 +149,7 @@ func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListO
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
 
-	sess = listOptions.setSessionPagination(sess)
+	sess = setSessionPagination(sess, &listOptions)
 
 	err := sess.Find(&ids)
 	if err != nil {

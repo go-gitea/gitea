@@ -408,7 +408,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 	sess := x.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &opts)
 	}
 
 	switch opts.SortType {

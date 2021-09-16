@@ -165,7 +165,7 @@ func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &opts)
 		users := make([]*User, 0, opts.PageSize)
 
 		return users, sess.Find(&users)
