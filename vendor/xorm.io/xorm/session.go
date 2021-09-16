@@ -174,6 +174,11 @@ func (session *Session) Engine() *Engine {
 	return session.engine
 }
 
+// Tx returns session tx
+func (session *Session) Tx() *core.Tx {
+	return session.tx
+}
+
 func (session *Session) getQueryer() core.Queryer {
 	if session.tx != nil {
 		return session.tx
