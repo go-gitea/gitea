@@ -569,7 +569,7 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 	}
 
 	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 
 	err := sess.
@@ -589,7 +589,7 @@ func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) 
 		sess.And("is_public = ?", true)
 	}
 	if opts.ListOptions.PageSize > 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 
 		ous := make([]*OrgUser, 0, opts.PageSize)
 		return ous, sess.Find(&ous)
