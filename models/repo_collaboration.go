@@ -90,13 +90,10 @@ func (repo *Repository) getCollaborators(e Engine, listOptions ListOptions) ([]*
 		if err != nil {
 			if IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
-				collaborators = append(collaborators, &Collaborator{
-					User:          NewGhostUser(),
-					Collaboration: c,
-				})
-				continue
+				user = NewGhostUser()
+			} else {
+				return nil, err
 			}
-			return nil, err
 		}
 		collaborators = append(collaborators, &Collaborator{
 			User:          user,
