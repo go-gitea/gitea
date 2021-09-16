@@ -46,4 +46,3 @@ func pemBlockForPub(pub interface{}) (string, error) {
 	})
 	return string(pubBytes), nil
 }
-
