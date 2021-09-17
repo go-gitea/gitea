@@ -26,7 +26,7 @@ type Source struct {
 	SkipVerify     bool
 	HeloHostname   string
 	DisableHelo    bool
-	SkipLocalTwoFA bool
+	SkipLocalTwoFA bool `json:",omitempty"`
 
 	// reference to the loginSource
 	loginSource *models.LoginSource

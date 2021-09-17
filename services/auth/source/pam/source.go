@@ -20,7 +20,7 @@ import (
 type Source struct {
 	ServiceName    string // pam service (e.g. system-auth)
 	EmailDomain    string
-	SkipLocalTwoFA bool // Skip Local 2fa for users authenticated with this source
+	SkipLocalTwoFA bool `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
 	// reference to the loginSource
 	loginSource *models.LoginSource
