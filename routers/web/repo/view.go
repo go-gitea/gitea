@@ -353,6 +353,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
+					buf, err = ioutil.ReadAll(rd)
+					if err != nil {
+						log.Error("ReadAll failed: %v", err)
+					}
 					ctx.Data["FileContent"] = strings.ReplaceAll(
 						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 					)
