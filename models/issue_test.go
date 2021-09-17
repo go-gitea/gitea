@@ -16,21 +16,21 @@ import (
 )
 
 func TestIssue_ReplaceLabels(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	testSuccess := func(issueID int64, labelIDs []int64) {
-		issue := AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
-		repo := AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
-		doer := AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+		issue := db.AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
+		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
+		doer := db.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 
 		labels := make([]*Label, len(labelIDs))
 		for i, labelID := range labelIDs {
-			labels[i] = AssertExistsAndLoadBean(t, &Label{ID: labelID, RepoID: repo.ID}).(*Label)
+			labels[i] = db.AssertExistsAndLoadBean(t, &Label{ID: labelID, RepoID: repo.ID}).(*Label)
 		}
 		assert.NoError(t, issue.ReplaceLabels(labels, doer))
-		AssertCount(t, &IssueLabel{IssueID: issueID}, len(labelIDs))
+		db.AssertCount(t, &IssueLabel{IssueID: issueID}, len(labelIDs))
 		for _, labelID := range labelIDs {
-			AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issueID, LabelID: labelID})
+			db.AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issueID, LabelID: labelID})
 		}
 	}
 
@@ -40,7 +40,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 }
 
 func Test_GetIssueIDsByRepoID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	ids, err := GetIssueIDsByRepoID(1)
 	assert.NoError(t, err)
@@ -48,8 +48,8 @@ func Test_GetIssueIDsByRepoID(t *testing.T) {
 }
 
 func TestIssueAPIURL(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	issue := AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	assert.NoError(t, db.PrepareTestDatabase())
+	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 	err := issue.LoadAttributes()
 
 	assert.NoError(t, err)
@@ -57,7 +57,7 @@ func TestIssueAPIURL(t *testing.T) {
 }
 
 func TestGetIssuesByIDs(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
 		issues, err := GetIssuesByIDs(append(expectedIssueIDs, nonExistentIssueIDs...))
 		assert.NoError(t, err)
@@ -68,11 +68,11 @@ func TestGetIssuesByIDs(t *testing.T) {
 		assert.Equal(t, expectedIssueIDs, actualIssueIDs)
 	}
 	testSuccess([]int64{1, 2, 3}, []int64{})
-	testSuccess([]int64{1, 2, 3}, []int64{NonexistentID})
+	testSuccess([]int64{1, 2, 3}, []int64{db.NonexistentID})
 }
 
 func TestGetParticipantIDsByIssue(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	checkParticipants := func(issueID int64, userIDs []int) {
 		issue, err := GetIssueByID(issueID)
@@ -106,17 +106,17 @@ func TestIssue_ClearLabels(t *testing.T) {
 		{3, 2}, // pull-request, has no labels
 	}
 	for _, test := range tests {
-		assert.NoError(t, PrepareTestDatabase())
-		issue := AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
-		doer := AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
+		assert.NoError(t, db.PrepareTestDatabase())
+		issue := db.AssertExistsAndLoadBean(t, &Issue{ID: test.issueID}).(*Issue)
+		doer := db.AssertExistsAndLoadBean(t, &User{ID: test.doerID}).(*User)
 		assert.NoError(t, issue.ClearLabels(doer))
-		AssertNotExistsBean(t, &IssueLabel{IssueID: test.issueID})
+		db.AssertNotExistsBean(t, &IssueLabel{IssueID: test.issueID})
 	}
 }
 
 func TestUpdateIssueCols(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	issue := AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
+	assert.NoError(t, db.PrepareTestDatabase())
+	issue := db.AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
 
 	const newTitle = "New Title for unit test"
 	issue.Title = newTitle
@@ -128,14 +128,14 @@ func TestUpdateIssueCols(t *testing.T) {
 	assert.NoError(t, updateIssueCols(db.DefaultContext().Engine(), issue, "name"))
 	then := time.Now().Unix()
 
-	updatedIssue := AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
+	updatedIssue := db.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
 	assert.EqualValues(t, newTitle, updatedIssue.Title)
 	assert.EqualValues(t, prevContent, updatedIssue.Content)
-	AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
+	db.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
 func TestIssues(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	for _, test := range []struct {
 		Opts             IssuesOptions
 		ExpectedIssueIDs []int64
@@ -190,7 +190,7 @@ func TestIssues(t *testing.T) {
 }
 
 func TestGetUserIssueStats(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	for _, test := range []struct {
 		Opts               UserIssueStatsOptions
 		ExpectedIssueStats IssueStats
@@ -287,7 +287,7 @@ func TestGetUserIssueStats(t *testing.T) {
 }
 
 func TestIssue_loadTotalTimes(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	ms, err := GetIssueByID(2)
 	assert.NoError(t, err)
 	assert.NoError(t, ms.loadTotalTimes(db.DefaultContext().Engine()))
@@ -295,7 +295,7 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 }
 
 func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	total, ids, err := SearchIssueIDsByKeyword("issue2", []int64{1}, 10, 0)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, total)
@@ -319,8 +319,8 @@ func TestIssue_SearchIssueIDsByKeyword(t *testing.T) {
 }
 
 func TestGetRepoIDsForIssuesOptions(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.NoError(t, db.PrepareTestDatabase())
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	for _, test := range []struct {
 		Opts            IssuesOptions
 		ExpectedRepoIDs []int64
@@ -351,8 +351,8 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Issue {
 	var newIssue Issue
 	t.Run(title, func(t *testing.T) {
-		repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-		user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+		user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 		issue := Issue{
 			RepoID:   repo.ID,
@@ -376,7 +376,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Is
 }
 
 func TestIssue_InsertIssue(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// there are 5 issues and max index is 5 on repository 1, so this one should 6
 	issue := testInsertIssue(t, "my issue1", "special issue's comments?", 6)
@@ -390,14 +390,14 @@ func TestIssue_InsertIssue(t *testing.T) {
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	testSuccess := func(owner, repo, doer string, mentions []string, expected []int64) {
-		o := AssertExistsAndLoadBean(t, &User{LowerName: owner}).(*User)
-		r := AssertExistsAndLoadBean(t, &Repository{OwnerID: o.ID, LowerName: repo}).(*Repository)
+		o := db.AssertExistsAndLoadBean(t, &User{LowerName: owner}).(*User)
+		r := db.AssertExistsAndLoadBean(t, &Repository{OwnerID: o.ID, LowerName: repo}).(*Repository)
 		issue := &Issue{RepoID: r.ID}
-		d := AssertExistsAndLoadBean(t, &User{LowerName: doer}).(*User)
-		resolved, err := issue.ResolveMentionsByVisibility(DefaultDBContext(), d, mentions)
+		d := db.AssertExistsAndLoadBean(t, &User{LowerName: doer}).(*User)
+		resolved, err := issue.ResolveMentionsByVisibility(db.DefaultContext(), d, mentions)
 		assert.NoError(t, err)
 		ids := make([]int64, len(resolved))
 		for i, user := range resolved {
@@ -422,7 +422,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 }
 
 func TestResourceIndex(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	var wg sync.WaitGroup
 	for i := 0; i < 100; i++ {

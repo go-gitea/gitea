@@ -12,7 +12,7 @@ import (
 )
 
 func TestDeleteOrphanedObjects(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	countBefore, err := db.DefaultContext().Engine().Count(&PullRequest{})
 	assert.NoError(t, err)

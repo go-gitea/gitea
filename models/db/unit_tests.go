@@ -32,6 +32,10 @@ var (
 	fixturesDir string
 )
 
+func FixturesDir() string {
+	return fixturesDir
+}
+
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
@@ -150,6 +154,10 @@ func whereConditions(sess *xorm.Session, conditions []interface{}) {
 			sess.Where(cond)
 		}
 	}
+}
+
+func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
+	return loadBeanIfExists(bean, conditions...)
 }
 
 func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {

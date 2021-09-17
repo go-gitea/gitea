@@ -64,19 +64,19 @@ func getCount(t *testing.T, e db.Engine, bean interface{}) int64 {
 	return count
 }
 
-// assertCount test the count of database entries matching bean
-func assertCount(t *testing.T, bean interface{}, expected int) {
+// AssertCount test the count of database entries matching bean
+func AssertCount(t *testing.T, bean interface{}, expected int) {
 	assert.EqualValues(t, expected, getCount(t, db.DefaultContext().Engine(), bean),
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
 func (user *User) checkForConsistency(t *testing.T) {
-	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
-	assertCount(t, &Star{UID: user.ID}, user.NumStars)
-	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
-	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)
-	assertCount(t, &Follow{UserID: user.ID}, user.NumFollowing)
-	assertCount(t, &Follow{FollowID: user.ID}, user.NumFollowers)
+	db.AssertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
+	db.AssertCount(t, &Star{UID: user.ID}, user.NumStars)
+	db.AssertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
+	db.AssertCount(t, &Team{OrgID: user.ID}, user.NumTeams)
+	db.AssertCount(t, &Follow{UserID: user.ID}, user.NumFollowing)
+	db.AssertCount(t, &Follow{FollowID: user.ID}, user.NumFollowers)
 	if user.Type != UserTypeOrganization {
 		assert.EqualValues(t, 0, user.NumMembers)
 		assert.EqualValues(t, 0, user.NumTeams)
@@ -85,9 +85,9 @@ func (user *User) checkForConsistency(t *testing.T) {
 
 func (repo *Repository) checkForConsistency(t *testing.T) {
 	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
-	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
-	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
-	assertCount(t, &Repository{ForkID: repo.ID}, repo.NumForks)
+	db.AssertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
+	db.AssertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
+	db.AssertCount(t, &Repository{ForkID: repo.ID}, repo.NumForks)
 	if repo.IsFork {
 		db.AssertExistsAndLoadBean(t, &Repository{ID: repo.ForkID})
 	}
@@ -134,7 +134,7 @@ func (pr *PullRequest) checkForConsistency(t *testing.T) {
 }
 
 func (milestone *Milestone) checkForConsistency(t *testing.T) {
-	assertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
+	db.AssertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
 	actual := getCount(t, db.DefaultContext().Engine().Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
 	assert.EqualValues(t, milestone.NumClosedIssues, actual,
@@ -167,8 +167,8 @@ func (label *Label) checkForConsistency(t *testing.T) {
 }
 
 func (team *Team) checkForConsistency(t *testing.T) {
-	assertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
-	assertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
+	db.AssertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
+	db.AssertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
 }
 
 func (action *Action) checkForConsistency(t *testing.T) {

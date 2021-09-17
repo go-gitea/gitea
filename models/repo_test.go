@@ -19,7 +19,7 @@ import (
 )
 
 func TestMetas(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
@@ -67,7 +67,7 @@ func TestMetas(t *testing.T) {
 }
 
 func TestGetRepositoryCount(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	count, err1 := GetRepositoryCount(&User{ID: int64(10)})
 	privateCount, err2 := GetPrivateRepositoryCount(&User{ID: int64(10)})
@@ -80,7 +80,7 @@ func TestGetRepositoryCount(t *testing.T) {
 }
 
 func TestGetPublicRepositoryCount(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	count, err := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err)
@@ -88,7 +88,7 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 }
 
 func TestGetPrivateRepositoryCount(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	count, err := GetPrivateRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err)
@@ -96,7 +96,7 @@ func TestGetPrivateRepositoryCount(t *testing.T) {
 }
 
 func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// Get sample repo and change visibility
 	repo, err := GetRepositoryByID(9)
@@ -116,7 +116,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 }
 
 func TestGetUserFork(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// User13 has repo 11 forked from repo10
 	repo, err := GetRepositoryByID(10)
@@ -135,8 +135,8 @@ func TestGetUserFork(t *testing.T) {
 }
 
 func TestRepoAPIURL(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, db.PrepareTestDatabase())
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
 }
@@ -147,8 +147,8 @@ func TestUploadAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, PrepareTestDatabase())
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, db.PrepareTestDatabase())
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
 	assert.NoError(t, err)
@@ -161,8 +161,8 @@ func TestUploadBigAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, PrepareTestDatabase())
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, db.PrepareTestDatabase())
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
 	assert.Error(t, err)
@@ -174,8 +174,8 @@ func TestDeleteAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, PrepareTestDatabase())
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, db.PrepareTestDatabase())
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
 	assert.NoError(t, err)
@@ -187,37 +187,37 @@ func TestDeleteAvatar(t *testing.T) {
 }
 
 func TestDoctorUserStarNum(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	assert.NoError(t, DoctorUserStarNum())
 }
 
 func TestRepoGetReviewers(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// test public repo
-	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	reviewers, err := repo1.GetReviewers(2, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
 	// test private repo
-	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	reviewers, err = repo2.GetReviewers(2, 2)
 	assert.NoError(t, err)
 	assert.Empty(t, reviewers)
 }
 
 func TestRepoGetReviewerTeams(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	repo2 := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	teams, err := repo2.GetReviewerTeams()
 	assert.NoError(t, err)
 	assert.Empty(t, teams)
 
-	repo3 := AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo3 := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	teams, err = repo3.GetReviewerTeams()
 	assert.NoError(t, err)
 	assert.Len(t, teams, 2)

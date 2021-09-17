@@ -8,6 +8,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"io"
 	"time"
 
 	"code.gitea.io/gitea/models/migrations"
@@ -51,6 +52,10 @@ type Engine interface {
 
 func TableInfo(v interface{}) (*schemas.Table, error) {
 	return x.TableInfo(v)
+}
+
+func DumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) error {
+	return x.DumpTables(tables, w, tp...)
 }
 
 // InitEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
