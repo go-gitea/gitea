@@ -252,6 +252,10 @@ type Repository struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(Repository))
+}
+
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {

@@ -46,10 +46,6 @@ func RegisterModel(bean interface{}, initFunc ...func() error) {
 
 func init() {
 	/*tables = append(tables,
-		new(User),
-		new(PublicKey),
-		new(AccessToken),
-		new(Repository),
 		new(DeployKey),
 		new(Collaboration),
 		new(Access),

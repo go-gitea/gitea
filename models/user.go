@@ -163,6 +163,10 @@ type User struct {
 	KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 }
 
+func init() {
+	db.RegisterModel(new(User))
+}
+
 // SearchOrganizationsOptions options to filter organizations
 type SearchOrganizationsOptions struct {
 	ListOptions
