@@ -425,7 +425,7 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	}
 	defer os.RemoveAll(tmp)
 
-	branchName := "bundle-"+commit[:8]
+	branchName := "bundle-" + commit[:8]
 	if err := repo.CreateBranch(branchName, commit); err != nil {
 		return err
 	}
