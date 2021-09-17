@@ -68,3 +68,8 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 
 	return user, nil
 }
+
+// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
+func (source *Source) IsSkipLocalTwoFA() bool {
+	return source.SkipLocalTwoFA
+}

@@ -26,6 +26,7 @@ type Source struct {
 	SkipVerify     bool
 	HeloHostname   string
 	DisableHelo    bool
+	SkipLocalTwoFA bool
 
 	// reference to the loginSource
 	loginSource *models.LoginSource
