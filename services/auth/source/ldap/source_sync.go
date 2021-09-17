@@ -121,7 +121,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 			}
 
-			if err == nil && source.AttributeAvatar != "" {
+			if err == nil && len(source.AttributeAvatar) > 0 {
 				_ = usr.UploadAvatar(su.Avatar)
 			}
 		} else if updateExisting {
@@ -158,7 +158,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
-				if err == nil && source.AttributeAvatar != "" {
+				if err == nil && len(source.AttributeAvatar) > 0 {
 					_ = usr.UploadAvatar(su.Avatar)
 				}
 
