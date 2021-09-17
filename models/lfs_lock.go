@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -67,7 +68,7 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 		return nil, err
 	}
 
-	_, err = x.InsertOne(lock)
+	_, err = db.DefaultContext().Engine().InsertOne(lock)
 	return lock, err
 }
 
@@ -75,7 +76,7 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 func GetLFSLock(repo *Repository, path string) (*LFSLock, error) {
 	path = cleanPath(path)
 	rel := &LFSLock{RepoID: repo.ID}
-	has, err := x.Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
+	has, err := db.DefaultContext().Engine().Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func GetLFSLock(repo *Repository, path string) (*LFSLock, error) {
 // GetLFSLockByID returns release by given id.
 func GetLFSLockByID(id int64) (*LFSLock, error) {
 	lock := new(LFSLock)
-	has, err := x.ID(id).Get(lock)
+	has, err := db.DefaultContext().Engine().ID(id).Get(lock)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -99,7 +100,7 @@ func GetLFSLockByID(id int64) (*LFSLock, error) {
 
 // GetLFSLockByRepoID returns a list of locks of repository.
 func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 
 	if page >= 0 && pageSize > 0 {
@@ -115,7 +116,7 @@ func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
 
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
 func CountLFSLockByRepoID(repoID int64) (int64, error) {
-	return x.Count(&LFSLock{RepoID: repoID})
+	return db.DefaultContext().Engine().Count(&LFSLock{RepoID: repoID})
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
@@ -134,7 +135,7 @@ func DeleteLFSLockByID(id int64, u *User, force bool) (*LFSLock, error) {
 		return nil, fmt.Errorf("user doesn't own lock and force flag is not set")
 	}
 
-	_, err = x.ID(id).Delete(new(LFSLock))
+	_, err = db.DefaultContext().Engine().ID(id).Delete(new(LFSLock))
 	return lock, err
 }
 

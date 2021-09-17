@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -18,7 +19,7 @@ type Star struct {
 
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -60,17 +61,17 @@ func StarRepo(userID, repoID int64, star bool) error {
 
 // IsStaring checks if user has starred given repository.
 func IsStaring(userID, repoID int64) bool {
-	return isStaring(x, userID, repoID)
+	return isStaring(db.DefaultContext().Engine(), userID, repoID)
 }
 
-func isStaring(e Engine, userID, repoID int64) bool {
+func isStaring(e db.Engine, userID, repoID int64) bool {
 	has, _ := e.Get(&Star{UID: userID, RepoID: repoID})
 	return has
 }
 
 // GetStargazers returns the users that starred the repo.
 func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
-	sess := x.Where("star.repo_id = ?", repo.ID).
+	sess := db.DefaultContext().Engine().Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
 		sess = setSessionPagination(sess, &opts)
@@ -88,7 +89,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
-	sess := x.
+	sess := db.DefaultContext().Engine().
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID).
 		OrderBy(orderBy)
@@ -108,7 +109,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 		return
 	}
 
-	if err = repos.loadAttributes(x); err != nil {
+	if err = repos.loadAttributes(db.DefaultContext().Engine()); err != nil {
 		return
 	}
 
@@ -117,7 +118,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 
 // GetStarredRepoCount returns the numbers of repo the user starred.
 func (u *User) GetStarredRepoCount(private bool) (int64, error) {
-	sess := x.
+	sess := db.DefaultContext().Engine().
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID)
 

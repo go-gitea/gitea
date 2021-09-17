@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
@@ -108,7 +109,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	// Check visibility of action has become private
 	act := Action{}
-	_, err = x.ID(3).Get(&act)
+	_, err = db.DefaultContext().Engine().ID(3).Get(&act)
 
 	assert.NoError(t, err)
 	assert.True(t, act.IsPrivate)

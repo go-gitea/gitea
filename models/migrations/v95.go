@@ -4,7 +4,9 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
 func addCrossReferenceColumns(x *xorm.Engine) error {
 	// Comment see models/comment.go

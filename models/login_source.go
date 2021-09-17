@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -203,7 +204,7 @@ func (source *LoginSource) SkipVerify() bool {
 // CreateLoginSource inserts a LoginSource in the DB if not already
 // existing with the given name.
 func CreateLoginSource(source *LoginSource) error {
-	has, err := x.Where("name=?", source.Name).Exist(new(LoginSource))
+	has, err := db.DefaultContext().Engine().Where("name=?", source.Name).Exist(new(LoginSource))
 	if err != nil {
 		return err
 	} else if has {
@@ -214,7 +215,7 @@ func CreateLoginSource(source *LoginSource) error {
 		source.IsSyncEnabled = false
 	}
 
-	_, err = x.Insert(source)
+	_, err = db.DefaultContext().Engine().Insert(source)
 	if err != nil {
 		return err
 	}
@@ -235,7 +236,7 @@ func CreateLoginSource(source *LoginSource) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// remove the LoginSource in case of errors while registering configuration
-		if _, err := x.Delete(source); err != nil {
+		if _, err := db.DefaultContext().Engine().Delete(source); err != nil {
 			log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
@@ -245,13 +246,13 @@ func CreateLoginSource(source *LoginSource) error {
 // LoginSources returns a slice of all login sources found in DB.
 func LoginSources() ([]*LoginSource, error) {
 	auths := make([]*LoginSource, 0, 6)
-	return auths, x.Find(&auths)
+	return auths, db.DefaultContext().Engine().Find(&auths)
 }
 
 // LoginSourcesByType returns all sources of the specified type
 func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
-	if err := x.Where("type = ?", loginType).Find(&sources); err != nil {
+	if err := db.DefaultContext().Engine().Where("type = ?", loginType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -260,7 +261,7 @@ func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
 // AllActiveLoginSources returns all active sources
 func AllActiveLoginSources() ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 5)
-	if err := x.Where("is_active = ?", true).Find(&sources); err != nil {
+	if err := db.DefaultContext().Engine().Where("is_active = ?", true).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -269,7 +270,7 @@ func AllActiveLoginSources() ([]*LoginSource, error) {
 // ActiveLoginSources returns all active sources of the specified type
 func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
-	if err := x.Where("is_active = ? and type = ?", true, loginType).Find(&sources); err != nil {
+	if err := db.DefaultContext().Engine().Where("is_active = ? and type = ?", true, loginType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -278,7 +279,7 @@ func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
 // IsSSPIEnabled returns true if there is at least one activated login
 // source of type LoginSSPI
 func IsSSPIEnabled() bool {
-	if !HasEngine {
+	if !db.HasEngine {
 		return false
 	}
 	sources, err := ActiveLoginSources(LoginSSPI)
@@ -300,7 +301,7 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 		return source, nil
 	}
 
-	has, err := x.ID(id).Get(source)
+	has, err := db.DefaultContext().Engine().ID(id).Get(source)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -320,7 +321,7 @@ func UpdateSource(source *LoginSource) error {
 		}
 	}
 
-	_, err := x.ID(source.ID).AllCols().Update(source)
+	_, err := db.DefaultContext().Engine().ID(source.ID).AllCols().Update(source)
 	if err != nil {
 		return err
 	}
@@ -341,7 +342,7 @@ func UpdateSource(source *LoginSource) error {
 	err = registerableSource.RegisterSource()
 	if err != nil {
 		// restore original values since we cannot update the provider it self
-		if _, err := x.ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
+		if _, err := db.DefaultContext().Engine().ID(source.ID).AllCols().Update(originalLoginSource); err != nil {
 			log.Error("UpdateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
@@ -350,14 +351,14 @@ func UpdateSource(source *LoginSource) error {
 
 // DeleteSource deletes a LoginSource record in DB.
 func DeleteSource(source *LoginSource) error {
-	count, err := x.Count(&User{LoginSource: source.ID})
+	count, err := db.DefaultContext().Engine().Count(&User{LoginSource: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
 		return ErrLoginSourceInUse{source.ID}
 	}
 
-	count, err = x.Count(&ExternalLoginUser{LoginSourceID: source.ID})
+	count, err = db.DefaultContext().Engine().Count(&ExternalLoginUser{LoginSourceID: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
@@ -370,12 +371,12 @@ func DeleteSource(source *LoginSource) error {
 		}
 	}
 
-	_, err = x.ID(source.ID).Delete(new(LoginSource))
+	_, err = db.DefaultContext().Engine().ID(source.ID).Delete(new(LoginSource))
 	return err
 }
 
 // CountLoginSources returns number of login sources.
 func CountLoginSources() int64 {
-	count, _ := x.Count(new(LoginSource))
+	count, _ := db.DefaultContext().Engine().Count(new(LoginSource))
 	return count
 }

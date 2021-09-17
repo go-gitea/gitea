@@ -7,11 +7,11 @@ package install
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/routers/common"
 )
 
 // PreloadSettings preloads the configuration to check if we need to run install
@@ -41,7 +41,7 @@ func ReloadSettings(ctx context.Context) {
 	setting.NewContext()
 	setting.InitDBConfig()
 	if setting.InstallLock {
-		if err := common.InitDBEngine(ctx); err == nil {
+		if err := db.InitEngine(ctx); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)

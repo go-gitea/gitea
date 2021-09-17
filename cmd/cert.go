@@ -28,7 +28,7 @@ import (
 var CmdCert = cli.Command{
 	Name:  "cert",
 	Usage: "Generate self-signed certificate",
-	Description: `Generate a self-signed X.509 certificate for a TLS server.
+	Description: `Generate a self-signed db.DefaultContext().Engine().509 certificate for a TLS server.
 Outputs to 'cert.pem' and 'key.pem' and will overwrite existing files.`,
 	Action: runCert,
 	Flags: []cli.Flag{

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -97,13 +98,13 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 }
 
 func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
-	ctx, commiter, err := models.TxDBContext()
+	ctx, commiter, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
 	defer commiter.Close()
 
-	archiver, err := models.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
+	archiver, err := models.GetRepoArchiver(&ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +122,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 			CommitID: r.CommitID,
 			Status:   models.RepoArchiverGenerating,
 		}
-		if err := models.AddRepoArchiver(ctx, archiver); err != nil {
+		if err := models.AddRepoArchiver(&ctx, archiver); err != nil {
 			return nil, err
 		}
 	}
@@ -135,7 +136,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	if err == nil {
 		if archiver.Status == models.RepoArchiverGenerating {
 			archiver.Status = models.RepoArchiverReady
-			return archiver, models.UpdateRepoArchiverStatus(ctx, archiver)
+			return archiver, models.UpdateRepoArchiverStatus(&ctx, archiver)
 		}
 		return archiver, nil
 	}
@@ -201,7 +202,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 
 	if archiver.Status == models.RepoArchiverGenerating {
 		archiver.Status = models.RepoArchiverReady
-		if err = models.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
+		if err = models.UpdateRepoArchiverStatus(&ctx, archiver); err != nil {
 			return nil, err
 		}
 	}

@@ -6,6 +6,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -92,7 +93,7 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	err := issue.loadReactions(x)
+	err := issue.loadReactions(db.DefaultContext().Engine())
 	assert.NoError(t, err)
 
 	assert.Len(t, issue.Reactions, 7)

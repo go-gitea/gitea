@@ -4,7 +4,9 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
 func addIsRestricted(x *xorm.Engine) error {
 	// User see models/user.go

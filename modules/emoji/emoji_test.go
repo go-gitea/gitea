@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -61,9 +62,9 @@ func TestReplacers(t *testing.T) {
 	}
 
 	for i, x := range tests {
-		s := x.f(x.v)
-		if s != x.exp {
-			t.Errorf("test %d `%s` expected `%s`, got: `%s`", i, x.v, x.exp, s)
+		s := db.DefaultContext().Engine().f(x.v)
+		if s != db.DefaultContext().Engine().exp {
+			t.Errorf("test %d `%s` expected `%s`, got: `%s`", i, db.DefaultContext().Engine().v, db.DefaultContext().Engine().exp, s)
 		}
 	}
 }

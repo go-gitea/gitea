@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
 	"encoding/json"
@@ -28,7 +28,7 @@ func TestDumpDatabase(t *testing.T) {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	assert.NoError(t, x.Sync2(new(Version)))
+	assert.NoError(t, db.DefaultContext().Engine().Sync2(new(Version)))
 
 	for _, dbName := range setting.SupportedDatabases {
 		dbType := setting.GetDBTypeByName(dbName)
@@ -57,7 +57,7 @@ func (source *TestSource) ToDB() ([]byte, error) {
 func TestDumpLoginSource(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
-	loginSourceSchema, err := x.TableInfo(new(LoginSource))
+	loginSourceSchema, err := db.DefaultContext().Engine().TableInfo(new(LoginSource))
 	assert.NoError(t, err)
 
 	RegisterLoginTypeConfig(LoginOAuth2, new(TestSource))

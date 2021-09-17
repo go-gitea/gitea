@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -68,7 +69,7 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 		return nil, fmt.Errorf("Copy: %v", err)
 	}
 
-	if _, err := x.Insert(upload); err != nil {
+	if _, err := db.DefaultContext().Engine().Insert(upload); err != nil {
 		return nil, err
 	}
 
@@ -78,7 +79,7 @@ func NewUpload(name string, buf []byte, file multipart.File) (_ *Upload, err err
 // GetUploadByUUID returns the Upload by UUID
 func GetUploadByUUID(uuid string) (*Upload, error) {
 	upload := &Upload{}
-	has, err := x.Where("uuid=?", uuid).Get(upload)
+	has, err := db.DefaultContext().Engine().Where("uuid=?", uuid).Get(upload)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -95,7 +96,7 @@ func GetUploadsByUUIDs(uuids []string) ([]*Upload, error) {
 
 	// Silently drop invalid uuids.
 	uploads := make([]*Upload, 0, len(uuids))
-	return uploads, x.In("uuid", uuids).Find(&uploads)
+	return uploads, db.DefaultContext().Engine().In("uuid", uuids).Find(&uploads)
 }
 
 // DeleteUploads deletes multiple uploads
@@ -104,7 +105,7 @@ func DeleteUploads(uploads ...*Upload) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err

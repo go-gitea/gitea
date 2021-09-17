@@ -6,6 +6,7 @@ package repository
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -20,50 +21,50 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 	}
 
 	var generateRepo *models.Repository
-	if err = models.WithTx(func(ctx models.DBContext) error {
-		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
+	if err = db.WithTx(func(ctx db.Context) error {
+		generateRepo, err = repo_module.GenerateRepository(&ctx, doer, owner, templateRepo, opts)
 		if err != nil {
 			return err
 		}
 
 		// Git Content
 		if opts.GitContent && !templateRepo.IsEmpty {
-			if err = repo_module.GenerateGitContent(ctx, templateRepo, generateRepo); err != nil {
+			if err = repo_module.GenerateGitContent(&ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
 		// Topics
 		if opts.Topics {
-			if err = models.GenerateTopics(ctx, templateRepo, generateRepo); err != nil {
+			if err = models.GenerateTopics(&ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
 		// Git Hooks
 		if opts.GitHooks {
-			if err = models.GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
+			if err = models.GenerateGitHooks(&ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
 		// Webhooks
 		if opts.Webhooks {
-			if err = models.GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
+			if err = models.GenerateWebhooks(&ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
 		// Avatar
 		if opts.Avatar && len(templateRepo.Avatar) > 0 {
-			if err = models.GenerateAvatar(ctx, templateRepo, generateRepo); err != nil {
+			if err = models.GenerateAvatar(&ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
 
 		// Issue Labels
 		if opts.IssueLabels {
-			if err = models.GenerateIssueLabels(ctx, templateRepo, generateRepo); err != nil {
+			if err = models.GenerateIssueLabels(&ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -122,7 +123,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(models.DefaultDBContext(), rel.ID, attachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(db.DefaultContext(), rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
@@ -188,24 +189,24 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, commiter, err := models.TxDBContext()
+	ctx, commiter, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer commiter.Close()
 
-	if err = models.UpdateRelease(ctx, rel); err != nil {
+	if err = models.UpdateRelease(&ctx, rel); err != nil {
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(ctx, rel.ID, addAttachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(&ctx, rel.ID, addAttachmentUUIDs); err != nil {
 		return fmt.Errorf("AddReleaseAttachments: %v", err)
 	}
 
 	var deletedUUIDsMap = make(map[string]bool)
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
+		attachments, err := models.GetAttachmentsByUUIDs(&ctx, delAttachmentUUIDs)
 		if err != nil {
 			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
 		}
@@ -216,7 +217,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 			deletedUUIDsMap[attach.UUID] = true
 		}
 
-		if _, err := models.DeleteAttachments(ctx, attachments, false); err != nil {
+		if _, err := models.DeleteAttachments(&ctx, attachments, false); err != nil {
 			return fmt.Errorf("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
 		}
 	}
@@ -227,7 +228,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 			updateAttachmentsList = append(updateAttachmentsList, k)
 		}
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
+		attachments, err := models.GetAttachmentsByUUIDs(&ctx, updateAttachmentsList)
 		if err != nil {
 			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", updateAttachmentsList, err)
 		}
@@ -239,7 +240,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 
 		for uuid, newName := range editAttachments {
 			if !deletedUUIDsMap[uuid] {
-				if err = models.UpdateAttachmentByUUID(ctx, &models.Attachment{
+				if err = models.UpdateAttachmentByUUID(&ctx, &models.Attachment{
 					UUID: uuid,
 					Name: newName,
 				}, "name"); err != nil {
@@ -310,7 +311,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	} else {
 		rel.IsTag = true
 
-		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
+		if err = models.UpdateRelease(db.DefaultContext(), rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +26,7 @@ func Test_newIssueUsers(t *testing.T) {
 	// artificially insert new issue
 	AssertSuccessfulInsert(t, newIssue)
 
-	assert.NoError(t, newIssueUsers(x, repo, newIssue))
+	assert.NoError(t, newIssueUsers(db.DefaultContext().Engine(), repo, newIssue))
 
 	// issue_user table should now have entries for new issue
 	AssertExistsAndLoadBean(t, &IssueUser{IssueID: newIssue.ID, UID: newIssue.PosterID})

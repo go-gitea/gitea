@@ -4,7 +4,9 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
 func addOriginalMigrationInfo(x *xorm.Engine) error {
 	// Issue see models/issue.go

@@ -10,22 +10,23 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
 func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
-	return models.WithTx(func(ctx models.DBContext) error {
-		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
+	return db.WithTx(func(ctx db.Context) error {
+		if err := models.PushUpdateDeleteTagsContext(&ctx, repo, delTags); err != nil {
 			return err
 		}
-		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
+		return pushUpdateAddTags(&ctx, repo, gitRepo, addTags)
 	})
 }
 
 // pushUpdateAddTags updates a number of add tags
-func pushUpdateAddTags(ctx models.DBContext, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
+func pushUpdateAddTags(ctx *db.Context, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}

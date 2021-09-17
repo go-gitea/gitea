@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,7 @@ func TestRepository_GetCollaborators(t *testing.T) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		collaborators, err := repo.GetCollaborators(ListOptions{})
 		assert.NoError(t, err)
-		expectedLen, err := x.Count(&Collaboration{RepoID: repoID})
+		expectedLen, err := db.DefaultContext().Engine().Count(&Collaboration{RepoID: repoID})
 		assert.NoError(t, err)
 		assert.Len(t, collaborators, int(expectedLen))
 		for _, collaborator := range collaborators {

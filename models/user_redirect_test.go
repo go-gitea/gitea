@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func TestNewUserRedirect(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	assert.NoError(t, newUserRedirect(x, user.ID, user.Name, "newusername"))
+	assert.NoError(t, newUserRedirect(db.DefaultContext().Engine(), user.ID, user.Name, "newusername"))
 
 	AssertExistsAndLoadBean(t, &UserRedirect{
 		LowerName:      user.LowerName,
@@ -43,7 +44,7 @@ func TestNewUserRedirect2(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	assert.NoError(t, newUserRedirect(x, user.ID, user.Name, "olduser1"))
+	assert.NoError(t, newUserRedirect(db.DefaultContext().Engine(), user.ID, user.Name, "olduser1"))
 
 	AssertExistsAndLoadBean(t, &UserRedirect{
 		LowerName:      user.LowerName,
@@ -60,7 +61,7 @@ func TestNewUserRedirect3(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	assert.NoError(t, newUserRedirect(x, user.ID, user.Name, "newusername"))
+	assert.NoError(t, newUserRedirect(db.DefaultContext().Engine(), user.ID, user.Name, "newusername"))
 
 	AssertExistsAndLoadBean(t, &UserRedirect{
 		LowerName:      user.LowerName,

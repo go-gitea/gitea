@@ -4,7 +4,11 @@
 
 package models
 
-import "strings"
+import (
+	"strings"
+
+	"code.gitea.io/gitea/models/db"
+)
 
 // UserRedirect represents that a user name should be redirected to another
 type UserRedirect struct {
@@ -17,7 +21,7 @@ type UserRedirect struct {
 func LookupUserRedirect(userName string) (int64, error) {
 	userName = strings.ToLower(userName)
 	redirect := &UserRedirect{LowerName: userName}
-	if has, err := x.Get(redirect); err != nil {
+	if has, err := db.DefaultContext().Engine().Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrUserRedirectNotExist{Name: userName}
@@ -26,7 +30,7 @@ func LookupUserRedirect(userName string) (int64, error) {
 }
 
 // newUserRedirect create a new user redirect
-func newUserRedirect(e Engine, ID int64, oldUserName, newUserName string) error {
+func newUserRedirect(e db.Engine, ID int64, oldUserName, newUserName string) error {
 	oldUserName = strings.ToLower(oldUserName)
 	newUserName = strings.ToLower(newUserName)
 
@@ -45,7 +49,7 @@ func newUserRedirect(e Engine, ID int64, oldUserName, newUserName string) error 
 
 // deleteUserRedirect delete any redirect from the specified user name to
 // anything else
-func deleteUserRedirect(e Engine, userName string) error {
+func deleteUserRedirect(e db.Engine, userName string) error {
 	userName = strings.ToLower(userName)
 	_, err := e.Delete(&UserRedirect{LowerName: userName})
 	return err

@@ -8,6 +8,7 @@ import (
 	"sort"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -172,7 +173,7 @@ func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		count, err := countRepoMilestones(x, repoID)
+		count, err := countRepoMilestones(db.DefaultContext().Engine(), repoID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones, count)
 	}
@@ -180,7 +181,7 @@ func TestCountRepoMilestones(t *testing.T) {
 	test(2)
 	test(3)
 
-	count, err := countRepoMilestones(x, NonexistentID)
+	count, err := countRepoMilestones(db.DefaultContext().Engine(), NonexistentID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }
@@ -222,16 +223,16 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()
-	_, err := x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
+	_, err := db.DefaultContext().Engine().ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(x, issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(db.DefaultContext().Engine(), issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
-	_, err = x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
+	_, err = db.DefaultContext().Engine().ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(x, issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(db.DefaultContext().Engine(), issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 }
 

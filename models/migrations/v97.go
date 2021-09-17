@@ -4,7 +4,9 @@
 
 package migrations
 
-import "xorm.io/xorm"
+import (
+	"xorm.io/xorm"
+)
 
 func addRepoAdminChangeTeamAccessColumnForUser(x *xorm.Engine) error {
 	type User struct {

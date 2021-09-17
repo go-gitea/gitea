@@ -3,11 +3,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
 	"reflect"
@@ -17,7 +16,6 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -29,46 +27,25 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 )
 
-// Engine represents a xorm engine or session.
-type Engine interface {
-	Table(tableNameOrBean interface{}) *xorm.Session
-	Count(...interface{}) (int64, error)
-	Decr(column string, arg ...interface{}) *xorm.Session
-	Delete(...interface{}) (int64, error)
-	Exec(...interface{}) (sql.Result, error)
-	Find(interface{}, ...interface{}) error
-	Get(interface{}) (bool, error)
-	ID(interface{}) *xorm.Session
-	In(string, ...interface{}) *xorm.Session
-	Incr(column string, arg ...interface{}) *xorm.Session
-	Insert(...interface{}) (int64, error)
-	InsertOne(interface{}) (int64, error)
-	Iterate(interface{}, xorm.IterFunc) error
-	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
-	SQL(interface{}, ...interface{}) *xorm.Session
-	Where(interface{}, ...interface{}) *xorm.Session
-	Asc(colNames ...string) *xorm.Session
-	Desc(colNames ...string) *xorm.Session
-	Limit(limit int, start ...int) *xorm.Session
-	SumInt(bean interface{}, columnName string) (res int64, err error)
-}
-
-const (
-	// When queries are broken down in parts because of the number
-	// of parameters, attempt to break by this amount
-	maxQueryParameters = 300
-)
-
 var (
-	x      *xorm.Engine
-	tables []interface{}
+	x         *xorm.Engine
+	tables    []interface{}
+	initFuncs []func() error
 
 	// HasEngine specifies if we have a xorm.Engine
 	HasEngine bool
 )
 
+// RegisterModels registers models
+func RegisterModel(bean interface{}, initFunc ...func() error) {
+	tables = append(tables, bean)
+	if len(initFuncs) > 0 && initFunc[0] != nil {
+		initFuncs = append(initFuncs, initFunc[0])
+	}
+}
+
 func init() {
-	tables = append(tables,
+	/*tables = append(tables,
 		new(User),
 		new(PublicKey),
 		new(AccessToken),
@@ -139,7 +116,7 @@ func init() {
 		new(PushMirror),
 		new(RepoArchiver),
 		new(ProtectedTag),
-	)
+	)*/
 
 	gonicNames := []string{"SSL", "UID"}
 	for _, name := range gonicNames {
@@ -235,13 +212,10 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 
-	if setting.SuccessfulTokensCacheSize > 0 {
-		successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
-		if err != nil {
-			return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+	for _, initFunc := range initFuncs {
+		if err := initFunc(); err != nil {
+			return fmt.Errorf("initFunc failed: %v", err)
 		}
-	} else {
-		successfulAccessTokenCache = nil
 	}
 
 	return nil
@@ -275,62 +249,6 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 		}
 	}
 	return beans, nil
-}
-
-// Statistic contains the database statistics
-type Statistic struct {
-	Counter struct {
-		User, Org, PublicKey,
-		Repo, Watch, Star, Action, Access,
-		Issue, IssueClosed, IssueOpen,
-		Comment, Oauth, Follow,
-		Mirror, Release, LoginSource, Webhook,
-		Milestone, Label, HookTask,
-		Team, UpdateTask, Attachment int64
-	}
-}
-
-// GetStatistic returns the database statistics
-func GetStatistic() (stats Statistic) {
-	stats.Counter.User = CountUsers()
-	stats.Counter.Org = CountOrganizations()
-	stats.Counter.PublicKey, _ = x.Count(new(PublicKey))
-	stats.Counter.Repo = CountRepositories(true)
-	stats.Counter.Watch, _ = x.Count(new(Watch))
-	stats.Counter.Star, _ = x.Count(new(Star))
-	stats.Counter.Action, _ = x.Count(new(Action))
-	stats.Counter.Access, _ = x.Count(new(Access))
-
-	type IssueCount struct {
-		Count    int64
-		IsClosed bool
-	}
-	issueCounts := []IssueCount{}
-
-	_ = x.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
-	for _, c := range issueCounts {
-		if c.IsClosed {
-			stats.Counter.IssueClosed = c.Count
-		} else {
-			stats.Counter.IssueOpen = c.Count
-		}
-	}
-
-	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
-
-	stats.Counter.Comment, _ = x.Count(new(Comment))
-	stats.Counter.Oauth = 0
-	stats.Counter.Follow, _ = x.Count(new(Follow))
-	stats.Counter.Mirror, _ = x.Count(new(Mirror))
-	stats.Counter.Release, _ = x.Count(new(Release))
-	stats.Counter.LoginSource = CountLoginSources()
-	stats.Counter.Webhook, _ = x.Count(new(Webhook))
-	stats.Counter.Milestone, _ = x.Count(new(Milestone))
-	stats.Counter.Label, _ = x.Count(new(Label))
-	stats.Counter.HookTask, _ = x.Count(new(HookTask))
-	stats.Counter.Team, _ = x.Count(new(Team))
-	stats.Counter.Attachment, _ = x.Count(new(Attachment))
-	return
 }
 
 // Ping tests if database is alive

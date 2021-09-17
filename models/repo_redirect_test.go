@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func TestNewRepoRedirect(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	assert.NoError(t, newRepoRedirect(x, repo.OwnerID, repo.ID, repo.Name, "newreponame"))
+	assert.NoError(t, newRepoRedirect(db.DefaultContext().Engine(), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
 
 	AssertExistsAndLoadBean(t, &RepoRedirect{
 		OwnerID:        repo.OwnerID,
@@ -45,7 +46,7 @@ func TestNewRepoRedirect2(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	assert.NoError(t, newRepoRedirect(x, repo.OwnerID, repo.ID, repo.Name, "oldrepo1"))
+	assert.NoError(t, newRepoRedirect(db.DefaultContext().Engine(), repo.OwnerID, repo.ID, repo.Name, "oldrepo1"))
 
 	AssertExistsAndLoadBean(t, &RepoRedirect{
 		OwnerID:        repo.OwnerID,
@@ -64,7 +65,7 @@ func TestNewRepoRedirect3(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	assert.NoError(t, newRepoRedirect(x, repo.OwnerID, repo.ID, repo.Name, "newreponame"))
+	assert.NoError(t, newRepoRedirect(db.DefaultContext().Engine(), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
 
 	AssertExistsAndLoadBean(t, &RepoRedirect{
 		OwnerID:        repo.OwnerID,

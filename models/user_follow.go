@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -18,7 +19,7 @@ type Follow struct {
 
 // IsFollowing returns true if user is following followID.
 func IsFollowing(userID, followID int64) bool {
-	has, _ := x.Get(&Follow{UserID: userID, FollowID: followID})
+	has, _ := db.DefaultContext().Engine().Get(&Follow{UserID: userID, FollowID: followID})
 	return has
 }
 
@@ -28,7 +29,7 @@ func FollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -54,7 +55,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
