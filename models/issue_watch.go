@@ -111,7 +111,7 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 		watches := make([]*IssueWatch, 0, listOptions.PageSize)
 		return watches, sess.Find(&watches)
 	}

@@ -113,7 +113,7 @@ func (opts *FindTrackedTimesOptions) toSession(e Engine) Engine {
 	sess = sess.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = opts.setEnginePagination(sess)
+		sess = setEnginePagination(sess, opts)
 	}
 
 	return sess

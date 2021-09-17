@@ -103,6 +103,39 @@ func (db *Base) URI() *URI {
 	return db.uri
 }
 
+// CreateTableSQL implements Dialect
+func (db *Base) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	quoter := db.dialect.Quoter()
+	var b strings.Builder
+	b.WriteString("CREATE TABLE IF NOT EXISTS ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
+
+	for i, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		s, _ := ColumnString(db.dialect, col, col.IsPrimaryKey && len(table.PrimaryKeys) == 1)
+		b.WriteString(s)
+
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
+		}
+	}
+
+	if len(table.PrimaryKeys) > 1 {
+		b.WriteString(", PRIMARY KEY (")
+		b.WriteString(quoter.Join(table.PrimaryKeys, ","))
+		b.WriteString(")")
+	}
+
+	b.WriteString(")")
+
+	return []string{b.String()}, false
+}
+
 // DropTableSQL returns drop table SQL
 func (db *Base) DropTableSQL(tableName string) (string, bool) {
 	quote := db.dialect.Quoter().Quote
