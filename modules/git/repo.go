@@ -425,15 +425,25 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	}
 	defer os.RemoveAll(tmp)
 
+	branchName := "bundle-"+commit[:8]
+	if err := repo.CreateBranch(branchName, commit); err != nil {
+		return err
+	}
+
 	tmpFile := filepath.Join(tmp, "bundle")
 	args := []string{
 		"bundle",
 		"create",
 		tmpFile,
-		commit,
+		branchName,
 	}
+
 	_, err = NewCommandContext(ctx, args...).RunInDir(repo.Path)
 	if err != nil {
+		return err
+	}
+
+	if err := repo.DeleteBranch(branchName, DeleteBranchOptions{Force: true}); err != nil {
 		return err
 	}
 
