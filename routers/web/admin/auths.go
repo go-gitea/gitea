@@ -146,6 +146,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		RestrictedFilter:      form.RestrictedFilter,
 		AllowDeactivateAll:    form.AllowDeactivateAll,
 		Enabled:               true,
+		SkipLocalTwoFA:        form.SkipLocalTwoFA,
 	}
 }
 
