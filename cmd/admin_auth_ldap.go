@@ -89,6 +89,10 @@ var (
 			Name:  "public-ssh-key-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
 		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
 	}
 
 	ldapBindDnCLIFlags = append(commonLdapCLIFlags,
@@ -245,6 +249,10 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("allow-deactivate-all") {
 		config.AllowDeactivateAll = c.Bool("allow-deactivate-all")
 	}
+	if c.IsSet("skip-local-2fa") {
+		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
+	}
+
 	return nil
 }
 
