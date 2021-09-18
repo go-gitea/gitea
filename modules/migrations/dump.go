@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -481,7 +482,9 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
-						headBranch := filepath.Join(g.gitPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+						// a new branch name with <original_owner_name/original_branchname> will be created to as new head branch
+						ref := path.Join(pr.Head.OwnerName, pr.Head.Ref)
+						headBranch := filepath.Join(g.gitPath(), "refs", "heads", ref)
 						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
 							return err
 						}
@@ -494,10 +497,14 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 						if err != nil {
 							return err
 						}
+						pr.Head.Ref = ref
 					}
 				}
 			}
 		}
+		// whatever it's a forked repo PR, we have to change head info as the same as the base info
+		pr.Head.OwnerName = pr.Base.OwnerName
+		pr.Head.RepoName = pr.Base.RepoName
 	}
 
 	var err error
@@ -555,7 +562,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 		return err
 	}
 
-	if err := migrateRepository(downloader, uploader, opts); err != nil {
+	if err := migrateRepository(downloader, uploader, opts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -620,7 +627,7 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	}
 	updateOptionsUnits(&migrateOpts, units)
 
-	if err = migrateRepository(downloader, uploader, migrateOpts); err != nil {
+	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}

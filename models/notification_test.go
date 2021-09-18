@@ -76,12 +76,15 @@ func TestSetNotificationStatus(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	notf := AssertExistsAndLoadBean(t,
 		&Notification{UserID: user.ID, Status: NotificationStatusRead}).(*Notification)
-	assert.NoError(t, SetNotificationStatus(notf.ID, user, NotificationStatusPinned))
+	_, err := SetNotificationStatus(notf.ID, user, NotificationStatusPinned)
+	assert.NoError(t, err)
 	AssertExistsAndLoadBean(t,
 		&Notification{ID: notf.ID, Status: NotificationStatusPinned})
 
-	assert.Error(t, SetNotificationStatus(1, user, NotificationStatusRead))
-	assert.Error(t, SetNotificationStatus(NonexistentID, user, NotificationStatusRead))
+	_, err = SetNotificationStatus(1, user, NotificationStatusRead)
+	assert.Error(t, err)
+	_, err = SetNotificationStatus(NonexistentID, user, NotificationStatusRead)
+	assert.Error(t, err)
 }
 
 func TestUpdateNotificationStatuses(t *testing.T) {

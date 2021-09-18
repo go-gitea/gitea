@@ -34,7 +34,7 @@ const commentMDEditors = {};
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
 
-// Silence Vue's console advertisments in dev mode
+// Silence Vue's console advertisements in dev mode
 // To use the Vue browser extension, enable the devtools option temporarily
 Vue.config.productionTip = false;
 Vue.config.devtools = false;
@@ -202,6 +202,7 @@ function initRepoStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
   $('#repo_migrating_failed_image').hide();
+  $('#repo_migrating_progress_message').hide();
   if (migrating) {
     const task = migrating.attr('task');
     if (typeof task === 'undefined') {
@@ -223,8 +224,12 @@ function initRepoStatusChecker() {
             $('#repo_migrating').hide();
             $('#repo_migrating_failed').show();
             $('#repo_migrating_failed_image').show();
-            $('#repo_migrating_failed_error').text(xhr.responseJSON.err);
+            $('#repo_migrating_failed_error').text(xhr.responseJSON.message);
             return;
+          }
+          if (xhr.responseJSON.message) {
+            $('#repo_migrating_progress_message').show();
+            $('#repo_migrating_progress_message').text(xhr.responseJSON.message);
           }
           setTimeout(() => {
             initRepoStatusChecker();
@@ -327,11 +332,11 @@ function getPastedImages(e) {
   return files;
 }
 
-async function uploadFile(file) {
+async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
-  const res = await fetch($('#dropzone').data('upload-url'), {
+  const res = await fetch(uploadUrl, {
     method: 'POST',
     headers: {'X-Csrf-Token': csrf},
     body: formData,
@@ -345,24 +350,33 @@ function reload() {
 
 function initImagePaste(target) {
   target.each(function () {
-    this.addEventListener('paste', async (e) => {
-      for (const img of getPastedImages(e)) {
-        const name = img.name.substr(0, img.name.lastIndexOf('.'));
-        insertAtCursor(this, `![${name}]()`);
-        const data = await uploadFile(img);
-        replaceAndKeepCursor(this, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
-        const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-        $('.files').append(input);
-      }
-    }, false);
+    const dropzone = this.querySelector('.dropzone');
+    if (!dropzone) {
+      return;
+    }
+    const uploadUrl = dropzone.dataset.uploadUrl;
+    const dropzoneFiles = dropzone.querySelector('.files');
+    for (const textarea of this.querySelectorAll('textarea')) {
+      textarea.addEventListener('paste', async (e) => {
+        for (const img of getPastedImages(e)) {
+          const name = img.name.substr(0, img.name.lastIndexOf('.'));
+          insertAtCursor(textarea, `![${name}]()`);
+          const data = await uploadFile(img, uploadUrl);
+          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          dropzoneFiles.appendChild(input[0]);
+        }
+      }, false);
+    }
   });
 }
 
-function initSimpleMDEImagePaste(simplemde, files) {
+function initSimpleMDEImagePaste(simplemde, dropzone, files) {
+  const uploadUrl = dropzone.dataset.uploadUrl;
   simplemde.codemirror.on('paste', async (_, e) => {
     for (const img of getPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
-      const data = await uploadFile(img);
+      const data = await uploadFile(img, uploadUrl);
       const pos = simplemde.codemirror.getCursor();
       simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
@@ -381,7 +395,7 @@ function initCommentForm() {
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
   initBranchSelector();
   initCommentPreviewTab($('.comment.form'));
-  initImagePaste($('.comment.form textarea'));
+  initImagePaste($('.comment.form'));
 
   // Listsubmit
   function initListSubmits(selector, outerSelector) {
@@ -447,7 +461,7 @@ function initCommentForm() {
       }
 
       // TODO: Which thing should be done for choosing review requests
-      // to make choosed items be shown on time here?
+      // to make chosen items be shown on time here?
       if (selector === 'select-reviewers-modify' || selector === 'select-assignees-modify') {
         return false;
       }
@@ -909,12 +923,43 @@ async function initRepository() {
       return false;
     });
 
+    // Toggle WIP
+    $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
+      e.preventDefault();
+      const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+      await $.post(updateUrl, {
+        _csrf: csrf,
+        title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      });
+      reload();
+    });
+
     // Issue Comments
     initIssueComments();
 
     // Issue/PR Context Menus
     $('.context-dropdown').dropdown({
       action: 'hide'
+    });
+
+    // Previous/Next code review conversation
+    $(document).on('click', '.previous-conversation', (e) => {
+      const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
+      const $conversations = $('.comment-code-cloud:not(.hide)');
+      const index = $conversations.index($conversation);
+      const previousIndex = index > 0 ? index - 1 : $conversations.length - 1;
+      const $previousConversation = $conversations.eq(previousIndex);
+      const anchor = $previousConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
+    });
+    $(document).on('click', '.next-conversation', (e) => {
+      const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
+      const $conversations = $('.comment-code-cloud:not(.hide)');
+      const index = $conversations.index($conversation);
+      const nextIndex = index < $conversations.length - 1 ? index + 1 : 0;
+      const $nextConversation = $conversations.eq(nextIndex);
+      const anchor = $nextConversation.find('.comment').first().attr('id');
+      window.location.href = `#${anchor}`;
     });
 
     // Quote reply
@@ -952,7 +997,7 @@ async function initRepository() {
       const content = $(`#comment-${$this.data('target')}`).text();
       const subject = content.split('\n', 1)[0].slice(0, 255);
 
-      const poster = $this.data('poster');
+      const poster = $this.data('poster-username');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
@@ -982,11 +1027,10 @@ async function initRepository() {
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
-        const $files = $editContentZone.find('.comment-files');
-        if ($dropzone.length > 0) {
+        if ($dropzone.length === 1) {
           $dropzone.data('saved', false);
 
-          const filenameDict = {};
+          const fileUuidDict = {};
           dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
             headers: {'X-Csrf-Token': csrf},
@@ -1004,47 +1048,42 @@ async function initRepository() {
             thumbnailHeight: 480,
             init() {
               this.on('success', (file, data) => {
-                filenameDict[file.name] = {
-                  uuid: data.uuid,
+                fileUuidDict[file.uuid] = {
                   submitted: false
                 };
                 const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-                $files.append(input);
+                $dropzone.find('.files').append(input);
               });
               this.on('removedfile', (file) => {
-                if (!(file.name in filenameDict)) {
-                  return;
-                }
-                $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
+                $(`#${file.uuid}`).remove();
+                if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
                   $.post($dropzone.data('remove-url'), {
-                    file: filenameDict[file.name].uuid,
+                    file: file.uuid,
                     _csrf: csrf,
                   });
                 }
               });
               this.on('submit', () => {
-                $.each(filenameDict, (name) => {
-                  filenameDict[name].submitted = true;
+                $.each(fileUuidDict, (fileUuid) => {
+                  fileUuidDict[fileUuid].submitted = true;
                 });
               });
               this.on('reload', () => {
                 $.getJSON($editContentZone.data('attachment-url'), (data) => {
                   dz.removeAllFiles(true);
-                  $files.empty();
+                  $dropzone.find('.files').empty();
                   $.each(data, function () {
                     const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                     dz.emit('addedfile', this);
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
                     dz.files.push(this);
-                    filenameDict[this.name] = {
+                    fileUuidDict[this.uuid] = {
                       submitted: true,
-                      uuid: this.uuid
                     };
                     $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                     const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
-                    $files.append(input);
+                    $dropzone.find('.files').append(input);
                   });
                 });
               });
@@ -1064,7 +1103,9 @@ async function initRepository() {
         $simplemde = setCommentSimpleMDE($textarea);
         commentMDEditors[$editContentZone.data('write')] = $simplemde;
         initCommentPreviewTab($editContentForm);
-        initSimpleMDEImagePaste($simplemde, $files);
+        if ($dropzone.length === 1) {
+          initSimpleMDEImagePaste($simplemde, $dropzone[0], $dropzone.find('.files'));
+        }
 
         $editContentZone.find('.cancel.button').on('click', () => {
           $renderContent.show();
@@ -1076,7 +1117,7 @@ async function initRepository() {
         $editContentZone.find('.save.button').on('click', () => {
           $renderContent.show();
           $editContentZone.hide();
-          const $attachments = $files.find('[name=files]').map(function () {
+          const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
             return $(this).val();
           }).get();
           $.post($editContentZone.data('update-url'), {
@@ -1087,8 +1128,10 @@ async function initRepository() {
           }, (data) => {
             if (data.length === 0 || data.content.length === 0) {
               $renderContent.html($('#no-content').html());
+              $rawContent.text('');
             } else {
               $renderContent.html(data.content);
+              $rawContent.text($textarea.val());
             }
             const $content = $segment;
             if (!$content.find('.dropzone-attachments').length) {
@@ -1219,6 +1262,36 @@ async function initRepository() {
       $('.instruct-toggle').show();
     });
 
+    // Pull Request update button
+    const $pullUpdateButton = $('.update-button > button');
+    $pullUpdateButton.on('click', function (e) {
+      e.preventDefault();
+      const $this = $(this);
+      const redirect = $this.data('redirect');
+      $this.addClass('loading');
+      $.post($this.data('do'), {
+        _csrf: csrf
+      }).done((data) => {
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      });
+    });
+
+    $('.update-button > .dropdown').dropdown({
+      onChange(_text, _value, $choice) {
+        const $url = $choice.data('do');
+        if ($url) {
+          $pullUpdateButton.find('.button-text').text($choice.text());
+          $pullUpdateButton.data('do', $url);
+        }
+      }
+    });
+
     initReactionSelector();
   }
 
@@ -1315,7 +1388,7 @@ function initPullRequestReview() {
         $(`#code-comments-${id}`).removeClass('hide');
         $(`#code-preview-${id}`).removeClass('hide');
         $(`#hide-outdated-${id}`).removeClass('hide');
-        $(window).scrollTop(commentDiv.offset().top);
+        commentDiv[0].scrollIntoView();
       }
     }
   }
@@ -1354,8 +1427,15 @@ function initPullRequestReview() {
     }
     $textarea.focus();
     $simplemde.codemirror.focus();
-    assingMenuAttributes(form.find('.menu'));
+    assignMenuAttributes(form.find('.menu'));
   });
+
+  const $reviewBox = $('.review-box');
+  if ($reviewBox.length === 1) {
+    setCommentSimpleMDE($reviewBox.find('textarea'));
+    initImagePaste($reviewBox);
+  }
+
   // The following part is only for diff views
   if ($('.repository.pull.diff').length === 0) {
     return;
@@ -1405,7 +1485,7 @@ function initPullRequestReview() {
       const data = await $.get($(this).data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
-      assingMenuAttributes(commentCloud.find('.menu'));
+      assignMenuAttributes(commentCloud.find('.menu'));
       td.find("input[name='line']").val(idx);
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
@@ -1418,7 +1498,7 @@ function initPullRequestReview() {
   });
 }
 
-function assingMenuAttributes(menu) {
+function assignMenuAttributes(menu) {
   const id = Math.floor(Math.random() * Math.floor(1000000));
   menu.attr('data-write', menu.attr('data-write') + id);
   menu.attr('data-preview', menu.attr('data-preview') + id);
@@ -1643,6 +1723,10 @@ $.fn.getCursorPosition = function () {
 };
 
 function setCommentSimpleMDE($editArea) {
+  if ($editArea.length === 0) {
+    return null;
+  }
+
   const simplemde = new SimpleMDE({
     autoDownloadFontAwesome: false,
     element: $editArea[0],
@@ -1766,7 +1850,7 @@ async function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
+  const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -1789,6 +1873,14 @@ async function initEditor() {
       $commitButton.prop('disabled', !dirty);
     }
   });
+
+  // Update the editor from query params, if available,
+  // only after the dirtyFileClass initialization
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get('value');
+  if (value) {
+    editor.setValue(value);
+  }
 
   $commitButton.on('click', (event) => {
     // A modal which asks if an empty file should be committed
@@ -1814,7 +1906,8 @@ function initReleaseEditor() {
   const $files = $editor.parent().find('.files');
   const $simplemde = setCommentSimpleMDE($textarea);
   initCommentPreviewTab($editor);
-  initSimpleMDEImagePaste($simplemde, $files);
+  const dropzone = $editor.parent().find('.dropzone')[0];
+  initSimpleMDEImagePaste($simplemde, dropzone, $files);
 }
 
 function initOrganization() {
@@ -1924,7 +2017,9 @@ function initAdmin() {
           $('#password').attr('required', 'required');
         }
       } else {
-        $('#user_name').attr('disabled', 'disabled');
+        if ($('.admin.edit.user').length > 0) {
+          $('#user_name').attr('disabled', 'disabled');
+        }
         $('#login_name').attr('required', 'required');
         $('.non-local').show();
         $('.local').hide();
@@ -1959,19 +2054,17 @@ function initAdmin() {
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'gitea':
-      case 'nextcloud':
-      case 'mastodon':
-        $('#oauth2_use_custom_url').attr('checked', 'checked');
-        // fallthrough intentional
-      case 'github':
-      case 'gitlab':
-        $('.oauth2_use_custom_url').show();
-        break;
       case 'openidConnect':
         $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
         $('.open_id_connect_auto_discovery_url').show();
         break;
+      default:
+        if ($(`#${provider}_customURLSettings`).data('required')) {
+          $('#oauth2_use_custom_url').attr('checked', 'checked');
+        }
+        if ($(`#${provider}_customURLSettings`).data('available')) {
+          $('.oauth2_use_custom_url').show();
+        }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
@@ -1982,29 +2075,14 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (applyDefaultValues) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
-
-      switch (provider) {
-        case 'github':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
-          break;
-        case 'nextcloud':
-        case 'gitea':
-        case 'gitlab':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
-          $('#oauth2_email_url').val('');
-          break;
-        case 'mastodon':
-          $('.oauth2_auth_url input').attr('required', 'required');
-          $('.oauth2_auth_url').show();
-          break;
+      for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
+        if (applyDefaultValues) {
+          $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
+        }
+        if ($(`#${provider}_${custom}`).data('available')) {
+          $(`.oauth2_${custom} input`).attr('required', 'required');
+          $(`.oauth2_${custom}`).show();
+        }
       }
     }
   }
@@ -2221,20 +2299,24 @@ function initCodeView() {
       const $select = $(this);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
       selectRange($list, $list.filter(`[rel=${$select.attr('id')}]`), (e.shiftKey ? $list.filter('.active').eq(0) : null));
       deSelect();
-      showLineButton();
+
+      // show code view menu marker (don't show in blame page)
+      if ($('div.blame').length === 0) {
+        showLineButton();
+      }
     });
 
     $(window).on('hashchange', () => {
       let m = window.location.hash.match(/^#(L\d+)-(L\d+)$/);
       let $list;
       if ($('div.blame').length) {
-        $list = $('.code-view td.lines-code li');
+        $list = $('.code-view td.lines-code.blame-code');
       } else {
         $list = $('.code-view td.lines-code');
       }
@@ -2242,7 +2324,12 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=${m[1]}]`);
         selectRange($list, $first, $list.filter(`[rel=${m[2]}]`));
-        showLineButton();
+
+        // show code view menu marker (don't show in blame page)
+        if ($('div.blame').length === 0) {
+          showLineButton();
+        }
+
         $('html, body').scrollTop($first.offset().top - 200);
         return;
       }
@@ -2250,15 +2337,21 @@ function initCodeView() {
       if (m) {
         $first = $list.filter(`[rel=L${m[2]}]`);
         selectRange($list, $first);
-        showLineButton();
+
+        // show code view menu marker (don't show in blame page)
+        if ($('div.blame').length === 0) {
+          showLineButton();
+        }
+
         $('html, body').scrollTop($first.offset().top - 200);
       }
     }).trigger('hashchange');
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     const box = currentTarget.closest('.file-content');
+    const chevron = currentTarget.querySelector('a.chevron');
     const folded = box.dataset.folded !== 'true';
-    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+    chevron.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
@@ -2347,7 +2440,7 @@ function u2fError(errorType) {
   u2fErrors[errorType].removeClass('hide');
 
   Object.keys(u2fErrors).forEach((type) => {
-    if (type !== errorType) {
+    if (type !== `${errorType}`) {
       u2fErrors[type].addClass('hide');
     }
   });
@@ -2597,11 +2690,9 @@ $(document).ready(async () => {
   initLinkAccountView();
 
   // Dropzone
-  const $dropzone = $('#dropzone');
-  if ($dropzone.length > 0) {
-    const filenameDict = {};
-
-    await createDropzone('#dropzone', {
+  for (const el of document.querySelectorAll('.dropzone')) {
+    const $dropzone = $(el);
+    await createDropzone(el, {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrf},
       maxFiles: $dropzone.data('max-file'),
@@ -2617,18 +2708,15 @@ $(document).ready(async () => {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
-        this.on('success', (file, data) => {
-          filenameDict[file.name] = data.uuid;
+        this.on('success', (_file, data) => {
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          $('.files').append(input);
+          $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
-          if (file.name in filenameDict) {
-            $(`#${filenameDict[file.name]}`).remove();
-          }
+          $(`#${file.uuid}`).remove();
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
-              file: filenameDict[file.name],
+              file: file.uuid,
               _csrf: csrf
             });
           }
@@ -2658,6 +2746,11 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
+  $('.show-create-branch-modal.button').on('click', function () {
+    $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
+    $('#modal-create-branch-from-span').text($(this).data('branch-from'));
+    $($(this).data('modal')).modal('show');
+  });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
   });
@@ -2685,7 +2778,7 @@ $(document).ready(async () => {
     let {action, elementId, url} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.dataset.issueId;
-    }).get().join();
+    }).get().join(',');
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2845,7 +2938,6 @@ function selectRange($list, $select, $from) {
       } else {
         $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
       }
-
       return;
     }
   }
@@ -2886,13 +2978,19 @@ $(() => {
 
 function showDeletePopup() {
   const $this = $(this);
+  const dataArray = $this.data();
   let filter = '';
-  if ($this.attr('id')) {
-    filter += `#${$this.attr('id')}`;
+  if ($this.data('modal-id')) {
+    filter += `#${$this.data('modal-id')}`;
   }
 
   const dialog = $(`.delete.modal${filter}`);
   dialog.find('.name').text($this.data('name'));
+  for (const [key, value] of Object.entries(dataArray)) {
+    if (key && key.startsWith('data')) {
+      dialog.find(`.${key}`).text(value);
+    }
+  }
 
   dialog.modal({
     closable: false,
@@ -2902,10 +3000,19 @@ function showDeletePopup() {
         return;
       }
 
-      $.post($this.data('url'), {
+      const postData = {
         _csrf: csrf,
-        id: $this.data('id')
-      }).done((data) => {
+      };
+      for (const [key, value] of Object.entries(dataArray)) {
+        if (key && key.startsWith('data')) {
+          postData[key.substr(4)] = value;
+        }
+        if (key === 'id') {
+          postData['id'] = value;
+        }
+      }
+
+      $.post($this.data('url'), postData).done((data) => {
         window.location.href = data.redirect;
       });
     }
@@ -3312,7 +3419,7 @@ function initVueComponents() {
               this.reposTotalCount = count;
             }
             Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
-            this.finalPage = Math.floor(count / this.searchLimit) + 1;
+            this.finalPage = Math.ceil(count / this.searchLimit);
             this.updateHistory();
           }
         }).always(() => {

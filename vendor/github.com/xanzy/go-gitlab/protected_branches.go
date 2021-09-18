@@ -41,6 +41,7 @@ type ProtectedBranch struct {
 	PushAccessLevels          []*BranchAccessDescription `json:"push_access_levels"`
 	MergeAccessLevels         []*BranchAccessDescription `json:"merge_access_levels"`
 	UnprotectAccessLevels     []*BranchAccessDescription `json:"unprotect_access_levels"`
+	AllowForcePush            bool                       `json:"allow_force_push"`
 	CodeOwnerApprovalRequired bool                       `json:"code_owner_approval_required"`
 }
 
@@ -123,6 +124,7 @@ type ProtectRepositoryBranchesOptions struct {
 	PushAccessLevel           *AccessLevelValue          `url:"push_access_level,omitempty" json:"push_access_level,omitempty"`
 	MergeAccessLevel          *AccessLevelValue          `url:"merge_access_level,omitempty" json:"merge_access_level,omitempty"`
 	UnprotectAccessLevel      *AccessLevelValue          `url:"unprotect_access_level,omitempty" json:"unprotect_access_level,omitempty"`
+	AllowForcePush            *bool                      `url:"allow_force_push,omitempty" json:"allow_force_push,omitempty"`
 	AllowedToPush             []*BranchPermissionOptions `url:"allowed_to_push,omitempty" json:"allowed_to_push,omitempty"`
 	AllowedToMerge            []*BranchPermissionOptions `url:"allowed_to_merge,omitempty" json:"allowed_to_merge,omitempty"`
 	AllowedToUnprotect        []*BranchPermissionOptions `url:"allowed_to_unprotect,omitempty" json:"allowed_to_unprotect,omitempty"`
@@ -194,7 +196,7 @@ type RequireCodeOwnerApprovalsOptions struct {
 	CodeOwnerApprovalRequired *bool `url:"code_owner_approval_required,omitempty" json:"code_owner_approval_required,omitempty"`
 }
 
-// RequireCodeOwnerApprovals updates the code owner approval.
+// RequireCodeOwnerApprovals updates the code owner approval option.
 //
 // Gitlab API docs:
 // https://docs.gitlab.com/ee/api/protected_branches.html#require-code-owner-approvals-for-a-single-branch

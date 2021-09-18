@@ -12,27 +12,12 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
-
-//checkIsValidRequest check if it a valid request in case of bad request it write the response to ctx.
-func checkIsValidRequest(ctx *context.Context) bool {
-	if !setting.LFS.StartServer {
-		log.Debug("Attempt to access LFS server but LFS server is disabled")
-		writeStatus(ctx, http.StatusNotFound)
-		return false
-	}
-	if !MetaMatcher(ctx.Req) {
-		log.Info("Attempt access LOCKs without accepting the correct media type: %s", lfs_module.MediaType)
-		writeStatus(ctx, http.StatusBadRequest)
-		return false
-	}
-	return true
-}
 
 func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *models.LFSLock, err error) {
 	if err != nil {
@@ -60,12 +45,7 @@ func handleLockListOut(ctx *context.Context, repo *models.Repository, lock *mode
 
 // GetListLockHandler list locks
 func GetListLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx) {
-		// Status is written in checkIsValidRequest
-		return
-	}
-
-	rv, _ := unpack(ctx)
+	rv := getRequestContext(ctx)
 
 	repository, err := models.GetRepositoryByOwnerAndName(rv.User, rv.Repo)
 	if err != nil {
@@ -88,17 +68,17 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.QueryInt("cursor")
+	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
 		cursor = 0
 	}
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
 	} else if limit < 0 {
 		limit = 0
 	}
-	id := ctx.Query("id")
+	id := ctx.FormString("id")
 	if id != "" { //Case where we request a specific id
 		v, err := strconv.ParseInt(id, 10, 64)
 		if err != nil {
@@ -115,7 +95,7 @@ func GetListLockHandler(ctx *context.Context) {
 		return
 	}
 
-	path := ctx.Query("path")
+	path := ctx.FormString("path")
 	if path != "" { //Case where we request a specific id
 		lock, err := models.GetLFSLock(repository, path)
 		if err != nil && !models.IsErrLFSLockNotExist(err) {
@@ -150,11 +130,6 @@ func GetListLockHandler(ctx *context.Context) {
 
 // PostLockHandler create lock
 func PostLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx) {
-		// Status is written in checkIsValidRequest
-		return
-	}
-
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
@@ -184,7 +159,7 @@ func PostLockHandler(ctx *context.Context) {
 	var req api.LFSLockRequest
 	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)
@@ -223,11 +198,6 @@ func PostLockHandler(ctx *context.Context) {
 
 // VerifyLockHandler list locks for verification
 func VerifyLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx) {
-		// Status is written in checkIsValidRequest
-		return
-	}
-
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
@@ -254,11 +224,11 @@ func VerifyLockHandler(ctx *context.Context) {
 
 	ctx.Resp.Header().Set("Content-Type", lfs_module.MediaType)
 
-	cursor := ctx.QueryInt("cursor")
+	cursor := ctx.FormInt("cursor")
 	if cursor < 0 {
 		cursor = 0
 	}
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit > setting.LFS.LocksPagingNum && setting.LFS.LocksPagingNum > 0 {
 		limit = setting.LFS.LocksPagingNum
 	} else if limit < 0 {
@@ -294,11 +264,6 @@ func VerifyLockHandler(ctx *context.Context) {
 
 // UnLockHandler delete locks
 func UnLockHandler(ctx *context.Context) {
-	if !checkIsValidRequest(ctx) {
-		// Status is written in checkIsValidRequest
-		return
-	}
-
 	userName := ctx.Params("username")
 	repoName := strings.TrimSuffix(ctx.Params("reponame"), ".git")
 	authorization := ctx.Req.Header.Get("Authorization")
@@ -328,7 +293,7 @@ func UnLockHandler(ctx *context.Context) {
 	var req api.LFSLockDeleteRequest
 	bodyReader := ctx.Req.Body
 	defer bodyReader.Close()
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 	dec := json.NewDecoder(bodyReader)
 	if err := dec.Decode(&req); err != nil {
 		log.Warn("Failed to decode lock request as json. Error: %v", err)

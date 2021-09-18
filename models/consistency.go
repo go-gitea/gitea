@@ -141,6 +141,12 @@ func (milestone *Milestone) checkForConsistency(t *testing.T) {
 	actual := getCount(t, x.Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
 	assert.EqualValues(t, milestone.NumClosedIssues, actual,
 		"Unexpected number of closed issues for milestone %+v", milestone)
+
+	completeness := 0
+	if milestone.NumIssues > 0 {
+		completeness = milestone.NumClosedIssues * 100 / milestone.NumIssues
+	}
+	assert.Equal(t, completeness, milestone.Completeness)
 }
 
 func (label *Label) checkForConsistency(t *testing.T) {
@@ -180,17 +186,21 @@ func CountOrphanedLabels() (int64, error) {
 	}
 
 	norepo, err := x.Table("label").
-		Join("LEFT", "repository", "label.repo_id=repository.id").
-		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0}).
-		Count("id")
+		Where(builder.And(
+			builder.Gt{"repo_id": 0},
+			builder.NotIn("repo_id", builder.Select("id").From("repository")),
+		)).
+		Count()
 	if err != nil {
 		return 0, err
 	}
 
 	noorg, err := x.Table("label").
-		Join("LEFT", "`user`", "label.org_id=`user`.id").
-		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0}).
-		Count("id")
+		Where(builder.And(
+			builder.Gt{"org_id": 0},
+			builder.NotIn("org_id", builder.Select("id").From("user")),
+		)).
+		Count()
 	if err != nil {
 		return 0, err
 	}
@@ -206,17 +216,21 @@ func DeleteOrphanedLabels() error {
 	}
 
 	// delete labels with none existing repos
-	if _, err := x.In("id", builder.Select("label.id").From("label").
-		Join("LEFT", "repository", "label.repo_id=repository.id").
-		Where(builder.IsNull{"repository.id"}).And(builder.Gt{"label.repo_id": 0})).
+	if _, err := x.
+		Where(builder.And(
+			builder.Gt{"repo_id": 0},
+			builder.NotIn("repo_id", builder.Select("id").From("repository")),
+		)).
 		Delete(Label{}); err != nil {
 		return err
 	}
 
 	// delete labels with none existing orgs
-	if _, err := x.In("id", builder.Select("label.id").From("label").
-		Join("LEFT", "`user`", "label.org_id=`user`.id").
-		Where(builder.IsNull{"`user`.id"}).And(builder.Gt{"label.org_id": 0})).
+	if _, err := x.
+		Where(builder.And(
+			builder.Gt{"org_id": 0},
+			builder.NotIn("org_id", builder.Select("id").From("user")),
+		)).
 		Delete(Label{}); err != nil {
 		return err
 	}
@@ -227,15 +241,14 @@ func DeleteOrphanedLabels() error {
 // CountOrphanedIssueLabels return count of IssueLabels witch have no label behind anymore
 func CountOrphanedIssueLabels() (int64, error) {
 	return x.Table("issue_label").
-		Join("LEFT", "label", "issue_label.label_id = label.id").
-		Where(builder.IsNull{"label.id"}).Count()
+		NotIn("label_id", builder.Select("id").From("label")).
+		Count()
 }
 
 // DeleteOrphanedIssueLabels delete IssueLabels witch have no label behind anymore
 func DeleteOrphanedIssueLabels() error {
-	_, err := x.In("id", builder.Select("issue_label.id").From("issue_label").
-		Join("LEFT", "label", "issue_label.label_id = label.id").
-		Where(builder.IsNull{"label.id"})).
+	_, err := x.
+		NotIn("label_id", builder.Select("id").From("label")).
 		Delete(IssueLabel{})
 
 	return err

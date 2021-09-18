@@ -52,7 +52,7 @@ func (org *User) GetOwnerTeam() (*Team, error) {
 	return org.getOwnerTeam(x)
 }
 
-func (org *User) getTeams(e Engine) error {
+func (org *User) loadTeams(e Engine) error {
 	if org.Teams != nil {
 		return nil
 	}
@@ -62,13 +62,9 @@ func (org *User) getTeams(e Engine) error {
 		Find(&org.Teams)
 }
 
-// GetTeams returns paginated teams that belong to organization.
-func (org *User) GetTeams(opts *SearchTeamOptions) error {
-	if opts.Page != 0 {
-		return org.getTeams(opts.getPaginatedSession())
-	}
-
-	return org.getTeams(x)
+// LoadTeams load teams if not loaded.
+func (org *User) LoadTeams() error {
+	return org.loadTeams(x)
 }
 
 // GetMembers returns all members of organization.
@@ -79,7 +75,7 @@ func (org *User) GetMembers() (err error) {
 	return
 }
 
-// FindOrgMembersOpts represensts find org members condtions
+// FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	ListOptions
 	OrgID      int64
@@ -87,7 +83,7 @@ type FindOrgMembersOpts struct {
 }
 
 // CountOrgMembers counts the organization's members
-func CountOrgMembers(opts FindOrgMembersOpts) (int64, error) {
+func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 	sess := x.Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
@@ -425,6 +421,69 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
 	return getOrgsByUserID(sess, userID, showAll)
 }
 
+// MinimalOrg represents a simple orgnization with only needed columns
+type MinimalOrg = User
+
+// GetUserOrgsList returns one user's all orgs list
+func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
+	sess := x.NewSession()
+	defer sess.Close()
+
+	schema, err := x.TableInfo(new(User))
+	if err != nil {
+		return nil, err
+	}
+
+	outputCols := []string{
+		"id",
+		"name",
+		"full_name",
+		"visibility",
+		"avatar",
+		"avatar_email",
+		"use_custom_avatar",
+	}
+
+	groupByCols := &strings.Builder{}
+	for _, col := range outputCols {
+		fmt.Fprintf(groupByCols, "`%s`.%s,", schema.Name, col)
+	}
+	groupByStr := groupByCols.String()
+	groupByStr = groupByStr[0 : len(groupByStr)-1]
+
+	sess.Select(groupByStr+", count(repo_id) as org_count").
+		Table("user").
+		Join("INNER", "team", "`team`.org_id = `user`.id").
+		Join("INNER", "team_user", "`team`.id = `team_user`.team_id").
+		Join("LEFT", builder.
+			Select("id as repo_id, owner_id as repo_owner_id").
+			From("repository").
+			Where(accessibleRepositoryCondition(user)), "`repository`.repo_owner_id = `team`.org_id").
+		Where("`team_user`.uid = ?", user.ID).
+		GroupBy(groupByStr)
+
+	type OrgCount struct {
+		User     `xorm:"extends"`
+		OrgCount int
+	}
+
+	orgCounts := make([]*OrgCount, 0, 10)
+
+	if err := sess.
+		Asc("`user`.name").
+		Find(&orgCounts); err != nil {
+		return nil, err
+	}
+
+	orgs := make([]*MinimalOrg, len(orgCounts))
+	for i, orgCount := range orgCounts {
+		orgCount.User.NumRepos = orgCount.OrgCount
+		orgs[i] = &orgCount.User
+	}
+
+	return orgs, nil
+}
+
 func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
@@ -436,22 +495,22 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 		Find(&orgs)
 }
 
-// HasOrgVisible tells if the given user can see the given org
-func HasOrgVisible(org, user *User) bool {
-	return hasOrgVisible(x, org, user)
+// HasOrgOrUserVisible tells if the given user can see the given org or user
+func HasOrgOrUserVisible(org, user *User) bool {
+	return hasOrgOrUserVisible(x, org, user)
 }
 
-func hasOrgVisible(e Engine, org, user *User) bool {
+func hasOrgOrUserVisible(e Engine, orgOrUser, user *User) bool {
 	// Not SignedUser
 	if user == nil {
-		return org.Visibility == structs.VisibleTypePublic
+		return orgOrUser.Visibility == structs.VisibleTypePublic
 	}
 
-	if user.IsAdmin {
+	if user.IsAdmin || orgOrUser.ID == user.ID {
 		return true
 	}
 
-	if (org.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !org.hasMemberWithUserID(e, user.ID) {
+	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !orgOrUser.hasMemberWithUserID(e, user.ID) {
 		return false
 	}
 	return true
@@ -464,7 +523,7 @@ func HasOrgsVisible(orgs []*User, user *User) bool {
 	}
 
 	for _, org := range orgs {
-		if HasOrgVisible(org, user) {
+		if HasOrgOrUserVisible(org, user) {
 			return true
 		}
 	}
@@ -510,7 +569,7 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 	}
 
 	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 
 	err := sess.
@@ -530,7 +589,7 @@ func getOrgUsersByOrgID(e Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) 
 		sess.And("is_public = ?", true)
 	}
 	if opts.ListOptions.PageSize > 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 
 		ous := make([]*OrgUser, 0, opts.PageSize)
 		return ous, sess.Find(&ous)

@@ -7,8 +7,6 @@ package setting
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -22,12 +20,8 @@ type QueueSettings struct {
 	BatchLength      int
 	ConnectionString string
 	Type             string
-	Network          string
-	Addresses        string
-	Password         string
 	QueueName        string
 	SetName          string
-	DBIndex          int
 	WrapIfNecessary  bool
 	MaxAttempts      int
 	Timeout          time.Duration
@@ -48,7 +42,7 @@ func GetQueueSettings(name string) QueueSettings {
 	q.Name = name
 
 	// DataDir is not directly inheritable
-	q.DataDir = filepath.Join(Queue.DataDir, "common")
+	q.DataDir = filepath.ToSlash(filepath.Join(Queue.DataDir, "common"))
 	// QueueName is not directly inheritable either
 	q.QueueName = name + Queue.QueueName
 	for _, key := range sec.Keys() {
@@ -65,7 +59,7 @@ func GetQueueSettings(name string) QueueSettings {
 		q.SetName = q.QueueName + Queue.SetName
 	}
 	if !filepath.IsAbs(q.DataDir) {
-		q.DataDir = filepath.Join(AppDataPath, q.DataDir)
+		q.DataDir = filepath.ToSlash(filepath.Join(AppDataPath, q.DataDir))
 	}
 	_, _ = sec.NewKey("DATADIR", q.DataDir)
 
@@ -83,7 +77,6 @@ func GetQueueSettings(name string) QueueSettings {
 	q.BoostTimeout = sec.Key("BOOST_TIMEOUT").MustDuration(Queue.BoostTimeout)
 	q.BoostWorkers = sec.Key("BOOST_WORKERS").MustInt(Queue.BoostWorkers)
 
-	q.Network, q.Addresses, q.Password, q.DBIndex, _ = ParseQueueConnStr(q.ConnectionString)
 	return q
 }
 
@@ -91,15 +84,15 @@ func GetQueueSettings(name string) QueueSettings {
 // This is exported for tests to be able to use the queue
 func NewQueueService() {
 	sec := Cfg.Section("queue")
-	Queue.DataDir = sec.Key("DATADIR").MustString("queues/")
+	Queue.DataDir = filepath.ToSlash(sec.Key("DATADIR").MustString("queues/"))
 	if !filepath.IsAbs(Queue.DataDir) {
-		Queue.DataDir = filepath.Join(AppDataPath, Queue.DataDir)
+		Queue.DataDir = filepath.ToSlash(filepath.Join(AppDataPath, Queue.DataDir))
 	}
 	Queue.QueueLength = sec.Key("LENGTH").MustInt(20)
 	Queue.BatchLength = sec.Key("BATCH_LENGTH").MustInt(20)
 	Queue.ConnectionString = sec.Key("CONN_STR").MustString("")
+	defaultType := sec.Key("TYPE").String()
 	Queue.Type = sec.Key("TYPE").MustString("persistable-channel")
-	Queue.Network, Queue.Addresses, Queue.Password, Queue.DBIndex, _ = ParseQueueConnStr(Queue.ConnectionString)
 	Queue.WrapIfNecessary = sec.Key("WRAP_IF_NECESSARY").MustBool(true)
 	Queue.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(10)
 	Queue.Timeout = sec.Key("TIMEOUT").MustDuration(GracefulHammerTime + 30*time.Second)
@@ -117,7 +110,7 @@ func NewQueueService() {
 	for _, key := range section.Keys() {
 		sectionMap[key.Name()] = true
 	}
-	if _, ok := sectionMap["TYPE"]; !ok {
+	if _, ok := sectionMap["TYPE"]; !ok && defaultType == "" {
 		switch Indexer.IssueQueueType {
 		case LevelQueueType:
 			_, _ = section.NewKey("TYPE", "level")
@@ -125,21 +118,23 @@ func NewQueueService() {
 			_, _ = section.NewKey("TYPE", "persistable-channel")
 		case RedisQueueType:
 			_, _ = section.NewKey("TYPE", "redis")
+		case "":
+			_, _ = section.NewKey("TYPE", "level")
 		default:
 			log.Fatal("Unsupported indexer queue type: %v",
 				Indexer.IssueQueueType)
 		}
 	}
-	if _, ok := sectionMap["LENGTH"]; !ok {
+	if _, ok := sectionMap["LENGTH"]; !ok && Indexer.UpdateQueueLength != 0 {
 		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Indexer.UpdateQueueLength))
 	}
-	if _, ok := sectionMap["BATCH_LENGTH"]; !ok {
+	if _, ok := sectionMap["BATCH_LENGTH"]; !ok && Indexer.IssueQueueBatchNumber != 0 {
 		_, _ = section.NewKey("BATCH_LENGTH", fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
 	}
-	if _, ok := sectionMap["DATADIR"]; !ok {
+	if _, ok := sectionMap["DATADIR"]; !ok && Indexer.IssueQueueDir != "" {
 		_, _ = section.NewKey("DATADIR", Indexer.IssueQueueDir)
 	}
-	if _, ok := sectionMap["CONN_STR"]; !ok {
+	if _, ok := sectionMap["CONN_STR"]; !ok && Indexer.IssueQueueConnStr != "" {
 		_, _ = section.NewKey("CONN_STR", Indexer.IssueQueueConnStr)
 	}
 
@@ -163,29 +158,4 @@ func NewQueueService() {
 	if _, ok := sectionMap["LENGTH"]; !ok {
 		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
 	}
-}
-
-// ParseQueueConnStr parses a queue connection string
-func ParseQueueConnStr(connStr string) (network, addrs, password string, dbIdx int, err error) {
-	fields := strings.Fields(connStr)
-	for _, f := range fields {
-		items := strings.SplitN(f, "=", 2)
-		if len(items) < 2 {
-			continue
-		}
-		switch strings.ToLower(items[0]) {
-		case "network":
-			network = items[1]
-		case "addrs":
-			addrs = items[1]
-		case "password":
-			password = items[1]
-		case "db":
-			dbIdx, err = strconv.Atoi(items[1])
-			if err != nil {
-				return
-			}
-		}
-	}
-	return
 }

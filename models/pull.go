@@ -38,6 +38,16 @@ const (
 	PullRequestStatusEmpty
 )
 
+// PullRequestFlow the flow of pull request
+type PullRequestFlow int
+
+const (
+	// PullRequestFlowGithub github flow from head branch to base branch
+	PullRequestFlowGithub PullRequestFlow = iota
+	// PullRequestFlowAGit Agit flow pull request, head branch is not exist
+	PullRequestFlowAGit
+)
+
 // PullRequest represents relation between pull request and repositories.
 type PullRequest struct {
 	ID              int64 `xorm:"pk autoincr"`
@@ -58,6 +68,7 @@ type PullRequest struct {
 	BaseRepoID      int64       `xorm:"INDEX"`
 	BaseRepo        *Repository `xorm:"-"`
 	HeadBranch      string
+	HeadCommitID    string `xorm:"-"`
 	BaseBranch      string
 	ProtectedBranch *ProtectedBranch `xorm:"-"`
 	MergeBase       string           `xorm:"VARCHAR(40)"`
@@ -69,6 +80,8 @@ type PullRequest struct {
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
+
+	Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
@@ -360,6 +373,8 @@ const (
 	MergeStyleSquash MergeStyle = "squash"
 	// MergeStyleManuallyMerged pr has been merged manually, just mark it as merged directly
 	MergeStyleManuallyMerged MergeStyle = "manually-merged"
+	// MergeStyleRebaseUpdate not a merge style, used to update pull head by rebase
+	MergeStyleRebaseUpdate MergeStyle = "rebase-update-only"
 )
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
@@ -427,34 +442,23 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 }
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	// Retry several times in case INSERT fails due to duplicate key for (repo_id, index); see #7887
-	i := 0
-	for {
-		if err = newPullRequestAttempt(repo, pull, labelIDs, uuids, pr); err == nil {
-			return nil
-		}
-		if !IsErrNewIssueInsert(err) {
-			return err
-		}
-		if i++; i == issueMaxDupIndexAttempts {
-			break
-		}
-		log.Error("NewPullRequest: error attempting to insert the new issue; will retry. Original error: %v", err)
+func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	idx, err := GetNextResourceIndex("issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %v", err)
 	}
-	return fmt.Errorf("NewPullRequest: too many errors attempting to insert the new issue. Last error was: %v", err)
-}
 
-func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
+	issue.Index = idx
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
 	}
 
-	if err = newIssue(sess, pull.Poster, NewIssueOptions{
+	if err = newIssue(sess, issue.Poster, NewIssueOptions{
 		Repo:        repo,
-		Issue:       pull,
+		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 		IsPull:      true,
@@ -465,10 +469,9 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
-	pr.Index = pull.Index
+	pr.Index = issue.Index
 	pr.BaseRepo = repo
-
-	pr.IssueID = pull.ID
+	pr.IssueID = issue.ID
 	if _, err = sess.Insert(pr); err != nil {
 		return fmt.Errorf("insert pull repo: %v", err)
 	}
@@ -482,11 +485,11 @@ func newPullRequestAttempt(repo *Repository, pull *Issue, labelIDs []int64, uuid
 
 // GetUnmergedPullRequest returns a pull request that is open and has not been merged
 // by given head/base and repo/branch.
-func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string) (*PullRequest, error) {
+func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string, flow PullRequestFlow) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := x.
-		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND issue.is_closed=?",
-			headRepoID, headBranch, baseRepoID, baseBranch, false, false).
+		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND flow = ? AND issue.is_closed=?",
+			headRepoID, headBranch, baseRepoID, baseBranch, false, flow, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
 		Get(pr)
 	if err != nil {
@@ -503,7 +506,7 @@ func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch
 func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := x.
-		Where("head_repo_id = ? AND head_branch = ?", repoID, branch).
+		Where("head_repo_id = ? AND head_branch = ? AND flow = ?", repoID, branch, PullRequestFlowGithub).
 		OrderBy("id DESC").
 		Get(pr)
 	if !has {
@@ -578,6 +581,20 @@ func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 	return pr, pr.loadAttributes(e)
 }
 
+// GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
+// By poster id.
+func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
+	pulls := make([]*PullRequest, 0, 10)
+
+	err := x.
+		Where("has_merged=? AND flow = ? AND issue.is_closed=? AND issue.poster_id=?",
+			false, PullRequestFlowAGit, false, uid).
+		Join("INNER", "issue", "issue.id=pull_request.issue_id").
+		Find(&pulls)
+
+	return pulls, err
+}
+
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
 	return getPullRequestByIssueID(x, issueID)
@@ -607,9 +624,13 @@ func (pr *PullRequest) IsWorkInProgress() bool {
 		log.Error("LoadIssue: %v", err)
 		return false
 	}
+	return HasWorkInProgressPrefix(pr.Issue.Title)
+}
 
+// HasWorkInProgressPrefix determines if the given PR title has a Work In Progress prefix
+func HasWorkInProgressPrefix(title string) bool {
 	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
-		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
+		if strings.HasPrefix(strings.ToUpper(title), prefix) {
 			return true
 		}
 	}
@@ -671,6 +692,10 @@ func (pr *PullRequest) GetBaseBranchHTMLURL() string {
 
 // GetHeadBranchHTMLURL returns the HTML URL of the head branch
 func (pr *PullRequest) GetHeadBranchHTMLURL() string {
+	if pr.Flow == PullRequestFlowAGit {
+		return ""
+	}
+
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return ""

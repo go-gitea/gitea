@@ -73,6 +73,8 @@ One of these three distributions of Make will run on Windows:
   - The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
 - [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
 
+**Note**: If you are attempting to build using make with Windows Command Prompt, you may run into issues. The above prompts (git bash, or mingw) are recommended, however if you only have command prompt (or potentially powershell) you can set environment variables using the [set](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/set_1) command, e.g. `set TAGS=bindata`.
+
 ## Downloading and cloning the Gitea source code
 
 The recommended method of obtaining the source code is by using `git clone`.
@@ -306,6 +308,19 @@ A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
 Visual Studio Code. Look at
 [`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/main/contrib/ide/README.md)
 for more information.
+
+## GoLand
+
+Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
+can quickly start a debuggable gitea instance.
+
+The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
+gitea project directory (which contains `main.go` and `go.mod`), 
+otherwise, the started instance's working directory is a GoLand's temporary directory 
+and prevents gitea from loading dynamic resources (eg: templates) in a development environment.  
+
+To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
+in `Go tool arguments` of `Run/Debug Configuration`.
 
 ## Submitting PRs
 

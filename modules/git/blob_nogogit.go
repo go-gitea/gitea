@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -12,6 +13,8 @@ import (
 	"io"
 	"io/ioutil"
 	"math"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Blob represents a Git object.
@@ -44,8 +47,8 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 
 	if size < 4096 {
 		bs, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		defer cancel()
 		if err != nil {
-			cancel()
 			return nil, err
 		}
 		_, err = rd.Discard(1)
@@ -69,12 +72,12 @@ func (b *Blob) Size() int64 {
 	defer cancel()
 	_, err := wr.Write([]byte(b.ID.String() + "\n"))
 	if err != nil {
-		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 	_, _, b.size, err = ReadBatchLine(rd)
 	if err != nil {
-		log("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
+		log.Debug("error whilst reading size for %s in %s. Error: %v", b.ID.String(), b.repo.Path, err)
 		return 0
 	}
 
@@ -103,12 +106,12 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 
 // Close implements io.Closer
 func (b *blobReader) Close() error {
+	defer b.cancel()
 	if b.n > 0 {
 		for b.n > math.MaxInt32 {
 			n, err := b.rd.Discard(math.MaxInt32)
 			b.n -= int64(n)
 			if err != nil {
-				b.cancel()
 				return err
 			}
 			b.n -= math.MaxInt32
@@ -116,14 +119,12 @@ func (b *blobReader) Close() error {
 		n, err := b.rd.Discard(int(b.n))
 		b.n -= int64(n)
 		if err != nil {
-			b.cancel()
 			return err
 		}
 	}
 	if b.n == 0 {
 		_, err := b.rd.Discard(1)
 		b.n--
-		b.cancel()
 		return err
 	}
 	return nil

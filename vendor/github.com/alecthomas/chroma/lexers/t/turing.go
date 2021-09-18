@@ -6,14 +6,18 @@ import (
 )
 
 // Turing lexer.
-var Turing = internal.Register(MustNewLexer(
+var Turing = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Turing",
 		Aliases:   []string{"turing"},
 		Filenames: []string{"*.turing", "*.tu"},
 		MimeTypes: []string{"text/x-turing"},
 	},
-	Rules{
+	turingRules,
+))
+
+func turingRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`\s+`, Text, nil},
@@ -39,5 +43,5 @@ var Turing = internal.Register(MustNewLexer(
 			{`[()\[\]{}.,:]`, Punctuation, nil},
 			{`[^\W\d]\w*`, NameOther, nil},
 		},
-	},
-))
+	}
+}

@@ -110,10 +110,11 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Trace("AppPath: %s", setting.AppPath)
-	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
+	log.Info("AppPath: %s", setting.AppPath)
+	log.Info("AppWorkPath: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
 	if err := models.NewEngine(context.Background(), migrations.Migrate); err != nil {
@@ -184,7 +185,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
 	}
 
-	log.Warn("All files have been copied to the new placement but old files are still on the orignial placement.")
+	log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
 
 	return nil
 }

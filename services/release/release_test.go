@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/services/attachment"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,7 +34,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1",
 		Target:       "master",
 		Title:        "v0.1 is released",
@@ -45,7 +48,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.1",
 		Target:       "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		Title:        "v0.1.1 is released",
@@ -57,7 +62,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.2",
 		Target:       "65f1bf2",
 		Title:        "v0.1.2 is released",
@@ -69,7 +76,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.3",
 		Target:       "65f1bf2",
 		Title:        "v0.1.3 is released",
@@ -81,7 +90,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.4",
 		Target:       "65f1bf2",
 		Title:        "v0.1.4 is released",
@@ -91,15 +102,18 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, []byte{}, strings.NewReader("testtest"))
+	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
 	var release = models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.5",
 		Target:       "65f1bf2",
 		Title:        "v0.1.5 is released",
@@ -125,7 +139,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.1.1",
 		Target:       "master",
 		Title:        "v1.1.1 is released",
@@ -147,7 +163,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed draft
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.2.1",
 		Target:       "65f1bf2",
 		Title:        "v1.2.1 is draft",
@@ -169,7 +187,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed pre-release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.3.1",
 		Target:       "65f1bf2",
 		Title:        "v1.3.1 is pre-released",
@@ -192,7 +212,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test create release
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.1.2",
 		Target:       "master",
 		Title:        "v1.1.2 is released",
@@ -213,15 +235,16 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, []byte{}, strings.NewReader("testtest"))
+	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))
 	assert.NoError(t, models.GetReleaseAttachments(release))
-	assert.EqualValues(t, 1, len(release.Attachments))
+	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
 	assert.EqualValues(t, attach.Name, release.Attachments[0].Name)
@@ -232,7 +255,7 @@ func TestRelease_Update(t *testing.T) {
 	}))
 	release.Attachments = nil
 	assert.NoError(t, models.GetReleaseAttachments(release))
-	assert.EqualValues(t, 1, len(release.Attachments))
+	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
 	assert.EqualValues(t, "test2.txt", release.Attachments[0].Name)
@@ -241,7 +264,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, []string{attach.UUID}, nil))
 	release.Attachments = nil
 	assert.NoError(t, models.GetReleaseAttachments(release))
-	assert.EqualValues(t, 0, len(release.Attachments))
+	assert.Empty(t, release.Attachments)
 }
 
 func TestRelease_createTag(t *testing.T) {
@@ -258,7 +281,9 @@ func TestRelease_createTag(t *testing.T) {
 	// Test a changed release
 	release := &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v2.1.1",
 		Target:       "master",
 		Title:        "v2.1.1 is released",
@@ -280,7 +305,9 @@ func TestRelease_createTag(t *testing.T) {
 	// Test a changed draft
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v2.2.1",
 		Target:       "65f1bf2",
 		Title:        "v2.2.1 is draft",
@@ -301,7 +328,9 @@ func TestRelease_createTag(t *testing.T) {
 	// Test a changed pre-release
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v2.3.1",
 		Target:       "65f1bf2",
 		Title:        "v2.3.1 is pre-released",

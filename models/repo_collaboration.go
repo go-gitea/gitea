@@ -65,7 +65,7 @@ func (repo *Repository) getCollaborations(e Engine, listOptions ListOptions) ([]
 		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 	}
 
-	e = listOptions.setEnginePagination(e)
+	e = setEnginePagination(e, &listOptions)
 
 	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
 	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
@@ -100,6 +100,11 @@ func (repo *Repository) getCollaborators(e Engine, listOptions ListOptions) ([]*
 // GetCollaborators returns the collaborators for a repository
 func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborator, error) {
 	return repo.getCollaborators(x, listOptions)
+}
+
+// CountCollaborators returns total number of collaborators for a repository
+func (repo *Repository) CountCollaborators() (int64, error) {
+	return x.Where("repo_id = ? ", repo.ID).Count(&Collaboration{})
 }
 
 func (repo *Repository) getCollaboration(e Engine, uid int64) (*Collaboration, error) {

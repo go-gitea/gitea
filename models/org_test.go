@@ -86,7 +86,7 @@ func TestUser_GetOwnerTeam(t *testing.T) {
 func TestUser_GetTeams(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.NoError(t, org.GetTeams(&SearchTeamOptions{}))
+	assert.NoError(t, org.LoadTeams())
 	if assert.Len(t, org.Teams, 4) {
 		assert.Equal(t, int64(1), org.Teams[0].ID)
 		assert.Equal(t, int64(2), org.Teams[1].ID)
@@ -453,7 +453,7 @@ func TestAddOrgUser(t *testing.T) {
 		assert.NoError(t, AddOrgUser(orgID, userID))
 		ou := &OrgUser{OrgID: orgID, UID: userID}
 		AssertExistsAndLoadBean(t, ou)
-		assert.Equal(t, ou.IsPublic, isPublic)
+		assert.Equal(t, isPublic, ou.IsPublic)
 		org = AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
 	}
@@ -586,12 +586,12 @@ func TestHasOrgVisibleTypePublic(t *testing.T) {
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = AssertExistsAndLoadBean(t,
 		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
-	test1 := HasOrgVisible(org, owner)
-	test2 := HasOrgVisible(org, user3)
-	test3 := HasOrgVisible(org, nil)
-	assert.Equal(t, test1, true) // owner of org
-	assert.Equal(t, test2, true) // user not a part of org
-	assert.Equal(t, test3, true) // logged out user
+	test1 := HasOrgOrUserVisible(org, owner)
+	test2 := HasOrgOrUserVisible(org, user3)
+	test3 := HasOrgOrUserVisible(org, nil)
+	assert.True(t, test1) // owner of org
+	assert.True(t, test2) // user not a part of org
+	assert.True(t, test3) // logged out user
 }
 
 func TestHasOrgVisibleTypeLimited(t *testing.T) {
@@ -609,12 +609,12 @@ func TestHasOrgVisibleTypeLimited(t *testing.T) {
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = AssertExistsAndLoadBean(t,
 		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
-	test1 := HasOrgVisible(org, owner)
-	test2 := HasOrgVisible(org, user3)
-	test3 := HasOrgVisible(org, nil)
-	assert.Equal(t, test1, true)  // owner of org
-	assert.Equal(t, test2, true)  // user not a part of org
-	assert.Equal(t, test3, false) // logged out user
+	test1 := HasOrgOrUserVisible(org, owner)
+	test2 := HasOrgOrUserVisible(org, user3)
+	test3 := HasOrgOrUserVisible(org, nil)
+	assert.True(t, test1)  // owner of org
+	assert.True(t, test2)  // user not a part of org
+	assert.False(t, test3) // logged out user
 }
 
 func TestHasOrgVisibleTypePrivate(t *testing.T) {
@@ -632,12 +632,12 @@ func TestHasOrgVisibleTypePrivate(t *testing.T) {
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = AssertExistsAndLoadBean(t,
 		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
-	test1 := HasOrgVisible(org, owner)
-	test2 := HasOrgVisible(org, user3)
-	test3 := HasOrgVisible(org, nil)
-	assert.Equal(t, test1, true)  // owner of org
-	assert.Equal(t, test2, false) // user not a part of org
-	assert.Equal(t, test3, false) // logged out user
+	test1 := HasOrgOrUserVisible(org, owner)
+	test2 := HasOrgOrUserVisible(org, user3)
+	test3 := HasOrgOrUserVisible(org, nil)
+	assert.True(t, test1)  // owner of org
+	assert.False(t, test2) // user not a part of org
+	assert.False(t, test3) // logged out user
 }
 
 func TestGetUsersWhoCanCreateOrgRepo(t *testing.T) {

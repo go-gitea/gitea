@@ -43,6 +43,7 @@ type ProtectedBranch struct {
 	DismissStaleApprovals         bool     `xorm:"NOT NULL DEFAULT false"`
 	RequireSignedCommits          bool     `xorm:"NOT NULL DEFAULT false"`
 	ProtectedFilePatterns         string   `xorm:"TEXT"`
+	UnprotectedFilePatterns       string   `xorm:"TEXT"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
@@ -214,12 +215,21 @@ func (protectBranch *ProtectedBranch) MergeBlockedByOutdatedBranch(pr *PullReque
 
 // GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
 func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
+	return getFilePatterns(protectBranch.ProtectedFilePatterns)
+}
+
+// GetUnprotectedFilePatterns parses a semicolon separated list of unprotected file patterns and returns a glob.Glob slice
+func (protectBranch *ProtectedBranch) GetUnprotectedFilePatterns() []glob.Glob {
+	return getFilePatterns(protectBranch.UnprotectedFilePatterns)
+}
+
+func getFilePatterns(filePatterns string) []glob.Glob {
 	extarr := make([]glob.Glob, 0, 10)
-	for _, expr := range strings.Split(strings.ToLower(protectBranch.ProtectedFilePatterns), ";") {
+	for _, expr := range strings.Split(strings.ToLower(filePatterns), ";") {
 		expr = strings.TrimSpace(expr)
 		if expr != "" {
 			if g, err := glob.Compile(expr, '.', '/'); err != nil {
-				log.Info("Invalid glob expresion '%s' (skipped): %v", expr, err)
+				log.Info("Invalid glob expression '%s' (skipped): %v", expr, err)
 			} else {
 				extarr = append(extarr, g)
 			}
@@ -242,6 +252,28 @@ func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullReque
 func (protectBranch *ProtectedBranch) IsProtectedFile(patterns []glob.Glob, path string) bool {
 	if len(patterns) == 0 {
 		patterns = protectBranch.GetProtectedFilePatterns()
+		if len(patterns) == 0 {
+			return false
+		}
+	}
+
+	lpath := strings.ToLower(strings.TrimSpace(path))
+
+	r := false
+	for _, pat := range patterns {
+		if pat.Match(lpath) {
+			r = true
+			break
+		}
+	}
+
+	return r
+}
+
+// IsUnprotectedFile return if path is unprotected
+func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, path string) bool {
+	if len(patterns) == 0 {
+		patterns = protectBranch.GetUnprotectedFilePatterns()
 		if len(patterns) == 0 {
 			return false
 		}
@@ -362,11 +394,7 @@ func (repo *Repository) GetBranchProtection(branchName string) (*ProtectedBranch
 }
 
 // IsProtectedBranch checks if branch is protected
-func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
+func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
 	protectedBranch := &ProtectedBranch{
 		RepoID:     repo.ID,
 		BranchName: branchName,
@@ -377,27 +405,6 @@ func (repo *Repository) IsProtectedBranch(branchName string, doer *User) (bool, 
 		return true, err
 	}
 	return has, nil
-}
-
-// IsProtectedBranchForPush checks if branch is protected for push
-func (repo *Repository) IsProtectedBranchForPush(branchName string, doer *User) (bool, error) {
-	if doer == nil {
-		return true, nil
-	}
-
-	protectedBranch := &ProtectedBranch{
-		RepoID:     repo.ID,
-		BranchName: branchName,
-	}
-
-	has, err := x.Get(protectedBranch)
-	if err != nil {
-		return true, err
-	} else if has {
-		return !protectedBranch.CanUserPush(doer.ID), nil
-	}
-
-	return false, nil
 }
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with

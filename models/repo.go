@@ -216,12 +216,13 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
-	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+	IsPrivate   bool `xorm:"INDEX"`
+	IsEmpty     bool `xorm:"INDEX"`
+	IsArchived  bool `xorm:"INDEX"`
+	IsMirror    bool `xorm:"INDEX"`
+	*Mirror     `xorm:"-"`
+	PushMirrors []*PushMirror    `xorm:"-"`
+	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -255,7 +256,12 @@ func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return ""
+	}
+	u.User = nil
+	return u.String()
 }
 
 // ColorFormat returns a colored string to represent this repo
@@ -518,21 +524,6 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 	return repo.DocumentRenderingMetas
 }
 
-// DeleteWiki removes the actual and local copy of repository wiki.
-func (repo *Repository) DeleteWiki() error {
-	return repo.deleteWiki(x)
-}
-
-func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath()}
-	for _, wikiPath := range wikiPaths {
-		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
-	}
-
-	_, err := e.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
-	return err
-}
-
 func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
@@ -579,8 +570,7 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 
 	var users []*User
 
-	if repo.IsPrivate ||
-		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
+	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
 		if err := e.
@@ -654,6 +644,12 @@ func (repo *Repository) IssueStats(uid int64, filterMode int, isPull bool) (int6
 // GetMirror sets the repository mirror, returns an error upon failure
 func (repo *Repository) GetMirror() (err error) {
 	repo.Mirror, err = GetMirrorByRepoID(repo.ID)
+	return err
+}
+
+// LoadPushMirrors populates the repository push mirrors.
+func (repo *Repository) LoadPushMirrors() (err error) {
+	repo.PushMirrors, err = GetPushMirrorsByRepoID(repo.ID)
 	return err
 }
 
@@ -993,6 +989,13 @@ type CreateRepoOptions struct {
 	MirrorInterval string
 }
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *Repository
+	Name        string
+	Description string
+}
+
 // GetRepoInitFile returns repository init files
 func GetRepoInitFile(tp, name string) ([]byte, error) {
 	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
@@ -1024,7 +1027,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 
 var (
 	reservedRepoNames    = []string{".", ".."}
-	reservedRepoPatterns = []string{"*.git", "*.wiki"}
+	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
 // IsUsableRepoName returns true when repository is usable
@@ -1114,8 +1117,8 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		if err := u.loadTeams(ctx.e); err != nil {
+			return fmt.Errorf("loadTeams: %v", err)
 		}
 		for _, t := range u.Teams {
 			if t.IncludesAllRepositories {
@@ -1139,6 +1142,16 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 	} else if err = repo.recalculateAccesses(ctx.e); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
+	}
+
+	if u.Visibility == api.VisibleTypePublic && !repo.IsPrivate {
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
 	}
 
 	if setting.Service.AutoWatchNewRepos {
@@ -1196,6 +1209,12 @@ func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
 	return err
 }
 
+// DecrementRepoForkNum decrement repository fork number
+func DecrementRepoForkNum(ctx DBContext, repoID int64) error {
+	_, err := ctx.e.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repoID)
+	return err
+}
+
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
 func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
@@ -1216,7 +1235,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
@@ -1227,7 +1246,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return err
 	}
 	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 	}
@@ -1299,15 +1318,16 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		// Create/Remove git-daemon-export-ok for git-daemon...
 		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 		isExist, err := util.IsExist(daemonExportFile)
+		isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 			return err
 		}
-		if repo.IsPrivate && isExist {
+		if !isPublic && isExist {
 			if err = util.Remove(daemonExportFile); err != nil {
 				log.Error("Failed to remove %s: %v", daemonExportFile, err)
 			}
-		} else if !repo.IsPrivate && !isExist {
+		} else if isPublic && !isExist {
 			if f, err := os.Create(daemonExportFile); err != nil {
 				log.Error("Failed to create %s: %v", daemonExportFile, err)
 			} else {
@@ -1345,6 +1365,26 @@ func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
 
 	if err = updateRepository(sess, repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
+	}
+
+	return sess.Commit()
+}
+
+// UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
+func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
+	if ownerID == 0 {
+		return nil
+	}
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	if _, err := sess.Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+		OwnerName: ownerName,
+	}); err != nil {
+		return err
 	}
 
 	return sess.Commit()
@@ -1397,7 +1437,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 	if org.IsOrganization() {
-		if err = org.getTeams(sess); err != nil {
+		if err = org.loadTeams(sess); err != nil {
 			return err
 		}
 	}
@@ -1411,7 +1451,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, repo.ID, ListOptions{})
+	deployKeys, err := listDeployKeys(sess, &ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
@@ -1466,7 +1506,9 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Mirror{RepoID: repoID},
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
+		&ProtectedTag{RepoID: repoID},
 		&PullRequest{BaseRepoID: repoID},
+		&PushMirror{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&RepoIndexerStatus{RepoID: repoID},
 		&RepoRedirect{RedirectRepoID: repoID},
@@ -1487,6 +1529,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Delete Issues and related objects
 	var attachmentPaths []string
 	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
+		return err
+	}
+
+	// Delete issue index
+	if err := deleteResouceIndex(sess, "issue_index", repoID); err != nil {
 		return err
 	}
 
@@ -1518,21 +1565,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	// FIXME: Remove repository files should be executed after transaction succeed.
-	repoPath := repo.RepoPath()
-	removeAllWithNotice(sess, "Delete repository files", repoPath)
-
-	err = repo.deleteWiki(sess)
-	if err != nil {
-		return err
-	}
-
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
+	var lfsPaths = make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
@@ -1542,10 +1581,27 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
+		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+		return err
+	}
+
+	// Remove archives
+	var archives []*RepoArchiver
+	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
+		return err
+	}
+
+	var archivePaths = make([]string, 0, len(archives))
+	for _, v := range archives {
+		v.Repo = repo
+		p, _ := v.RelativePath()
+		archivePaths = append(archivePaths, p)
+	}
+
+	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -1555,6 +1611,25 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
+	// Get all attachments with both issue_id and release_id are zero
+	var newAttachments []*Attachment
+	if err := sess.Where(builder.Eq{
+		"repo_id":    repo.ID,
+		"issue_id":   0,
+		"release_id": 0,
+	}).Find(&newAttachments); err != nil {
+		return err
+	}
+
+	var newAttachmentPaths = make([]string, 0, len(newAttachments))
+	for _, attach := range newAttachments {
+		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
+	}
+
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(Attachment)); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}
@@ -1562,7 +1637,26 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	sess.Close()
 
 	// We should always delete the files after the database transaction succeed. If
-	// we delete the file but the database rollback, the repository will be borken.
+	// we delete the file but the database rollback, the repository will be broken.
+
+	// Remove repository files.
+	repoPath := repo.RepoPath()
+	removeAllWithNotice(x, "Delete repository files", repoPath)
+
+	// Remove wiki files
+	if repo.HasWiki() {
+		removeAllWithNotice(x, "Delete repository wiki", repo.WikiPath())
+	}
+
+	// Remove archives
+	for i := range archivePaths {
+		removeStorageWithNotice(x, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+	}
+
+	// Remove lfs objects
+	for i := range lfsPaths {
+		removeStorageWithNotice(x, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+	}
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
@@ -1572,6 +1666,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Remove release attachment files.
 	for i := range releaseAttachments {
 		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+	}
+
+	// Remove attachment with no issue_id and release_id.
+	for i := range newAttachmentPaths {
+		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1671,7 +1770,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, count, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, setSessionPagination(sess, opts).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -1710,84 +1809,49 @@ func GetPrivateRepositoryCount(u *User) (int64, error) {
 	return getPrivateRepositoryCount(x, u)
 }
 
-// DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives(ctx context.Context) error {
-	return x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
-				default:
-				}
-				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
-			})
-}
-
 // DeleteOldRepositoryArchives deletes old repository archives.
 func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
-	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
-	}); err != nil {
-		log.Trace("Error: ArchiveClean: %v", err)
-		return err
+	for {
+		var archivers []RepoArchiver
+		err := x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).
+			Asc("created_unix").
+			Limit(100).
+			Find(&archivers)
+		if err != nil {
+			log.Trace("Error: ArchiveClean: %v", err)
+			return err
+		}
+
+		for _, archiver := range archivers {
+			if err := deleteOldRepoArchiver(ctx, &archiver); err != nil {
+				return err
+			}
+		}
+		if len(archivers) < 100 {
+			break
+		}
 	}
 
 	log.Trace("Finished: ArchiveCleanup")
 	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
-	repo := bean.(*Repository)
-	basePath := filepath.Join(repo.RepoPath(), "archives")
+var delRepoArchiver = new(RepoArchiver)
 
-	for _, ty := range []string{"zip", "targz"} {
-		select {
-		case <-ctx.Done():
-			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
-		default:
-		}
-
-		path := filepath.Join(basePath, ty)
-		file, err := os.Open(path)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.Warn("Unable to open directory %s: %v", path, err)
-				return err
-			}
-
-			// If the directory doesn't exist, that's okay.
-			continue
-		}
-
-		files, err := file.Readdir(0)
-		file.Close()
-		if err != nil {
-			log.Warn("Unable to read directory %s: %v", path, err)
-			return err
-		}
-
-		minimumOldestTime := time.Now().Add(-olderThan)
-		for _, info := range files {
-			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
-				default:
-				}
-				toDelete := filepath.Join(path, info.Name())
-				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = util.Remove(toDelete); err != nil {
-					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
-				}
-			}
-		}
+func deleteOldRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
+	p, err := archiver.RelativePath()
+	if err != nil {
+		return err
 	}
-
+	_, err = x.ID(archiver.ID).Delete(delRepoArchiver)
+	if err != nil {
+		return err
+	}
+	if err := storage.RepoArchives.Delete(p); err != nil {
+		log.Error("delete repo archive file failed: %v", err)
+	}
 	return nil
 }
 
@@ -1997,7 +2061,7 @@ func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error)
 		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
-	sess := listOptions.getPaginatedSession()
+	sess := getPaginatedSession(&listOptions)
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }

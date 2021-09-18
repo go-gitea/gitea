@@ -3,6 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build ignore
 // +build ignore
 
 package main
@@ -20,7 +21,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 const (
@@ -51,7 +52,6 @@ func (e Emoji) MarshalJSON() ([]byte, error) {
 	x.UnicodeVersion = ""
 	x.Description = ""
 	x.SkinTones = false
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	return json.Marshal(x)
 }
 
@@ -103,7 +103,6 @@ func generate() ([]byte, error) {
 
 	// unmarshal
 	var data Gemoji
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, &data)
 	if err != nil {
 		return nil, err

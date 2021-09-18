@@ -74,6 +74,7 @@ type FindNotificationOptions struct {
 	RepoID            int64
 	IssueID           int64
 	Status            []NotificationStatus
+	Source            []NotificationSource
 	UpdatedAfterUnix  int64
 	UpdatedBeforeUnix int64
 }
@@ -93,6 +94,9 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 	if len(opts.Status) > 0 {
 		cond = cond.And(builder.In("notification.status", opts.Status))
 	}
+	if len(opts.Source) > 0 {
+		cond = cond.And(builder.In("notification.source", opts.Source))
+	}
 	if opts.UpdatedAfterUnix != 0 {
 		cond = cond.And(builder.Gte{"notification.updated_unix": opts.UpdatedAfterUnix})
 	}
@@ -106,19 +110,24 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 func (opts *FindNotificationOptions) ToSession(e Engine) *xorm.Session {
 	sess := e.Where(opts.ToCond())
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, opts)
 	}
 	return sess
 }
 
-func getNotifications(e Engine, options FindNotificationOptions) (nl NotificationList, err error) {
+func getNotifications(e Engine, options *FindNotificationOptions) (nl NotificationList, err error) {
 	err = options.ToSession(e).OrderBy("notification.updated_unix DESC").Find(&nl)
 	return
 }
 
 // GetNotifications returns all notifications that fit to the given options.
-func GetNotifications(opts FindNotificationOptions) (NotificationList, error) {
+func GetNotifications(opts *FindNotificationOptions) (NotificationList, error) {
 	return getNotifications(x, opts)
+}
+
+// CountNotifications count all notifications that fit to the given options and ignore pagination.
+func CountNotifications(opts *FindNotificationOptions) (int64, error) {
+	return x.Where(opts.ToCond()).Count(&Notification{})
 }
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
@@ -203,13 +212,14 @@ func createOrUpdateIssueNotifications(e Engine, issueID, commentID, notification
 		for _, id := range issueWatches {
 			toNotify[id] = struct{}{}
 		}
-
-		repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
-		if err != nil {
-			return err
-		}
-		for _, id := range repoWatches {
-			toNotify[id] = struct{}{}
+		if !(issue.IsPull && HasWorkInProgressPrefix(issue.Title)) {
+			repoWatches, err := getRepoWatchersIDs(e, issue.RepoID)
+			if err != nil {
+				return err
+			}
+			for _, id := range repoWatches {
+				toNotify[id] = struct{}{}
+			}
 		}
 		issueParticipants, err := issue.getParticipantIDsByIssue(e)
 		if err != nil {
@@ -762,20 +772,20 @@ func setRepoNotificationStatusReadIfUnread(e Engine, userID, repoID int64) error
 }
 
 // SetNotificationStatus change the notification status
-func SetNotificationStatus(notificationID int64, user *User, status NotificationStatus) error {
+func SetNotificationStatus(notificationID int64, user *User, status NotificationStatus) (*Notification, error) {
 	notification, err := getNotificationByID(x, notificationID)
 	if err != nil {
-		return err
+		return notification, err
 	}
 
 	if notification.UserID != user.ID {
-		return fmt.Errorf("Can't change notification of another user: %d, %d", notification.UserID, user.ID)
+		return nil, fmt.Errorf("Can't change notification of another user: %d, %d", notification.UserID, user.ID)
 	}
 
 	notification.Status = status
 
 	_, err = x.ID(notificationID).Update(notification)
-	return err
+	return notification, err
 }
 
 // GetNotificationByID return notification by ID

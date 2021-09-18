@@ -42,8 +42,11 @@ func (uri *URI) SetSchema(schema string) {
 type Dialect interface {
 	Init(*URI) error
 	URI() *URI
+	Version(ctx context.Context, queryer core.Queryer) (*schemas.Version, error)
+
 	SQLType(*schemas.Column) string
-	FormatBytes(b []byte) string
+	Alias(string) string       // return what a sql type's alias of
+	ColumnTypeKind(string) int // database column type kind
 
 	IsReserved(string) bool
 	Quoter() schemas.Quoter
@@ -79,6 +82,11 @@ type Base struct {
 	quoter  schemas.Quoter
 }
 
+// Alias returned col itself
+func (db *Base) Alias(col string) string {
+	return col
+}
+
 // Quoter returns the current database Quoter
 func (db *Base) Quoter() schemas.Quoter {
 	return db.quoter
@@ -95,9 +103,37 @@ func (db *Base) URI() *URI {
 	return db.uri
 }
 
-// FormatBytes formats bytes
-func (db *Base) FormatBytes(bs []byte) string {
-	return fmt.Sprintf("0x%x", bs)
+// CreateTableSQL implements Dialect
+func (db *Base) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
+	if tableName == "" {
+		tableName = table.Name
+	}
+
+	quoter := db.dialect.Quoter()
+	var b strings.Builder
+	b.WriteString("CREATE TABLE IF NOT EXISTS ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
+
+	for i, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		s, _ := ColumnString(db.dialect, col, col.IsPrimaryKey && len(table.PrimaryKeys) == 1)
+		b.WriteString(s)
+
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
+		}
+	}
+
+	if len(table.PrimaryKeys) > 1 {
+		b.WriteString(", PRIMARY KEY (")
+		b.WriteString(quoter.Join(table.PrimaryKeys, ","))
+		b.WriteString(")")
+	}
+
+	b.WriteString(")")
+
+	return []string{b.String()}, false
 }
 
 // DropTableSQL returns drop table SQL
@@ -117,7 +153,7 @@ func (db *Base) HasRecords(queryer core.Queryer, ctx context.Context, query stri
 	if rows.Next() {
 		return true, nil
 	}
-	return false, nil
+	return false, rows.Err()
 }
 
 // IsColumnExist returns true if the column of the table exist
@@ -217,7 +253,7 @@ func regDrvsNDialects() bool {
 		"sqlite3":  {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"sqlite":   {"sqlite3", func() Driver { return &sqlite3Driver{} }, func() Dialect { return &sqlite3{} }},
 		"oci8":     {"oracle", func() Driver { return &oci8Driver{} }, func() Dialect { return &oracle{} }},
-		"goracle":  {"oracle", func() Driver { return &goracleDriver{} }, func() Dialect { return &oracle{} }},
+		"godror":   {"oracle", func() Driver { return &godrorDriver{} }, func() Dialect { return &oracle{} }},
 	}
 
 	for driverName, v := range providedDrvsNDialects {

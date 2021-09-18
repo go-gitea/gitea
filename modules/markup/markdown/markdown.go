@@ -87,7 +87,9 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	once.Do(func() {
 		converter = goldmark.New(
-			goldmark.WithExtensions(extension.Table,
+			goldmark.WithExtensions(
+				extension.NewTable(
+					extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
 				extension.Strikethrough,
 				extension.TaskList,
 				extension.DefinitionList,
@@ -199,7 +201,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		}
 		_ = lw.Close()
 	}()
-	buf := markup.SanitizeReader(rd)
+	buf := markup.SanitizeReader(rd, "")
 	_, err := io.Copy(output, buf)
 	return err
 }
@@ -215,7 +217,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 		if log.IsDebug() {
 			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
 		}
-		ret := markup.SanitizeReader(input)
+		ret := markup.SanitizeReader(input, "")
 		_, err = io.Copy(output, ret)
 		if err != nil {
 			log.Error("SanitizeReader failed: %v", err)
@@ -247,6 +249,11 @@ func (Renderer) NeedPostProcess() bool { return true }
 // Extensions implements markup.Renderer
 func (Renderer) Extensions() []string {
 	return setting.Markdown.FileExtensions
+}
+
+// SanitizerRules implements markup.Renderer
+func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+	return []setting.MarkupSanitizerRule{}
 }
 
 // Render implements markup.Renderer

@@ -6,14 +6,18 @@ import (
 )
 
 // Scilab lexer.
-var Scilab = internal.Register(MustNewLexer(
+var Scilab = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Scilab",
 		Aliases:   []string{"scilab"},
 		Filenames: []string{"*.sci", "*.sce", "*.tst"},
 		MimeTypes: []string{"text/scilab"},
 	},
-	Rules{
+	scilabRules,
+))
+
+func scilabRules() Rules {
+	return Rules{
 		"root": {
 			{`//.*?$`, CommentSingle, nil},
 			{`^\s*function`, Keyword, Push("deffunc")},
@@ -40,5 +44,5 @@ var Scilab = internal.Register(MustNewLexer(
 			{`(\s*)(?:(.+)(\s*)(=)(\s*))?(.+)(\()(.*)(\))(\s*)`, ByGroups(TextWhitespace, Text, TextWhitespace, Punctuation, TextWhitespace, NameFunction, Punctuation, Text, Punctuation, TextWhitespace), Pop(1)},
 			{`(\s*)([a-zA-Z_]\w*)`, ByGroups(Text, NameFunction), Pop(1)},
 		},
-	},
-))
+	}
+}

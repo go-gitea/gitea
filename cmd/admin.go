@@ -14,7 +14,6 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -22,6 +21,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/urfave/cli"
 )
@@ -287,6 +287,10 @@ var (
 			Name:  "icon-url",
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
+		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
 		},
 	}
 
@@ -597,7 +601,7 @@ func runRegenerateKeys(_ *cli.Context) error {
 	return models.RewriteAllPublicKeys()
 }
 
-func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
+func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -609,13 +613,14 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 	} else {
 		customURLMapping = nil
 	}
-	return &models.OAuth2Config{
+	return &oauth2.Source{
 		Provider:                      c.String("provider"),
 		ClientID:                      c.String("key"),
 		ClientSecret:                  c.String("secret"),
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
+		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 	}
 }
 
@@ -625,10 +630,10 @@ func runAddOauth(c *cli.Context) error {
 	}
 
 	return models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginOAuth2,
-		Name:      c.String("name"),
-		IsActived: true,
-		Cfg:       parseOAuth2Config(c),
+		Type:     models.LoginOAuth2,
+		Name:     c.String("name"),
+		IsActive: true,
+		Cfg:      parseOAuth2Config(c),
 	})
 }
 
@@ -646,7 +651,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	oAuth2Config := source.OAuth2()
+	oAuth2Config := source.Cfg.(*oauth2.Source)
 
 	if c.IsSet("name") {
 		source.Name = c.String("name")
@@ -728,7 +733,7 @@ func runListAuth(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActive)
 	}
 	w.Flush()
 

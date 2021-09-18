@@ -17,33 +17,34 @@ func TestAddTopic(t *testing.T) {
 
 	assert.NoError(t, PrepareTestDatabase())
 
-	topics, err := FindTopics(&FindTopicOptions{})
+	topics, _, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, totalNrOfTopics, len(topics))
+	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, total, err := FindTopics(&FindTopicOptions{
 		ListOptions: ListOptions{Page: 1, PageSize: 2},
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(topics))
+	assert.Len(t, topics, 2)
+	assert.EqualValues(t, 6, total)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, _, err = FindTopics(&FindTopicOptions{
 		RepoID: 1,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, repo1NrOfTopics, len(topics))
+	assert.Len(t, topics, repo1NrOfTopics)
 
 	assert.NoError(t, SaveTopics(2, "golang"))
 	repo2NrOfTopics = 1
-	topics, err = FindTopics(&FindTopicOptions{})
+	topics, _, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, totalNrOfTopics, len(topics))
+	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, _, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, repo2NrOfTopics, len(topics))
+	assert.Len(t, topics, repo2NrOfTopics)
 
 	assert.NoError(t, SaveTopics(2, "golang", "gitea"))
 	repo2NrOfTopics = 2
@@ -52,15 +53,15 @@ func TestAddTopic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, topic.RepoCount)
 
-	topics, err = FindTopics(&FindTopicOptions{})
+	topics, _, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, totalNrOfTopics, len(topics))
+	assert.Len(t, topics, totalNrOfTopics)
 
-	topics, err = FindTopics(&FindTopicOptions{
+	topics, _, err = FindTopics(&FindTopicOptions{
 		RepoID: 2,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, repo2NrOfTopics, len(topics))
+	assert.Len(t, topics, repo2NrOfTopics)
 }
 
 func TestTopicValidator(t *testing.T) {

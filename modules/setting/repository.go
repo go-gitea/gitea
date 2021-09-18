@@ -41,7 +41,6 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
-		DisableMirrors                          bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
@@ -78,6 +77,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
+			PopulateSquashCommentWithCommitMessages  bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -86,7 +86,8 @@ var (
 		} `ini:"repository.issue"`
 
 		Release struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -153,7 +154,6 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
-		DisableMirrors:                          false,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "master",
@@ -199,6 +199,7 @@ var (
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
+			PopulateSquashCommentWithCommitMessages  bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -210,6 +211,7 @@ var (
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
+			PopulateSquashCommentWithCommitMessages:  false,
 		},
 
 		// Issue settings
@@ -220,9 +222,11 @@ var (
 		},
 
 		Release: struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		}{
-			AllowedTypes: "",
+			AllowedTypes:     "",
+			DefaultPagingNum: 10,
 		},
 
 		// Signing settings
@@ -248,6 +252,10 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
+
+	RepoArchive = struct {
+		Storage
+	}{}
 )
 
 func newRepository() {
@@ -325,4 +333,6 @@ func newRepository() {
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
+
+	RepoArchive.Storage = getStorage("repo-archive", "", nil)
 }

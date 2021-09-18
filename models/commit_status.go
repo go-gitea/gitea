@@ -5,7 +5,6 @@
 package models
 
 import (
-	"container/list"
 	"crypto/sha1"
 	"fmt"
 	"strings"
@@ -98,7 +97,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
-	countSession = opts.setSessionPagination(countSession)
+	countSession = setSessionPagination(countSession, opts)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
@@ -107,7 +106,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 
 	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
-	findSession = opts.setSessionPagination(findSession)
+	findSession = setSessionPagination(findSession, opts)
 	sortCommitStatusesSession(findSession, opts.SortType)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
@@ -150,7 +149,7 @@ func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListO
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
 
-	sess = listOptions.setSessionPagination(sess)
+	sess = setSessionPagination(sess, &listOptions)
 
 	err := sess.Find(&ids)
 	if err != nil {
@@ -160,7 +159,7 @@ func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListO
 	if len(ids) == 0 {
 		return statuses, nil
 	}
-	return statuses, x.In("id", ids).Find(&statuses)
+	return statuses, e.In("id", ids).Find(&statuses)
 }
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
@@ -257,16 +256,12 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
-	var (
-		newCommits = list.New()
-		e          = oldCommits.Front()
-	)
+func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *Repository) []*SignCommitWithStatuses {
+	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
-	for e != nil {
-		c := e.Value.(SignCommit)
-		commit := SignCommitWithStatuses{
-			SignCommit: &c,
+	for _, c := range oldCommits {
+		commit := &SignCommitWithStatuses{
+			SignCommit: c,
 		}
 		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), ListOptions{})
 		if err != nil {
@@ -276,8 +271,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 			commit.Status = CalcCommitStatus(statuses)
 		}
 
-		newCommits.PushBack(commit)
-		e = e.Next()
+		newCommits = append(newCommits, commit)
 	}
 	return newCommits
 }

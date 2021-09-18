@@ -129,8 +129,12 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 
 // GetMilestoneByID returns the milestone via id .
 func GetMilestoneByID(id int64) (*Milestone, error) {
+	return getMilestoneByID(x, id)
+}
+
+func getMilestoneByID(e Engine, id int64) (*Milestone, error) {
 	var m Milestone
-	has, err := x.ID(id).Get(&m)
+	has, err := e.ID(id).Get(&m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -155,10 +159,6 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 		return err
 	}
 
-	if err := updateMilestoneCompleteness(sess, m.ID); err != nil {
-		return err
-	}
-
 	// if IsClosed changed, update milestone numbers of repository
 	if oldIsClosed != m.IsClosed {
 		if err := updateRepoMilestoneNum(sess, m.RepoID); err != nil {
@@ -171,23 +171,31 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 
 func updateMilestone(e Engine, m *Milestone) error {
 	m.Name = strings.TrimSpace(m.Name)
-	_, err := e.ID(m.ID).AllCols().
+	_, err := e.ID(m.ID).AllCols().Update(m)
+	if err != nil {
+		return err
+	}
+	return updateMilestoneCounters(e, m.ID)
+}
+
+// updateMilestoneCounters calculates NumIssues, NumClosesIssues and Completeness
+func updateMilestoneCounters(e Engine, id int64) error {
+	_, err := e.ID(id).
 		SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
-			builder.Eq{"milestone_id": m.ID},
+			builder.Eq{"milestone_id": id},
 		)).
 		SetExpr("num_closed_issues", builder.Select("count(*)").From("issue").Where(
 			builder.Eq{
-				"milestone_id": m.ID,
+				"milestone_id": id,
 				"is_closed":    true,
 			},
 		)).
-		Update(m)
-	return err
-}
-
-func updateMilestoneCompleteness(e Engine, milestoneID int64) error {
-	_, err := e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-		milestoneID,
+		Update(&Milestone{})
+	if err != nil {
+		return err
+	}
+	_, err = e.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
+		id,
 	)
 	return err
 }
@@ -256,24 +264,14 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 	}
 
 	if oldMilestoneID > 0 {
-		if err := updateMilestoneTotalNum(e, oldMilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, oldMilestoneID); err != nil {
 			return err
-		}
-		if issue.IsClosed {
-			if err := updateMilestoneClosedNum(e, oldMilestoneID); err != nil {
-				return err
-			}
 		}
 	}
 
 	if issue.MilestoneID > 0 {
-		if err := updateMilestoneTotalNum(e, issue.MilestoneID); err != nil {
+		if err := updateMilestoneCounters(e, issue.MilestoneID); err != nil {
 			return err
-		}
-		if issue.IsClosed {
-			if err := updateMilestoneClosedNum(e, issue.MilestoneID); err != nil {
-				return err
-			}
 		}
 	}
 
@@ -382,26 +380,35 @@ type GetMilestonesOption struct {
 	SortType string
 }
 
-// GetMilestones returns milestones filtered by GetMilestonesOption's
-func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
-	sess := x.Where("repo_id = ?", opts.RepoID)
+func (opts GetMilestonesOption) toCond() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
 
 	switch opts.State {
 	case api.StateClosed:
-		sess = sess.And("is_closed = ?", true)
+		cond = cond.And(builder.Eq{"is_closed": true})
 	case api.StateAll:
 		break
 	// api.StateOpen:
 	default:
-		sess = sess.And("is_closed = ?", false)
+		cond = cond.And(builder.Eq{"is_closed": false})
 	}
 
 	if len(opts.Name) != 0 {
-		sess = sess.And(builder.Like{"name", opts.Name})
+		cond = cond.And(builder.Like{"name", opts.Name})
 	}
 
+	return cond
+}
+
+// GetMilestones returns milestones filtered by GetMilestonesOption's
+func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
+	sess := x.Where(opts.toCond())
+
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &opts)
 	}
 
 	switch opts.SortType {
@@ -422,7 +429,8 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, error) {
 	}
 
 	miles := make([]*Milestone, 0, opts.PageSize)
-	return miles, sess.Find(&miles)
+	total, err := sess.FindAndCount(&miles)
+	return miles, total, err
 }
 
 // SearchMilestones search milestones
@@ -620,29 +628,6 @@ func updateRepoMilestoneNum(e Engine, repoID int64) error {
 		repoID,
 	)
 	return err
-}
-
-func updateMilestoneTotalNum(e Engine, milestoneID int64) (err error) {
-	if _, err = e.Exec("UPDATE `milestone` SET num_issues=(SELECT count(*) FROM issue WHERE milestone_id=?) WHERE id=?",
-		milestoneID,
-		milestoneID,
-	); err != nil {
-		return
-	}
-
-	return updateMilestoneCompleteness(e, milestoneID)
-}
-
-func updateMilestoneClosedNum(e Engine, milestoneID int64) (err error) {
-	if _, err = e.Exec("UPDATE `milestone` SET num_closed_issues=(SELECT count(*) FROM issue WHERE milestone_id=? AND is_closed=?) WHERE id=?",
-		milestoneID,
-		true,
-		milestoneID,
-	); err != nil {
-		return
-	}
-
-	return updateMilestoneCompleteness(e, milestoneID)
 }
 
 //  _____               _            _ _____ _

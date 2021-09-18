@@ -33,5 +33,5 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	// Check they're gone
 	assignees, err := models.GetAssigneesByIssue(issue)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, len(assignees))
+	assert.Empty(t, assignees)
 }

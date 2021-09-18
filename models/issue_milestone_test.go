@@ -50,7 +50,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		milestones, err := GetMilestones(GetMilestonesOption{
+		milestones, _, err := GetMilestones(GetMilestonesOption{
 			RepoID: repo.ID,
 			State:  state,
 		})
@@ -87,7 +87,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 	test(3, api.StateClosed)
 	test(3, api.StateAll)
 
-	milestones, err := GetMilestones(GetMilestonesOption{
+	milestones, _, err := GetMilestones(GetMilestonesOption{
 		RepoID: NonexistentID,
 		State:  api.StateOpen,
 	})
@@ -100,7 +100,7 @@ func TestGetMilestones(t *testing.T) {
 	repo := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
-			milestones, err := GetMilestones(GetMilestonesOption{
+			milestones, _, err := GetMilestones(GetMilestonesOption{
 				ListOptions: ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
@@ -117,7 +117,7 @@ func TestGetMilestones(t *testing.T) {
 			}
 			assert.True(t, sort.IntsAreSorted(values))
 
-			milestones, err = GetMilestones(GetMilestonesOption{
+			milestones, _, err = GetMilestones(GetMilestonesOption{
 				ListOptions: ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
@@ -215,7 +215,7 @@ func TestChangeMilestoneStatus(t *testing.T) {
 	CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
 }
 
-func TestUpdateMilestoneClosedNum(t *testing.T) {
+func TestUpdateMilestoneCounters(t *testing.T) {
 	assert.NoError(t, PrepareTestDatabase())
 	issue := AssertExistsAndLoadBean(t, &Issue{MilestoneID: 1},
 		"is_closed=0").(*Issue)
@@ -224,14 +224,14 @@ func TestUpdateMilestoneClosedNum(t *testing.T) {
 	issue.ClosedUnix = timeutil.TimeStampNow()
 	_, err := x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
 	_, err = x.ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneClosedNum(x, issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(x, issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 }
 
