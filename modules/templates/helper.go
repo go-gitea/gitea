@@ -777,7 +777,7 @@ type Actioner interface {
 // ActionIcon accepts an action operation type and returns an icon class name.
 func ActionIcon(opType models.ActionType) string {
 	switch opType {
-	case models.ActionCreateRepo, models.ActionTransferRepo:
+	case models.ActionCreateRepo, models.ActionTransferRepo, models.ActionRenameRepo:
 		return "repo"
 	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
 		return "git-commit"
@@ -819,6 +819,11 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
+
+	if push.Len == 0 {
+		push.Len = len(push.Commits)
+	}
+
 	return push
 }
 

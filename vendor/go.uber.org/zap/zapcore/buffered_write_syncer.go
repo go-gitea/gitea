@@ -71,10 +71,10 @@ type BufferedWriteSyncer struct {
 	// unexported fields for state
 	mu          sync.Mutex
 	initialized bool // whether initialize() has run
+	stopped     bool // whether Stop() has run
 	writer      *bufio.Writer
 	ticker      *time.Ticker
 	stop        chan struct{} // closed when flushLoop should stop
-	stopped     bool          // whether Stop() has run
 	done        chan struct{} // closed when flushLoop has stopped
 }
 

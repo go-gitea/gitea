@@ -40,12 +40,12 @@ type Token struct {
 }
 
 // ParseToken parses a signed jwt string
-func ParseToken(jwtToken string) (*Token, error) {
+func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 	parsedToken, err := jwt.ParseWithClaims(jwtToken, &Token{}, func(token *jwt.Token) (interface{}, error) {
-		if token.Method == nil || token.Method.Alg() != DefaultSigningKey.SigningMethod().Alg() {
+		if token.Method == nil || token.Method.Alg() != signingKey.SigningMethod().Alg() {
 			return nil, fmt.Errorf("unexpected signing algo: %v", token.Header["alg"])
 		}
-		return DefaultSigningKey.VerifyKey(), nil
+		return signingKey.VerifyKey(), nil
 	})
 	if err != nil {
 		return nil, err
@@ -59,11 +59,11 @@ func ParseToken(jwtToken string) (*Token, error) {
 }
 
 // SignToken signs the token with the JWT secret
-func (token *Token) SignToken() (string, error) {
+func (token *Token) SignToken(signingKey JWTSigningKey) (string, error) {
 	token.IssuedAt = time.Now().Unix()
-	jwtToken := jwt.NewWithClaims(DefaultSigningKey.SigningMethod(), token)
-	DefaultSigningKey.PreProcessToken(jwtToken)
-	return jwtToken.SignedString(DefaultSigningKey.SignKey())
+	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
+	signingKey.PreProcessToken(jwtToken)
+	return jwtToken.SignedString(signingKey.SignKey())
 }
 
 // OIDCToken represents an OpenID Connect id_token

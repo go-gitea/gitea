@@ -739,7 +739,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -822,7 +822,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThread"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -4334,32 +4334,32 @@
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) created to",
+            "description": "Only show items which were created by the the given user",
             "name": "created_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) assigned to",
+            "description": "Only show items for which the given user is assigned",
             "name": "assigned_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) mentioning to",
+            "description": "Only show items in which the given user was mentioned",
             "name": "mentioned_by",
             "in": "query"
           },
@@ -7058,7 +7058,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -8128,6 +8128,16 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "merge",
+              "rebase"
+            ],
+            "type": "string",
+            "description": "how to update pull request",
+            "name": "style",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12377,6 +12387,10 @@
           },
           "x-go-name": "StatusCheckContexts"
         },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -12824,6 +12838,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13826,6 +13844,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

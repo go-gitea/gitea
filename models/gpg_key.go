@@ -64,7 +64,7 @@ func ListGPGKeys(uid int64, listOptions ListOptions) ([]*GPGKey, error) {
 func listGPGKeys(e Engine, uid int64, listOptions ListOptions) ([]*GPGKey, error) {
 	sess := e.Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 	}
 
 	keys := make([]*GPGKey, 0, 2)

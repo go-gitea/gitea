@@ -145,6 +145,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		RestrictedFilter:      form.RestrictedFilter,
 		AllowDeactivateAll:    form.AllowDeactivateAll,
 		Enabled:               true,
+		SkipLocalTwoFA:        form.SkipLocalTwoFA,
 	}
 }
 
@@ -181,6 +182,7 @@ func parseOAuth2Config(form forms.AuthenticationForm) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: form.OpenIDConnectAutoDiscoveryURL,
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       form.Oauth2IconURL,
+		SkipLocalTwoFA:                form.SkipLocalTwoFA,
 	}
 }
 

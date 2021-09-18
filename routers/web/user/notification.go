@@ -160,7 +160,7 @@ func NotificationStatusPost(c *context.Context) {
 		return
 	}
 
-	if err := models.SetNotificationStatus(notificationID, c.User, status); err != nil {
+	if _, err := models.SetNotificationStatus(notificationID, c.User, status); err != nil {
 		c.ServerError("SetNotificationStatus", err)
 		return
 	}
