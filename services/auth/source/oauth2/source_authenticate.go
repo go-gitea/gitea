@@ -13,3 +13,6 @@ import (
 func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
 	return db.Authenticate(user, login, password)
 }
+
+// NB: Oauth2 does not implement LocalTwoFASkipper for password authentication
+// as its password authentication drops to db authentication

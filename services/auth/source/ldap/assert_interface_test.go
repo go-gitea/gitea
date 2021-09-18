@@ -16,6 +16,7 @@ import (
 type sourceInterface interface {
 	auth.PasswordAuthenticator
 	auth.SynchronizableSource
+	auth.LocalTwoFASkipper
 	models.SSHKeyProvider
 	models.LoginConfig
 	models.SkipVerifiable
