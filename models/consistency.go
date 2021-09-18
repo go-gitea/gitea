@@ -262,11 +262,11 @@ func CountOrphanedIssues() (int64, error) {
 
 // DeleteOrphanedIssues delete issues without a repo
 func DeleteOrphanedIssues() error {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	var ids []int64
 
@@ -286,10 +286,10 @@ func DeleteOrphanedIssues() error {
 		attachmentPaths = append(attachmentPaths, paths...)
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return err
 	}
-	commiter.Close()
+	committer.Close()
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {

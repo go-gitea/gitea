@@ -189,11 +189,11 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = models.UpdateRelease(ctx, rel); err != nil {
 		return err
@@ -250,7 +250,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		}
 	}
 
-	if err = commiter.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return
 	}
 

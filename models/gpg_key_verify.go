@@ -30,11 +30,11 @@ import (
 
 // VerifyGPGKey marks a GPG key as verified
 func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return "", err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	key := new(GPGKey)
 
@@ -96,7 +96,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 		return "", err
 	}
 
-	if err := commiter.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return "", err
 	}
 

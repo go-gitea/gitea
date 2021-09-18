@@ -467,11 +467,11 @@ func (issue *Issue) clearLabels(e db.Engine, doer *User) (err error) {
 // ClearLabels removes all issue labels as the given user.
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ClearLabels(doer *User) (err error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err := issue.loadRepo(ctx.Engine()); err != nil {
 		return err
@@ -491,7 +491,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return err
 	}
 
-	if err = commiter.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
@@ -515,11 +515,11 @@ func (ts labelSorter) Swap(i, j int) {
 // ReplaceLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
 func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = issue.loadRepo(ctx.Engine()); err != nil {
 		return err
@@ -577,7 +577,7 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // ReadBy sets issue to be read by given user.
@@ -682,11 +682,11 @@ func (issue *Issue) doChangeStatus(e db.Engine, doer *User, isMergePull bool) (*
 
 // ChangeStatus changes issue status to open or closed.
 func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err := issue.loadRepo(ctx.Engine()); err != nil {
 		return nil, err
@@ -700,7 +700,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 		return nil, err
 	}
 
-	if err = commiter.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return nil, fmt.Errorf("Commit: %v", err)
 	}
 
@@ -709,11 +709,11 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 
 // ChangeTitle changes the title of this issue, as the given user.
 func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = updateIssueCols(ctx.Engine(), issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
@@ -738,22 +738,22 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // ChangeRef changes the branch of this issue, as the given user.
 func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = updateIssueCols(ctx.Engine(), issue, "ref"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
@@ -762,11 +762,11 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 	if err != nil {
 		return err
 	}
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 	opts := &CreateCommentOptions{
 		Type:   CommentTypeDeleteBranch,
 		Doer:   doer,
@@ -778,16 +778,16 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // UpdateAttachments update attachments by UUIDs for the issue
 func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 	attachments, err := getAttachmentsByUUIDs(ctx.Engine(), uuids)
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
@@ -798,18 +798,18 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	issue.Content = content
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = updateIssueCols(ctx.Engine(), issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
@@ -819,7 +819,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // GetTasks returns the amount of tasks in the issues content
@@ -990,11 +990,11 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 // RecalculateIssueIndexForRepo create issue_index for repo if not exist and
 // update it based on highest index of existing issues assigned to a repo
 func RecalculateIssueIndexForRepo(repoID int64) error {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err := db.UpsertResourceIndex(ctx.Engine(), "issue_index", repoID); err != nil {
 		return err
@@ -1009,7 +1009,7 @@ func RecalculateIssueIndexForRepo(repoID int64) error {
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1021,11 +1021,11 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 
 	issue.Index = idx
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = newIssue(ctx.Engine(), issue.Poster, NewIssueOptions{
 		Repo:        repo,
@@ -1039,7 +1039,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 		return fmt.Errorf("newIssue: %v", err)
 	}
 
-	if err = commiter.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 

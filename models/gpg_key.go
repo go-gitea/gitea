@@ -227,17 +227,17 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 		return ErrGPGKeyAccessDenied{doer.ID, key.ID}
 	}
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if _, err = deleteGPGKey(ctx.Engine(), key.KeyID); err != nil {
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {

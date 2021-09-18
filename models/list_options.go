@@ -31,7 +31,7 @@ func setSessionPagination(sess *xorm.Session, p Paginator) *xorm.Session {
 	return sess.Limit(take, skip)
 }
 
-// setSessionPagination sets pagination for a database db.Engine
+// setSessionPagination sets pagination for a database engine
 func setEnginePagination(e db.Engine, p Paginator) db.Engine {
 	skip, take := p.GetSkipTake()
 

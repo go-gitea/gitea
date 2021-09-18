@@ -261,11 +261,11 @@ func NewLabel(label *Label) error {
 
 // NewLabels creates new labels
 func NewLabels(labels ...*Label) error {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	for _, label := range labels {
 		if !LabelColorPattern.MatchString(label.Color) {
@@ -275,7 +275,7 @@ func NewLabels(labels ...*Label) error {
 			return err
 		}
 	}
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // UpdateLabel updates label information.
@@ -744,11 +744,11 @@ func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err
 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = newIssueLabels(ctx.Engine(), issue, labels, doer); err != nil {
 		return err
@@ -759,7 +759,7 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 		return err
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {

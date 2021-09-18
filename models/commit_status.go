@@ -206,11 +206,11 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
@@ -243,7 +243,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
-	return commiter.Commit()
+	return committer.Commit()
 }
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.

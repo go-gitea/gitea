@@ -72,11 +72,11 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		return nil, err
 	}
 
-	ctx, commiter, err := db.TxContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	keys := make([]*GPGKey, 0, len(ekeys))
 
@@ -123,5 +123,5 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		}
 		keys = append(keys, key)
 	}
-	return keys, commiter.Commit()
+	return keys, committer.Commit()
 }

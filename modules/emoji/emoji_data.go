@@ -576,7 +576,7 @@ var GemojiData = Gemoji{
 	{"\U0001f39e\ufe0f", "film frames", []string{"film_strip"}, "7.0", false},
 	{"\U0001f1eb\U0001f1ee", "flag: Finland", []string{"finland"}, "6.0", false},
 	{"\U0001f525", "fire", []string{"fire"}, "6.0", false},
-	{"\U0001f692", "fire db.Engine", []string{"fire_engine"}, "6.0", false},
+	{"\U0001f692", "fire engine", []string{"fire_engine"}, "6.0", false},
 	{"\U0001f9ef", "fire extinguisher", []string{"fire_extinguisher"}, "11.0", false},
 	{"\U0001f9e8", "firecracker", []string{"firecracker"}, "11.0", false},
 	{"\U0001f9d1\u200d\U0001f692", "firefighter", []string{"firefighter"}, "12.1", true},
