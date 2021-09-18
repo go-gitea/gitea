@@ -4,9 +4,7 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
 func addTrustModelToRepository(x *xorm.Engine) error {
 	type Repository struct {

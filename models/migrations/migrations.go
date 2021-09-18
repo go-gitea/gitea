@@ -346,7 +346,7 @@ var migrations = []Migration{
 
 // GetCurrentDBVersion returns the current db version
 func GetCurrentDBVersion(x *xorm.Engine) (int64, error) {
-	if err := x.Sync2(new(Version)); err != nil {
+	if err := x.Sync(new(Version)); err != nil {
 		return -1, fmt.Errorf("sync: %v", err)
 	}
 
@@ -394,7 +394,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 func Migrate(x *xorm.Engine) error {
 	// Set a new clean the default mapper to GonicMapper as that is the default for Gitea.
 	x.SetMapper(names.GonicMapper{})
-	if err := x.Sync2(new(Version)); err != nil {
+	if err := x.Sync(new(Version)); err != nil {
 		return fmt.Errorf("sync: %v", err)
 	}
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package common
 
 import (
 	"context"
@@ -15,8 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// InitEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
-func InitEngine(ctx context.Context) (err error) {
+// InitDBEngine In case of problems connecting to DB, retry connection. Eg, PGSQL in Docker Container on Synology
+func InitDBEngine(ctx context.Context) (err error) {
 	log.Info("Beginning ORM engine initialization.")
 	for i := 0; i < setting.Database.DBConnectRetries; i++ {
 		select {

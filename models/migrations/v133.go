@@ -4,9 +4,7 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
 func addEmailHashTable(x *xorm.Engine) error {
 	// EmailHash represents a pre-generated hash map

@@ -4,9 +4,7 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
+import "xorm.io/xorm"
 
 func addApprovalWhitelistsToProtectedBranches(x *xorm.Engine) error {
 	type ProtectedBranch struct {
