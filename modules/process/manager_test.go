@@ -21,23 +21,30 @@ func TestGetManager(t *testing.T) {
 	assert.NotNil(t, pm)
 }
 
-func TestManager_Add(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process)}
+func TestManager_AddContext(t *testing.T) {
+	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
 
-	pid := pm.Add("foo", nil)
-	assert.Equal(t, int64(1), pid, "expected to get pid 1 got %d", pid)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	pid = pm.Add("bar", nil)
-	assert.Equal(t, int64(2), pid, "expected to get pid 2 got %d", pid)
+	p1Ctx, cancel := pm.AddContext(ctx, "foo")
+	defer cancel()
+	assert.Equal(t, int64(1), GetContext(p1Ctx).GetPID(), "expected to get pid 1 got %d", GetContext(p1Ctx).GetPID())
+
+	p2Ctx, cancel := pm.AddContext(p1Ctx, "bar")
+	defer cancel()
+
+	assert.Equal(t, int64(2), GetContext(p2Ctx).GetPID(), "expected to get pid 2 got %d", GetContext(p2Ctx).GetPID())
+	assert.Equal(t, int64(1), GetContext(p2Ctx).GetParent().GetPID(), "expected to get pid 1 got %d", GetContext(p2Ctx).GetParent().GetPID())
 }
 
 func TestManager_Cancel(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process)}
+	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	pid := pm.Add("foo", cancel)
+	ctx, cancel := pm.AddContext(context.Background(), "foo")
+	defer cancel()
 
-	pm.Cancel(pid)
+	pm.Cancel(GetPID(ctx))
 
 	select {
 	case <-ctx.Done():
@@ -47,18 +54,24 @@ func TestManager_Cancel(t *testing.T) {
 }
 
 func TestManager_Remove(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process)}
+	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
 
-	pid1 := pm.Add("foo", nil)
-	assert.Equal(t, int64(1), pid1, "expected to get pid 1 got %d", pid1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	pid2 := pm.Add("bar", nil)
-	assert.Equal(t, int64(2), pid2, "expected to get pid 2 got %d", pid2)
+	p1Ctx, cancel := pm.AddContext(ctx, "foo")
+	defer cancel()
+	assert.Equal(t, int64(1), GetContext(p1Ctx).GetPID(), "expected to get pid 1 got %d", GetContext(p1Ctx).GetPID())
 
-	pm.Remove(pid2)
+	p2Ctx, cancel := pm.AddContext(p1Ctx, "bar")
+	defer cancel()
 
-	_, exists := pm.processes[pid2]
-	assert.False(t, exists, "PID %d is in the list but shouldn't", pid2)
+	assert.Equal(t, int64(2), GetContext(p2Ctx).GetPID(), "expected to get pid 2 got %d", GetContext(p2Ctx).GetPID())
+
+	pm.Remove(GetPID(p2Ctx))
+
+	_, exists := pm.processes[GetPID(p2Ctx)]
+	assert.False(t, exists, "PID %d is in the list but shouldn't", GetPID(p2Ctx))
 }
 
 func TestExecTimeoutNever(t *testing.T) {

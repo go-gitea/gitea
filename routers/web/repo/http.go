@@ -8,7 +8,6 @@ package repo
 import (
 	"bytes"
 	"compress/gzip"
-	gocontext "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -481,8 +480,10 @@ func serviceRPC(h serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
+	// ctx, cancel := gocontext.WithCancel(git.DefaultContext)
+	ctx, cancel := process.GetManager().AddContext(git.DefaultContext, fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	defer cancel()
+
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
@@ -490,9 +491,6 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
-
-	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
-	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Run(); err != nil {
 		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())

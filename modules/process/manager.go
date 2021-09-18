@@ -26,11 +26,18 @@ var (
 
 	// DefaultContext is the default context to run processing commands in
 	DefaultContext = context.Background()
+
+	// RecyclePID is the PID number at which we will attempt to recycle PIDs
+	RecyclePID int64 = 1 << 16
+
+	// HuntSize is the size of the hunt for the lowest free PID
+	HuntSize int64 = 512
 )
 
 // Process represents a working process inheriting from Gitea.
 type Process struct {
 	PID         int64 // Process ID, not system one.
+	ParentPID   int64
 	Description string
 	Start       time.Time
 	Cancel      context.CancelFunc
@@ -40,7 +47,9 @@ type Process struct {
 type Manager struct {
 	mutex sync.Mutex
 
-	counter   int64
+	next int64
+	low  int64
+
 	processes map[int64]*Process
 }
 
@@ -49,31 +58,105 @@ func GetManager() *Manager {
 	managerInit.Do(func() {
 		manager = &Manager{
 			processes: make(map[int64]*Process),
+			next:      1,
+			low:       1,
 		}
 	})
 	return manager
 }
 
-// Add a process to the ProcessManager and returns its PID.
-func (pm *Manager) Add(description string, cancel context.CancelFunc) int64 {
+// AddContext create a new context and add it as a process
+func (pm *Manager) AddContext(parent context.Context, description string) (context.Context, context.CancelFunc) {
+	parentPID := GetParentPID(parent)
+
+	ctx, cancel := context.WithCancel(parent)
+
+	pid, cancel := pm.Add(parentPID, description, cancel)
+
+	return &Context{
+		Context: ctx,
+		pid:     pid,
+	}, cancel
+}
+
+// AddContextTimeout create a new context and add it as a process
+func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (context.Context, context.CancelFunc) {
+	parentPID := GetParentPID(parent)
+
+	ctx, cancel := context.WithTimeout(parent, timeout)
+
+	pid, cancel := pm.Add(parentPID, description, cancel)
+
+	return &Context{
+		Context: ctx,
+		pid:     pid,
+	}, cancel
+}
+
+// Add create a new process
+func (pm *Manager) Add(parentPID int64, description string, cancel context.CancelFunc) (int64, context.CancelFunc) {
 	pm.mutex.Lock()
-	pid := pm.counter + 1
-	pm.processes[pid] = &Process{
+	pid := pm.nextPID()
+	process := &Process{
 		PID:         pid,
+		ParentPID:   parentPID,
 		Description: description,
 		Start:       time.Now(),
-		Cancel:      cancel,
 	}
-	pm.counter = pid
+
+	process.Cancel = func() {
+		cancel()
+		pm.remove(process)
+	}
+
+	pm.processes[pid] = process
 	pm.mutex.Unlock()
 
-	return pid
+	return pid, process.Cancel
+}
+
+// nextPID will return the next available PID. pm.mutex should already be locked.
+func (pm *Manager) nextPID() int64 {
+	if pm.next > RecyclePID {
+		for i := int64(0); i < HuntSize; i++ {
+			if pm.low >= pm.next {
+				pm.low = 1
+				break
+			}
+			if _, ok := pm.processes[pm.low]; !ok {
+				next := pm.low
+				pm.low++
+				return next
+			}
+			pm.low++
+		}
+	}
+	next := pm.next
+	pm.next++
+	return next
+}
+
+// releasePID will release the PID. pm.mutex should already be locked.
+func (pm *Manager) releasePID(pid int64) {
+	if pid < pm.low+RecyclePID {
+		pm.low = pid
+	}
 }
 
 // Remove a process from the ProcessManager.
 func (pm *Manager) Remove(pid int64) {
 	pm.mutex.Lock()
 	delete(pm.processes, pid)
+	pm.releasePID(pid)
+	pm.mutex.Unlock()
+}
+
+func (pm *Manager) remove(process *Process) {
+	pm.mutex.Lock()
+	if p := pm.processes[process.PID]; p == process {
+		delete(pm.processes, process.PID)
+		pm.releasePID(process.PID)
+	}
 	pm.mutex.Unlock()
 }
 
@@ -134,7 +217,7 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	ctx, cancel := context.WithTimeout(DefaultContext, timeout)
+	ctx, cancel := pm.AddContextTimeout(DefaultContext, timeout, desc)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, cmdName, args...)
@@ -150,13 +233,11 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 		return "", "", err
 	}
 
-	pid := pm.Add(desc, cancel)
 	err := cmd.Wait()
-	pm.Remove(pid)
 
 	if err != nil {
 		err = &Error{
-			PID:         pid,
+			PID:         GetPID(ctx),
 			Description: desc,
 			Err:         err,
 			CtxErr:      ctx.Err(),

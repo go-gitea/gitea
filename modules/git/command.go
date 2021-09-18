@@ -143,7 +143,12 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		log.Debug("%s: %v", rc.Dir, c)
 	}
 
-	ctx, cancel := context.WithTimeout(c.parentContext, rc.Timeout)
+	desc := c.desc
+	if desc == "" {
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(c.args, " "), rc.Dir)
+	}
+
+	ctx, cancel := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
 	defer cancel()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
@@ -171,13 +176,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-
-	desc := c.desc
-	if desc == "" {
-		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), rc.Dir)
-	}
-	pid := process.GetManager().Add(desc, cancel)
-	defer process.GetManager().Remove(pid)
 
 	if rc.PipelineFunc != nil {
 		err := rc.PipelineFunc(ctx, cancel)

@@ -25,7 +25,6 @@ type BlamePart struct {
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
 	cmd     *exec.Cmd
-	pid     int64
 	output  io.ReadCloser
 	reader  *bufio.Reader
 	lastSha *string
@@ -100,8 +99,7 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	defer process.GetManager().Remove(r.pid)
-	r.cancel()
+	defer r.cancel()
 
 	_ = r.output.Close()
 
@@ -125,7 +123,8 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 
 func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {
 	// Here we use the provided context - this should be tied to the request performing the blame so that it does not hang around.
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
+
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
@@ -141,13 +140,10 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
-	pid := process.GetManager().Add(fmt.Sprintf("GetBlame [repo_path: %s]", dir), cancel)
-
 	reader := bufio.NewReader(stdout)
 
 	return &BlameReader{
 		cmd,
-		pid,
 		stdout,
 		reader,
 		nil,
