@@ -80,7 +80,7 @@ func DumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) erro
 	return x.DumpTables(tables, w, tp...)
 }
 
-// RegisterModels registers models
+// RegisterModel registers model, if initfunc provided, it will be invoked after data model sync
 func RegisterModel(bean interface{}, initFunc ...func() error) {
 	tables = append(tables, bean)
 	if len(initFuncs) > 0 && initFunc[0] != nil {

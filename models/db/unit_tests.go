@@ -157,6 +157,7 @@ func whereConditions(sess *xorm.Session, conditions []interface{}) {
 	}
 }
 
+// LoadBeanIfExists loads beans from fixture database if exist
 func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
 	return loadBeanIfExists(bean, conditions...)
 }
