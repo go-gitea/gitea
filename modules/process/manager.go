@@ -38,6 +38,7 @@ var (
 type Process struct {
 	PID         int64 // Process ID, not system one.
 	ParentPID   int64
+	Children    []*Process
 	Description string
 	Start       time.Time
 	Cancel      context.CancelFunc
@@ -65,7 +66,7 @@ func GetManager() *Manager {
 	return manager
 }
 
-// AddContext create a new context and add it as a process
+// AddContext create a new context and add it as a process. The CancelFunc must always be called even if the context is Done()
 func (pm *Manager) AddContext(parent context.Context, description string) (context.Context, context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
@@ -97,6 +98,12 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 func (pm *Manager) Add(parentPID int64, description string, cancel context.CancelFunc) (int64, context.CancelFunc) {
 	pm.mutex.Lock()
 	pid := pm.nextPID()
+
+	parent := pm.processes[parentPID]
+	if parent == nil {
+		parentPID = 0
+	}
+
 	process := &Process{
 		PID:         pid,
 		ParentPID:   parentPID,
@@ -109,6 +116,9 @@ func (pm *Manager) Add(parentPID int64, description string, cancel context.Cance
 		pm.remove(process)
 	}
 
+	if parent != nil {
+		parent.Children = append(parent.Children, process)
+	}
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
 
@@ -153,11 +163,23 @@ func (pm *Manager) Remove(pid int64) {
 
 func (pm *Manager) remove(process *Process) {
 	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
 	if p := pm.processes[process.PID]; p == process {
 		delete(pm.processes, process.PID)
 		pm.releasePID(process.PID)
+		for _, child := range process.Children {
+			child.ParentPID = 0
+		}
+		parent := pm.processes[process.ParentPID]
+		if parent != nil {
+			for i, child := range parent.Children {
+				if child == process {
+					parent.Children = append(parent.Children[:i], parent.Children[i+1:]...)
+					return
+				}
+			}
+		}
 	}
-	pm.mutex.Unlock()
 }
 
 // Cancel a process in the ProcessManager.
@@ -171,13 +193,28 @@ func (pm *Manager) Cancel(pid int64) {
 }
 
 // Processes gets the processes in a thread safe manner
-func (pm *Manager) Processes() []*Process {
+func (pm *Manager) Processes(onlyRoots bool) []*Process {
 	pm.mutex.Lock()
 	processes := make([]*Process, 0, len(pm.processes))
-	for _, process := range pm.processes {
-		processes = append(processes, process)
+	if onlyRoots {
+		for _, process := range pm.processes {
+			if process.ParentPID == 0 {
+				processes = append(processes, process)
+			}
+		}
+	} else {
+		for _, process := range pm.processes {
+			processes = append(processes, process)
+		}
 	}
 	pm.mutex.Unlock()
+
+	sort.Slice(processes, func(i, j int) bool {
+		left, right := processes[i], processes[j]
+
+		return left.Start.Before(right.Start)
+	})
+
 	sort.Sort(processList(processes))
 	return processes
 }
@@ -256,7 +293,13 @@ func (l processList) Len() int {
 }
 
 func (l processList) Less(i, j int) bool {
-	return l[i].PID < l[j].PID
+	if l[i].ParentPID < l[j].ParentPID {
+		return true
+	}
+	if l[i].ParentPID == l[j].ParentPID {
+		return l[i].PID < l[j].PID
+	}
+	return false
 }
 
 func (l processList) Swap(i, j int) {

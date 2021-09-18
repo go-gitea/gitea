@@ -65,33 +65,7 @@
 			</table>
 		</div>
 
-		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.monitor.process"}}
-		</h4>
-		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
-				<thead>
-					<tr>
-						<th>Pid</th>
-						<th>{{.i18n.Tr "admin.monitor.desc"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.start"}}</th>
-						<th>{{.i18n.Tr "admin.monitor.execute_time"}}</th>
-						<th></th>
-					</tr>
-				</thead>
-				<tbody>
-					{{range .Processes}}
-						<tr>
-							<td>{{.PID}}</td>
-							<td>{{.Description}}</td>
-							<td>{{DateFmtLong .Start}}</td>
-							<td>{{TimeSince .Start $.Lang}}</td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Description}}">{{svg "octicon-trash" 16 "text-red"}}</a></td>
-						</tr>
-					{{end}}
-				</tbody>
-			</table>
-		</div>
+		{{template "admin/process" .}}
 	</div>
 </div>
 <div class="ui small basic delete modal">
