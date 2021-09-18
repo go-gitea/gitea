@@ -35,7 +35,7 @@ func (repo *Repository) ResolveReference(name string) (string, error) {
 
 // GetRefCommitID returns the last commit ID string of given reference (branch or tag).
 func (repo *Repository) GetRefCommitID(name string) (string, error) {
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, _ = wr.Write([]byte(name + "\n"))
 	shaBs, _, _, err := ReadBatchLine(rd)
@@ -53,7 +53,7 @@ func (repo *Repository) IsCommitExist(name string) bool {
 }
 
 func (repo *Repository) getCommit(id SHA1) (*Commit, error) {
-	wr, rd, cancel := repo.CatFileBatch()
+	wr, rd, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	_, _ = wr.Write([]byte(id.String() + "\n"))
@@ -132,7 +132,7 @@ func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
 		}
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(commitID + "\n"))
 	if err != nil {

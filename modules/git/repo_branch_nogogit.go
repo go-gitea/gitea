@@ -23,7 +23,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
@@ -40,7 +40,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {

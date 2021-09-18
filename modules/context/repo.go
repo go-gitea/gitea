@@ -526,7 +526,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+	gitRepo, err := git.OpenRepositoryCtx(ctx, models.RepoPath(userName, repoName))
 	if err != nil {
 		ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
 		return
@@ -742,7 +742,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
 			if err != nil {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
