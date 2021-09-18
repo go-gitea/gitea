@@ -47,7 +47,7 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := db.WithTx(func(ctx db.Context) error {
+	if err := db.WithTx(func(ctx *db.Context) error {
 		repoPath := models.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
@@ -61,16 +61,16 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 			}
 		}
 
-		if err := models.CreateRepository(&ctx, doer, u, repo, true); err != nil {
+		if err := models.CreateRepository(ctx, doer, u, repo, true); err != nil {
 			return err
 		}
-		if err := adoptRepository(&ctx, repoPath, doer, repo, opts); err != nil {
+		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err := models.InitializeLabels(&ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err := models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				return fmt.Errorf("InitializeLabels: %v", err)
 			}
 		}

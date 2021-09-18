@@ -55,8 +55,8 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 	var rollbackRepo *models.Repository
 
-	if err := db.WithTx(func(ctx db.Context) error {
-		if err := models.CreateRepository(&ctx, doer, u, repo, false); err != nil {
+	if err := db.WithTx(func(ctx *db.Context) error {
+		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
 
@@ -86,7 +86,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			}
 		}
 
-		if err = initRepository(&ctx, repoPath, doer, repo, opts); err != nil {
+		if err = initRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			if err2 := util.RemoveAll(repoPath); err2 != nil {
 				log.Error("initRepository: %v", err)
 				return fmt.Errorf(
@@ -97,7 +97,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
-			if err = models.InitializeLabels(&ctx, repo.ID, opts.IssueLabels, false); err != nil {
+			if err = models.InitializeLabels(ctx, repo.ID, opts.IssueLabels, false); err != nil {
 				rollbackRepo = repo
 				rollbackRepo.OwnerID = u.ID
 				return fmt.Errorf("InitializeLabels: %v", err)

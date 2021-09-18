@@ -17,11 +17,11 @@ import (
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
 func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
-	return db.WithTx(func(ctx db.Context) error {
-		if err := models.PushUpdateDeleteTagsContext(&ctx, repo, delTags); err != nil {
+	return db.WithTx(func(ctx *db.Context) error {
+		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
 		}
-		return pushUpdateAddTags(&ctx, repo, gitRepo, addTags)
+		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
 	})
 }
 

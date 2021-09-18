@@ -95,7 +95,7 @@ func HashedAvatarLink(email string, size int) string {
 			Hash:  sum,
 		}
 		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
-		if err := db.WithTx(func(ctx db.Context) error {
+		if err := db.WithTx(func(ctx *db.Context) error {
 			has, err := ctx.Engine().Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
 			if has || err != nil {
 				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time

@@ -104,7 +104,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	}
 	defer commiter.Close()
 
-	archiver, err := models.GetRepoArchiver(&ctx, r.RepoID, r.Type, r.CommitID)
+	archiver, err := models.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 			CommitID: r.CommitID,
 			Status:   models.RepoArchiverGenerating,
 		}
-		if err := models.AddRepoArchiver(&ctx, archiver); err != nil {
+		if err := models.AddRepoArchiver(ctx, archiver); err != nil {
 			return nil, err
 		}
 	}
@@ -136,7 +136,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	if err == nil {
 		if archiver.Status == models.RepoArchiverGenerating {
 			archiver.Status = models.RepoArchiverReady
-			return archiver, models.UpdateRepoArchiverStatus(&ctx, archiver)
+			return archiver, models.UpdateRepoArchiverStatus(ctx, archiver)
 		}
 		return archiver, nil
 	}
@@ -202,7 +202,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 
 	if archiver.Status == models.RepoArchiverGenerating {
 		archiver.Status = models.RepoArchiverReady
-		if err = models.UpdateRepoArchiverStatus(&ctx, archiver); err != nil {
+		if err = models.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
 			return nil, err
 		}
 	}

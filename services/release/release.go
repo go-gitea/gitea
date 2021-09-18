@@ -195,18 +195,18 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	defer commiter.Close()
 
-	if err = models.UpdateRelease(&ctx, rel); err != nil {
+	if err = models.UpdateRelease(ctx, rel); err != nil {
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(&ctx, rel.ID, addAttachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(ctx, rel.ID, addAttachmentUUIDs); err != nil {
 		return fmt.Errorf("AddReleaseAttachments: %v", err)
 	}
 
 	var deletedUUIDsMap = make(map[string]bool)
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(&ctx, delAttachmentUUIDs)
+		attachments, err := models.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
 		if err != nil {
 			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
 		}
@@ -217,7 +217,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 			deletedUUIDsMap[attach.UUID] = true
 		}
 
-		if _, err := models.DeleteAttachments(&ctx, attachments, false); err != nil {
+		if _, err := models.DeleteAttachments(ctx, attachments, false); err != nil {
 			return fmt.Errorf("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
 		}
 	}
@@ -228,7 +228,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 			updateAttachmentsList = append(updateAttachmentsList, k)
 		}
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(&ctx, updateAttachmentsList)
+		attachments, err := models.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
 		if err != nil {
 			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", updateAttachmentsList, err)
 		}
@@ -240,7 +240,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 
 		for uuid, newName := range editAttachments {
 			if !deletedUUIDsMap[uuid] {
-				if err = models.UpdateAttachmentByUUID(&ctx, &models.Attachment{
+				if err = models.UpdateAttachmentByUUID(ctx, &models.Attachment{
 					UUID: uuid,
 					Name: newName,
 				}, "name"); err != nil {

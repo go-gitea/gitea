@@ -79,17 +79,17 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		panic(panicErr)
 	}()
 
-	err = db.WithTx(func(ctx db.Context) error {
-		if err = models.CreateRepository(&ctx, doer, owner, repo, false); err != nil {
+	err = db.WithTx(func(ctx *db.Context) error {
+		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
 			return err
 		}
 
-		if err = models.IncrementRepoForkNum(&ctx, opts.BaseRepo.ID); err != nil {
+		if err = models.IncrementRepoForkNum(ctx, opts.BaseRepo.ID); err != nil {
 			return err
 		}
 
 		// copy lfs files failure should not be ignored
-		if err = models.CopyLFS(&ctx, repo, opts.BaseRepo); err != nil {
+		if err = models.CopyLFS(ctx, repo, opts.BaseRepo); err != nil {
 			return err
 		}
 
@@ -136,8 +136,8 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(repo *models.Repository) error {
-	err := db.WithTx(func(ctx db.Context) error {
-		repo, err := models.GetRepositoryByIDCtx(&ctx, repo.ID)
+	err := db.WithTx(func(ctx *db.Context) error {
+		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err
 		}
@@ -146,7 +146,7 @@ func ConvertForkToNormalRepository(repo *models.Repository) error {
 			return nil
 		}
 
-		if err := models.DecrementRepoForkNum(&ctx, repo.ForkID); err != nil {
+		if err := models.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
 			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %v", repo.ForkID, repo, err)
 			return err
 		}
@@ -154,7 +154,7 @@ func ConvertForkToNormalRepository(repo *models.Repository) error {
 		repo.IsFork = false
 		repo.ForkID = 0
 
-		if err := models.UpdateRepositoryCtx(&ctx, repo, false); err != nil {
+		if err := models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
 			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
 			return err
 		}
