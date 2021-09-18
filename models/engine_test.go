@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package models
 
 import (
 	"io/ioutil"
@@ -10,13 +10,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDumpDatabase(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	dir, err := ioutil.TempDir(os.TempDir(), "dump")
 	assert.NoError(t, err)
@@ -25,10 +26,10 @@ func TestDumpDatabase(t *testing.T) {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	assert.NoError(t, x.Sync2(new(Version)))
+	assert.NoError(t, db.DefaultContext().Engine().Sync2(new(Version)))
 
 	for _, dbName := range setting.SupportedDatabases {
 		dbType := setting.GetDBTypeByName(dbName)
-		assert.NoError(t, DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
+		assert.NoError(t, db.DumpDatabase(filepath.Join(dir, dbType+".sql"), dbType))
 	}
 }
