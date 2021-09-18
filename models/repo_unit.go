@@ -24,6 +24,10 @@ type RepoUnit struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
+func init() {
+	db.RegisterModel(new(RepoUnit))
+}
+
 // UnitConfig describes common unit config
 type UnitConfig struct{}
 

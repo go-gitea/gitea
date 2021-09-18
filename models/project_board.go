@@ -48,6 +48,10 @@ type ProjectBoard struct {
 	Issues []*Issue `xorm:"-"`
 }
 
+func init() {
+	db.RegisterModel(new(ProjectBoard))
+}
+
 // IsProjectBoardTypeValid checks if the project board type is valid
 func IsProjectBoardTypeValid(p ProjectBoardType) bool {
 	switch p {

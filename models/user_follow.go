@@ -17,6 +17,10 @@ type Follow struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Follow))
+}
+
 // IsFollowing returns true if user is following followID.
 func IsFollowing(userID, followID int64) bool {
 	has, _ := db.DefaultContext().Engine().Get(&Follow{UserID: userID, FollowID: followID})

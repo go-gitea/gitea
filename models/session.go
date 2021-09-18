@@ -18,6 +18,10 @@ type Session struct {
 	Expiry timeutil.TimeStamp // has to be Expiry to match with go-chi/session
 }
 
+func init() {
+	db.RegisterModel(new(Session))
+}
+
 // UpdateSession updates the session with provided id
 func UpdateSession(key string, data []byte) error {
 	_, err := db.DefaultContext().Engine().ID(key).Update(&Session{

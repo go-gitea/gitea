@@ -22,6 +22,10 @@ type Stopwatch struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(Stopwatch))
+}
+
 // Seconds returns the amount of time passed since creation, based on local server time
 func (s Stopwatch) Seconds() int64 {
 	return int64(timeutil.TimeStampNow() - s.CreatedUnix)

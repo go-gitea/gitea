@@ -18,6 +18,10 @@ type RepoRedirect struct {
 	RedirectRepoID int64  // repoID to redirect to
 }
 
+func init() {
+	db.RegisterModel(new(RepoRedirect))
+}
+
 // LookupRepoRedirect look up if a repository has a redirect name
 func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 	repoName = strings.ToLower(repoName)

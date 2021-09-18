@@ -27,6 +27,10 @@ type GPGKeyImport struct {
 	Content string `xorm:"TEXT NOT NULL"`
 }
 
+func init() {
+	db.RegisterModel(new(GPGKeyImport))
+}
+
 // GetGPGImportByKeyID returns the import public armored key by given KeyID.
 func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
 	key := new(GPGKeyImport)

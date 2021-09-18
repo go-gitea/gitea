@@ -44,6 +44,10 @@ type GPGKey struct {
 	CanCertify        bool
 }
 
+func init() {
+	db.RegisterModel(new(GPGKey))
+}
+
 // BeforeInsert will be invoked by XORM before inserting a record
 func (key *GPGKey) BeforeInsert() {
 	key.AddedUnix = timeutil.TimeStampNow()

@@ -32,6 +32,10 @@ type RepoArchiver struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 }
 
+func init() {
+	db.RegisterModel(new(RepoArchiver))
+}
+
 // LoadRepo loads repository
 func (archiver *RepoArchiver) LoadRepo() (*Repository, error) {
 	if archiver.Repo != nil {

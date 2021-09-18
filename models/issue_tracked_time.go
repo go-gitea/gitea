@@ -26,6 +26,10 @@ type TrackedTime struct {
 	Deleted     bool      `xorm:"NOT NULL DEFAULT false"`
 }
 
+func init() {
+	db.RegisterModel(new(TrackedTime))
+}
+
 // TrackedTimeList is a List of TrackedTime's
 type TrackedTimeList []*TrackedTime
 

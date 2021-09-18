@@ -335,6 +335,10 @@ type OrgUser struct {
 	IsPublic bool  `xorm:"INDEX"`
 }
 
+func init() {
+	db.RegisterModel(new(OrgUser))
+}
+
 func isOrganizationOwner(e db.Engine, orgID, uid int64) (bool, error) {
 	ownerTeam, err := getOwnerTeam(e, orgID)
 	if err != nil {

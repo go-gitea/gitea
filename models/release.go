@@ -45,6 +45,10 @@ type Release struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
+func init() {
+	db.RegisterModel(new(Release))
+}
+
 func (r *Release) loadAttributes(e db.Engine) error {
 	var err error
 	if r.Repo == nil {

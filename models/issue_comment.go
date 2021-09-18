@@ -198,6 +198,10 @@ type Comment struct {
 	IsForcePush bool                      `xorm:"-"`
 }
 
+func init() {
+	db.RegisterModel(new(Comment))
+}
+
 // PushActionContent is content of push pull comment
 type PushActionContent struct {
 	IsForcePush bool     `json:"is_force_push"`

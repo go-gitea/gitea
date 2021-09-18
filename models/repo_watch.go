@@ -36,6 +36,10 @@ type Watch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(Watch))
+}
+
 // getWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found
 func getWatch(e db.Engine, userID, repoID int64) (Watch, error) {
 	watch := Watch{UserID: userID, RepoID: repoID}

@@ -38,6 +38,10 @@ type CommitStatus struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(CommitStatus))
+}
+
 func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = getRepositoryByID(e, status.RepoID)

@@ -68,6 +68,10 @@ type Notification struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated INDEX NOT NULL"`
 }
 
+func init() {
+	db.RegisterModel(new(Notification))
+}
+
 // FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
 type FindNotificationOptions struct {
 	ListOptions

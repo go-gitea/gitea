@@ -38,6 +38,13 @@ type Team struct {
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
 }
 
+func init() {
+	db.RegisterModel(new(Team))
+	db.RegisterModel(new(TeamUser))
+	db.RegisterModel(new(TeamRepo))
+	db.RegisterModel(new(TeamUnit))
+}
+
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
 	ListOptions

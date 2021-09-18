@@ -35,6 +35,10 @@ type Upload struct {
 	Name string
 }
 
+func init() {
+	db.RegisterModel(new(Upload))
+}
+
 // UploadLocalPath returns where uploads is stored in local file system based on given UUID.
 func UploadLocalPath(uuid string) string {
 	return path.Join(setting.Repository.Upload.TempPath, uuid[0:1], uuid[1:2], uuid)

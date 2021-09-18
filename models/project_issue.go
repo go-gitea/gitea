@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+
 	"xorm.io/xorm"
 )
 
@@ -19,6 +20,10 @@ type ProjectIssue struct {
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
+}
+
+func init() {
+	db.RegisterModel(new(ProjectIssue))
 }
 
 func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {

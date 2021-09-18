@@ -90,7 +90,8 @@ func init() {
 	issueTasksPat = regexp.MustCompile(issueTasksRegexpStr)
 	issueTasksDonePat = regexp.MustCompile(issueTasksDoneRegexpStr)
 
-	db.RegisterModel(new(IssueIndex), nil)
+	db.RegisterModel(new(Issue))
+	db.RegisterModel(new(IssueIndex))
 }
 
 func (issue *Issue) loadTotalTimes(e db.Engine) (err error) {

@@ -38,6 +38,12 @@ type OAuth2Application struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(OAuth2Application))
+	db.RegisterModel(new(OAuth2AuthorizationCode))
+	db.RegisterModel(new(OAuth2Grant))
+}
+
 // TableName sets the table name to `oauth2_application`
 func (app *OAuth2Application) TableName() string {
 	return "oauth2_application"

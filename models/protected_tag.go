@@ -29,6 +29,10 @@ type ProtectedTag struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
+func init() {
+	db.RegisterModel(new(ProtectedTag))
+}
+
 // InsertProtectedTag inserts a protected tag to database
 func InsertProtectedTag(pt *ProtectedTag) error {
 	_, err := db.DefaultContext().Engine().Insert(pt)

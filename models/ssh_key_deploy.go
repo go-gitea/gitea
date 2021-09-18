@@ -61,6 +61,10 @@ func (key *DeployKey) IsReadOnly() bool {
 	return key.Mode == AccessModeRead
 }
 
+func init() {
+	db.RegisterModel(new(DeployKey))
+}
+
 func checkDeployKey(e db.Engine, keyID, repoID int64, name string) error {
 	// Note: We want error detail, not just true or false here.
 	has, err := e.

@@ -33,6 +33,10 @@ type Notice struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Notice))
+}
+
 // TrStr returns a translation format string.
 func (n *Notice) TrStr() string {
 	return fmt.Sprintf("admin.notices.type_%d", n.Type)

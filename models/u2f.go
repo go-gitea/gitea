@@ -23,6 +23,10 @@ type U2FRegistration struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(U2FRegistration))
+}
+
 // TableName returns a better table name for U2FRegistration
 func (reg U2FRegistration) TableName() string {
 	return "u2f_registration"

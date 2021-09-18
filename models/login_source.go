@@ -119,6 +119,10 @@ type LoginSource struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(LoginSource))
+}
+
 // Cell2Int64 converts a xorm.Cell type to int64,
 // and handles possible irregular cases.
 func Cell2Int64(val xorm.Cell) int64 {

@@ -25,6 +25,10 @@ type EmailHash struct {
 	Email string `xorm:"UNIQUE NOT NULL"`
 }
 
+func init() {
+	db.RegisterModel(new(EmailHash))
+}
+
 // DefaultAvatarLink the default avatar link
 func DefaultAvatarLink() string {
 	u, err := url.Parse(setting.AppSubURL)

@@ -33,6 +33,10 @@ type PushMirror struct {
 	LastError      string             `xorm:"text"`
 }
 
+func init() {
+	db.RegisterModel(new(PushMirror))
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (m *PushMirror) AfterLoad(session *xorm.Session) {
 	if m == nil {

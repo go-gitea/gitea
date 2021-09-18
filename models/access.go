@@ -72,6 +72,10 @@ type Access struct {
 	Mode   AccessMode
 }
 
+func init() {
+	db.RegisterModel(new(Access))
+}
+
 func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) {
 	mode := AccessModeNone
 	var userID int64

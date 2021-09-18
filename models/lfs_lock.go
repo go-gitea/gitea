@@ -27,6 +27,10 @@ type LFSLock struct {
 	Created time.Time   `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(LFSLock))
+}
+
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
 	l.OwnerID = l.Owner.ID

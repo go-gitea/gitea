@@ -85,6 +85,10 @@ type PullRequest struct {
 	Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 }
 
+func init() {
+	db.RegisterModel(new(PullRequest))
+}
+
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {

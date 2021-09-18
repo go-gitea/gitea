@@ -19,6 +19,10 @@ type IssueWatch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
+func init() {
+	db.RegisterModel(new(IssueWatch))
+}
+
 // IssueWatchList contains IssueWatch
 type IssueWatchList []*IssueWatch
 

@@ -35,6 +35,10 @@ type ExternalLoginUser struct {
 	ExpiresAt         time.Time
 }
 
+func init() {
+	db.RegisterModel(new(ExternalLoginUser))
+}
+
 // GetExternalLogin checks if a externalID in loginSourceID scope already exists
 func GetExternalLogin(externalLoginUser *ExternalLoginUser) (bool, error) {
 	return db.DefaultContext().Engine().Get(externalLoginUser)

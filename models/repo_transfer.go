@@ -29,6 +29,10 @@ type RepoTransfer struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
 }
 
+func init() {
+	db.RegisterModel(new(RepoTransfer))
+}
+
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes() error {
 	if r.Recipient == nil {

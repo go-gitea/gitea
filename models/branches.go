@@ -50,6 +50,11 @@ type ProtectedBranch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
+func init() {
+	db.RegisterModel(new(ProtectedBranch))
+	db.RegisterModel(new(DeletedBranch))
+}
+
 // IsProtected returns if the branch is protected
 func (protectBranch *ProtectedBranch) IsProtected() bool {
 	return protectBranch.ID > 0

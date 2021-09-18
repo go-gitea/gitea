@@ -21,6 +21,10 @@ type IssueDependency struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
 
+func init() {
+	db.RegisterModel(new(IssueDependency))
+}
+
 // DependencyType Defines Dependency Type Constants
 type DependencyType int
 

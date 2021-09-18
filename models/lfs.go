@@ -23,6 +23,10 @@ type LFSMetaObject struct {
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(LFSMetaObject))
+}
+
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
 // This structure is fetched via SSH and passed by the Git LFS client to the server
 // endpoint for authorization.

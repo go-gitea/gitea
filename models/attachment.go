@@ -31,6 +31,10 @@ type Attachment struct {
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(Attachment))
+}
+
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
 	// Update download count.

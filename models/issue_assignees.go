@@ -20,6 +20,10 @@ type IssueAssignees struct {
 	IssueID    int64 `xorm:"INDEX"`
 }
 
+func init() {
+	db.RegisterModel(new(IssueAssignees))
+}
+
 // LoadAssignees load assignees of this issue.
 func (issue *Issue) LoadAssignees() error {
 	return issue.loadAssignees(db.DefaultContext().Engine())

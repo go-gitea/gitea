@@ -43,6 +43,10 @@ type Milestone struct {
 	TimeSinceUpdate  int64 `xorm:"-"`
 }
 
+func init() {
+	db.RegisterModel(new(Milestone))
+}
+
 // BeforeUpdate is invoked from XORM before updating this object.
 func (m *Milestone) BeforeUpdate() {
 	if m.NumIssues > 0 {

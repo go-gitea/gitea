@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -99,7 +98,7 @@ func GlobalInit(ctx context.Context) {
 	} else if setting.Database.UseSQLite3 {
 		log.Fatal("SQLite3 is set in settings but NOT Supported")
 	}
-	if err := db.InitEngine(ctx); err == nil {
+	if err := models.InitEngine(ctx); err == nil {
 		log.Info("ORM engine initialization successful!")
 	} else {
 		log.Fatal("ORM engine initialization failed: %v", err)

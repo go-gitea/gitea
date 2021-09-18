@@ -19,6 +19,10 @@ type IssueUser struct {
 	IsMentioned bool
 }
 
+func init() {
+	db.RegisterModel(new(IssueUser))
+}
+
 func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
 	assignees, err := repo.getAssignees(e)
 	if err != nil {

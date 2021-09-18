@@ -43,6 +43,11 @@ type Label struct {
 	IsExcluded        bool   `xorm:"-"`
 }
 
+func init() {
+	db.RegisterModel(new(Label))
+	db.RegisterModel(new(IssueLabel))
+}
+
 // GetLabelTemplateFile loads the label template file by given name,
 // then parses and returns a list of name-color pairs and optionally description.
 func GetLabelTemplateFile(name string) ([][3]string, error) {

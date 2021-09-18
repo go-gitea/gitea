@@ -23,6 +23,10 @@ type UserOpenID struct {
 	Show bool   `xorm:"DEFAULT false"`
 }
 
+func init() {
+	db.RegisterModel(new(UserOpenID))
+}
+
 // GetUserOpenIDs returns all openid addresses that belongs to given user.
 func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	openids := make([]*UserOpenID, 0, 5)

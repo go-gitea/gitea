@@ -17,6 +17,10 @@ type Star struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Star))
+}
+
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
 	sess := db.DefaultContext().NewSession()

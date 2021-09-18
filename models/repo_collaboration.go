@@ -24,6 +24,10 @@ type Collaboration struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(Collaboration))
+}
+
 func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,

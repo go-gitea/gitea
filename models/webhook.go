@@ -160,6 +160,11 @@ type Webhook struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(Webhook))
+	db.RegisterModel(new(HookTask))
+}
+
 // AfterLoad updates the webhook object upon setting a column
 func (w *Webhook) AfterLoad() {
 	w.HookEvent = &HookEvent{}

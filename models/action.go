@@ -75,6 +75,10 @@ type Action struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Action))
+}
+
 // GetOpType gets the ActionType of this action.
 func (a *Action) GetOpType() ActionType {
 	return a.OpType

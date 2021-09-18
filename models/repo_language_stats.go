@@ -27,6 +27,10 @@ type LanguageStat struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
+func init() {
+	db.RegisterModel(new(LanguageStat))
+}
+
 // LanguageStatList defines a list of language statistics
 type LanguageStatList []*LanguageStat
 

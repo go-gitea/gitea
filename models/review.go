@@ -78,6 +78,10 @@ type Review struct {
 	Comments []*Comment `xorm:"-"`
 }
 
+func init() {
+	db.RegisterModel(new(Review))
+}
+
 func (r *Review) loadCodeComments(e db.Engine) (err error) {
 	if r.CodeComments != nil {
 		return

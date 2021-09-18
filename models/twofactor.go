@@ -33,6 +33,10 @@ type TwoFactor struct {
 	UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(TwoFactor))
+}
+
 // GenerateScratchToken recreates the scratch token the user is using.
 func (t *TwoFactor) GenerateScratchToken() (string, error) {
 	token, err := util.RandomString(8)

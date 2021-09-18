@@ -30,6 +30,10 @@ type RepoIndexerStatus struct {
 	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 }
 
+func init() {
+	db.RegisterModel(new(RepoIndexerStatus))
+}
+
 // GetUnindexedRepos returns repos which do not have an indexer status
 func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
 	ids := make([]int64, 0, 50)

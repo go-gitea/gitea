@@ -29,6 +29,10 @@ type Reaction struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Reaction))
+}
+
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
 	ListOptions

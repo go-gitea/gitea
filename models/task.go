@@ -37,6 +37,10 @@ type Task struct {
 	Created        timeutil.TimeStamp `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(Task))
+}
+
 // TranslatableMessage represents JSON struct that can be translated with a Locale
 type TranslatableMessage struct {
 	Format string

@@ -56,6 +56,10 @@ type Project struct {
 	ClosedDateUnix timeutil.TimeStamp
 }
 
+func init() {
+	db.RegisterModel(new(Project))
+}
+
 // GetProjectsConfig retrieves the types of configurations projects could have
 func GetProjectsConfig() []ProjectsConfig {
 	return []ProjectsConfig{

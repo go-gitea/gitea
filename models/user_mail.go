@@ -29,6 +29,10 @@ type EmailAddress struct {
 	IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
 }
 
+func init() {
+	db.RegisterModel(new(EmailAddress))
+}
+
 // BeforeInsert will be invoked by XORM before inserting a record
 func (email *EmailAddress) BeforeInsert() {
 	if email.LowerEmail == "" {

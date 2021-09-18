@@ -7,7 +7,7 @@ package install
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -41,7 +41,7 @@ func ReloadSettings(ctx context.Context) {
 	setting.NewContext()
 	setting.InitDBConfig()
 	if setting.InstallLock {
-		if err := db.InitEngine(ctx); err == nil {
+		if err := models.InitEngine(ctx); err == nil {
 			log.Info("ORM engine initialization successful!")
 		} else {
 			log.Fatal("ORM engine initialization failed: %v", err)

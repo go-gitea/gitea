@@ -38,6 +38,10 @@ type Mirror struct {
 	Address string `xorm:"-"`
 }
 
+func init() {
+	db.RegisterModel(new(Mirror))
+}
+
 // BeforeInsert will be invoked by XORM before inserting a record
 func (m *Mirror) BeforeInsert() {
 	if m != nil {
