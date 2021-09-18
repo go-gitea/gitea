@@ -317,27 +317,27 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: string
 	// - name: since
 	//   in: query
-	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show items updated after the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
 	//   required: false
 	// - name: before
 	//   in: query
-	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show items updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
 	//   required: false
 	// - name: created_by
 	//   in: query
-	//   description: filter (issues / pulls) created to
+	//   description: Only show items which were created by the the given user
 	//   type: string
 	// - name: assigned_by
 	//   in: query
-	//   description: filter (issues / pulls) assigned to
+	//   description: Only show items for which the given user is assigned
 	//   type: string
 	// - name: mentioned_by
 	//   in: query
-	//   description: filter (issues / pulls) mentioning to
+	//   description: Only show items in which the given user was mentioned
 	//   type: string
 	// - name: page
 	//   in: query
