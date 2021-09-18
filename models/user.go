@@ -334,7 +334,7 @@ func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		return users, sess.Find(&users)
@@ -356,7 +356,7 @@ func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		return users, sess.Find(&users)
@@ -1062,9 +1062,9 @@ func checkDupEmail(e Engine, u *User) error {
 	return nil
 }
 
-// validateUser check if user is valide to insert / update into database
+// validateUser check if user is valid to insert / update into database
 func validateUser(u *User) error {
-	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) {
+	if !setting.Service.AllowedUserVisibilityModesSlice.IsAllowedVisibility(u.Visibility) && !u.IsOrganization() {
 		return fmt.Errorf("visibility Mode not allowed: %s", u.Visibility.String())
 	}
 
@@ -1703,7 +1703,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
 	if opts.Page != 0 {
-		sessQuery = opts.setSessionPagination(sessQuery)
+		sessQuery = setSessionPagination(sessQuery, opts)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
@@ -1719,7 +1719,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
 		return repos, sess.Find(&repos)
@@ -1739,7 +1739,7 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &listOptions)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&repos)

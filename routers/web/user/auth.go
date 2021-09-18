@@ -175,7 +175,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.SignInForm)
-	u, err := auth.UserSignIn(form.UserName, form.Password)
+	u, source, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -201,6 +201,15 @@ func SignInPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	// Now handle 2FA:
+
+	// First of all if the source can skip local two fa we're done
+	if skipper, ok := source.Cfg.(auth.LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+		handleSignIn(ctx, u, form.Remember)
+		return
+	}
+
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
 	_, err = models.GetTwoFactorByUID(u.ID)
@@ -574,7 +583,7 @@ func SignInOAuth(ctx *context.Context) {
 	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
-		handleOAuth2SignIn(ctx, user, gothUser)
+		handleOAuth2SignIn(ctx, loginSource, user, gothUser)
 		return
 	}
 
@@ -660,7 +669,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 		}
 	}
 
-	handleOAuth2SignIn(ctx, u, gothUser)
+	handleOAuth2SignIn(ctx, loginSource, u, gothUser)
 }
 
 func getUserName(gothUser *goth.User) string {
@@ -702,18 +711,22 @@ func updateAvatarIfNeed(url string, u *models.User) {
 	}
 }
 
-func handleOAuth2SignIn(ctx *context.Context, u *models.User, gothUser goth.User) {
+func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *models.User, gothUser goth.User) {
 	updateAvatarIfNeed(gothUser.AvatarURL, u)
 
-	// If this user is enrolled in 2FA, we can't sign the user in just yet.
-	// Instead, redirect them to the 2FA authentication page.
-	_, err := models.GetTwoFactorByUID(u.ID)
-	if err != nil {
-		if !models.IsErrTwoFactorNotEnrolled(err) {
+	needs2FA := false
+	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
+		_, err := models.GetTwoFactorByUID(u.ID)
+		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
+		needs2FA = err == nil
+	}
 
+	// If this user is enrolled in 2FA and this source doesn't override it,
+	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
+	if !needs2FA {
 		if err := ctx.Session.Set("uid", u.ID); err != nil {
 			log.Error("Error setting uid in session: %v", err)
 		}
@@ -901,7 +914,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	u, err := auth.UserSignIn(signInForm.UserName, signInForm.Password)
+	u, _, err := auth.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Data["user_exists"] = true
@@ -920,6 +933,7 @@ func linkAccount(ctx *context.Context, u *models.User, gothUser goth.User, remem
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
+	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
 	_, err := models.GetTwoFactorByUID(u.ID)
 	if err != nil {
 		if !models.IsErrTwoFactorNotEnrolled(err) {

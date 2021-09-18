@@ -65,7 +65,7 @@ func (repo *Repository) getCollaborations(e Engine, listOptions ListOptions) ([]
 		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 	}
 
-	e = listOptions.setEnginePagination(e)
+	e = setEnginePagination(e, &listOptions)
 
 	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
 	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})

@@ -30,7 +30,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
-	assert.EqualValues(t, &base.Repository{
+	assertRepositoryEqual(t, &base.Repository{
 		Name:        "go-gitea-test_repo",
 		Owner:       "",
 		Description: "Test repository for testing migration from OneDev to gitea",
@@ -40,9 +40,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 
 	milestones, err := downloader.GetMilestones()
 	assert.NoError(t, err)
-	assert.Len(t, milestones, 2)
 	deadline := time.Unix(1620086400, 0)
-	assert.EqualValues(t, []*base.Milestone{
+	assertMilestonesEqual(t, []*base.Milestone{
 		{
 			Title:    "1.0.0",
 			Deadline: &deadline,
@@ -60,9 +59,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 
 	issues, isEnd, err := downloader.GetIssues(1, 2)
 	assert.NoError(t, err)
-	assert.Len(t, issues, 2)
 	assert.False(t, isEnd)
-	assert.EqualValues(t, []*base.Issue{
+	assertIssuesEqual(t, []*base.Issue{
 		{
 			Number:     4,
 			Title:      "Hi there",
@@ -112,21 +110,19 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, comments, 1)
-	assert.EqualValues(t, []*base.Comment{
+	assertCommentsEqual(t, []*base.Comment{
 		{
 			IssueIndex: 4,
 			PosterName: "User 336",
 			Created:    time.Unix(1628549791, 128000000),
 			Updated:    time.Unix(1628549791, 128000000),
-			Content:    "it has a comment\r\n\r\nEDIT: that got edited",
+			Content:    "it has a comment\n\nEDIT: that got edited",
 		},
 	}, comments)
 
 	prs, _, err := downloader.GetPullRequests(1, 1)
 	assert.NoError(t, err)
-	assert.Len(t, prs, 1)
-	assert.EqualValues(t, []*base.PullRequest{
+	assertPullRequestsEqual(t, []*base.PullRequest{
 		{
 			Number:     5,
 			Title:      "Pull to add a new file",
@@ -158,8 +154,7 @@ func TestOneDevDownloadRepo(t *testing.T) {
 		localID:   5,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, rvs, 1)
-	assert.EqualValues(t, []*base.Review{
+	assertReviewsEqual(t, []*base.Review{
 		{
 			IssueIndex:   5,
 			ReviewerName: "User 317",
