@@ -26,6 +26,7 @@ type SearchResult struct {
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
 	IsRestricted bool     // if user is restricted
+	LowerName    string   // Lowername
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -156,7 +157,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 	sr, err := l.Search(search)
 
 	if err != nil {
-		log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Admin Search with filter %s for %s failed unexpectedly! (%v)", ls.AdminFilter, userDN, err)
 	} else if len(sr.Entries) < 1 {
 		log.Trace("LDAP Admin Search found no matching entries.")
 	} else {
@@ -181,7 +182,7 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 	sr, err := l.Search(search)
 
 	if err != nil {
-		log.Error("LDAP Restrictred Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Restrictred Search with filter %s for %s failed unexpectedly! (%v)", ls.RestrictedFilter, userDN, err)
 	} else if len(sr.Entries) < 1 {
 		log.Trace("LDAP Restricted Search found no matching entries.")
 	} else {
@@ -363,6 +364,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	return &SearchResult{
+		LowerName:    strings.ToLower(username),
 		Username:     username,
 		Name:         firstname,
 		Surname:      surname,
@@ -440,6 +442,8 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
+		result[i].LowerName = strings.ToLower(result[i].Username)
+
 	}
 
 	return result, nil

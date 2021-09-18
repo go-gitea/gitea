@@ -70,7 +70,7 @@
 
 		</div>
 
-		{{if or .Repository.IsMirror (not .DisabledMirrors)}}
+		{{if .MirrorsEnabled}}
 			<h4 class="ui top attached header">
 				{{.i18n.Tr "repo.settings.mirror_settings"}}
 			</h4>
@@ -170,7 +170,7 @@
 							{{$address := MirrorRemoteAddress .}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label" data-tooltip="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label poping up" data-content="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}
@@ -191,42 +191,44 @@
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.none"}}</td>
 						</tr>
 						{{end}}
-						<tr>
-							<td colspan="4">
-								<form class="ui form" method="post">
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="action" value="push-mirror-add">
-									<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
-										<label for="push_mirror_address">{{.i18n.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
-										<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" autocomplete="off" required>
-										<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
-									</div>
-									<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
-										<summary class="p-2">
-											{{.i18n.Tr "repo.need_auth"}}
-										</summary>
-										<div class="p-2">
-											<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-												<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
-												<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
-											</div>
-											<input class="fake" type="password">
-											<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
-												<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
-												<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
-											</div>
+						{{if (not .DisableNewPushMirrors)}}
+							<tr>
+								<td colspan="4">
+									<form class="ui form" method="post">
+										{{.CsrfTokenHtml}}
+										<input type="hidden" name="action" value="push-mirror-add">
+										<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
+											<label for="push_mirror_address">{{.i18n.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
+											<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" autocomplete="off" required>
+											<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 										</div>
-									</details>
-									<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
-										<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
-										<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
-									</div>
-									<div class="field">
-										<button class="ui green button">{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
-									</div>
-								</form>
-							</td>
-						</tr>
+										<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
+											<summary class="p-2">
+												{{.i18n.Tr "repo.need_auth"}}
+											</summary>
+											<div class="p-2">
+												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+													<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
+													<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+												</div>
+												<input class="fake" type="password">
+												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
+													<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
+													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+												</div>
+											</div>
+										</details>
+										<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
+											<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+											<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
+										</div>
+										<div class="field">
+											<button class="ui green button">{{$.i18n.Tr "repo.settings.mirror_settings.push_mirror.add"}}</button>
+										</div>
+									</form>
+								</td>
+							</tr>
+						{{end}}
 					</tbody>
 				</table>
 			</div>

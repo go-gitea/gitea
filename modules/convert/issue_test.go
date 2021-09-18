@@ -5,10 +5,12 @@
 package convert
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -18,11 +20,13 @@ import (
 func TestLabel_ToLabel(t *testing.T) {
 	assert.NoError(t, models.PrepareTestDatabase())
 	label := models.AssertExistsAndLoadBean(t, &models.Label{ID: 1}).(*models.Label)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: label.RepoID}).(*models.Repository)
 	assert.Equal(t, &api.Label{
 		ID:    label.ID,
 		Name:  label.Name,
 		Color: "abcdef",
-	}, ToLabel(label))
+		URL:   fmt.Sprintf("%sapi/v1/repos/user2/repo1/labels/%d", setting.AppURL, label.ID),
+	}, ToLabel(label, repo, nil))
 }
 
 func TestMilestone_APIFormat(t *testing.T) {
