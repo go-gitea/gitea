@@ -156,7 +156,7 @@ func testAnswers(baseURLContent, baseURLImages string) []string {
 </tbody>
 </table>
 `,
-		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS db.DefaultContext().Engine().</p>
+		`<p><a href="http://www.excelsiorjet.com/" rel="nofollow">Excelsior JET</a> allows you to create native executables for Windows, Linux and Mac OS X.</p>
 <ol>
 <li><a href="https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop" rel="nofollow">Package your libGDX application</a><br/>
 <a href="` + baseURLImages + `/images/1.png" rel="nofollow"><img src="` + baseURLImages + `/images/1.png" title="1.png" alt="images/1.png"/></a></li>
@@ -227,7 +227,7 @@ Here are some links to the most important topics. You can find the full list of 
 | [[images/icon-usage.png]]      | [[Usage]]                                                |
 `,
 	// libgdx wiki page: inline images with special syntax
-	`[Excelsior JET](http://www.excelsiorjet.com/) allows you to create native executables for Windows, Linux and Mac OS db.DefaultContext().Engine().
+	`[Excelsior JET](http://www.excelsiorjet.com/) allows you to create native executables for Windows, Linux and Mac OS X.
 
 1. [Package your libGDX application](https://github.com/libgdx/libgdx/wiki/Gradle-on-the-Commandline#packaging-for-the-desktop)
 [[images/1.png]]
