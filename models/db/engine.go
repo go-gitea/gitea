@@ -70,10 +70,12 @@ type Engine interface {
 	Cols(...string) *xorm.Session
 }
 
+// TableInfo returns table's information via an object
 func TableInfo(v interface{}) (*schemas.Table, error) {
 	return x.TableInfo(v)
 }
 
+// DumpTables dump tables information
 func DumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) error {
 	return x.DumpTables(tables, w, tp...)
 }

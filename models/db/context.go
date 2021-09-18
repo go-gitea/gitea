@@ -21,6 +21,7 @@ func (ctx *Context) Engine() Engine {
 	return ctx.e
 }
 
+// NewSession returns a new session
 func (ctx *Context) NewSession() *xorm.Session {
 	e, ok := ctx.e.(*xorm.Engine)
 	if ok {

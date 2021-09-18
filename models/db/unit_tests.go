@@ -32,6 +32,7 @@ var (
 	fixturesDir string
 )
 
+// FixturesDir returns the fixture directory
 func FixturesDir() string {
 	return fixturesDir
 }
