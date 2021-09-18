@@ -16,6 +16,9 @@ ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql/indexers/issues.q
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mysql/indexers/repos.bleve
 
+[queue]
+TYPE = immediate
+
 [queue.code_indexer]
 TYPE = immediate
 

@@ -524,21 +524,6 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 	return repo.DocumentRenderingMetas
 }
 
-// DeleteWiki removes the actual and local copy of repository wiki.
-func (repo *Repository) DeleteWiki() error {
-	return repo.deleteWiki(x)
-}
-
-func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath()}
-	for _, wikiPath := range wikiPaths {
-		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
-	}
-
-	_, err := e.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
-	return err
-}
-
 func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
@@ -1224,6 +1209,12 @@ func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
 	return err
 }
 
+// DecrementRepoForkNum decrement repository fork number
+func DecrementRepoForkNum(ctx DBContext, repoID int64) error {
+	_, err := ctx.e.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repoID)
+	return err
+}
+
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
 func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
@@ -1574,21 +1565,13 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	// FIXME: Remove repository files should be executed after transaction succeed.
-	repoPath := repo.RepoPath()
-	removeAllWithNotice(sess, "Delete repository files", repoPath)
-
-	err = repo.deleteWiki(sess)
-	if err != nil {
-		return err
-	}
-
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
+	var lfsPaths = make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
 		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
@@ -1598,7 +1581,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
+		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
@@ -1611,10 +1594,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	var archivePaths = make([]string, 0, len(archives))
 	for _, v := range archives {
 		v.Repo = repo
 		p, _ := v.RelativePath()
-		removeStorageWithNotice(sess, storage.RepoArchives, "Delete repo archive file", p)
+		archivePaths = append(archivePaths, p)
 	}
 
 	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
@@ -1627,6 +1611,25 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
+	// Get all attachments with both issue_id and release_id are zero
+	var newAttachments []*Attachment
+	if err := sess.Where(builder.Eq{
+		"repo_id":    repo.ID,
+		"issue_id":   0,
+		"release_id": 0,
+	}).Find(&newAttachments); err != nil {
+		return err
+	}
+
+	var newAttachmentPaths = make([]string, 0, len(newAttachments))
+	for _, attach := range newAttachments {
+		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
+	}
+
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(Attachment)); err != nil {
+		return err
+	}
+
 	if err = sess.Commit(); err != nil {
 		return err
 	}
@@ -1636,6 +1639,25 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// We should always delete the files after the database transaction succeed. If
 	// we delete the file but the database rollback, the repository will be broken.
 
+	// Remove repository files.
+	repoPath := repo.RepoPath()
+	removeAllWithNotice(x, "Delete repository files", repoPath)
+
+	// Remove wiki files
+	if repo.HasWiki() {
+		removeAllWithNotice(x, "Delete repository wiki", repo.WikiPath())
+	}
+
+	// Remove archives
+	for i := range archivePaths {
+		removeStorageWithNotice(x, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+	}
+
+	// Remove lfs objects
+	for i := range lfsPaths {
+		removeStorageWithNotice(x, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+	}
+
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
 		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
@@ -1644,6 +1666,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	// Remove release attachment files.
 	for i := range releaseAttachments {
 		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+	}
+
+	// Remove attachment with no issue_id and release_id.
+	for i := range newAttachmentPaths {
+		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1743,7 +1770,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, count, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, setSessionPagination(sess, opts).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -2034,7 +2061,7 @@ func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error)
 		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
-	sess := listOptions.getPaginatedSession()
+	sess := getPaginatedSession(&listOptions)
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }

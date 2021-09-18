@@ -195,7 +195,7 @@ func findReviews(e Engine, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 	sess := e.Where(opts.toCond())
 	if opts.Page > 0 {
-		sess = opts.ListOptions.setSessionPagination(sess)
+		sess = setSessionPagination(sess, &opts)
 	}
 	return reviews, sess.
 		Asc("created_unix").

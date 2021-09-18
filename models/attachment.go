@@ -5,16 +5,13 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"path"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
@@ -22,8 +19,9 @@ import (
 type Attachment struct {
 	ID            int64  `xorm:"pk autoincr"`
 	UUID          string `xorm:"uuid UNIQUE"`
-	IssueID       int64  `xorm:"INDEX"`
-	ReleaseID     int64  `xorm:"INDEX"`
+	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
@@ -81,23 +79,6 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 	return nil, -1, nil
 }
 
-// NewAttachment creates a new attachment object.
-func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
-	attach.UUID = gouuid.New().String()
-
-	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file), -1)
-	if err != nil {
-		return nil, fmt.Errorf("Create: %v", err)
-	}
-	attach.Size = size
-
-	if _, err := x.Insert(attach); err != nil {
-		return nil, err
-	}
-
-	return attach, nil
-}
-
 // GetAttachmentByID returns attachment by given id
 func GetAttachmentByID(id int64) (*Attachment, error) {
 	return getAttachmentByID(x, id)
@@ -142,6 +123,11 @@ func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
 // GetAttachmentByUUID returns attachment by given UUID.
 func GetAttachmentByUUID(uuid string) (*Attachment, error) {
 	return getAttachmentByUUID(x, uuid)
+}
+
+// ExistAttachmentsByUUID returns true if attachment is exist by given UUID
+func ExistAttachmentsByUUID(uuid string) (bool, error) {
+	return x.Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
@@ -285,4 +271,17 @@ func IterateAttachment(f func(attach *Attachment) error) error {
 			}
 		}
 	}
+}
+
+// CountOrphanedAttachments returns the number of bad attachments
+func CountOrphanedAttachments() (int64, error) {
+	return x.Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+		Count(new(Attachment))
+}
+
+// DeleteOrphanedAttachments delete all bad attachments
+func DeleteOrphanedAttachments() error {
+	_, err := x.Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+		Delete(new(Attachment))
+	return err
 }
