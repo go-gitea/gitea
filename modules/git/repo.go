@@ -425,25 +425,21 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	}
 	defer os.RemoveAll(tmp)
 
-	branchName := "bundle-" + commit[:8]
-	if err := repo.CreateBranch(branchName, commit); err != nil {
-		return err
-	}
-
-	tmpFile := filepath.Join(tmp, "bundle")
-	args := []string{
-		"bundle",
-		"create",
-		tmpFile,
-		branchName,
-	}
-
-	_, err = NewCommandContext(ctx, args...).RunInDir(repo.Path)
+	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
+	_, err = NewCommandContext(ctx, "init", "--bare").RunInDirWithEnv(tmp, env)
 	if err != nil {
 		return err
 	}
 
-	if err := repo.DeleteBranch(branchName, DeleteBranchOptions{Force: true}); err != nil {
+	branchName := "main"
+	_, err = NewCommandContext(ctx, "branch", branchName, commit).RunInDirWithEnv(tmp, env)
+	if err != nil {
+		return err
+	}
+
+	tmpFile := filepath.Join(tmp, "bundle")
+	_, err = NewCommandContext(ctx, "bundle", "create", tmpFile, branchName).RunInDirWithEnv(tmp, env)
+	if err != nil {
 		return err
 	}
 
