@@ -7,6 +7,7 @@ package models
 import (
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/keybase/go-crypto/openpgp"
@@ -28,7 +29,7 @@ import (
 // This file contains functions relating to adding GPG Keys
 
 // addGPGKey add key, import and subkeys to database
-func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
+func addGPGKey(e db.Engine, key *GPGKey, content string) (err error) {
 	// Add GPGKeyImport
 	if _, err = e.Insert(GPGKeyImport{
 		KeyID:   key.KeyID,
@@ -50,7 +51,7 @@ func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
 }
 
 // addGPGSubKey add subkeys to database
-func addGPGSubKey(e Engine, key *GPGKey) (err error) {
+func addGPGSubKey(e db.Engine, key *GPGKey) (err error) {
 	// Save GPG primary key.
 	if _, err = e.Insert(key); err != nil {
 		return err
@@ -71,11 +72,12 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		return nil, err
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+
 	keys := make([]*GPGKey, 0, len(ekeys))
 
 	verified := false
@@ -101,7 +103,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 	for _, ekey := range ekeys {
 		// Key ID cannot be duplicated.
-		has, err := sess.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
+		has, err := ctx.Engine().Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
 			Get(new(GPGKey))
 		if err != nil {
 			return nil, err
@@ -116,10 +118,10 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			return nil, err
 		}
 
-		if err = addGPGKey(sess, key, content); err != nil {
+		if err = addGPGKey(ctx.Engine(), key, content); err != nil {
 			return nil, err
 		}
 		keys = append(keys, key)
 	}
-	return keys, sess.Commit()
+	return keys, committer.Commit()
 }

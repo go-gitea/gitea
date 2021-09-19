@@ -214,6 +214,10 @@ func (ctx *APIContext) RequireCSRF() {
 
 // CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
+	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
+		return // Skip 2FA
+	}
+
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
 	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {

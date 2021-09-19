@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -17,9 +18,9 @@ import (
 )
 
 func TestMigrateLocalPath(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	adminUser := models.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
+	adminUser := db.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = true

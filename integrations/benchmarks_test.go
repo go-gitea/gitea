@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -32,7 +33,7 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 
 		for _, repoID := range samples {
 			b.StopTimer()
-			repo := models.AssertExistsAndLoadBean(b, &models.Repository{ID: repoID}).(*models.Repository)
+			repo := db.AssertExistsAndLoadBean(b, &models.Repository{ID: repoID}).(*models.Repository)
 			b.StartTimer()
 			b.Run(repo.Name, func(b *testing.B) {
 				session := loginUser(b, "user2")

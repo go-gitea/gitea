@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 )
@@ -110,7 +111,7 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 	}
 
 	return func(t *testing.T) {
-		user := models.AssertExistsAndLoadBean(t, &models.User{
+		user := db.AssertExistsAndLoadBean(t, &models.User{
 			Name: username,
 		}).(*models.User)
 
