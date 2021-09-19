@@ -214,11 +214,11 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
-// DownloadCommitDiff render a commit's raw diff
-func DownloadCommitDiff(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.diff repository repoDownloadCommitDiff
+// DownloadCommitDiffOrPatch render a commit's raw diff or patch
+func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.{diffType} repository repoDownloadCommitDiffOrPatch
 	// ---
-	// summary: Get a commit diff
+	// summary: Get a commit's diff or patch
 	// produces:
 	// - text/plain
 	// parameters:
@@ -237,52 +237,22 @@ func DownloadCommitDiff(ctx *context.APIContext) {
 	//   description: SHA of the commit to get
 	//   type: string
 	//   required: true
+	// - name: diffType
+	//	 in: path
+	//	 description: whether the output is diff or patch
+	//	 type: string
+	//	 enum: [diff, patch]
+	//	 required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	DownloadCommitDiffOrPatch(ctx, "diff")
-}
-
-// DownloadCommitPatch render a commit's raw patch
-func DownloadCommitPatch(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.patch repository repoDownloadCommitPatch
-	// ---
-	// summary: Get a commit patch
-	// produces:
-	// - text/plain
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: sha
-	//   in: path
-	//   description: SHA of the commit to get
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/string"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	DownloadCommitDiffOrPatch(ctx, "patch")
-}
-
-// DownloadCommitDiffOrPatch render a commit's raw diff
-func DownloadCommitDiffOrPatch(ctx *context.APIContext, diffType string) {
 	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
 		repoPath,
 		ctx.Params(":sha"),
-		git.RawDiffType(diffType),
+		git.RawDiffType(ctx.Params(":type")),
 		ctx.Resp,
 	); err != nil {
 		if git.IsErrNotExist(err) {
