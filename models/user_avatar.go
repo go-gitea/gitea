@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,10 +26,10 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
-	return u.generateRandomAvatar(x)
+	return u.generateRandomAvatar(db.DefaultContext().Engine())
 }
 
-func (u *User) generateRandomAvatar(e Engine) error {
+func (u *User) generateRandomAvatar(e db.Engine) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -124,7 +125,7 @@ func (u *User) UploadAvatar(data []byte) error {
 		return err
 	}
 
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -164,7 +165,7 @@ func (u *User) DeleteAvatar() error {
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
-	if _, err := x.ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+	if _, err := db.DefaultContext().Engine().ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil

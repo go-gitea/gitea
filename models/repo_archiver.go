@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -31,6 +32,10 @@ type RepoArchiver struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 }
 
+func init() {
+	db.RegisterModel(new(RepoArchiver))
+}
+
 // LoadRepo loads repository
 func (archiver *RepoArchiver) LoadRepo() (*Repository, error) {
 	if archiver.Repo != nil {
@@ -38,7 +43,7 @@ func (archiver *RepoArchiver) LoadRepo() (*Repository, error) {
 	}
 
 	var repo Repository
-	has, err := x.ID(archiver.RepoID).Get(&repo)
+	has, err := db.DefaultContext().Engine().ID(archiver.RepoID).Get(&repo)
 	if err != nil {
 		return nil, err
 	}
@@ -56,9 +61,9 @@ func (archiver *RepoArchiver) RelativePath() (string, error) {
 }
 
 // GetRepoArchiver get an archiver
-func GetRepoArchiver(ctx DBContext, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
+func GetRepoArchiver(ctx *db.Context, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
 	var archiver RepoArchiver
-	has, err := ctx.e.Where("repo_id=?", repoID).And("`type`=?", tp).And("commit_id=?", commitID).Get(&archiver)
+	has, err := ctx.Engine().Where("repo_id=?", repoID).And("`type`=?", tp).And("commit_id=?", commitID).Get(&archiver)
 	if err != nil {
 		return nil, err
 	}
@@ -69,19 +74,19 @@ func GetRepoArchiver(ctx DBContext, repoID int64, tp git.ArchiveType, commitID s
 }
 
 // AddRepoArchiver adds an archiver
-func AddRepoArchiver(ctx DBContext, archiver *RepoArchiver) error {
-	_, err := ctx.e.Insert(archiver)
+func AddRepoArchiver(ctx *db.Context, archiver *RepoArchiver) error {
+	_, err := ctx.Engine().Insert(archiver)
 	return err
 }
 
 // UpdateRepoArchiverStatus updates archiver's status
-func UpdateRepoArchiverStatus(ctx DBContext, archiver *RepoArchiver) error {
-	_, err := ctx.e.ID(archiver.ID).Cols("status").Update(archiver)
+func UpdateRepoArchiverStatus(ctx *db.Context, archiver *RepoArchiver) error {
+	_, err := ctx.Engine().ID(archiver.ID).Cols("status").Update(archiver)
 	return err
 }
 
 // DeleteAllRepoArchives deletes all repo archives records
 func DeleteAllRepoArchives() error {
-	_, err := x.Where("1=1").Delete(new(RepoArchiver))
+	_, err := db.DefaultContext().Engine().Where("1=1").Delete(new(RepoArchiver))
 	return err
 }

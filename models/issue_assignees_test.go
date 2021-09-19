@@ -7,11 +7,12 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUpdateAssignee(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// Fake issue with assignees
 	issue, err := GetIssueWithAttrsByID(1)
@@ -61,10 +62,10 @@ func TestUpdateAssignee(t *testing.T) {
 }
 
 func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	_ = AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	_ = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	_ = db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	_ = db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	IDs, err := MakeIDsFromAPIAssigneesToAdd("", []string{""})
 	assert.NoError(t, err)
