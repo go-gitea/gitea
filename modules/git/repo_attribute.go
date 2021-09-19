@@ -182,10 +182,8 @@ func (c *CheckAttributeReader) CheckPath(path string) (map[string]string, error)
 		return nil, err
 	}
 
-	if err := c.stdinWriter.Sync(); err != nil {
-		defer c.cancel()
-		return nil, err
-	}
+	// not necessary to call Sync on pipe. And it usually results in error:  "sync |1: invalid argument"
+	_ = c.stdinWriter.Sync()
 
 	rs := make(map[string]string)
 	for range c.Attributes {
