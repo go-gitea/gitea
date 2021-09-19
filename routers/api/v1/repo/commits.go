@@ -213,3 +213,81 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
+
+func DownloadCommitDiff(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.diff repository repoDownloadCommitDiff
+	// ---
+	// summary: Get a commit diff
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadCommitDiffOrPatch(ctx, "diff")
+}
+
+func DownloadCommitPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.patch repository repoDownloadCommitPatch
+	// ---
+	// summary: Get a commit patch
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	DownloadCommitDiffOrPatch(ctx, "patch")
+}
+
+func DownloadCommitDiffOrPatch(ctx *context.APIContext, diffType string) {
+	var repoPath string
+	repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if err := git.GetRawDiff(
+		repoPath,
+		ctx.Params(":sha"),
+		git.RawDiffType(diffType),
+		ctx.Resp,
+	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(ctx.Params(":sha"))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "DownloadCommitDiffOrPatch", err)
+		return
+	}
+}
