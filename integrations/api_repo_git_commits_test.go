@@ -109,3 +109,19 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 	assert.Equal(t, "f27c2b2b03dcab38beaf89b0ab4ff61f6de63441", apiData[0].CommitMeta.SHA)
 	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
 }
+
+func TestDownloadCommitDiffOrPatch(t *testing.T) {
+	defer prepareTestEnv(t)()
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	// Login as User2.
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+
+	// Test getting diff
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.diff?token="+token, user.Name)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	// Test getting patch
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.patch?token="+token, user.Name)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+}
