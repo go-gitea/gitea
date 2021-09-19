@@ -29,7 +29,7 @@ func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	ownerMaps, err := users.loadOrganizationOwners(db.DefaultContext().Engine(), orgID)
+	ownerMaps, err := users.loadOrganizationOwners(db.GetEngine(db.DefaultContext), orgID)
 	if err == nil {
 		for _, owner := range ownerMaps {
 			results[owner.UID] = true
@@ -69,7 +69,7 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	tokenMaps, err := users.loadTwoFactorStatus(db.DefaultContext().Engine())
+	tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext))
 	if err == nil {
 		for _, token := range tokenMaps {
 			results[token.UID] = true

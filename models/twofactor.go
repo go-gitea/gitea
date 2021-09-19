@@ -93,13 +93,13 @@ func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 
 // NewTwoFactor creates a new two-factor authentication token.
 func NewTwoFactor(t *TwoFactor) error {
-	_, err := db.DefaultContext().Engine().Insert(t)
+	_, err := db.GetEngine(db.DefaultContext).Insert(t)
 	return err
 }
 
 // UpdateTwoFactor updates a two-factor authentication token.
 func UpdateTwoFactor(t *TwoFactor) error {
-	_, err := db.DefaultContext().Engine().ID(t.ID).AllCols().Update(t)
+	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
 	return err
 }
 
@@ -107,7 +107,7 @@ func UpdateTwoFactor(t *TwoFactor) error {
 // the user, if any.
 func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 	twofa := &TwoFactor{}
-	has, err := db.DefaultContext().Engine().Where("uid=?", uid).Get(twofa)
+	has, err := db.GetEngine(db.DefaultContext).Where("uid=?", uid).Get(twofa)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -118,7 +118,7 @@ func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 
 // DeleteTwoFactorByID deletes two-factor authentication token by given ID.
 func DeleteTwoFactorByID(id, userID int64) error {
-	cnt, err := db.DefaultContext().Engine().ID(id).Delete(&TwoFactor{
+	cnt, err := db.GetEngine(db.DefaultContext).ID(id).Delete(&TwoFactor{
 		UID: userID,
 	})
 	if err != nil {

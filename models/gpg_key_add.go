@@ -103,7 +103,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 	for _, ekey := range ekeys {
 		// Key ID cannot be duplicated.
-		has, err := ctx.Engine().Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
+		has, err := db.GetEngine(ctx).Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
 			Get(new(GPGKey))
 		if err != nil {
 			return nil, err
@@ -118,7 +118,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			return nil, err
 		}
 
-		if err = addGPGKey(ctx.Engine(), key, content); err != nil {
+		if err = addGPGKey(db.GetEngine(ctx), key, content); err != nil {
 			return nil, err
 		}
 		keys = append(keys, key)

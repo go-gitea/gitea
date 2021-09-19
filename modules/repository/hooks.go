@@ -222,7 +222,7 @@ func SyncRepositoryHooks(ctx context.Context) error {
 	log.Trace("Doing: SyncRepositoryHooks")
 
 	if err := db.Iterate(
-		db.DefaultContext(),
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

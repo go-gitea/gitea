@@ -69,7 +69,7 @@ func NewAccessToken(t *AccessToken) error {
 	t.Token = base.EncodeSha1(gouuid.New().String())
 	t.TokenHash = hashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err = db.DefaultContext().Engine().Insert(t)
+	_, err = db.GetEngine(db.DefaultContext).Insert(t)
 	return err
 }
 
@@ -110,7 +110,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 			TokenLastEight: lastEight,
 		}
 		// Re-get the token from the db in case it has been deleted in the intervening period
-		has, err := db.DefaultContext().Engine().ID(id).Get(token)
+		has, err := db.GetEngine(db.DefaultContext).ID(id).Get(token)
 		if err != nil {
 			return nil, err
 		}
@@ -121,7 +121,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	}
 
 	var tokens []AccessToken
-	err := db.DefaultContext().Engine().Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
+	err := db.GetEngine(db.DefaultContext).Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
 	if err != nil {
 		return nil, err
 	} else if len(tokens) == 0 {
@@ -142,7 +142,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 
 // AccessTokenByNameExists checks if a token name has been used already by a user.
 func AccessTokenByNameExists(token *AccessToken) (bool, error) {
-	return db.DefaultContext().Engine().Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
+	return db.GetEngine(db.DefaultContext).Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
 }
 
 // ListAccessTokensOptions contain filter options
@@ -154,7 +154,7 @@ type ListAccessTokensOptions struct {
 
 // ListAccessTokens returns a list of access tokens belongs to given user.
 func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
-	sess := db.DefaultContext().Engine().Where("uid=?", opts.UserID)
+	sess := db.GetEngine(db.DefaultContext).Where("uid=?", opts.UserID)
 
 	if len(opts.Name) != 0 {
 		sess = sess.Where("name=?", opts.Name)
@@ -175,13 +175,13 @@ func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
 
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(t *AccessToken) error {
-	_, err := db.DefaultContext().Engine().ID(t.ID).AllCols().Update(t)
+	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // CountAccessTokens count access tokens belongs to given user by options
 func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
-	sess := db.DefaultContext().Engine().Where("uid=?", opts.UserID)
+	sess := db.GetEngine(db.DefaultContext).Where("uid=?", opts.UserID)
 	if len(opts.Name) != 0 {
 		sess = sess.Where("name=?", opts.Name)
 	}
@@ -190,7 +190,7 @@ func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(id, userID int64) error {
-	cnt, err := db.DefaultContext().Engine().ID(id).Delete(&AccessToken{
+	cnt, err := db.GetEngine(db.DefaultContext).ID(id).Delete(&AccessToken{
 		UID: userID,
 	})
 	if err != nil {

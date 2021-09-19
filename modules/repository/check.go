@@ -24,7 +24,7 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 	log.Trace("Doing: GitFsck")
 
 	if err := db.Iterate(
-		db.DefaultContext(),
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
 		func(idx int, bean interface{}) error {
@@ -59,7 +59,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 	args = append([]string{"gc"}, args...)
 
 	if err := db.Iterate(
-		db.DefaultContext(),
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
@@ -94,7 +94,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			}
 
 			// Now update the size of the repository
-			if err := repo.UpdateSize(db.DefaultContext()); err != nil {
+			if err := repo.UpdateSize(db.DefaultContext); err != nil {
 				log.Error("Updating size as part of garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
 				desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
 				if err = models.CreateRepositoryNotice(desc); err != nil {
@@ -116,7 +116,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 func gatherMissingRepoRecords(ctx context.Context) ([]*models.Repository, error) {
 	repos := make([]*models.Repository, 0, 10)
 	if err := db.Iterate(
-		db.DefaultContext(),
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

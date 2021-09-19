@@ -23,12 +23,12 @@ type Statistic struct {
 func GetStatistic() (stats Statistic) {
 	stats.Counter.User = CountUsers()
 	stats.Counter.Org = CountOrganizations()
-	stats.Counter.PublicKey, _ = db.DefaultContext().Engine().Count(new(PublicKey))
+	stats.Counter.PublicKey, _ = db.GetEngine(db.DefaultContext).Count(new(PublicKey))
 	stats.Counter.Repo = CountRepositories(true)
-	stats.Counter.Watch, _ = db.DefaultContext().Engine().Count(new(Watch))
-	stats.Counter.Star, _ = db.DefaultContext().Engine().Count(new(Star))
-	stats.Counter.Action, _ = db.DefaultContext().Engine().Count(new(Action))
-	stats.Counter.Access, _ = db.DefaultContext().Engine().Count(new(Access))
+	stats.Counter.Watch, _ = db.GetEngine(db.DefaultContext).Count(new(Watch))
+	stats.Counter.Star, _ = db.GetEngine(db.DefaultContext).Count(new(Star))
+	stats.Counter.Action, _ = db.GetEngine(db.DefaultContext).Count(new(Action))
+	stats.Counter.Access, _ = db.GetEngine(db.DefaultContext).Count(new(Access))
 
 	type IssueCount struct {
 		Count    int64
@@ -36,7 +36,7 @@ func GetStatistic() (stats Statistic) {
 	}
 	issueCounts := []IssueCount{}
 
-	_ = db.DefaultContext().Engine().Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
+	_ = db.GetEngine(db.DefaultContext).Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {
 		if c.IsClosed {
 			stats.Counter.IssueClosed = c.Count
@@ -47,17 +47,17 @@ func GetStatistic() (stats Statistic) {
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	stats.Counter.Comment, _ = db.DefaultContext().Engine().Count(new(Comment))
+	stats.Counter.Comment, _ = db.GetEngine(db.DefaultContext).Count(new(Comment))
 	stats.Counter.Oauth = 0
-	stats.Counter.Follow, _ = db.DefaultContext().Engine().Count(new(Follow))
-	stats.Counter.Mirror, _ = db.DefaultContext().Engine().Count(new(Mirror))
-	stats.Counter.Release, _ = db.DefaultContext().Engine().Count(new(Release))
+	stats.Counter.Follow, _ = db.GetEngine(db.DefaultContext).Count(new(Follow))
+	stats.Counter.Mirror, _ = db.GetEngine(db.DefaultContext).Count(new(Mirror))
+	stats.Counter.Release, _ = db.GetEngine(db.DefaultContext).Count(new(Release))
 	stats.Counter.LoginSource = CountLoginSources()
-	stats.Counter.Webhook, _ = db.DefaultContext().Engine().Count(new(Webhook))
-	stats.Counter.Milestone, _ = db.DefaultContext().Engine().Count(new(Milestone))
-	stats.Counter.Label, _ = db.DefaultContext().Engine().Count(new(Label))
-	stats.Counter.HookTask, _ = db.DefaultContext().Engine().Count(new(HookTask))
-	stats.Counter.Team, _ = db.DefaultContext().Engine().Count(new(Team))
-	stats.Counter.Attachment, _ = db.DefaultContext().Engine().Count(new(Attachment))
+	stats.Counter.Webhook, _ = db.GetEngine(db.DefaultContext).Count(new(Webhook))
+	stats.Counter.Milestone, _ = db.GetEngine(db.DefaultContext).Count(new(Milestone))
+	stats.Counter.Label, _ = db.GetEngine(db.DefaultContext).Count(new(Label))
+	stats.Counter.HookTask, _ = db.GetEngine(db.DefaultContext).Count(new(HookTask))
+	stats.Counter.Team, _ = db.GetEngine(db.DefaultContext).Count(new(Team))
+	stats.Counter.Attachment, _ = db.GetEngine(db.DefaultContext).Count(new(Attachment))
 	return
 }

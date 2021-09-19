@@ -277,7 +277,7 @@ func (comment *Comment) LoadRefIssue() (err error) {
 	}
 	comment.RefIssue, err = GetIssueByID(comment.RefIssueID)
 	if err == nil {
-		err = comment.RefIssue.loadRepo(db.DefaultContext().Engine())
+		err = comment.RefIssue.loadRepo(db.GetEngine(db.DefaultContext))
 	}
 	return
 }
@@ -337,7 +337,7 @@ func (comment *Comment) RefIssueIdent() string {
 // ResolveCrossReferences will return the list of references to close/reopen by this PR
 func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
 	unfiltered := make([]*Comment, 0, 5)
-	if err := db.DefaultContext().Engine().
+	if err := db.GetEngine(db.DefaultContext).
 		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
 		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
 		OrderBy("id").

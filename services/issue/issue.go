@@ -24,7 +24,7 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 		}
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext(), issue.Poster, issue.Content)
+	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}

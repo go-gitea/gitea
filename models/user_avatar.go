@@ -26,7 +26,7 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
-	return u.generateRandomAvatar(db.DefaultContext().Engine())
+	return u.generateRandomAvatar(db.GetEngine(db.DefaultContext))
 }
 
 func (u *User) generateRandomAvatar(e db.Engine) error {
@@ -125,7 +125,7 @@ func (u *User) UploadAvatar(data []byte) error {
 		return err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -165,7 +165,7 @@ func (u *User) DeleteAvatar() error {
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
-	if _, err := db.DefaultContext().Engine().ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil
