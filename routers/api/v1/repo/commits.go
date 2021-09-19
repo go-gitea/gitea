@@ -275,8 +275,7 @@ func DownloadCommitPatch(ctx *context.APIContext) {
 }
 
 func DownloadCommitDiffOrPatch(ctx *context.APIContext, diffType string) {
-	var repoPath string
-	repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
 		repoPath,
 		ctx.Params(":sha"),
