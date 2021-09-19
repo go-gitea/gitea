@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -39,7 +41,7 @@ func Users(ctx *context.Context) {
 	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Actor: ctx.User,
 		Type:  models.UserTypeIndividual,
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
 		SearchByEmail: true,
@@ -56,7 +58,7 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := models.LoginSources()
+	sources, err := login.LoginSources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return
@@ -75,7 +77,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 
-	sources, err := models.LoginSources()
+	sources, err := login.LoginSources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return
@@ -94,19 +96,19 @@ func NewUserPost(ctx *context.Context) {
 		Email:     form.Email,
 		Passwd:    form.Password,
 		IsActive:  true,
-		LoginType: models.LoginPlain,
+		LoginType: login.LoginPlain,
 	}
 
 	if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
 			lType, _ := strconv.ParseInt(fields[0], 10, 0)
-			u.LoginType = models.LoginType(lType)
+			u.LoginType = login.LoginType(lType)
 			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
 			u.LoginName = form.LoginName
 		}
 	}
-	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
+	if u.LoginType == login.LoginNoType || u.LoginType == login.LoginPlain {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
@@ -176,16 +178,16 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	ctx.Data["User"] = u
 
 	if u.LoginSource > 0 {
-		ctx.Data["LoginSource"], err = models.GetLoginSourceByID(u.LoginSource)
+		ctx.Data["LoginSource"], err = login.GetLoginSourceByID(u.LoginSource)
 		if err != nil {
 			ctx.ServerError("GetLoginSourceByID", err)
 			return nil
 		}
 	} else {
-		ctx.Data["LoginSource"] = &models.LoginSource{}
+		ctx.Data["LoginSource"] = &login.LoginSource{}
 	}
 
-	sources, err := models.LoginSources()
+	sources, err := login.LoginSources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return nil
@@ -247,7 +249,7 @@ func EditUserPost(ctx *context.Context) {
 
 		if u.LoginSource != loginSource {
 			u.LoginSource = loginSource
-			u.LoginType = models.LoginType(loginType)
+			u.LoginType = login.LoginType(loginType)
 		}
 	}
 

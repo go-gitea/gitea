@@ -138,7 +138,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 				Line:     line,
 				TreePath: treePath,
 				Type:     models.CommentTypeCode,
-				ListOptions: models.ListOptions{
+				ListOptions: db.ListOptions{
 					PageSize: 1,
 					Page:     1,
 				},

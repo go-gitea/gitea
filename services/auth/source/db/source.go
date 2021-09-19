@@ -4,7 +4,10 @@
 
 package db
 
-import "code.gitea.io/gitea/models"
+import (
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
+)
 
 // Source is a password authentication service
 type Source struct{}
@@ -26,6 +29,6 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginNoType, &Source{})
-	models.RegisterLoginTypeConfig(models.LoginPlain, &Source{})
+	login.RegisterLoginTypeConfig(login.LoginNoType, &Source{})
+	login.RegisterLoginTypeConfig(login.LoginPlain, &Source{})
 }

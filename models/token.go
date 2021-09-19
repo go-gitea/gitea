@@ -147,7 +147,7 @@ func AccessTokenByNameExists(token *AccessToken) (bool, error) {
 
 // ListAccessTokensOptions contain filter options
 type ListAccessTokensOptions struct {
-	ListOptions
+	db.ListOptions
 	Name   string
 	UserID int64
 }
@@ -163,7 +163,7 @@ func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
 	sess = sess.Desc("id")
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, &opts)
+		sess = db.SetSessionPagination(sess, &opts)
 
 		tokens := make([]*AccessToken, 0, opts.PageSize)
 		return tokens, sess.Find(&tokens)

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
 	"crypto/sha256"
@@ -23,9 +23,9 @@ import (
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
-	ID   int64 `xorm:"pk autoincr"`
-	UID  int64 `xorm:"INDEX"`
-	User *User `xorm:"-"`
+	ID  int64 `xorm:"pk autoincr"`
+	UID int64 `xorm:"INDEX"`
+	//User *User `xorm:"-"`
 
 	Name string
 
@@ -58,12 +58,12 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 }
 
 // LoadUser will load User by UID
-func (app *OAuth2Application) LoadUser() (err error) {
+/*func (app *OAuth2Application) LoadUser() (err error) {
 	if app.User == nil {
 		app.User, err = GetUserByID(app.UID)
 	}
 	return
-}
+}*/
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
@@ -276,13 +276,13 @@ func DeleteOAuth2Application(id, userid int64) error {
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, int64, error) {
+func ListOAuth2Applications(uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("uid=?", uid).
 		Desc("id")
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&apps)

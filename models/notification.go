@@ -74,7 +74,7 @@ func init() {
 
 // FindNotificationOptions represent the filters for notifications. If an ID is 0 it will be ignored.
 type FindNotificationOptions struct {
-	ListOptions
+	db.ListOptions
 	UserID            int64
 	RepoID            int64
 	IssueID           int64
@@ -115,7 +115,7 @@ func (opts *FindNotificationOptions) ToCond() builder.Cond {
 func (opts *FindNotificationOptions) ToSession(e db.Engine) *xorm.Session {
 	sess := e.Where(opts.ToCond())
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 	return sess
 }

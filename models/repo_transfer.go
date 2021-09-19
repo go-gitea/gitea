@@ -266,7 +266,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess, ListOptions{})
+	collaborators, err := repo.getCollaborators(sess, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}

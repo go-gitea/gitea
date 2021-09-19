@@ -1836,58 +1836,6 @@ func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
-// .____                 .__           _________
-// |    |    ____   ____ |__| ____    /   _____/ ____  __ _________   ____  ____
-// |    |   /  _ \ / ___\|  |/    \   \_____  \ /  _ \|  |  \_  __ \_/ ___\/ __ \
-// |    |__(  <_> ) /_/  >  |   |  \  /        (  <_> )  |  /|  | \/\  \__\  ___/
-// |_______ \____/\___  /|__|___|  / /_______  /\____/|____/ |__|    \___  >___  >
-//         \/    /_____/         \/          \/                          \/    \/
-
-// ErrLoginSourceNotExist represents a "LoginSourceNotExist" kind of error.
-type ErrLoginSourceNotExist struct {
-	ID int64
-}
-
-// IsErrLoginSourceNotExist checks if an error is a ErrLoginSourceNotExist.
-func IsErrLoginSourceNotExist(err error) bool {
-	_, ok := err.(ErrLoginSourceNotExist)
-	return ok
-}
-
-func (err ErrLoginSourceNotExist) Error() string {
-	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
-}
-
-// ErrLoginSourceAlreadyExist represents a "LoginSourceAlreadyExist" kind of error.
-type ErrLoginSourceAlreadyExist struct {
-	Name string
-}
-
-// IsErrLoginSourceAlreadyExist checks if an error is a ErrLoginSourceAlreadyExist.
-func IsErrLoginSourceAlreadyExist(err error) bool {
-	_, ok := err.(ErrLoginSourceAlreadyExist)
-	return ok
-}
-
-func (err ErrLoginSourceAlreadyExist) Error() string {
-	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
-}
-
-// ErrLoginSourceInUse represents a "LoginSourceInUse" kind of error.
-type ErrLoginSourceInUse struct {
-	ID int64
-}
-
-// IsErrLoginSourceInUse checks if an error is a ErrLoginSourceInUse.
-func IsErrLoginSourceInUse(err error) bool {
-	_, ok := err.(ErrLoginSourceInUse)
-	return ok
-}
-
-func (err ErrLoginSourceInUse) Error() string {
-	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
-}
-
 // ___________
 // \__    ___/___ _____    _____
 //   |    |_/ __ \\__  \  /     \
@@ -2158,43 +2106,4 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
-}
-
-//  ________      _____          __  .__
-//  \_____  \    /  _  \  __ ___/  |_|  |__
-//   /   |   \  /  /_\  \|  |  \   __\  |  \
-//  /    |    \/    |    \  |  /|  | |   Y  \
-//  \_______  /\____|__  /____/ |__| |___|  /
-//          \/         \/                 \/
-
-// ErrOAuthClientIDInvalid will be thrown if client id cannot be found
-type ErrOAuthClientIDInvalid struct {
-	ClientID string
-}
-
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
-func IsErrOauthClientIDInvalid(err error) bool {
-	_, ok := err.(ErrOAuthClientIDInvalid)
-	return ok
-}
-
-// Error returns the error message
-func (err ErrOAuthClientIDInvalid) Error() string {
-	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
-}
-
-// ErrOAuthApplicationNotFound will be thrown if id cannot be found
-type ErrOAuthApplicationNotFound struct {
-	ID int64
-}
-
-// IsErrOAuthApplicationNotFound checks if an error is a ErrReviewNotExist.
-func IsErrOAuthApplicationNotFound(err error) bool {
-	_, ok := err.(ErrOAuthApplicationNotFound)
-	return ok
-}
-
-// Error returns the error message
-func (err ErrOAuthApplicationNotFound) Error() string {
-	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
 }

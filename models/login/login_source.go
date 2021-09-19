@@ -3,9 +3,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -353,34 +354,60 @@ func UpdateSource(source *LoginSource) error {
 	return err
 }
 
-// DeleteSource deletes a LoginSource record in DB.
-func DeleteSource(source *LoginSource) error {
-	count, err := db.GetEngine(db.DefaultContext).Count(&User{LoginSource: source.ID})
-	if err != nil {
-		return err
-	} else if count > 0 {
-		return ErrLoginSourceInUse{source.ID}
-	}
-
-	count, err = db.GetEngine(db.DefaultContext).Count(&ExternalLoginUser{LoginSourceID: source.ID})
-	if err != nil {
-		return err
-	} else if count > 0 {
-		return ErrLoginSourceInUse{source.ID}
-	}
-
-	if registerableSource, ok := source.Cfg.(RegisterableSource); ok {
-		if err := registerableSource.UnregisterSource(); err != nil {
-			return err
-		}
-	}
-
-	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(LoginSource))
-	return err
-}
-
 // CountLoginSources returns number of login sources.
 func CountLoginSources() int64 {
 	count, _ := db.GetEngine(db.DefaultContext).Count(new(LoginSource))
 	return count
+}
+
+// .____                 .__           _________
+// |    |    ____   ____ |__| ____    /   _____/ ____  __ _________   ____  ____
+// |    |   /  _ \ / ___\|  |/    \   \_____  \ /  _ \|  |  \_  __ \_/ ___\/ __ \
+// |    |__(  <_> ) /_/  >  |   |  \  /        (  <_> )  |  /|  | \/\  \__\  ___/
+// |_______ \____/\___  /|__|___|  / /_______  /\____/|____/ |__|    \___  >___  >
+//         \/    /_____/         \/          \/                          \/    \/
+
+// ErrLoginSourceNotExist represents a "LoginSourceNotExist" kind of error.
+type ErrLoginSourceNotExist struct {
+	ID int64
+}
+
+// IsErrLoginSourceNotExist checks if an error is a ErrLoginSourceNotExist.
+func IsErrLoginSourceNotExist(err error) bool {
+	_, ok := err.(ErrLoginSourceNotExist)
+	return ok
+}
+
+func (err ErrLoginSourceNotExist) Error() string {
+	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
+}
+
+// ErrLoginSourceAlreadyExist represents a "LoginSourceAlreadyExist" kind of error.
+type ErrLoginSourceAlreadyExist struct {
+	Name string
+}
+
+// IsErrLoginSourceAlreadyExist checks if an error is a ErrLoginSourceAlreadyExist.
+func IsErrLoginSourceAlreadyExist(err error) bool {
+	_, ok := err.(ErrLoginSourceAlreadyExist)
+	return ok
+}
+
+func (err ErrLoginSourceAlreadyExist) Error() string {
+	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
+}
+
+// ErrLoginSourceInUse represents a "LoginSourceInUse" kind of error.
+type ErrLoginSourceInUse struct {
+	ID int64
+}
+
+// IsErrLoginSourceInUse checks if an error is a ErrLoginSourceInUse.
+func IsErrLoginSourceInUse(err error) bool {
+	_, ok := err.(ErrLoginSourceInUse)
+	return ok
+}
+
+func (err ErrLoginSourceInUse) Error() string {
+	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
 }

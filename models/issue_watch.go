@@ -103,11 +103,11 @@ func getIssueWatchersIDs(e db.Engine, issueID int64, watching bool) ([]int64, er
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, error) {
+func GetIssueWatchers(issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
 	return getIssueWatchers(db.GetEngine(db.DefaultContext), issueID, listOptions)
 }
 
-func getIssueWatchers(e db.Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
+func getIssueWatchers(e db.Engine, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
 	sess := e.
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).
@@ -116,7 +116,7 @@ func getIssueWatchers(e db.Engine, issueID int64, listOptions ListOptions) (Issu
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 		watches := make([]*IssueWatch, 0, listOptions.PageSize)
 		return watches, sess.Find(&watches)
 	}
