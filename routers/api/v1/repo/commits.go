@@ -214,6 +214,7 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
 
+// DownloadCommitDiff render a commit's raw diff
 func DownloadCommitDiff(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.diff repository repoDownloadCommitDiff
 	// ---
@@ -244,6 +245,7 @@ func DownloadCommitDiff(ctx *context.APIContext) {
 	DownloadCommitDiffOrPatch(ctx, "diff")
 }
 
+// DownloadCommitPatch render a commit's raw patch
 func DownloadCommitPatch(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.patch repository repoDownloadCommitPatch
 	// ---
@@ -274,6 +276,7 @@ func DownloadCommitPatch(ctx *context.APIContext) {
 	DownloadCommitDiffOrPatch(ctx, "patch")
 }
 
+// DownloadCommitDiffOrPatch render a commit's raw diff
 func DownloadCommitDiffOrPatch(ctx *context.APIContext, diffType string) {
 	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	if err := git.GetRawDiff(
