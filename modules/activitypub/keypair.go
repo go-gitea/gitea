@@ -35,7 +35,7 @@ func pemBlockForPriv(priv *rsa.PrivateKey) (string, error) {
 	return string(privBytes), nil
 }
 
-func pemBlockForPub(pub interface{}) (string, error) {
+func pemBlockForPub(pub rsa.PublicKey) (string, error) {
 	pubASN1, err := x509.MarshalPKIXPublicKey(pub)
 	if err != nil {
 		return "", err
