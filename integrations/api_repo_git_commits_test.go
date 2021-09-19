@@ -118,10 +118,10 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 	token := getTokenForLoggedInUser(t, session)
 
 	// Test getting diff
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.diff?token="+token, user.Name)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	reqDiff := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.diff?token="+token, user.Name)
+	session.MakeRequest(t, reqDiff, http.StatusOK)
 
 	// Test getting patch
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.patch?token="+token, user.Name)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	reqPatch := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/commits/f27c2b2b03dcab38beaf89b0ab4ff61f6de63441.patch?token="+token, user.Name)
+	session.MakeRequest(t, reqPatch, http.StatusOK)
 }
