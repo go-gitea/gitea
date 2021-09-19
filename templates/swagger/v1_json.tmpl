@@ -3612,6 +3612,17 @@
             "name": "sha",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
           }
         ],
         "responses": {

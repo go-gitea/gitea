@@ -238,11 +238,11 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// - name: diffType
-	//	 in: path
-	//	 description: whether the output is diff or patch
-	//	 type: string
-	//	 enum: [diff, patch]
-	//	 required: true
+	//   in: path
+	//   description: whether the output is diff or patch
+	//   type: string
+	//   enum: [diff, patch]
+	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
