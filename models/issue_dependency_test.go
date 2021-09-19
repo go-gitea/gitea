@@ -7,12 +7,13 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateIssueDependency(t *testing.T) {
 	// Prepare
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	user1, err := GetUserByID(1)
 	assert.NoError(t, err)
@@ -37,7 +38,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrCircularDependency(err))
 
-	_ = AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
+	_ = db.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
 
 	// Check if dependencies left is correct
 	left, err := IssueNoDependenciesLeft(issue1)

@@ -107,12 +107,16 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
-	u, err := UserSignIn(uname, passwd)
+	u, source, err := UserSignIn(uname, passwd)
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
 		}
 		return nil
+	}
+
+	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+		store.GetData()["SkipLocalTwoFA"] = true
 	}
 
 	log.Trace("Basic Authorization: Logged in user %-v", u)

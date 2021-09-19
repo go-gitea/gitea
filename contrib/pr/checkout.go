@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -87,27 +88,27 @@ func runPR() {
 		setting.Database.Path = ":memory:"
 		setting.Database.Timeout = 500
 	*/
-	db := setting.Cfg.Section("database")
-	db.NewKey("DB_TYPE", "sqlite3")
-	db.NewKey("PATH", ":memory:")
+	dbCfg := setting.Cfg.Section("database")
+	dbCfg.NewKey("DB_TYPE", "sqlite3")
+	dbCfg.NewKey("PATH", ":memory:")
 
 	routers.NewServices()
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	models.NewEngine(context.Background(), func(_ *xorm.Engine) error {
+	db.NewEngine(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
-	models.HasEngine = true
+	db.HasEngine = true
 	//x.ShowSQL(true)
-	err = models.InitFixtures(
+	err = db.InitFixtures(
 		path.Join(curDir, "models/fixtures/"),
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
-	models.LoadFixtures()
+	db.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(models.LocalCopyPath())
 	util.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)

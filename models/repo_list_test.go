@@ -7,13 +7,14 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSearchRepository(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// test search public repository on explore page
 	repos, count, err := SearchRepositoryByName(&SearchRepoOptions{
@@ -76,7 +77,7 @@ func TestSearchRepository(t *testing.T) {
 	assert.Len(t, repos, 3)
 
 	// Test non existing owner
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{OwnerID: NonexistentID})
+	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{OwnerID: db.NonexistentID})
 
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
@@ -323,7 +324,7 @@ func TestSearchRepository(t *testing.T) {
 }
 
 func TestSearchRepositoryByTopicName(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	testCases := []struct {
 		name  string

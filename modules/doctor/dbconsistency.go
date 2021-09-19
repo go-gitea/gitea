@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -15,7 +16,7 @@ import (
 
 func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
@@ -225,14 +226,14 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// TODO: function to recalc all counters
 
 	if setting.Database.UsePostgreSQL {
-		count, err = models.CountBadSequences()
+		count, err = db.CountBadSequences()
 		if err != nil {
 			logger.Critical("Error: %v whilst checking sequence values", err)
 			return err
 		}
 		if count > 0 {
 			if autofix {
-				err := models.FixBadSequences()
+				err := db.FixBadSequences()
 				if err != nil {
 					logger.Critical("Error: %v whilst attempting to fix sequences", err)
 					return err

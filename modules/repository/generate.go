@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -185,7 +186,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 	return initRepoCommit(tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
 }
 
-func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *models.Repository) (err error) {
+func generateGitContent(ctx *db.Context, repo, templateRepo, generateRepo *models.Repository) (err error) {
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
 	if err != nil {
 		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
@@ -223,7 +224,7 @@ func generateGitContent(ctx models.DBContext, repo, templateRepo, generateRepo *
 }
 
 // GenerateGitContent generates git content from a template repository
-func GenerateGitContent(ctx models.DBContext, templateRepo, generateRepo *models.Repository) error {
+func GenerateGitContent(ctx *db.Context, templateRepo, generateRepo *models.Repository) error {
 	if err := generateGitContent(ctx, generateRepo, templateRepo, generateRepo); err != nil {
 		return err
 	}
@@ -239,7 +240,7 @@ func GenerateGitContent(ctx models.DBContext, templateRepo, generateRepo *models
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(ctx models.DBContext, doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
+func GenerateRepository(ctx *db.Context, doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
 	generateRepo := &models.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
