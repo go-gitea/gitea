@@ -157,13 +157,14 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
+	defer func() {
+		_ = c.Close()
+	}()
 	stdErr := new(bytes.Buffer)
 	err := c.cmd.RunInDirTimeoutEnvFullPipelineFunc(c.env, -1, c.Repo.Path, c.stdOut, stdErr, c.stdinReader, func(_ context.Context, _ context.CancelFunc) error {
 		close(c.running)
 		return nil
 	})
-	defer c.cancel()
-	_ = c.stdOut.Close()
 	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
@@ -180,17 +181,17 @@ func (c *CheckAttributeReader) CheckPath(path string) (map[string]string, error)
 	}
 
 	if _, err := c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
-		defer c.cancel()
+		defer c.Close()
 		return nil, err
 	}
-
-	// not necessary to call Sync on pipe. And it usually results in error:  "sync |1: invalid argument"
-	_ = c.stdinWriter.Sync()
 
 	rs := make(map[string]string)
 	for range c.Attributes {
 		select {
-		case attr := <-c.stdOut.ReadAttribute():
+		case attr, ok := <-c.stdOut.ReadAttribute():
+			if !ok {
+				return nil, c.ctx.Err()
+			}
 			rs[attr.Attribute] = attr.Value
 		case <-c.ctx.Done():
 			return nil, c.ctx.Err()
@@ -201,13 +202,16 @@ func (c *CheckAttributeReader) CheckPath(path string) (map[string]string, error)
 
 // Close close pip after use
 func (c *CheckAttributeReader) Close() error {
+	err := c.stdinWriter.Close()
+	_ = c.stdinReader.Close()
+	_ = c.stdOut.Close()
+	c.cancel()
 	select {
 	case <-c.running:
 	default:
 		close(c.running)
 	}
-	defer c.cancel()
-	return c.stdinWriter.Close()
+	return err
 }
 
 type attributeWriter interface {
