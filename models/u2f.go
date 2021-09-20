@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -22,6 +23,10 @@ type U2FRegistration struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(U2FRegistration))
+}
+
 // TableName returns a better table name for U2FRegistration
 func (reg U2FRegistration) TableName() string {
 	return "u2f_registration"
@@ -33,14 +38,14 @@ func (reg *U2FRegistration) Parse() (*u2f.Registration, error) {
 	return r, r.UnmarshalBinary(reg.Raw)
 }
 
-func (reg *U2FRegistration) updateCounter(e Engine) error {
+func (reg *U2FRegistration) updateCounter(e db.Engine) error {
 	_, err := e.ID(reg.ID).Cols("counter").Update(reg)
 	return err
 }
 
 // UpdateCounter will update the database value of counter
 func (reg *U2FRegistration) UpdateCounter() error {
-	return reg.updateCounter(x)
+	return reg.updateCounter(db.DefaultContext().Engine())
 }
 
 // U2FRegistrationList is a list of *U2FRegistration
@@ -61,17 +66,17 @@ func (list U2FRegistrationList) ToRegistrations() []u2f.Registration {
 	return regs
 }
 
-func getU2FRegistrationsByUID(e Engine, uid int64) (U2FRegistrationList, error) {
+func getU2FRegistrationsByUID(e db.Engine, uid int64) (U2FRegistrationList, error) {
 	regs := make(U2FRegistrationList, 0)
 	return regs, e.Where("user_id = ?", uid).Find(&regs)
 }
 
 // GetU2FRegistrationByID returns U2F registration by id
 func GetU2FRegistrationByID(id int64) (*U2FRegistration, error) {
-	return getU2FRegistrationByID(x, id)
+	return getU2FRegistrationByID(db.DefaultContext().Engine(), id)
 }
 
-func getU2FRegistrationByID(e Engine, id int64) (*U2FRegistration, error) {
+func getU2FRegistrationByID(e db.Engine, id int64) (*U2FRegistration, error) {
 	reg := new(U2FRegistration)
 	if found, err := e.ID(id).Get(reg); err != nil {
 		return nil, err
@@ -83,10 +88,10 @@ func getU2FRegistrationByID(e Engine, id int64) (*U2FRegistration, error) {
 
 // GetU2FRegistrationsByUID returns all U2F registrations of the given user
 func GetU2FRegistrationsByUID(uid int64) (U2FRegistrationList, error) {
-	return getU2FRegistrationsByUID(x, uid)
+	return getU2FRegistrationsByUID(db.DefaultContext().Engine(), uid)
 }
 
-func createRegistration(e Engine, user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
+func createRegistration(e db.Engine, user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
 	raw, err := reg.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -106,15 +111,15 @@ func createRegistration(e Engine, user *User, name string, reg *u2f.Registration
 
 // CreateRegistration will create a new U2FRegistration from the given Registration
 func CreateRegistration(user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
-	return createRegistration(x, user, name, reg)
+	return createRegistration(db.DefaultContext().Engine(), user, name, reg)
 }
 
 // DeleteRegistration will delete U2FRegistration
 func DeleteRegistration(reg *U2FRegistration) error {
-	return deleteRegistration(x, reg)
+	return deleteRegistration(db.DefaultContext().Engine(), reg)
 }
 
-func deleteRegistration(e Engine, reg *U2FRegistration) error {
+func deleteRegistration(e db.Engine, reg *U2FRegistration) error {
 	_, err := e.Delete(reg)
 	return err
 }

@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -111,7 +112,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	err := models.InitFixtures(
+	err := db.InitFixtures(
 		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
 	)
 	if err != nil {
@@ -247,7 +248,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 		ourSkip += skip[0]
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
@@ -524,7 +525,7 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 // within a single test this is required
 func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 }

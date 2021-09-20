@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -42,7 +43,7 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(e Engine) error {
+func (repos RepositoryList) loadAttributes(e db.Engine) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -89,13 +90,13 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
+	return repos.loadAttributes(db.DefaultContext().Engine())
 }
 
 // MirrorRepositoryList contains the mirror repositories
 type MirrorRepositoryList []*Repository
 
-func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
+func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -129,7 +130,7 @@ func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
 
 // LoadAttributes loads the attributes for the given MirrorRepositoryList
 func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
+	return repos.loadAttributes(db.DefaultContext().Engine())
 }
 
 // SearchRepoOptions holds the search options
@@ -409,7 +410,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -519,7 +520,7 @@ func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
 func FindUserAccessibleRepoIDs(user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	if err := x.
+	if err := db.DefaultContext().Engine().
 		Table("repository").
 		Cols("id").
 		Where(accessibleRepositoryCondition(user)).

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -46,7 +47,7 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := models.WithTx(func(ctx models.DBContext) error {
+	if err := db.WithTx(func(ctx *db.Context) error {
 		repoPath := models.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {

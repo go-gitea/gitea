@@ -7,14 +7,15 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCommitStatuses(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	sha1 := "1234123412341234123412341234123412341234"
 

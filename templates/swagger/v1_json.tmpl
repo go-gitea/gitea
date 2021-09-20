@@ -3581,6 +3581,60 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}.{diffType}": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a commit's diff or patch",
+        "operationId": "repoDownloadCommitDiffOrPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to get",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/notes/{sha}": {
       "get": {
         "produces": [

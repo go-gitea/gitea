@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -18,12 +19,16 @@ type IssueWatch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated NOT NULL"`
 }
 
+func init() {
+	db.RegisterModel(new(IssueWatch))
+}
+
 // IssueWatchList contains IssueWatch
 type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
-	iw, exists, err := getIssueWatch(x, userID, issueID)
+	iw, exists, err := getIssueWatch(db.DefaultContext().Engine(), userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -35,13 +40,13 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 			IsWatching: isWatching,
 		}
 
-		if _, err := x.Insert(iw); err != nil {
+		if _, err := db.DefaultContext().Engine().Insert(iw); err != nil {
 			return err
 		}
 	} else {
 		iw.IsWatching = isWatching
 
-		if _, err := x.ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
+		if _, err := db.DefaultContext().Engine().ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
 			return err
 		}
 	}
@@ -51,11 +56,11 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
 // the current Web-UI need iw object for watchers AND explicit non-watchers
 func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
-	return getIssueWatch(x, userID, issueID)
+	return getIssueWatch(db.DefaultContext().Engine(), userID, issueID)
 }
 
 // Return watcher AND explicit non-watcher if entry in db exist
-func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
+func getIssueWatch(e db.Engine, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	iw = new(IssueWatch)
 	exists, err = e.
 		Where("user_id = ?", userID).
@@ -67,14 +72,14 @@ func getIssueWatch(e Engine, userID, issueID int64) (iw *IssueWatch, exists bool
 // CheckIssueWatch check if an user is watching an issue
 // it takes participants and repo watch into account
 func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
-	iw, exist, err := getIssueWatch(x, user.ID, issue.ID)
+	iw, exist, err := getIssueWatch(db.DefaultContext().Engine(), user.ID, issue.ID)
 	if err != nil {
 		return false, err
 	}
 	if exist {
 		return iw.IsWatching, nil
 	}
-	w, err := getWatch(x, user.ID, issue.RepoID)
+	w, err := getWatch(db.DefaultContext().Engine(), user.ID, issue.RepoID)
 	if err != nil {
 		return false, err
 	}
@@ -85,10 +90,10 @@ func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
-	return getIssueWatchersIDs(x, issueID, watching)
+	return getIssueWatchersIDs(db.DefaultContext().Engine(), issueID, watching)
 }
 
-func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error) {
+func getIssueWatchersIDs(e db.Engine, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	return ids, e.Table("issue_watch").
 		Where("issue_id=?", issueID).
@@ -99,10 +104,10 @@ func getIssueWatchersIDs(e Engine, issueID int64, watching bool) ([]int64, error
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
 func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, error) {
-	return getIssueWatchers(x, issueID, listOptions)
+	return getIssueWatchers(db.DefaultContext().Engine(), issueID, listOptions)
 }
 
-func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
+func getIssueWatchers(e db.Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
 	sess := e.
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).
@@ -119,7 +124,7 @@ func getIssueWatchers(e Engine, issueID int64, listOptions ListOptions) (IssueWa
 	return watches, sess.Find(&watches)
 }
 
-func removeIssueWatchersByRepoID(e Engine, userID, repoID int64) error {
+func removeIssueWatchersByRepoID(e db.Engine, userID, repoID int64) error {
 	_, err := e.
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
 		Where("`issue_watch`.user_id = ?", userID).
