@@ -38,7 +38,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 	if len(indexFilename) > 0 {
 		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
 	}
-	_, err := NewCommand("read-tree", id.String()).RunInDirWithEnv(repo.Path, env)
+	_, err := NewCommand("read-tree", "-i", id.String()).RunInDirWithEnv(repo.Path, env)
 	if err != nil {
 		return err
 	}
@@ -68,7 +68,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename strin
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex() error {
-	_, err := NewCommand("read-tree", "--empty").RunInDir(repo.Path)
+	_, err := NewCommand("read-tree", "-i", "--empty").RunInDir(repo.Path)
 	return err
 }
 

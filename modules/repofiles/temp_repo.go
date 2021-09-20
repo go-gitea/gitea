@@ -75,7 +75,7 @@ func (t *TemporaryUploadRepository) Clone(branch string) error {
 
 // SetDefaultIndex sets the git index to our HEAD
 func (t *TemporaryUploadRepository) SetDefaultIndex() error {
-	if _, err := git.NewCommand("read-tree", "HEAD").RunInDir(t.basePath); err != nil {
+	if _, err := git.NewCommand("read-tree", "-i", "HEAD").RunInDir(t.basePath); err != nil {
 		return fmt.Errorf("SetDefaultIndex: %v", err)
 	}
 	return nil

@@ -202,7 +202,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	errbuf.Reset()
 
 	// Read base branch index
-	if err := git.NewCommand("read-tree", "HEAD").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := git.NewCommand("read-tree", "-i", "HEAD").RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
 		log.Error("git read-tree HEAD: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 		return "", fmt.Errorf("Unable to read base branch in to the index: %v\n%s\n%s", err, outbuf.String(), errbuf.String())
 	}
