@@ -71,14 +71,18 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
-	isShowRSS := ""
+	isShowFeed := ""
 	if strings.HasSuffix(uname, ".rss") {
-		isShowRSS = "rss"
+		isShowFeed = "rss"
 		uname = strings.TrimSuffix(uname, ".rss")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
+		isShowFeed = "rss"
 	}
 	if strings.HasSuffix(uname, ".atom") {
-		isShowRSS = "atom"
+		isShowFeed = "atom"
 		uname = strings.TrimSuffix(uname, ".atom")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
+		isShowFeed = "atom"
 	}
 
 	ctxUser := GetUserByName(ctx, uname)
@@ -90,8 +94,8 @@ func Profile(ctx *context.Context) {
 		/*
 			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
 			// Show Org RSS feed
-			if len(isShowRSS) != 0 {
-				rss.ShowRSS(ctx, ctxUser, isShowRSS)
+			if len(isShowFeed) != 0 {
+				rss.ShowRSS(ctx, ctxUser, isShowFeed)
 				return
 			}
 		*/
@@ -119,8 +123,8 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show User RSS feed
-	if len(isShowRSS) != 0 {
-		rss.ShowRSS(ctx, ctxUser, isShowRSS)
+	if len(isShowFeed) != 0 {
+		rss.ShowRSS(ctx, ctxUser, isShowFeed)
 		return
 	}
 
