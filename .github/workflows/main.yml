@@ -47,6 +47,6 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           known_hosts: ${{ secrets.STAGING_KNOWN_HOSTS }}
       - name: Deploy
-        run: ssh -o LogLevel=QUIET -t ${{ secrets.STAGING_DEPLOY_USER }}@${{ secrets.STAGING_DEPLOY_HOST }} "sudo sed -i -e 's/GITEA_VERSION=\"traP-.*/GITEA_VERSION=\"${GITHUB_REF:10}\"' /srv/gitea/deploy.sh && sudo sh /srv/gitea/deploy.sh"
+        run: ssh -o LogLevel=QUIET -t ${{ secrets.STAGING_DEPLOY_USER }}@${{ secrets.STAGING_DEPLOY_HOST }} "sudo sed -i -e 's/GITEA_VERSION=\"traP-.*/GITEA_VERSION=\"${GITHUB_REF:10}\"/' /srv/gitea/deploy.sh && sudo sh /srv/gitea/deploy.sh"
 
 
