@@ -26,6 +26,7 @@ type SearchResult struct {
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
 	IsRestricted bool     // if user is restricted
+	LowerName    string   // Lowername
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -363,6 +364,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	return &SearchResult{
+		LowerName:    strings.ToLower(username),
 		Username:     username,
 		Name:         firstname,
 		Surname:      surname,
@@ -440,6 +442,8 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
+		result[i].LowerName = strings.ToLower(result[i].Username)
+
 	}
 
 	return result, nil

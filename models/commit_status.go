@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -37,7 +38,11 @@ type CommitStatus struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-func (status *CommitStatus) loadAttributes(e Engine) (err error) {
+func init() {
+	db.RegisterModel(new(CommitStatus))
+}
+
+func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = getRepositoryByID(e, status.RepoID)
 		if err != nil {
@@ -55,7 +60,7 @@ func (status *CommitStatus) loadAttributes(e Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadAttributes(x)
+	_ = status.loadAttributes(db.DefaultContext().Engine())
 	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
@@ -112,7 +117,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 }
 
 func listCommitStatusesStatement(repo *Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
-	sess := x.Where("repo_id = ?", repo.ID).And("sha = ?", sha)
+	sess := db.DefaultContext().Engine().Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
 		sess.And("state = ?", opts.State)
@@ -139,10 +144,10 @@ func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
-	return getLatestCommitStatus(x, repoID, sha, listOptions)
+	return getLatestCommitStatus(db.DefaultContext().Engine(), repoID, sha, listOptions)
 }
 
-func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
+func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
 	ids := make([]int64, 0, 10)
 	sess := e.Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
@@ -166,7 +171,7 @@ func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListO
 func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
 	ids := make([]int64, 0, 10)
-	if err := x.Table("commit_status").
+	if err := db.DefaultContext().Engine().Table("commit_status").
 		Where("repo_id = ?", repoID).
 		And("updated_unix >= ?", start).
 		Select("max( id ) as id").
@@ -179,7 +184,7 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 	if len(ids) == 0 {
 		return contexts, nil
 	}
-	return contexts, x.Select("context").Table("commit_status").In("id", ids).Find(&contexts)
+	return contexts, db.DefaultContext().Engine().Select("context").Table("commit_status").In("id", ids).Find(&contexts)
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus
@@ -201,12 +206,11 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
 	}
+	defer committer.Close()
 
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
@@ -221,11 +225,8 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		SHA:    opts.SHA,
 		RepoID: opts.Repo.ID,
 	}
-	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
+	has, err := ctx.Engine().Desc("index").Limit(1).Get(lastCommitStatus)
 	if err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("NewCommitStatus: sess.Rollback: %v", err)
-		}
 		return fmt.Errorf("NewCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 	if has {
@@ -238,14 +239,11 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
-	if _, err = sess.Insert(opts.CommitStatus); err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("Insert CommitStatus: sess.Rollback: %v", err)
-		}
+	if _, err = ctx.Engine().Insert(opts.CommitStatus); err != nil {
 		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.

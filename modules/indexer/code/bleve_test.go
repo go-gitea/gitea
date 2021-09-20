@@ -8,14 +8,14 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
 	dir, err := ioutil.TempDir("", "bleve.index")
 	assert.NoError(t, err)

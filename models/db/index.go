@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
 	"errors"
@@ -18,11 +18,8 @@ type ResourceIndex struct {
 	MaxIndex int64 `xorm:"index"`
 }
 
-// IssueIndex represents the issue index table
-type IssueIndex ResourceIndex
-
-// upsertResourceIndex the function will not return until it acquires the lock or receives an error.
-func upsertResourceIndex(e Engine, tableName string, groupID int64) (err error) {
+// UpsertResourceIndex the function will not return until it acquires the lock or receives an error.
+func UpsertResourceIndex(e Engine, tableName string, groupID int64) (err error) {
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
 	// that ensures that the key is actually locked.
 	switch {
@@ -75,8 +72,8 @@ func GetNextResourceIndex(tableName string, groupID int64) (int64, error) {
 	return 0, ErrGetResourceIndexFailed
 }
 
-// deleteResouceIndex delete resource index
-func deleteResouceIndex(e Engine, tableName string, groupID int64) error {
+// DeleteResouceIndex delete resource index
+func DeleteResouceIndex(e Engine, tableName string, groupID int64) error {
 	_, err := e.Exec(fmt.Sprintf("DELETE FROM %s WHERE group_id=?", tableName), groupID)
 	return err
 }
@@ -94,7 +91,7 @@ func getNextResourceIndex(tableName string, groupID int64) (int64, error) {
 		return 0, err
 	}
 
-	if err := upsertResourceIndex(sess, tableName, groupID); err != nil {
+	if err := UpsertResourceIndex(sess, tableName, groupID); err != nil {
 		return 0, err
 	}
 

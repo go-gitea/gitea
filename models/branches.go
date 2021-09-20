@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -47,6 +48,11 @@ type ProtectedBranch struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+}
+
+func init() {
+	db.RegisterModel(new(ProtectedBranch))
+	db.RegisterModel(new(DeletedBranch))
 }
 
 // IsProtected returns if the branch is protected
@@ -116,10 +122,10 @@ func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permi
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
 func (protectBranch *ProtectedBranch) IsUserOfficialReviewer(user *User) (bool, error) {
-	return protectBranch.isUserOfficialReviewer(x, user)
+	return protectBranch.isUserOfficialReviewer(db.DefaultContext().Engine(), user)
 }
 
-func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e Engine, user *User) (bool, error) {
+func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e db.Engine, user *User) (bool, error) {
 	repo, err := getRepositoryByID(e, protectBranch.RepoID)
 	if err != nil {
 		return false, err
@@ -156,7 +162,7 @@ func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
 func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	sess := x.Where("issue_id = ?", pr.IssueID).
+	sess := db.DefaultContext().Engine().Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		And("dismissed = ?", false)
@@ -177,7 +183,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 	if !protectBranch.BlockOnRejectedReviews {
 		return false
 	}
-	rejectExist, err := x.Where("issue_id = ?", pr.IssueID).
+	rejectExist, err := db.DefaultContext().Engine().Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
 		And("dismissed = ?", false).
@@ -196,7 +202,7 @@ func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(pr *P
 	if !protectBranch.BlockOnOfficialReviewRequests {
 		return false
 	}
-	has, err := x.Where("issue_id = ?", pr.IssueID).
+	has, err := db.DefaultContext().Engine().Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeRequest).
 		And("official = ?", true).
 		Exist(new(Review))
@@ -294,10 +300,10 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 
 // GetProtectedBranchBy getting protected branch by ID/Name
 func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
-	return getProtectedBranchBy(x, repoID, branchName)
+	return getProtectedBranchBy(db.DefaultContext().Engine(), repoID, branchName)
 }
 
-func getProtectedBranchBy(e Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
+func getProtectedBranchBy(e db.Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
 	has, err := e.Get(rel)
 	if err != nil {
@@ -369,13 +375,13 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 
 	// Make sure protectBranch.ID is not 0 for whitelists
 	if protectBranch.ID == 0 {
-		if _, err = x.Insert(protectBranch); err != nil {
+		if _, err = db.DefaultContext().Engine().Insert(protectBranch); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 		return nil
 	}
 
-	if _, err = x.ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
+	if _, err = db.DefaultContext().Engine().ID(protectBranch.ID).AllCols().Update(protectBranch); err != nil {
 		return fmt.Errorf("Update: %v", err)
 	}
 
@@ -385,7 +391,7 @@ func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts 
 // GetProtectedBranches get all protected branches
 func (repo *Repository) GetProtectedBranches() ([]*ProtectedBranch, error) {
 	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, x.Find(&protectedBranches, &ProtectedBranch{RepoID: repo.ID})
+	return protectedBranches, db.DefaultContext().Engine().Find(&protectedBranches, &ProtectedBranch{RepoID: repo.ID})
 }
 
 // GetBranchProtection get the branch protection of a branch
@@ -400,7 +406,7 @@ func (repo *Repository) IsProtectedBranch(branchName string) (bool, error) {
 		BranchName: branchName,
 	}
 
-	has, err := x.Exist(protectedBranch)
+	has, err := db.DefaultContext().Engine().Exist(protectedBranch)
 	if err != nil {
 		return true, err
 	}
@@ -487,19 +493,13 @@ func (repo *Repository) DeleteProtectedBranch(id int64) (err error) {
 		ID:     id,
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if affected, err := sess.Delete(protectedBranch); err != nil {
+	if affected, err := db.DefaultContext().Engine().Delete(protectedBranch); err != nil {
 		return err
 	} else if affected != 1 {
 		return fmt.Errorf("delete protected branch ID(%v) failed", id)
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // DeletedBranch struct
@@ -522,29 +522,20 @@ func (repo *Repository) AddDeletedBranch(branchName, commit string, deletedByID 
 		DeletedByID: deletedByID,
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	if _, err := sess.InsertOne(deletedBranch); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	_, err := db.DefaultContext().Engine().InsertOne(deletedBranch)
+	return err
 }
 
 // GetDeletedBranches returns all the deleted branches
 func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 	deletedBranches := make([]*DeletedBranch, 0)
-	return deletedBranches, x.Where("repo_id = ?", repo.ID).Desc("deleted_unix").Find(&deletedBranches)
+	return deletedBranches, db.DefaultContext().Engine().Where("repo_id = ?", repo.ID).Desc("deleted_unix").Find(&deletedBranches)
 }
 
 // GetDeletedBranchByID get a deleted branch by its ID
 func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
 	deletedBranch := &DeletedBranch{}
-	has, err := x.ID(id).Get(deletedBranch)
+	has, err := db.DefaultContext().Engine().ID(id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -561,19 +552,13 @@ func (repo *Repository) RemoveDeletedBranch(id int64) (err error) {
 		ID:     id,
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if affected, err := sess.Delete(deletedBranch); err != nil {
+	if affected, err := db.DefaultContext().Engine().Delete(deletedBranch); err != nil {
 		return err
 	} else if affected != 1 {
 		return fmt.Errorf("remove deleted branch ID(%v) failed", id)
 	}
 
-	return sess.Commit()
+	return nil
 }
 
 // LoadUser loads the user that deleted the branch
@@ -588,7 +573,7 @@ func (deletedBranch *DeletedBranch) LoadUser() {
 
 // RemoveDeletedBranch removes all deleted branches
 func RemoveDeletedBranch(repoID int64, branch string) error {
-	_, err := x.Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
+	_, err := db.DefaultContext().Engine().Where("repo_id=? AND name=?", repoID, branch).Delete(new(DeletedBranch))
 	return err
 }
 
@@ -598,7 +583,7 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	log.Trace("Doing: DeletedBranchesCleanup")
 
 	deleteBefore := time.Now().Add(-olderThan)
-	_, err := x.Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
+	_, err := db.DefaultContext().Engine().Where("deleted_unix < ?", deleteBefore.Unix()).Delete(new(DeletedBranch))
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)
 	}

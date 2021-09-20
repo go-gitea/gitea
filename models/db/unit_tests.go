@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
 	"fmt"
@@ -31,6 +31,11 @@ var (
 	giteaRoot   string
 	fixturesDir string
 )
+
+// FixturesDir returns the fixture directory
+func FixturesDir() string {
+	return fixturesDir
+}
 
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
@@ -150,6 +155,11 @@ func whereConditions(sess *xorm.Session, conditions []interface{}) {
 			sess.Where(cond)
 		}
 	}
+}
+
+// LoadBeanIfExists loads beans from fixture database if exist
+func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
+	return loadBeanIfExists(bean, conditions...)
 }
 
 func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {

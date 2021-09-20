@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -35,6 +36,12 @@ type OAuth2Application struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func init() {
+	db.RegisterModel(new(OAuth2Application))
+	db.RegisterModel(new(OAuth2AuthorizationCode))
+	db.RegisterModel(new(OAuth2Grant))
 }
 
 // TableName sets the table name to `oauth2_application`
@@ -74,7 +81,7 @@ func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 		return "", err
 	}
 	app.ClientSecret = string(hashedSecret)
-	if _, err := x.ID(app.ID).Cols("client_secret").Update(app); err != nil {
+	if _, err := db.DefaultContext().Engine().ID(app.ID).Cols("client_secret").Update(app); err != nil {
 		return "", err
 	}
 	return clientSecret, nil
@@ -87,10 +94,10 @@ func (app *OAuth2Application) ValidateClientSecret(secret []byte) bool {
 
 // GetGrantByUserID returns a OAuth2Grant by its user and application ID
 func (app *OAuth2Application) GetGrantByUserID(userID int64) (*OAuth2Grant, error) {
-	return app.getGrantByUserID(x, userID)
+	return app.getGrantByUserID(db.DefaultContext().Engine(), userID)
 }
 
-func (app *OAuth2Application) getGrantByUserID(e Engine, userID int64) (grant *OAuth2Grant, err error) {
+func (app *OAuth2Application) getGrantByUserID(e db.Engine, userID int64) (grant *OAuth2Grant, err error) {
 	grant = new(OAuth2Grant)
 	if has, err := e.Where("user_id = ? AND application_id = ?", userID, app.ID).Get(grant); err != nil {
 		return nil, err
@@ -102,10 +109,10 @@ func (app *OAuth2Application) getGrantByUserID(e Engine, userID int64) (grant *O
 
 // CreateGrant generates a grant for an user
 func (app *OAuth2Application) CreateGrant(userID int64, scope string) (*OAuth2Grant, error) {
-	return app.createGrant(x, userID, scope)
+	return app.createGrant(db.DefaultContext().Engine(), userID, scope)
 }
 
-func (app *OAuth2Application) createGrant(e Engine, userID int64, scope string) (*OAuth2Grant, error) {
+func (app *OAuth2Application) createGrant(e db.Engine, userID int64, scope string) (*OAuth2Grant, error) {
 	grant := &OAuth2Grant{
 		ApplicationID: app.ID,
 		UserID:        userID,
@@ -120,10 +127,10 @@ func (app *OAuth2Application) createGrant(e Engine, userID int64, scope string) 
 
 // GetOAuth2ApplicationByClientID returns the oauth2 application with the given client_id. Returns an error if not found.
 func GetOAuth2ApplicationByClientID(clientID string) (app *OAuth2Application, err error) {
-	return getOAuth2ApplicationByClientID(x, clientID)
+	return getOAuth2ApplicationByClientID(db.DefaultContext().Engine(), clientID)
 }
 
-func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Application, err error) {
+func getOAuth2ApplicationByClientID(e db.Engine, clientID string) (app *OAuth2Application, err error) {
 	app = new(OAuth2Application)
 	has, err := e.Where("client_id = ?", clientID).Get(app)
 	if !has {
@@ -134,10 +141,10 @@ func getOAuth2ApplicationByClientID(e Engine, clientID string) (app *OAuth2Appli
 
 // GetOAuth2ApplicationByID returns the oauth2 application with the given id. Returns an error if not found.
 func GetOAuth2ApplicationByID(id int64) (app *OAuth2Application, err error) {
-	return getOAuth2ApplicationByID(x, id)
+	return getOAuth2ApplicationByID(db.DefaultContext().Engine(), id)
 }
 
-func getOAuth2ApplicationByID(e Engine, id int64) (app *OAuth2Application, err error) {
+func getOAuth2ApplicationByID(e db.Engine, id int64) (app *OAuth2Application, err error) {
 	app = new(OAuth2Application)
 	has, err := e.ID(id).Get(app)
 	if err != nil {
@@ -151,10 +158,10 @@ func getOAuth2ApplicationByID(e Engine, id int64) (app *OAuth2Application, err e
 
 // GetOAuth2ApplicationsByUserID returns all oauth2 applications owned by the user
 func GetOAuth2ApplicationsByUserID(userID int64) (apps []*OAuth2Application, err error) {
-	return getOAuth2ApplicationsByUserID(x, userID)
+	return getOAuth2ApplicationsByUserID(db.DefaultContext().Engine(), userID)
 }
 
-func getOAuth2ApplicationsByUserID(e Engine, userID int64) (apps []*OAuth2Application, err error) {
+func getOAuth2ApplicationsByUserID(e db.Engine, userID int64) (apps []*OAuth2Application, err error) {
 	apps = make([]*OAuth2Application, 0)
 	err = e.Where("uid = ?", userID).Find(&apps)
 	return
@@ -169,10 +176,10 @@ type CreateOAuth2ApplicationOptions struct {
 
 // CreateOAuth2Application inserts a new oauth2 application
 func CreateOAuth2Application(opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	return createOAuth2Application(x, opts)
+	return createOAuth2Application(db.DefaultContext().Engine(), opts)
 }
 
-func createOAuth2Application(e Engine, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
+func createOAuth2Application(e db.Engine, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
 	clientID := uuid.New().String()
 	app := &OAuth2Application{
 		UID:          opts.UserID,
@@ -196,7 +203,7 @@ type UpdateOAuth2ApplicationOptions struct {
 
 // UpdateOAuth2Application updates an oauth2 application
 func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -221,7 +228,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 	return app, sess.Commit()
 }
 
-func updateOAuth2Application(e Engine, app *OAuth2Application) error {
+func updateOAuth2Application(e db.Engine, app *OAuth2Application) error {
 	if _, err := e.ID(app.ID).Update(app); err != nil {
 		return err
 	}
@@ -257,7 +264,7 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -270,7 +277,7 @@ func DeleteOAuth2Application(id, userid int64) error {
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
 func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, int64, error) {
-	sess := x.
+	sess := db.DefaultContext().Engine().
 		Where("uid=?", uid).
 		Desc("id")
 
@@ -322,10 +329,10 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 
 // Invalidate deletes the auth code from the database to invalidate this code
 func (code *OAuth2AuthorizationCode) Invalidate() error {
-	return code.invalidate(x)
+	return code.invalidate(db.DefaultContext().Engine())
 }
 
-func (code *OAuth2AuthorizationCode) invalidate(e Engine) error {
+func (code *OAuth2AuthorizationCode) invalidate(e db.Engine) error {
 	_, err := e.Delete(code)
 	return err
 }
@@ -354,10 +361,10 @@ func (code *OAuth2AuthorizationCode) validateCodeChallenge(verifier string) bool
 
 // GetOAuth2AuthorizationByCode returns an authorization by its code
 func GetOAuth2AuthorizationByCode(code string) (*OAuth2AuthorizationCode, error) {
-	return getOAuth2AuthorizationByCode(x, code)
+	return getOAuth2AuthorizationByCode(db.DefaultContext().Engine(), code)
 }
 
-func getOAuth2AuthorizationByCode(e Engine, code string) (auth *OAuth2AuthorizationCode, err error) {
+func getOAuth2AuthorizationByCode(e db.Engine, code string) (auth *OAuth2AuthorizationCode, err error) {
 	auth = new(OAuth2AuthorizationCode)
 	if has, err := e.Where("code = ?", code).Get(auth); err != nil {
 		return nil, err
@@ -395,10 +402,10 @@ func (grant *OAuth2Grant) TableName() string {
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
-	return grant.generateNewAuthorizationCode(x, redirectURI, codeChallenge, codeChallengeMethod)
+	return grant.generateNewAuthorizationCode(db.DefaultContext().Engine(), redirectURI, codeChallenge, codeChallengeMethod)
 }
 
-func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
+func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
 	var codeSecret string
 	if codeSecret, err = secret.New(); err != nil {
 		return &OAuth2AuthorizationCode{}, err
@@ -419,10 +426,10 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e Engine, redirectURI, co
 
 // IncreaseCounter increases the counter and updates the grant
 func (grant *OAuth2Grant) IncreaseCounter() error {
-	return grant.increaseCount(x)
+	return grant.increaseCount(db.DefaultContext().Engine())
 }
 
-func (grant *OAuth2Grant) increaseCount(e Engine) error {
+func (grant *OAuth2Grant) increaseCount(e db.Engine) error {
 	_, err := e.ID(grant.ID).Incr("counter").Update(new(OAuth2Grant))
 	if err != nil {
 		return err
@@ -447,10 +454,10 @@ func (grant *OAuth2Grant) ScopeContains(scope string) bool {
 
 // SetNonce updates the current nonce value of a grant
 func (grant *OAuth2Grant) SetNonce(nonce string) error {
-	return grant.setNonce(x, nonce)
+	return grant.setNonce(db.DefaultContext().Engine(), nonce)
 }
 
-func (grant *OAuth2Grant) setNonce(e Engine, nonce string) error {
+func (grant *OAuth2Grant) setNonce(e db.Engine, nonce string) error {
 	grant.Nonce = nonce
 	_, err := e.ID(grant.ID).Cols("nonce").Update(grant)
 	if err != nil {
@@ -461,10 +468,10 @@ func (grant *OAuth2Grant) setNonce(e Engine, nonce string) error {
 
 // GetOAuth2GrantByID returns the grant with the given ID
 func GetOAuth2GrantByID(id int64) (*OAuth2Grant, error) {
-	return getOAuth2GrantByID(x, id)
+	return getOAuth2GrantByID(db.DefaultContext().Engine(), id)
 }
 
-func getOAuth2GrantByID(e Engine, id int64) (grant *OAuth2Grant, err error) {
+func getOAuth2GrantByID(e db.Engine, id int64) (grant *OAuth2Grant, err error) {
 	grant = new(OAuth2Grant)
 	if has, err := e.ID(id).Get(grant); err != nil {
 		return nil, err
@@ -476,10 +483,10 @@ func getOAuth2GrantByID(e Engine, id int64) (grant *OAuth2Grant, err error) {
 
 // GetOAuth2GrantsByUserID lists all grants of a certain user
 func GetOAuth2GrantsByUserID(uid int64) ([]*OAuth2Grant, error) {
-	return getOAuth2GrantsByUserID(x, uid)
+	return getOAuth2GrantsByUserID(db.DefaultContext().Engine(), uid)
 }
 
-func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
+func getOAuth2GrantsByUserID(e db.Engine, uid int64) ([]*OAuth2Grant, error) {
 	type joinedOAuth2Grant struct {
 		Grant       *OAuth2Grant       `xorm:"extends"`
 		Application *OAuth2Application `xorm:"extends"`
@@ -508,10 +515,10 @@ func getOAuth2GrantsByUserID(e Engine, uid int64) ([]*OAuth2Grant, error) {
 
 // RevokeOAuth2Grant deletes the grant with grantID and userID
 func RevokeOAuth2Grant(grantID, userID int64) error {
-	return revokeOAuth2Grant(x, grantID, userID)
+	return revokeOAuth2Grant(db.DefaultContext().Engine(), grantID, userID)
 }
 
-func revokeOAuth2Grant(e Engine, grantID, userID int64) error {
+func revokeOAuth2Grant(e db.Engine, grantID, userID int64) error {
 	_, err := e.Delete(&OAuth2Grant{ID: grantID, UserID: userID})
 	return err
 }

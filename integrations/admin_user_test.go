@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -60,7 +61,7 @@ func makeRequest(t *testing.T, formData models.User, headerCode int) {
 	})
 
 	session.MakeRequest(t, req, headerCode)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
 	assert.Equal(t, formData.Name, user.Name)
 	assert.Equal(t, formData.LoginName, user.LoginName)
 	assert.Equal(t, formData.Email, user.Email)
