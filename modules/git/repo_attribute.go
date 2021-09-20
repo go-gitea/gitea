@@ -112,12 +112,14 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 	if len(c.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
 		cmdArgs = append(cmdArgs, "--cached")
-		c.env = []string{"GIT_INDEX_FILE=" + c.IndexFile}
+		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
 	}
 
 	if len(c.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
-		c.env = []string{"GIT_WORK_TREE=" + c.WorkTree}
+		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
 	}
+
+	c.env = append(c.env, "GIT_FLUSH=1")
 
 	if len(c.Attributes) > 0 {
 		cmdArgs = append(cmdArgs, c.Attributes...)
