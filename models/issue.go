@@ -1320,9 +1320,9 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 }
 
 func applySubscribedCondition(sess *xorm.Session, subscribedID int64) *xorm.Session {
-	return sess.And("(issue.id IN (SELECT issue_id FROM issue_watch WHERE is_watching = TRUE AND user_id = ?)) "+
-		"OR ((issue.id IN ((SELECT issue_id FROM comment WHERE poster_id = ?))) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND is_watching = FALSE))) "+
-		"OR ((issue.id IN (SELECT id FROM issue WHERE poster_id = ?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND is_watching = FALSE)))",
+	return sess.And("(issue.id IN (SELECT issue_id FROM issue_watch WHERE (is_watching = TRUE) AND user_id = ?)) "+
+		"OR ((issue.id IN ((SELECT issue_id FROM comment WHERE poster_id = ?))) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = FALSE)))) "+
+		"OR ((issue.id IN (SELECT id FROM issue WHERE poster_id = ?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = FALSE))))",
 		subscribedID, subscribedID, subscribedID, subscribedID, subscribedID)
 }
 
