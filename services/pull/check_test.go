@@ -11,13 +11,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/queue"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	idChan := make(chan int64, 10)
 
@@ -41,11 +42,11 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	prQueue = q.(queue.UniqueQueue)
 
-	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+	pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 	AddToTaskQueue(pr)
 
 	assert.Eventually(t, func() bool {
-		pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+		pr = db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 		return pr.Status == models.PullRequestStatusChecking
 	}, 1*time.Second, 100*time.Millisecond)
 
@@ -70,7 +71,7 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.False(t, has)
 	assert.NoError(t, err)
 
-	pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+	pr = db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 	assert.Equal(t, models.PullRequestStatusChecking, pr.Status)
 
 	for _, callback := range queueShutdown {

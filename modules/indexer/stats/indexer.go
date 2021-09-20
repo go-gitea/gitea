@@ -6,6 +6,7 @@ package stats
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -39,7 +40,7 @@ func populateRepoIndexer() {
 
 	isShutdown := graceful.GetManager().IsShutdown()
 
-	exist, err := models.IsTableNotEmpty("repository")
+	exist, err := db.IsTableNotEmpty("repository")
 	if err != nil {
 		log.Fatal("System error: %v", err)
 	} else if !exist {
@@ -47,7 +48,7 @@ func populateRepoIndexer() {
 	}
 
 	var maxRepoID int64
-	if maxRepoID, err = models.GetMaxID("repository"); err != nil {
+	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
 		log.Fatal("System error: %v", err)
 	}
 

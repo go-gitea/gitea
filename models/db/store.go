@@ -2,9 +2,11 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
-import "github.com/lafriks/xormstore"
+import (
+	"github.com/lafriks/xormstore"
+)
 
 // CreateStore creates a xormstore for the provided table and key
 func CreateStore(table, key string) (*xormstore.Store, error) {

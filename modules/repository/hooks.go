@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -220,8 +221,8 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 func SyncRepositoryHooks(ctx context.Context) error {
 	log.Trace("Doing: SyncRepositoryHooks")
 
-	if err := models.Iterate(
-		models.DefaultDBContext(),
+	if err := db.Iterate(
+		db.DefaultContext(),
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

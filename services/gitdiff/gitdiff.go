@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -1122,7 +1123,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
 				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := models.Count(m)
+				count, err := db.Count(m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true

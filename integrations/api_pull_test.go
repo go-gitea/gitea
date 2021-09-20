@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/forms"
@@ -20,8 +21,8 @@ import (
 
 func TestAPIViewPulls(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
@@ -30,16 +31,16 @@ func TestAPIViewPulls(t *testing.T) {
 
 	var pulls []*api.PullRequest
 	DecodeJSON(t, resp, &pulls)
-	expectedLen := models.GetCount(t, &models.Issue{RepoID: repo.ID}, models.Cond("is_pull = ?", true))
+	expectedLen := db.GetCount(t, &models.Issue{RepoID: repo.ID}, db.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
 }
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
-	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, models.Cond("has_merged = ?", false)).(*models.PullRequest)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, db.Cond("has_merged = ?", false)).(*models.PullRequest)
 	pr.LoadIssue()
 	issue_service.ChangeTitle(pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
 
@@ -60,12 +61,12 @@ func TestAPIMergePullWIP(t *testing.T) {
 
 func TestAPICreatePullSuccess(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
+	repo10 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 	// repo10 have code, pulls units.
-	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
+	repo11 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
 	// repo11 only have code unit but should still create pulls
-	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
-	owner11 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
+	owner10 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
+	owner11 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -81,11 +82,11 @@ func TestAPICreatePullSuccess(t *testing.T) {
 func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// repo10 have code, pulls units.
-	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
-	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
+	repo10 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
+	owner10 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
 	// repo11 only have code unit but should still create pulls
-	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
-	owner11 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
+	repo11 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
+	owner11 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -118,11 +119,11 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// repo10 have code, pulls units.
-	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
-	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
+	repo10 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
+	owner10 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
 	// repo11 only have code unit but should still create pulls
-	repo11 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
-	owner11 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
+	repo11 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 11}).(*models.Repository)
+	owner11 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo11.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -151,8 +152,8 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 
 func TestAPIEditPull(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo10 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
-	owner10 := models.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
+	repo10 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
+	owner10 := db.AssertExistsAndLoadBean(t, &models.User{ID: repo10.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner10.Name)
 	token := getTokenForLoggedInUser(t, session)

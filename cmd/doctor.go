@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/doctor"
 	"code.gitea.io/gitea/modules/log"
@@ -96,7 +96,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	setting.Cfg.Section("log").Key("XORM").SetValue(",")
 
 	setting.NewXORMLogService(!ctx.Bool("debug"))
-	if err := models.SetEngine(); err != nil {
+	if err := db.SetEngine(); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
@@ -108,13 +108,13 @@ func runRecreateTable(ctx *cli.Context) error {
 		names = append(names, args.Get(i))
 	}
 
-	beans, err := models.NamesToBean(names...)
+	beans, err := db.NamesToBean(names...)
 	if err != nil {
 		return err
 	}
 	recreateTables := migrations.RecreateTables(beans...)
 
-	return models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	return db.NewEngine(context.Background(), func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
 			return err
 		}
