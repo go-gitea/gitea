@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func createAndParseToken(t *testing.T, grant *models.OAuth2Grant) *oauth2.OIDCToken {
+func createAndParseToken(t *testing.T, grant *login.OAuth2Grant) *oauth2.OIDCToken {
 	signingKey, err := oauth2.CreateJWTSigningKey("HS256", make([]byte, 32))
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)

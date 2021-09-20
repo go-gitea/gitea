@@ -21,9 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
 	repo_module "code.gitea.io/gitea/modules/repository"
-	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/urfave/cli"

@@ -339,7 +339,7 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 	}
 }
 
-// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
+// ToOAuth2Application convert from login.OAuth2Application to api.OAuth2Application
 func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
 		ID:           app.ID,

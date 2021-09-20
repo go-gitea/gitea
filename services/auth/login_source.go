@@ -16,14 +16,18 @@ func DeleteLoginSource(source *login.LoginSource) error {
 	if err != nil {
 		return err
 	} else if count > 0 {
-		return login.ErrLoginSourceInUse{source.ID}
+		return login.ErrLoginSourceInUse{
+			ID: source.ID,
+		}
 	}
 
 	count, err = db.DefaultContext().Engine().Count(&models.ExternalLoginUser{LoginSourceID: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
-		return login.ErrLoginSourceInUse{source.ID}
+		return login.ErrLoginSourceInUse{
+			ID: source.ID,
+		}
 	}
 
 	if registerableSource, ok := source.Cfg.(login.RegisterableSource); ok {

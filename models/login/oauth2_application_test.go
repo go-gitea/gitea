@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,13 +68,6 @@ func TestCreateOAuth2Application(t *testing.T) {
 	assert.Equal(t, "newapp", app.Name)
 	assert.Len(t, app.ClientID, 36)
 	db.AssertExistsAndLoadBean(t, &OAuth2Application{Name: "newapp"})
-}
-
-func TestOAuth2Application_LoadUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
-	app := db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
-	assert.NoError(t, app.LoadUser())
-	assert.NotNil(t, app.User)
 }
 
 func TestOAuth2Application_TableName(t *testing.T) {

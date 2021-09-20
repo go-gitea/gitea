@@ -111,4 +111,7 @@ issues:
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+    - path: models/login/login_source.go
+      linters:
+        - structcheck
 

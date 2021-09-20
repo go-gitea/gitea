@@ -23,19 +23,14 @@ import (
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
-	ID  int64 `xorm:"pk autoincr"`
-	UID int64 `xorm:"INDEX"`
-	//User *User `xorm:"-"`
-
-	Name string
-
+	ID           int64 `xorm:"pk autoincr"`
+	UID          int64 `xorm:"INDEX"`
+	Name         string
 	ClientID     string `xorm:"unique"`
 	ClientSecret string
-
-	RedirectURIs []string `xorm:"redirect_uris JSON TEXT"`
-
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	RedirectURIs []string           `xorm:"redirect_uris JSON TEXT"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -56,14 +51,6 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 	}
 	return app.RedirectURIs[0]
 }
-
-// LoadUser will load User by UID
-/*func (app *OAuth2Application) LoadUser() (err error) {
-	if app.User == nil {
-		app.User, err = GetUserByID(app.UID)
-	}
-	return
-}*/
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
