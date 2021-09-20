@@ -119,13 +119,15 @@ func GetArchive(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return
+	if ctx.Repo.GitRepo == nil {
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+		defer gitRepo.Close()
 	}
-	ctx.Repo.GitRepo = gitRepo
-	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }
