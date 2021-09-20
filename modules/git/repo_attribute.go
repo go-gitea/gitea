@@ -12,6 +12,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // CheckAttributeOpts represents the possible options to CheckAttribute
@@ -173,19 +175,25 @@ func (c *CheckAttributeReader) Run() error {
 }
 
 // CheckPath check attr for given path
-func (c *CheckAttributeReader) CheckPath(path string) (map[string]string, error) {
+func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
+	defer func() {
+		if err != nil {
+			log.Error("CheckPath returns error: %v", err)
+		}
+	}()
+
 	select {
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
 	case <-c.running:
 	}
 
-	if _, err := c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
+	if _, err = c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
 		defer c.Close()
 		return nil, err
 	}
 
-	rs := make(map[string]string)
+	rs = make(map[string]string)
 	for range c.Attributes {
 		select {
 		case attr, ok := <-c.stdOut.ReadAttribute():
