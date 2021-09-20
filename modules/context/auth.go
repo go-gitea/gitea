@@ -151,6 +151,9 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 				return
 			}
 			if ctx.IsSigned && ctx.IsBasicAuth {
+				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
+					return // Skip 2FA
+				}
 				twofa, err := models.GetTwoFactorByUID(ctx.User.ID)
 				if err != nil {
 					if models.IsErrTwoFactorNotEnrolled(err) {

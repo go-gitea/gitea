@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestUserIsPublicMember(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	tt := []struct {
 		uid      int64
@@ -44,7 +45,7 @@ func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 }
 
 func TestIsUserOrgOwner(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	tt := []struct {
 		uid      int64
@@ -70,7 +71,7 @@ func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 }
 
 func TestGetUserEmailsByNames(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// ignore none active user email
 	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user9"}))
@@ -80,12 +81,12 @@ func TestGetUserEmailsByNames(t *testing.T) {
 }
 
 func TestCanCreateOrganization(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	assert.True(t, admin.CanCreateOrganization())
 
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.CanCreateOrganization())
 	// Disable user create organization permission.
 	user.AllowCreateOrganization = false
@@ -98,7 +99,7 @@ func TestCanCreateOrganization(t *testing.T) {
 }
 
 func TestSearchUsers(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	testSuccess := func(opts *SearchUserOptions, expectedUserOrOrgIDs []int64) {
 		users, _, err := SearchUsers(opts)
 		assert.NoError(t, err)
@@ -155,11 +156,11 @@ func TestSearchUsers(t *testing.T) {
 
 func TestDeleteUser(t *testing.T) {
 	test := func(userID int64) {
-		assert.NoError(t, PrepareTestDatabase())
-		user := AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
+		assert.NoError(t, db.PrepareTestDatabase())
+		user := db.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
 
 		ownedRepos := make([]*Repository, 0, 10)
-		assert.NoError(t, x.Find(&ownedRepos, &Repository{OwnerID: userID}))
+		assert.NoError(t, db.DefaultContext().Engine().Find(&ownedRepos, &Repository{OwnerID: userID}))
 		if len(ownedRepos) > 0 {
 			err := DeleteUser(user)
 			assert.Error(t, err)
@@ -168,7 +169,7 @@ func TestDeleteUser(t *testing.T) {
 		}
 
 		orgUsers := make([]*OrgUser, 0, 10)
-		assert.NoError(t, x.Find(&orgUsers, &OrgUser{UID: userID}))
+		assert.NoError(t, db.DefaultContext().Engine().Find(&orgUsers, &OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
 			if err := RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
 				assert.True(t, IsErrLastOrgOwner(err))
@@ -176,7 +177,7 @@ func TestDeleteUser(t *testing.T) {
 			}
 		}
 		assert.NoError(t, DeleteUser(user))
-		AssertNotExistsBean(t, &User{ID: userID})
+		db.AssertNotExistsBean(t, &User{ID: userID})
 		CheckConsistencyFor(t, &User{}, &Repository{})
 	}
 	test(2)
@@ -184,12 +185,12 @@ func TestDeleteUser(t *testing.T) {
 	test(8)
 	test(11)
 
-	org := AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.Error(t, DeleteUser(org))
 }
 
 func TestEmailNotificationPreferences(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	for _, test := range []struct {
 		expected string
@@ -205,7 +206,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		{EmailNotificationsEnabled, 8},
 		{EmailNotificationsOnMention, 9},
 	} {
-		user := AssertExistsAndLoadBean(t, &User{ID: test.userID}).(*User)
+		user := db.AssertExistsAndLoadBean(t, &User{ID: test.userID}).(*User)
 		assert.Equal(t, test.expected, user.EmailNotifications())
 
 		// Try all possible settings
@@ -257,10 +258,10 @@ func BenchmarkHashPassword(b *testing.B) {
 }
 
 func TestGetOrgRepositoryIDs(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user2 := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user4 := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	user5 := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	assert.NoError(t, db.PrepareTestDatabase())
+	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user4 := db.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user5 := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 
 	accessibleRepos, err := user2.GetOrgRepositoryIDs()
 	assert.NoError(t, err)
@@ -280,7 +281,7 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 
 func TestNewGitSig(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	sess.Find(&users)
 
@@ -295,7 +296,7 @@ func TestNewGitSig(t *testing.T) {
 
 func TestDisplayName(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := x.NewSession()
+	sess := db.DefaultContext().NewSession()
 	defer sess.Close()
 	sess.Find(&users)
 
@@ -370,7 +371,7 @@ func TestCreateUser_Issue5882(t *testing.T) {
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// ignore non existing
 	IDs, err := GetUserIDsByNames([]string{"user1", "user2", "none_existing_user"}, true)
@@ -384,7 +385,7 @@ func TestGetUserIDsByNames(t *testing.T) {
 }
 
 func TestGetMaileableUsersByIDs(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	results, err := GetMaileableUsersByIDs([]int64{1, 4}, false)
 	assert.NoError(t, err)
@@ -403,9 +404,9 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 }
 
 func TestAddLdapSSHPublicKeys(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	s := &LoginSource{ID: 1}
 
 	testCases := []struct {
@@ -471,19 +472,19 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 }
 
 func TestUpdateUser(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.NoError(t, db.PrepareTestDatabase())
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	user.KeepActivityPrivate = true
 	assert.NoError(t, UpdateUser(user))
-	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user = db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
 	assert.Error(t, UpdateUser(user))
-	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user = db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	user.Email = "no mail@mail.org"

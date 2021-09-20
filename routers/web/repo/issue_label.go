@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -38,7 +39,7 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(models.DefaultDBContext(), ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
+	if err := models.InitializeLabels(db.DefaultContext(), ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
 		if models.IsErrIssueLabelTemplateLoad(err) {
 			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))

@@ -7,9 +7,12 @@ package models
 
 import (
 	"crypto/subtle"
+	"fmt"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -41,6 +44,21 @@ func (t *AccessToken) AfterLoad() {
 	t.HasRecentActivity = t.UpdatedUnix.AddDuration(7*24*time.Hour) > timeutil.TimeStampNow()
 }
 
+func init() {
+	db.RegisterModel(new(AccessToken), func() error {
+		if setting.SuccessfulTokensCacheSize > 0 {
+			var err error
+			successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
+			if err != nil {
+				return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+			}
+		} else {
+			successfulAccessTokenCache = nil
+		}
+		return nil
+	})
+}
+
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
 	salt, err := util.RandomString(10)
@@ -51,7 +69,7 @@ func NewAccessToken(t *AccessToken) error {
 	t.Token = base.EncodeSha1(gouuid.New().String())
 	t.TokenHash = hashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
-	_, err = x.Insert(t)
+	_, err = db.DefaultContext().Engine().Insert(t)
 	return err
 }
 
@@ -92,7 +110,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 			TokenLastEight: lastEight,
 		}
 		// Re-get the token from the db in case it has been deleted in the intervening period
-		has, err := x.ID(id).Get(token)
+		has, err := db.DefaultContext().Engine().ID(id).Get(token)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +121,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	}
 
 	var tokens []AccessToken
-	err := x.Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
+	err := db.DefaultContext().Engine().Table(&AccessToken{}).Where("token_last_eight = ?", lastEight).Find(&tokens)
 	if err != nil {
 		return nil, err
 	} else if len(tokens) == 0 {
@@ -124,7 +142,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 
 // AccessTokenByNameExists checks if a token name has been used already by a user.
 func AccessTokenByNameExists(token *AccessToken) (bool, error) {
-	return x.Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
+	return db.DefaultContext().Engine().Table("access_token").Where("name = ?", token.Name).And("uid = ?", token.UID).Exist()
 }
 
 // ListAccessTokensOptions contain filter options
@@ -136,7 +154,7 @@ type ListAccessTokensOptions struct {
 
 // ListAccessTokens returns a list of access tokens belongs to given user.
 func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
-	sess := x.Where("uid=?", opts.UserID)
+	sess := db.DefaultContext().Engine().Where("uid=?", opts.UserID)
 
 	if len(opts.Name) != 0 {
 		sess = sess.Where("name=?", opts.Name)
@@ -157,13 +175,13 @@ func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
 
 // UpdateAccessToken updates information of access token.
 func UpdateAccessToken(t *AccessToken) error {
-	_, err := x.ID(t.ID).AllCols().Update(t)
+	_, err := db.DefaultContext().Engine().ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // CountAccessTokens count access tokens belongs to given user by options
 func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
-	sess := x.Where("uid=?", opts.UserID)
+	sess := db.DefaultContext().Engine().Where("uid=?", opts.UserID)
 	if len(opts.Name) != 0 {
 		sess = sess.Where("name=?", opts.Name)
 	}
@@ -172,7 +190,7 @@ func CountAccessTokens(opts ListAccessTokensOptions) (int64, error) {
 
 // DeleteAccessTokenByID deletes access token by given ID.
 func DeleteAccessTokenByID(id, userID int64) error {
-	cnt, err := x.ID(id).Delete(&AccessToken{
+	cnt, err := db.DefaultContext().Engine().ID(id).Delete(&AccessToken{
 		UID: userID,
 	})
 	if err != nil {

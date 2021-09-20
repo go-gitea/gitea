@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -30,6 +31,10 @@ type TwoFactor struct {
 	LastUsedPasscode string             `xorm:"VARCHAR(10)"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix      timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func init() {
+	db.RegisterModel(new(TwoFactor))
 }
 
 // GenerateScratchToken recreates the scratch token the user is using.
@@ -88,13 +93,13 @@ func (t *TwoFactor) ValidateTOTP(passcode string) (bool, error) {
 
 // NewTwoFactor creates a new two-factor authentication token.
 func NewTwoFactor(t *TwoFactor) error {
-	_, err := x.Insert(t)
+	_, err := db.DefaultContext().Engine().Insert(t)
 	return err
 }
 
 // UpdateTwoFactor updates a two-factor authentication token.
 func UpdateTwoFactor(t *TwoFactor) error {
-	_, err := x.ID(t.ID).AllCols().Update(t)
+	_, err := db.DefaultContext().Engine().ID(t.ID).AllCols().Update(t)
 	return err
 }
 
@@ -102,7 +107,7 @@ func UpdateTwoFactor(t *TwoFactor) error {
 // the user, if any.
 func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 	twofa := &TwoFactor{}
-	has, err := x.Where("uid=?", uid).Get(twofa)
+	has, err := db.DefaultContext().Engine().Where("uid=?", uid).Get(twofa)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -113,7 +118,7 @@ func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 
 // DeleteTwoFactorByID deletes two-factor authentication token by given ID.
 func DeleteTwoFactorByID(id, userID int64) error {
-	cnt, err := x.ID(id).Delete(&TwoFactor{
+	cnt, err := db.DefaultContext().Engine().ID(id).Delete(&TwoFactor{
 		UID: userID,
 	})
 	if err != nil {
