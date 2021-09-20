@@ -265,7 +265,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		}).(*models.Repository)
 		path := models.RepoPath(user1.Name, repo1.Name)
 
-		_, err := git.NewCommand("read-tree", "--empty").RunInDir(path)
+		_, err := git.NewCommand("read-tree", "-i", "--empty").RunInDir(path)
 		assert.NoError(t, err)
 
 		stdin := bytes.NewBufferString("Unrelated File")

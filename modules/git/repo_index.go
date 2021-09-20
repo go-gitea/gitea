@@ -28,7 +28,7 @@ func (repo *Repository) ReadTreeToIndex(treeish string) error {
 }
 
 func (repo *Repository) readTreeToIndex(id SHA1) error {
-	_, err := NewCommand("read-tree", id.String()).RunInDir(repo.Path)
+	_, err := NewCommand("read-tree", "-i", id.String()).RunInDir(repo.Path)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (repo *Repository) readTreeToIndex(id SHA1) error {
 
 // EmptyIndex empties the index
 func (repo *Repository) EmptyIndex() error {
-	_, err := NewCommand("read-tree", "--empty").RunInDir(repo.Path)
+	_, err := NewCommand("read-tree", "-i", "--empty").RunInDir(repo.Path)
 	return err
 }
 
