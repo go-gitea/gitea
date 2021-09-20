@@ -123,35 +123,39 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 
 	c.env = append(c.env, "GIT_FLUSH=1")
 
-	if len(c.Attributes) > 0 {
-		cmdArgs = append(cmdArgs, c.Attributes...)
-		cmdArgs = append(cmdArgs, "--")
-	} else {
+	if len(c.Attributes) == 0 {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple)
+		lw.closed = make(chan struct{})
 
 		c.stdOut = lw
 		c.stdOut.Close()
 		return fmt.Errorf("no provided Attributes to check")
 	}
 
+	cmdArgs = append(cmdArgs, c.Attributes...)
+	cmdArgs = append(cmdArgs, "--")
+
 	c.ctx, c.cancel = context.WithCancel(ctx)
 	c.cmd = NewCommandContext(c.ctx, cmdArgs...)
+
 	var err error
+
 	c.stdinReader, c.stdinWriter, err = os.Pipe()
 	if err != nil {
+		c.cancel()
 		return err
 	}
 
 	if CheckGitVersionAtLeast("1.8.5") == nil {
 		lw := new(nulSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple, 5)
-
+		lw.closed = make(chan struct{})
 		c.stdOut = lw
 	} else {
 		lw := new(lineSeparatedAttributeWriter)
 		lw.attributes = make(chan attributeTriple, 5)
-
+		lw.closed = make(chan struct{})
 		c.stdOut = lw
 	}
 	return nil
@@ -236,6 +240,7 @@ type attributeTriple struct {
 type nulSeparatedAttributeWriter struct {
 	tmp        []byte
 	attributes chan attributeTriple
+	closed     chan struct{}
 	working    attributeTriple
 	pos        int
 }
@@ -279,13 +284,20 @@ func (wr *nulSeparatedAttributeWriter) ReadAttribute() <-chan attributeTriple {
 }
 
 func (wr *nulSeparatedAttributeWriter) Close() error {
+	select {
+	case <-wr.closed:
+		return nil
+	default:
+	}
 	close(wr.attributes)
+	close(wr.closed)
 	return nil
 }
 
 type lineSeparatedAttributeWriter struct {
 	tmp        []byte
 	attributes chan attributeTriple
+	closed     chan struct{}
 }
 
 func (wr *lineSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
@@ -368,6 +380,12 @@ func (wr *lineSeparatedAttributeWriter) ReadAttribute() <-chan attributeTriple {
 }
 
 func (wr *lineSeparatedAttributeWriter) Close() error {
+	select {
+	case <-wr.closed:
+		return nil
+	default:
+	}
 	close(wr.attributes)
+	close(wr.closed)
 	return nil
 }
