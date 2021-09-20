@@ -63,7 +63,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	log.Info("DBIndexer completed language stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, repo.RepoPath(), len(stats))
+	log.Debug("DBIndexer completed language stats for ID %s for default branch %s in %s. stats count: %d", commitID, repo.DefaultBranch, repo.RepoPath(), len(stats))
 	return nil
 }
 
