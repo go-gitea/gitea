@@ -436,8 +436,13 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 		return err
 	}
 
+	_, err = NewCommandContext(ctx, "branch", "-m", "bundle").RunInDirWithEnv(tmp, env)
+	if err != nil {
+		return err
+	}
+
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, err = NewCommandContext(ctx, "bundle", "create", tmpFile, "HEAD").RunInDirWithEnv(tmp, env)
+	_, err = NewCommandContext(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunInDirWithEnv(tmp, env)
 	if err != nil {
 		return err
 	}
