@@ -140,7 +140,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 				return nil, err
 			}
 		}
-		return archiver, commiter.Commit()
+		return archiver, committer.Commit()
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
