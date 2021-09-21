@@ -7,7 +7,6 @@ package markup
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"path"
 	"path/filepath"
@@ -290,7 +289,7 @@ var nulCleaner = strings.NewReplacer("\000", "")
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
-	rawHTML, err := ioutil.ReadAll(input)
+	rawHTML, err := io.ReadAll(input)
 	if err != nil {
 		return err
 	}

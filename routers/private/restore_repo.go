@@ -5,7 +5,7 @@
 package private
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	myCtx "code.gitea.io/gitea/modules/context"
@@ -16,7 +16,7 @@ import (
 
 // RestoreRepo restore a repository from data
 func RestoreRepo(ctx *myCtx.PrivateContext) {
-	bs, err := ioutil.ReadAll(ctx.Req.Body)
+	bs, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),

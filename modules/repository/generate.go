@@ -6,7 +6,6 @@ package repository
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -85,7 +84,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 		return nil, err
 	}
 
-	content, err := ioutil.ReadFile(gtPath)
+	content, err := os.ReadFile(gtPath)
 	if err != nil {
 		return nil, err
 	}
@@ -151,12 +150,12 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 				base := strings.TrimPrefix(filepath.ToSlash(path), tmpDirSlash)
 				for _, g := range gt.Globs() {
 					if g.Match(base) {
-						content, err := ioutil.ReadFile(path)
+						content, err := os.ReadFile(path)
 						if err != nil {
 							return err
 						}
 
-						if err := ioutil.WriteFile(path,
+						if err := os.WriteFile(path,
 							[]byte(generateExpansion(string(content), templateRepo, generateRepo)),
 							0644); err != nil {
 							return err
@@ -187,7 +186,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 }
 
 func generateGitContent(ctx *db.Context, repo, templateRepo, generateRepo *models.Repository) (err error) {
-	tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+	tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 	if err != nil {
 		return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 	}
