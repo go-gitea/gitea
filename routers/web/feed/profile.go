@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package rss
+package feed
 
 import (
 	"net/http"
@@ -50,8 +50,8 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 	return actions
 }
 
-// ShowRSS show user activity as RSS feed
-func ShowRSS(ctx *context.Context, ctxUser *models.User, formatType string) {
+// ShowUserFeed show user activity as RSS / Atom feed
+func ShowUserFeed(ctx *context.Context, ctxUser *models.User, formatType string) {
 	actions := RetrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		Actor:           ctx.User,
