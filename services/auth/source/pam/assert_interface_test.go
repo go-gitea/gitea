@@ -15,8 +15,8 @@ import (
 
 type sourceInterface interface {
 	auth.PasswordAuthenticator
-	login.LoginConfig
-	login.LoginSourceSettable
+	login.Config
+	login.SourceSettable
 }
 
 var _ (sourceInterface) = &pam.Source{}

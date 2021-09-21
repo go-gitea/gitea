@@ -256,7 +256,7 @@ func deletePublicKeys(e db.Engine, keyIDs ...int64) error {
 
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
 func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
-	sources := make([]*login.LoginSource, 0, 5)
+	sources := make([]*login.Source, 0, 5)
 	externals := make([]bool, len(keys))
 keyloop:
 	for i, key := range keys {
@@ -265,7 +265,7 @@ keyloop:
 			continue keyloop
 		}
 
-		var source *login.LoginSource
+		var source *login.Source
 
 	sourceloop:
 		for _, s := range sources {
@@ -277,11 +277,11 @@ keyloop:
 
 		if source == nil {
 			var err error
-			source, err = login.GetLoginSourceByID(key.LoginSourceID)
+			source, err = login.GetSourceByID(key.LoginSourceID)
 			if err != nil {
-				if login.IsErrLoginSourceNotExist(err) {
+				if login.IsErrSourceNotExist(err) {
 					externals[i] = false
-					sources[i] = &login.LoginSource{
+					sources[i] = &login.Source{
 						ID: key.LoginSourceID,
 					}
 					continue keyloop
@@ -308,9 +308,9 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 	if key.LoginSourceID == 0 {
 		return false, nil
 	}
-	source, err := login.GetLoginSourceByID(key.LoginSourceID)
+	source, err := login.GetSourceByID(key.LoginSourceID)
 	if err != nil {
-		if login.IsErrLoginSourceNotExist(err) {
+		if login.IsErrSourceNotExist(err) {
 			return false, nil
 		}
 		return false, err
@@ -388,7 +388,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *User, s *login.LoginSource, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(usr *User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -426,7 +426,7 @@ func AddPublicKeysBySource(usr *User, s *login.LoginSource, sshPublicKeys []stri
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *User, s *login.LoginSource, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(usr *User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)

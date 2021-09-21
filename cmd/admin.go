@@ -632,8 +632,8 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	return login.CreateLoginSource(&login.LoginSource{
-		Type:     login.LoginOAuth2,
+	return login.CreateSource(&login.Source{
+		Type:     login.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
 		Cfg:      parseOAuth2Config(c),
@@ -649,7 +649,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := login.GetLoginSourceByID(c.Int64("id"))
+	source, err := login.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -716,7 +716,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSources, err := login.LoginSources()
+	loginSources, err := login.Sources()
 
 	if err != nil {
 		return err
@@ -736,7 +736,7 @@ func runListAuth(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, login.LoginNames[source.Type], source.IsActive)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, source.Type.String(), source.IsActive)
 	}
 	w.Flush()
 
@@ -752,7 +752,7 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := login.GetLoginSourceByID(c.Int64("id"))
+	source, err := login.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}

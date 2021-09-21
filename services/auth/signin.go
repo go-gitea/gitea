@@ -22,7 +22,7 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*models.User, *login.LoginSource, error) {
+func UserSignIn(username, password string) (*models.User, *login.Source, error) {
 	var user *models.User
 	if strings.Contains(username, "@") {
 		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
@@ -51,7 +51,7 @@ func UserSignIn(username, password string) (*models.User, *login.LoginSource, er
 	}
 
 	if hasUser {
-		source, err := login.GetLoginSourceByID(user.LoginSource)
+		source, err := login.GetSourceByID(user.LoginSource)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -79,7 +79,7 @@ func UserSignIn(username, password string) (*models.User, *login.LoginSource, er
 		return user, source, nil
 	}
 
-	sources, err := login.AllActiveLoginSources()
+	sources, err := login.AllActiveSources()
 	if err != nil {
 		return nil, nil, err
 	}

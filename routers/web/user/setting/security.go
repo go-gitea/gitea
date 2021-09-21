@@ -88,9 +88,9 @@ func loadSecurityData(ctx *context.Context) {
 	}
 
 	// map the provider display name with the LoginSource
-	sources := make(map[*login.LoginSource]string)
+	sources := make(map[*login.Source]string)
 	for _, externalAccount := range accountLinks {
-		if loginSource, err := login.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+		if loginSource, err := login.GetSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {

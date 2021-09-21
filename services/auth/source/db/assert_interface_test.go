@@ -15,7 +15,7 @@ import (
 
 type sourceInterface interface {
 	auth.PasswordAuthenticator
-	login.LoginConfig
+	login.Config
 }
 
 var _ (sourceInterface) = &db.Source{}

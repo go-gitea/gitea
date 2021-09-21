@@ -71,7 +71,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		Name:        strings.ToLower(username),
 		Email:       userName,
 		Passwd:      password,
-		LoginType:   login.LoginSMTP,
+		LoginType:   login.SMTP,
 		LoginSource: source.loginSource.ID,
 		LoginName:   userName,
 		IsActive:    true,

@@ -23,7 +23,7 @@ type Source struct {
 	EmailDomain string
 
 	// reference to the loginSource
-	loginSource *login.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up a PAMConfig from serialized format.
@@ -37,10 +37,10 @@ func (source *Source) ToDB() ([]byte, error) {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	login.RegisterLoginTypeConfig(login.LoginPAM, &Source{})
+	login.RegisterTypeConfig(login.PAM, &Source{})
 }

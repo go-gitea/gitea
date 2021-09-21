@@ -18,11 +18,11 @@ type sourceInterface interface {
 	auth.SynchronizableSource
 	auth.LocalTwoFASkipper
 	login.SSHKeyProvider
-	login.LoginConfig
+	login.Config
 	login.SkipVerifiable
 	login.HasTLSer
 	login.UseTLSer
-	login.LoginSourceSettable
+	login.SourceSettable
 }
 
 var _ (sourceInterface) = &ldap.Source{}

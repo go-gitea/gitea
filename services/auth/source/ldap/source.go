@@ -56,7 +56,7 @@ type Source struct {
 	SkipLocalTwoFA        bool   // Skip Local 2fa for users authenticated with this source
 
 	// reference to the loginSource
-	loginSource *login.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
@@ -110,11 +110,11 @@ func (source *Source) ProvidesSSHKeys() bool {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	login.RegisterLoginTypeConfig(login.LoginLDAP, &Source{})
-	login.RegisterLoginTypeConfig(login.LoginDLDAP, &Source{})
+	login.RegisterTypeConfig(login.LDAP, &Source{})
+	login.RegisterTypeConfig(login.DLDAP, &Source{})
 }

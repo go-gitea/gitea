@@ -15,11 +15,11 @@ import (
 
 type sourceInterface interface {
 	auth.PasswordAuthenticator
-	login.LoginConfig
+	login.Config
 	login.SkipVerifiable
 	login.HasTLSer
 	login.UseTLSer
-	login.LoginSourceSettable
+	login.SourceSettable
 }
 
 var _ (sourceInterface) = &smtp.Source{}

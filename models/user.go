@@ -107,7 +107,7 @@ type User struct {
 	// is to change his/her password after registration.
 	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
 
-	LoginType   login.LoginType
+	LoginType   login.Type
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
@@ -242,12 +242,12 @@ func GetAllUsers() ([]*User, error) {
 
 // IsLocal returns true if user login type is LoginPlain.
 func (u *User) IsLocal() bool {
-	return u.LoginType <= login.LoginPlain
+	return u.LoginType <= login.Plain
 }
 
 // IsOAuth2 returns true if user login type is LoginOAuth2.
 func (u *User) IsOAuth2() bool {
-	return u.LoginType == login.LoginOAuth2
+	return u.LoginType == login.OAuth2
 }
 
 // HasForkedRepo checks if user has already forked a repository with given ID.
@@ -1489,7 +1489,7 @@ func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) 
 }
 
 // GetUsersBySource returns a list of Users for a login source
-func GetUsersBySource(s *login.LoginSource) ([]*User, error) {
+func GetUsersBySource(s *login.Source) ([]*User, error) {
 	var users []*User
 	err := db.GetEngine(db.DefaultContext).Where("login_type = ? AND login_source = ?", s.Type, s.ID).Find(&users)
 	return users, err

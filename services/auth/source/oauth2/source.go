@@ -28,7 +28,7 @@ type Source struct {
 	SkipLocalTwoFA                bool
 
 	// reference to the loginSource
-	loginSource *login.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -42,10 +42,10 @@ func (source *Source) ToDB() ([]byte, error) {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	login.RegisterLoginTypeConfig(login.LoginOAuth2, &Source{})
+	login.RegisterTypeConfig(login.OAuth2, &Source{})
 }

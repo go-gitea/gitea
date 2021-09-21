@@ -58,7 +58,7 @@ func NewUser(ctx *context.Context) {
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := login.LoginSources()
+	sources, err := login.Sources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return
@@ -77,7 +77,7 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 
-	sources, err := login.LoginSources()
+	sources, err := login.Sources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return
@@ -96,19 +96,19 @@ func NewUserPost(ctx *context.Context) {
 		Email:     form.Email,
 		Passwd:    form.Password,
 		IsActive:  true,
-		LoginType: login.LoginPlain,
+		LoginType: login.Plain,
 	}
 
 	if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
 			lType, _ := strconv.ParseInt(fields[0], 10, 0)
-			u.LoginType = login.LoginType(lType)
+			u.LoginType = login.Type(lType)
 			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
 			u.LoginName = form.LoginName
 		}
 	}
-	if u.LoginType == login.LoginNoType || u.LoginType == login.LoginPlain {
+	if u.LoginType == login.NoType || u.LoginType == login.Plain {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
@@ -178,16 +178,16 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	ctx.Data["User"] = u
 
 	if u.LoginSource > 0 {
-		ctx.Data["LoginSource"], err = login.GetLoginSourceByID(u.LoginSource)
+		ctx.Data["LoginSource"], err = login.GetSourceByID(u.LoginSource)
 		if err != nil {
 			ctx.ServerError("GetLoginSourceByID", err)
 			return nil
 		}
 	} else {
-		ctx.Data["LoginSource"] = &login.LoginSource{}
+		ctx.Data["LoginSource"] = &login.Source{}
 	}
 
-	sources, err := login.LoginSources()
+	sources, err := login.Sources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return nil
@@ -249,7 +249,7 @@ func EditUserPost(ctx *context.Context) {
 
 		if u.LoginSource != loginSource {
 			u.LoginSource = loginSource
-			u.LoginType = login.LoginType(loginType)
+			u.LoginType = login.Type(loginType)
 		}
 	}
 

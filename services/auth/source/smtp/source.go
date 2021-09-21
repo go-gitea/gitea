@@ -29,7 +29,7 @@ type Source struct {
 	DisableHelo    bool
 
 	// reference to the loginSource
-	loginSource *login.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up an SMTPConfig from serialized format.
@@ -58,10 +58,10 @@ func (source *Source) UseTLS() bool {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	login.RegisterLoginTypeConfig(login.LoginSMTP, &Source{})
+	login.RegisterTypeConfig(login.SMTP, &Source{})
 }

@@ -17,9 +17,9 @@ import (
 type (
 	authService struct {
 		initDB             func() error
-		createLoginSource  func(loginSource *login.LoginSource) error
-		updateLoginSource  func(loginSource *login.LoginSource) error
-		getLoginSourceByID func(id int64) (*login.LoginSource, error)
+		createLoginSource  func(loginSource *login.Source) error
+		updateLoginSource  func(loginSource *login.Source) error
+		getLoginSourceByID func(id int64) (*login.Source, error)
 	}
 )
 
@@ -164,14 +164,14 @@ var (
 func newAuthService() *authService {
 	return &authService{
 		initDB:             initDB,
-		createLoginSource:  login.CreateLoginSource,
+		createLoginSource:  login.CreateSource,
 		updateLoginSource:  login.UpdateSource,
-		getLoginSourceByID: login.GetLoginSourceByID,
+		getLoginSourceByID: login.GetSourceByID,
 	}
 }
 
 // parseLoginSource assigns values on loginSource according to command line flags.
-func parseLoginSource(c *cli.Context, loginSource *login.LoginSource) {
+func parseLoginSource(c *cli.Context, loginSource *login.Source) {
 	if c.IsSet("name") {
 		loginSource.Name = c.String("name")
 	}
@@ -269,7 +269,7 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 
 // getLoginSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getLoginSource(c *cli.Context, loginType login.LoginType) (*login.LoginSource, error) {
+func (a *authService) getLoginSource(c *cli.Context, loginType login.Type) (*login.Source, error) {
 	if err := argsSet(c, "id"); err != nil {
 		return nil, err
 	}
@@ -280,7 +280,7 @@ func (a *authService) getLoginSource(c *cli.Context, loginType login.LoginType) 
 	}
 
 	if loginSource.Type != loginType {
-		return nil, fmt.Errorf("Invalid authentication type. expected: %s, actual: %s", login.LoginNames[loginType], login.LoginNames[loginSource.Type])
+		return nil, fmt.Errorf("Invalid authentication type. expected: %s, actual: %s", loginType.String(), loginSource.Type.String())
 	}
 
 	return loginSource, nil
@@ -296,8 +296,8 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	loginSource := &login.LoginSource{
-		Type:     login.LoginLDAP,
+	loginSource := &login.Source{
+		Type:     login.LDAP,
 		IsActive: true, // active by default
 		Cfg: &ldap.Source{
 			Enabled: true, // always true
@@ -318,7 +318,7 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	loginSource, err := a.getLoginSource(c, login.LoginLDAP)
+	loginSource, err := a.getLoginSource(c, login.LDAP)
 	if err != nil {
 		return err
 	}
@@ -341,8 +341,8 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSource := &login.LoginSource{
-		Type:     login.LoginDLDAP,
+	loginSource := &login.Source{
+		Type:     login.DLDAP,
 		IsActive: true, // active by default
 		Cfg: &ldap.Source{
 			Enabled: true, // always true
@@ -363,7 +363,7 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSource, err := a.getLoginSource(c, login.LoginDLDAP)
+	loginSource, err := a.getLoginSource(c, login.DLDAP)
 	if err != nil {
 		return err
 	}

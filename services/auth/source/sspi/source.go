@@ -37,5 +37,5 @@ func (cfg *Source) ToDB() ([]byte, error) {
 }
 
 func init() {
-	login.RegisterLoginTypeConfig(login.LoginSSPI, &Source{})
+	login.RegisterTypeConfig(login.SSPI, &Source{})
 }

@@ -29,6 +29,6 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 }
 
 func init() {
-	login.RegisterLoginTypeConfig(login.LoginNoType, &Source{})
-	login.RegisterLoginTypeConfig(login.LoginPlain, &Source{})
+	login.RegisterTypeConfig(login.NoType, &Source{})
+	login.RegisterTypeConfig(login.Plain, &Source{})
 }

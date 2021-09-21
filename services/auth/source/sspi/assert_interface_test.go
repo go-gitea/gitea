@@ -13,7 +13,7 @@ import (
 // It tightly binds the interfaces and implementation without breaking go import cycles
 
 type sourceInterface interface {
-	login.LoginConfig
+	login.Config
 }
 
 var _ (sourceInterface) = &sspi.Source{}

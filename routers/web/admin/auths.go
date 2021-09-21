@@ -48,13 +48,13 @@ func Authentications(ctx *context.Context) {
 	ctx.Data["PageIsAdminAuthentications"] = true
 
 	var err error
-	ctx.Data["Sources"], err = login.LoginSources()
+	ctx.Data["Sources"], err = login.Sources()
 	if err != nil {
 		ctx.ServerError("LoginSources", err)
 		return
 	}
 
-	ctx.Data["Total"] = login.CountLoginSources()
+	ctx.Data["Total"] = login.CountSources()
 	ctx.HTML(http.StatusOK, tplAuths)
 }
 
@@ -66,14 +66,14 @@ type dropdownItem struct {
 var (
 	authSources = func() []dropdownItem {
 		items := []dropdownItem{
-			{login.LoginNames[login.LoginLDAP], login.LoginLDAP},
-			{login.LoginNames[login.LoginDLDAP], login.LoginDLDAP},
-			{login.LoginNames[login.LoginSMTP], login.LoginSMTP},
-			{login.LoginNames[login.LoginOAuth2], login.LoginOAuth2},
-			{login.LoginNames[login.LoginSSPI], login.LoginSSPI},
+			{login.LDAP.String(), login.LDAP},
+			{login.DLDAP.String(), login.DLDAP},
+			{login.SMTP.String(), login.SMTP},
+			{login.OAuth2.String(), login.OAuth2},
+			{login.SSPI.String(), login.SSPI},
 		}
 		if pam.Supported {
-			items = append(items, dropdownItem{login.LoginNames[login.LoginPAM], login.LoginPAM})
+			items = append(items, dropdownItem{login.Names[login.PAM], login.PAM})
 		}
 		return items
 	}()
@@ -91,8 +91,8 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = login.LoginLDAP
-	ctx.Data["CurrentTypeName"] = login.LoginNames[login.LoginLDAP]
+	ctx.Data["type"] = login.LDAP
+	ctx.Data["CurrentTypeName"] = login.Names[login.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
 	ctx.Data["is_active"] = true
@@ -219,7 +219,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["CurrentTypeName"] = login.LoginNames[login.LoginType(form.Type)]
+	ctx.Data["CurrentTypeName"] = login.Type(form.Type).String()
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocol(form.SecurityProtocol)]
 	ctx.Data["AuthSources"] = authSources
 	ctx.Data["SecurityProtocols"] = securityProtocols
@@ -235,28 +235,28 @@ func NewAuthSourcePost(ctx *context.Context) {
 
 	hasTLS := false
 	var config convert.Conversion
-	switch login.LoginType(form.Type) {
-	case login.LoginLDAP, login.LoginDLDAP:
+	switch login.Type(form.Type) {
+	case login.LDAP, login.DLDAP:
 		config = parseLDAPConfig(form)
 		hasTLS = ldap.SecurityProtocol(form.SecurityProtocol) > ldap.SecurityProtocolUnencrypted
-	case login.LoginSMTP:
+	case login.SMTP:
 		config = parseSMTPConfig(form)
 		hasTLS = true
-	case login.LoginPAM:
+	case login.PAM:
 		config = &pamService.Source{
 			ServiceName: form.PAMServiceName,
 			EmailDomain: form.PAMEmailDomain,
 		}
-	case login.LoginOAuth2:
+	case login.OAuth2:
 		config = parseOAuth2Config(form)
-	case login.LoginSSPI:
+	case login.SSPI:
 		var err error
 		config, err = parseSSPIConfig(ctx, form)
 		if err != nil {
 			ctx.RenderWithErr(err.Error(), tplAuthNew, form)
 			return
 		}
-		existing, err := login.LoginSourcesByType(login.LoginSSPI)
+		existing, err := login.SourcesByType(login.SSPI)
 		if err != nil || len(existing) > 0 {
 			ctx.Data["Err_Type"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_of_type_exist"), tplAuthNew, form)
@@ -273,16 +273,16 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	if err := login.CreateLoginSource(&login.LoginSource{
-		Type:          login.LoginType(form.Type),
+	if err := login.CreateSource(&login.Source{
+		Type:          login.Type(form.Type),
 		Name:          form.Name,
 		IsActive:      form.IsActive,
 		IsSyncEnabled: form.IsSyncEnabled,
 		Cfg:           config,
 	}); err != nil {
-		if login.IsErrLoginSourceAlreadyExist(err) {
+		if login.IsErrSourceAlreadyExist(err) {
 			ctx.Data["Err_Name"] = true
-			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(login.ErrLoginSourceAlreadyExist).Name), tplAuthNew, form)
+			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(login.ErrSourceAlreadyExist).Name), tplAuthNew, form)
 		} else {
 			ctx.ServerError("CreateSource", err)
 		}
@@ -306,7 +306,7 @@ func EditAuthSource(ctx *context.Context) {
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := login.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := login.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("GetLoginSourceByID", err)
 		return
@@ -341,7 +341,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	oauth2providers := oauth2.GetOAuth2Providers()
 	ctx.Data["OAuth2Providers"] = oauth2providers
 
-	source, err := login.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := login.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("GetLoginSourceByID", err)
 		return
@@ -355,19 +355,19 @@ func EditAuthSourcePost(ctx *context.Context) {
 	}
 
 	var config convert.Conversion
-	switch login.LoginType(form.Type) {
-	case login.LoginLDAP, login.LoginDLDAP:
+	switch login.Type(form.Type) {
+	case login.LDAP, login.DLDAP:
 		config = parseLDAPConfig(form)
-	case login.LoginSMTP:
+	case login.SMTP:
 		config = parseSMTPConfig(form)
-	case login.LoginPAM:
+	case login.PAM:
 		config = &pamService.Source{
 			ServiceName: form.PAMServiceName,
 			EmailDomain: form.PAMEmailDomain,
 		}
-	case login.LoginOAuth2:
+	case login.OAuth2:
 		config = parseOAuth2Config(form)
-	case login.LoginSSPI:
+	case login.SSPI:
 		config, err = parseSSPIConfig(ctx, form)
 		if err != nil {
 			ctx.RenderWithErr(err.Error(), tplAuthEdit, form)
@@ -399,14 +399,14 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 // DeleteAuthSource response for deleting an auth source
 func DeleteAuthSource(ctx *context.Context) {
-	source, err := login.GetLoginSourceByID(ctx.ParamsInt64(":authid"))
+	source, err := login.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
 		ctx.ServerError("GetLoginSourceByID", err)
 		return
 	}
 
 	if err = auth_service.DeleteLoginSource(source); err != nil {
-		if login.IsErrLoginSourceInUse(err) {
+		if login.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {
 			ctx.Flash.Error(fmt.Sprintf("DeleteSource: %v", err))

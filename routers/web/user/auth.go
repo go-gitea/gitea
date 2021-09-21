@@ -654,7 +654,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:   login.LoginOAuth2,
+				LoginType:   login.OAuth2,
 				LoginSource: loginSource.ID,
 				LoginName:   gothUser.UserID,
 			}
@@ -712,7 +712,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 	}
 }
 
-func handleOAuth2SignIn(ctx *context.Context, source *login.LoginSource, u *models.User, gothUser goth.User) {
+func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.User, gothUser goth.User) {
 	updateAvatarIfNeed(gothUser.AvatarURL, u)
 
 	needs2FA := false
@@ -786,7 +786,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.LoginSource, u *mode
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(loginSource *login.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
+func oAuth2UserLoginCallback(loginSource *login.Source, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := loginSource.Cfg.(*oauth2.Source).Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" {
@@ -798,7 +798,7 @@ func oAuth2UserLoginCallback(loginSource *login.LoginSource, request *http.Reque
 
 	user := &models.User{
 		LoginName:   gothUser.UserID,
-		LoginType:   login.LoginOAuth2,
+		LoginType:   login.OAuth2,
 		LoginSource: loginSource.ID,
 	}
 
@@ -1079,7 +1079,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Email:       form.Email,
 		Passwd:      form.Password,
 		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
-		LoginType:   login.LoginOAuth2,
+		LoginType:   login.OAuth2,
 		LoginSource: loginSource.ID,
 		LoginName:   gothUser.UserID,
 	}

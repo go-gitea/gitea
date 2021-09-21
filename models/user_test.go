@@ -416,7 +416,7 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	s := &login.LoginSource{ID: 1}
+	s := &login.Source{ID: 1}
 
 	testCases := []struct {
 		keyString   string

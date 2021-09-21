@@ -55,7 +55,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		Name:        username,
 		Email:       email,
 		Passwd:      password,
-		LoginType:   login.LoginPAM,
+		LoginType:   login.PAM,
 		LoginSource: source.loginSource.ID,
 		LoginName:   userName, // This is what the user typed in
 		IsActive:    true,

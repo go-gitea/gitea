@@ -152,7 +152,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig() (*sspi.Source, error) {
-	sources, err := models.ActiveLoginSources(login.LoginSSPI)
+	sources, err := models.ActiveLoginSources(login.SSPI)
 	if err != nil {
 		return nil, err
 	}

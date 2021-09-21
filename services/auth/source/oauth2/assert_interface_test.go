@@ -14,8 +14,8 @@ import (
 // It tightly binds the interfaces and implementation without breaking go import cycles
 
 type sourceInterface interface {
-	login.LoginConfig
-	login.LoginSourceSettable
+	login.Config
+	login.SourceSettable
 	login.RegisterableSource
 	auth.PasswordAuthenticator
 }
