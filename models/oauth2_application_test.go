@@ -7,23 +7,24 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 //////////////////// Application
 
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	assert.NoError(t, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
 	secret, err := app.GenerateClientSecret()
 	assert.NoError(t, err)
 	assert.True(t, len(secret) > 0)
-	AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1, ClientSecret: app.ClientSecret})
+	db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1, ClientSecret: app.ClientSecret})
 }
 
 func BenchmarkOAuth2Application_GenerateClientSecret(b *testing.B) {
-	assert.NoError(b, PrepareTestDatabase())
-	app := AssertExistsAndLoadBean(b, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	assert.NoError(b, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(b, &OAuth2Application{ID: 1}).(*OAuth2Application)
 	for i := 0; i < b.N; i++ {
 		_, _ = app.GenerateClientSecret()
 	}
@@ -40,8 +41,8 @@ func TestOAuth2Application_ContainsRedirectURI(t *testing.T) {
 }
 
 func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	assert.NoError(t, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
 	secret, err := app.GenerateClientSecret()
 	assert.NoError(t, err)
 	assert.True(t, app.ValidateClientSecret([]byte(secret)))
@@ -49,7 +50,7 @@ func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
 }
 
 func TestGetOAuth2ApplicationByClientID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	app, err := GetOAuth2ApplicationByClientID("da7da3ba-9a13-4167-856f-3899de0b0138")
 	assert.NoError(t, err)
 	assert.Equal(t, "da7da3ba-9a13-4167-856f-3899de0b0138", app.ClientID)
@@ -60,17 +61,17 @@ func TestGetOAuth2ApplicationByClientID(t *testing.T) {
 }
 
 func TestCreateOAuth2Application(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	app, err := CreateOAuth2Application(CreateOAuth2ApplicationOptions{Name: "newapp", UserID: 1})
 	assert.NoError(t, err)
 	assert.Equal(t, "newapp", app.Name)
 	assert.Len(t, app.ClientID, 36)
-	AssertExistsAndLoadBean(t, &OAuth2Application{Name: "newapp"})
+	db.AssertExistsAndLoadBean(t, &OAuth2Application{Name: "newapp"})
 }
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	assert.NoError(t, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
 	assert.NoError(t, app.LoadUser())
 	assert.NotNil(t, app.User)
 }
@@ -80,8 +81,8 @@ func TestOAuth2Application_TableName(t *testing.T) {
 }
 
 func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	assert.NoError(t, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
 	grant, err := app.GetGrantByUserID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), grant.UserID)
@@ -92,8 +93,8 @@ func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
 }
 
 func TestOAuth2Application_CreateGrant(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	app := AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	assert.NoError(t, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
 	grant, err := app.CreateGrant(2, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, grant)
@@ -105,7 +106,7 @@ func TestOAuth2Application_CreateGrant(t *testing.T) {
 //////////////////// Grant
 
 func TestGetOAuth2GrantByID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	grant, err := GetOAuth2GrantByID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), grant.ID)
@@ -116,16 +117,16 @@ func TestGetOAuth2GrantByID(t *testing.T) {
 }
 
 func TestOAuth2Grant_IncreaseCounter(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	grant := AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 1}).(*OAuth2Grant)
+	assert.NoError(t, db.PrepareTestDatabase())
+	grant := db.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 1}).(*OAuth2Grant)
 	assert.NoError(t, grant.IncreaseCounter())
 	assert.Equal(t, int64(2), grant.Counter)
-	AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 2})
+	db.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 2})
 }
 
 func TestOAuth2Grant_ScopeContains(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	grant := AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Scope: "openid profile"}).(*OAuth2Grant)
+	assert.NoError(t, db.PrepareTestDatabase())
+	grant := db.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Scope: "openid profile"}).(*OAuth2Grant)
 	assert.True(t, grant.ScopeContains("openid"))
 	assert.True(t, grant.ScopeContains("profile"))
 	assert.False(t, grant.ScopeContains("profil"))
@@ -133,8 +134,8 @@ func TestOAuth2Grant_ScopeContains(t *testing.T) {
 }
 
 func TestOAuth2Grant_GenerateNewAuthorizationCode(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	grant := AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1}).(*OAuth2Grant)
+	assert.NoError(t, db.PrepareTestDatabase())
+	grant := db.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1}).(*OAuth2Grant)
 	code, err := grant.GenerateNewAuthorizationCode("https://example2.com/callback", "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg", "S256")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
@@ -146,7 +147,7 @@ func TestOAuth2Grant_TableName(t *testing.T) {
 }
 
 func TestGetOAuth2GrantsByUserID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	result, err := GetOAuth2GrantsByUserID(1)
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -159,15 +160,15 @@ func TestGetOAuth2GrantsByUserID(t *testing.T) {
 }
 
 func TestRevokeOAuth2Grant(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	assert.NoError(t, RevokeOAuth2Grant(1, 1))
-	AssertNotExistsBean(t, &OAuth2Grant{ID: 1, UserID: 1})
+	db.AssertNotExistsBean(t, &OAuth2Grant{ID: 1, UserID: 1})
 }
 
 //////////////////// Authorization Code
 
 func TestGetOAuth2AuthorizationByCode(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	code, err := GetOAuth2AuthorizationByCode("authcode")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
@@ -227,10 +228,10 @@ func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {
 }
 
 func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	code := AssertExistsAndLoadBean(t, &OAuth2AuthorizationCode{Code: "authcode"}).(*OAuth2AuthorizationCode)
+	assert.NoError(t, db.PrepareTestDatabase())
+	code := db.AssertExistsAndLoadBean(t, &OAuth2AuthorizationCode{Code: "authcode"}).(*OAuth2AuthorizationCode)
 	assert.NoError(t, code.Invalidate())
-	AssertNotExistsBean(t, &OAuth2AuthorizationCode{Code: "authcode"})
+	db.AssertNotExistsBean(t, &OAuth2AuthorizationCode{Code: "authcode"})
 }
 
 func TestOAuth2AuthorizationCode_TableName(t *testing.T) {

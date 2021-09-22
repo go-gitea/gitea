@@ -3,13 +3,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 
@@ -17,7 +18,6 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -27,6 +27,15 @@ import (
 
 	// Needed for the MSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
+)
+
+var (
+	x         *xorm.Engine
+	tables    []interface{}
+	initFuncs []func() error
+
+	// HasEngine specifies if we have a xorm.Engine
+	HasEngine bool
 )
 
 // Engine represents a xorm engine or session.
@@ -51,96 +60,35 @@ type Engine interface {
 	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
+	Sync2(...interface{}) error
+	Select(string) *xorm.Session
+	NotIn(string, ...interface{}) *xorm.Session
+	OrderBy(string) *xorm.Session
+	Exist(...interface{}) (bool, error)
+	Distinct(...string) *xorm.Session
+	Query(...interface{}) ([]map[string][]byte, error)
+	Cols(...string) *xorm.Session
 }
 
-const (
-	// When queries are broken down in parts because of the number
-	// of parameters, attempt to break by this amount
-	maxQueryParameters = 300
-)
+// TableInfo returns table's information via an object
+func TableInfo(v interface{}) (*schemas.Table, error) {
+	return x.TableInfo(v)
+}
 
-var (
-	x      *xorm.Engine
-	tables []interface{}
+// DumpTables dump tables information
+func DumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) error {
+	return x.DumpTables(tables, w, tp...)
+}
 
-	// HasEngine specifies if we have a xorm.Engine
-	HasEngine bool
-)
+// RegisterModel registers model, if initfunc provided, it will be invoked after data model sync
+func RegisterModel(bean interface{}, initFunc ...func() error) {
+	tables = append(tables, bean)
+	if len(initFuncs) > 0 && initFunc[0] != nil {
+		initFuncs = append(initFuncs, initFunc[0])
+	}
+}
 
 func init() {
-	tables = append(tables,
-		new(User),
-		new(PublicKey),
-		new(AccessToken),
-		new(Repository),
-		new(DeployKey),
-		new(Collaboration),
-		new(Access),
-		new(Upload),
-		new(Watch),
-		new(Star),
-		new(Follow),
-		new(Action),
-		new(Issue),
-		new(PullRequest),
-		new(Comment),
-		new(Attachment),
-		new(Label),
-		new(IssueLabel),
-		new(Milestone),
-		new(Mirror),
-		new(Release),
-		new(LoginSource),
-		new(Webhook),
-		new(HookTask),
-		new(Team),
-		new(OrgUser),
-		new(TeamUser),
-		new(TeamRepo),
-		new(Notice),
-		new(EmailAddress),
-		new(Notification),
-		new(IssueUser),
-		new(LFSMetaObject),
-		new(TwoFactor),
-		new(GPGKey),
-		new(GPGKeyImport),
-		new(RepoUnit),
-		new(RepoRedirect),
-		new(ExternalLoginUser),
-		new(ProtectedBranch),
-		new(UserOpenID),
-		new(IssueWatch),
-		new(CommitStatus),
-		new(Stopwatch),
-		new(TrackedTime),
-		new(DeletedBranch),
-		new(RepoIndexerStatus),
-		new(IssueDependency),
-		new(LFSLock),
-		new(Reaction),
-		new(IssueAssignees),
-		new(U2FRegistration),
-		new(TeamUnit),
-		new(Review),
-		new(OAuth2Application),
-		new(OAuth2AuthorizationCode),
-		new(OAuth2Grant),
-		new(Task),
-		new(LanguageStat),
-		new(EmailHash),
-		new(UserRedirect),
-		new(Project),
-		new(ProjectBoard),
-		new(ProjectIssue),
-		new(Session),
-		new(RepoTransfer),
-		new(IssueIndex),
-		new(PushMirror),
-		new(RepoArchiver),
-		new(ProtectedTag),
-	)
-
 	gonicNames := []string{"SSL", "UID"}
 	for _, name := range gonicNames {
 		names.LintGonicMapper[name] = true
@@ -235,13 +183,10 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 
-	if setting.SuccessfulTokensCacheSize > 0 {
-		successfulAccessTokenCache, err = lru.New(setting.SuccessfulTokensCacheSize)
-		if err != nil {
-			return fmt.Errorf("unable to allocate AccessToken cache: %v", err)
+	for _, initFunc := range initFuncs {
+		if err := initFunc(); err != nil {
+			return fmt.Errorf("initFunc failed: %v", err)
 		}
-	} else {
-		successfulAccessTokenCache = nil
 	}
 
 	return nil
@@ -275,62 +220,6 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 		}
 	}
 	return beans, nil
-}
-
-// Statistic contains the database statistics
-type Statistic struct {
-	Counter struct {
-		User, Org, PublicKey,
-		Repo, Watch, Star, Action, Access,
-		Issue, IssueClosed, IssueOpen,
-		Comment, Oauth, Follow,
-		Mirror, Release, LoginSource, Webhook,
-		Milestone, Label, HookTask,
-		Team, UpdateTask, Attachment int64
-	}
-}
-
-// GetStatistic returns the database statistics
-func GetStatistic() (stats Statistic) {
-	stats.Counter.User = CountUsers()
-	stats.Counter.Org = CountOrganizations()
-	stats.Counter.PublicKey, _ = x.Count(new(PublicKey))
-	stats.Counter.Repo = CountRepositories(true)
-	stats.Counter.Watch, _ = x.Count(new(Watch))
-	stats.Counter.Star, _ = x.Count(new(Star))
-	stats.Counter.Action, _ = x.Count(new(Action))
-	stats.Counter.Access, _ = x.Count(new(Access))
-
-	type IssueCount struct {
-		Count    int64
-		IsClosed bool
-	}
-	issueCounts := []IssueCount{}
-
-	_ = x.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
-	for _, c := range issueCounts {
-		if c.IsClosed {
-			stats.Counter.IssueClosed = c.Count
-		} else {
-			stats.Counter.IssueOpen = c.Count
-		}
-	}
-
-	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
-
-	stats.Counter.Comment, _ = x.Count(new(Comment))
-	stats.Counter.Oauth = 0
-	stats.Counter.Follow, _ = x.Count(new(Follow))
-	stats.Counter.Mirror, _ = x.Count(new(Mirror))
-	stats.Counter.Release, _ = x.Count(new(Release))
-	stats.Counter.LoginSource = CountLoginSources()
-	stats.Counter.Webhook, _ = x.Count(new(Webhook))
-	stats.Counter.Milestone, _ = x.Count(new(Milestone))
-	stats.Counter.Label, _ = x.Count(new(Label))
-	stats.Counter.HookTask, _ = x.Count(new(HookTask))
-	stats.Counter.Team, _ = x.Count(new(Team))
-	stats.Counter.Attachment, _ = x.Count(new(Attachment))
-	return
 }
 
 // Ping tests if database is alive

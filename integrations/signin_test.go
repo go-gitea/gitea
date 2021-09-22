@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
@@ -33,13 +34,13 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 func TestSignin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// add new user with user2's email
 	user.Name = "testuser"
 	user.LowerName = strings.ToLower(user.Name)
 	user.ID = 0
-	models.AssertSuccessfulInsert(t, user)
+	db.AssertSuccessfulInsert(t, user)
 
 	samples := []struct {
 		username string

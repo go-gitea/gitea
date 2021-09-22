@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
@@ -22,6 +23,10 @@ import (
 type EmailHash struct {
 	Hash  string `xorm:"pk varchar(32)"`
 	Email string `xorm:"UNIQUE NOT NULL"`
+}
+
+func init() {
+	db.RegisterModel(new(EmailHash))
 }
 
 // DefaultAvatarLink the default avatar link
@@ -59,7 +64,7 @@ func GetEmailForHash(md5Sum string) (string, error) {
 			Hash: strings.ToLower(strings.TrimSpace(md5Sum)),
 		}
 
-		_, err := x.Get(&emailHash)
+		_, err := db.DefaultContext().Engine().Get(&emailHash)
 		return emailHash.Email, err
 	})
 }
@@ -90,19 +95,15 @@ func HashedAvatarLink(email string, size int) string {
 			Hash:  sum,
 		}
 		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
-		sess := x.NewSession()
-		defer sess.Close()
-		if err := sess.Begin(); err != nil {
-			// we don't care about any DB problem just return the lowerEmail
-			return lowerEmail, nil
-		}
-		has, err := sess.Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
-		if has || err != nil {
-			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
-			return lowerEmail, nil
-		}
-		_, _ = sess.Insert(emailHash)
-		if err := sess.Commit(); err != nil {
+		if err := db.WithTx(func(ctx *db.Context) error {
+			has, err := ctx.Engine().Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
+			if has || err != nil {
+				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
+				return nil
+			}
+			_, _ = ctx.Engine().Insert(emailHash)
+			return nil
+		}); err != nil {
 			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
 			return lowerEmail, nil
 		}

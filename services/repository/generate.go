@@ -6,6 +6,7 @@ package repository
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -20,7 +21,7 @@ func GenerateRepository(doer, owner *models.User, templateRepo *models.Repositor
 	}
 
 	var generateRepo *models.Repository
-	if err = models.WithTx(func(ctx models.DBContext) error {
+	if err = db.WithTx(func(ctx *db.Context) error {
 		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {
 			return err
