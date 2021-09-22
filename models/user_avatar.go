@@ -10,8 +10,8 @@ import (
 	"image/png"
 	"io"
 	"strconv"
-	"strings"
 
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
@@ -40,7 +40,7 @@ func (u *User) generateRandomAvatar(e db.Engine) error {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
 
-	u.Avatar = HashEmail(seed)
+	u.Avatar = avatars.HashEmail(seed)
 
 	// Don't share the images so that we can delete them easily
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
@@ -60,61 +60,45 @@ func (u *User) generateRandomAvatar(e db.Engine) error {
 	return nil
 }
 
-// SizedRelAvatarLink returns a link to the user's avatar via
-// the local explore page. Function returns immediately.
-// When applicable, the link is for an avatar of the indicated size (in pixels).
-func (u *User) SizedRelAvatarLink(size int) string {
-	return setting.AppSubURL + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
-}
-
-// RealSizedAvatarLink returns a link to the user's avatar. When
-// applicable, the link is for an avatar of the indicated size (in pixels).
-//
-// This function make take time to return when federated avatars
-// are in use, due to a DNS lookup need
-//
-func (u *User) RealSizedAvatarLink(size int) string {
+// AvatarLinkWithSize returns a link to the user's avatar with size
+func (u *User) AvatarLinkWithSize(size int) string {
 	if u.ID == -1 {
-		return DefaultAvatarLink()
+		// ghost user
+		return avatars.DefaultAvatarLink()
 	}
+
+	var useLocalAvatar bool
 
 	switch {
 	case u.UseCustomAvatar:
-		if u.Avatar == "" {
-			return DefaultAvatarLink()
-		}
-		if size > 0 {
-			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
-		}
-		return setting.AppSubURL + "/avatars/" + u.Avatar
+		useLocalAvatar = true
 	case setting.DisableGravatar, setting.OfflineMode:
+		useLocalAvatar = true
 		if u.Avatar == "" {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
+	default:
+		useLocalAvatar = false
+	}
+
+	if useLocalAvatar {
+		if u.Avatar == "" {
+			return avatars.DefaultAvatarLink()
+		}
 		if size > 0 {
 			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
 		}
 		return setting.AppSubURL + "/avatars/" + u.Avatar
 	}
-	return SizedAvatarLink(u.AvatarEmail, size)
+
+	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
 }
 
-// RelAvatarLink returns a relative link to the user's avatar. The link
-// may either be a sub-URL to this site, or a full URL to an external avatar
-// service.
-func (u *User) RelAvatarLink() string {
-	return u.SizedRelAvatarLink(DefaultAvatarSize)
-}
-
-// AvatarLink returns user avatar absolute link.
-func (u *User) AvatarLink() string {
-	link := u.RelAvatarLink()
-	if link[0] == '/' && link[1] != '/' {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-	}
-	return link
+// AvatarLinkDefaultSize returns a avatar link with default size
+func (u *User) AvatarLinkDefaultSize() string {
+	return u.AvatarLinkWithSize(avatars.DefaultAvatarSize)
 }
 
 // UploadAvatar saves custom avatar for user.

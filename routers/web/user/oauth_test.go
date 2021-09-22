@@ -67,7 +67,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Equal(t, user.FullName, oidcToken.Name)
 	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
 	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
-	assert.Equal(t, user.AvatarLink(), oidcToken.Picture)
+	assert.Equal(t, user.AvatarLinkDefaultSize(), oidcToken.Picture)
 	assert.Equal(t, user.Website, oidcToken.Website)
 	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
 	assert.Equal(t, user.Email, oidcToken.Email)

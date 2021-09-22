@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -139,14 +140,14 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		return avatar
 	}
 
-	size := models.DefaultAvatarPixelSize * models.AvatarRenderedSizeFactor
+	size := avatars.DefaultAvatarPixelSize * avatars.AvatarRenderedSizeFactor
 
 	u, ok := pc.emailUsers[email]
 	if !ok {
 		var err error
 		u, err = models.GetUserByEmail(email)
 		if err != nil {
-			pc.avatars[email] = models.SizedAvatarLink(email, size)
+			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(email, size)
 			if !models.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""
@@ -156,7 +157,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		}
 	}
 	if u != nil {
-		pc.avatars[email] = u.RealSizedAvatarLink(size)
+		pc.avatars[email] = u.AvatarLinkWithSize(size)
 	}
 
 	return pc.avatars[email]

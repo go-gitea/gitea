@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -192,7 +193,7 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) 
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
-		Avatar:                       models.DefaultAvatarLink(),
+		Avatar:                       avatars.DefaultAvatarLink(),
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
 	if err := models.CreateUser(user); err != nil {

@@ -51,7 +51,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		UserName:    user.Name,
 		FullName:    markup.Sanitize(user.FullName),
 		Email:       user.GetEmail(),
-		AvatarURL:   user.AvatarLink(),
+		AvatarURL:   user.AvatarLinkDefaultSize(),
 		Created:     user.CreatedUnix.AsTime(),
 		Restricted:  user.IsRestricted,
 		Location:    user.Location,

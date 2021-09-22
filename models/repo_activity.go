@@ -94,7 +94,7 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := NewGhostUser().AvatarLink()
+	unknownUserAvatarLink := NewGhostUser().AvatarLinkDefaultSize()
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
@@ -116,7 +116,7 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 			users[u.ID] = &ActivityAuthorData{
 				Name:       u.DisplayName(),
 				Login:      u.LowerName,
-				AvatarLink: u.AvatarLink(),
+				AvatarLink: u.AvatarLinkDefaultSize(),
 				HomeLink:   u.HomeLink(),
 				Commits:    v.Commits,
 			}
