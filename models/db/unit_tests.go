@@ -128,11 +128,6 @@ func CreateTestEngine(fixturesDir string) error {
 
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
-	DefaultContext = &Context{
-		Context: context.Background(),
-		e:       x,
-	}
-
 	return LoadFixtures()
 }
 
