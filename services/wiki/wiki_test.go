@@ -5,7 +5,6 @@
 package wiki
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -271,7 +270,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	db.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := ioutil.TempDir("", "empty-wiki")
+	tmpDir, err := os.MkdirTemp("", "empty-wiki")
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {

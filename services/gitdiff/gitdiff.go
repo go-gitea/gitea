@@ -13,7 +13,6 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -721,7 +720,7 @@ parsingLoop:
 		// TODO: Handle skipping first n files
 		if len(diff.Files) >= maxFiles {
 			diff.IsIncomplete = true
-			_, err := io.Copy(ioutil.Discard, reader)
+			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
 				// By the definition of io.Copy this never returns io.EOF
 				return diff, fmt.Errorf("Copy: %v", err)
@@ -1280,7 +1279,7 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
 		if err == nil {
 			defer deleteTemporaryFile()
-			workdir, err := ioutil.TempDir("", "empty-work-dir")
+			workdir, err := os.MkdirTemp("", "empty-work-dir")
 			if err != nil {
 				log.Error("Unable to create temporary directory: %v", err)
 				return nil, err
