@@ -95,7 +95,7 @@ func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 	defer commiter.Close()
 
 	var preIdx int64
-	_, err = ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE group_id = ?", repoID).Get(&preIdx)
+	_, err = ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ?", repoID).Get(&preIdx)
 	if err != nil {
 		return 0, err
 	}
