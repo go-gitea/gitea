@@ -5,6 +5,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/url"
@@ -122,6 +123,11 @@ func CreateTestEngine(fixturesDir string) error {
 
 // PrepareTestDatabase load test fixtures into test database
 func PrepareTestDatabase() error {
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
+	}
+
 	return LoadFixtures()
 }
 
