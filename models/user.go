@@ -1676,7 +1676,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	sess = x.NewSession()
+	sess = db.DefaultContext().NewSession()
 	if !opts.IsTwoFactorEnabled.IsNone() {
 		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
 		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
