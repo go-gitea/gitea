@@ -29,13 +29,13 @@ function fallbackCopyViaSelect(elem) {
  * Achieved via creating a temporary textarea element, selecting the text, and using document.execCommand.
  */
 function fallbackCopyToClipboard(text) {
-  const tempTextArea = document.createElement("textarea");
+  const tempTextArea = document.createElement('textarea');
   tempTextArea.value = text;
 
   // avoid scrolling
   tempTextArea.style.top = 0;
   tempTextArea.style.left = 0;
-  tempTextArea.style.position = "fixed";
+  tempTextArea.style.position = 'fixed';
 
   document.body.appendChild(tempTextArea);
 
@@ -59,7 +59,6 @@ export default async function initClipboard() {
 
       try {
         if (navigator.clipboard && window.isSecureContext) {
-
           await navigator.clipboard.writeText(text);
           onSuccess(btn);
         } else {
