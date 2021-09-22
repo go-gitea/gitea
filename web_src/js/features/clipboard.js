@@ -16,6 +16,38 @@ function onError(btn) {
   btn.dataset.content = btn.dataset.original;
 }
 
+/** Use the document.execCommand to copy the value to clipboard */
+function fallbackCopyViaSelect(elem){
+  elem.select();
+
+  // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
+  // it's also fine if we don't test it exists because of the try statement
+  let success = document.execCommand('copy');
+
+  return success;
+}
+/**
+ * Fallback to use if navigator.clipboard doesn't exist.
+ * Achieved via creating a temporary textarea element, selecting the text, and using document.execCommand.
+ */
+function fallbackCopyToClipboard(text){
+  let tempTextArea = document.createElement("textarea");
+  tempTextArea.value = text;
+
+  // avoid scrolling
+  tempTextArea.style.top = 0;
+  tempTextArea.style.left = 0;
+  tempTextArea.style.position = 'fixed';
+
+  document.body.appendChild(tempTextArea);
+
+  let success = fallbackCopyViaSelect(tempTextArea);
+
+  document.body.removeChild(tempTextArea);
+
+  return success;
+}
+
 export default async function initClipboard() {
   for (const btn of document.querySelectorAll(selector) || []) {
     btn.addEventListener('click', async () => {
@@ -33,15 +65,9 @@ export default async function initClipboard() {
           await navigator.clipboard.writeText(text);
           onSuccess(btn);
         }else{
-          if(btn.dataset.clipboardTarget) {
-            // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy
-            // it's also fine if we don't test it exists because of the try statement
-            document.querySelector(btn.dataset.clipboardTarget).select();
-            if(document.execCommand('copy')){
-              onSuccess(btn);
-            }else{
-              onError(btn);
-            }
+          let success = btn.dataset.clipboardTarget ? fallbackCopyViaSelect(document.querySelector(btn.dataset.clipboardTarget)) : fallbackCopyToClipboard(text);
+          if(success){
+            onSuccess(btn);
           }else{
             onError(btn);
           }
