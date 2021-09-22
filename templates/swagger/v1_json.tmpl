@@ -7357,7 +7357,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}.diff": {
+    "/repos/{owner}/{repo}/pulls/{index}.{diffType}": {
       "get": {
         "produces": [
           "text/plain"
@@ -7365,8 +7365,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a pull request diff",
-        "operationId": "repoDownloadPullDiff",
+        "summary": "Get a pull request diff or patch",
+        "operationId": "repoDownloadPullDiffOrPatch",
         "parameters": [
           {
             "type": "string",
@@ -7389,48 +7389,15 @@
             "name": "index",
             "in": "path",
             "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/string"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/pulls/{index}.patch": {
-      "get": {
-        "produces": [
-          "text/plain"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a pull request patch file",
-        "operationId": "repoDownloadPullPatch",
-        "parameters": [
           {
+            "enum": [
+              "diff",
+              "patch"
+            ],
             "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the pull request to get",
-            "name": "index",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
             "in": "path",
             "required": true
           }
