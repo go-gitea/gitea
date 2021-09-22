@@ -12,5 +12,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."),
+		"login_source.yml",
+		"oauth2_application.yml",
+		"oauth2_authorization_code.yml",
+		"oauth2_grant.yml",
+	)
 }
