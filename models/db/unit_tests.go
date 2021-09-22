@@ -118,6 +118,11 @@ func CreateTestEngine(fixturesDir string) error {
 		x.ShowSQL(true)
 	}
 
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
+	}
+
 	return InitFixtures(fixturesDir)
 }
 
