@@ -225,12 +225,6 @@ type CommitStatusIndex struct {
 	MaxIndex int64  `xorm:"index"`
 }
 
-// deleteResouceIndex delete resource index
-func deleteCommitStatusIndex(e db.Engine, repoID int64, sha string) error {
-	_, err := e.Exec("DELETE FROM `commit_status_index` WHERE repo_id=? AND sha=?", repoID, sha)
-	return err
-}
-
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
 func GetLatestCommitStatus(repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
 	return getLatestCommitStatus(db.DefaultContext().Engine(), repoID, sha, listOptions)
