@@ -154,11 +154,12 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return DefaultAvatarLink()
 	}
 
-	avatarURL.Query().Set("d", "identicon")
+	urlQuery := avatarURL.Query()
+	urlQuery.Set("d", "identicon")
 	if size > 0 {
-		avatarURL.Query().Set("s", strconv.Itoa(size))
+		urlQuery.Set("s", strconv.Itoa(size))
 	}
-	avatarURL.RawQuery = avatarURL.Query().Encode()
+	avatarURL.RawQuery = urlQuery.Encode()
 	return avatarURL.String()
 }
 

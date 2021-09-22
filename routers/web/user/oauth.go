@@ -197,7 +197,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, serverKey, clientKey oaut
 			idToken.Name = user.FullName
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
-			idToken.Picture = user.AvatarLinkDefaultSize()
+			idToken.Picture = user.AvatarLink()
 			idToken.Website = user.Website
 			idToken.Locale = user.Language
 			idToken.UpdatedAt = user.UpdatedUnix
@@ -245,7 +245,7 @@ func InfoOAuth(ctx *context.Context) {
 		Name:     ctx.User.FullName,
 		Username: ctx.User.Name,
 		Email:    ctx.User.Email,
-		Picture:  ctx.User.AvatarLinkDefaultSize(),
+		Picture:  ctx.User.AvatarLink(),
 	}
 	ctx.JSON(http.StatusOK, response)
 }

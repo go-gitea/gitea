@@ -277,7 +277,7 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 func ToOrganization(org *models.User) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
-		AvatarURL:                 org.AvatarLinkDefaultSize(),
+		AvatarURL:                 org.AvatarLink(),
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
 		Description:               org.Description,

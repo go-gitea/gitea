@@ -96,8 +96,8 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
 }
 
-// AvatarLinkDefaultSize returns a avatar link with default size
-func (u *User) AvatarLinkDefaultSize() string {
+// AvatarLink returns a avatar link with default size
+func (u *User) AvatarLink() string {
 	return u.AvatarLinkWithSize(avatars.DefaultAvatarSize)
 }
 

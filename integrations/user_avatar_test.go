@@ -74,7 +74,7 @@ func TestUserAvatar(t *testing.T) {
 
 		user2 = db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
 
-		req = NewRequest(t, "GET", user2.AvatarLinkDefaultSize())
+		req = NewRequest(t, "GET", user2.AvatarLink())
 		resp := session.MakeRequest(t, req, http.StatusFound)
 		location := resp.Header().Get("Location")
 		if !strings.HasPrefix(location, "/avatars") {
