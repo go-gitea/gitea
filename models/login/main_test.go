@@ -5,11 +5,12 @@
 package login
 
 import (
+	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, "..", "..")
+	db.MainTest(m, filepath.Join("..", ".."))
 }
