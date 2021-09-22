@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -33,7 +34,7 @@ func Init() error {
 		return err
 	}
 
-	store, err := models.CreateStore(SessionTableName, UsersStoreKey)
+	store, err := db.CreateStore(SessionTableName, UsersStoreKey)
 	if err != nil {
 		return err
 	}

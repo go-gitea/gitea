@@ -8,7 +8,7 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
@@ -1126,9 +1126,9 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("ioutil.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %v", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {

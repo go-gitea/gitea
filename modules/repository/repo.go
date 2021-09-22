@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -132,7 +133,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext()); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 

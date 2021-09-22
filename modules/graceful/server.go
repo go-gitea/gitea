@@ -7,7 +7,6 @@ package graceful
 
 import (
 	"crypto/tls"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -111,13 +110,13 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 
 	config.Certificates = make([]tls.Certificate, 1)
 
-	certPEMBlock, err := ioutil.ReadFile(certFile)
+	certPEMBlock, err := os.ReadFile(certFile)
 	if err != nil {
 		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, srv.network, srv.address, err)
 		return err
 	}
 
-	keyPEMBlock, err := ioutil.ReadFile(keyFile)
+	keyPEMBlock, err := os.ReadFile(keyFile)
 	if err != nil {
 		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, srv.network, srv.address, err)
 		return err

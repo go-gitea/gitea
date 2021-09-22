@@ -7,7 +7,7 @@ package private
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/json"
@@ -45,7 +45,7 @@ func SendEmail(ctx context.Context, subject, message string, to []string) (int, 
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Response body error: %v", err.Error())
 	}
