@@ -40,6 +40,7 @@ type CommitStatus struct {
 
 func init() {
 	db.RegisterModel(new(CommitStatus))
+	db.RegisterModel(new(CommitStatusIndex))
 }
 
 // upsertCommitStatusIndex the function will not return until it acquires the lock or receives an error.
