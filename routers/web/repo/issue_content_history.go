@@ -28,6 +28,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	}
 
 	lang := ctx.Data["Lang"].(string)
+	editedHistoryCountMap, _ := models.QueryIssueContentHistoryEditedCountMap(db.DefaultContext().Engine(), issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
 			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
@@ -35,7 +36,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 			"textDeleteFromHistoryConfirm": i18n.Tr(lang, "repo.issues.content_history.delete_from_history_confirm"),
 			"textOptions":                  i18n.Tr(lang, "repo.issues.content_history.options"),
 		},
-		"editedHistoryCountMap": models.QueryIssueContentHistoryEditedCountMap(db.DefaultContext().Engine(), issue.ID),
+		"editedHistoryCountMap": editedHistoryCountMap,
 	})
 }
 
@@ -47,7 +48,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		return
 	}
 
-	items := models.FetchIssueContentHistoryList(db.DefaultContext().Engine(), issue.ID, commentID)
+	items, _ := models.FetchIssueContentHistoryList(db.DefaultContext().Engine(), issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
@@ -107,8 +108,8 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory := models.GetIssueContentHistoryAndPrev(db.DefaultContext().Engine(), historyID)
-	if history == nil {
+	history, prevHistory, err := models.GetIssueContentHistoryAndPrev(db.DefaultContext().Engine(), historyID)
+	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "Can not find the content history",
 		})
@@ -196,9 +197,9 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 
-	models.SoftDeleteIssueContentHistory(db.DefaultContext().Engine(), historyID)
+	err = models.SoftDeleteIssueContentHistory(db.DefaultContext().Engine(), historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
+		"ok": err == nil,
 	})
 }

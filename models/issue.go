@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -815,10 +816,13 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	SaveIssueContentHistory(ctx.Engine(), issue.PosterID, issue.ID, 0, timeutil.TimeStampNow(), issue.Content, false)
+	if err = issues.SaveIssueContentHistory(ctx.Engine(), issue.PosterID, issue.ID, 0,
+		timeutil.TimeStampNow(), issue.Content, false); err != nil {
+		return fmt.Errorf("SaveIssueContentHistory: %v", err)
+	}
 
 	if err = issue.addCrossReferences(ctx.Engine(), doer, true); err != nil {
-		return err
+		return fmt.Errorf("addCrossReferences: %v", err)
 	}
 
 	return committer.Commit()
@@ -987,7 +991,10 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	SaveIssueContentHistory(e, opts.Issue.PosterID, opts.Issue.ID, 0, timeutil.TimeStampNow(), opts.Issue.Content, true)
+	if err = issues.SaveIssueContentHistory(e, opts.Issue.PosterID, opts.Issue.ID, 0,
+		timeutil.TimeStampNow(), opts.Issue.Content, true); err != nil {
+		return err
+	}
 
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
@@ -2151,7 +2158,7 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&IssueContentHistory{}); err != nil {
+		Delete(&issues.IssueContentHistory{}); err != nil {
 		return
 	}
 

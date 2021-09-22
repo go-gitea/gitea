@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
+	"code.gitea.io/gitea/models"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -31,7 +32,7 @@ func init() {
 }
 
 // SaveIssueContentHistory save history
-func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) {
+func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) error {
 	ch := &IssueContentHistory{
 		PosterID:       posterID,
 		IssueID:        issueID,
@@ -43,12 +44,14 @@ func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, ed
 	_, err := e.Insert(ch)
 	if err != nil {
 		log.Error("can not save issue content history. err=%v", err)
+		return err
 	}
+	return nil
 }
 
 // QueryIssueContentHistoryEditedCountMap query related history count of each comment (comment_id = 0 means the main issue)
 // only return the count map for "edited" (history revision count > 1) issues or comments.
-func QueryIssueContentHistoryEditedCountMap(e db.Engine, issueID int64) map[int64]int {
+func QueryIssueContentHistoryEditedCountMap(e db.Engine, issueID int64) (map[int64]int, error) {
 	type HistoryCountRecord struct {
 		CommentID    int64
 		HistoryCount int
@@ -63,13 +66,14 @@ func QueryIssueContentHistoryEditedCountMap(e db.Engine, issueID int64) map[int6
 		Find(&records)
 	if err != nil {
 		log.Error("can not query issue content history count map. err=%v", err)
+		return nil, err
 	}
 
 	res := map[int64]int{}
 	for _, r := range records {
 		res[r.CommentID] = r.HistoryCount
 	}
-	return res
+	return res, nil
 }
 
 // IssueContentListItem the list for web ui
@@ -88,7 +92,7 @@ type IssueContentListItem struct {
 }
 
 // FetchIssueContentHistoryList fetch list
-func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) []*IssueContentListItem {
+func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
 	res := make([]*IssueContentListItem, 0)
 	err := e.Select("u.id as user_id, u.name as user_name,"+
 		"u.avatar as user_avatar, u.avatar_email as user_avatar_email, u.use_custom_avatar,"+
@@ -101,10 +105,11 @@ func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) [
 
 	if err != nil {
 		log.Error("can not fetch issue content history list. err=%v", err)
+		return nil, err
 	}
 
 	for _, item := range res {
-		u := &User{
+		u := &models.User{
 			ID:              item.UserID,
 			Name:            item.UserName,
 			Avatar:          item.UserAvatar,
@@ -113,17 +118,19 @@ func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) [
 		}
 		item.UserAvatarLink = u.AvatarLink()
 	}
-	return res
+	return res, nil
 }
 
 //SoftDeleteIssueContentHistory soft delete
-func SoftDeleteIssueContentHistory(e db.Engine, historyID int64) {
+func SoftDeleteIssueContentHistory(e db.Engine, historyID int64) error {
 	if _, err := e.ID(historyID).Cols("is_deleted", "content_text").Update(&IssueContentHistory{
 		IsDeleted:   true,
 		ContentText: "",
 	}); err != nil {
 		log.Error("failed to soft delete issue content history. err=%v", err)
+		return err
 	}
+	return nil
 }
 
 // ErrIssueContentHistoryNotExist not exist error
@@ -149,15 +156,15 @@ func GetIssueContentHistoryByID(e db.Engine, id int64) (*IssueContentHistory, er
 }
 
 // GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
-func GetIssueContentHistoryAndPrev(e db.Engine, id int64) (history, prevHistory *IssueContentHistory) {
+func GetIssueContentHistoryAndPrev(e db.Engine, id int64) (history, prevHistory *IssueContentHistory, err error) {
 	history = &IssueContentHistory{}
 	has, err := e.ID(id).Get(history)
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
-		return nil, nil
+		return nil, nil, err
 	} else if !has {
 		log.Error("issue content history does not exist. id=%v. err=%v", id, err)
-		return nil, nil
+		return nil, nil, &ErrIssueContentHistoryNotExist{id}
 	}
 
 	prevHistory = &IssueContentHistory{}
@@ -168,10 +175,10 @@ func GetIssueContentHistoryAndPrev(e db.Engine, id int64) (history, prevHistory 
 
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
-		return nil, nil
+		return nil, nil, err
 	} else if !has {
-		return history, nil
+		return history, nil, nil
 	}
 
-	return history, prevHistory
+	return history, prevHistory, nil
 }
