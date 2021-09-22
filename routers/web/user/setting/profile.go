@@ -8,7 +8,7 @@ package setting
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -167,9 +167,9 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 		}
 
-		data, err := ioutil.ReadAll(fr)
+		data, err := io.ReadAll(fr)
 		if err != nil {
-			return fmt.Errorf("ioutil.ReadAll: %v", err)
+			return fmt.Errorf("io.ReadAll: %v", err)
 		}
 
 		st := typesniffer.DetectContentType(data)

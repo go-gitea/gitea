@@ -11,7 +11,6 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -344,7 +343,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
-						bs, _ := ioutil.ReadAll(rd)
+						bs, _ := io.ReadAll(rd)
 						ctx.Data["FileContent"] = strings.ReplaceAll(
 							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
 						)
@@ -353,7 +352,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
-					buf, err = ioutil.ReadAll(rd)
+					buf, err = io.ReadAll(rd)
 					if err != nil {
 						log.Error("ReadAll failed: %v", err)
 					}
@@ -528,13 +527,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
-			buf, _ := ioutil.ReadAll(rd)
+			buf, _ := io.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
-			buf, _ := ioutil.ReadAll(rd)
+			buf, _ := io.ReadAll(rd)
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true

@@ -11,7 +11,7 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
+	"os"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
@@ -51,7 +51,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		indexFilename, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 		if err == nil {
 			defer deleteTemporaryFile()
-			tmpWorkTree, err := ioutil.TempDir("", "empty-work-dir")
+			tmpWorkTree, err := os.MkdirTemp("", "empty-work-dir")
 			if err == nil {
 				defer func() {
 					_ = util.RemoveAll(tmpWorkTree)
@@ -174,7 +174,7 @@ func readFile(f *object.File, limit int64) ([]byte, error) {
 	defer r.Close()
 
 	if limit <= 0 {
-		return ioutil.ReadAll(r)
+		return io.ReadAll(r)
 	}
 
 	size := f.Size

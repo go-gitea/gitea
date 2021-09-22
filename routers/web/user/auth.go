@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -704,7 +703,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 		}
 		// ignore any error
 		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := ioutil.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
+			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
 				_ = u.UploadAvatar(data)
 			}

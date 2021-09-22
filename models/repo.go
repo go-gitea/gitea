@@ -10,11 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"unicode/utf8"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
-	"io/ioutil"
+	_ "image/jpeg" // Needed for jpeg support
 	"net"
 	"net/url"
 	"os"
@@ -24,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/lfs"
@@ -1013,7 +1010,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(customPath)
+		return os.ReadFile(customPath)
 	}
 
 	switch tp {

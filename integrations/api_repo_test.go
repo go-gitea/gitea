@@ -6,9 +6,9 @@ package integrations
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -356,7 +356,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		httpContext := baseAPITestContext
 
 		httpContext.Reponame = "repo-tmp-17"
-		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+		dstPath, err := os.MkdirTemp("", httpContext.Reponame)
 		assert.NoError(t, err)
 		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
@@ -419,7 +419,7 @@ func testAPIRepoCreateConflict(t *testing.T, u *url.URL) {
 		httpContext := baseAPITestContext
 
 		httpContext.Reponame = "repo-tmp-17"
-		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+		dstPath, err := os.MkdirTemp("", httpContext.Reponame)
 		assert.NoError(t, err)
 		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
