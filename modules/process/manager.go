@@ -38,7 +38,7 @@ var (
 type Process struct {
 	PID         int64 // Process ID, not system one.
 	ParentPID   int64
-	Children    []*Process
+	Children    []*Process // FIXME: access may need to be locked!
 	Description string
 	Start       time.Time
 	Cancel      context.CancelFunc
@@ -215,7 +215,6 @@ func (pm *Manager) Processes(onlyRoots bool) []*Process {
 		return left.Start.Before(right.Start)
 	})
 
-	sort.Sort(processList(processes))
 	return processes
 }
 
