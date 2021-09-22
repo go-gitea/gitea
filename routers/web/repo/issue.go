@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strconv"
@@ -712,7 +712,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 		return "", false
 	}
 	defer r.Close()
-	bytes, err = ioutil.ReadAll(r)
+	bytes, err = io.ReadAll(r)
 	if err != nil {
 		return "", false
 	}

@@ -12,7 +12,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -52,11 +51,11 @@ func runPR() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContext()
 
-	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
+	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		log.Fatalf("TempDir: %v\n", err)
 	}
-	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
+	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
 		log.Fatalf("TempDir: %v\n", err)
 	}
@@ -181,7 +180,7 @@ func main() {
 	codeFilePath = filepath.FromSlash(codeFilePath) //Convert to running OS
 
 	//Copy this file if it will not exist in the PR branch
-	dat, err := ioutil.ReadFile(codeFilePath)
+	dat, err := os.ReadFile(codeFilePath)
 	if err != nil {
 		log.Fatalf("Failed to cache this code file : %v", err)
 	}
@@ -245,7 +244,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
 		}
-		err = ioutil.WriteFile(codeFilePath, dat, 0644)
+		err = os.WriteFile(codeFilePath, dat, 0644)
 		if err != nil {
 			log.Fatalf("Failed to duplicate this code file in PR : %v", err)
 		}

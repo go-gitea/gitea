@@ -7,7 +7,6 @@ package repository
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -59,7 +58,7 @@ func prepareRepoCommit(ctx *db.Context, repo *models.Repository, tmpDir, repoPat
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
 	}
-	if err = ioutil.WriteFile(filepath.Join(tmpDir, "README.md"),
+	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(com.Expand(string(data), match)), 0644); err != nil {
 		return fmt.Errorf("write README.md: %v", err)
 	}
@@ -79,7 +78,7 @@ func prepareRepoCommit(ctx *db.Context, repo *models.Repository, tmpDir, repoPat
 		}
 
 		if buf.Len() > 0 {
-			if err = ioutil.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0644); err != nil {
+			if err = os.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0644); err != nil {
 				return fmt.Errorf("write .gitignore: %v", err)
 			}
 		}
@@ -92,7 +91,7 @@ func prepareRepoCommit(ctx *db.Context, repo *models.Repository, tmpDir, repoPat
 			return fmt.Errorf("GetRepoInitFile[%s]: %v", opts.License, err)
 		}
 
-		if err = ioutil.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0644); err != nil {
 			return fmt.Errorf("write LICENSE: %v", err)
 		}
 	}
@@ -291,7 +290,7 @@ func initRepository(ctx *db.Context, repoPath string, u *models.User, repo *mode
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}
