@@ -17,31 +17,29 @@ function onError(btn) {
 }
 
 /** Use the document.execCommand to copy the value to clipboard */
-function fallbackCopyViaSelect(elem){
+function fallbackCopyViaSelect(elem) {
   elem.select();
 
   // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
   // it's also fine if we don't test it exists because of the try statement
-  let success = document.execCommand('copy');
-
-  return success;
+  return document.execCommand('copy');
 }
 /**
  * Fallback to use if navigator.clipboard doesn't exist.
  * Achieved via creating a temporary textarea element, selecting the text, and using document.execCommand.
  */
-function fallbackCopyToClipboard(text){
-  let tempTextArea = document.createElement("textarea");
+function fallbackCopyToClipboard(text) {
+  const tempTextArea = document.createElement("textarea");
   tempTextArea.value = text;
 
   // avoid scrolling
   tempTextArea.style.top = 0;
   tempTextArea.style.left = 0;
-  tempTextArea.style.position = 'fixed';
+  tempTextArea.style.position = "fixed";
 
   document.body.appendChild(tempTextArea);
 
-  let success = fallbackCopyViaSelect(tempTextArea);
+  const success = fallbackCopyViaSelect(tempTextArea);
 
   document.body.removeChild(tempTextArea);
 
@@ -60,15 +58,15 @@ export default async function initClipboard() {
       if (!text) return;
 
       try {
-        if(navigator.clipboard && window.isSecureContext){
+        if (navigator.clipboard && window.isSecureContext) {
 
           await navigator.clipboard.writeText(text);
           onSuccess(btn);
-        }else{
-          let success = btn.dataset.clipboardTarget ? fallbackCopyViaSelect(document.querySelector(btn.dataset.clipboardTarget)) : fallbackCopyToClipboard(text);
-          if(success){
+        } else {
+          const success = btn.dataset.clipboardTarget ? fallbackCopyViaSelect(document.querySelector(btn.dataset.clipboardTarget)) : fallbackCopyToClipboard(text);
+          if (success) {
             onSuccess(btn);
-          }else{
+          } else {
             onError(btn);
           }
         }
