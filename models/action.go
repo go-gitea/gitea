@@ -317,7 +317,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := db.DefaultContext().Engine().Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := db.DefaultContext().Engine().Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
