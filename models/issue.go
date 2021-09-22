@@ -815,9 +815,9 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	SaveIssueContentHistory(issue.PosterID, issue.ID, 0, timeutil.TimeStampNow(), issue.Content, false)
+	SaveIssueContentHistory(ctx.Engine(), issue.PosterID, issue.ID, 0, timeutil.TimeStampNow(), issue.Content, false)
 
-	if err = issue.addCrossReferences(sess, doer, true); err != nil {
+	if err = issue.addCrossReferences(ctx.Engine(), doer, true); err != nil {
 		return err
 	}
 
@@ -987,7 +987,7 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	SaveIssueContentHistory(opts.Issue.PosterID, opts.Issue.ID, 0, timeutil.TimeStampNow(), opts.Issue.Content, true)
+	SaveIssueContentHistory(e, opts.Issue.PosterID, opts.Issue.ID, 0, timeutil.TimeStampNow(), opts.Issue.Content, true)
 
 	return opts.Issue.addCrossReferences(e, doer, false)
 }

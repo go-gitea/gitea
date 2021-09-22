@@ -29,7 +29,7 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 		return nil, err
 	}
 
-	models.SaveIssueContentHistory(doer.ID, issue.ID, comment.ID, timeutil.TimeStampNow(), comment.Content, true)
+	models.SaveIssueContentHistory(db.DefaultContext().Engine(), doer.ID, issue.ID, comment.ID, timeutil.TimeStampNow(), comment.Content, true)
 
 	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 
@@ -43,7 +43,7 @@ func UpdateComment(c *models.Comment, doer *models.User, oldContent string) erro
 	}
 
 	if c.Type == models.CommentTypeComment && c.Content != oldContent {
-		models.SaveIssueContentHistory(doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+		models.SaveIssueContentHistory(db.DefaultContext().Engine(), doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 	}
 
 	notification.NotifyUpdateComment(doer, c, oldContent)

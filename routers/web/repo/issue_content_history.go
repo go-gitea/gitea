@@ -6,6 +6,7 @@ package repo
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/models/db"
 	"fmt"
 	"html"
 	"net/http"
@@ -34,7 +35,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 			"textDeleteFromHistoryConfirm": i18n.Tr(lang, "repo.issues.content_history.delete_from_history_confirm"),
 			"textOptions":                  i18n.Tr(lang, "repo.issues.content_history.options"),
 		},
-		"editedHistoryCountMap": models.QueryIssueContentHistoryEditedCountMap(issue.ID),
+		"editedHistoryCountMap": models.QueryIssueContentHistoryEditedCountMap(db.DefaultContext().Engine(), issue.ID),
 	})
 }
 
@@ -46,7 +47,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		return
 	}
 
-	items := models.FetchIssueContentHistoryList(issue.ID, commentID)
+	items := models.FetchIssueContentHistoryList(db.DefaultContext().Engine(), issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
@@ -106,7 +107,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory := models.GetIssueContentHistoryAndPrev(historyID)
+	history, prevHistory := models.GetIssueContentHistoryAndPrev(db.DefaultContext().Engine(), historyID)
 	if history == nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "Can not find the content history",
@@ -182,7 +183,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 	}
-	if history, err = models.GetIssueContentHistoryByID(historyID); err != nil {
+	if history, err = models.GetIssueContentHistoryByID(db.DefaultContext().Engine(), historyID); err != nil {
 		log.Error("can not get issue content history %v. err=%v", historyID, err)
 		return
 	}
@@ -195,7 +196,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 
-	models.SoftDeleteIssueContentHistory(historyID)
+	models.SoftDeleteIssueContentHistory(db.DefaultContext().Engine(), historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,

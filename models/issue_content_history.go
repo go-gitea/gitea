@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
@@ -25,8 +26,12 @@ type IssueContentHistory struct {
 	IsDeleted      bool               `xorm:""`
 }
 
+func init() {
+	db.RegisterModel(new(IssueContentHistory))
+}
+
 // SaveIssueContentHistory save history
-func SaveIssueContentHistory(posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) {
+func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) {
 	ch := &IssueContentHistory{
 		PosterID:       posterID,
 		IssueID:        issueID,
@@ -35,7 +40,7 @@ func SaveIssueContentHistory(posterID, issueID, commentID int64, editTime timeut
 		EditedUnix:     editTime,
 		IsFirstCreated: isFirstCreated,
 	}
-	_, err := x.Insert(ch)
+	_, err := e.Insert(ch)
 	if err != nil {
 		log.Error("can not save issue content history. err=%v", err)
 	}
@@ -43,17 +48,17 @@ func SaveIssueContentHistory(posterID, issueID, commentID int64, editTime timeut
 
 // QueryIssueContentHistoryEditedCountMap query related history count of each comment (comment_id = 0 means the main issue)
 // only return the count map for "edited" (history revision count > 1) issues or comments.
-func QueryIssueContentHistoryEditedCountMap(issueID int64) map[int64]int {
+func QueryIssueContentHistoryEditedCountMap(e db.Engine, issueID int64) map[int64]int {
 	type HistoryCountRecord struct {
 		CommentID    int64
 		HistoryCount int
 	}
 	records := make([]*HistoryCountRecord, 0)
 
-	err := x.GroupBy("comment_id").
-		Select("comment_id, COUNT(1) as history_count").
+	err := e.Select("comment_id, COUNT(1) as history_count").
 		Table("issue_content_history").
 		Where(builder.Eq{"issue_id": issueID}).
+		GroupBy("comment_id").
 		Having("history_count > 1").
 		Find(&records)
 	if err != nil {
@@ -83,9 +88,9 @@ type IssueContentListItem struct {
 }
 
 // FetchIssueContentHistoryList fetch list
-func FetchIssueContentHistoryList(issueID int64, commentID int64) []*IssueContentListItem {
+func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) []*IssueContentListItem {
 	res := make([]*IssueContentListItem, 0)
-	err := x.Select("u.id as user_id, u.name as user_name,"+
+	err := e.Select("u.id as user_id, u.name as user_name,"+
 		"u.avatar as user_avatar, u.avatar_email as user_avatar_email, u.use_custom_avatar,"+
 		"h.id as history_id, h.edited_unix, h.is_first_created, h.is_deleted").
 		Table([]string{"issue_content_history", "h"}).
@@ -112,8 +117,8 @@ func FetchIssueContentHistoryList(issueID int64, commentID int64) []*IssueConten
 }
 
 //SoftDeleteIssueContentHistory soft delete
-func SoftDeleteIssueContentHistory(historyID int64) {
-	if _, err := x.ID(historyID).Cols("is_deleted", "content_text").Update(&IssueContentHistory{
+func SoftDeleteIssueContentHistory(e db.Engine, historyID int64) {
+	if _, err := e.ID(historyID).Cols("is_deleted", "content_text").Update(&IssueContentHistory{
 		IsDeleted:   true,
 		ContentText: "",
 	}); err != nil {
@@ -132,9 +137,9 @@ func (err ErrIssueContentHistoryNotExist) Error() string {
 }
 
 // GetIssueContentHistoryByID get issue content history
-func GetIssueContentHistoryByID(id int64) (*IssueContentHistory, error) {
+func GetIssueContentHistoryByID(e db.Engine, id int64) (*IssueContentHistory, error) {
 	h := &IssueContentHistory{}
-	has, err := x.ID(id).Get(h)
+	has, err := e.ID(id).Get(h)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -144,9 +149,9 @@ func GetIssueContentHistoryByID(id int64) (*IssueContentHistory, error) {
 }
 
 // GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
-func GetIssueContentHistoryAndPrev(id int64) (history, prevHistory *IssueContentHistory) {
+func GetIssueContentHistoryAndPrev(e db.Engine, id int64) (history, prevHistory *IssueContentHistory) {
 	history = &IssueContentHistory{}
-	has, err := x.ID(id).Get(history)
+	has, err := e.ID(id).Get(history)
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
 		return nil, nil
@@ -156,7 +161,7 @@ func GetIssueContentHistoryAndPrev(id int64) (history, prevHistory *IssueContent
 	}
 
 	prevHistory = &IssueContentHistory{}
-	has, err = x.Where(builder.Eq{"issue_id": history.IssueID, "comment_id": history.CommentID, "is_deleted": false}).
+	has, err = e.Where(builder.Eq{"issue_id": history.IssueID, "comment_id": history.CommentID, "is_deleted": false}).
 		And(builder.Lt{"edited_unix": history.EditedUnix}).
 		OrderBy("edited_unix DESC").Limit(1).
 		Get(prevHistory)
