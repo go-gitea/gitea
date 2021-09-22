@@ -9,7 +9,7 @@ package git
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -58,7 +58,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	}
 
 	defer dataRc.Close()
-	d, err := ioutil.ReadAll(dataRc)
+	d, err := io.ReadAll(dataRc)
 	if err != nil {
 		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
 		return err

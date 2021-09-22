@@ -6,7 +6,6 @@ package doctor
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"code.gitea.io/gitea/modules/log"
@@ -102,7 +101,7 @@ func isWritableDir(path string) error {
 	// There's no platform-independent way of checking if a directory is writable
 	// https://stackoverflow.com/questions/20026320/how-to-tell-if-folder-exists-and-is-writable
 
-	tmpFile, err := ioutil.TempFile(path, "doctors-order")
+	tmpFile, err := os.CreateTemp(path, "doctors-order")
 	if err != nil {
 		return err
 	}

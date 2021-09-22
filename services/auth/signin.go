@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
 	// Register the sources
@@ -25,7 +26,7 @@ func UserSignIn(username, password string) (*models.User, *models.LoginSource, e
 	if strings.Contains(username, "@") {
 		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := models.Count(user)
+		cnt, err := db.Count(user)
 		if err != nil {
 			return nil, nil, err
 		}

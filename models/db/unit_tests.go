@@ -2,11 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net/url"
 	"os"
@@ -32,6 +31,11 @@ var (
 	fixturesDir string
 )
 
+// FixturesDir returns the fixture directory
+func FixturesDir() string {
+	return fixturesDir
+}
+
 func fatalTestError(fmtStr string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, fmtStr, args...)
 	os.Exit(1)
@@ -52,11 +56,11 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
-	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
+	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
-	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
+	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
@@ -150,6 +154,11 @@ func whereConditions(sess *xorm.Session, conditions []interface{}) {
 			sess.Where(cond)
 		}
 	}
+}
+
+// LoadBeanIfExists loads beans from fixture database if exist
+func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
+	return loadBeanIfExists(bean, conditions...)
 }
 
 func loadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {

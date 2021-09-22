@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -25,7 +26,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	setting.ImportLocalPaths = true
 	setting.Migrations.AllowLocalNetworks = true
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
