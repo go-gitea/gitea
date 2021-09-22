@@ -28,8 +28,24 @@ export default async function initClipboard() {
       if (!text) return;
 
       try {
-        await navigator.clipboard.writeText(text);
-        onSuccess(btn);
+        if(navigator.clipboard && window.isSecureContext){
+
+          await navigator.clipboard.writeText(text);
+          onSuccess(btn);
+        }else{
+          if(btn.dataset.clipboardTarget) {
+            // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy
+            // it's also fine if we don't test it exists because of the try statement
+            document.querySelector(btn.dataset.clipboardTarget).select();
+            if(document.execCommand('copy')){
+              onSuccess(btn);
+            }else{
+              onError(btn);
+            }
+          }else{
+            onError(btn);
+          }
+        }
       } catch {
         onError(btn);
       }
