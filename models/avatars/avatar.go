@@ -111,8 +111,8 @@ func GenerateUserAvatarFastLink(userName string, size int) string {
 	if size < 0 {
 		size = 0
 	}
-	link := setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
-	return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
+	//AppSubURL: It is either "" or starts with '/' and ends without '/', such as '/{subpath}'. question: should we use AppURL or StaticURLPrefix?
+	return setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
 }
 
 // GenerateUserAvatarImageLink returns a link for `User.Avatar` image file: "/avatars/${User.Avatar}"
