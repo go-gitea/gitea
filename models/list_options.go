@@ -21,7 +21,7 @@ type Paginator interface {
 func getPaginatedSession(p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
-	return db.DefaultContext().Engine().Limit(take, skip)
+	return db.GetEngine(db.DefaultContext).Limit(take, skip)
 }
 
 // setSessionPagination sets pagination for a database session

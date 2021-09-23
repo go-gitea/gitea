@@ -169,6 +169,11 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 		return err
 	}
 
+	DefaultContext = &Context{
+		Context: ctx,
+		e:       x,
+	}
+
 	x.SetDefaultContext(ctx)
 
 	if err = x.Ping(); err != nil {

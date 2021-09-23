@@ -160,7 +160,7 @@ func TestDeleteUser(t *testing.T) {
 		user := db.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
 
 		ownedRepos := make([]*Repository, 0, 10)
-		assert.NoError(t, db.DefaultContext().Engine().Find(&ownedRepos, &Repository{OwnerID: userID}))
+		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&ownedRepos, &Repository{OwnerID: userID}))
 		if len(ownedRepos) > 0 {
 			err := DeleteUser(user)
 			assert.Error(t, err)
@@ -169,7 +169,7 @@ func TestDeleteUser(t *testing.T) {
 		}
 
 		orgUsers := make([]*OrgUser, 0, 10)
-		assert.NoError(t, db.DefaultContext().Engine().Find(&orgUsers, &OrgUser{UID: userID}))
+		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &OrgUser{UID: userID}))
 		for _, orgUser := range orgUsers {
 			if err := RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
 				assert.True(t, IsErrLastOrgOwner(err))
@@ -281,7 +281,7 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 
 func TestNewGitSig(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	sess.Find(&users)
 
@@ -296,7 +296,7 @@ func TestNewGitSig(t *testing.T) {
 
 func TestDisplayName(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	sess.Find(&users)
 

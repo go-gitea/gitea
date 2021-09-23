@@ -95,7 +95,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		return nil, err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
@@ -134,7 +134,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 // GetPublicKeyByID returns public key by given ID.
 func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := db.DefaultContext().Engine().
+	has, err := db.GetEngine(db.DefaultContext).
 		ID(keyID).
 		Get(key)
 	if err != nil {
@@ -161,7 +161,7 @@ func searchPublicKeyByContentWithEngine(e db.Engine, content string) (*PublicKey
 // SearchPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
 func SearchPublicKeyByContent(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentWithEngine(db.DefaultContext().Engine(), content)
+	return searchPublicKeyByContentWithEngine(db.GetEngine(db.DefaultContext), content)
 }
 
 func searchPublicKeyByContentExactWithEngine(e db.Engine, content string) (*PublicKey, error) {
@@ -180,7 +180,7 @@ func searchPublicKeyByContentExactWithEngine(e db.Engine, content string) (*Publ
 // SearchPublicKeyByContentExact searches content
 // and returns public key found.
 func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentExactWithEngine(db.DefaultContext().Engine(), content)
+	return searchPublicKeyByContentExactWithEngine(db.GetEngine(db.DefaultContext), content)
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
@@ -193,12 +193,12 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 	if fingerprint != "" {
 		cond = cond.And(builder.Eq{"fingerprint": fingerprint})
 	}
-	return keys, db.DefaultContext().Engine().Where(cond).Find(&keys)
+	return keys, db.GetEngine(db.DefaultContext).Where(cond).Find(&keys)
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
 func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
-	sess := db.DefaultContext().Engine().Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
+	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
 		sess = setSessionPagination(sess, &listOptions)
 
@@ -212,14 +212,14 @@ func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
 
 // CountPublicKeys count public keys a user has
 func CountPublicKeys(userID int64) (int64, error) {
-	sess := db.DefaultContext().Engine().Where("owner_id = ? AND type != ?", userID, KeyTypePrincipal)
+	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type != ?", userID, KeyTypePrincipal)
 	return sess.Count(&PublicKey{})
 }
 
 // ListPublicKeysBySource returns a list of synchronized public keys for a given user and login source.
 func ListPublicKeysBySource(uid, loginSourceID int64) ([]*PublicKey, error) {
 	keys := make([]*PublicKey, 0, 5)
-	return keys, db.DefaultContext().Engine().
+	return keys, db.GetEngine(db.DefaultContext).
 		Where("owner_id = ? AND login_source_id = ?", uid, loginSourceID).
 		Find(&keys)
 }
@@ -228,13 +228,13 @@ func ListPublicKeysBySource(uid, loginSourceID int64) ([]*PublicKey, error) {
 func UpdatePublicKeyUpdated(id int64) error {
 	// Check if key exists before update as affected rows count is unreliable
 	//    and will return 0 affected rows if two updates are made at the same time
-	if cnt, err := db.DefaultContext().Engine().ID(id).Count(&PublicKey{}); err != nil {
+	if cnt, err := db.GetEngine(db.DefaultContext).ID(id).Count(&PublicKey{}); err != nil {
 		return err
 	} else if cnt != 1 {
 		return ErrKeyNotExist{id}
 	}
 
-	_, err := db.DefaultContext().Engine().ID(id).Cols("updated_unix").Update(&PublicKey{
+	_, err := db.GetEngine(db.DefaultContext).ID(id).Cols("updated_unix").Update(&PublicKey{
 		UpdatedUnix: timeutil.TimeStampNow(),
 	})
 	if err != nil {
@@ -333,7 +333,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 		return ErrKeyAccessDenied{doer.ID, key.ID, "public"}
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -358,7 +358,7 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Start session
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return false, err
