@@ -33,7 +33,7 @@ function fallbackCopyToClipboard(text) {
 
   document.body.appendChild(tempTextArea);
 
-  elem.select();
+  tempTextArea.select();
 
   // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
   const success = document.execCommand('copy');
