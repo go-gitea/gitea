@@ -25,7 +25,7 @@ func cacheableRedirect(ctx *context.Context, location string) {
 // AvatarByUserName redirect browser to user avatar of requested size
 func AvatarByUserName(ctx *context.Context) {
 	userName := ctx.Params(":username")
-	size := ctx.FormInt("size")
+	size := int(ctx.ParamsInt64(":size"))
 
 	var user *models.User
 	if strings.ToLower(userName) != "ghost" {

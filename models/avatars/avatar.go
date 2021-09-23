@@ -18,7 +18,8 @@ import (
 )
 
 // DefaultAvatarSize is a sentinel value for the default avatar size, as determined by the avatar-hosting service.
-const DefaultAvatarSize = -1
+// in history the value was "-1", it's not handy as "0", because the int value of empty param is always "0"
+const DefaultAvatarSize = 0
 
 // DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 const DefaultAvatarPixelSize = 28
