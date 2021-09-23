@@ -50,7 +50,7 @@ func Authentications(ctx *context.Context) {
 	var err error
 	ctx.Data["Sources"], err = login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return
 	}
 
