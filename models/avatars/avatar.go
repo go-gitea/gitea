@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -16,10 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-// DefaultAvatarSize is a sentinel value for the default avatar size, as determined by the avatar-hosting service.
-// in history the value was "-1", it's not handy as "0", because the int value of empty param is always "0"
-const DefaultAvatarSize = 0
 
 // DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
 const DefaultAvatarPixelSize = 28
@@ -110,13 +106,21 @@ func saveEmailHash(email string) string {
 	return emailHash
 }
 
-// GenerateUserAvatarFastLink returns a fast link to the user's avatar via the local explore page.
+// GenerateUserAvatarFastLink returns a fast link (302) to the user's avatar: "/user/avatar/${User.Name}/${size}"
 func GenerateUserAvatarFastLink(userName string, size int) string {
 	if size < 0 {
 		size = 0
 	}
 	link := setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
 	return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
+}
+
+// GenerateUserAvatarImageLink returns a link for `User.Avatar` image file: "/avatars/${User.Avatar}"
+func GenerateUserAvatarImageLink(userAvatar string, size int) string {
+	if size > 0 {
+		return setting.AppSubURL + "/avatars/" + userAvatar + "?size=" + strconv.Itoa(size)
+	}
+	return setting.AppSubURL + "/avatars/" + userAvatar
 }
 
 // generateEmailAvatarLink returns a email avatar link.
@@ -160,7 +164,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 	return avatarURL.String()
 }
 
-//GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one)
+//GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
 func GenerateEmailAvatarFastLink(email string, size int) string {
 	return generateEmailAvatarLink(email, size, false)
 }

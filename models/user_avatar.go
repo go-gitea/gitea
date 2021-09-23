@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strconv"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
@@ -60,45 +59,41 @@ func (u *User) generateRandomAvatar(e db.Engine) error {
 	return nil
 }
 
-// AvatarLinkWithSize returns a link to the user's avatar with size
+// AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
 func (u *User) AvatarLinkWithSize(size int) string {
 	if u.ID == -1 {
 		// ghost user
 		return avatars.DefaultAvatarLink()
 	}
 
-	var useLocalAvatar bool
+	useLocalAvatar := false
+	autoGenerateAvatar := false
 
 	switch {
 	case u.UseCustomAvatar:
 		useLocalAvatar = true
 	case setting.DisableGravatar, setting.OfflineMode:
 		useLocalAvatar = true
-		if u.Avatar == "" {
+		autoGenerateAvatar = true
+	}
+
+	if useLocalAvatar {
+		if u.Avatar == "" && autoGenerateAvatar {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
-	default:
-		useLocalAvatar = false
-	}
-
-	if useLocalAvatar {
 		if u.Avatar == "" {
 			return avatars.DefaultAvatarLink()
 		}
-		if size > 0 {
-			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
-		}
-		return setting.AppSubURL + "/avatars/" + u.Avatar
+		return avatars.GenerateUserAvatarImageLink(u.Avatar, size)
 	}
-
 	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
 }
 
 // AvatarLink returns a avatar link with default size
 func (u *User) AvatarLink() string {
-	return u.AvatarLinkWithSize(avatars.DefaultAvatarSize)
+	return u.AvatarLinkWithSize(0)
 }
 
 // UploadAvatar saves custom avatar for user.
