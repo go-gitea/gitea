@@ -24,6 +24,7 @@ func (c *Context) GetParent() *Context {
 	return GetContext(c.Context)
 }
 
+// Value is part of the interface for context.Context. We mostly defer to the internal context - but we return this in response to the ProcessContextKey
 func (c *Context) Value(key interface{}) interface{} {
 	if key == ProcessContextKey {
 		return c
@@ -58,6 +59,7 @@ func GetPID(ctx context.Context) int64 {
 	return pCtx.GetPID()
 }
 
+// GetParentPID returns the ParentPID for this context
 func GetParentPID(ctx context.Context) int64 {
 	parentPID := int64(0)
 	if parentProcess := GetContext(ctx); parentProcess != nil {

@@ -41,7 +41,7 @@ func OpenRepository(repoPath string) (*Repository, error) {
 	return OpenRepositoryCtx(DefaultContext, repoPath)
 }
 
-// OpenRepository opens the repository at the given path.
+// OpenRepositoryCtx opens the repository at the given path with the provided context.
 func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error) {
 	repoPath, err := filepath.Abs(repoPath)
 	if err != nil {

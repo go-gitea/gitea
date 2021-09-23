@@ -38,10 +38,21 @@ var (
 type Process struct {
 	PID         int64 // Process ID, not system one.
 	ParentPID   int64
-	Children    []*Process // FIXME: access may need to be locked!
+	children    []*Process
 	Description string
 	Start       time.Time
 	Cancel      context.CancelFunc
+}
+
+// Children gets the children of the process
+func (p *Process) Children() []*Process {
+	var children []*Process
+	pm := GetManager()
+	pm.mutex.Lock()
+	defer pm.mutex.Unlock()
+	children = make([]*Process, len(p.children))
+	copy(children, p.children)
+	return children
 }
 
 // Manager knows about all processes and counts PIDs.
@@ -117,7 +128,7 @@ func (pm *Manager) Add(parentPID int64, description string, cancel context.Cance
 	}
 
 	if parent != nil {
-		parent.Children = append(parent.Children, process)
+		parent.children = append(parent.children, process)
 	}
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
@@ -167,14 +178,14 @@ func (pm *Manager) remove(process *Process) {
 	if p := pm.processes[process.PID]; p == process {
 		delete(pm.processes, process.PID)
 		pm.releasePID(process.PID)
-		for _, child := range process.Children {
+		for _, child := range process.children {
 			child.ParentPID = 0
 		}
 		parent := pm.processes[process.ParentPID]
 		if parent != nil {
-			for i, child := range parent.Children {
+			for i, child := range parent.children {
 				if child == process {
-					parent.Children = append(parent.Children[:i], parent.Children[i+1:]...)
+					parent.children = append(parent.children[:i], parent.children[i+1:]...)
 					return
 				}
 			}
@@ -283,26 +294,6 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	}
 
 	return stdOut.String(), stdErr.String(), err
-}
-
-type processList []*Process
-
-func (l processList) Len() int {
-	return len(l)
-}
-
-func (l processList) Less(i, j int) bool {
-	if l[i].ParentPID < l[j].ParentPID {
-		return true
-	}
-	if l[i].ParentPID == l[j].ParentPID {
-		return l[i].PID < l[j].PID
-	}
-	return false
-}
-
-func (l processList) Swap(i, j int) {
-	l[i], l[j] = l[j], l[i]
 }
 
 // Error is a wrapped error describing the error results of Process Execution

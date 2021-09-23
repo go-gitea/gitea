@@ -9,9 +9,10 @@
 		</div>
 	</div>
 
-	{{if .Process.Children}}
+	{{$children := .Process.Children}}
+	{{if $children}}
 		<div class="divided list">
-			{{range .Process.Children}}
+			{{range $children}}
 				{{template "admin/process-row" dict "Process" . "root" $.root}}
 			{{end}}
 		</div>
