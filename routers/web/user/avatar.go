@@ -6,6 +6,7 @@ package user
 
 import (
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
@@ -14,7 +15,10 @@ import (
 )
 
 func cacheableRedirect(ctx *context.Context, location string) {
-	ctx.Resp.Header().Set("Cache-Control", httpcache.GetCacheControl())
+	// here we should not use `setting.StaticCacheTime`, it is pretty long (default: 6 hours)
+	// we must make sure the redirection cache time is short enough, otherwise a user won't see the updated avatar in 6 hours
+	// it's OK to make the cache time short, it is only a redirection, and doesn't cost much to make a new request
+	httpcache.AddCacheControlToHeader(ctx.Resp.Header(), time.Minute)
 	ctx.Redirect(location)
 }
 
