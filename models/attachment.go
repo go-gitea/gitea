@@ -233,7 +233,7 @@ func UpdateAttachment(atta *Attachment) error {
 // UpdateAttachmentByUUID Updates attachment via uuid
 func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
 	if attach.UUID == "" {
-		return fmt.Errorf("attachment uuid should not blank")
+		return fmt.Errorf("attachment uuid should be not blank")
 	}
 	_, err := db.GetEngine(ctx).Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
 	return err
