@@ -316,7 +316,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	user, err := models.GetUserByID(app.UID)
 	if err != nil {
-		ctx.ServerError("LoadUser", err)
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 

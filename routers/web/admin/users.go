@@ -60,7 +60,7 @@ func NewUser(ctx *context.Context) {
 
 	sources, err := login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -79,7 +79,7 @@ func NewUserPost(ctx *context.Context) {
 
 	sources, err := login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -180,7 +180,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	if u.LoginSource > 0 {
 		ctx.Data["LoginSource"], err = login.GetSourceByID(u.LoginSource)
 		if err != nil {
-			ctx.ServerError("GetLoginSourceByID", err)
+			ctx.ServerError("login.GetSourceByID", err)
 			return nil
 		}
 	} else {
@@ -189,7 +189,7 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 
 	sources, err := login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return nil
 	}
 	ctx.Data["Sources"] = sources

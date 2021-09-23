@@ -401,7 +401,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 func DeleteAuthSource(ctx *context.Context) {
 	source, err := login.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.ServerError("GetLoginSourceByID", err)
+		ctx.ServerError("login.GetSourceByID", err)
 		return
 	}
 
@@ -409,7 +409,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		if login.IsErrSourceInUse(err) {
 			ctx.Flash.Error(ctx.Tr("admin.auths.still_in_used"))
 		} else {
-			ctx.Flash.Error(fmt.Sprintf("DeleteSource: %v", err))
+			ctx.Flash.Error(fmt.Sprintf("DeleteLoginSource: %v", err))
 		}
 		ctx.JSON(http.StatusOK, map[string]interface{}{
 			"redirect": setting.AppSubURL + "/admin/auths/" + ctx.Params(":authid"),

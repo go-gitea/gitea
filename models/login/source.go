@@ -247,7 +247,7 @@ func CreateSource(source *Source) error {
 	if err != nil {
 		// remove the LoginSource in case of errors while registering configuration
 		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
-			log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
@@ -294,7 +294,7 @@ func IsSSPIEnabled() bool {
 	}
 	sources, err := ActiveSources(SSPI)
 	if err != nil {
-		log.Error("ActiveLoginSources: %v", err)
+		log.Error("ActiveSources: %v", err)
 		return false
 	}
 	return len(sources) > 0

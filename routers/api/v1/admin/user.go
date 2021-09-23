@@ -33,7 +33,7 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 		if login.IsErrSourceNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLoginSourceByID", err)
+			ctx.Error(http.StatusInternalServerError, "login.GetSourceByID", err)
 		}
 		return
 	}
