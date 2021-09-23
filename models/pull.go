@@ -450,7 +450,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
 	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
 	if err != nil {
-		return fmt.Errorf("generate issue index failed: %v", err)
+		return fmt.Errorf("generate pull request index failed: %v", err)
 	}
 
 	issue.Index = idx
