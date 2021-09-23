@@ -123,10 +123,6 @@ func GenerateUserAvatarFastLink(userName string, size int) string {
 // if final is true, it may use a slow path (eg: query DNS).
 // if final is false, it always uses a fast path.
 func generateEmailAvatarLink(email string, size int, final bool) string {
-	if size <= 0 {
-		size = DefaultAvatarSize
-	}
-
 	email = strings.TrimSpace(email)
 	if email == "" {
 		return DefaultAvatarLink()
