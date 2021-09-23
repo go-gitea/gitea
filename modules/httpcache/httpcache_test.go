@@ -47,7 +47,7 @@ func TestHandleFileETagCache(t *testing.T) {
 		handled := HandleFileETagCache(req, w, fi)
 
 		assert.False(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 2)
+		assert.Equal(t, 2, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Cache-Control")
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
@@ -61,7 +61,7 @@ func TestHandleFileETagCache(t *testing.T) {
 		handled := HandleFileETagCache(req, w, fi)
 
 		assert.False(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 2)
+		assert.Equal(t, 2, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Cache-Control")
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
@@ -75,7 +75,7 @@ func TestHandleFileETagCache(t *testing.T) {
 		handled := HandleFileETagCache(req, w, fi)
 
 		assert.True(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 1)
+		assert.Equal(t, 1, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
 		assert.Equal(t, http.StatusNotModified, w.Code)
@@ -92,7 +92,7 @@ func TestHandleGenericETagCache(t *testing.T) {
 		handled := HandleGenericETagCache(req, w, etag)
 
 		assert.False(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 2)
+		assert.Equal(t, 2, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Cache-Control")
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
@@ -106,7 +106,7 @@ func TestHandleGenericETagCache(t *testing.T) {
 		handled := HandleGenericETagCache(req, w, etag)
 
 		assert.False(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 2)
+		assert.Equal(t, 2, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Cache-Control")
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
@@ -120,7 +120,7 @@ func TestHandleGenericETagCache(t *testing.T) {
 		handled := HandleGenericETagCache(req, w, etag)
 
 		assert.True(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 1)
+		assert.Equal(t, 1, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
 		assert.Equal(t, http.StatusNotModified, w.Code)
@@ -134,7 +134,7 @@ func TestHandleGenericETagCache(t *testing.T) {
 		handled := HandleGenericETagCache(req, w, etag)
 
 		assert.False(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 2)
+		assert.Equal(t, 2, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Cache-Control")
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
@@ -148,7 +148,7 @@ func TestHandleGenericETagCache(t *testing.T) {
 		handled := HandleGenericETagCache(req, w, etag)
 
 		assert.True(t, handled)
-		assert.Equal(t, countFormalHeaders(w.Header()), 1)
+		assert.Equal(t, 1, countFormalHeaders(w.Header()))
 		assert.Contains(t, w.Header(), "Etag")
 		assert.Equal(t, etag, w.Header().Get("Etag"))
 		assert.Equal(t, http.StatusNotModified, w.Code)
