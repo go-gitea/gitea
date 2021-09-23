@@ -95,7 +95,7 @@ func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 	defer commiter.Close()
 
 	var preIdx int64
-	_, err = ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ?", repoID).Get(&preIdx)
+	_, err = ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?", repoID, sha).Get(&preIdx)
 	if err != nil {
 		return 0, err
 	}
@@ -293,7 +293,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	// Get the next Status Index
 	idx, err := GetNextCommitStatusIndex(opts.Repo.ID, opts.SHA)
 	if err != nil {
-		return fmt.Errorf("generate issue index failed: %v", err)
+		return fmt.Errorf("generate commit status index failed: %v", err)
 	}
 
 	ctx, committer, err := db.TxContext()
