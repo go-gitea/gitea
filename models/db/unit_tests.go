@@ -5,8 +5,8 @@
 package db
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net/url"
 	"os"
@@ -57,11 +57,11 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
-	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
+	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
-	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
+	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
@@ -116,6 +116,11 @@ func CreateTestEngine(fixturesDir string) error {
 	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
 	case "true", "1":
 		x.ShowSQL(true)
+	}
+
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
 	}
 
 	return InitFixtures(fixturesDir)

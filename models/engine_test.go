@@ -5,7 +5,6 @@
 package models
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -19,14 +18,14 @@ import (
 func TestDumpDatabase(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	dir, err := ioutil.TempDir(os.TempDir(), "dump")
+	dir, err := os.MkdirTemp(os.TempDir(), "dump")
 	assert.NoError(t, err)
 
 	type Version struct {
 		ID      int64 `xorm:"pk autoincr"`
 		Version int64
 	}
-	assert.NoError(t, db.DefaultContext().Engine().Sync2(new(Version)))
+	assert.NoError(t, db.GetEngine(db.DefaultContext).Sync2(new(Version)))
 
 	for _, dbName := range setting.SupportedDatabases {
 		dbType := setting.GetDBTypeByName(dbName)

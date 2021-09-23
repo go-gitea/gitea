@@ -255,7 +255,7 @@ func TestGetOrgByName(t *testing.T) {
 
 func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	expected, err := db.DefaultContext().Engine().Where("type=?", UserTypeOrganization).Count(&User{})
+	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", UserTypeOrganization).Count(&User{})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, CountOrganizations())
 }

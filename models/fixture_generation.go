@@ -15,7 +15,7 @@ import (
 // for the access table, as recalculated using repo.RecalculateAccesses()
 func GetYamlFixturesAccess() (string, error) {
 	repos := make([]*Repository, 0, 50)
-	if err := db.DefaultContext().Engine().Find(&repos); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Find(&repos); err != nil {
 		return "", err
 	}
 
@@ -29,7 +29,7 @@ func GetYamlFixturesAccess() (string, error) {
 	var b strings.Builder
 
 	accesses := make([]*Access, 0, 200)
-	if err := db.DefaultContext().Engine().OrderBy("user_id, repo_id").Find(&accesses); err != nil {
+	if err := db.GetEngine(db.DefaultContext).OrderBy("user_id, repo_id").Find(&accesses); err != nil {
 		return "", err
 	}
 

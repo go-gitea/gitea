@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -55,7 +56,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 	var rollbackRepo *models.Repository
 
-	if err := db.WithTx(func(ctx *db.Context) error {
+	if err := db.WithTx(func(ctx context.Context) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}

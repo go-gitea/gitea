@@ -7,7 +7,7 @@ package integrations
 import (
 	"archive/zip"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -74,7 +74,7 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 		assert.Contains(t, contentEncoding, "gzip")
 		gzippReader, err := gzipp.NewReader(resp.Body)
 		assert.NoError(t, err)
-		result, err := ioutil.ReadAll(gzippReader)
+		result, err := io.ReadAll(gzippReader)
 		assert.NoError(t, err)
 		assert.Equal(t, *content, result)
 	}
