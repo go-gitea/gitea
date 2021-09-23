@@ -116,7 +116,7 @@ func (repoAccess) TableName() string {
 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
 func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	rows, err := db.DefaultContext().Engine().
+	rows, err := db.GetEngine(db.DefaultContext).
 		Join("INNER", "repository", "repository.id = access.repo_id").
 		Where("access.user_id = ?", user.ID).
 		And("repository.owner_id <> ?", user.ID).
@@ -151,7 +151,7 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 // GetAccessibleRepositories finds repositories which the user has access but does not own.
 // If limit is smaller than 1 means returns all found results.
 func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
-	sess := db.DefaultContext().Engine().
+	sess := db.GetEngine(db.DefaultContext).
 		Where("owner_id !=? ", user.ID).
 		Desc("updated_unix")
 	if limit > 0 {
@@ -342,5 +342,5 @@ func (repo *Repository) recalculateAccesses(e db.Engine) error {
 
 // RecalculateAccesses recalculates all accesses for repository.
 func (repo *Repository) RecalculateAccesses() error {
-	return repo.recalculateAccesses(db.DefaultContext().Engine())
+	return repo.recalculateAccesses(db.GetEngine(db.DefaultContext))
 }

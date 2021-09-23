@@ -95,7 +95,7 @@ func getMirrorByRepoID(e db.Engine, repoID int64) (*Mirror, error) {
 
 // GetMirrorByRepoID returns mirror information of a repository.
 func GetMirrorByRepoID(repoID int64) (*Mirror, error) {
-	return getMirrorByRepoID(db.DefaultContext().Engine(), repoID)
+	return getMirrorByRepoID(db.GetEngine(db.DefaultContext), repoID)
 }
 
 func updateMirror(e db.Engine, m *Mirror) error {
@@ -105,18 +105,18 @@ func updateMirror(e db.Engine, m *Mirror) error {
 
 // UpdateMirror updates the mirror
 func UpdateMirror(m *Mirror) error {
-	return updateMirror(db.DefaultContext().Engine(), m)
+	return updateMirror(db.GetEngine(db.DefaultContext), m)
 }
 
 // DeleteMirrorByRepoID deletes a mirror by repoID
 func DeleteMirrorByRepoID(repoID int64) error {
-	_, err := db.DefaultContext().Engine().Delete(&Mirror{RepoID: repoID})
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Mirror{RepoID: repoID})
 	return err
 }
 
 // MirrorsIterate iterates all mirror repositories.
 func MirrorsIterate(f func(idx int, bean interface{}) error) error {
-	return db.DefaultContext().Engine().
+	return db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
 		Iterate(new(Mirror), f)
@@ -124,6 +124,6 @@ func MirrorsIterate(f func(idx int, bean interface{}) error) error {
 
 // InsertMirror inserts a mirror to database
 func InsertMirror(mirror *Mirror) error {
-	_, err := db.DefaultContext().Engine().Insert(mirror)
+	_, err := db.GetEngine(db.DefaultContext).Insert(mirror)
 	return err
 }

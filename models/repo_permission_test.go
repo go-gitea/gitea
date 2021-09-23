@@ -16,7 +16,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 
 	// public non-organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.DefaultContext().Engine()))
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
@@ -69,7 +69,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 
 	// private non-organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.DefaultContext().Engine()))
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
@@ -121,7 +121,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 
 	// public organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 32}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.DefaultContext().Engine()))
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
@@ -183,7 +183,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 
 	// private organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.DefaultContext().Engine()))
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)

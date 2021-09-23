@@ -34,7 +34,7 @@ func init() {
 // GetGPGImportByKeyID returns the import public armored key by given KeyID.
 func GetGPGImportByKeyID(keyID string) (*GPGKeyImport, error) {
 	key := new(GPGKeyImport)
-	has, err := db.DefaultContext().Engine().ID(keyID).Get(key)
+	has, err := db.GetEngine(db.DefaultContext).ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {

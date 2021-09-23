@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -17,7 +18,7 @@ import (
 
 // PushUpdateAddDeleteTags updates a number of added and delete tags
 func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
-	return db.WithTx(func(ctx *db.Context) error {
+	return db.WithTx(func(ctx context.Context) error {
 		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
 		}
@@ -26,7 +27,7 @@ func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, a
 }
 
 // pushUpdateAddTags updates a number of add tags
-func pushUpdateAddTags(ctx *db.Context, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
+func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
