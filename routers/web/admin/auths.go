@@ -284,7 +284,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 			ctx.Data["Err_Name"] = true
 			ctx.RenderWithErr(ctx.Tr("admin.auths.login_source_exist", err.(login.ErrSourceAlreadyExist).Name), tplAuthNew, form)
 		} else {
-			ctx.ServerError("CreateSource", err)
+			ctx.ServerError("login.CreateSource", err)
 		}
 		return
 	}
