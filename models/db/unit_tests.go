@@ -5,6 +5,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"net/url"
@@ -115,6 +116,11 @@ func CreateTestEngine(fixturesDir string) error {
 	switch os.Getenv("GITEA_UNIT_TESTS_VERBOSE") {
 	case "true", "1":
 		x.ShowSQL(true)
+	}
+
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
 	}
 
 	return InitFixtures(fixturesDir)

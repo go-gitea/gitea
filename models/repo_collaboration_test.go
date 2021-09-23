@@ -32,7 +32,7 @@ func TestRepository_GetCollaborators(t *testing.T) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		collaborators, err := repo.GetCollaborators(ListOptions{})
 		assert.NoError(t, err)
-		expectedLen, err := db.DefaultContext().Engine().Count(&Collaboration{RepoID: repoID})
+		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&Collaboration{RepoID: repoID})
 		assert.NoError(t, err)
 		assert.Len(t, collaborators, int(expectedLen))
 		for _, collaborator := range collaborators {

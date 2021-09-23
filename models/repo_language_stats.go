@@ -75,12 +75,12 @@ func (repo *Repository) getLanguageStats(e db.Engine) (LanguageStatList, error) 
 
 // GetLanguageStats returns the language statistics for a repository
 func (repo *Repository) GetLanguageStats() (LanguageStatList, error) {
-	return repo.getLanguageStats(db.DefaultContext().Engine())
+	return repo.getLanguageStats(db.GetEngine(db.DefaultContext))
 }
 
 // GetTopLanguageStats returns the top language statistics for a repository
 func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error) {
-	stats, err := repo.getLanguageStats(db.DefaultContext().Engine())
+	stats, err := repo.getLanguageStats(db.GetEngine(db.DefaultContext))
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error)
 
 // UpdateLanguageStats updates the language statistics for repository
 func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -183,7 +183,7 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]in
 
 // CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
 func CopyLanguageStat(originalRepo, destRepo *Repository) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

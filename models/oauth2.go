@@ -9,7 +9,7 @@ import "code.gitea.io/gitea/models/db"
 // GetActiveOAuth2ProviderLoginSources returns all actived LoginOAuth2 sources
 func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
 	sources := make([]*LoginSource, 0, 1)
-	if err := db.DefaultContext().Engine().Where("is_active = ? and type = ?", true, LoginOAuth2).Find(&sources); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, LoginOAuth2).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -18,7 +18,7 @@ func GetActiveOAuth2ProviderLoginSources() ([]*LoginSource, error) {
 // GetActiveOAuth2LoginSourceByName returns a OAuth2 LoginSource based on the given name
 func GetActiveOAuth2LoginSourceByName(name string) (*LoginSource, error) {
 	loginSource := new(LoginSource)
-	has, err := db.DefaultContext().Engine().Where("name = ? and type = ? and is_active = ?", name, LoginOAuth2, true).Get(loginSource)
+	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, LoginOAuth2, true).Get(loginSource)
 	if !has || err != nil {
 		return nil, err
 	}

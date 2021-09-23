@@ -26,7 +26,7 @@ func Test_newIssueUsers(t *testing.T) {
 	// artificially insert new issue
 	db.AssertSuccessfulInsert(t, newIssue)
 
-	assert.NoError(t, newIssueUsers(db.DefaultContext().Engine(), repo, newIssue))
+	assert.NoError(t, newIssueUsers(db.GetEngine(db.DefaultContext), repo, newIssue))
 
 	// issue_user table should now have entries for new issue
 	db.AssertExistsAndLoadBean(t, &IssueUser{IssueID: newIssue.ID, UID: newIssue.PosterID})
@@ -51,7 +51,7 @@ func TestUpdateIssueUsersByMentions(t *testing.T) {
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
 	uids := []int64{2, 5}
-	assert.NoError(t, UpdateIssueUsersByMentions(db.DefaultContext(), issue.ID, uids))
+	assert.NoError(t, UpdateIssueUsersByMentions(db.DefaultContext, issue.ID, uids))
 	for _, uid := range uids {
 		db.AssertExistsAndLoadBean(t, &IssueUser{IssueID: issue.ID, UID: uid}, "is_mentioned=1")
 	}
