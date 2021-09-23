@@ -5,6 +5,7 @@
 package avatars
 
 import (
+	"context"
 	"net/url"
 	"path"
 	"strconv"
