@@ -39,7 +39,7 @@ func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {
 
 // LoadProject load the project the issue was assigned to
 func (i *Issue) LoadProject() (err error) {
-	return i.loadProject(db.DefaultContext().Engine())
+	return i.loadProject(db.GetEngine(db.DefaultContext))
 }
 
 func (i *Issue) loadProject(e db.Engine) (err error) {
@@ -58,7 +58,7 @@ func (i *Issue) loadProject(e db.Engine) (err error) {
 
 // ProjectID return project id if issue was assigned to one
 func (i *Issue) ProjectID() int64 {
-	return i.projectID(db.DefaultContext().Engine())
+	return i.projectID(db.GetEngine(db.DefaultContext))
 }
 
 func (i *Issue) projectID(e db.Engine) int64 {
@@ -72,7 +72,7 @@ func (i *Issue) projectID(e db.Engine) int64 {
 
 // ProjectBoardID return project board id if issue was assigned to one
 func (i *Issue) ProjectBoardID() int64 {
-	return i.projectBoardID(db.DefaultContext().Engine())
+	return i.projectBoardID(db.GetEngine(db.DefaultContext))
 }
 
 func (i *Issue) projectBoardID(e db.Engine) int64 {
@@ -93,7 +93,7 @@ func (i *Issue) projectBoardID(e db.Engine) int64 {
 
 // NumIssues return counter of all issues assigned to a project
 func (p *Project) NumIssues() int {
-	c, err := db.DefaultContext().Engine().Table("project_issue").
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Where("project_id=?", p.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
@@ -106,7 +106,7 @@ func (p *Project) NumIssues() int {
 
 // NumClosedIssues return counter of closed issues assigned to a project
 func (p *Project) NumClosedIssues() int {
-	c, err := db.DefaultContext().Engine().Table("project_issue").
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
 		Cols("issue_id").
@@ -119,7 +119,7 @@ func (p *Project) NumClosedIssues() int {
 
 // NumOpenIssues return counter of open issues assigned to a project
 func (p *Project) NumOpenIssues() int {
-	c, err := db.DefaultContext().Engine().Table("project_issue").
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
 	if err != nil {
@@ -130,7 +130,7 @@ func (p *Project) NumOpenIssues() int {
 
 // ChangeProjectAssign changes the project associated with an issue
 func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -183,7 +183,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

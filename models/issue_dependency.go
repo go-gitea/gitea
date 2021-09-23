@@ -36,7 +36,7 @@ const (
 
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *User, issue, dep *Issue) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -77,7 +77,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType) (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -118,7 +118,7 @@ func issueDepExists(e db.Engine, issueID, depID int64) (bool, error) {
 
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
-	return issueNoDependenciesLeft(db.DefaultContext().Engine(), issue)
+	return issueNoDependenciesLeft(db.GetEngine(db.DefaultContext), issue)
 }
 
 func issueNoDependenciesLeft(e db.Engine, issue *Issue) (bool, error) {
@@ -135,7 +135,7 @@ func issueNoDependenciesLeft(e db.Engine, issue *Issue) (bool, error) {
 
 // IsDependenciesEnabled returns if dependencies are enabled and returns the default setting if not set.
 func (repo *Repository) IsDependenciesEnabled() bool {
-	return repo.isDependenciesEnabled(db.DefaultContext().Engine())
+	return repo.isDependenciesEnabled(db.GetEngine(db.DefaultContext))
 }
 
 func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {

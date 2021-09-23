@@ -88,7 +88,7 @@ func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []st
 // GetTopicByName retrieves topic by name
 func GetTopicByName(name string) (*Topic, error) {
 	var topic Topic
-	if has, err := db.DefaultContext().Engine().Where("name = ?", name).Get(&topic); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).Where("name = ?", name).Get(&topic); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrTopicNotExist{name}
@@ -184,7 +184,7 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
-	sess := db.DefaultContext().Engine().Select("topic.*").Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
@@ -198,7 +198,7 @@ func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 
 // CountTopics counts the number of topics matching the FindTopicOptions
 func CountTopics(opts *FindTopicOptions) (int64, error) {
-	sess := db.DefaultContext().Engine().Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
@@ -207,7 +207,7 @@ func CountTopics(opts *FindTopicOptions) (int64, error) {
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
-	return getRepoTopicByName(db.DefaultContext().Engine(), repoID, topicName)
+	return getRepoTopicByName(db.GetEngine(db.DefaultContext), repoID, topicName)
 }
 
 func getRepoTopicByName(e db.Engine, repoID int64, topicName string) (*Topic, error) {
@@ -225,7 +225,7 @@ func getRepoTopicByName(e db.Engine, repoID int64, topicName string) (*Topic, er
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -272,7 +272,7 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(db.DefaultContext().Engine(), repoID, topic)
+	err = removeTopicFromRepo(db.GetEngine(db.DefaultContext), repoID, topic)
 
 	return topic, err
 }
@@ -286,7 +286,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
