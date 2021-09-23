@@ -26,7 +26,7 @@ func (m mockFileInfo) IsDir() bool        { return false }
 func (m mockFileInfo) Sys() interface{}   { return nil }
 
 func countFormalHeaders(h http.Header) (c int) {
-	for k, _ := range h {
+	for k := range h {
 		// ignore our headers for internal usage
 		if strings.HasPrefix(k, "X-Gitea-") {
 			continue
