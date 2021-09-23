@@ -12,7 +12,7 @@ import (
 
 // DeleteLoginSource deletes a LoginSource record in DB.
 func DeleteLoginSource(source *login.Source) error {
-	count, err := db.DefaultContext().Engine().Count(&models.User{LoginSource: source.ID})
+	count, err := db.GetEngine(db.DefaultContext).Count(&models.User{LoginSource: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
@@ -21,7 +21,7 @@ func DeleteLoginSource(source *login.Source) error {
 		}
 	}
 
-	count, err = db.DefaultContext().Engine().Count(&models.ExternalLoginUser{LoginSourceID: source.ID})
+	count, err = db.GetEngine(db.DefaultContext).Count(&models.ExternalLoginUser{LoginSourceID: source.ID})
 	if err != nil {
 		return err
 	} else if count > 0 {
@@ -36,6 +36,6 @@ func DeleteLoginSource(source *login.Source) error {
 		}
 	}
 
-	_, err = db.DefaultContext().Engine().ID(source.ID).Delete(new(login.Source))
+	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(login.Source))
 	return err
 }
