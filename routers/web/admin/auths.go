@@ -308,7 +308,7 @@ func EditAuthSource(ctx *context.Context) {
 
 	source, err := login.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.ServerError("GetLoginSourceByID", err)
+		ctx.ServerError("login.GetSourceByID", err)
 		return
 	}
 	ctx.Data["Source"] = source
@@ -343,7 +343,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 
 	source, err := login.GetSourceByID(ctx.ParamsInt64(":authid"))
 	if err != nil {
-		ctx.ServerError("GetLoginSourceByID", err)
+		ctx.ServerError("login.GetSourceByID", err)
 		return
 	}
 	ctx.Data["Source"] = source
