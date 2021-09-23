@@ -16,19 +16,13 @@ function onError(btn) {
   btn.dataset.content = btn.dataset.original;
 }
 
-/** Use the document.execCommand to copy the value to clipboard */
-function fallbackCopyViaSelect(elem) {
-  elem.select();
-
-  // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
-  // it's also fine if we don't test it exists because of the try statement
-  return document.execCommand('copy');
-}
 /**
  * Fallback to use if navigator.clipboard doesn't exist.
  * Achieved via creating a temporary textarea element, selecting the text, and using document.execCommand.
  */
 function fallbackCopyToClipboard(text) {
+  if (!document.execCommand) return false;
+
   const tempTextArea = document.createElement('textarea');
   tempTextArea.value = text;
 
@@ -39,7 +33,10 @@ function fallbackCopyToClipboard(text) {
 
   document.body.appendChild(tempTextArea);
 
-  const success = fallbackCopyViaSelect(tempTextArea);
+  elem.select();
+
+  // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
+  const success = document.execCommand('copy');
 
   document.body.removeChild(tempTextArea);
 
@@ -58,19 +55,14 @@ export default async function initClipboard() {
       if (!text) return;
 
       try {
-        if (navigator.clipboard && window.isSecureContext) {
-          await navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(text);
+        onSuccess(btn);
+      } catch {
+        if (fallbackCopyToClipboard(text)) {
           onSuccess(btn);
         } else {
-          const success = btn.dataset.clipboardTarget ? fallbackCopyViaSelect(document.querySelector(btn.dataset.clipboardTarget)) : fallbackCopyToClipboard(text);
-          if (success) {
-            onSuccess(btn);
-          } else {
-            onError(btn);
-          }
+          onError(btn);
         }
-      } catch {
-        onError(btn);
       }
     });
   }
