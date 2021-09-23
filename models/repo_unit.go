@@ -219,3 +219,8 @@ func getUnitsByRepoID(e db.Engine, repoID int64) (units []*RepoUnit, err error) 
 
 	return units, nil
 }
+
+func UpdateRepoUnit(unit *RepoUnit) error {
+	_, err := db.GetEngine(db.DefaultContext).ID(unit.ID).Update(unit)
+	return err
+}
