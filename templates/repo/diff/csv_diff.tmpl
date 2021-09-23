@@ -20,6 +20,10 @@
 									<th class="added"><span class="added-code">{{.RightCell}}</span></th>
 								{{else if eq $cell.Type 4}}
 									<th class="removed"><span class="removed-code">{{.LeftCell}}</span></th>
+								{{else if eq $cell.Type 5}}
+									<th class="moved">{{.RightCell}}</th>
+								{{else if eq $cell.Type 6}}
+									<th class="moved"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></th>
 								{{else}}
 									<th>{{.RightCell}}</th>
 								{{end}}
@@ -35,6 +39,10 @@
 									<td class="added"><span class="added-code">{{.RightCell}}</span></td>
 								{{else if eq $cell.Type 4}}
 									<td class="removed"><span class="removed-code">{{.LeftCell}}</span></td>
+								{{else if eq $cell.Type 5}}
+									<td class="moved">{{.RightCell}}</td>
+								{{else if eq $cell.Type 6}}
+									<td class="moved"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></td>
 								{{else}}
 									<td>{{.RightCell}}</td>
 								{{end}}

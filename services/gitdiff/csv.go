@@ -21,10 +21,12 @@ type TableDiffCellType uint8
 
 // TableDiffCellType possible values.
 const (
-	TableDiffCellEqual TableDiffCellType = iota + 1
+	TableDiffCellUnchanged TableDiffCellType = iota + 1
 	TableDiffCellChanged
 	TableDiffCellAdd
 	TableDiffCellDel
+	TableDiffCellMovedUnchanged
+	TableDiffCellMovedChanged
 )
 
 // TableDiffCell represents a cell of a TableDiffRow
@@ -148,216 +150,255 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 }
 
 func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
-	a, err := createCsvReader(baseReader, maxRowsToInspect)
+	// Given the baseReader and headReader, we are going to create CSV Reader for each, baseCSVReader and b respectively
+	baseCSVReader, err := createCsvReader(baseReader, maxRowsToInspect)
+	if err != nil {
+		return nil, err
+	}
+	headCSVReader, err := createCsvReader(headReader, maxRowsToInspect)
 	if err != nil {
 		return nil, err
 	}
 
-	b, err := createCsvReader(headReader, maxRowsToInspect)
-	if err != nil {
-		return nil, err
+	// Initalizing the mappings of base to head (base2HeadColMap) and head to base (head2BaseColMap) columns
+	base2HeadColMap, head2BaseColMap := getColumnMapping(baseCSVReader, headCSVReader)
+
+	// Determines how many cols there will be in the diff table, which includes deleted columsn from base and added columns to base
+	numDiffTableCols := len(base2HeadColMap) + countUnmappedColumns(head2BaseColMap)
+	if len(base2HeadColMap) < len(head2BaseColMap) {
+		numDiffTableCols = len(head2BaseColMap) + countUnmappedColumns(base2HeadColMap)
 	}
 
-	a2b, b2a := getColumnMapping(a, b)
-
-	columns := len(a2b) + countUnmappedColumns(b2a)
-	if len(a2b) < len(b2a) {
-		columns = len(b2a) + countUnmappedColumns(a2b)
-	}
-
-	createDiffRow := func(aline int, bline int) (*TableDiffRow, error) {
-		cells := make([]*TableDiffCell, columns)
-
-		arow, err := a.GetRow(aline - 1)
-		if err != nil {
-			return nil, err
-		}
-		brow, err := b.GetRow(bline - 1)
-		if err != nil {
-			return nil, err
-		}
-		if len(arow) == 0 && len(brow) == 0 {
-			return nil, nil
-		}
-
-		for i := 0; i < len(a2b); i++ {
-			var aCell string
-			aIsUndefined := false
-			if aline > 0 {
-				if cell, err := getCell(arow, i); err != nil {
-					if err != ErrorUndefinedCell {
-						return nil, err
-					}
-					aIsUndefined = true
-				} else {
-					aCell = cell
-				}
-			} else {
-				aIsUndefined = true
-			}
-
-			if a2b[i] == unmappedColumn {
-				cells[i] = &TableDiffCell{LeftCell: aCell, Type: TableDiffCellDel}
-			} else {
-				var bCell string
-				bIsUndefined := false
-				if bline > 0 {
-					if cell, err := getCell(brow, a2b[i]); err != nil {
-						if err != ErrorUndefinedCell {
-							return nil, err
-						}
-						bIsUndefined = true
-					} else {
-						bCell = cell
-					}
-				} else {
-					bIsUndefined = true
-				}
-				var cellType TableDiffCellType
-				if aIsUndefined && !bIsUndefined {
-					cellType = TableDiffCellAdd
-				} else if bIsUndefined {
-					cellType = TableDiffCellDel
-				} else if aCell == bCell {
-					cellType = TableDiffCellEqual
-				} else {
-					cellType = TableDiffCellChanged
-				}
-				cells[i] = &TableDiffCell{LeftCell: aCell, RightCell: bCell, Type: cellType}
-			}
-		}
-		cellsIndex := 0
-		for i := 0; i < len(b2a); i++ {
-			if b2a[i] == unmappedColumn {
-				var bCell string
-				bIsUndefined := false
-				if bline > 0 {
-					if cell, err := getCell(brow, i); err != nil {
-						if err != ErrorUndefinedCell {
-							return nil, err
-						}
-						bIsUndefined = true
-					} else {
-						bCell = cell
-					}
-				} else {
-					bIsUndefined = true
-				}
-				if cells[cellsIndex] != nil && len(cells) >= cellsIndex+1 {
-					copy(cells[cellsIndex+1:], cells[cellsIndex:])
-				}
-				var cellType TableDiffCellType
-				if bIsUndefined {
-					cellType = TableDiffCellDel
-				} else {
-					cellType = TableDiffCellAdd
-				}
-				cells[cellsIndex] = &TableDiffCell{RightCell: bCell, Type: cellType}
-			} else if cellsIndex < b2a[i] {
-				cellsIndex = b2a[i]
-			}
-			cellsIndex++
-		}
-
-		return &TableDiffRow{RowIdx: bline, Cells: cells}, nil
-	}
-
-	var sections []*TableDiffSection
-
-	for i, section := range diffFile.Sections {
-		var rows []*TableDiffRow
-		lines := tryMergeLines(section.Lines)
-		for j, line := range lines {
-			if i == 0 && j == 0 && (line[0] != 1 || line[1] != 1) {
-				diffRow, err := createDiffRow(1, 1)
-				if err != nil {
-					return nil, err
-				}
-				if diffRow != nil {
-					rows = append(rows, diffRow)
-				}
-			}
-			diffRow, err := createDiffRow(line[0], line[1])
+	// createDiffTableRow takes the row # of the `a` line and `b` line of a diff (starting from 1), 0 if the line doesn't exist (undefined)
+	// in the base or head respectively.
+	// Returns a TableDiffRow which has the row index
+	createDiffTableRow := func(aLineNum int, bLineNum int) (*TableDiffRow, error) {
+		// diffTableCells is a row of the diff table. It will have a cells for added, deleted, changed, and unchanged content, thus either
+		// the same size as the head table or bigger
+		diffTableCells := make([]*TableDiffCell, numDiffTableCols)
+		var aRow *[]string
+		if aLineNum > 0 {
+			row, err := baseCSVReader.GetRow(aLineNum - 1)
 			if err != nil {
 				return nil, err
 			}
-			if diffRow != nil {
-				rows = append(rows, diffRow)
+			aRow = &row
+		}
+		var bRow *[]string
+		if bLineNum > 0 {
+			row, err := headCSVReader.GetRow(bLineNum - 1)
+			if err != nil {
+				return nil, err
+			}
+			bRow = &row
+		}
+		if bRow == nil {
+		} else {
+			if len(*bRow) == 0 {
+			}
+		}
+		if aRow == nil && bRow == nil {
+			// No content
+			return nil, nil
+		}
+		// First we loop through the head columns and place them in the diff table as they appear, both existing columsn and new columns
+		for i := 0; i < len(head2BaseColMap); i++ {
+			var bCell *string // Pointer to text of the b line (head), if nil the cell doesn't exist in the head (deleted row in the base)
+			if bRow != nil {
+				// is an added column and the `b` row exists so the cell should exist, but still will check for undefined cell error
+				if cell, err := getCell(*bRow, i); err != nil {
+					if err != ErrorUndefinedCell {
+						return nil, err
+					}
+				} else {
+					bCell = &cell
+				}
+			}
+
+			var diffCell TableDiffCell
+			addedCols := 0
+			if head2BaseColMap[i] == unmappedColumn {
+				// This column doesn't exist in the base, so we know it is a new column.
+				var cell string
+				// Col exists in the head, but we might be displaying a deleted row, so need to check if bCell exists, and if it does, make cell its value
+				if bCell != nil {
+					cell = *bCell
+				}
+				diffCell = TableDiffCell{RightCell: cell, Type: TableDiffCellAdd}
+				addedCols++
+			} else {
+				// The column still exists in the head, but we need to figure out if the row exists as well (changed text) or if it is a new row in head
+				var aCell *string // Pointer to the texst of the a line (base), if nil the cell doesn't exist in the base (added row in head)
+				if aRow != nil {
+					// Get the cell contents of the 'a' row. Should exist, but just in case we handle the error and make the contents and empty string
+					if cell, err := getCell(*aRow, head2BaseColMap[i]); err != nil {
+						if err != ErrorUndefinedCell {
+							return nil, err
+						}
+					} else {
+						aCell = &cell
+					}
+				}
+				if bCell == nil {
+					// both a & b have the column, but not the row (deleted)
+					diffCell = TableDiffCell{LeftCell: *aCell, Type: TableDiffCellDel}
+				} else if aCell == nil {
+					// both a & b have the column, but not the row (added)
+					diffCell = TableDiffCell{RightCell: *bCell, Type: TableDiffCellAdd}
+				} else {
+					var cellType TableDiffCellType
+					if head2BaseColMap[i] > i-addedCols {
+						if *aCell != *bCell {
+							cellType = TableDiffCellMovedChanged
+						} else {
+							cellType = TableDiffCellMovedUnchanged
+						}
+					} else {
+						if *aCell != *bCell {
+							cellType = TableDiffCellChanged
+						} else {
+							cellType = TableDiffCellUnchanged
+						}
+					}
+					diffCell = TableDiffCell{LeftCell: *aCell, RightCell: *bCell, Type: cellType}
+				}
+			}
+			diffTableCells[i] = &diffCell
+		}
+
+		// Now loop through the base columns to find the unmmapped (deleted) columns in the base
+		baseOffset := 0
+		for i := 0; i < len(base2HeadColMap); i++ {
+			if base2HeadColMap[i] == unmappedColumn {
+				// Have an unmapped base column, now need to figure out if the row existed in the base or if it was added
+				var aCell *string
+				if aRow != nil {
+					// is a deleted column and the `a` row exists so the cell should exist, but still will check for undefined cell error
+					if cell, err := getCell(*aRow, i); err != nil {
+						if err != ErrorUndefinedCell {
+							return nil, err
+						}
+					} else {
+						aCell = &cell
+					}
+				}
+				diffTableIndex := i + baseOffset
+				if diffTableCells[diffTableIndex] != nil {
+					// the diffCells array already has a cell at this i index, so shift this cell and those after it one to the right using copy
+					copy(diffTableCells[diffTableIndex+1:], diffTableCells[diffTableIndex:])
+				}
+				diffCell := TableDiffCell{Type: TableDiffCellDel}
+				if aCell != nil {
+					diffCell.LeftCell = *aCell
+				}
+				diffTableCells[diffTableIndex] = &diffCell
+				baseOffset++
 			}
 		}
 
-		if len(rows) > 0 {
-			sections = append(sections, &TableDiffSection{Rows: rows})
+		return &TableDiffRow{RowIdx: bLineNum, Cells: diffTableCells}, nil
+	}
+
+	// diffTableSections are TableDiffSections which represent the diffTableSections we get when doing a diff, each will be its own table in the view
+	var diffTableSections []*TableDiffSection
+
+	for i, section := range diffFile.Sections {
+		// Each section has multiple diffTableRows
+		var diffTableRows []*TableDiffRow
+		lines := tryMergeLines(section.Lines)
+		// Loop throught the merged lines to get each row of the CSV diff table for this section
+		for j, line := range lines {
+			if i == 0 && j == 0 && (line[0] != 1 || line[1] != 1) {
+				diffTableRow, err := createDiffTableRow(1, 1)
+				if err != nil {
+					return nil, err
+				}
+				if diffTableRow != nil {
+					diffTableRows = append(diffTableRows, diffTableRow)
+				}
+			}
+			diffTableRow, err := createDiffTableRow(line[0], line[1])
+			if err != nil {
+				return nil, err
+			}
+			if diffTableRow != nil {
+				diffTableRows = append(diffTableRows, diffTableRow)
+			}
+		}
+
+		if len(diffTableRows) > 0 {
+			diffTableSections = append(diffTableSections, &TableDiffSection{Rows: diffTableRows})
 		}
 	}
 
-	return sections, nil
+	return diffTableSections, nil
 }
 
 // getColumnMapping creates a mapping of columns between a and b
-func getColumnMapping(a *csvReader, b *csvReader) ([]int, []int) {
-	arow, _ := a.GetRow(0)
-	brow, _ := b.GetRow(0)
+func getColumnMapping(baseCSVReader *csvReader, headCSVReader *csvReader) ([]int, []int) {
+	baseRow, _ := baseCSVReader.GetRow(0)
+	headRow, _ := headCSVReader.GetRow(0)
 
-	a2b := []int{}
-	b2a := []int{}
+	base2HeadColMap := []int{}
+	head2BaseColMap := []int{}
 
-	if arow != nil {
-		a2b = make([]int, len(arow))
+	if baseRow != nil {
+		base2HeadColMap = make([]int, len(baseRow))
 	}
-	if brow != nil {
-		b2a = make([]int, len(brow))
-	}
-
-	for i := 0; i < len(b2a); i++ {
-		b2a[i] = unmappedColumn
+	if headRow != nil {
+		head2BaseColMap = make([]int, len(headRow))
 	}
 
-	bcol := 0
-	for i := 0; i < len(a2b); i++ {
-		a2b[i] = unmappedColumn
+	// Initializes all head2base mappings to be unmappedColumn (-1)
+	for i := 0; i < len(head2BaseColMap); i++ {
+		head2BaseColMap[i] = unmappedColumn
+	}
 
-		acell, ea := getCell(arow, i)
-		if ea == nil {
-			for j := bcol; j < len(b2a); j++ {
-				bcell, eb := getCell(brow, j)
-				if eb == nil && acell == bcell {
-					a2b[i] = j
-					b2a[j] = i
-					bcol = j + 1
-					break
+	// Loops through the baseRow and see if there is a match in the head row
+	for i := 0; i < len(baseRow); i++ {
+		base2HeadColMap[i] = unmappedColumn
+		baseCell, err := getCell(baseRow, i)
+		if err == nil {
+			for j := 0; j < len(headRow); j++ {
+				if head2BaseColMap[j] == -1 {
+					headCell, err := getCell(headRow, j)
+					if err == nil && baseCell == headCell {
+						base2HeadColMap[i] = j
+						head2BaseColMap[j] = i
+						break
+					}
 				}
 			}
 		}
 	}
 
-	tryMapColumnsByContent(a, a2b, b, b2a)
-	tryMapColumnsByContent(b, b2a, a, a2b)
+	tryMapColumnsByContent(baseCSVReader, base2HeadColMap, headCSVReader, head2BaseColMap)
+	tryMapColumnsByContent(headCSVReader, head2BaseColMap, baseCSVReader, base2HeadColMap)
 
-	return a2b, b2a
+	return base2HeadColMap, head2BaseColMap
 }
 
 // tryMapColumnsByContent tries to map missing columns by the content of the first lines.
-func tryMapColumnsByContent(a *csvReader, a2b []int, b *csvReader, b2a []int) {
-	for i := 0; i < len(a2b); i++ {
-		bStart := 0
-		for a2b[i] == unmappedColumn && bStart < len(b2a) {
-			if b2a[bStart] == unmappedColumn {
-				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(a.buffer), len(b.buffer))-1))
+func tryMapColumnsByContent(baseCSVReader *csvReader, base2HeadColMap []int, headCSVReader *csvReader, head2BaseColMap []int) {
+	for i := 0; i < len(base2HeadColMap); i++ {
+		headStart := 0
+		for base2HeadColMap[i] == unmappedColumn && headStart < len(head2BaseColMap) {
+			if head2BaseColMap[headStart] == unmappedColumn {
+				rows := util.Min(maxRowsToInspect, util.Max(0, util.Min(len(baseCSVReader.buffer), len(headCSVReader.buffer))-1))
 				same := 0
 				for j := 1; j <= rows; j++ {
-					aCell, aErr := getCell(a.buffer[j], i)
-					bCell, bErr := getCell(b.buffer[j], bStart)
-					if aErr == nil && bErr == nil && aCell == bCell {
+					baseCell, baseErr := getCell(baseCSVReader.buffer[j], i)
+					headCell, headErr := getCell(headCSVReader.buffer[j], headStart)
+					if baseErr == nil && headErr == nil && baseCell == headCell {
 						same++
 					}
 				}
 				if (float32(same) / float32(rows)) > minRatioToMatch {
-					a2b[i] = bStart
-					b2a[bStart] = i
+					base2HeadColMap[i] = headStart
+					head2BaseColMap[headStart] = i
 				}
 			}
-			bStart++
+			headStart++
 		}
 	}
 }
