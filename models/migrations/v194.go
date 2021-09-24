@@ -10,12 +10,12 @@ import (
 	"xorm.io/xorm"
 )
 
-func addColorColToProjectBoard(x *xorm.Engine) error {
-	type ProjectBoard struct {
-		Color string `xorm:"VARCHAR(7)"`
+func addBranchProtectionUnprotectedFilesColumn(x *xorm.Engine) error {
+	type ProtectedBranch struct {
+		UnprotectedFilePatterns string `xorm:"TEXT"`
 	}
 
-	if err := x.Sync2(new(ProjectBoard)); err != nil {
+	if err := x.Sync2(new(ProtectedBranch)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
 	return nil

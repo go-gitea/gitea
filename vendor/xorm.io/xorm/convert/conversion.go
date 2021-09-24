@@ -325,6 +325,9 @@ func AssignValue(dv reflect.Value, src interface{}) error {
 	if src == nil {
 		return nil
 	}
+	if v, ok := src.(*interface{}); ok {
+		return AssignValue(dv, *v)
+	}
 
 	if dv.Type().Implements(scannerType) {
 		return dv.Interface().(sql.Scanner).Scan(src)

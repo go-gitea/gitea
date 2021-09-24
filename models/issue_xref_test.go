@@ -8,13 +8,14 @@ import (
 	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/references"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestXRef_AddCrossReferences(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// Issue #1 to test against
 	itarget := testCreateIssue(t, 1, 2, "title1", "content1", false)
@@ -22,7 +23,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	// PR to close issue #1
 	content := fmt.Sprintf("content2, closes #%d", itarget.Index)
 	pr := testCreateIssue(t, 1, 2, "title2", content, true)
-	ref := AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: 0}).(*Comment)
+	ref := db.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypePullRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
 	assert.True(t, ref.RefIsPull)
@@ -31,7 +32,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	// Comment on PR to reopen issue #1
 	content = fmt.Sprintf("content2, reopens #%d", itarget.Index)
 	c := testCreateComment(t, 1, 2, pr.ID, content)
-	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: c.ID}).(*Comment)
+	ref = db.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: pr.ID, RefCommentID: c.ID}).(*Comment)
 	assert.Equal(t, CommentTypeCommentRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
 	assert.True(t, ref.RefIsPull)
@@ -40,7 +41,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	// Issue mentioning issue #1
 	content = fmt.Sprintf("content3, mentions #%d", itarget.Index)
 	i := testCreateIssue(t, 1, 2, "title3", content, false)
-	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
+	ref = db.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, pr.RepoID, ref.RefRepoID)
 	assert.False(t, ref.RefIsPull)
@@ -52,7 +53,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	// Cross-reference to issue #4 by admin
 	content = fmt.Sprintf("content5, mentions user3/repo3#%d", itarget.Index)
 	i = testCreateIssue(t, 2, 1, "title5", content, false)
-	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
+	ref = db.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, i.RepoID, ref.RefRepoID)
 	assert.False(t, ref.RefIsPull)
@@ -61,11 +62,11 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 	// Cross-reference to issue #4 with no permission
 	content = fmt.Sprintf("content6, mentions user3/repo3#%d", itarget.Index)
 	i = testCreateIssue(t, 4, 5, "title6", content, false)
-	AssertNotExistsBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
+	db.AssertNotExistsBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0})
 }
 
 func TestXRef_NeuterCrossReferences(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// Issue #1 to test against
 	itarget := testCreateIssue(t, 1, 2, "title1", "content1", false)
@@ -73,23 +74,23 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 	// Issue mentioning issue #1
 	title := fmt.Sprintf("title2, mentions #%d", itarget.Index)
 	i := testCreateIssue(t, 1, 2, title, "content2", false)
-	ref := AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
+	ref := db.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
-	d := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	i.Title = "title2, no mentions"
 	assert.NoError(t, i.ChangeTitle(d, title))
 
-	ref = AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
+	ref = db.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNeutered, ref.RefAction)
 }
 
 func TestXRef_ResolveCrossReferences(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	d := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
@@ -98,21 +99,21 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	assert.NoError(t, err)
 
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))
-	rp := AssertExistsAndLoadBean(t, &Comment{IssueID: i1.ID, RefIssueID: pr.Issue.ID, RefCommentID: 0}).(*Comment)
+	rp := db.AssertExistsAndLoadBean(t, &Comment{IssueID: i1.ID, RefIssueID: pr.Issue.ID, RefCommentID: 0}).(*Comment)
 
 	c1 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i2.Index))
-	r1 := AssertExistsAndLoadBean(t, &Comment{IssueID: i2.ID, RefIssueID: pr.Issue.ID, RefCommentID: c1.ID}).(*Comment)
+	r1 := db.AssertExistsAndLoadBean(t, &Comment{IssueID: i2.ID, RefIssueID: pr.Issue.ID, RefCommentID: c1.ID}).(*Comment)
 
 	// Must be ignored
 	c2 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("mentions #%d", i2.Index))
-	AssertExistsAndLoadBean(t, &Comment{IssueID: i2.ID, RefIssueID: pr.Issue.ID, RefCommentID: c2.ID})
+	db.AssertExistsAndLoadBean(t, &Comment{IssueID: i2.ID, RefIssueID: pr.Issue.ID, RefCommentID: c2.ID})
 
 	// Must be superseded by c4/r4
 	c3 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("reopens #%d", i3.Index))
-	AssertExistsAndLoadBean(t, &Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c3.ID})
+	db.AssertExistsAndLoadBean(t, &Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c3.ID})
 
 	c4 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i3.Index))
-	r4 := AssertExistsAndLoadBean(t, &Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c4.ID}).(*Comment)
+	r4 := db.AssertExistsAndLoadBean(t, &Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c4.ID}).(*Comment)
 
 	refs, err := pr.ResolveCrossReferences()
 	assert.NoError(t, err)
@@ -123,10 +124,10 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 }
 
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *Issue {
-	r := AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
-	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
+	r := db.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
+	d := db.AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
 
-	idx, err := GetNextResourceIndex("issue_index", r.ID)
+	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
 	assert.NoError(t, err)
 	i := &Issue{
 		RepoID:   r.ID,
@@ -138,7 +139,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Index:    idx,
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	assert.NoError(t, sess.Begin())
@@ -155,8 +156,8 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 }
 
 func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRequest {
-	r := AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
-	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
+	r := db.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
+	d := db.AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}
 	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr))
@@ -165,11 +166,11 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRe
 }
 
 func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *Comment {
-	d := AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
-	i := AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
+	d := db.AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
+	i := db.AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
 	c := &Comment{Type: CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	assert.NoError(t, sess.Begin())
 	_, err := sess.Insert(c)

@@ -1002,7 +1002,7 @@ async function initRepository() {
       const content = $(`#comment-${$this.data('target')}`).text();
       const subject = content.split('\n', 1)[0].slice(0, 255);
 
-      const poster = $this.data('poster');
+      const poster = $this.data('poster-username');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
@@ -2354,8 +2354,9 @@ function initCodeView() {
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     const box = currentTarget.closest('.file-content');
+    const chevron = currentTarget.querySelector('a.chevron');
     const folded = box.dataset.folded !== 'true';
-    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+    chevron.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
