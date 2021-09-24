@@ -21,7 +21,7 @@ import (
 
 // We therefore need to provide a doctor command to fix this repeated issue #16961
 
-func parseBool_16961(bs []byte) (bool, error) {
+func parseBool16961(bs []byte) (bool, error) {
 	if bytes.EqualFold(bs, []byte("%!s(bool=false)")) {
 		return false, nil
 	}
@@ -33,7 +33,7 @@ func parseBool_16961(bs []byte) (bool, error) {
 	return false, fmt.Errorf("unexpected bool format: %s", string(bs))
 }
 
-func fixUnitConfig_16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err error) {
+func fixUnitConfig16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err error) {
 	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
@@ -47,7 +47,7 @@ func fixUnitConfig_16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err err
 	return true, nil
 }
 
-func fixExternalWikiConfig_16961(bs []byte, cfg *models.ExternalWikiConfig) (fixed bool, err error) {
+func fixExternalWikiConfig16961(bs []byte, cfg *models.ExternalWikiConfig) (fixed bool, err error) {
 	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
@@ -63,7 +63,7 @@ func fixExternalWikiConfig_16961(bs []byte, cfg *models.ExternalWikiConfig) (fix
 	return true, nil
 }
 
-func fixExternalTrackerConfig_16961(bs []byte, cfg *models.ExternalTrackerConfig) (fixed bool, err error) {
+func fixExternalTrackerConfig16961(bs []byte, cfg *models.ExternalTrackerConfig) (fixed bool, err error) {
 	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
@@ -88,7 +88,7 @@ func fixExternalTrackerConfig_16961(bs []byte, cfg *models.ExternalTrackerConfig
 	return true, nil
 }
 
-func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fixed bool, err error) {
+func fixPullRequestsConfig16961(bs []byte, cfg *models.PullRequestsConfig) (fixed bool, err error) {
 	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
@@ -123,31 +123,31 @@ func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fix
 	}
 
 	var parseErr error
-	cfg.IgnoreWhitespaceConflicts, parseErr = parseBool_16961(parts[0])
+	cfg.IgnoreWhitespaceConflicts, parseErr = parseBool16961(parts[0])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowMerge, parseErr = parseBool_16961(parts[1])
+	cfg.AllowMerge, parseErr = parseBool16961(parts[1])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowRebase, parseErr = parseBool_16961(parts[2])
+	cfg.AllowRebase, parseErr = parseBool16961(parts[2])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowRebaseMerge, parseErr = parseBool_16961(parts[3])
+	cfg.AllowRebaseMerge, parseErr = parseBool16961(parts[3])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowSquash, parseErr = parseBool_16961(parts[4])
+	cfg.AllowSquash, parseErr = parseBool16961(parts[4])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowManualMerge, parseErr = parseBool_16961(parts[5])
+	cfg.AllowManualMerge, parseErr = parseBool16961(parts[5])
 	if parseErr != nil {
 		return
 	}
-	cfg.AutodetectManualMerge, parseErr = parseBool_16961(parts[6])
+	cfg.AutodetectManualMerge, parseErr = parseBool16961(parts[6])
 	if parseErr != nil {
 		return
 	}
@@ -161,7 +161,7 @@ func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fix
 		return
 	}
 
-	cfg.DefaultDeleteBranchAfterMerge, parseErr = parseBool_16961(parts[7])
+	cfg.DefaultDeleteBranchAfterMerge, parseErr = parseBool16961(parts[7])
 	if parseErr != nil {
 		return
 	}
@@ -170,7 +170,7 @@ func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fix
 	return true, nil
 }
 
-func fixIssuesConfig_16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err error) {
+func fixIssuesConfig16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err error) {
 	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
@@ -190,22 +190,22 @@ func fixIssuesConfig_16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err
 		return
 	}
 	var parseErr error
-	cfg.EnableTimetracker, parseErr = parseBool_16961(parts[0])
+	cfg.EnableTimetracker, parseErr = parseBool16961(parts[0])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowOnlyContributorsToTrackTime, parseErr = parseBool_16961(parts[1])
+	cfg.AllowOnlyContributorsToTrackTime, parseErr = parseBool16961(parts[1])
 	if parseErr != nil {
 		return
 	}
-	cfg.EnableDependencies, parseErr = parseBool_16961(parts[2])
+	cfg.EnableDependencies, parseErr = parseBool16961(parts[2])
 	if parseErr != nil {
 		return
 	}
 	return true, nil
 }
 
-func fixBrokenRepoUnit_16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, err error) {
+func fixBrokenRepoUnit16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, err error) {
 	// Shortcut empty or null values
 	if len(bs) == 0 {
 		return false, nil
@@ -215,33 +215,33 @@ func fixBrokenRepoUnit_16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, 
 	case models.UnitTypeCode, models.UnitTypeReleases, models.UnitTypeWiki, models.UnitTypeProjects:
 		cfg := &models.UnitConfig{}
 		repoUnit.Config = cfg
-		if fixed, err := fixUnitConfig_16961(bs, cfg); !fixed {
+		if fixed, err := fixUnitConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case models.UnitTypeExternalWiki:
 		cfg := &models.ExternalWikiConfig{}
 		repoUnit.Config = cfg
 
-		if fixed, err := fixExternalWikiConfig_16961(bs, cfg); !fixed {
+		if fixed, err := fixExternalWikiConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case models.UnitTypeExternalTracker:
 		cfg := &models.ExternalTrackerConfig{}
 		repoUnit.Config = cfg
-		if fixed, err := fixExternalTrackerConfig_16961(bs, cfg); !fixed {
+		if fixed, err := fixExternalTrackerConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case models.UnitTypePullRequests:
 		cfg := &models.PullRequestsConfig{}
 		repoUnit.Config = cfg
 
-		if fixed, err := fixPullRequestsConfig_16961(bs, cfg); !fixed {
+		if fixed, err := fixPullRequestsConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	case models.UnitTypeIssues:
 		cfg := &models.IssuesConfig{}
 		repoUnit.Config = cfg
-		if fixed, err := fixIssuesConfig_16961(bs, cfg); !fixed {
+		if fixed, err := fixIssuesConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
 	default:
@@ -250,7 +250,7 @@ func fixBrokenRepoUnit_16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, 
 	return true, nil
 }
 
-func fixBrokenRepoUnits_16961(logger log.Logger, autofix bool) error {
+func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
@@ -277,7 +277,7 @@ func fixBrokenRepoUnits_16961(logger log.Logger, autofix bool) error {
 				CreatedUnix: unit.CreatedUnix,
 			}
 
-			if fixed, err := fixBrokenRepoUnit_16961(repoUnit, bs); !fixed {
+			if fixed, err := fixBrokenRepoUnit16961(repoUnit, bs); !fixed {
 				return err
 			}
 
@@ -309,7 +309,7 @@ func init() {
 		Title:     "Check for incorrectly dumped repo_units (See #16961)",
 		Name:      "fix-broken-repo-units",
 		IsDefault: false,
-		Run:       fixBrokenRepoUnits_16961,
+		Run:       fixBrokenRepoUnits16961,
 		Priority:  7,
 	})
 }

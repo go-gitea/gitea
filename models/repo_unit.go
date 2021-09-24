@@ -220,6 +220,7 @@ func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	return units, nil
 }
 
+// UpdateRepoUnit updates the provided repo unit
 func UpdateRepoUnit(unit *RepoUnit) error {
 	_, err := x.ID(unit.ID).Update(unit)
 	return err

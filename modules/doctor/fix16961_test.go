@@ -45,7 +45,7 @@ func Test_fixUnitConfig_16961(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotFixed, err := fixUnitConfig_16961([]byte(tt.bs), &models.UnitConfig{})
+			gotFixed, err := fixUnitConfig16961([]byte(tt.bs), &models.UnitConfig{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixUnitConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -89,7 +89,7 @@ func Test_fixExternalWikiConfig_16961(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &models.ExternalWikiConfig{}
-			gotFixed, err := fixExternalWikiConfig_16961([]byte(tt.bs), cfg)
+			gotFixed, err := fixExternalWikiConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixExternalWikiConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -150,7 +150,7 @@ func Test_fixExternalTrackerConfig_16961(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &models.ExternalTrackerConfig{}
-			gotFixed, err := fixExternalTrackerConfig_16961([]byte(tt.bs), cfg)
+			gotFixed, err := fixExternalTrackerConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixExternalTrackerConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -213,7 +213,7 @@ func Test_fixPullRequestsConfig_16961(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &models.PullRequestsConfig{}
-			gotFixed, err := fixPullRequestsConfig_16961([]byte(tt.bs), cfg)
+			gotFixed, err := fixPullRequestsConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixPullRequestsConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -257,7 +257,7 @@ func Test_fixIssuesConfig_16961(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &models.IssuesConfig{}
-			gotFixed, err := fixIssuesConfig_16961([]byte(tt.bs), cfg)
+			gotFixed, err := fixIssuesConfig16961([]byte(tt.bs), cfg)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("fixIssuesConfig_16961() error = %v, wantErr %v", err, tt.wantErr)
 				return
