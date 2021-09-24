@@ -7,7 +7,6 @@ package doctor
 import (
 	"bytes"
 	"fmt"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
@@ -21,6 +20,18 @@ import (
 // appears that many users are affected.
 
 // We therefore need to provide a doctor command to fix this repeated issue #16961
+
+func parseBool_16961(bs []byte) (bool, error) {
+	if bytes.EqualFold(bs, []byte("%!s(bool=false)")) {
+		return false, nil
+	}
+
+	if bytes.EqualFold(bs, []byte("%!s(bool=true)")) {
+		return true, nil
+	}
+
+	return false, fmt.Errorf("unexpected bool format: %s", string(bs))
+}
 
 func fixUnitConfig_16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err error) {
 	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
@@ -112,31 +123,31 @@ func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fix
 	}
 
 	var parseErr error
-	cfg.IgnoreWhitespaceConflicts, parseErr = strconv.ParseBool(string(parts[0]))
+	cfg.IgnoreWhitespaceConflicts, parseErr = parseBool_16961(parts[0])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowMerge, parseErr = strconv.ParseBool(string(parts[1]))
+	cfg.AllowMerge, parseErr = parseBool_16961(parts[1])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowRebase, parseErr = strconv.ParseBool(string(parts[2]))
+	cfg.AllowRebase, parseErr = parseBool_16961(parts[2])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowRebaseMerge, parseErr = strconv.ParseBool(string(parts[3]))
+	cfg.AllowRebaseMerge, parseErr = parseBool_16961(parts[3])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowSquash, parseErr = strconv.ParseBool(string(parts[4]))
+	cfg.AllowSquash, parseErr = parseBool_16961(parts[4])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowManualMerge, parseErr = strconv.ParseBool(string(parts[5]))
+	cfg.AllowManualMerge, parseErr = parseBool_16961(parts[5])
 	if parseErr != nil {
 		return
 	}
-	cfg.AutodetectManualMerge, parseErr = strconv.ParseBool(string(parts[6]))
+	cfg.AutodetectManualMerge, parseErr = parseBool_16961(parts[6])
 	if parseErr != nil {
 		return
 	}
@@ -150,7 +161,7 @@ func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fix
 		return
 	}
 
-	cfg.DefaultDeleteBranchAfterMerge, parseErr = strconv.ParseBool(string(parts[7]))
+	cfg.DefaultDeleteBranchAfterMerge, parseErr = parseBool_16961(parts[7])
 	if parseErr != nil {
 		return
 	}
@@ -179,15 +190,15 @@ func fixIssuesConfig_16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err
 		return
 	}
 	var parseErr error
-	cfg.EnableTimetracker, parseErr = strconv.ParseBool(string(parts[0]))
+	cfg.EnableTimetracker, parseErr = parseBool_16961(parts[0])
 	if parseErr != nil {
 		return
 	}
-	cfg.AllowOnlyContributorsToTrackTime, parseErr = strconv.ParseBool(string(parts[1]))
+	cfg.AllowOnlyContributorsToTrackTime, parseErr = parseBool_16961(parts[1])
 	if parseErr != nil {
 		return
 	}
-	cfg.EnableDependencies, parseErr = strconv.ParseBool(string(parts[2]))
+	cfg.EnableDependencies, parseErr = parseBool_16961(parts[2])
 	if parseErr != nil {
 		return
 	}
@@ -195,6 +206,11 @@ func fixIssuesConfig_16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err
 }
 
 func fixBrokenRepoUnit_16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, err error) {
+	// Shortcut empty or null values
+	if len(bs) == 0 {
+		return false, nil
+	}
+
 	switch models.UnitType(repoUnit.Type) {
 	case models.UnitTypeCode, models.UnitTypeReleases, models.UnitTypeWiki, models.UnitTypeProjects:
 		cfg := &models.UnitConfig{}
