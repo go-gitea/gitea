@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -79,13 +80,13 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	return results
 }
 
-func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*TwoFactor, error) {
+func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*login.TwoFactor, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
 
 	userIDs := users.getUserIDs()
-	tokenMaps := make(map[int64]*TwoFactor, len(userIDs))
+	tokenMaps := make(map[int64]*login.TwoFactor, len(userIDs))
 	err := e.
 		In("uid", userIDs).
 		Find(&tokenMaps)
