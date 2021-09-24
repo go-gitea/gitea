@@ -447,7 +447,7 @@ func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-func getLabelsByRepoID(e db.Engine, repoID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+func getLabelsByRepoID(e db.Engine, repoID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
 	if repoID <= 0 {
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
@@ -466,14 +466,14 @@ func getLabelsByRepoID(e db.Engine, repoID int64, sortType string, listOptions L
 	}
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	return labels, sess.Find(&labels)
 }
 
 // GetLabelsByRepoID returns all labels that belong to given repository by ID.
-func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+func GetLabelsByRepoID(repoID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
 	return getLabelsByRepoID(db.GetEngine(db.DefaultContext), repoID, sortType, listOptions)
 }
 
@@ -564,7 +564,7 @@ func GetLabelsInOrgByIDs(orgID int64, labelIDs []int64) ([]*Label, error) {
 		Find(&labels)
 }
 
-func getLabelsByOrgID(e db.Engine, orgID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+func getLabelsByOrgID(e db.Engine, orgID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
 	if orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
@@ -583,14 +583,14 @@ func getLabelsByOrgID(e db.Engine, orgID int64, sortType string, listOptions Lis
 	}
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	return labels, sess.Find(&labels)
 }
 
 // GetLabelsByOrgID returns all labels that belong to given organization by ID.
-func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+func GetLabelsByOrgID(orgID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
 	return getLabelsByOrgID(db.GetEngine(db.DefaultContext), orgID, sortType, listOptions)
 }
 

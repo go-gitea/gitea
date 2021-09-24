@@ -151,7 +151,7 @@ func GenerateAvatar(ctx context.Context, templateRepo, generateRepo *Repository)
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *Repository) error {
-	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", ListOptions{})
+	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
 	}

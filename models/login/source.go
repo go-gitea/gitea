@@ -3,9 +3,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -17,43 +18,43 @@ import (
 	"xorm.io/xorm/convert"
 )
 
-// LoginType represents an login type.
-type LoginType int
+// Type represents an login type.
+type Type int
 
 // Note: new type must append to the end of list to maintain compatibility.
 const (
-	LoginNoType LoginType = iota
-	LoginPlain            // 1
-	LoginLDAP             // 2
-	LoginSMTP             // 3
-	LoginPAM              // 4
-	LoginDLDAP            // 5
-	LoginOAuth2           // 6
-	LoginSSPI             // 7
+	NoType Type = iota
+	Plain       // 1
+	LDAP        // 2
+	SMTP        // 3
+	PAM         // 4
+	DLDAP       // 5
+	OAuth2      // 6
+	SSPI        // 7
 )
 
 // String returns the string name of the LoginType
-func (typ LoginType) String() string {
-	return LoginNames[typ]
+func (typ Type) String() string {
+	return Names[typ]
 }
 
 // Int returns the int value of the LoginType
-func (typ LoginType) Int() int {
+func (typ Type) Int() int {
 	return int(typ)
 }
 
-// LoginNames contains the name of LoginType values.
-var LoginNames = map[LoginType]string{
-	LoginLDAP:   "LDAP (via BindDN)",
-	LoginDLDAP:  "LDAP (simple auth)", // Via direct bind
-	LoginSMTP:   "SMTP",
-	LoginPAM:    "PAM",
-	LoginOAuth2: "OAuth2",
-	LoginSSPI:   "SPNEGO with SSPI",
+// Names contains the name of LoginType values.
+var Names = map[Type]string{
+	LDAP:   "LDAP (via BindDN)",
+	DLDAP:  "LDAP (simple auth)", // Via direct bind
+	SMTP:   "SMTP",
+	PAM:    "PAM",
+	OAuth2: "OAuth2",
+	SSPI:   "SPNEGO with SSPI",
 }
 
-// LoginConfig represents login config as far as the db is concerned
-type LoginConfig interface {
+// Config represents login config as far as the db is concerned
+type Config interface {
 	convert.Conversion
 }
 
@@ -83,33 +84,33 @@ type RegisterableSource interface {
 	UnregisterSource() error
 }
 
-// LoginSourceSettable configurations can have their loginSource set on them
-type LoginSourceSettable interface {
-	SetLoginSource(*LoginSource)
+// SourceSettable configurations can have their loginSource set on them
+type SourceSettable interface {
+	SetLoginSource(*Source)
 }
 
-// RegisterLoginTypeConfig register a config for a provided type
-func RegisterLoginTypeConfig(typ LoginType, exemplar LoginConfig) {
+// RegisterTypeConfig register a config for a provided type
+func RegisterTypeConfig(typ Type, exemplar Config) {
 	if reflect.TypeOf(exemplar).Kind() == reflect.Ptr {
 		// Pointer:
-		registeredLoginConfigs[typ] = func() LoginConfig {
-			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(LoginConfig)
+		registeredConfigs[typ] = func() Config {
+			return reflect.New(reflect.ValueOf(exemplar).Elem().Type()).Interface().(Config)
 		}
 		return
 	}
 
 	// Not a Pointer
-	registeredLoginConfigs[typ] = func() LoginConfig {
-		return reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(LoginConfig)
+	registeredConfigs[typ] = func() Config {
+		return reflect.New(reflect.TypeOf(exemplar)).Elem().Interface().(Config)
 	}
 }
 
-var registeredLoginConfigs = map[LoginType]func() LoginConfig{}
+var registeredConfigs = map[Type]func() Config{}
 
-// LoginSource represents an external way for authorizing users.
-type LoginSource struct {
+// Source represents an external way for authorizing users.
+type Source struct {
 	ID            int64 `xorm:"pk autoincr"`
-	Type          LoginType
+	Type          Type
 	Name          string             `xorm:"UNIQUE"`
 	IsActive      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	IsSyncEnabled bool               `xorm:"INDEX NOT NULL DEFAULT false"`
@@ -119,8 +120,13 @@ type LoginSource struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+// TableName xorm will read the table name from this method
+func (Source) TableName() string {
+	return "login_source"
+}
+
 func init() {
-	db.RegisterModel(new(LoginSource))
+	db.RegisterModel(new(Source))
 }
 
 // Cell2Int64 converts a xorm.Cell type to int64,
@@ -137,82 +143,82 @@ func Cell2Int64(val xorm.Cell) int64 {
 }
 
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
-func (source *LoginSource) BeforeSet(colName string, val xorm.Cell) {
+func (source *Source) BeforeSet(colName string, val xorm.Cell) {
 	if colName == "type" {
-		typ := LoginType(Cell2Int64(val))
-		constructor, ok := registeredLoginConfigs[typ]
+		typ := Type(Cell2Int64(val))
+		constructor, ok := registeredConfigs[typ]
 		if !ok {
 			return
 		}
 		source.Cfg = constructor()
-		if settable, ok := source.Cfg.(LoginSourceSettable); ok {
+		if settable, ok := source.Cfg.(SourceSettable); ok {
 			settable.SetLoginSource(source)
 		}
 	}
 }
 
 // TypeName return name of this login source type.
-func (source *LoginSource) TypeName() string {
-	return LoginNames[source.Type]
+func (source *Source) TypeName() string {
+	return Names[source.Type]
 }
 
 // IsLDAP returns true of this source is of the LDAP type.
-func (source *LoginSource) IsLDAP() bool {
-	return source.Type == LoginLDAP
+func (source *Source) IsLDAP() bool {
+	return source.Type == LDAP
 }
 
 // IsDLDAP returns true of this source is of the DLDAP type.
-func (source *LoginSource) IsDLDAP() bool {
-	return source.Type == LoginDLDAP
+func (source *Source) IsDLDAP() bool {
+	return source.Type == DLDAP
 }
 
 // IsSMTP returns true of this source is of the SMTP type.
-func (source *LoginSource) IsSMTP() bool {
-	return source.Type == LoginSMTP
+func (source *Source) IsSMTP() bool {
+	return source.Type == SMTP
 }
 
 // IsPAM returns true of this source is of the PAM type.
-func (source *LoginSource) IsPAM() bool {
-	return source.Type == LoginPAM
+func (source *Source) IsPAM() bool {
+	return source.Type == PAM
 }
 
 // IsOAuth2 returns true of this source is of the OAuth2 type.
-func (source *LoginSource) IsOAuth2() bool {
-	return source.Type == LoginOAuth2
+func (source *Source) IsOAuth2() bool {
+	return source.Type == OAuth2
 }
 
 // IsSSPI returns true of this source is of the SSPI type.
-func (source *LoginSource) IsSSPI() bool {
-	return source.Type == LoginSSPI
+func (source *Source) IsSSPI() bool {
+	return source.Type == SSPI
 }
 
 // HasTLS returns true of this source supports TLS.
-func (source *LoginSource) HasTLS() bool {
+func (source *Source) HasTLS() bool {
 	hasTLSer, ok := source.Cfg.(HasTLSer)
 	return ok && hasTLSer.HasTLS()
 }
 
 // UseTLS returns true of this source is configured to use TLS.
-func (source *LoginSource) UseTLS() bool {
+func (source *Source) UseTLS() bool {
 	useTLSer, ok := source.Cfg.(UseTLSer)
 	return ok && useTLSer.UseTLS()
 }
 
 // SkipVerify returns true if this source is configured to skip SSL
 // verification.
-func (source *LoginSource) SkipVerify() bool {
+func (source *Source) SkipVerify() bool {
 	skipVerifiable, ok := source.Cfg.(SkipVerifiable)
 	return ok && skipVerifiable.IsSkipVerify()
 }
 
-// CreateLoginSource inserts a LoginSource in the DB if not already
+// CreateSource inserts a LoginSource in the DB if not already
 // existing with the given name.
-func CreateLoginSource(source *LoginSource) error {
-	has, err := db.GetEngine(db.DefaultContext).Where("name=?", source.Name).Exist(new(LoginSource))
+func CreateSource(source *Source) error {
+	has, err := db.GetEngine(db.DefaultContext).Where("name=?", source.Name).Exist(new(Source))
 	if err != nil {
 		return err
 	} else if has {
-		return ErrLoginSourceAlreadyExist{source.Name}
+		return ErrSourceAlreadyExist{source.Name}
 	}
 	// Synchronization is only available with LDAP for now
 	if !source.IsLDAP() {
@@ -228,7 +234,7 @@ func CreateLoginSource(source *LoginSource) error {
 		return nil
 	}
 
-	if settable, ok := source.Cfg.(LoginSourceSettable); ok {
+	if settable, ok := source.Cfg.(SourceSettable); ok {
 		settable.SetLoginSource(source)
 	}
 
@@ -241,40 +247,40 @@ func CreateLoginSource(source *LoginSource) error {
 	if err != nil {
 		// remove the LoginSource in case of errors while registering configuration
 		if _, err := db.GetEngine(db.DefaultContext).Delete(source); err != nil {
-			log.Error("CreateLoginSource: Error while wrapOpenIDConnectInitializeError: %v", err)
+			log.Error("CreateSource: Error while wrapOpenIDConnectInitializeError: %v", err)
 		}
 	}
 	return err
 }
 
-// LoginSources returns a slice of all login sources found in DB.
-func LoginSources() ([]*LoginSource, error) {
-	auths := make([]*LoginSource, 0, 6)
+// Sources returns a slice of all login sources found in DB.
+func Sources() ([]*Source, error) {
+	auths := make([]*Source, 0, 6)
 	return auths, db.GetEngine(db.DefaultContext).Find(&auths)
 }
 
-// LoginSourcesByType returns all sources of the specified type
-func LoginSourcesByType(loginType LoginType) ([]*LoginSource, error) {
-	sources := make([]*LoginSource, 0, 1)
+// SourcesByType returns all sources of the specified type
+func SourcesByType(loginType Type) ([]*Source, error) {
+	sources := make([]*Source, 0, 1)
 	if err := db.GetEngine(db.DefaultContext).Where("type = ?", loginType).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
 }
 
-// AllActiveLoginSources returns all active sources
-func AllActiveLoginSources() ([]*LoginSource, error) {
-	sources := make([]*LoginSource, 0, 5)
+// AllActiveSources returns all active sources
+func AllActiveSources() ([]*Source, error) {
+	sources := make([]*Source, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).Where("is_active = ?", true).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
 }
 
-// ActiveLoginSources returns all active sources of the specified type
-func ActiveLoginSources(loginType LoginType) ([]*LoginSource, error) {
-	sources := make([]*LoginSource, 0, 1)
-	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, loginType).Find(&sources); err != nil {
+// ActiveSources returns all active sources of the specified type
+func ActiveSources(tp Type) ([]*Source, error) {
+	sources := make([]*Source, 0, 1)
+	if err := db.GetEngine(db.DefaultContext).Where("is_active = ? and type = ?", true, tp).Find(&sources); err != nil {
 		return nil, err
 	}
 	return sources, nil
@@ -286,19 +292,19 @@ func IsSSPIEnabled() bool {
 	if !db.HasEngine {
 		return false
 	}
-	sources, err := ActiveLoginSources(LoginSSPI)
+	sources, err := ActiveSources(SSPI)
 	if err != nil {
-		log.Error("ActiveLoginSources: %v", err)
+		log.Error("ActiveSources: %v", err)
 		return false
 	}
 	return len(sources) > 0
 }
 
-// GetLoginSourceByID returns login source by given ID.
-func GetLoginSourceByID(id int64) (*LoginSource, error) {
-	source := new(LoginSource)
+// GetSourceByID returns login source by given ID.
+func GetSourceByID(id int64) (*Source, error) {
+	source := new(Source)
 	if id == 0 {
-		source.Cfg = registeredLoginConfigs[LoginNoType]()
+		source.Cfg = registeredConfigs[NoType]()
 		// Set this source to active
 		// FIXME: allow disabling of db based password authentication in future
 		source.IsActive = true
@@ -309,18 +315,18 @@ func GetLoginSourceByID(id int64) (*LoginSource, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrLoginSourceNotExist{id}
+		return nil, ErrSourceNotExist{id}
 	}
 	return source, nil
 }
 
-// UpdateSource updates a LoginSource record in DB.
-func UpdateSource(source *LoginSource) error {
-	var originalLoginSource *LoginSource
+// UpdateSource updates a Source record in DB.
+func UpdateSource(source *Source) error {
+	var originalLoginSource *Source
 	if source.IsOAuth2() {
 		// keep track of the original values so we can restore in case of errors while registering OAuth2 providers
 		var err error
-		if originalLoginSource, err = GetLoginSourceByID(source.ID); err != nil {
+		if originalLoginSource, err = GetSourceByID(source.ID); err != nil {
 			return err
 		}
 	}
@@ -334,7 +340,7 @@ func UpdateSource(source *LoginSource) error {
 		return nil
 	}
 
-	if settable, ok := source.Cfg.(LoginSourceSettable); ok {
+	if settable, ok := source.Cfg.(SourceSettable); ok {
 		settable.SetLoginSource(source)
 	}
 
@@ -353,34 +359,53 @@ func UpdateSource(source *LoginSource) error {
 	return err
 }
 
-// DeleteSource deletes a LoginSource record in DB.
-func DeleteSource(source *LoginSource) error {
-	count, err := db.GetEngine(db.DefaultContext).Count(&User{LoginSource: source.ID})
-	if err != nil {
-		return err
-	} else if count > 0 {
-		return ErrLoginSourceInUse{source.ID}
-	}
-
-	count, err = db.GetEngine(db.DefaultContext).Count(&ExternalLoginUser{LoginSourceID: source.ID})
-	if err != nil {
-		return err
-	} else if count > 0 {
-		return ErrLoginSourceInUse{source.ID}
-	}
-
-	if registerableSource, ok := source.Cfg.(RegisterableSource); ok {
-		if err := registerableSource.UnregisterSource(); err != nil {
-			return err
-		}
-	}
-
-	_, err = db.GetEngine(db.DefaultContext).ID(source.ID).Delete(new(LoginSource))
-	return err
+// CountSources returns number of login sources.
+func CountSources() int64 {
+	count, _ := db.GetEngine(db.DefaultContext).Count(new(Source))
+	return count
 }
 
-// CountLoginSources returns number of login sources.
-func CountLoginSources() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).Count(new(LoginSource))
-	return count
+// ErrSourceNotExist represents a "SourceNotExist" kind of error.
+type ErrSourceNotExist struct {
+	ID int64
+}
+
+// IsErrSourceNotExist checks if an error is a ErrSourceNotExist.
+func IsErrSourceNotExist(err error) bool {
+	_, ok := err.(ErrSourceNotExist)
+	return ok
+}
+
+func (err ErrSourceNotExist) Error() string {
+	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
+}
+
+// ErrSourceAlreadyExist represents a "SourceAlreadyExist" kind of error.
+type ErrSourceAlreadyExist struct {
+	Name string
+}
+
+// IsErrSourceAlreadyExist checks if an error is a ErrSourceAlreadyExist.
+func IsErrSourceAlreadyExist(err error) bool {
+	_, ok := err.(ErrSourceAlreadyExist)
+	return ok
+}
+
+func (err ErrSourceAlreadyExist) Error() string {
+	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
+}
+
+// ErrSourceInUse represents a "SourceInUse" kind of error.
+type ErrSourceInUse struct {
+	ID int64
+}
+
+// IsErrSourceInUse checks if an error is a ErrSourceInUse.
+func IsErrSourceInUse(err error) bool {
+	_, ok := err.(ErrSourceInUse)
+	return ok
+}
+
+func (err ErrSourceInUse) Error() string {
+	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
 }

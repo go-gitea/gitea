@@ -189,7 +189,7 @@ func TestListEmails(t *testing.T) {
 
 	// Must find all users and their emails
 	opts := &SearchEmailOptions{
-		ListOptions: ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 10000,
 		},
 	}
@@ -241,7 +241,7 @@ func TestListEmails(t *testing.T) {
 
 	// Must find more than one page, but retrieve only one
 	opts = &SearchEmailOptions{
-		ListOptions: ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 5,
 			Page:     1,
 		},

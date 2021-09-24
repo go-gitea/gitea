@@ -47,7 +47,7 @@ func init() {
 
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
-	ListOptions
+	db.ListOptions
 	UserID      int64
 	Keyword     string
 	OrgID       int64
@@ -56,7 +56,7 @@ type SearchTeamOptions struct {
 
 // SearchMembersOptions holds the search options
 type SearchMembersOptions struct {
-	ListOptions
+	db.ListOptions
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
@@ -176,7 +176,7 @@ func (t *Team) GetRepositories(opts *SearchTeamOptions) error {
 		return t.getRepositories(db.GetEngine(db.DefaultContext))
 	}
 
-	return t.getRepositories(getPaginatedSession(opts))
+	return t.getRepositories(db.GetPaginatedSession(opts))
 }
 
 func (t *Team) getMembers(e db.Engine) (err error) {
@@ -190,7 +190,7 @@ func (t *Team) GetMembers(opts *SearchMembersOptions) (err error) {
 		return t.getMembers(db.GetEngine(db.DefaultContext))
 	}
 
-	return t.getMembers(getPaginatedSession(opts))
+	return t.getMembers(db.GetPaginatedSession(opts))
 }
 
 // AddMember adds new membership of the team to the organization,

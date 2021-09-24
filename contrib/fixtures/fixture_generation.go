@@ -31,7 +31,9 @@ var (
 func main() {
 	pathToGiteaRoot := "."
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err := db.CreateTestEngine(fixturesDir); err != nil {
+	if err := db.CreateTestEngine(db.FixturesOptions{
+		Dir: fixturesDir,
+	}); err != nil {
 		fmt.Printf("CreateTestEngine: %+v", err)
 		os.Exit(1)
 	}

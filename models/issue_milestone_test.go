@@ -102,7 +102,7 @@ func TestGetMilestones(t *testing.T) {
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
 			milestones, _, err := GetMilestones(GetMilestonesOption{
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
 				},
@@ -119,7 +119,7 @@ func TestGetMilestones(t *testing.T) {
 			assert.True(t, sort.IntsAreSorted(values))
 
 			milestones, _, err = GetMilestones(GetMilestonesOption{
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
 				},

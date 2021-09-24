@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -87,9 +88,9 @@ func loadSecurityData(ctx *context.Context) {
 	}
 
 	// map the provider display name with the LoginSource
-	sources := make(map[*models.LoginSource]string)
+	sources := make(map[*login.Source]string)
 	for _, externalAccount := range accountLinks {
-		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+		if loginSource, err := login.GetSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {

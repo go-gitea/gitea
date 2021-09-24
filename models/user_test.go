@@ -11,12 +11,21 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestOAuth2Application_LoadUser(t *testing.T) {
+	assert.NoError(t, db.PrepareTestDatabase())
+	app := db.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: 1}).(*login.OAuth2Application)
+	user, err := GetUserByID(app.UID)
+	assert.NoError(t, err)
+	assert.NotNil(t, user)
+}
 
 func TestUserIsPublicMember(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
@@ -116,19 +125,19 @@ func TestSearchUsers(t *testing.T) {
 		testSuccess(opts, expectedOrgIDs)
 	}
 
-	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 1, PageSize: 2}},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1, PageSize: 2}},
 		[]int64{3, 6})
 
-	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 2, PageSize: 2}},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 2, PageSize: 2}},
 		[]int64{7, 17})
 
-	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 3, PageSize: 2}},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 3, PageSize: 2}},
 		[]int64{19, 25})
 
-	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 4, PageSize: 2}},
+	testOrgSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 4, PageSize: 2}},
 		[]int64{26})
 
-	testOrgSuccess(&SearchUserOptions{ListOptions: ListOptions{Page: 5, PageSize: 2}},
+	testOrgSuccess(&SearchUserOptions{ListOptions: db.ListOptions{Page: 5, PageSize: 2}},
 		[]int64{})
 
 	// test users
@@ -137,20 +146,20 @@ func TestSearchUsers(t *testing.T) {
 		testSuccess(opts, expectedUserIDs)
 	}
 
-	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 1}},
+	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}},
 		[]int64{1, 2, 4, 5, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30})
 
-	testUserSuccess(&SearchUserOptions{ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolFalse},
+	testUserSuccess(&SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolFalse},
 		[]int64{9})
 
-	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
+	testUserSuccess(&SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28, 29, 30})
 
-	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
+	testUserSuccess(&SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 
 	// order by name asc default
-	testUserSuccess(&SearchUserOptions{Keyword: "user1", ListOptions: ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
+	testUserSuccess(&SearchUserOptions{Keyword: "user1", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
 }
 
@@ -407,7 +416,7 @@ func TestAddLdapSSHPublicKeys(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	s := &LoginSource{ID: 1}
+	s := &login.Source{ID: 1}
 
 	testCases := []struct {
 		keyString   string

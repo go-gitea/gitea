@@ -4,7 +4,10 @@
 
 package models
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
+)
 
 // Statistic contains the database statistics
 type Statistic struct {
@@ -52,7 +55,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Follow, _ = db.GetEngine(db.DefaultContext).Count(new(Follow))
 	stats.Counter.Mirror, _ = db.GetEngine(db.DefaultContext).Count(new(Mirror))
 	stats.Counter.Release, _ = db.GetEngine(db.DefaultContext).Count(new(Release))
-	stats.Counter.LoginSource = CountLoginSources()
+	stats.Counter.LoginSource = login.CountSources()
 	stats.Counter.Webhook, _ = db.GetEngine(db.DefaultContext).Count(new(Webhook))
 	stats.Counter.Milestone, _ = db.GetEngine(db.DefaultContext).Count(new(Milestone))
 	stats.Counter.Label, _ = db.GetEngine(db.DefaultContext).Count(new(Label))

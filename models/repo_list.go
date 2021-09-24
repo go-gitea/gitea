@@ -135,7 +135,7 @@ func (repos MirrorRepositoryList) LoadAttributes() error {
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	ListOptions
+	db.ListOptions
 	Actor           *User
 	Keyword         string
 	OwnerID         int64
