@@ -160,13 +160,13 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		return nil, err
 	}
 
-	// Initalizing the mappings of base to head (base2HeadColMap) and head to base (head2BaseColMap) columns
-	base2HeadColMap, head2BaseColMap := getColumnMapping(baseCSVReader, headCSVReader)
+	// Initalizing the mappings of base to head (a2bColMap) and head to base (b2aColMap) columns
+	a2bColMap, b2aColMap := getColumnMapping(baseCSVReader, headCSVReader)
 
 	// Determines how many cols there will be in the diff table, which includes deleted columsn from base and added columns to base
-	numDiffTableCols := len(base2HeadColMap) + countUnmappedColumns(head2BaseColMap)
-	if len(base2HeadColMap) < len(head2BaseColMap) {
-		numDiffTableCols = len(head2BaseColMap) + countUnmappedColumns(base2HeadColMap)
+	numDiffTableCols := len(a2bColMap) + countUnmappedColumns(b2aColMap)
+	if len(a2bColMap) < len(b2aColMap) {
+		numDiffTableCols = len(b2aColMap) + countUnmappedColumns(a2bColMap)
 	}
 
 	// createDiffTableRow takes the row # of the `a` line and `b` line of a diff (starting from 1), 0 if the line doesn't exist (undefined)
@@ -192,107 +192,118 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 			}
 			bRow = &row
 		}
-		if bRow == nil {
-		} else {
-			if len(*bRow) == 0 {
-			}
-		}
 		if aRow == nil && bRow == nil {
 			// No content
 			return nil, nil
 		}
-		// First we loop through the head columns and place them in the diff table as they appear, both existing columsn and new columns
-		for i := 0; i < len(head2BaseColMap); i++ {
-			var bCell *string // Pointer to text of the b line (head), if nil the cell doesn't exist in the head (deleted row in the base)
-			if bRow != nil {
-				// is an added column and the `b` row exists so the cell should exist, but still will check for undefined cell error
-				if cell, err := getCell(*bRow, i); err != nil {
-					if err != ErrorUndefinedCell {
-						return nil, err
-					}
-				} else {
-					bCell = &cell
-				}
-			}
 
-			var diffCell TableDiffCell
-			addedCols := 0
-			if head2BaseColMap[i] == unmappedColumn {
-				// This column doesn't exist in the base, so we know it is a new column.
-				var cell string
-				// Col exists in the head, but we might be displaying a deleted row, so need to check if bCell exists, and if it does, make cell its value
-				if bCell != nil {
-					cell = *bCell
-				}
-				diffCell = TableDiffCell{RightCell: cell, Type: TableDiffCellAdd}
-				addedCols++
-			} else {
-				// The column still exists in the head, but we need to figure out if the row exists as well (changed text) or if it is a new row in head
-				var aCell *string // Pointer to the texst of the a line (base), if nil the cell doesn't exist in the base (added row in head)
+		aIndex := 0      // tracks where we are in the a2bColMap
+		bIndex := 0      // tracks where we are in the b2aColMap
+		colsAdded := 0   // incremented whenever we found a column was added
+		colsDeleted := 0 // incrememted whenever a column was deleted
+
+		// We loop until both the aIndex and bIndex are greater tahn their col map, which then we are done
+		for aIndex < len(a2bColMap) || bIndex < len(b2aColMap) {
+			// Starting from where aIndex is currently pointing, we see if the map is -1 (dleeted) and if is, create column to note that, increment, and look at the next aIndex
+			for aIndex < len(a2bColMap) && a2bColMap[aIndex] == -1 {
+				var aCell string
 				if aRow != nil {
-					// Get the cell contents of the 'a' row. Should exist, but just in case we handle the error and make the contents and empty string
-					if cell, err := getCell(*aRow, head2BaseColMap[i]); err != nil {
+					if cell, err := getCell(*aRow, aIndex); err != nil {
 						if err != ErrorUndefinedCell {
 							return nil, err
 						}
 					} else {
-						aCell = &cell
+						aCell = cell
 					}
 				}
-				if bCell == nil {
-					// both a & b have the column, but not the row (deleted)
-					diffCell = TableDiffCell{LeftCell: *aCell, Type: TableDiffCellDel}
-				} else if aCell == nil {
-					// both a & b have the column, but not the row (added)
-					diffCell = TableDiffCell{RightCell: *bCell, Type: TableDiffCellAdd}
-				} else {
-					var cellType TableDiffCellType
-					if head2BaseColMap[i] > i-addedCols {
-						if *aCell != *bCell {
-							cellType = TableDiffCellMovedChanged
-						} else {
-							cellType = TableDiffCellMovedUnchanged
+				diffTableCells[bIndex+colsDeleted] = &TableDiffCell{LeftCell: aCell, Type: TableDiffCellDel}
+				aIndex++
+				colsDeleted++
+			}
+
+			// Starting from where bIndex is currently pointing, we see if the map is -1 (added) and if is, create column to note that, increment, and look at the next aIndex
+			for bIndex < len(b2aColMap) && b2aColMap[bIndex] == -1 {
+				var bCell string
+				cellType := TableDiffCellAdd
+				if bRow != nil {
+					if cell, err := getCell(*bRow, bIndex); err != nil {
+						if err != ErrorUndefinedCell {
+							return nil, err
 						}
 					} else {
-						if *aCell != *bCell {
-							cellType = TableDiffCellChanged
-						} else {
-							cellType = TableDiffCellUnchanged
-						}
+						bCell = cell
 					}
-					diffCell = TableDiffCell{LeftCell: *aCell, RightCell: *bCell, Type: cellType}
+				} else {
+					cellType = TableDiffCellDel
 				}
+				diffTableCells[bIndex+colsDeleted] = &TableDiffCell{RightCell: bCell, Type: cellType}
+				bIndex++
+				colsAdded++
 			}
-			diffTableCells[i] = &diffCell
-		}
 
-		// Now loop through the base columns to find the unmmapped (deleted) columns in the base
-		baseOffset := 0
-		for i := 0; i < len(base2HeadColMap); i++ {
-			if base2HeadColMap[i] == unmappedColumn {
-				// Have an unmapped base column, now need to figure out if the row existed in the base or if it was added
+			// aIndex is now pointing to a column that also exists in b, or is at the end of a2bColMap. If the former,
+			// we can just increment aIndex until it points to a -1 column or is at the end
+			for aIndex < len(a2bColMap) && a2bColMap[aIndex] != -1 {
+				aIndex++
+			}
+
+			// aIndex is now pointing to a column that also exists in a, or is at the end of b2aColMap. If the former,
+			// we get the a col and b col values (if they exist), figure out if they are the same or not, and if the column moved, and add it to the diff table
+			for bIndex < len(b2aColMap) && b2aColMap[bIndex] != -1 {
+				var diffTableCell TableDiffCell
+
 				var aCell *string
+				// get the aCell value if the aRow exists
 				if aRow != nil {
-					// is a deleted column and the `a` row exists so the cell should exist, but still will check for undefined cell error
-					if cell, err := getCell(*aRow, i); err != nil {
+					if cell, err := getCell(*aRow, b2aColMap[bIndex]); err != nil {
 						if err != ErrorUndefinedCell {
 							return nil, err
 						}
 					} else {
 						aCell = &cell
+						diffTableCell.LeftCell = cell
+					}
+				} else {
+					diffTableCell.Type = TableDiffCellAdd
+				}
+
+				var bCell *string
+				// get the bCell value if the bRow exists
+				if bRow != nil {
+					if cell, err := getCell(*bRow, bIndex); err != nil {
+						if err != ErrorUndefinedCell {
+							return nil, err
+						}
+					} else {
+						bCell = &cell
+						diffTableCell.RightCell = cell
+					}
+				} else {
+					diffTableCell.Type = TableDiffCellDel
+				}
+
+				// if both a and b have a row that exists, compare the value and determine if the row has moved
+				if aRow != nil && bRow != nil {
+					moved := ((bIndex + colsDeleted) != (b2aColMap[bIndex] + colsAdded))
+					if *aCell != *bCell {
+						if moved {
+							diffTableCell.Type = TableDiffCellMovedChanged
+						} else {
+							diffTableCell.Type = TableDiffCellChanged
+						}
+					} else {
+						if moved {
+							diffTableCell.Type = TableDiffCellMovedUnchanged
+						} else {
+							diffTableCell.Type = TableDiffCellUnchanged
+						}
+						diffTableCell.LeftCell = ""
 					}
 				}
-				diffTableIndex := i + baseOffset
-				if diffTableCells[diffTableIndex] != nil {
-					// the diffCells array already has a cell at this i index, so shift this cell and those after it one to the right using copy
-					copy(diffTableCells[diffTableIndex+1:], diffTableCells[diffTableIndex:])
-				}
-				diffCell := TableDiffCell{Type: TableDiffCellDel}
-				if aCell != nil {
-					diffCell.LeftCell = *aCell
-				}
-				diffTableCells[diffTableIndex] = &diffCell
-				baseOffset++
+
+				// Add the diff column to the diff row
+				diffTableCells[bIndex+colsDeleted] = &diffTableCell
+				bIndex++
 			}
 		}
 
