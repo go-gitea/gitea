@@ -2927,8 +2927,9 @@ function selectRange($list, $select, $from) {
 
       // add hashchange to permalink
       const $issue = $('a.ref-in-new-issue');
+      const $copyPermalink = $('a.copy-line-permalink');
 
-      if ($issue.length === 0) {
+      if ($issue.length === 0 || $copyPermalink.length === 0) {
         return;
       }
 
@@ -2938,6 +2939,13 @@ function selectRange($list, $select, $from) {
       } else {
         $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
       }
+
+      const matchedPermalink = $copyPermalink.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+      if (matchedPermalink) {
+        $copyPermalink.attr('href', $copyPermalink.attr('href').replace($copyPermalink.attr('href').substr(matchedPermalink.index), `#L${a}-L${b}`));
+      } else {
+        $copyPermalink.attr('href', `${$copyPermalink.attr('href')}#L${a}-L${b}`);
+      }
       return;
     }
   }
@@ -2946,8 +2954,9 @@ function selectRange($list, $select, $from) {
 
   // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
+  const $copyPermalink = $('a.copy-line-permalink');
 
-  if ($issue.length === 0) {
+  if ($issue.length === 0 || $copyPermalink.length === 0) {
     return;
   }
 
@@ -2956,6 +2965,13 @@ function selectRange($list, $select, $from) {
     $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
   } else {
     $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
+  }
+
+  const matchedPermalink = $copyPermalink.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+  if (matchedPermalink) {
+    $copyPermalink.attr('href', $copyPermalink.attr('href').replace($copyPermalink.attr('href').substr(matchedPermalink.index), `#${$select.attr('rel')}`));
+  } else {
+    $copyPermalink.attr('href', `${$copyPermalink.attr('href')}#${$select.attr('rel')}`);
   }
 }
 
