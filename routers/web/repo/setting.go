@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -768,7 +769,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators(models.ListOptions{})
+	users, err := ctx.Repo.Repository.GetCollaborators(db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return

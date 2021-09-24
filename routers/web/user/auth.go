@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -147,7 +148,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
+	ctx.Data["EnableSSPI"] = login.IsSSPIEnabled()
 
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
@@ -167,7 +168,7 @@ func SignInPost(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
+	ctx.Data["EnableSSPI"] = login.IsSSPIEnabled()
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignIn)
@@ -573,7 +574,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -608,7 +609,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
 	// first look if the provider is still active
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -653,7 +654,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:   models.LoginOAuth2,
+				LoginType:   login.OAuth2,
 				LoginSource: loginSource.ID,
 				LoginName:   gothUser.UserID,
 			}
@@ -711,7 +712,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 	}
 }
 
-func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *models.User, gothUser goth.User) {
+func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.User, gothUser goth.User) {
 	updateAvatarIfNeed(gothUser.AvatarURL, u)
 
 	needs2FA := false
@@ -785,7 +786,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *models.LoginSource, u *mod
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
+func oAuth2UserLoginCallback(loginSource *login.Source, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := loginSource.Cfg.(*oauth2.Source).Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" {
@@ -797,7 +798,7 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 	user := &models.User{
 		LoginName:   gothUser.UserID,
-		LoginType:   models.LoginOAuth2,
+		LoginType:   login.OAuth2,
 		LoginSource: loginSource.ID,
 	}
 
@@ -1068,7 +1069,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 	}
@@ -1078,7 +1079,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Email:       form.Email,
 		Passwd:      form.Password,
 		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
-		LoginType:   models.LoginOAuth2,
+		LoginType:   login.OAuth2,
 		LoginSource: loginSource.ID,
 		LoginName:   gothUser.UserID,
 	}

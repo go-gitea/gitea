@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
 	"strings"
@@ -36,13 +36,13 @@ func (source *TestSource) ToDB() ([]byte, error) {
 func TestDumpLoginSource(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	loginSourceSchema, err := db.TableInfo(new(LoginSource))
+	loginSourceSchema, err := db.TableInfo(new(Source))
 	assert.NoError(t, err)
 
-	RegisterLoginTypeConfig(LoginOAuth2, new(TestSource))
+	RegisterTypeConfig(OAuth2, new(TestSource))
 
-	CreateLoginSource(&LoginSource{
-		Type:     LoginOAuth2,
+	CreateSource(&Source{
+		Type:     OAuth2,
 		Name:     "TestSource",
 		IsActive: false,
 		Cfg: &TestSource{

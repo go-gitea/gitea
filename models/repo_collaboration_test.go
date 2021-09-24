@@ -30,7 +30,7 @@ func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		collaborators, err := repo.GetCollaborators(ListOptions{})
+		collaborators, err := repo.GetCollaborators(db.ListOptions{})
 		assert.NoError(t, err)
 		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&Collaboration{RepoID: repoID})
 		assert.NoError(t, err)

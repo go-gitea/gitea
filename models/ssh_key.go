@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -197,10 +198,10 @@ func SearchPublicKey(uid int64, fingerprint string) ([]*PublicKey, error) {
 }
 
 // ListPublicKeys returns a list of public keys belongs to given user.
-func ListPublicKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+func ListPublicKeys(uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type != ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		keys := make([]*PublicKey, 0, listOptions.PageSize)
 		return keys, sess.Find(&keys)
@@ -255,7 +256,7 @@ func deletePublicKeys(e db.Engine, keyIDs ...int64) error {
 
 // PublicKeysAreExternallyManaged returns whether the provided KeyID represents an externally managed Key
 func PublicKeysAreExternallyManaged(keys []*PublicKey) ([]bool, error) {
-	sources := make([]*LoginSource, 0, 5)
+	sources := make([]*login.Source, 0, 5)
 	externals := make([]bool, len(keys))
 keyloop:
 	for i, key := range keys {
@@ -264,7 +265,7 @@ keyloop:
 			continue keyloop
 		}
 
-		var source *LoginSource
+		var source *login.Source
 
 	sourceloop:
 		for _, s := range sources {
@@ -276,11 +277,11 @@ keyloop:
 
 		if source == nil {
 			var err error
-			source, err = GetLoginSourceByID(key.LoginSourceID)
+			source, err = login.GetSourceByID(key.LoginSourceID)
 			if err != nil {
-				if IsErrLoginSourceNotExist(err) {
+				if login.IsErrSourceNotExist(err) {
 					externals[i] = false
-					sources[i] = &LoginSource{
+					sources[i] = &login.Source{
 						ID: key.LoginSourceID,
 					}
 					continue keyloop
@@ -289,7 +290,7 @@ keyloop:
 			}
 		}
 
-		if sshKeyProvider, ok := source.Cfg.(SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
+		if sshKeyProvider, ok := source.Cfg.(login.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
 			// Disable setting SSH keys for this user
 			externals[i] = true
 		}
@@ -307,14 +308,14 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 	if key.LoginSourceID == 0 {
 		return false, nil
 	}
-	source, err := GetLoginSourceByID(key.LoginSourceID)
+	source, err := login.GetSourceByID(key.LoginSourceID)
 	if err != nil {
-		if IsErrLoginSourceNotExist(err) {
+		if login.IsErrSourceNotExist(err) {
 			return false, nil
 		}
 		return false, err
 	}
-	if sshKeyProvider, ok := source.Cfg.(SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
+	if sshKeyProvider, ok := source.Cfg.(login.SSHKeyProvider); ok && sshKeyProvider.ProvidesSSHKeys() {
 		// Disable setting SSH keys for this user
 		return true, nil
 	}
@@ -387,7 +388,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *User, s *LoginSource, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(usr *User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -425,7 +426,7 @@ func AddPublicKeysBySource(usr *User, s *LoginSource, sshPublicKeys []string) bo
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *User, s *LoginSource, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(usr *User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)
