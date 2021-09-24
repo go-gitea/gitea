@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -338,8 +339,8 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 	}
 }
 
-// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
-func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
+// ToOAuth2Application convert from login.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
 		ID:           app.ID,
 		Name:         app.Name,

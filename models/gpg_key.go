@@ -62,14 +62,14 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 }
 
 // ListGPGKeys returns a list of public keys belongs to given user.
-func ListGPGKeys(uid int64, listOptions ListOptions) ([]*GPGKey, error) {
-	return listGPGKeys(db.DefaultContext().Engine(), uid, listOptions)
+func ListGPGKeys(uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
+	return listGPGKeys(db.GetEngine(db.DefaultContext), uid, listOptions)
 }
 
-func listGPGKeys(e db.Engine, uid int64, listOptions ListOptions) ([]*GPGKey, error) {
+func listGPGKeys(e db.Engine, uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
 	sess := e.Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	keys := make([]*GPGKey, 0, 2)
@@ -78,13 +78,13 @@ func listGPGKeys(e db.Engine, uid int64, listOptions ListOptions) ([]*GPGKey, er
 
 // CountUserGPGKeys return number of gpg keys a user own
 func CountUserGPGKeys(userID int64) (int64, error) {
-	return db.DefaultContext().Engine().Where("owner_id=? AND primary_key_id=''", userID).Count(&GPGKey{})
+	return db.GetEngine(db.DefaultContext).Where("owner_id=? AND primary_key_id=''", userID).Count(&GPGKey{})
 }
 
 // GetGPGKeyByID returns public key by given ID.
 func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 	key := new(GPGKey)
-	has, err := db.DefaultContext().Engine().ID(keyID).Get(key)
+	has, err := db.GetEngine(db.DefaultContext).ID(keyID).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -96,7 +96,7 @@ func GetGPGKeyByID(keyID int64) (*GPGKey, error) {
 // GetGPGKeysByKeyID returns public key by given ID.
 func GetGPGKeysByKeyID(keyID string) ([]*GPGKey, error) {
 	keys := make([]*GPGKey, 0, 1)
-	return keys, db.DefaultContext().Engine().Where("key_id=?", keyID).Find(&keys)
+	return keys, db.GetEngine(db.DefaultContext).Where("key_id=?", keyID).Find(&keys)
 }
 
 // GPGKeyToEntity retrieve the imported key and the traducted entity
@@ -233,7 +233,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 	}
 	defer committer.Close()
 
-	if _, err = deleteGPGKey(ctx.Engine(), key.KeyID); err != nil {
+	if _, err = deleteGPGKey(db.GetEngine(ctx), key.KeyID); err != nil {
 		return err
 	}
 

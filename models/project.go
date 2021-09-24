@@ -90,7 +90,7 @@ type ProjectSearchOptions struct {
 
 // GetProjects returns a list of all projects that have been created in the repository
 func GetProjects(opts ProjectSearchOptions) ([]*Project, int64, error) {
-	return getProjects(db.DefaultContext().Engine(), opts)
+	return getProjects(db.GetEngine(db.DefaultContext), opts)
 }
 
 func getProjects(e db.Engine, opts ProjectSearchOptions) ([]*Project, int64, error) {
@@ -143,7 +143,7 @@ func NewProject(p *Project) error {
 		return errors.New("project type is not valid")
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -167,7 +167,7 @@ func NewProject(p *Project) error {
 
 // GetProjectByID returns the projects in a repository
 func GetProjectByID(id int64) (*Project, error) {
-	return getProjectByID(db.DefaultContext().Engine(), id)
+	return getProjectByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getProjectByID(e db.Engine, id int64) (*Project, error) {
@@ -185,7 +185,7 @@ func getProjectByID(e db.Engine, id int64) (*Project, error) {
 
 // UpdateProject updates project properties
 func UpdateProject(p *Project) error {
-	return updateProject(db.DefaultContext().Engine(), p)
+	return updateProject(db.GetEngine(db.DefaultContext), p)
 }
 
 func updateProject(e db.Engine, p *Project) error {
@@ -220,7 +220,7 @@ func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
 func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -244,7 +244,7 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -273,7 +273,7 @@ func changeProjectStatus(e db.Engine, p *Project, isClosed bool) error {
 
 // DeleteProjectByID deletes a project from a repository.
 func DeleteProjectByID(id int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

@@ -45,7 +45,7 @@ func (reg *U2FRegistration) updateCounter(e db.Engine) error {
 
 // UpdateCounter will update the database value of counter
 func (reg *U2FRegistration) UpdateCounter() error {
-	return reg.updateCounter(db.DefaultContext().Engine())
+	return reg.updateCounter(db.GetEngine(db.DefaultContext))
 }
 
 // U2FRegistrationList is a list of *U2FRegistration
@@ -73,7 +73,7 @@ func getU2FRegistrationsByUID(e db.Engine, uid int64) (U2FRegistrationList, erro
 
 // GetU2FRegistrationByID returns U2F registration by id
 func GetU2FRegistrationByID(id int64) (*U2FRegistration, error) {
-	return getU2FRegistrationByID(db.DefaultContext().Engine(), id)
+	return getU2FRegistrationByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getU2FRegistrationByID(e db.Engine, id int64) (*U2FRegistration, error) {
@@ -88,7 +88,7 @@ func getU2FRegistrationByID(e db.Engine, id int64) (*U2FRegistration, error) {
 
 // GetU2FRegistrationsByUID returns all U2F registrations of the given user
 func GetU2FRegistrationsByUID(uid int64) (U2FRegistrationList, error) {
-	return getU2FRegistrationsByUID(db.DefaultContext().Engine(), uid)
+	return getU2FRegistrationsByUID(db.GetEngine(db.DefaultContext), uid)
 }
 
 func createRegistration(e db.Engine, user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
@@ -111,12 +111,12 @@ func createRegistration(e db.Engine, user *User, name string, reg *u2f.Registrat
 
 // CreateRegistration will create a new U2FRegistration from the given Registration
 func CreateRegistration(user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
-	return createRegistration(db.DefaultContext().Engine(), user, name, reg)
+	return createRegistration(db.GetEngine(db.DefaultContext), user, name, reg)
 }
 
 // DeleteRegistration will delete U2FRegistration
 func DeleteRegistration(reg *U2FRegistration) error {
-	return deleteRegistration(db.DefaultContext().Engine(), reg)
+	return deleteRegistration(db.GetEngine(db.DefaultContext), reg)
 }
 
 func deleteRegistration(e db.Engine, reg *U2FRegistration) error {

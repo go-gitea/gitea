@@ -6,9 +6,9 @@ package integrations
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
@@ -28,7 +28,7 @@ func doCheckRepositoryEmptyStatus(ctx APITestContext, isEmpty bool) func(*testin
 
 func doAddChangesToCheckout(dstPath, filename string) func(*testing.T) {
 	return func(t *testing.T) {
-		assert.NoError(t, ioutil.WriteFile(filepath.Join(dstPath, filename), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s at time: %v", dstPath, time.Now())), 0644))
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, filename), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s at time: %v", dstPath, time.Now())), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",
@@ -61,7 +61,7 @@ func testPushDeployKeyOnEmptyRepo(t *testing.T, u *url.URL) {
 		t.Run("CreatePushDeployKey", doAPICreateDeployKey(ctx, keyname, keyFile, false))
 
 		// Setup the testing repository
-		dstPath, err := ioutil.TempDir("", "repo-tmp-deploy-key-empty-repo-1")
+		dstPath, err := os.MkdirTemp("", "repo-tmp-deploy-key-empty-repo-1")
 		assert.NoError(t, err)
 		defer util.RemoveAll(dstPath)
 
@@ -107,7 +107,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 	withKeyFile(t, keyname, func(keyFile string) {
 		var userKeyPublicKeyID int64
 		t.Run("KeyCanOnlyBeUser", func(t *testing.T) {
-			dstPath, err := ioutil.TempDir("", ctx.Reponame)
+			dstPath, err := os.MkdirTemp("", ctx.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstPath)
 
@@ -133,7 +133,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 		})
 
 		t.Run("KeyCanBeAnyDeployButNotUserAswell", func(t *testing.T) {
-			dstPath, err := ioutil.TempDir("", ctx.Reponame)
+			dstPath, err := os.MkdirTemp("", ctx.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstPath)
 
@@ -151,7 +151,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 			t.Run("FailToPush", doGitPushTestRepositoryFail(dstPath, "origin", "master"))
 
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
-			dstOtherPath, err := ioutil.TempDir("", otherCtx.Reponame)
+			dstOtherPath, err := os.MkdirTemp("", otherCtx.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstOtherPath)
 
@@ -168,7 +168,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 		t.Run("DeleteRepositoryShouldReleaseKey", func(t *testing.T) {
 			otherSSHURL := createSSHUrl(otherCtx.GitPath(), u)
-			dstOtherPath, err := ioutil.TempDir("", otherCtx.Reponame)
+			dstOtherPath, err := os.MkdirTemp("", otherCtx.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstOtherPath)
 
@@ -190,7 +190,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 				userKeyPublicKeyID = publicKey.ID
 			}))
 
-			dstPath, err := ioutil.TempDir("", ctx.Reponame)
+			dstPath, err := os.MkdirTemp("", ctx.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstPath)
 

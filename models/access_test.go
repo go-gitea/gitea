@@ -127,12 +127,12 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
-	_, err := db.DefaultContext().Engine().Delete(&Collaboration{UserID: 2, RepoID: 3})
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
 	assert.NoError(t, repo1.RecalculateAccesses())
 
 	access := &Access{UserID: 2, RepoID: 3}
-	has, err := db.DefaultContext().Engine().Get(access)
+	has, err := db.GetEngine(db.DefaultContext).Get(access)
 	assert.NoError(t, err)
 	assert.True(t, has)
 	assert.Equal(t, AccessModeOwner, access.Mode)
@@ -144,11 +144,11 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
-	_, err := db.DefaultContext().Engine().Delete(&Collaboration{UserID: 4, RepoID: 4})
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
 	assert.NoError(t, repo1.RecalculateAccesses())
 
-	has, err := db.DefaultContext().Engine().Get(&Access{UserID: 4, RepoID: 4})
+	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
 	assert.False(t, has)
 }
@@ -158,7 +158,7 @@ func TestRepository_RecalculateAccesses3(t *testing.T) {
 	team5 := db.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
 	user29 := db.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
 
-	has, err := db.DefaultContext().Engine().Get(&Access{UserID: 29, RepoID: 23})
+	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
 	assert.NoError(t, err)
 	assert.False(t, has)
 
@@ -166,7 +166,7 @@ func TestRepository_RecalculateAccesses3(t *testing.T) {
 	// even though repo 23 is public
 	assert.NoError(t, AddTeamMember(team5, user29.ID))
 
-	has, err = db.DefaultContext().Engine().Get(&Access{UserID: 29, RepoID: 23})
+	has, err = db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
 	assert.NoError(t, err)
 	assert.True(t, has)
 }

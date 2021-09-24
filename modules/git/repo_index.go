@@ -7,7 +7,6 @@ package git
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -47,7 +46,7 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
 func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename string, cancel context.CancelFunc, err error) {
-	tmpIndex, err := ioutil.TempFile("", "index")
+	tmpIndex, err := os.CreateTemp("", "index")
 	if err != nil {
 		return
 	}

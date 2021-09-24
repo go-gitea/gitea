@@ -897,8 +897,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
-						m.Get(".diff", repo.DownloadPullDiff)
-						m.Get(".patch", repo.DownloadPullPatch)
+						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).

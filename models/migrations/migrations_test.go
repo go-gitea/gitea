@@ -241,7 +241,10 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
-		if err := db.InitFixtures(fixturesDir, x); err != nil {
+		if err := db.InitFixtures(
+			db.FixturesOptions{
+				Dir: fixturesDir,
+			}, x); err != nil {
 			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}
