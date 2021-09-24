@@ -151,7 +151,7 @@ func TestIssues(t *testing.T) {
 			IssuesOptions{
 				RepoIDs:  []int64{1, 3},
 				SortType: "oldest",
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -161,7 +161,7 @@ func TestIssues(t *testing.T) {
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1},
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -171,7 +171,7 @@ func TestIssues(t *testing.T) {
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1, 2},
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},

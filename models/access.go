@@ -225,7 +225,7 @@ func (repo *Repository) refreshAccesses(e db.Engine, accessMap map[int64]*userAc
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
 func (repo *Repository) refreshCollaboratorAccesses(e db.Engine, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo.getCollaborators(e, ListOptions{})
+	collaborators, err := repo.getCollaborators(e, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}

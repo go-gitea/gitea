@@ -397,7 +397,7 @@ func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
 
 // ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
 type ListWebhookOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID   int64
 	OrgID    int64
 	IsActive util.OptionalBool
@@ -421,7 +421,7 @@ func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, erro
 	sess := e.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 		webhooks := make([]*Webhook, 0, opts.PageSize)
 		err := sess.Find(&webhooks)
 		return webhooks, err

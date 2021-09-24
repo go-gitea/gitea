@@ -964,7 +964,7 @@ func getCommentByID(e db.Engine, id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID   int64
 	IssueID  int64
 	ReviewID int64
@@ -1012,7 +1012,7 @@ func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 	}
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment

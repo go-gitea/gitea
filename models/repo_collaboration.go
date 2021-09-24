@@ -64,13 +64,13 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	return sess.Commit()
 }
 
-func (repo *Repository) getCollaborations(e db.Engine, listOptions ListOptions) ([]*Collaboration, error) {
+func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
 		collaborations := make([]*Collaboration, 0, 8)
 		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 	}
 
-	e = setEnginePagination(e, &listOptions)
+	e = db.SetEnginePagination(e, &listOptions)
 
 	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
 	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
@@ -82,7 +82,7 @@ type Collaborator struct {
 	Collaboration *Collaboration
 }
 
-func (repo *Repository) getCollaborators(e db.Engine, listOptions ListOptions) ([]*Collaborator, error) {
+func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions) ([]*Collaborator, error) {
 	collaborations, err := repo.getCollaborations(e, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
@@ -103,7 +103,7 @@ func (repo *Repository) getCollaborators(e db.Engine, listOptions ListOptions) (
 }
 
 // GetCollaborators returns the collaborators for a repository
-func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborator, error) {
+func (repo *Repository) GetCollaborators(listOptions db.ListOptions) ([]*Collaborator, error) {
 	return repo.getCollaborators(db.GetEngine(db.DefaultContext), listOptions)
 }
 
