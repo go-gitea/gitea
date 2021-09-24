@@ -18,7 +18,8 @@ type Statistic struct {
 		Comment, Oauth, Follow,
 		Mirror, Release, LoginSource, Webhook,
 		Milestone, Label, HookTask,
-		Team, UpdateTask, Attachment int64
+		Team, UpdateTask, Project,
+		ProjectBoard, Attachment int64
 	}
 }
 
@@ -62,5 +63,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.HookTask, _ = db.GetEngine(db.DefaultContext).Count(new(HookTask))
 	stats.Counter.Team, _ = db.GetEngine(db.DefaultContext).Count(new(Team))
 	stats.Counter.Attachment, _ = db.GetEngine(db.DefaultContext).Count(new(Attachment))
+	stats.Counter.Project, _ = db.GetEngine(db.DefaultContext).Count(new(Project))
+	stats.Counter.ProjectBoard, _ = db.GetEngine(db.DefaultContext).Count(new(ProjectBoard))
 	return
 }
