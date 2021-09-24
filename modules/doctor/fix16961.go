@@ -22,7 +22,219 @@ import (
 
 // We therefore need to provide a doctor command to fix this repeated issue #16961
 
-func fixBrokenRepoUnits(logger log.Logger, autofix bool) error {
+func fixUnitConfig_16961(bs []byte, cfg *models.UnitConfig) (fixed bool, err error) {
+	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	if err == nil {
+		return
+	}
+
+	// Handle #16961
+	if string(bs) != "&{}" && len(bs) != 0 {
+		return
+	}
+
+	return true, nil
+}
+
+func fixExternalWikiConfig_16961(bs []byte, cfg *models.ExternalWikiConfig) (fixed bool, err error) {
+	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	if err == nil {
+		return
+	}
+
+	if len(bs) < 3 {
+		return
+	}
+	if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
+		return
+	}
+	cfg.ExternalWikiURL = string(bs[2 : len(bs)-1])
+	return true, nil
+}
+
+func fixExternalTrackerConfig_16961(bs []byte, cfg *models.ExternalTrackerConfig) (fixed bool, err error) {
+	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	if err == nil {
+		return
+	}
+	// Handle #16961
+	if len(bs) < 3 {
+		return
+	}
+
+	if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
+		return
+	}
+
+	parts := bytes.Split(bs[2:len(bs)-1], []byte{' '})
+	if len(parts) != 3 {
+		return
+	}
+
+	cfg.ExternalTrackerURL = string(bytes.Join(parts[:len(parts)-2], []byte{' '}))
+	cfg.ExternalTrackerFormat = string(parts[len(parts)-2])
+	cfg.ExternalTrackerStyle = string(parts[len(parts)-1])
+	return true, nil
+}
+
+func fixPullRequestsConfig_16961(bs []byte, cfg *models.PullRequestsConfig) (fixed bool, err error) {
+	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	if err == nil {
+		return
+	}
+
+	// Handle #16961
+	if len(bs) < 3 {
+		return
+	}
+
+	if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
+		return
+	}
+
+	// PullRequestsConfig was the following in 1.14
+	// type PullRequestsConfig struct {
+	// 	IgnoreWhitespaceConflicts bool
+	// 	AllowMerge                bool
+	// 	AllowRebase               bool
+	// 	AllowRebaseMerge          bool
+	// 	AllowSquash               bool
+	// 	AllowManualMerge          bool
+	// 	AutodetectManualMerge     bool
+	// }
+	//
+	// 1.15 added in addition:
+	// DefaultDeleteBranchAfterMerge bool
+	// DefaultMergeStyle             MergeStyle
+	parts := bytes.Split(bs[2:len(bs)-1], []byte{' '})
+	if len(parts) < 7 {
+		return
+	}
+
+	var parseErr error
+	cfg.IgnoreWhitespaceConflicts, parseErr = strconv.ParseBool(string(parts[0]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AllowMerge, parseErr = strconv.ParseBool(string(parts[1]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AllowRebase, parseErr = strconv.ParseBool(string(parts[2]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AllowRebaseMerge, parseErr = strconv.ParseBool(string(parts[3]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AllowSquash, parseErr = strconv.ParseBool(string(parts[4]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AllowManualMerge, parseErr = strconv.ParseBool(string(parts[5]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AutodetectManualMerge, parseErr = strconv.ParseBool(string(parts[6]))
+	if parseErr != nil {
+		return
+	}
+
+	// 1.14 unit
+	if len(parts) == 7 {
+		return true, nil
+	}
+
+	if len(parts) < 9 {
+		return
+	}
+
+	cfg.DefaultDeleteBranchAfterMerge, parseErr = strconv.ParseBool(string(parts[7]))
+	if parseErr != nil {
+		return
+	}
+
+	cfg.DefaultMergeStyle = models.MergeStyle(string(bytes.Join(parts[8:], []byte{' '})))
+	return true, nil
+}
+
+func fixIssuesConfig_16961(bs []byte, cfg *models.IssuesConfig) (fixed bool, err error) {
+	err = models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	if err == nil {
+		return
+	}
+
+	// Handle #16961
+	if len(bs) < 3 {
+		return
+	}
+
+	if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
+		return
+	}
+
+	parts := bytes.Split(bs[2:len(bs)-1], []byte{' '})
+	if len(parts) != 3 {
+		return
+	}
+	var parseErr error
+	cfg.EnableTimetracker, parseErr = strconv.ParseBool(string(parts[0]))
+	if parseErr != nil {
+		return
+	}
+	cfg.AllowOnlyContributorsToTrackTime, parseErr = strconv.ParseBool(string(parts[1]))
+	if parseErr != nil {
+		return
+	}
+	cfg.EnableDependencies, parseErr = strconv.ParseBool(string(parts[2]))
+	if parseErr != nil {
+		return
+	}
+	return true, nil
+}
+
+func fixBrokenRepoUnit_16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, err error) {
+	switch models.UnitType(repoUnit.Type) {
+	case models.UnitTypeCode, models.UnitTypeReleases, models.UnitTypeWiki, models.UnitTypeProjects:
+		cfg := &models.UnitConfig{}
+		repoUnit.Config = cfg
+		if fixed, err := fixUnitConfig_16961(bs, cfg); !fixed {
+			return false, err
+		}
+	case models.UnitTypeExternalWiki:
+		cfg := &models.ExternalWikiConfig{}
+		repoUnit.Config = cfg
+
+		if fixed, err := fixExternalWikiConfig_16961(bs, cfg); !fixed {
+			return false, err
+		}
+	case models.UnitTypeExternalTracker:
+		cfg := &models.ExternalTrackerConfig{}
+		repoUnit.Config = cfg
+		if fixed, err := fixExternalTrackerConfig_16961(bs, cfg); !fixed {
+			return false, err
+		}
+	case models.UnitTypePullRequests:
+		cfg := &models.PullRequestsConfig{}
+		repoUnit.Config = cfg
+
+		if fixed, err := fixPullRequestsConfig_16961(bs, cfg); !fixed {
+			return false, err
+		}
+	case models.UnitTypeIssues:
+		cfg := &models.IssuesConfig{}
+		repoUnit.Config = cfg
+		if fixed, err := fixIssuesConfig_16961(bs, cfg); !fixed {
+			return false, err
+		}
+	default:
+		panic(fmt.Sprintf("unrecognized repo unit type: %v", repoUnit.Type))
+	}
+	return true, nil
+}
+
+func fixBrokenRepoUnits_16961(logger log.Logger, autofix bool) error {
 	// RepoUnit describes all units of a repository
 	type RepoUnit struct {
 		ID          int64
@@ -49,180 +261,8 @@ func fixBrokenRepoUnits(logger log.Logger, autofix bool) error {
 				CreatedUnix: unit.CreatedUnix,
 			}
 
-			switch models.UnitType(unit.Type) {
-			case models.UnitTypeCode, models.UnitTypeReleases, models.UnitTypeWiki, models.UnitTypeProjects:
-				cfg := &models.UnitConfig{}
-				repoUnit.Config = cfg
-
-				err := models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
-				if err == nil {
-					return nil
-				}
-
-				// Handle #16961
-				if string(bs) != "&{}" {
-					return err
-				}
-			case models.UnitTypeExternalWiki:
-				cfg := &models.ExternalWikiConfig{}
-				repoUnit.Config = cfg
-				err := models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
-				if err == nil {
-					return nil
-				}
-
-				if len(bs) < 3 {
-					return err
-				}
-				if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
-					return err
-				}
-				cfg.ExternalWikiURL = string(bs[2 : len(bs)-1])
-			case models.UnitTypeExternalTracker:
-				cfg := &models.ExternalTrackerConfig{}
-				repoUnit.Config = cfg
-				err := models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
-				if err == nil {
-					return nil
-				}
-				// Handle #16961
-				if len(bs) < 3 {
-					return err
-				}
-
-				if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
-					return err
-				}
-
-				parts := bytes.Split(bs[2:len(bs)-1], []byte{' '})
-				if len(parts) != 3 {
-					return err
-				}
-
-				cfg.ExternalTrackerURL = string(bytes.Join(parts[:len(parts)-2], []byte{' '}))
-				cfg.ExternalTrackerFormat = string(parts[len(parts)-2])
-				cfg.ExternalTrackerStyle = string(parts[len(parts)-1])
-			case models.UnitTypePullRequests:
-				cfg := &models.PullRequestsConfig{}
-				repoUnit.Config = cfg
-				err := models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
-				if err == nil {
-					return nil
-				}
-
-				// Handle #16961
-				if len(bs) < 3 {
-					return err
-				}
-
-				if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
-					return err
-				}
-
-				// PullRequestsConfig was the following in 1.14
-				// type PullRequestsConfig struct {
-				// 	IgnoreWhitespaceConflicts bool
-				// 	AllowMerge                bool
-				// 	AllowRebase               bool
-				// 	AllowRebaseMerge          bool
-				// 	AllowSquash               bool
-				// 	AllowManualMerge          bool
-				// 	AutodetectManualMerge     bool
-				// }
-				//
-				// 1.15 added in addition:
-				// DefaultDeleteBranchAfterMerge bool
-				// DefaultMergeStyle             MergeStyle
-				parts := bytes.Split(bs[2:len(bs)-1], []byte{' '})
-				if len(parts) < 7 {
-					return err
-				}
-
-				var parseErr error
-				cfg.IgnoreWhitespaceConflicts, parseErr = strconv.ParseBool(string(parts[0]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AllowMerge, parseErr = strconv.ParseBool(string(parts[1]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AllowRebase, parseErr = strconv.ParseBool(string(parts[2]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AllowRebaseMerge, parseErr = strconv.ParseBool(string(parts[3]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AllowSquash, parseErr = strconv.ParseBool(string(parts[4]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AllowManualMerge, parseErr = strconv.ParseBool(string(parts[5]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AutodetectManualMerge, parseErr = strconv.ParseBool(string(parts[6]))
-				if parseErr != nil {
-					return err
-				}
-
-				// 1.14 unit
-				if len(parts) == 7 {
-					count++
-					if !autofix {
-						return nil
-					}
-					return models.UpdateRepoUnit(repoUnit)
-				}
-
-				if len(parts) < 9 {
-					return err
-				}
-
-				cfg.DefaultDeleteBranchAfterMerge, parseErr = strconv.ParseBool(string(parts[7]))
-				if parseErr != nil {
-					return err
-				}
-
-				cfg.DefaultMergeStyle = models.MergeStyle(string(bytes.Join(parts[8:], []byte{' '})))
-			case models.UnitTypeIssues:
-				cfg := &models.IssuesConfig{}
-				repoUnit.Config = cfg
-				err := models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
-				if err == nil {
-					return nil
-				}
-
-				// Handle #16961
-				if len(bs) < 3 {
-					return err
-				}
-
-				if bs[0] != '&' || bs[1] != '{' || bs[len(bs)-1] != '}' {
-					return err
-				}
-
-				parts := bytes.Split(bs[2:len(bs)-1], []byte{' '})
-				if len(parts) != 3 {
-					return err
-				}
-				var parseErr error
-				cfg.EnableTimetracker, parseErr = strconv.ParseBool(string(parts[0]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.AllowOnlyContributorsToTrackTime, parseErr = strconv.ParseBool(string(parts[1]))
-				if parseErr != nil {
-					return err
-				}
-				cfg.EnableDependencies, parseErr = strconv.ParseBool(string(parts[2]))
-				if parseErr != nil {
-					return err
-				}
-			default:
-				panic(fmt.Sprintf("unrecognized repo unit type: %v", unit.Type))
+			if fixed, err := fixBrokenRepoUnit_16961(repoUnit, bs); !fixed {
+				return err
 			}
 
 			count++
@@ -253,7 +293,7 @@ func init() {
 		Title:     "Check for incorrectly dumped repo_units (See #16961)",
 		Name:      "fix-broken-repo-units",
 		IsDefault: false,
-		Run:       fixBrokenRepoUnits,
+		Run:       fixBrokenRepoUnits_16961,
 		Priority:  7,
 	})
 }
