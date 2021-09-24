@@ -186,10 +186,8 @@ func updateProjectBoard(e Engine, board *ProjectBoard) error {
 		fieldToUpdate = append(fieldToUpdate, "title")
 	}
 
-	if len(board.Color) != 0 {
-		if !BoardColorPattern.MatchString(board.Color) {
-			return fmt.Errorf("bad color code: %s", board.Color)
-		}
+	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
+		return fmt.Errorf("bad color code: %s", board.Color)
 	}
 	fieldToUpdate = append(fieldToUpdate, "color")
 
