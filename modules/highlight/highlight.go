@@ -95,10 +95,6 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
 	)
-	if formatter == nil {
-		log.Error("Couldn't create chroma formatter")
-		return code
-	}
 
 	htmlbuf := bytes.Buffer{}
 	htmlw := bufio.NewWriter(&htmlbuf)
