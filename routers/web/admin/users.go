@@ -195,9 +195,9 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["TwoFactorEnabled"] = true
-	_, err = models.GetTwoFactorByUID(u.ID)
+	_, err = login.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if !models.IsErrTwoFactorNotEnrolled(err) {
+		if !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 			return nil
 		}
@@ -295,13 +295,13 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Reset2FA {
-		tf, err := models.GetTwoFactorByUID(u.ID)
-		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+		tf, err := login.GetTwoFactorByUID(u.ID)
+		if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("GetTwoFactorByUID", err)
 			return
 		}
 
-		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+		if err = login.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
 			ctx.ServerError("DeleteTwoFactorByID", err)
 			return
 		}
