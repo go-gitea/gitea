@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -139,10 +140,10 @@ func (p *Permission) ColorFormat(s fmt.State) {
 
 // GetUserRepoPermission returns the user permissions to the repository
 func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
-	return getUserRepoPermission(x, repo, user)
+	return getUserRepoPermission(db.GetEngine(db.DefaultContext), repo, user)
 }
 
-func getUserRepoPermission(e Engine, repo *Repository, user *User) (perm Permission, err error) {
+func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Permission, err error) {
 	if log.IsTrace() {
 		defer func() {
 			if user == nil {
@@ -277,7 +278,7 @@ func IsUserRealRepoAdmin(repo *Repository, user *User) (bool, error) {
 		return true, nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := repo.getOwner(sess); err != nil {
@@ -294,10 +295,10 @@ func IsUserRealRepoAdmin(repo *Repository, user *User) (bool, error) {
 
 // IsUserRepoAdmin return true if user has admin right of a repo
 func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
-	return isUserRepoAdmin(x, repo, user)
+	return isUserRepoAdmin(db.GetEngine(db.DefaultContext), repo, user)
 }
 
-func isUserRepoAdmin(e Engine, repo *Repository, user *User) (bool, error) {
+func isUserRepoAdmin(e db.Engine, repo *Repository, user *User) (bool, error) {
 	if user == nil || repo == nil {
 		return false, nil
 	}
@@ -329,16 +330,16 @@ func isUserRepoAdmin(e Engine, repo *Repository, user *User) (bool, error) {
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
 func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
-	return accessLevelUnit(x, user, repo, UnitTypeCode)
+	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, UnitTypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
 func AccessLevelUnit(user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
-	return accessLevelUnit(x, user, repo, unitType)
+	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, unitType)
 }
 
-func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+func accessLevelUnit(e db.Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
 		return AccessModeNone, err
@@ -346,24 +347,24 @@ func accessLevelUnit(e Engine, user *User, repo *Repository, unitType UnitType) 
 	return perm.UnitAccessMode(unitType), nil
 }
 
-func hasAccessUnit(e Engine, user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
+func hasAccessUnit(e db.Engine, user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
 	mode, err := accessLevelUnit(e, user, repo, unitType)
 	return testMode <= mode, err
 }
 
 // HasAccessUnit returns true if user has testMode to the unit of the repository
 func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
-	return hasAccessUnit(x, user, repo, unitType, testMode)
+	return hasAccessUnit(db.GetEngine(db.DefaultContext), user, repo, unitType, testMode)
 }
 
 // CanBeAssigned return true if user can be assigned to issue or pull requests in repo
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
 func CanBeAssigned(user *User, repo *Repository, isPull bool) (bool, error) {
-	return canBeAssigned(x, user, repo, isPull)
+	return canBeAssigned(db.GetEngine(db.DefaultContext), user, repo, isPull)
 }
 
-func canBeAssigned(e Engine, user *User, repo *Repository, _ bool) (bool, error) {
+func canBeAssigned(e db.Engine, user *User, repo *Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
@@ -374,7 +375,7 @@ func canBeAssigned(e Engine, user *User, repo *Repository, _ bool) (bool, error)
 	return perm.CanAccessAny(AccessModeWrite, UnitTypeCode, UnitTypeIssues, UnitTypePullRequests), nil
 }
 
-func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
+func hasAccess(e db.Engine, userID int64, repo *Repository) (bool, error) {
 	var user *User
 	var err error
 	if userID > 0 {
@@ -392,7 +393,7 @@ func hasAccess(e Engine, userID int64, repo *Repository) (bool, error) {
 
 // HasAccess returns true if user has access to repo
 func HasAccess(userID int64, repo *Repository) (bool, error) {
-	return hasAccess(x, userID, repo)
+	return hasAccess(db.GetEngine(db.DefaultContext), userID, repo)
 }
 
 // FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories

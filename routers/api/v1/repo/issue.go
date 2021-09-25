@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -87,6 +88,14 @@ func SearchIssues(ctx *context.APIContext) {
 	//   in: query
 	//   description: filter pulls requesting your review, default is false
 	//   type: boolean
+	// - name: owner
+	//   in: query
+	//   description: filter by owner
+	//   type: string
+	// - name: team
+	//   in: query
+	//   description: filter by team (requires organization owner parameter to be provided)
+	//   type: string
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -129,6 +138,37 @@ func SearchIssues(ctx *context.APIContext) {
 	if ctx.IsSigned {
 		opts.Private = true
 		opts.AllLimited = true
+	}
+	if ctx.FormString("owner") != "" {
+		owner, err := models.GetUserByName(ctx.FormString("owner"))
+		if err != nil {
+			if models.IsErrUserNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Owner not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.OwnerID = owner.ID
+		opts.AllLimited = false
+		opts.AllPublic = false
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+	if ctx.FormString("team") != "" {
+		if ctx.FormString("owner") == "" {
+			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
+			return
+		}
+		team, err := models.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		if err != nil {
+			if models.IsErrTeamNotExist(err) {
+				ctx.Error(http.StatusBadRequest, "Team not found", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+			}
+			return
+		}
+		opts.TeamID = team.ID
 	}
 
 	repoIDs, _, err := models.SearchRepositoryIDs(opts)
@@ -187,7 +227,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &models.IssuesOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
@@ -222,7 +262,7 @@ func SearchIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
+		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
@@ -278,27 +318,27 @@ func ListIssues(ctx *context.APIContext) {
 	//   type: string
 	// - name: since
 	//   in: query
-	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show items updated after the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
 	//   required: false
 	// - name: before
 	//   in: query
-	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
+	//   description: Only show items updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
 	//   required: false
 	// - name: created_by
 	//   in: query
-	//   description: filter (issues / pulls) created to
+	//   description: Only show items which were created by the the given user
 	//   type: string
 	// - name: assigned_by
 	//   in: query
-	//   description: filter (issues / pulls) assigned to
+	//   description: Only show items for which the given user is assigned
 	//   type: string
 	// - name: mentioned_by
 	//   in: query
-	//   description: filter (issues / pulls) mentioning to
+	//   description: Only show items in which the given user was mentioned
 	//   type: string
 	// - name: page
 	//   in: query
@@ -431,7 +471,7 @@ func ListIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
+		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {

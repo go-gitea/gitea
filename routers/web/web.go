@@ -40,7 +40,6 @@ import (
 	_ "code.gitea.io/gitea/modules/session"
 
 	"gitea.com/go-chi/captcha"
-	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/cors"
@@ -72,7 +71,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
+func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
 
 	routes.Use(public.AssetsHandler(&public.Options{
@@ -81,17 +80,7 @@ func Routes() *web.Route {
 		CorsHandler: CorsHandler(),
 	}))
 
-	routes.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	}))
+	routes.Use(sessioner)
 
 	routes.Use(Recovery())
 
@@ -311,6 +300,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/login/oauth/userinfo", ignSignInAndCsrf, user.InfoOAuth)
 	m.Post("/login/oauth/access_token", CorsHandler(), bindIgnErr(forms.AccessTokenForm{}), ignSignInAndCsrf, user.AccessTokenOAuth)
 	m.Get("/login/oauth/keys", ignSignInAndCsrf, user.OIDCKeys)
+	m.Post("/login/oauth/introspect", CorsHandler(), bindIgnErr(forms.IntrospectTokenForm{}), ignSignInAndCsrf, user.IntrospectOAuth)
 
 	m.Group("/user/settings", func() {
 		m.Get("", userSetting.Profile)
@@ -894,7 +884,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/_pages", repo.WikiPages)
 			m.Get("/{page}/_revision", repo.WikiRevision)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{:patch|diff}", repo.RawDiff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 
 			m.Group("", func() {
 				m.Combo("/_new").Get(repo.NewWiki).

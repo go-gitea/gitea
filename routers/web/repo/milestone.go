@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -59,7 +60,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	miles, total, err := models.GetMilestones(models.GetMilestonesOption{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},
@@ -83,6 +84,7 @@ func Milestones(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, m.Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -276,6 +278,7 @@ func MilestoneIssuesAndPulls(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, milestone.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)

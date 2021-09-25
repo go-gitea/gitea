@@ -777,7 +777,7 @@ type Actioner interface {
 // ActionIcon accepts an action operation type and returns an icon class name.
 func ActionIcon(opType models.ActionType) string {
 	switch opType {
-	case models.ActionCreateRepo, models.ActionTransferRepo:
+	case models.ActionCreateRepo, models.ActionTransferRepo, models.ActionRenameRepo:
 		return "repo"
 	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
 		return "git-commit"
@@ -819,6 +819,11 @@ func ActionContent2Commits(act Actioner) *repository.PushCommits {
 	if err := json.Unmarshal([]byte(act.GetContent()), push); err != nil {
 		log.Error("json.Unmarshal:\n%s\nERROR: %v", act.GetContent(), err)
 	}
+
+	if push.Len == 0 {
+		push.Len = len(push.Commits)
+	}
+
 	return push
 }
 
@@ -906,13 +911,13 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 	return keyN
 }
 
-// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
 func MigrationIcon(hostname string) string {
 	switch hostname {
 	case "github.com":
-		return "fa-github"
+		return "octicon-mark-github"
 	default:
-		return "fa-git-alt"
+		return "gitea-git"
 	}
 }
 

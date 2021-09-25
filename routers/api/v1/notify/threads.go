@@ -71,7 +71,7 @@ func ReadThread(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/NotificationThread"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
@@ -87,12 +87,16 @@ func ReadThread(ctx *context.APIContext) {
 		targetStatus = models.NotificationStatusRead
 	}
 
-	err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+	notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	ctx.Status(http.StatusResetContent)
+	if err = notif.LoadAttributes(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(notif))
 }
 
 func getThread(ctx *context.APIContext) *models.Notification {

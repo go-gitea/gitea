@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -29,13 +31,13 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 	if !strings.Contains(accessToken, ".") {
 		return 0
 	}
-	token, err := oauth2.ParseToken(accessToken)
+	token, err := oauth2.ParseToken(accessToken, oauth2.DefaultSigningKey)
 	if err != nil {
-		log.Trace("ParseOAuth2Token: %v", err)
+		log.Trace("oauth2.ParseToken: %v", err)
 		return 0
 	}
-	var grant *models.OAuth2Grant
-	if grant, err = models.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
+	var grant *login.OAuth2Grant
+	if grant, err = login.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
@@ -109,11 +111,11 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
 func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
-	if !models.HasEngine {
+	if !db.HasEngine {
 		return nil
 	}
 
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isAuthenticatedTokenRequest(req) {
 		return nil
 	}
 
@@ -133,4 +135,14 @@ func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStor
 
 	log.Trace("OAuth2 Authorization: Logged in user %-v", user)
 	return user
+}
+
+func isAuthenticatedTokenRequest(req *http.Request) bool {
+	switch req.URL.Path {
+	case "/login/oauth/userinfo":
+		fallthrough
+	case "/login/oauth/introspect":
+		return true
+	}
+	return false
 }

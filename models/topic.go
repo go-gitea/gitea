@@ -9,16 +9,15 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
 
 func init() {
-	tables = append(tables,
-		new(Topic),
-		new(RepoTopic),
-	)
+	db.RegisterModel(new(Topic))
+	db.RegisterModel(new(RepoTopic))
 }
 
 var topicPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]*$`)
@@ -89,7 +88,7 @@ func SanitizeAndValidateTopics(topics []string) (validTopics, invalidTopics []st
 // GetTopicByName retrieves topic by name
 func GetTopicByName(name string) (*Topic, error) {
 	var topic Topic
-	if has, err := x.Where("name = ?", name).Get(&topic); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).Where("name = ?", name).Get(&topic); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrTopicNotExist{name}
@@ -99,7 +98,7 @@ func GetTopicByName(name string) (*Topic, error) {
 
 // addTopicByNameToRepo adds a topic name to a repo and increments the topic count.
 // Returns topic after the addition
-func addTopicByNameToRepo(e Engine, repoID int64, topicName string) (*Topic, error) {
+func addTopicByNameToRepo(e db.Engine, repoID int64, topicName string) (*Topic, error) {
 	var topic Topic
 	has, err := e.Where("name = ?", topicName).Get(&topic)
 	if err != nil {
@@ -129,7 +128,7 @@ func addTopicByNameToRepo(e Engine, repoID int64, topicName string) (*Topic, err
 }
 
 // removeTopicFromRepo remove a topic from a repo and decrements the topic repo count
-func removeTopicFromRepo(e Engine, repoID int64, topic *Topic) error {
+func removeTopicFromRepo(e db.Engine, repoID int64, topic *Topic) error {
 	topic.RepoCount--
 	if _, err := e.ID(topic.ID).Cols("repo_count").Update(topic); err != nil {
 		return err
@@ -146,7 +145,7 @@ func removeTopicFromRepo(e Engine, repoID int64, topic *Topic) error {
 }
 
 // removeTopicsFromRepo remove all topics from the repo and decrements respective topics repo count
-func removeTopicsFromRepo(e Engine, repoID int64) error {
+func removeTopicsFromRepo(e db.Engine, repoID int64) error {
 	_, err := e.Where(
 		builder.In("id",
 			builder.Select("topic_id").From("repo_topic").Where(builder.Eq{"repo_id": repoID}),
@@ -165,7 +164,7 @@ func removeTopicsFromRepo(e Engine, repoID int64) error {
 
 // FindTopicOptions represents the options when fdin topics
 type FindTopicOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID  int64
 	Keyword string
 }
@@ -185,12 +184,12 @@ func (opts *FindTopicOptions) toConds() builder.Cond {
 
 // FindTopics retrieves the topics via FindTopicOptions
 func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
-	sess := x.Select("topic.*").Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Select("topic.*").Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
 	if opts.PageSize != 0 && opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 	topics := make([]*Topic, 0, 10)
 	total, err := sess.Desc("topic.repo_count").FindAndCount(&topics)
@@ -199,7 +198,7 @@ func FindTopics(opts *FindTopicOptions) ([]*Topic, int64, error) {
 
 // CountTopics counts the number of topics matching the FindTopicOptions
 func CountTopics(opts *FindTopicOptions) (int64, error) {
-	sess := x.Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
 	}
@@ -208,10 +207,10 @@ func CountTopics(opts *FindTopicOptions) (int64, error) {
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
 func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
-	return getRepoTopicByName(x, repoID, topicName)
+	return getRepoTopicByName(db.GetEngine(db.DefaultContext), repoID, topicName)
 }
 
-func getRepoTopicByName(e Engine, repoID int64, topicName string) (*Topic, error) {
+func getRepoTopicByName(e db.Engine, repoID int64, topicName string) (*Topic, error) {
 	cond := builder.NewCond()
 	var topic Topic
 	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.name": topicName})
@@ -226,7 +225,7 @@ func getRepoTopicByName(e Engine, repoID int64, topicName string) (*Topic, error
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -273,7 +272,7 @@ func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, nil
 	}
 
-	err = removeTopicFromRepo(x, repoID, topic)
+	err = removeTopicFromRepo(db.GetEngine(db.DefaultContext), repoID, topic)
 
 	return topic, err
 }
@@ -287,7 +286,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {

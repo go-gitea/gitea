@@ -739,7 +739,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -822,7 +822,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThread"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1937,6 +1937,18 @@
             "type": "boolean",
             "description": "filter pulls requesting your review, default is false",
             "name": "review_requested",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by owner",
+            "name": "owner",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by team (requires organization owner parameter to be provided)",
+            "name": "team",
             "in": "query"
           },
           {
@@ -3569,6 +3581,60 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}.{diffType}": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a commit's diff or patch",
+        "operationId": "repoDownloadCommitDiffOrPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to get",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/notes/{sha}": {
       "get": {
         "produces": [
@@ -4322,32 +4388,32 @@
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) created to",
+            "description": "Only show items which were created by the the given user",
             "name": "created_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) assigned to",
+            "description": "Only show items for which the given user is assigned",
             "name": "assigned_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) mentioning to",
+            "description": "Only show items in which the given user was mentioned",
             "name": "mentioned_by",
             "in": "query"
           },
@@ -7046,7 +7112,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -7291,7 +7357,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}.diff": {
+    "/repos/{owner}/{repo}/pulls/{index}.{diffType}": {
       "get": {
         "produces": [
           "text/plain"
@@ -7299,8 +7365,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a pull request diff",
-        "operationId": "repoDownloadPullDiff",
+        "summary": "Get a pull request diff or patch",
+        "operationId": "repoDownloadPullDiffOrPatch",
         "parameters": [
           {
             "type": "string",
@@ -7323,48 +7389,15 @@
             "name": "index",
             "in": "path",
             "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/string"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/pulls/{index}.patch": {
-      "get": {
-        "produces": [
-          "text/plain"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a pull request patch file",
-        "operationId": "repoDownloadPullPatch",
-        "parameters": [
           {
+            "enum": [
+              "diff",
+              "patch"
+            ],
             "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the pull request to get",
-            "name": "index",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
             "in": "path",
             "required": true
           }
@@ -8116,6 +8149,16 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "merge",
+              "rebase"
+            ],
+            "type": "string",
+            "description": "how to update pull request",
+            "name": "style",
+            "in": "query"
           }
         ],
         "responses": {
@@ -12365,6 +12408,10 @@
           },
           "x-go-name": "StatusCheckContexts"
         },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -12812,6 +12859,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13814,6 +13865,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"

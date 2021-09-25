@@ -9,13 +9,14 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -216,7 +217,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		issues = []*models.Issue{}
 	} else {
 		issues, err = models.Issues(&models.IssuesOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				Page:     pager.Paginater.Current(),
 				PageSize: setting.UI.IssuePagingNum,
 			},
@@ -278,14 +279,14 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
 
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -419,9 +420,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	}
 
 	handleTeamMentions(ctx)
-	if ctx.Written() {
-		return
-	}
 }
 
 func retrieveProjects(ctx *context.Context, repo *models.Repository) {
@@ -648,14 +646,14 @@ func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull boo
 		return nil
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return nil
 	}
 	ctx.Data["Labels"] = labels
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			return nil
 		}
@@ -710,7 +708,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 		return "", false
 	}
 	defer r.Close()
-	bytes, err = ioutil.ReadAll(r)
+	bytes, err = io.ReadAll(r)
 	if err != nil {
 		return "", false
 	}
@@ -738,10 +736,10 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 			ctx.Data[issueTemplateTitleKey] = meta.Title
 			ctx.Data[ctxDataKey] = templateBody
 			labelIDs := make([]string, 0, len(meta.Labels))
-			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", models.ListOptions{}); err == nil {
+			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
 				ctx.Data["Labels"] = repoLabels
 				if ctx.Repo.Owner.IsOrganization() {
-					if orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{}); err == nil {
+					if orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
 						ctx.Data["OrgLabels"] = orgLabels
 						repoLabels = append(repoLabels, orgLabels...)
 					}
@@ -1138,6 +1136,7 @@ func ViewIssue(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -1166,7 +1165,7 @@ func ViewIssue(ctx *context.Context) {
 	for i := range issue.Labels {
 		labelIDMark[issue.Labels[i].ID] = true
 	}
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
@@ -1174,7 +1173,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -1303,6 +1302,7 @@ func ViewIssue(ctx *context.Context) {
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
 				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:       ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1379,6 +1379,7 @@ func ViewIssue(ctx *context.Context) {
 				URLPrefix: ctx.Repo.RepoLink,
 				Metas:     ctx.Repo.Repository.ComposeMetas(),
 				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:       ctx,
 			}, comment.Content)
 			if err != nil {
 				ctx.ServerError("RenderString", err)
@@ -1727,15 +1728,19 @@ func UpdateIssueContent(ctx *context.Context) {
 		return
 	}
 
-	if err := updateAttachments(issue, ctx.FormStrings("files[]")); err != nil {
-		ctx.ServerError("UpdateAttachments", err)
-		return
+	// when update the request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+	if !ctx.FormBool("ignore_attachments") {
+		if err := updateAttachments(issue, ctx.FormStrings("files[]")); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, issue.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -2127,13 +2132,6 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if comment.Type == models.CommentTypeComment {
-		if err := comment.LoadAttachments(); err != nil {
-			ctx.ServerError("LoadAttachments", err)
-			return
-		}
-	}
-
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull)) {
 		ctx.Error(http.StatusForbidden)
 		return
@@ -2155,15 +2153,26 @@ func UpdateCommentContent(ctx *context.Context) {
 		return
 	}
 
-	if err := updateAttachments(comment, ctx.FormStrings("files[]")); err != nil {
-		ctx.ServerError("UpdateAttachments", err)
-		return
+	if comment.Type == models.CommentTypeComment {
+		if err := comment.LoadAttachments(); err != nil {
+			ctx.ServerError("LoadAttachments", err)
+			return
+		}
+	}
+
+	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
+	if !ctx.FormBool("ignore_attachments") {
+		if err := updateAttachments(comment, ctx.FormStrings("files[]")); err != nil {
+			ctx.ServerError("UpdateAttachments", err)
+			return
+		}
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
 		URLPrefix: ctx.FormString("context"),
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, comment.Content)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
