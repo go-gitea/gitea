@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,9 +19,9 @@ import (
 func TestAPINotification(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	thread5 := models.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	thread5 := db.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -111,7 +112,7 @@ func TestAPINotification(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusResetContent)
 
 	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
-	thread5 = models.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	thread5 = db.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.Equal(t, models.NotificationStatusRead, thread5.Status)
 
 	// -- check notifications --

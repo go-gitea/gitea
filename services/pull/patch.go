@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -100,7 +99,7 @@ func TestPatch(pr *models.PullRequest) error {
 
 func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
 	// 1. Create a plain patch from head to base
-	tmpPatchFile, err := ioutil.TempFile("", "patch")
+	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return false, fmt.Errorf("Unable to create temporary patch file! Error: %v", err)
