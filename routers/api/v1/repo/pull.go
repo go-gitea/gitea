@@ -174,72 +174,41 @@ func GetPullRequest(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
 }
 
-// DownloadPullDiff render a pull's raw diff
-func DownloadPullDiff(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.diff repository repoDownloadPullDiff
-	// ---
-	// summary: Get a pull request diff
-	// produces:
-	// - text/plain
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the pull request to get
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/string"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	DownloadPullDiffOrPatch(ctx, false)
-}
-
-// DownloadPullPatch render a pull's raw patch
-func DownloadPullPatch(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.patch repository repoDownloadPullPatch
-	// ---
-	// summary: Get a pull request patch file
-	// produces:
-	// - text/plain
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: index
-	//   in: path
-	//   description: index of the pull request to get
-	//   type: integer
-	//   format: int64
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/string"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-	DownloadPullDiffOrPatch(ctx, true)
-}
-
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
-func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
+func DownloadPullDiffOrPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/pulls/{index}.{diffType} repository repoDownloadPullDiffOrPatch
+	// ---
+	// summary: Get a pull request diff or patch
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to get
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: diffType
+	//   in: path
+	//   description: whether the output is diff or patch
+	//   type: string
+	//   enum: [diff, patch]
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
@@ -248,6 +217,12 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext, patch bool) {
 			ctx.InternalServerError(err)
 		}
 		return
+	}
+	var patch bool
+	if ctx.Params(":diffType") == "diff" {
+		patch = false
+	} else {
+		patch = true
 	}
 
 	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
@@ -1065,6 +1040,11 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: style
+	//   in: query
+	//   description: how to update pull request
+	//   type: string
+	//   enum: [merge, rebase]
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/empty"
@@ -1111,13 +1091,15 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	allowedUpdate, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User)
+	rebase := ctx.FormString("style") == "rebase"
+
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(pr, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUserAllowedToMerge", err)
 		return
 	}
 
-	if !allowedUpdate {
+	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -1125,9 +1107,12 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	// default merge commit message
 	message := fmt.Sprintf("Merge branch '%s' into %s", pr.BaseBranch, pr.HeadBranch)
 
-	if err = pull_service.Update(pr, ctx.User, message); err != nil {
+	if err = pull_service.Update(pr, ctx.User, message, rebase); err != nil {
 		if models.IsErrMergeConflicts(err) {
 			ctx.Error(http.StatusConflict, "Update", "merge failed because of conflict")
+			return
+		} else if models.IsErrRebaseConflicts(err) {
+			ctx.Error(http.StatusConflict, "Update", "rebase failed because of conflict")
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "pull_service.Update", err)

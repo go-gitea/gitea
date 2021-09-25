@@ -475,10 +475,7 @@ func Init() error {
 	return nil
 }
 
-// isIPPrivate reports whether ip is a private address, according to
-// RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
-// from https://github.com/golang/go/pull/42793
-// TODO remove if https://github.com/golang/go/issues/29146 got resolved
+// TODO: replace with `ip.IsPrivate()` if min go version is bumped to 1.17
 func isIPPrivate(ip net.IP) bool {
 	if ip4 := ip.To4(); ip4 != nil {
 		return ip4[0] == 10 ||

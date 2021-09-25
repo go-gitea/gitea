@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -83,7 +84,18 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		ctx.Data["PageIsTagList"] = false
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags()
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: ctx.FormInt("limit"),
+	}
+	if listOptions.PageSize == 0 {
+		listOptions.PageSize = setting.Repository.Release.DefaultPagingNum
+	}
+	if listOptions.PageSize > setting.API.MaxResponseItems {
+		listOptions.PageSize = setting.API.MaxResponseItems
+	}
+
+	tags, err := ctx.Repo.GitRepo.GetTags(listOptions.GetStartEnd())
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -92,19 +104,9 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
-	limit := ctx.FormInt("limit")
-	if limit == 0 {
-		limit = setting.Repository.Release.DefaultPagingNum
-	}
-	if limit > setting.API.MaxResponseItems {
-		limit = setting.API.MaxResponseItems
-	}
 
 	opts := models.FindReleasesOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.FormInt("page"),
-			PageSize: limit,
-		},
+		ListOptions:   listOptions,
 		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
 	}

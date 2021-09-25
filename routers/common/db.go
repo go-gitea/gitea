@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,7 +25,7 @@ func InitDBEngine(ctx context.Context) (err error) {
 		default:
 		}
 		log.Info("ORM engine initialization attempt #%d/%d...", i+1, setting.Database.DBConnectRetries)
-		if err = models.NewEngine(ctx, migrations.Migrate); err == nil {
+		if err = db.NewEngine(ctx, migrations.Migrate); err == nil {
 			break
 		} else if i == setting.Database.DBConnectRetries-1 {
 			return err
@@ -34,6 +34,6 @@ func InitDBEngine(ctx context.Context) (err error) {
 		log.Info("Backing off for %d seconds", int64(setting.Database.DBConnectBackoff/time.Second))
 		time.Sleep(setting.Database.DBConnectBackoff)
 	}
-	models.HasEngine = true
+	db.HasEngine = true
 	return nil
 }

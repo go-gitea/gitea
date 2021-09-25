@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -175,7 +176,10 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) *Dingtalk
 			Title:       strings.TrimSpace(title),
 			HideAvatar:  "0",
 			SingleTitle: singleTitle,
-			SingleURL:   singleURL,
+
+			// https://developers.dingtalk.com/document/app/message-link-description
+			// to open the link in browser, we should use this URL, otherwise the page is displayed inside DingTalk client, very difficult to visit non-public URLs.
+			SingleURL: "dingtalk://dingtalkclient/page/link?pc_slide=false&url=" + url.QueryEscape(singleURL),
 		},
 	}
 }

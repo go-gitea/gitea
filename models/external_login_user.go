@@ -7,6 +7,8 @@ package models
 import (
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
@@ -34,15 +36,19 @@ type ExternalLoginUser struct {
 	ExpiresAt         time.Time
 }
 
+func init() {
+	db.RegisterModel(new(ExternalLoginUser))
+}
+
 // GetExternalLogin checks if a externalID in loginSourceID scope already exists
 func GetExternalLogin(externalLoginUser *ExternalLoginUser) (bool, error) {
-	return x.Get(externalLoginUser)
+	return db.GetEngine(db.DefaultContext).Get(externalLoginUser)
 }
 
 // ListAccountLinks returns a map with the ExternalLoginUser and its LoginSource
 func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 	externalAccounts := make([]*ExternalLoginUser, 0, 5)
-	err := x.Where("user_id=?", user.ID).
+	err := db.GetEngine(db.DefaultContext).Where("user_id=?", user.ID).
 		Desc("login_source_id").
 		Find(&externalAccounts)
 	if err != nil {
@@ -54,7 +60,7 @@ func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 
 // LinkExternalToUser link the external user to the user
 func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error {
-	has, err := x.Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
+	has, err := db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
 		NoAutoCondition().
 		Exist(externalLoginUser)
 	if err != nil {
@@ -63,13 +69,13 @@ func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error 
 		return ErrExternalLoginUserAlreadyExist{externalLoginUser.ExternalID, user.ID, externalLoginUser.LoginSourceID}
 	}
 
-	_, err = x.Insert(externalLoginUser)
+	_, err = db.GetEngine(db.DefaultContext).Insert(externalLoginUser)
 	return err
 }
 
 // RemoveAccountLink will remove all external login sources for the given user
 func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
-	deleted, err := x.Delete(&ExternalLoginUser{UserID: user.ID, LoginSourceID: loginSourceID})
+	deleted, err := db.GetEngine(db.DefaultContext).Delete(&ExternalLoginUser{UserID: user.ID, LoginSourceID: loginSourceID})
 	if err != nil {
 		return deleted, err
 	}
@@ -80,7 +86,7 @@ func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
 }
 
 // removeAllAccountLinks will remove all external login sources for the given user
-func removeAllAccountLinks(e Engine, user *User) error {
+func removeAllAccountLinks(e db.Engine, user *User) error {
 	_, err := e.Delete(&ExternalLoginUser{UserID: user.ID})
 	return err
 }
@@ -88,7 +94,7 @@ func removeAllAccountLinks(e Engine, user *User) error {
 // GetUserIDByExternalUserID get user id according to provider and userID
 func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 	var id int64
-	_, err := x.Table("external_login_user").
+	_, err := db.GetEngine(db.DefaultContext).Table("external_login_user").
 		Select("user_id").
 		Where("provider=?", provider).
 		And("external_id=?", userID).
@@ -101,7 +107,7 @@ func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 
 // UpdateExternalUser updates external user's information
 func UpdateExternalUser(user *User, gothUser goth.User) error {
-	loginSource, err := GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return err
 	}
@@ -125,7 +131,7 @@ func UpdateExternalUser(user *User, gothUser goth.User) error {
 		ExpiresAt:         gothUser.ExpiresAt,
 	}
 
-	has, err := x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).
+	has, err := db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).
 		NoAutoCondition().
 		Exist(externalLoginUser)
 	if err != nil {
@@ -134,7 +140,7 @@ func UpdateExternalUser(user *User, gothUser goth.User) error {
 		return ErrExternalLoginUserNotExist{user.ID, loginSource.ID}
 	}
 
-	_, err = x.Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).AllCols().Update(externalLoginUser)
+	_, err = db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", gothUser.UserID, loginSource.ID).AllCols().Update(externalLoginUser)
 	return err
 }
 
@@ -156,7 +162,7 @@ func (opts FindExternalUserOptions) toConds() builder.Cond {
 // FindExternalUsersByProvider represents external users via provider
 func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginUser, error) {
 	var users []ExternalLoginUser
-	err := x.Where(opts.toConds()).
+	err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).
 		Limit(opts.Limit, opts.Start).
 		OrderBy("login_source_id ASC, external_id ASC").
 		Find(&users)

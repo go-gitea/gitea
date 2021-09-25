@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 )
@@ -60,8 +60,8 @@ func prepareQueryArg(ctx *context.APIContext, name string) (value string, err er
 }
 
 // GetListOptions returns list options using the page and limit parameters
-func GetListOptions(ctx *context.APIContext) models.ListOptions {
-	return models.ListOptions{
+func GetListOptions(ctx *context.APIContext) db.ListOptions {
+	return db.ListOptions{
 		Page:     ctx.FormInt("page"),
 		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 	}

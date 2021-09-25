@@ -8,7 +8,7 @@ package context
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -547,7 +547,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags()
+	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -915,7 +915,7 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 						_ = r.Close()
 					}
 				}()
-				data, err := ioutil.ReadAll(r)
+				data, err := io.ReadAll(r)
 				if err != nil {
 					log.Debug("ReadAll: %v", err)
 					continue

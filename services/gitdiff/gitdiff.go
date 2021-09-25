@@ -13,7 +13,6 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -23,6 +22,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -30,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
@@ -593,6 +595,8 @@ type DiffFile struct {
 	IsIncomplete            bool
 	IsIncompleteLineTooLong bool
 	IsProtected             bool
+	IsGenerated             bool
+	IsVendored              bool
 }
 
 // GetType returns type of diff file.
@@ -716,7 +720,7 @@ parsingLoop:
 		// TODO: Handle skipping first n files
 		if len(diff.Files) >= maxFiles {
 			diff.IsIncomplete = true
-			_, err := io.Copy(ioutil.Discard, reader)
+			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
 				// By the definition of io.Copy this never returns io.EOF
 				return diff, fmt.Errorf("Copy: %v", err)
@@ -996,6 +1000,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 
 			// Create a new section to represent this hunk
 			curSection = &DiffSection{}
+			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
 			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
@@ -1036,6 +1041,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
+				lastLeftIdx = -1
 			}
 			if lastLeftIdx > -1 {
 				diffLine.Match = lastLeftIdx
@@ -1061,6 +1067,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				// Create a new section to represent this hunk
 				curSection = &DiffSection{}
 				curFile.Sections = append(curFile.Sections, curSection)
+				lastLeftIdx = -1
 			}
 			if len(curSection.Lines) == 0 || curSection.Lines[len(curSection.Lines)-1].Type != DiffLineDel {
 				lastLeftIdx = len(curSection.Lines)
@@ -1115,12 +1122,13 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
 				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := models.Count(m)
+				count, err := db.Count(m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
 					curFile.IsLFSFile = true
 					curSection.Lines = nil
+					lastLeftIdx = -1
 				}
 			}
 		}
@@ -1264,7 +1272,81 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
+
+	var checker *git.CheckAttributeReader
+
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
+		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+			workdir, err := os.MkdirTemp("", "empty-work-dir")
+			if err != nil {
+				log.Error("Unable to create temporary directory: %v", err)
+				return nil, err
+			}
+			defer func() {
+				_ = util.RemoveAll(workdir)
+			}()
+
+			checker = &git.CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated"},
+				Repo:       gitRepo,
+				IndexFile:  indexFilename,
+				WorkTree:   workdir,
+			}
+			ctx, cancel := context.WithCancel(git.DefaultContext)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+			} else {
+				go func() {
+					err = checker.Run()
+					if err != nil && err != ctx.Err() {
+						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+					}
+					cancel()
+				}()
+			}
+			defer func() {
+				cancel()
+			}()
+		}
+	}
+
 	for _, diffFile := range diff.Files {
+
+		gotVendor := false
+		gotGenerated := false
+		if checker != nil {
+			attrs, err := checker.CheckPath(diffFile.Name)
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						diffFile.IsVendored = true
+						gotVendor = true
+					} else {
+						gotVendor = vendored == "false"
+					}
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						diffFile.IsGenerated = true
+						gotGenerated = true
+					} else {
+						gotGenerated = generated == "false"
+					}
+				}
+			} else {
+				log.Error("Unexpected error: %v", err)
+			}
+		}
+
+		if !gotVendor {
+			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		}
+		if !gotGenerated {
+			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		}
+
 		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)

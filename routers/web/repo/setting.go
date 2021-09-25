@@ -8,13 +8,14 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -34,6 +35,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 const (
@@ -52,7 +54,8 @@ func Settings(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
 
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
@@ -144,7 +147,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror":
-		if !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -220,7 +223,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "mirror-sync":
-		if !repo.IsMirror {
+		if !setting.Mirror.Enabled || !repo.IsMirror {
 			ctx.NotFound("", nil)
 			return
 		}
@@ -231,6 +234,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-sync":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		m, err := selectPushMirrorByForm(form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
@@ -243,6 +251,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-remove":
+		if !setting.Mirror.Enabled {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -267,6 +280,11 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(repo.Link() + "/settings")
 
 	case "push-mirror-add":
+		if setting.Mirror.DisableNewPush {
+			ctx.NotFound("", nil)
+			return
+		}
+
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
@@ -538,10 +556,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repo.IsFork = false
-		repo.ForkID = 0
-		if err := models.UpdateRepository(repo, false); err != nil {
-			log.Error("Unable to update repository %-v whilst converting from fork", repo)
+		if err := repository.ConvertForkToNormalRepository(repo); err != nil {
+			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -666,7 +682,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		err := repo.DeleteWiki()
+		err := wiki_service.DeleteWiki(repo)
 		if err != nil {
 			log.Error("Delete Wiki: %v", err.Error())
 		}
@@ -698,6 +714,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
 	case "unarchive":
 		if !ctx.Repo.IsOwner() {
 			ctx.Error(http.StatusForbidden)
@@ -752,7 +769,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators(models.ListOptions{})
+	users, err := ctx.Repo.Repository.GetCollaborators(db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -1110,9 +1127,9 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("ioutil.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %v", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {
