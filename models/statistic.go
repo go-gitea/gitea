@@ -19,7 +19,13 @@ type Statistic struct {
 		Mirror, Release, LoginSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Attachment int64
+		IssueByLabel []IssueByLabelCount
 	}
+}
+
+type IssueByLabelCount struct {
+	Count int64
+	Label string
 }
 
 // GetStatistic returns the database statistics
@@ -37,7 +43,17 @@ func GetStatistic() (stats Statistic) {
 		Count    int64
 		IsClosed bool
 	}
+
 	issueCounts := []IssueCount{}
+	stats.Counter.IssueByLabel = []IssueByLabelCount{}
+
+	_ = db.GetEngine(db.DefaultContext).
+		Select("COUNT(*) AS count, l.name as label").
+		Join("LEFT", "issue_label il", "i.id=il.issue_id").
+		Join("LEFT", "label l", "l.id=il.label_id").
+		Table("issue i").
+		GroupBy("l.name").
+		Find(&stats.Counter.IssueByLabel)
 
 	_ = db.GetEngine(db.DefaultContext).Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {
