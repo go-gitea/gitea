@@ -15,9 +15,8 @@ export default async function initProject() {
       draggable: '.board-column',
       animation: 150,
       ghostClass: 'card-ghost',
-      onSort: () => {
-        const board = document.getElementsByClassName('board')[0];
-        const boardColumns = board.getElementsByClassName('board-column');
+      onSort: (e) => {
+        const boardColumns = e.to.getElementsByClassName('board-column');
 
         boardColumns.forEach((column, i) => {
           if (parseInt($(column).data('sorting')) !== i) {
@@ -38,16 +37,21 @@ export default async function initProject() {
   );
 
   const moveIssue = (e) => {
-    $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}/${e.newIndex}`, {
-      headers: {
-        'X-Csrf-Token': csrf,
-        'X-Remote': true,
-      },
-      contentType: 'application/json',
-      type: 'POST',
-      error: () => {
-        e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
-      },
+    const boardCards = e.to.getElementsByClassName('board-card');
+
+    boardCards.forEach((card, i) => {
+      const id = $(card).data('issue');
+      $.ajax(`${e.to.dataset.url}/${id}/${i}`, {
+        headers: {
+          'X-Csrf-Token': csrf,
+          'X-Remote': true,
+        },
+        contentType: 'application/json',
+        type: 'POST',
+        error: () => {
+          e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
+        },
+      });
     });
   };
 
