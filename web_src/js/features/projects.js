@@ -37,6 +37,20 @@ export default async function initProject() {
     },
   );
 
+  const moveIssue = (e) => {
+    $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}/${e.newIndex}`, {
+      headers: {
+        'X-Csrf-Token': csrf,
+        'X-Remote': true,
+      },
+      contentType: 'application/json',
+      type: 'POST',
+      error: () => {
+        e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
+      },
+    });
+  };
+
   for (const column of boardColumns) {
     new Sortable(
       column.getElementsByClassName('board')[0],
@@ -44,19 +58,8 @@ export default async function initProject() {
         group: 'shared',
         animation: 150,
         ghostClass: 'card-ghost',
-        onAdd: (e) => {
-          $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
-            headers: {
-              'X-Csrf-Token': csrf,
-              'X-Remote': true,
-            },
-            contentType: 'application/json',
-            type: 'POST',
-            error: () => {
-              e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
-            },
-          });
-        },
+        onAdd: moveIssue,
+        onUpdate: moveIssue,
       },
     );
   }

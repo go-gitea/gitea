@@ -20,6 +20,7 @@ type ProjectIssue struct {
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
+	Sorting        int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
@@ -182,7 +183,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 //               |__/
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
+func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard, sorting int64) error {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -200,14 +201,17 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 	}
 
 	pis.ProjectBoardID = board.ID
-	if _, err := sess.ID(pis.ID).Cols("project_board_id").Update(&pis); err != nil {
+	pis.Sorting = sorting
+	if _, err := sess.ID(pis.ID).Cols("project_board_id").Cols("sorting").Update(&pis); err != nil {
 		return err
 	}
+
+	fmt.Println("sorting", sorting)
 
 	return sess.Commit()
 }
 
 func (pb *ProjectBoard) removeIssues(e db.Engine) error {
-	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0, sorting = 0 WHERE project_board_id = ? ", pb.ID)
 	return err
 }

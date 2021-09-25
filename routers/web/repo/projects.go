@@ -299,7 +299,6 @@ func ViewProject(ctx *context.Context) {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
-	ctx.Data["Issues"] = issueList
 
 	linkedPrsMap := make(map[int64][]*models.Issue)
 	for _, issue := range issueList {
@@ -587,6 +586,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		}
 
 	} else {
+		// column
 		board, err = models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
 		if err != nil {
 			if models.IsErrProjectBoardNotExist(err) {
@@ -602,7 +602,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		}
 	}
 
-	issue, err := models.GetIssueByID(ctx.ParamsInt64(":index"))
+	issue, err := models.GetIssueByID(ctx.ParamsInt64(":issueID"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("", nil)
@@ -613,7 +613,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	if err := models.MoveIssueAcrossProjectBoards(issue, board); err != nil {
+	if err := models.MoveIssueAcrossProjectBoards(issue, board, ctx.ParamsInt64(":sorting")); err != nil {
 		ctx.ServerError("MoveIssueAcrossProjectBoards", err)
 		return
 	}
