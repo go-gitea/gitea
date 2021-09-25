@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -73,7 +74,7 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 
 func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
@@ -147,8 +148,8 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 	if setting.Database.UsePostgreSQL {
 		consistencyChecks = append(consistencyChecks, consistencyCheck{
 			Name:         "Sequence values",
-			Counter:      models.CountBadSequences,
-			Fixer:        asFixer(models.FixBadSequences),
+			Counter:      db.CountBadSequences,
+			Fixer:        asFixer(db.FixBadSequences),
 			FixedMessage: "Updated",
 		})
 	}

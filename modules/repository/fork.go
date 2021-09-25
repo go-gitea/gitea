@@ -5,11 +5,13 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -78,7 +80,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		panic(panicErr)
 	}()
 
-	err = models.WithTx(func(ctx models.DBContext) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
 			return err
 		}
@@ -122,7 +124,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	ctx := models.DefaultDBContext()
+	ctx := db.DefaultContext
 	if err := repo.UpdateSize(ctx); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
@@ -135,7 +137,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(repo *models.Repository) error {
-	err := models.WithTx(func(ctx models.DBContext) error {
+	err := db.WithTx(func(ctx context.Context) error {
 		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err

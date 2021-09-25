@@ -6,7 +6,7 @@ package integrations
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"testing"
 
 	"code.gitea.io/gitea/modules/json"
@@ -240,20 +240,20 @@ func TestRefreshTokenInvalidation(t *testing.T) {
 		"refresh_token": parsed.RefreshToken,
 	})
 
-	bs, err := ioutil.ReadAll(refreshReq.Body)
+	bs, err := io.ReadAll(refreshReq.Body)
 	assert.NoError(t, err)
 
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
 	// test with invalidation
 	setting.OAuth2.InvalidateRefreshTokens = true
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 200)
 
-	refreshReq.Body = ioutil.NopCloser(bytes.NewReader(bs))
+	refreshReq.Body = io.NopCloser(bytes.NewReader(bs))
 	MakeRequest(t, refreshReq, 400)
 }

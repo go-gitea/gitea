@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -132,7 +133,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -223,7 +224,11 @@ func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) error {
 	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true, ListOptions: models.ListOptions{PageSize: 50}}
+	opts := models.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		ListOptions:   db.ListOptions{PageSize: 50},
+	}
 	for page := 1; ; page++ {
 		opts.Page = page
 		rels, err := models.GetReleasesByRepoID(repo.ID, opts)

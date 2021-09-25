@@ -10,7 +10,6 @@ import (
 	"compress/gzip"
 	gocontext "context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -308,7 +307,7 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-info-refs-cache")
+		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return

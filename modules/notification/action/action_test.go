@@ -10,18 +10,19 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", "..", ".."))
+	db.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func TestRenameRepoAction(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID}).(*models.Repository)
 	repo.Owner = user
 
 	oldRepoName := repo.Name
@@ -38,10 +39,10 @@ func TestRenameRepoAction(t *testing.T) {
 		IsPrivate: repo.IsPrivate,
 		Content:   oldRepoName,
 	}
-	models.AssertNotExistsBean(t, actionBean)
+	db.AssertNotExistsBean(t, actionBean)
 
 	NewNotifier().NotifyRenameRepository(user, repo, oldRepoName)
 
-	models.AssertExistsAndLoadBean(t, actionBean)
+	db.AssertExistsAndLoadBean(t, actionBean)
 	models.CheckConsistencyFor(t, &models.Action{})
 }

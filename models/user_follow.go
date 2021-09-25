@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -16,9 +17,13 @@ type Follow struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Follow))
+}
+
 // IsFollowing returns true if user is following followID.
 func IsFollowing(userID, followID int64) bool {
-	has, _ := x.Get(&Follow{UserID: userID, FollowID: followID})
+	has, _ := db.GetEngine(db.DefaultContext).Get(&Follow{UserID: userID, FollowID: followID})
 	return has
 }
 
@@ -28,7 +33,7 @@ func FollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -54,7 +59,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
