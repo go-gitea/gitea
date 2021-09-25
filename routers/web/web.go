@@ -872,7 +872,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
 
-						m.Post("/{issueID}/{sorting}", repo.MoveIssueAcrossBoards)
+						m.Post("/{issueIndex}/{sorting}", repo.MoveIssueAcrossBoards)
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
