@@ -63,16 +63,12 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 		return "", err
 	}
 	t.ScratchSalt, _ = util.RandomString(10)
-	t.ScratchHash = hashToken(token, t.ScratchSalt)
+	t.ScratchHash = HashToken(token, t.ScratchSalt)
 	return token, nil
 }
 
 // HashToken return the hashable salt
 func HashToken(token, salt string) string {
-	return hashToken(token, salt)
-}
-
-func hashToken(token, salt string) string {
 	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
 	return fmt.Sprintf("%x", tempHash)
 }
@@ -82,7 +78,7 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	tempHash := hashToken(token, t.ScratchSalt)
+	tempHash := HashToken(token, t.ScratchSalt)
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
