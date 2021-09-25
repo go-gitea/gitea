@@ -29,7 +29,7 @@ func CatFileBatchCheck(repoPath string) (io.WriteCloser, *bufio.Reader, func()) 
 	if err != nil {
 		log.Critical("Unable to open pipe for cat-file --batch: %v", err)
 		rd, wr := io.Pipe()
-		rd.CloseWithError(err)
+		_ = rd.CloseWithError(err)
 		return wr, bufio.NewReader(rd), nil
 	}
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
@@ -91,7 +91,7 @@ func CatFileBatch(repoPath string) (io.WriteCloser, *bufio.Reader, func()) {
 	if err != nil {
 		log.Critical("Unable to open pipe for cat-file --batch: %v", err)
 		rd, wr := io.Pipe()
-		rd.CloseWithError(err)
+		_ = rd.CloseWithError(err)
 		return wr, bufio.NewReader(rd), nil
 	}
 
