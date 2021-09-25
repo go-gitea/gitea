@@ -207,31 +207,37 @@ func NotificationSubscriptions(c *context.Context) {
 	if perPage < 1 {
 		perPage = 20
 	}
-/*
-	total, err := models.GetSubscriptionsCount(c.User)
-	if err != nil {
-		c.ServerError("ErrGetSubscriptionsCount", err)
-		return
-	}
 
-	// redirect to last page if request page is more than total pages
-	pager := context.NewPagination(int(total), perPage, page, 5)
-	if pager.Paginater.Current() < page {
-		c.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
+	count, err := models.CountIssues(&models.IssuesOptions{
+		SubscribedID:		c.User.ID,
+	})
+	if err != nil {
+		c.ServerError("CountIssues", err)
 		return
 	}
-*/
-	issues, err := models.GetSubscriptions(perPage, c.User)
+	issues, err := models.Issues(&models.IssuesOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.IssuePagingNum,
+			Page:     page,
+		},
+		SubscribedID:		c.User.ID,
+	})
 	if err != nil {
-		c.ServerError("ErrGetSubscriptions", err)
+		c.ServerError("Issues", err)
 		return
 	}
 	c.Data["Issues"] = issues
 
 	c.Data["Status"] = 1
 
-	//pager.SetDefaultParams(c)
-	//c.Data["Page"] = pager
+	// redirect to last page if request page is more than total pages
+	pager := context.NewPagination(int(count), setting.UI.IssuePagingNum, page, 5)
+	if pager.Paginater.Current() < page {
+		c.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
+		return
+	}
+	pager.SetDefaultParams(c)
+	c.Data["Page"] = pager
 
 	c.HTML(http.StatusOK, tplNotificationSubscriptions)
 }
