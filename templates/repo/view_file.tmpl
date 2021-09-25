@@ -121,7 +121,7 @@
 								</div>
 							{{end}}
 							<div class="ui link list">
-								<a class="item copy-line-permalink" href="{{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}" onClick="return copy(this);">{{.i18n.Tr "repo.file_copy_permalink"}}</a>
+								<a class="item copy-line-permalink" href="{{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}" onClick="return copyLinkHref(this);">{{.i18n.Tr "repo.file_copy_permalink"}}</a>
 							</div>
 						</div>
 					</div>
@@ -140,7 +140,7 @@ function submitDeleteForm() {
 		$("#delete-file-form").submit()
 	}
 }
-function copy(link) {
+function copyLinkHref(link) {
 	navigator.clipboard.writeText(link.href);
 	return false;
 }

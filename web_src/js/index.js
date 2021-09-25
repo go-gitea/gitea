@@ -2908,6 +2908,33 @@ function deSelect() {
 
 function selectRange($list, $select, $from) {
   $list.removeClass('active');
+
+  // add hashchange to permalink
+  const $issue = $('a.ref-in-new-issue');
+  const $copyPermalink = $('a.copy-line-permalink');
+
+  if ($issue.length === 0 || $copyPermalink.length === 0) {
+    return;
+  }
+
+  let updateIssueHref = function(anchor) {
+    const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
+    if (matched) {
+      $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${anchor}`));
+    } else {
+      $issue.attr('href', `${$issue.attr('href')}%23${anchor}`);
+    }
+  }
+
+  let updateCopyPermalinkHref = function(anchor) {
+    const matchedPermalink = $copyPermalink.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
+      if (matchedPermalink) {
+        $copyPermalink.attr('href', $copyPermalink.attr('href').replace($copyPermalink.attr('href').substr(matchedPermalink.index), `#${anchor}`));
+      } else {
+        $copyPermalink.attr('href', `${$copyPermalink.attr('href')}#${anchor}`);
+      }
+  }
+
   if ($from) {
     let a = parseInt($select.attr('rel').substr(1));
     let b = parseInt($from.attr('rel').substr(1));
@@ -2925,54 +2952,16 @@ function selectRange($list, $select, $from) {
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
 
-      // add hashchange to permalink
-      const $issue = $('a.ref-in-new-issue');
-      const $copyPermalink = $('a.copy-line-permalink');
-
-      if ($issue.length === 0 || $copyPermalink.length === 0) {
-        return;
-      }
-
-      const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-      if (matched) {
-        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
-      } else {
-        $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
-      }
-
-      const matchedPermalink = $copyPermalink.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
-      if (matchedPermalink) {
-        $copyPermalink.attr('href', $copyPermalink.attr('href').replace($copyPermalink.attr('href').substr(matchedPermalink.index), `#L${a}-L${b}`));
-      } else {
-        $copyPermalink.attr('href', `${$copyPermalink.attr('href')}#L${a}-L${b}`);
-      }
+      updateIssueHref(`L${a}-L${b}`);
+      updateCopyPermalinkHref(`L${a}-L${b}`);
       return;
     }
   }
   $select.addClass('active');
   changeHash(`#${$select.attr('rel')}`);
 
-  // add hashchange to permalink
-  const $issue = $('a.ref-in-new-issue');
-  const $copyPermalink = $('a.copy-line-permalink');
-
-  if ($issue.length === 0 || $copyPermalink.length === 0) {
-    return;
-  }
-
-  const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-  if (matched) {
-    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
-  } else {
-    $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
-  }
-
-  const matchedPermalink = $copyPermalink.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
-  if (matchedPermalink) {
-    $copyPermalink.attr('href', $copyPermalink.attr('href').replace($copyPermalink.attr('href').substr(matchedPermalink.index), `#${$select.attr('rel')}`));
-  } else {
-    $copyPermalink.attr('href', `${$copyPermalink.attr('href')}#${$select.attr('rel')}`);
-  }
+  updateIssueHref($select.attr('rel'));
+  updateCopyPermalinkHref($select.attr('rel'));
 }
 
 $(() => {
