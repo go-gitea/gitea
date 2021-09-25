@@ -78,7 +78,7 @@ func (org *User) GetMembers() (err error) {
 
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
-	ListOptions
+	db.ListOptions
 	OrgID      int64
 	PublicOnly bool
 }
@@ -574,7 +574,7 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 	}
 
 	if opts.PageSize != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	err := sess.
@@ -594,7 +594,7 @@ func getOrgUsersByOrgID(e db.Engine, opts *FindOrgMembersOpts) ([]*OrgUser, erro
 		sess.And("is_public = ?", true)
 	}
 	if opts.ListOptions.PageSize > 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 
 		ous := make([]*OrgUser, 0, opts.PageSize)
 		return ous, sess.Find(&ous)

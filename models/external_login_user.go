@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
@@ -106,7 +107,7 @@ func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 
 // UpdateExternalUser updates external user's information
 func UpdateExternalUser(user *User, gothUser goth.User) error {
-	loginSource, err := GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return err
 	}

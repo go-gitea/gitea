@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -222,7 +223,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
-		items, err := ctxUser.GetFollowers(models.ListOptions{
+		items, err := ctxUser.GetFollowers(db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -234,7 +235,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowers
 	case "following":
-		items, err := ctxUser.GetFollowing(models.ListOptions{
+		items, err := ctxUser.GetFollowing(db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -259,7 +260,7 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
@@ -290,7 +291,7 @@ func Profile(ctx *context.Context) {
 		}
 	case "watching":
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
@@ -311,7 +312,7 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},

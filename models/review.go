@@ -172,7 +172,7 @@ func GetReviewByID(id int64) (*Review, error) {
 
 // FindReviewOptions represent possible filters to find reviews
 type FindReviewOptions struct {
-	ListOptions
+	db.ListOptions
 	Type         ReviewType
 	IssueID      int64
 	ReviewerID   int64
@@ -200,7 +200,7 @@ func findReviews(e db.Engine, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 	sess := e.Where(opts.toCond())
 	if opts.Page > 0 {
-		sess = setSessionPagination(sess, &opts)
+		sess = db.SetSessionPagination(sess, &opts)
 	}
 	return reviews, sess.
 		Asc("created_unix").

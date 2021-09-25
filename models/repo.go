@@ -1772,7 +1772,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, count, setSessionPagination(sess, opts).Find(&repos)
+	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
@@ -2057,13 +2057,13 @@ func CopyLFS(ctx context.Context, newRepo, oldRepo *Repository) error {
 }
 
 // GetForks returns all the forks of the repository
-func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error) {
+func (repo *Repository) GetForks(listOptions db.ListOptions) ([]*Repository, error) {
 	if listOptions.Page == 0 {
 		forks := make([]*Repository, 0, repo.NumForks)
 		return forks, db.GetEngine(db.DefaultContext).Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
-	sess := getPaginatedSession(&listOptions)
+	sess := db.GetPaginatedSession(&listOptions)
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }

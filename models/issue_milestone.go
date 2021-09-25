@@ -378,7 +378,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 
 // GetMilestonesOption contain options to get milestones
 type GetMilestonesOption struct {
-	ListOptions
+	db.ListOptions
 	RepoID   int64
 	State    api.StateType
 	Name     string
@@ -413,7 +413,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, &opts)
+		sess = db.SetSessionPagination(sess, &opts)
 	}
 
 	switch opts.SortType {

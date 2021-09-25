@@ -123,7 +123,7 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 func TestGetLabelsByRepoID(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
-		labels, err := GetLabelsByRepoID(repoID, sortType, ListOptions{})
+		labels, err := GetLabelsByRepoID(repoID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
 		assert.Len(t, labels, len(expectedIssueIDs))
 		for i, label := range labels {
@@ -214,7 +214,7 @@ func TestGetLabelsInOrgByIDs(t *testing.T) {
 func TestGetLabelsByOrgID(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
-		labels, err := GetLabelsByOrgID(orgID, sortType, ListOptions{})
+		labels, err := GetLabelsByOrgID(orgID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
 		assert.Len(t, labels, len(expectedIssueIDs))
 		for i, label := range labels {
@@ -227,10 +227,10 @@ func TestGetLabelsByOrgID(t *testing.T) {
 	testSuccess(3, "default", []int64{3, 4})
 
 	var err error
-	_, err = GetLabelsByOrgID(0, "leastissues", ListOptions{})
+	_, err = GetLabelsByOrgID(0, "leastissues", db.ListOptions{})
 	assert.True(t, IsErrOrgLabelNotExist(err))
 
-	_, err = GetLabelsByOrgID(-1, "leastissues", ListOptions{})
+	_, err = GetLabelsByOrgID(-1, "leastissues", db.ListOptions{})
 	assert.True(t, IsErrOrgLabelNotExist(err))
 }
 
