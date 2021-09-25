@@ -36,6 +36,7 @@ type Command struct {
 	args          []string
 	parentContext context.Context
 	desc          string
+	cmd           *exec.Cmd
 }
 
 func (c *Command) String() string {
@@ -146,15 +147,15 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	ctx, cancel := context.WithTimeout(c.parentContext, rc.Timeout)
 	defer cancel()
 
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	c.cmd = exec.CommandContext(ctx, c.name, c.args...)
 	if rc.Env == nil {
-		cmd.Env = os.Environ()
+		c.cmd.Env = os.Environ()
 	} else {
-		cmd.Env = rc.Env
+		c.cmd.Env = rc.Env
 	}
 
-	cmd.Env = append(
-		cmd.Env,
+	c.cmd.Env = append(
+		c.cmd.Env,
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		// avoid prompting for credentials interactively, supported since git v2.3
 		"GIT_TERMINAL_PROMPT=0",
@@ -162,13 +163,13 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	// TODO: verify if this is still needed in golang 1.15
 	if goVersionLessThan115 {
-		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
+		c.cmd.Env = append(c.cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
-	cmd.Dir = rc.Dir
-	cmd.Stdout = rc.Stdout
-	cmd.Stderr = rc.Stderr
-	cmd.Stdin = rc.Stdin
-	if err := cmd.Start(); err != nil {
+	c.cmd.Dir = rc.Dir
+	c.cmd.Stdout = rc.Stdout
+	c.cmd.Stderr = rc.Stderr
+	c.cmd.Stdin = rc.Stdin
+	if err := c.cmd.Start(); err != nil {
 		return err
 	}
 
@@ -183,16 +184,25 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		err := rc.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
-			_ = cmd.Wait()
+			_ = c.cmd.Wait()
 			return err
 		}
 	}
 
-	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
+	if err := c.cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
 
 	return ctx.Err()
+}
+
+// Kill kills a running Command - WARNING: This is racy
+func (c *Command) Kill() error {
+	if c.cmd == nil {
+		return nil
+	}
+
+	return c.cmd.Process.Kill()
 }
 
 // RunInDirTimeoutPipeline executes the command in given directory with given timeout,

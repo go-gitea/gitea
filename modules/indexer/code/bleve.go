@@ -176,7 +176,7 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+func (b *BleveIndexer) addUpdate(batchWriter io.WriteCloser, batchReader *bufio.Reader, commitSha string,
 	update fileUpdate, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
