@@ -11,16 +11,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 )
 
 const (
-	tplNotification    base.TplName = "user/notification/notification"
-	tplNotificationDiv base.TplName = "user/notification/notification_div"
+	tplNotification              base.TplName = "user/notification/notification"
+	tplNotificationDiv           base.TplName = "user/notification/notification_div"
 	tplNotificationSubscriptions base.TplName = "user/notification/notification_subscriptions"
 )
 
@@ -209,7 +209,7 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 
 	count, err := models.CountIssues(&models.IssuesOptions{
-		SubscribedID:		c.User.ID,
+		SubscribedID: c.User.ID,
 	})
 	if err != nil {
 		c.ServerError("CountIssues", err)
@@ -220,7 +220,7 @@ func NotificationSubscriptions(c *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},
-		SubscribedID:		c.User.ID,
+		SubscribedID: c.User.ID,
 	})
 	if err != nil {
 		c.ServerError("Issues", err)
@@ -277,13 +277,13 @@ func NotificationWatching(c *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-/*
-	total, err := models.GetWatchingReposCount(c.User)
-	if err != nil {
-		c.ServerError("ErrGetWatchingReposCount", err)
-		return
-	}
-*/
+	/*
+		total, err := models.GetWatchingReposCount(c.User)
+		if err != nil {
+			c.ServerError("ErrGetWatchingReposCount", err)
+			return
+		}
+	*/
 	repos, count, err := models.SearchRepository(&models.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,

@@ -1128,7 +1128,7 @@ type IssuesOptions struct {
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
-	SubscribedID		int64
+	SubscribedID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
