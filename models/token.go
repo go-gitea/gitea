@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -67,7 +68,7 @@ func NewAccessToken(t *AccessToken) error {
 	}
 	t.TokenSalt = salt
 	t.Token = base.EncodeSha1(gouuid.New().String())
-	t.TokenHash = hashToken(t.Token, t.TokenSalt)
+	t.TokenHash = login.HashToken(t.Token, t.TokenSalt)
 	t.TokenLastEight = t.Token[len(t.Token)-8:]
 	_, err = db.GetEngine(db.DefaultContext).Insert(t)
 	return err
@@ -129,7 +130,7 @@ func GetAccessTokenBySHA(token string) (*AccessToken, error) {
 	}
 
 	for _, t := range tokens {
-		tempHash := hashToken(token, t.TokenSalt)
+		tempHash := login.HashToken(token, t.TokenSalt)
 		if subtle.ConstantTimeCompare([]byte(t.TokenHash), []byte(tempHash)) == 1 {
 			if successfulAccessTokenCache != nil {
 				successfulAccessTokenCache.Add(token, t.ID)
