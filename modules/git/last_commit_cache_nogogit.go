@@ -9,6 +9,7 @@ package git
 import (
 	"bufio"
 	"context"
+	"io"
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
@@ -38,7 +39,7 @@ func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl func() int64, 
 }
 
 // Get get the last commit information by commit id and entry path
-func (c *LastCommitCache) Get(ref, entryPath string, wr WriteCloserError, rd *bufio.Reader) (interface{}, error) {
+func (c *LastCommitCache) Get(ref, entryPath string, wr io.WriteCloser, rd *bufio.Reader) (interface{}, error) {
 	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
 	if vs, ok := v.(string); ok {
 		log.Debug("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)

@@ -11,9 +11,11 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -21,43 +23,58 @@ import (
 	"github.com/djherbis/nio/v3"
 )
 
-// WriteCloserError wraps an io.WriteCloser with an additional CloseWithError function
-type WriteCloserError interface {
-	io.WriteCloser
-	CloseWithError(err error) error
-}
-
 // CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
-	batchStdinReader, batchStdinWriter := io.Pipe()
+func CatFileBatchCheck(repoPath string) (io.WriteCloser, *bufio.Reader, func()) {
+	batchStdinReader, batchStdinWriter, err := os.Pipe()
+	if err != nil {
+		log.Critical("Unable to open pipe for cat-file --batch: %v", err)
+		rd, wr := io.Pipe()
+		rd.CloseWithError(err)
+		return wr, bufio.NewReader(rd), nil
+	}
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
 	ctx, ctxCancel := context.WithCancel(DefaultContext)
+
+	_, filename, line, _ := runtime.Caller(2)
+	filename = strings.TrimPrefix(filename, callerPrefix)
+	desc := fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)
+	cmd := NewCommandContext(ctx, "cat-file", "--batch-check").
+		SetDescription(desc)
+
 	closed := make(chan struct{})
 	cancel := func() {
+		ctxCancel()
 		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
 		_ = batchStdoutWriter.Close()
-		ctxCancel()
-		<-closed
+		for {
+			select {
+			case <-closed:
+				return
+			case <-time.After(10 * time.Second):
+				log.Warn("%s still running 10s after cancellation. Reattempt Kill", desc)
+				err := cmd.Kill()
+				if err != nil {
+					log.Error("Error whilst trying to kill: %s. Error: %v", desc, err)
+				}
+			}
+		}
 	}
 
-	_, filename, line, _ := runtime.Caller(2)
-	filename = strings.TrimPrefix(filename, callerPrefix)
-
 	go func() {
+		defer close(closed)
+		defer ctxCancel()
+
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch-check").
-			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+		err := cmd.
 			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
 		}
-		close(closed)
+
+		_ = batchStdoutWriter.Close()
+		_ = batchStdinReader.Close()
 	}()
 
 	// For simplicities sake we'll use a buffered reader to read from the cat-file --batch-check
@@ -67,38 +84,60 @@ func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()
 }
 
 // CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatch(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+func CatFileBatch(repoPath string) (io.WriteCloser, *bufio.Reader, func()) {
 	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinReader, batchStdinWriter := io.Pipe()
-	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(32 * 1024))
-	ctx, ctxCancel := context.WithCancel(DefaultContext)
-	closed := make(chan struct{})
-	cancel := func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-		ctxCancel()
-		<-closed
+	batchStdinReader, batchStdinWriter, err := os.Pipe()
+	if err != nil {
+		log.Critical("Unable to open pipe for cat-file --batch: %v", err)
+		rd, wr := io.Pipe()
+		rd.CloseWithError(err)
+		return wr, bufio.NewReader(rd), nil
 	}
 
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
+	desc := fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)
+
+	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(32 * 1024))
+	ctx, ctxCancel := context.WithCancel(DefaultContext)
+	cmd := NewCommandContext(ctx, "cat-file", "--batch").
+		SetDescription(desc)
+
+	closed := make(chan struct{})
+	cancel := func() {
+		ctxCancel()
+		_ = batchStdinReader.Close()
+		_ = batchStdinWriter.Close()
+		_ = batchStdoutReader.Close()
+		_ = batchStdoutWriter.Close()
+		for {
+			select {
+			case <-closed:
+				return
+			case <-time.After(10 * time.Second):
+				log.Warn("%s still running 10s after cancellation. Reattempt Kill", desc)
+				err := cmd.Kill()
+				if err != nil {
+					log.Error("Error whilst trying to kill: %s. Error: %v", desc, err)
+				}
+			}
+		}
+	}
+
 	go func() {
+		defer close(closed)
+		defer ctxCancel()
+
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch").
-			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+		err := cmd.RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = batchStdoutWriter.Close()
-			_ = batchStdinReader.Close()
 		}
-		close(closed)
+
+		_ = batchStdoutWriter.Close()
+		_ = batchStdinReader.Close()
 	}()
 
 	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
