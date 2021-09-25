@@ -32,7 +32,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Flash.Error(ctx.Tr("setting.twofa_not_enrolled"))
+			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		}
 		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
@@ -62,7 +62,7 @@ func DisableTwoFactor(ctx *context.Context) {
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
 		if models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Flash.Error(ctx.Tr("setting.twofa_not_enrolled"))
+			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		}
 		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
