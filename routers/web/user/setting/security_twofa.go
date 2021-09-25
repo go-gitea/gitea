@@ -150,7 +150,7 @@ func EnrollTwoFactor(ctx *context.Context) {
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.User)
-		ctx.Flash.Error(ctx.Tr("setting.twofa_is_enrolled"))
+		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
@@ -175,7 +175,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	t, err := models.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
-		ctx.Flash.Error(ctx.Tr("setting.twofa_is_enrolled"))
+		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
