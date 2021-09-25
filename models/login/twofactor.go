@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
 	"crypto/md5"
@@ -20,6 +20,25 @@ import (
 	"github.com/pquerna/otp/totp"
 	"golang.org/x/crypto/pbkdf2"
 )
+
+//
+// Two-factor authentication
+//
+
+// ErrTwoFactorNotEnrolled indicates that a user is not enrolled in two-factor authentication.
+type ErrTwoFactorNotEnrolled struct {
+	UID int64
+}
+
+// IsErrTwoFactorNotEnrolled checks if an error is a ErrTwoFactorNotEnrolled.
+func IsErrTwoFactorNotEnrolled(err error) bool {
+	_, ok := err.(ErrTwoFactorNotEnrolled)
+	return ok
+}
+
+func (err ErrTwoFactorNotEnrolled) Error() string {
+	return fmt.Sprintf("user not enrolled in 2FA [uid: %d]", err.UID)
+}
 
 // TwoFactor represents a two-factor authentication token.
 type TwoFactor struct {
@@ -44,11 +63,12 @@ func (t *TwoFactor) GenerateScratchToken() (string, error) {
 		return "", err
 	}
 	t.ScratchSalt, _ = util.RandomString(10)
-	t.ScratchHash = hashToken(token, t.ScratchSalt)
+	t.ScratchHash = HashToken(token, t.ScratchSalt)
 	return token, nil
 }
 
-func hashToken(token, salt string) string {
+// HashToken return the hashable salt
+func HashToken(token, salt string) string {
 	tempHash := pbkdf2.Key([]byte(token), []byte(salt), 10000, 50, sha256.New)
 	return fmt.Sprintf("%x", tempHash)
 }
@@ -58,7 +78,7 @@ func (t *TwoFactor) VerifyScratchToken(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
-	tempHash := hashToken(token, t.ScratchSalt)
+	tempHash := HashToken(token, t.ScratchSalt)
 	return subtle.ConstantTimeCompare([]byte(t.ScratchHash), []byte(tempHash)) == 1
 }
 
