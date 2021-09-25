@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	pull_service "code.gitea.io/gitea/services/pull"
 )
 
 const (
@@ -227,6 +228,38 @@ func NotificationSubscriptions(c *context.Context) {
 		return
 	}
 	c.Data["Issues"] = issues
+
+	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
+	if err != nil {
+		c.ServerError("GetIssuesLastCommitStatus", err)
+		return
+	}
+	c.Data["CommitStatus"] = commitStatus
+
+	var issueList = models.IssueList(issues)
+	approvalCounts, err := issueList.GetApprovalCounts()
+	if err != nil {
+		c.ServerError("ApprovalCounts", err)
+		return
+	}
+	c.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
+		counts, ok := approvalCounts[issueID]
+		if !ok || len(counts) == 0 {
+			return 0
+		}
+		reviewTyp := models.ReviewTypeApprove
+		if typ == "reject" {
+			reviewTyp = models.ReviewTypeReject
+		} else if typ == "waiting" {
+			reviewTyp = models.ReviewTypeRequest
+		}
+		for _, count := range counts {
+			if count.Type == reviewTyp {
+				return count.Count
+			}
+		}
+		return 0
+	}
 
 	c.Data["Status"] = 1
 
