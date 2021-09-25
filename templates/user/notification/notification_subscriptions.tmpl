@@ -1,0 +1,12 @@
+{{template "base/head" .}}
+    <div class="ui top attached tabular menu">
+			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
+			<a href="{{AppSubUrl}}/notifications/subscriptions?mode=subscriptions" class="{{if eq .Status 1}}active{{end}} item">
+				{{.i18n.Tr "notification.subscriptions"}}
+				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
+			</a>
+			<a href="{{AppSubUrl}}/notifications/subscriptions?mode=watching" class="{{if eq .Status 2}}active{{end}} item">
+				{{.i18n.Tr "notification.watching"}}
+			</a>
+		</div>
+{{template "base/footer" .}}

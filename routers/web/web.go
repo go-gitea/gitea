@@ -1042,6 +1042,7 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/notifications", func() {
 		m.Get("", user.Notifications)
+		m.Get("/subscriptions", user.NotificationSubscriptions)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
 	}, reqSignIn)

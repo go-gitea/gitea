@@ -19,6 +19,7 @@ import (
 const (
 	tplNotification    base.TplName = "user/notification/notification"
 	tplNotificationDiv base.TplName = "user/notification/notification_div"
+	tplNotificationSubscriptions base.TplName = "user/notification/notification_subscriptions"
 )
 
 // GetNotificationCount is the middleware that sets the notification count in the context
@@ -190,4 +191,9 @@ func NotificationPurgePost(c *context.Context) {
 
 	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
 	c.Redirect(url, http.StatusSeeOther)
+}
+
+// NotificationSubscriptions returns the list of subscribed issues/repos
+func NotificationSubscriptions(c *context.Context) {
+	c.HTML(http.StatusOK, tplNotificationSubscriptions)
 }
