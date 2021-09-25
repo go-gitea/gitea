@@ -602,7 +602,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		}
 	}
 
-	issue, err := models.GetIssueByID(ctx.ParamsInt64(":issueIndex"))
+	issue, err := models.GetIssueByID(ctx.ParamsInt64(":issueID"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("", nil)
