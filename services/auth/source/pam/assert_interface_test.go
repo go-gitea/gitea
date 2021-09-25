@@ -5,7 +5,7 @@
 package pam_test
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/pam"
 )
@@ -15,8 +15,8 @@ import (
 
 type sourceInterface interface {
 	auth.PasswordAuthenticator
-	models.LoginConfig
-	models.LoginSourceSettable
+	login.Config
+	login.SourceSettable
 }
 
 var _ (sourceInterface) = &pam.Source{}

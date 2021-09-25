@@ -6,6 +6,7 @@ package oauth2
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -24,7 +25,6 @@ type Source struct {
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
-	OverrideLocalTwoFA            bool
 
 	Scopes             []string
 	RequiredClaimName  string
@@ -32,9 +32,10 @@ type Source struct {
 	GroupClaimName     string
 	AdminGroup         string
 	RestrictedGroup    string
+	SkipLocalTwoFA     bool
 
 	// reference to the loginSource
-	loginSource *models.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up an OAuth2Config from serialized format.
@@ -48,10 +49,10 @@ func (source *Source) ToDB() ([]byte, error) {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginOAuth2, &Source{})
+	login.RegisterTypeConfig(login.OAuth2, &Source{})
 }

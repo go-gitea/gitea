@@ -8,6 +8,7 @@ import (
 	"errors"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -30,6 +31,10 @@ type PushMirror struct {
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	LastError      string             `xorm:"text"`
+}
+
+func init() {
+	db.RegisterModel(new(PushMirror))
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
@@ -57,32 +62,32 @@ func (m *PushMirror) GetRemoteName() string {
 
 // InsertPushMirror inserts a push-mirror to database
 func InsertPushMirror(m *PushMirror) error {
-	_, err := x.Insert(m)
+	_, err := db.GetEngine(db.DefaultContext).Insert(m)
 	return err
 }
 
 // UpdatePushMirror updates the push-mirror
 func UpdatePushMirror(m *PushMirror) error {
-	_, err := x.ID(m.ID).AllCols().Update(m)
+	_, err := db.GetEngine(db.DefaultContext).ID(m.ID).AllCols().Update(m)
 	return err
 }
 
 // DeletePushMirrorByID deletes a push-mirrors by ID
 func DeletePushMirrorByID(ID int64) error {
-	_, err := x.ID(ID).Delete(&PushMirror{})
+	_, err := db.GetEngine(db.DefaultContext).ID(ID).Delete(&PushMirror{})
 	return err
 }
 
 // DeletePushMirrorsByRepoID deletes all push-mirrors by repoID
 func DeletePushMirrorsByRepoID(repoID int64) error {
-	_, err := x.Delete(&PushMirror{RepoID: repoID})
+	_, err := db.GetEngine(db.DefaultContext).Delete(&PushMirror{RepoID: repoID})
 	return err
 }
 
 // GetPushMirrorByID returns push-mirror information.
 func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 	m := &PushMirror{}
-	has, err := x.ID(ID).Get(m)
+	has, err := db.GetEngine(db.DefaultContext).ID(ID).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -94,12 +99,12 @@ func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
 func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
-	return mirrors, x.Where("repo_id=?", repoID).Find(&mirrors)
+	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(f func(idx int, bean interface{}) error) error {
-	return x.
+	return db.GetEngine(db.DefaultContext).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
 		Iterate(new(PushMirror), f)

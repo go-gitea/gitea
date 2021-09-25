@@ -7,12 +7,13 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 	"github.com/tstranex/u2f"
 )
 
 func TestGetU2FRegistrationByID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	res, err := GetU2FRegistrationByID(1)
 	assert.NoError(t, err)
@@ -24,7 +25,7 @@ func TestGetU2FRegistrationByID(t *testing.T) {
 }
 
 func TestGetU2FRegistrationsByUID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	res, err := GetU2FRegistrationsByUID(1)
 	assert.NoError(t, err)
@@ -37,37 +38,37 @@ func TestU2FRegistration_TableName(t *testing.T) {
 }
 
 func TestU2FRegistration_UpdateCounter(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	reg := AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
+	assert.NoError(t, db.PrepareTestDatabase())
+	reg := db.AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
 	reg.Counter = 1
 	assert.NoError(t, reg.UpdateCounter())
-	AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 1})
+	db.AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 1})
 }
 
 func TestU2FRegistration_UpdateLargeCounter(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	reg := AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
+	assert.NoError(t, db.PrepareTestDatabase())
+	reg := db.AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
 	reg.Counter = 0xffffffff
 	assert.NoError(t, reg.UpdateCounter())
-	AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 0xffffffff})
+	db.AssertExistsIf(t, true, &U2FRegistration{ID: 1, Counter: 0xffffffff})
 }
 
 func TestCreateRegistration(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	assert.NoError(t, db.PrepareTestDatabase())
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
 	res, err := CreateRegistration(user, "U2F Created Key", &u2f.Registration{Raw: []byte("Test")})
 	assert.NoError(t, err)
 	assert.Equal(t, "U2F Created Key", res.Name)
 	assert.Equal(t, []byte("Test"), res.Raw)
 
-	AssertExistsIf(t, true, &U2FRegistration{Name: "U2F Created Key", UserID: user.ID})
+	db.AssertExistsIf(t, true, &U2FRegistration{Name: "U2F Created Key", UserID: user.ID})
 }
 
 func TestDeleteRegistration(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-	reg := AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
+	assert.NoError(t, db.PrepareTestDatabase())
+	reg := db.AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
 
 	assert.NoError(t, DeleteRegistration(reg))
-	AssertNotExistsBean(t, &U2FRegistration{ID: 1})
+	db.AssertNotExistsBean(t, &U2FRegistration{ID: 1})
 }

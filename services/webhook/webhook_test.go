@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,52 +26,52 @@ func TestWebhook_GetSlackHook(t *testing.T) {
 }
 
 func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	hookTasks := []*models.HookTask{
 		{RepoID: repo.ID, HookID: 1, EventType: models.HookEventPush},
 	}
 	for _, hookTask := range hookTasks {
-		models.AssertNotExistsBean(t, hookTask)
+		db.AssertNotExistsBean(t, hookTask)
 	}
 	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
-		models.AssertExistsAndLoadBean(t, hookTask)
+		db.AssertExistsAndLoadBean(t, hookTask)
 	}
 }
 
 func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	hookTasks := []*models.HookTask{
 		{RepoID: repo.ID, HookID: 4, EventType: models.HookEventPush},
 	}
 	for _, hookTask := range hookTasks {
-		models.AssertNotExistsBean(t, hookTask)
+		db.AssertNotExistsBean(t, hookTask)
 	}
 	// this test also ensures that * doesn't handle / in any special way (like shell would)
 	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
-		models.AssertExistsAndLoadBean(t, hookTask)
+		db.AssertExistsAndLoadBean(t, hookTask)
 	}
 }
 
 func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	hookTasks := []*models.HookTask{
 		{RepoID: repo.ID, HookID: 4, EventType: models.HookEventPush},
 	}
 	for _, hookTask := range hookTasks {
-		models.AssertNotExistsBean(t, hookTask)
+		db.AssertNotExistsBean(t, hookTask)
 	}
 	assert.NoError(t, PrepareWebhooks(repo, models.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
 
 	for _, hookTask := range hookTasks {
-		models.AssertNotExistsBean(t, hookTask)
+		db.AssertNotExistsBean(t, hookTask)
 	}
 }
 

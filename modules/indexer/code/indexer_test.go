@@ -8,13 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", "..", ".."))
+	db.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func testIndexer(name string, t *testing.T, indexer Indexer) {

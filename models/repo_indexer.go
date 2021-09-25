@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"xorm.io/builder"
 )
 
@@ -29,6 +30,10 @@ type RepoIndexerStatus struct {
 	IndexerType RepoIndexerType `xorm:"INDEX(s) NOT NULL DEFAULT 0"`
 }
 
+func init() {
+	db.RegisterModel(new(RepoIndexerStatus))
+}
+
 // GetUnindexedRepos returns repos which do not have an indexer status
 func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageSize int) ([]int64, error) {
 	ids := make([]int64, 0, 50)
@@ -37,7 +42,7 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 	}).And(builder.Eq{
 		"repository.is_empty": false,
 	})
-	sess := x.Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
+	sess := db.GetEngine(db.DefaultContext).Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
 	if maxRepoID > 0 {
 		cond = builder.And(cond, builder.Lte{
 			"repository.id": maxRepoID,
@@ -57,7 +62,7 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 }
 
 // getIndexerStatus loads repo codes indxer status
-func (repo *Repository) getIndexerStatus(e Engine, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+func (repo *Repository) getIndexerStatus(e db.Engine, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
 	switch indexerType {
 	case RepoIndexerTypeCode:
 		if repo.CodeIndexerStatus != nil {
@@ -86,11 +91,11 @@ func (repo *Repository) getIndexerStatus(e Engine, indexerType RepoIndexerType) 
 
 // GetIndexerStatus loads repo codes indxer status
 func (repo *Repository) GetIndexerStatus(indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
-	return repo.getIndexerStatus(x, indexerType)
+	return repo.getIndexerStatus(db.GetEngine(db.DefaultContext), indexerType)
 }
 
 // updateIndexerStatus updates indexer status
-func (repo *Repository) updateIndexerStatus(e Engine, indexerType RepoIndexerType, sha string) error {
+func (repo *Repository) updateIndexerStatus(e db.Engine, indexerType RepoIndexerType, sha string) error {
 	status, err := repo.getIndexerStatus(e, indexerType)
 	if err != nil {
 		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
@@ -115,5 +120,5 @@ func (repo *Repository) updateIndexerStatus(e Engine, indexerType RepoIndexerTyp
 
 // UpdateIndexerStatus updates indexer status
 func (repo *Repository) UpdateIndexerStatus(indexerType RepoIndexerType, sha string) error {
-	return repo.updateIndexerStatus(x, indexerType, sha)
+	return repo.updateIndexerStatus(db.GetEngine(db.DefaultContext), indexerType, sha)
 }

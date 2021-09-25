@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -23,7 +24,7 @@ import (
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -60,7 +61,7 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 	return key, RewriteAllPrincipalKeys()
 }
 
-func addPrincipalKey(e Engine, key *PublicKey) (err error) {
+func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
 	// Save Key representing a principal.
 	if _, err = e.Insert(key); err != nil {
 		return err
@@ -111,10 +112,10 @@ func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 }
 
 // ListPrincipalKeys returns a list of principals belongs to given user.
-func ListPrincipalKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
-	sess := x.Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
+func ListPrincipalKeys(uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		keys := make([]*PublicKey, 0, listOptions.PageSize)
 		return keys, sess.Find(&keys)

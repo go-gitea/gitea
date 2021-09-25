@@ -8,13 +8,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
 )
 
 func toExternalLoginUser(user *models.User, gothUser goth.User) (*models.ExternalLoginUser, error) {
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return nil, err
 	}
