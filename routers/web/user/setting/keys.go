@@ -208,7 +208,7 @@ func DeleteKey(ctx *context.Context) {
 			return
 		}
 		if external {
-			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Flash.Error(ctx.Tr("settings.ssh_externally_managed"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
