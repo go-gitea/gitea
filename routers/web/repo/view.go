@@ -12,7 +12,6 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -21,6 +20,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
@@ -330,7 +330,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
-						bs, _ := ioutil.ReadAll(rd)
+						bs, _ := io.ReadAll(rd)
 						ctx.Data["FileContent"] = strings.ReplaceAll(
 							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
 						)
@@ -339,6 +339,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
+					buf, err = io.ReadAll(rd)
+					if err != nil {
+						log.Error("ReadAll failed: %v", err)
+					}
 					ctx.Data["FileContent"] = strings.ReplaceAll(
 						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 					)
@@ -488,13 +492,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
-			buf, _ := ioutil.ReadAll(rd)
+			buf, _ := io.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
-			buf, _ := ioutil.ReadAll(rd)
+			buf, _ := io.ReadAll(rd)
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
@@ -856,7 +860,7 @@ func renderCode(ctx *context.Context) {
 }
 
 // RenderUserCards render a page show users according the input template
-func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
+func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOptions) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
@@ -864,7 +868,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts models.Li
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(models.ListOptions{
+	items, err := getter(db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})
@@ -899,7 +903,7 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
 	// TODO: need pagination
-	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
+	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return

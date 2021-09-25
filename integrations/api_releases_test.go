@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -20,8 +21,8 @@ import (
 func TestAPIListReleases(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -84,7 +85,7 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
-	models.AssertExistsAndLoadBean(t, &models.Release{
+	db.AssertExistsAndLoadBean(t, &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
@@ -97,8 +98,8 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 func TestAPICreateAndUpdateRelease(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -137,7 +138,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
-	models.AssertExistsAndLoadBean(t, &models.Release{
+	db.AssertExistsAndLoadBean(t, &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
@@ -148,8 +149,8 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -159,8 +160,8 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -177,8 +178,8 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 func TestAPIGetReleaseByTag(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	session := loginUser(t, owner.LowerName)
 
 	tag := "v1.1"
@@ -210,8 +211,8 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 

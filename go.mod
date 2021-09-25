@@ -9,7 +9,7 @@ require (
 	gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
 	gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
 	gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
-	gitea.com/go-chi/session v0.0.0-20210108030337-0cb48c5ba8ee
+	gitea.com/go-chi/session v0.0.0-20210913064732-2ac132b0fa07
 	gitea.com/lunny/levelqueue v0.4.1
 	github.com/Microsoft/go-winio v0.5.0 // indirect
 	github.com/NYTimes/gziphandler v1.1.1
@@ -139,7 +139,7 @@ require (
 	mvdan.cc/xurls/v2 v2.2.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.9
-	xorm.io/xorm v1.2.2
+	xorm.io/xorm v1.2.4
 )
 
 replace github.com/hashicorp/go-version => github.com/6543/go-version v1.3.1

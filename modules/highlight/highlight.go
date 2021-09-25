@@ -66,17 +66,6 @@ func Code(fileName, code string) string {
 	if len(code) > sizeLimit {
 		return code
 	}
-	formatter := html.New(html.WithClasses(true),
-		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
-	)
-	if formatter == nil {
-		log.Error("Couldn't create chroma formatter")
-		return code
-	}
-
-	htmlbuf := bytes.Buffer{}
-	htmlw := bufio.NewWriter(&htmlbuf)
 
 	var lexer chroma.Lexer
 	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
@@ -97,6 +86,18 @@ func Code(fileName, code string) string {
 		}
 		cache.Add(fileName, lexer)
 	}
+	return CodeFromLexer(lexer, code)
+}
+
+// CodeFromLexer returns a HTML version of code string with chroma syntax highlighting classes
+func CodeFromLexer(lexer chroma.Lexer, code string) string {
+	formatter := html.New(html.WithClasses(true),
+		html.WithLineNumbers(false),
+		html.PreventSurroundingPre(true),
+	)
+
+	htmlbuf := bytes.Buffer{}
+	htmlw := bufio.NewWriter(&htmlbuf)
 
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {

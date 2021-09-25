@@ -7,7 +7,6 @@ package storage
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -76,7 +75,7 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	if err := os.MkdirAll(l.tmpdir, os.ModePerm); err != nil {
 		return 0, err
 	}
-	tmp, err := ioutil.TempFile(l.tmpdir, "upload-*")
+	tmp, err := os.CreateTemp(l.tmpdir, "upload-*")
 	if err != nil {
 		return 0, err
 	}
