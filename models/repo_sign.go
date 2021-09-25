@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -129,8 +130,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {
@@ -165,8 +166,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {
@@ -218,8 +219,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {
