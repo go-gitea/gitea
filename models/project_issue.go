@@ -206,8 +206,6 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard, sorting int
 		return err
 	}
 
-	fmt.Println("sorting", sorting)
-
 	return sess.Commit()
 }
 
