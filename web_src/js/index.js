@@ -2917,23 +2917,17 @@ function selectRange($list, $select, $from) {
     return;
   }
 
-  let updateIssueHref = function(anchor) {
-    const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-    if (matched) {
-      $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${anchor}`));
-    } else {
-      $issue.attr('href', `${$issue.attr('href')}%23${anchor}`);
-    }
-  }
+  const updateIssueHref = function(anchor) {
+    let href = $issue.attr('href');
+    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
+    $issue.attr('href', href);
+  };
 
-  let updateCopyPermalinkHref = function(anchor) {
-    const matchedPermalink = $copyPermalink.attr('href').match(/#L\d+$|#L\d+-L\d+$/);
-      if (matchedPermalink) {
-        $copyPermalink.attr('href', $copyPermalink.attr('href').replace($copyPermalink.attr('href').substr(matchedPermalink.index), `#${anchor}`));
-      } else {
-        $copyPermalink.attr('href', `${$copyPermalink.attr('href')}#${anchor}`);
-      }
-  }
+  const updateCopyPermalinkHref = function(anchor) {
+    let href = $copyPermalink.attr('href');
+    href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
+    $copyPermalink.attr('href', href);
+  };
 
   if ($from) {
     let a = parseInt($select.attr('rel').substr(1));
