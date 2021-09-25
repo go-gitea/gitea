@@ -1,12 +1,27 @@
 {{template "base/head" .}}
-    <div class="ui top attached tabular menu">
-			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
-			<a href="{{AppSubUrl}}/notifications/subscriptions?mode=subscriptions" class="{{if eq .Status 1}}active{{end}} item">
-				{{.i18n.Tr "notification.subscriptions"}}
-				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
-			</a>
-			<a href="{{AppSubUrl}}/notifications/subscriptions?mode=watching" class="{{if eq .Status 2}}active{{end}} item">
-				{{.i18n.Tr "notification.watching"}}
-			</a>
-		</div>
+<div class="page-content user notification" id="notification_subscriptions" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
+    <div class="ui container">
+        <div class="ui top attached tabular menu">
+            <a href="{{AppSubUrl}}/notifications/subscriptions" class="{{if eq .Status 1}}active{{end}} item">
+                {{.i18n.Tr "notification.subscriptions"}}
+            </a>
+            <a href="{{AppSubUrl}}/notifications/watching" class="{{if eq .Status 2}}active{{end}} item">
+                {{.i18n.Tr "notification.watching"}}
+            </a>
+        </div>
+        <div class="ui bottom attached active tab segment">
+            {{if eq .Status 1}}
+                {{if eq (len .Issues) 0}}
+                    {{.i18n.Tr "notification.no_subscriptions"}}
+                {{else}}
+                    {{template "shared/issuelist" .}}
+                {{end}}
+            {{else}}
+                {{template "explore/repo_search" .}}
+                {{template "explore/repo_list" .}}
+            {{end}}
+        </div>
+        {{template "base/paginate" .}}
+    </div>
+</div>
 {{template "base/footer" .}}

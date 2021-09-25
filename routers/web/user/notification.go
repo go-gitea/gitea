@@ -13,7 +13,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -193,7 +195,119 @@ func NotificationPurgePost(c *context.Context) {
 	c.Redirect(url, http.StatusSeeOther)
 }
 
-// NotificationSubscriptions returns the list of subscribed issues/repos
+// NotificationSubscriptions returns the list of subscribed issues
 func NotificationSubscriptions(c *context.Context) {
+	var (
+		page    = c.FormInt("page")
+		perPage = c.FormInt("perPage")
+	)
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 20
+	}
+/*
+	total, err := models.GetSubscriptionsCount(c.User)
+	if err != nil {
+		c.ServerError("ErrGetSubscriptionsCount", err)
+		return
+	}
+
+	// redirect to last page if request page is more than total pages
+	pager := context.NewPagination(int(total), perPage, page, 5)
+	if pager.Paginater.Current() < page {
+		c.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
+		return
+	}
+*/
+	issues, err := models.GetSubscriptions(perPage, c.User)
+	if err != nil {
+		c.ServerError("ErrGetSubscriptions", err)
+		return
+	}
+	c.Data["Issues"] = issues
+
+	c.Data["Status"] = 1
+
+	//pager.SetDefaultParams(c)
+	//c.Data["Page"] = pager
+
+	c.HTML(http.StatusOK, tplNotificationSubscriptions)
+}
+
+// NotificationSubscriptions returns the list of watching repos
+func NotificationWatching(c *context.Context) {
+	page := c.FormInt("page")
+	if page < 1 {
+		page = 1
+	}
+
+	var orderBy models.SearchOrderBy
+	c.Data["SortType"] = c.FormString("sort")
+	switch c.FormString("sort") {
+	case "newest":
+		orderBy = models.SearchOrderByNewest
+	case "oldest":
+		orderBy = models.SearchOrderByOldest
+	case "recentupdate":
+		orderBy = models.SearchOrderByRecentUpdated
+	case "leastupdate":
+		orderBy = models.SearchOrderByLeastUpdated
+	case "reversealphabetically":
+		orderBy = models.SearchOrderByAlphabeticallyReverse
+	case "alphabetically":
+		orderBy = models.SearchOrderByAlphabetically
+	case "moststars":
+		orderBy = models.SearchOrderByStarsReverse
+	case "feweststars":
+		orderBy = models.SearchOrderByStars
+	case "mostforks":
+		orderBy = models.SearchOrderByForksReverse
+	case "fewestforks":
+		orderBy = models.SearchOrderByForks
+	default:
+		c.Data["SortType"] = "recentupdate"
+		orderBy = models.SearchOrderByRecentUpdated
+	}
+
+/*
+	total, err := models.GetWatchingReposCount(c.User)
+	if err != nil {
+		c.ServerError("ErrGetWatchingReposCount", err)
+		return
+	}
+*/
+	repos, count, err := models.SearchRepository(&models.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+			Page:     page,
+		},
+		Actor:              c.User,
+		Keyword:            c.FormTrim("q"),
+		OrderBy:            orderBy,
+		Private:            c.IsSigned,
+		WatchedByID:        c.User.ID,
+		Collaborate:        util.OptionalBoolFalse,
+		TopicOnly:          c.FormBool("topic"),
+		IncludeDescription: setting.UI.SearchRepoDescription,
+	})
+
+	total := int(count)
+	c.Data["Total"] = total
+
+	if err != nil {
+		c.ServerError("ErrSearchRepository", err)
+		return
+	}
+	c.Data["Repos"] = repos
+
+	// redirect to last page if request page is more than total pages
+	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
+	pager.SetDefaultParams(c)
+	c.Data["Page"] = pager
+
+	c.Data["Status"] = 2
+
 	c.HTML(http.StatusOK, tplNotificationSubscriptions)
 }
