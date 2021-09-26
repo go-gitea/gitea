@@ -311,6 +311,7 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 
 	c.Data["Status"] = 1
+	c.Data["Title"] = c.Tr("notification.subscriptions")
 
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(int(count), setting.UI.IssuePagingNum, page, 5)
@@ -362,13 +363,6 @@ func NotificationWatching(c *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	/*
-		total, err := models.GetWatchingReposCount(c.User)
-		if err != nil {
-			c.ServerError("ErrGetWatchingReposCount", err)
-			return
-		}
-	*/
 	repos, count, err := models.SearchRepository(&models.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
@@ -399,6 +393,7 @@ func NotificationWatching(c *context.Context) {
 	c.Data["Page"] = pager
 
 	c.Data["Status"] = 2
+	c.Data["Title"] = c.Tr("notification.watching")
 
 	c.HTML(http.StatusOK, tplNotificationSubscriptions)
 }
