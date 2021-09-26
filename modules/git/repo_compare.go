@@ -210,13 +210,13 @@ func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, formatted
 	return repo.GetDiff(base, head, w)
 }
 
-// GetDiff generates and returns patch data between given revisions.
+// GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
-	return NewCommand("diff", "-p", "--binary", base, head).
+	return NewCommand("diff", "-p", base, head).
 		RunInDirPipeline(repo.Path, w, nil)
 }
 
-// GetPatch generates and returns format-patch data between given revisions.
+// GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	err := NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
