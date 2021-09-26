@@ -11,7 +11,60 @@
         </div>
         <div class="ui bottom attached active tab segment">
             {{if eq .Status 1}}
+                <div id="issue-filters" class="ui stackable grid">
+                    <div class="six wide column">
+                        <div class="ui compact tiny menu">
+                            <a class="{{if eq .State "all"}}active{{end}} item" href="{{$.Link}}?type={{.ViewType}}&sort={{$.SortType}}&state=all">
+                                {{.i18n.Tr "all"}}
+                            </a>
+                            <a class="{{if eq .State "open"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state=open">
+                                {{svg "octicon-issue-opened" 16 "mr-3"}}
+                                {{.i18n.Tr "repo.issues.open_title"}}
+                            </a>
+                            <a class="{{if eq .State "closed"}}active{{end}} item" href="{{$.Link}}?type={{.ViewType}}&sort={{$.SortType}}&state=closed">
+                                {{svg "octicon-issue-closed" 16 "mr-3"}}
+                                {{.i18n.Tr "repo.issues.closed_title"}}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="four wide right aligned right floated column">
+                        <div class="ui right aligned secondary filter stackable menu labels">
+                            <!-- Type -->
+                            <div class="ui dropdown type jump item">
+                                <span class="text">
+                                    {{.i18n.Tr "repo.issues.filter_type"}}
+                                    {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+                                </span>
+                                <div class="menu">
+                                    <a class="{{if eq .ViewType "all"}}active{{end}} item" href="{{$.Link}}?type=all&sort={{$.SortType}}&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_type.all_issues"}}</a>
+                                    <a class="{{if eq .ViewType "assigned"}}active{{end}} item" href="{{$.Link}}?type=assigned&sort={{$.SortType}}&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}</a>
+                                    <a class="{{if eq .ViewType "created_by"}}active{{end}} item" href="{{$.Link}}?type=created_by&sort={{$.SortType}}&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}</a>
+                                    <a class="{{if eq .ViewType "mentioned"}}active{{end}} item" href="{{$.Link}}?type=mentioned&sort={{$.SortType}}&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}</a>
+                                </div>
+                            </div>
+
+                            <!-- Sort -->
+                            <div class="ui dropdown type jump item">
+                                <span class="text">
+                                    {{.i18n.Tr "repo.issues.filter_sort"}}
+                                    {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+                                </span>
+                                <div class="menu">
+                                    <a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=latest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
+                                    <a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=oldest&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
+                                    <a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=recentupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+                                    <a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastupdate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+                                    <a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=mostcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+                                    <a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=leastcomment&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+                                    <a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=nearduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+                                    <a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort=farduedate&state={{$.State}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {{if eq (len .Issues) 0}}
+                    <div class="ui divider"></div>
                     {{.i18n.Tr "notification.no_subscriptions"}}
                 {{else}}
                     {{template "shared/issuelist" mergeinto . "listType" "dashboard"}}

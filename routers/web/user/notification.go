@@ -209,8 +209,52 @@ func NotificationSubscriptions(c *context.Context) {
 		perPage = 20
 	}
 
+	viewType := c.FormString("type")
+	sortType := c.FormString("sort")
+	types := []string{"all", "assigned", "created_by", "mentioned"}
+	if !util.IsStringInSlice(viewType, types, true) {
+		viewType = "all"
+	}
+	c.Data["SortType"] = sortType
+	c.Data["ViewType"] = viewType
+
+	state := c.FormString("state")
+	states := []string{"all", "open", "closed"}
+	if !util.IsStringInSlice(state, states, true) {
+		state = "all"
+	}
+	c.Data["State"] = state
+	var showClosed util.OptionalBool
+	switch state {
+	case "all":
+		showClosed = util.OptionalBoolNone
+	case "closed":
+		showClosed = util.OptionalBoolTrue
+	case "open":
+		showClosed = util.OptionalBoolFalse
+	}
+
+	var (
+		assigneeID  int64
+		posterID    int64
+		mentionedID int64
+	)
+
+	switch viewType {
+	case "created_by":
+		posterID = c.User.ID
+	case "mentioned":
+		mentionedID = c.User.ID
+	case "assigned":
+		assigneeID = c.User.ID
+	}
+
 	count, err := models.CountIssues(&models.IssuesOptions{
 		SubscribedID: c.User.ID,
+		AssigneeID:   assigneeID,
+		MentionedID:  mentionedID,
+		PosterID:     posterID,
+		IsClosed:     showClosed,
 	})
 	if err != nil {
 		c.ServerError("CountIssues", err)
@@ -222,6 +266,11 @@ func NotificationSubscriptions(c *context.Context) {
 			Page:     page,
 		},
 		SubscribedID: c.User.ID,
+		AssigneeID:   assigneeID,
+		MentionedID:  mentionedID,
+		PosterID:     posterID,
+		SortType:     sortType,
+		IsClosed:     showClosed,
 	})
 	if err != nil {
 		c.ServerError("Issues", err)
@@ -269,7 +318,10 @@ func NotificationSubscriptions(c *context.Context) {
 		c.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
 	}
-	pager.SetDefaultParams(c)
+	//	pager.SetDefaultParams(c)
+	pager.AddParam(c, "type", "ViewType")
+	pager.AddParam(c, "sort", "SortType")
+	pager.AddParam(c, "state", "State")
 	c.Data["Page"] = pager
 
 	c.HTML(http.StatusOK, tplNotificationSubscriptions)
