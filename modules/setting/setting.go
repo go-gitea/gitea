@@ -451,7 +451,7 @@ func getAppPath() (string, error) {
 	// revisions come out the older revisions are eventually deleted, and
 	// the hooks begin to fail.
 	// The code below replaces the snap revision with "current", which
-	// always points to the current snap revision.
+	// is a link to the current snap revision.
 	snap := os.Getenv("SNAP")
 	if snap != "" && strings.HasPrefix(appPath, snap) {
 		split := strings.Split(appPath, "/")
