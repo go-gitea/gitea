@@ -39,6 +39,7 @@ func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOp
 	if err != nil {
 		return nil, err
 	}
+	u.User = nil
 
 	fields := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(fields) != 2 {
@@ -50,7 +51,7 @@ func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOp
 		repoName = repoName[:len(repoName)-4]
 	}
 
-	log.Trace("Create onedev downloader. BaseURL: %v RepoName: %s", u, repoName)
+	log.Trace("Create Codebase downloader. BaseURL: %v RepoName: %s", u, repoName)
 
 	return NewCodebaseDownloader(ctx, u, project, repoName, opts.AuthUsername, opts.AuthPassword), nil
 }
@@ -171,7 +172,7 @@ func (d *CodebaseDownloader) GetRepoInfo() (*base.Repository, error) {
 	return &base.Repository{
 		Name:        rawRepository.Name,
 		Description: rawRepository.Description,
-		CloneURL:    d.projectURL.String(),
+		CloneURL:    rawRepository.CloneURL,
 		OriginalURL: d.projectURL.String(),
 	}, nil
 }
@@ -218,14 +219,17 @@ func (d *CodebaseDownloader) GetMilestones() ([]*base.Milestone, error) {
 		}
 
 		closed := deadline
+		state := "closed"
 		if milestone.Status == "active" {
 			closed = nil
+			state = ""
 		}
 
 		milestones = append(milestones, &base.Milestone{
 			Title:    milestone.Name,
 			Deadline: deadline,
 			Closed:   closed,
+			State:    state,
 		})
 	}
 	return milestones, nil
