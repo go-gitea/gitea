@@ -1128,7 +1128,7 @@ type IssuesOptions struct {
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
-	SubscribedID       int64
+	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
@@ -1226,8 +1226,8 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 	}
 
-	if opts.SubscribedID > 0 {
-		applySubscribedCondition(sess, opts.SubscribedID)
+	if opts.SubscriberID > 0 {
+		applySubscribedCondition(sess, opts.SubscriberID)
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
@@ -1320,12 +1320,12 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
 }
 
-func applySubscribedCondition(sess *xorm.Session, subscribedID int64) *xorm.Session {
+func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
 	return sess.And("(issue.id IN (SELECT issue_id FROM issue_watch WHERE (is_watching = ?) AND user_id = ?)) "+
 		"OR ((issue.id IN (SELECT issue_id FROM comment WHERE poster_id = ?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = ?)))) "+
 		"OR ((issue.id IN (SELECT id FROM issue WHERE poster_id = ?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = ?)))) "+
 		"OR (issue.repo_id IN (SELECT id FROM watch WHERE user_id = ? AND mode = ?) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = ?))))",
-		true, subscribedID, subscribedID, subscribedID, false, subscribedID, subscribedID, false, subscribedID, true, subscribedID, false)
+		true, subscriberID, subscriberID, subscriberID, false, subscriberID, subscriberID, false, subscriberID, true, subscriberID, false)
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options

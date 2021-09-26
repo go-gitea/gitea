@@ -244,7 +244,7 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 
 	count, err := models.CountIssues(&models.IssuesOptions{
-		SubscribedID: c.User.ID,
+		SubscriberID: c.User.ID,
 		AssigneeID:   assigneeID,
 		MentionedID:  mentionedID,
 		PosterID:     posterID,
@@ -259,7 +259,7 @@ func NotificationSubscriptions(c *context.Context) {
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
 		},
-		SubscribedID: c.User.ID,
+		SubscriberID: c.User.ID,
 		AssigneeID:   assigneeID,
 		MentionedID:  mentionedID,
 		PosterID:     posterID,
