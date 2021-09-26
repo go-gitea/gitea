@@ -452,7 +452,7 @@ func getAppPath() (string, error) {
 		split := strings.Split(appPath, "/")
 		if len(split) >= 3 {
 			split[len(split)-2] = "current"
-			appPath = strings.Join(split, "/");
+			appPath = strings.Join(split, "/")
 		}
 	}
 
