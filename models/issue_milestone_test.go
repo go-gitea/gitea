@@ -102,7 +102,7 @@ func TestGetMilestones(t *testing.T) {
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
 			milestones, _, err := GetMilestones(GetMilestonesOption{
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
 				},
@@ -119,7 +119,7 @@ func TestGetMilestones(t *testing.T) {
 			assert.True(t, sort.IntsAreSorted(values))
 
 			milestones, _, err = GetMilestones(GetMilestonesOption{
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     page,
 					PageSize: setting.UI.IssuePagingNum,
 				},
@@ -173,7 +173,7 @@ func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		count, err := countRepoMilestones(db.DefaultContext().Engine(), repoID)
+		count, err := countRepoMilestones(db.GetEngine(db.DefaultContext), repoID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones, count)
 	}
@@ -181,7 +181,7 @@ func TestCountRepoMilestones(t *testing.T) {
 	test(2)
 	test(3)
 
-	count, err := countRepoMilestones(db.DefaultContext().Engine(), db.NonexistentID)
+	count, err := countRepoMilestones(db.GetEngine(db.DefaultContext), db.NonexistentID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }
@@ -223,16 +223,16 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()
-	_, err := db.DefaultContext().Engine().ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
+	_, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(db.DefaultContext().Engine(), issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(db.GetEngine(db.DefaultContext), issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
-	_, err = db.DefaultContext().Engine().ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
+	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
-	assert.NoError(t, updateMilestoneCounters(db.DefaultContext().Engine(), issue.MilestoneID))
+	assert.NoError(t, updateMilestoneCounters(db.GetEngine(db.DefaultContext), issue.MilestoneID))
 	CheckConsistencyFor(t, &Milestone{})
 }
 

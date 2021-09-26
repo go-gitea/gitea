@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"sync"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -74,7 +74,7 @@ func ResetOAuth2() error {
 
 // initOAuth2LoginSources is used to load and register all active OAuth2 providers
 func initOAuth2LoginSources() error {
-	loginSources, _ := models.GetActiveOAuth2ProviderLoginSources()
+	loginSources, _ := login.GetActiveOAuth2ProviderLoginSources()
 	for _, source := range loginSources {
 		oauth2Source, ok := source.Cfg.(*Source)
 		if !ok {

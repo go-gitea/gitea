@@ -24,7 +24,7 @@ func init() {
 
 // UpdateSession updates the session with provided id
 func UpdateSession(key string, data []byte) error {
-	_, err := db.DefaultContext().Engine().ID(key).Update(&Session{
+	_, err := db.GetEngine(db.DefaultContext).ID(key).Update(&Session{
 		Data:   data,
 		Expiry: timeutil.TimeStampNow(),
 	})
@@ -36,7 +36,7 @@ func ReadSession(key string) (*Session, error) {
 	session := Session{
 		Key: key,
 	}
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -60,12 +60,12 @@ func ExistSession(key string) (bool, error) {
 	session := Session{
 		Key: key,
 	}
-	return db.DefaultContext().Engine().Get(&session)
+	return db.GetEngine(db.DefaultContext).Get(&session)
 }
 
 // DestroySession destroys a session
 func DestroySession(key string) error {
-	_, err := db.DefaultContext().Engine().Delete(&Session{
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Session{
 		Key: key,
 	})
 	return err
@@ -73,7 +73,7 @@ func DestroySession(key string) error {
 
 // RegenerateSession regenerates a session from the old id
 func RegenerateSession(oldKey, newKey string) (*Session, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -117,11 +117,11 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 
 // CountSessions returns the number of sessions
 func CountSessions() (int64, error) {
-	return db.DefaultContext().Engine().Count(&Session{})
+	return db.GetEngine(db.DefaultContext).Count(&Session{})
 }
 
 // CleanupSessions cleans up expired sessions
 func CleanupSessions(maxLifetime int64) error {
-	_, err := db.DefaultContext().Engine().Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
+	_, err := db.GetEngine(db.DefaultContext).Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
 	return err
 }
