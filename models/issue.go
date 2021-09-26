@@ -817,7 +817,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issues.SaveIssueContentHistory(ctx.Engine(), issue.PosterID, issue.ID, 0,
+	if err = issues.SaveIssueContentHistory(db.GetEngine(ctx), issue.PosterID, issue.ID, 0,
 		timeutil.TimeStampNow(), issue.Content, false); err != nil {
 		return fmt.Errorf("SaveIssueContentHistory: %v", err)
 	}

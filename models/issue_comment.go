@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -1083,7 +1084,7 @@ func deleteComment(e db.Engine, comment *Comment) error {
 		return err
 	}
 
-	if _, err := e.Delete(&IssueContentHistory{
+	if _, err := e.Delete(&issues.IssueContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
 		return err

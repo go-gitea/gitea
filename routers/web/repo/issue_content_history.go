@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issuesModel "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -28,7 +29,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	}
 
 	lang := ctx.Data["Lang"].(string)
-	editedHistoryCountMap, _ := models.QueryIssueContentHistoryEditedCountMap(db.DefaultContext().Engine(), issue.ID)
+	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(db.DefaultContext, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
 			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
@@ -48,7 +49,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		return
 	}
 
-	items, _ := models.FetchIssueContentHistoryList(db.DefaultContext().Engine(), issue.ID, commentID)
+	items, _ := issuesModel.FetchIssueContentHistoryList(db.DefaultContext, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
@@ -81,7 +82,7 @@ func GetContentHistoryList(ctx *context.Context) {
 // canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
 // Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
 func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comment *models.Comment,
-	history *models.IssueContentHistory) bool {
+	history *issuesModel.IssueContentHistory) bool {
 
 	canSoftDelete := false
 	if ctx.Repo.IsOwner() {
@@ -108,7 +109,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory, err := models.GetIssueContentHistoryAndPrev(db.DefaultContext().Engine(), historyID)
+	history, prevHistory, err := issuesModel.GetIssueContentHistoryAndPrev(db.DefaultContext, historyID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "Can not find the content history",
@@ -176,7 +177,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	historyID := ctx.FormInt64("history_id")
 
 	var comment *models.Comment
-	var history *models.IssueContentHistory
+	var history *issuesModel.IssueContentHistory
 	var err error
 	if commentID != 0 {
 		if comment, err = models.GetCommentByID(commentID); err != nil {
@@ -184,7 +185,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 			return
 		}
 	}
-	if history, err = models.GetIssueContentHistoryByID(db.DefaultContext().Engine(), historyID); err != nil {
+	if history, err = issuesModel.GetIssueContentHistoryByID(db.DefaultContext, historyID); err != nil {
 		log.Error("can not get issue content history %v. err=%v", historyID, err)
 		return
 	}
@@ -197,7 +198,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 
-	err = models.SoftDeleteIssueContentHistory(db.DefaultContext().Engine(), historyID)
+	err = issuesModel.SoftDeleteIssueContentHistory(db.DefaultContext, historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": err == nil,

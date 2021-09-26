@@ -5,7 +5,7 @@
 package issues
 
 import (
-	"code.gitea.io/gitea/models"
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -51,14 +51,14 @@ func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, ed
 
 // QueryIssueContentHistoryEditedCountMap query related history count of each comment (comment_id = 0 means the main issue)
 // only return the count map for "edited" (history revision count > 1) issues or comments.
-func QueryIssueContentHistoryEditedCountMap(e db.Engine, issueID int64) (map[int64]int, error) {
+func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64) (map[int64]int, error) {
 	type HistoryCountRecord struct {
 		CommentID    int64
 		HistoryCount int
 	}
 	records := make([]*HistoryCountRecord, 0)
 
-	err := e.Select("comment_id, COUNT(1) as history_count").
+	err := db.GetEngine(dbCtx).Select("comment_id, COUNT(1) as history_count").
 		Table("issue_content_history").
 		Where(builder.Eq{"issue_id": issueID}).
 		GroupBy("comment_id").
@@ -92,9 +92,9 @@ type IssueContentListItem struct {
 }
 
 // FetchIssueContentHistoryList fetch list
-func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
+func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
 	res := make([]*IssueContentListItem, 0)
-	err := e.Select("u.id as user_id, u.name as user_name,"+
+	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name,"+
 		"u.avatar as user_avatar, u.avatar_email as user_avatar_email, u.use_custom_avatar,"+
 		"h.id as history_id, h.edited_unix, h.is_first_created, h.is_deleted").
 		Table([]string{"issue_content_history", "h"}).
@@ -109,21 +109,15 @@ func FetchIssueContentHistoryList(e db.Engine, issueID int64, commentID int64) (
 	}
 
 	for _, item := range res {
-		u := &models.User{
-			ID:              item.UserID,
-			Name:            item.UserName,
-			Avatar:          item.UserAvatar,
-			AvatarEmail:     item.UserAvatarEmail,
-			UseCustomAvatar: item.UseCustomAvatar,
-		}
-		item.UserAvatarLink = u.AvatarLink()
+		// FIXME: use avatar refactor later
+		item.UserAvatarLink = "/user/avatar/" + item.UserName + "/0"
 	}
 	return res, nil
 }
 
 //SoftDeleteIssueContentHistory soft delete
-func SoftDeleteIssueContentHistory(e db.Engine, historyID int64) error {
-	if _, err := e.ID(historyID).Cols("is_deleted", "content_text").Update(&IssueContentHistory{
+func SoftDeleteIssueContentHistory(dbCtx context.Context, historyID int64) error {
+	if _, err := db.GetEngine(dbCtx).ID(historyID).Cols("is_deleted", "content_text").Update(&IssueContentHistory{
 		IsDeleted:   true,
 		ContentText: "",
 	}); err != nil {
@@ -144,9 +138,9 @@ func (err ErrIssueContentHistoryNotExist) Error() string {
 }
 
 // GetIssueContentHistoryByID get issue content history
-func GetIssueContentHistoryByID(e db.Engine, id int64) (*IssueContentHistory, error) {
+func GetIssueContentHistoryByID(dbCtx context.Context, id int64) (*IssueContentHistory, error) {
 	h := &IssueContentHistory{}
-	has, err := e.ID(id).Get(h)
+	has, err := db.GetEngine(dbCtx).ID(id).Get(h)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -156,9 +150,9 @@ func GetIssueContentHistoryByID(e db.Engine, id int64) (*IssueContentHistory, er
 }
 
 // GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
-func GetIssueContentHistoryAndPrev(e db.Engine, id int64) (history, prevHistory *IssueContentHistory, err error) {
+func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, prevHistory *IssueContentHistory, err error) {
 	history = &IssueContentHistory{}
-	has, err := e.ID(id).Get(history)
+	has, err := db.GetEngine(dbCtx).ID(id).Get(history)
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
 		return nil, nil, err
@@ -168,7 +162,7 @@ func GetIssueContentHistoryAndPrev(e db.Engine, id int64) (history, prevHistory 
 	}
 
 	prevHistory = &IssueContentHistory{}
-	has, err = e.Where(builder.Eq{"issue_id": history.IssueID, "comment_id": history.CommentID, "is_deleted": false}).
+	has, err = db.GetEngine(dbCtx).Where(builder.Eq{"issue_id": history.IssueID, "comment_id": history.CommentID, "is_deleted": false}).
 		And(builder.Lt{"edited_unix": history.EditedUnix}).
 		OrderBy("edited_unix DESC").Limit(1).
 		Get(prevHistory)
