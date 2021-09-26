@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/url"
@@ -764,7 +763,7 @@ func NewContext() {
 
 		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
 			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
-			if err := ioutil.WriteFile(fname,
+			if err := os.WriteFile(fname,
 				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
 				log.Fatal("Failed to create '%s': %v", fname, err)
 			}
@@ -1030,7 +1029,7 @@ func loadInternalToken(sec *ini.Section) string {
 		}
 		defer fp.Close()
 
-		buf, err := ioutil.ReadAll(fp)
+		buf, err := io.ReadAll(fp)
 		if err != nil {
 			log.Fatal("Failed to read InternalTokenURI (%s): %v", uri, err)
 		}

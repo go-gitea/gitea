@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
@@ -32,7 +31,7 @@ func (a *DummyTransferAdapter) Name() string {
 }
 
 func (a *DummyTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
-	return ioutil.NopCloser(bytes.NewBufferString("dummy")), nil
+	return io.NopCloser(bytes.NewBufferString("dummy")), nil
 }
 
 func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
@@ -50,7 +49,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	if strings.Contains(url, "status-not-ok") {
 		return &http.Response{StatusCode: http.StatusBadRequest}
 	} else if strings.Contains(url, "invalid-json-response") {
-		return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewBufferString("invalid json"))}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString("invalid json"))}
 	} else if strings.Contains(url, "valid-batch-request-download") {
 		batchResponse = &BatchResponse{
 			Transfer: "dummy",
@@ -149,7 +148,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 	payload := new(bytes.Buffer)
 	json.NewEncoder(payload).Encode(batchResponse)
 
-	return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(payload)}
+	return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(payload)}
 }
 
 func TestHTTPClientDownload(t *testing.T) {
@@ -350,7 +349,7 @@ func TestHTTPClientUpload(t *testing.T) {
 		client.transfers["dummy"] = dummy
 
 		err := client.Upload(context.Background(), []Pointer{p}, func(p Pointer, objectError error) (io.ReadCloser, error) {
-			return ioutil.NopCloser(new(bytes.Buffer)), objectError
+			return io.NopCloser(new(bytes.Buffer)), objectError
 		})
 		if len(c.expectederror) > 0 {
 			assert.True(t, strings.Contains(err.Error(), c.expectederror), "case %d: '%s' should contain '%s'", n, err.Error(), c.expectederror)

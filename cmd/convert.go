@@ -7,7 +7,7 @@ package cmd
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -39,7 +39,7 @@ func runConvert(ctx *cli.Context) error {
 		return nil
 	}
 
-	if err := models.ConvertUtf8ToUtf8mb4(); err != nil {
+	if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
 		log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
 		return err
 	}

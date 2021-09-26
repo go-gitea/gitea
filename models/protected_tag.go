@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -28,21 +29,25 @@ type ProtectedTag struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
 }
 
+func init() {
+	db.RegisterModel(new(ProtectedTag))
+}
+
 // InsertProtectedTag inserts a protected tag to database
 func InsertProtectedTag(pt *ProtectedTag) error {
-	_, err := x.Insert(pt)
+	_, err := db.GetEngine(db.DefaultContext).Insert(pt)
 	return err
 }
 
 // UpdateProtectedTag updates the protected tag
 func UpdateProtectedTag(pt *ProtectedTag) error {
-	_, err := x.ID(pt.ID).AllCols().Update(pt)
+	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).AllCols().Update(pt)
 	return err
 }
 
 // DeleteProtectedTag deletes a protected tag by ID
 func DeleteProtectedTag(pt *ProtectedTag) error {
-	_, err := x.ID(pt.ID).Delete(&ProtectedTag{})
+	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).Delete(&ProtectedTag{})
 	return err
 }
 
@@ -81,13 +86,13 @@ func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
 // GetProtectedTags gets all protected tags of the repository
 func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 	tags := make([]*ProtectedTag, 0)
-	return tags, x.Find(&tags, &ProtectedTag{RepoID: repo.ID})
+	return tags, db.GetEngine(db.DefaultContext).Find(&tags, &ProtectedTag{RepoID: repo.ID})
 }
 
 // GetProtectedTagByID gets the protected tag with the specific id
 func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
 	tag := new(ProtectedTag)
-	has, err := x.ID(id).Get(tag)
+	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(tag)
 	if err != nil {
 		return nil, err
 	}

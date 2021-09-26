@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -47,7 +47,7 @@ func initDBDisableConsole(disableConsole bool) error {
 	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
-	if err := models.SetEngine(); err != nil {
+	if err := db.SetEngine(); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}
 	return nil

@@ -5,11 +5,11 @@
 package integrations
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -17,21 +17,21 @@ import (
 )
 
 func TestMigrateLocalPath(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	adminUser := models.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
+	adminUser := db.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = true
 
-	lowercasePath, err := ioutil.TempDir("", "lowercase") // may not be lowercase because TempDir creates a random directory name which may be mixedcase
+	lowercasePath, err := os.MkdirTemp("", "lowercase") // may not be lowercase because MkdirTemp creates a random directory name which may be mixedcase
 	assert.NoError(t, err)
 	defer os.RemoveAll(lowercasePath)
 
 	err = migrations.IsMigrateURLAllowed(lowercasePath, adminUser)
 	assert.NoError(t, err, "case lowercase path")
 
-	mixedcasePath, err := ioutil.TempDir("", "mIxeDCaSe")
+	mixedcasePath, err := os.MkdirTemp("", "mIxeDCaSe")
 	assert.NoError(t, err)
 	defer os.RemoveAll(mixedcasePath)
 
