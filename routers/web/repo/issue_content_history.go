@@ -82,7 +82,7 @@ func GetContentHistoryList(ctx *context.Context) {
 // canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
 // Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
 func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comment *models.Comment,
-	history *issuesModel.IssueContentHistory) bool {
+	history *issuesModel.ContentHistory) bool {
 
 	canSoftDelete := false
 	if ctx.Repo.IsOwner() {
@@ -177,7 +177,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	historyID := ctx.FormInt64("history_id")
 
 	var comment *models.Comment
-	var history *issuesModel.IssueContentHistory
+	var history *issuesModel.ContentHistory
 	var err error
 	if commentID != 0 {
 		if comment, err = models.GetCommentByID(commentID); err != nil {

@@ -2159,7 +2159,7 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&issues.IssueContentHistory{}); err != nil {
+		Delete(&issues.ContentHistory{}); err != nil {
 		return
 	}
 

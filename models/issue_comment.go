@@ -1084,7 +1084,7 @@ func deleteComment(e db.Engine, comment *Comment) error {
 		return err
 	}
 
-	if _, err := e.Delete(&issues.IssueContentHistory{
+	if _, err := e.Delete(&issues.ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
 		return err

@@ -15,25 +15,30 @@ import (
 	"xorm.io/builder"
 )
 
-// IssueContentHistory save issue/comment content history revisions.
-type IssueContentHistory struct {
-	ID             int64              `xorm:"pk autoincr"`
-	PosterID       int64              `xorm:""`
+// ContentHistory save issue/comment content history revisions.
+type ContentHistory struct {
+	ID             int64 `xorm:"pk autoincr"`
+	PosterID       int64
 	IssueID        int64              `xorm:"INDEX"`
 	CommentID      int64              `xorm:"INDEX"`
 	EditedUnix     timeutil.TimeStamp `xorm:"INDEX"`
 	ContentText    string             `xorm:"LONGTEXT"`
-	IsFirstCreated bool               `xorm:""`
-	IsDeleted      bool               `xorm:""`
+	IsFirstCreated bool
+	IsDeleted      bool
+}
+
+// TableName provides the real table name
+func (m *ContentHistory) TableName() string {
+	return "issue_content_history"
 }
 
 func init() {
-	db.RegisterModel(new(IssueContentHistory))
+	db.RegisterModel(new(ContentHistory))
 }
 
 // SaveIssueContentHistory save history
 func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) error {
-	ch := &IssueContentHistory{
+	ch := &ContentHistory{
 		PosterID:       posterID,
 		IssueID:        issueID,
 		CommentID:      commentID,
@@ -117,7 +122,7 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentI
 
 //SoftDeleteIssueContentHistory soft delete
 func SoftDeleteIssueContentHistory(dbCtx context.Context, historyID int64) error {
-	if _, err := db.GetEngine(dbCtx).ID(historyID).Cols("is_deleted", "content_text").Update(&IssueContentHistory{
+	if _, err := db.GetEngine(dbCtx).ID(historyID).Cols("is_deleted", "content_text").Update(&ContentHistory{
 		IsDeleted:   true,
 		ContentText: "",
 	}); err != nil {
@@ -138,8 +143,8 @@ func (err ErrIssueContentHistoryNotExist) Error() string {
 }
 
 // GetIssueContentHistoryByID get issue content history
-func GetIssueContentHistoryByID(dbCtx context.Context, id int64) (*IssueContentHistory, error) {
-	h := &IssueContentHistory{}
+func GetIssueContentHistoryByID(dbCtx context.Context, id int64) (*ContentHistory, error) {
+	h := &ContentHistory{}
 	has, err := db.GetEngine(dbCtx).ID(id).Get(h)
 	if err != nil {
 		return nil, err
@@ -150,8 +155,8 @@ func GetIssueContentHistoryByID(dbCtx context.Context, id int64) (*IssueContentH
 }
 
 // GetIssueContentHistoryAndPrev get a history and the previous non-deleted history (to compare)
-func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, prevHistory *IssueContentHistory, err error) {
-	history = &IssueContentHistory{}
+func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, prevHistory *ContentHistory, err error) {
+	history = &ContentHistory{}
 	has, err := db.GetEngine(dbCtx).ID(id).Get(history)
 	if err != nil {
 		log.Error("failed to get issue content history %v. err=%v", id, err)
@@ -161,7 +166,7 @@ func GetIssueContentHistoryAndPrev(dbCtx context.Context, id int64) (history, pr
 		return nil, nil, &ErrIssueContentHistoryNotExist{id}
 	}
 
-	prevHistory = &IssueContentHistory{}
+	prevHistory = &ContentHistory{}
 	has, err = db.GetEngine(dbCtx).Where(builder.Eq{"issue_id": history.IssueID, "comment_id": history.CommentID, "is_deleted": false}).
 		And(builder.Lt{"edited_unix": history.EditedUnix}).
 		OrderBy("edited_unix DESC").Limit(1).
