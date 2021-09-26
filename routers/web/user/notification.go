@@ -327,7 +327,7 @@ func NotificationSubscriptions(c *context.Context) {
 	c.HTML(http.StatusOK, tplNotificationSubscriptions)
 }
 
-// NotificationSubscriptions returns the list of watching repos
+// NotificationWatching returns the list of watching repos
 func NotificationWatching(c *context.Context) {
 	page := c.FormInt("page")
 	if page < 1 {
