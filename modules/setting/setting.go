@@ -444,7 +444,19 @@ func getAppPath() (string, error) {
 	}
 	// Note: we don't use path.Dir here because it does not handle case
 	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	return strings.ReplaceAll(appPath, "\\", "/"), err
+	appPath = strings.ReplaceAll(appPath, "\\", "/")
+
+	// Fix issue 16209
+	snap := os.Getenv("SNAP")
+	if snap != "" && strings.HasPrefix(appPath, snap) {
+		split := strings.Split(appPath, "/")
+		if len(split) >= 3 {
+			split[len(split)-2] = "current"
+			appPath = strings.Join(split, "/");
+		}
+	}
+
+	return appPath, err
 }
 
 func getWorkPath(appPath string) string {
