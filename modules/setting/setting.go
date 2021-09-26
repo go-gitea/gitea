@@ -446,7 +446,7 @@ func getAppPath() (string, error) {
 	//	which path starts with two "/" in Windows: "//psf/Home/..."
 	appPath = strings.ReplaceAll(appPath, "\\", "/")
 
-	// Fix issue 16209: When runnung in a snap and repositories are
+	// Fix issue 16209: When running in a snap and repositories are
 	// created, paths in the hooks include the snap revision. But as new
 	// revisions come out the older revisions are eventually deleted, and
 	// the hooks begin to fail.
