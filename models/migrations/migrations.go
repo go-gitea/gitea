@@ -343,6 +343,8 @@ var migrations = []Migration{
 	// v194 -> v195
 	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
 	// v195 -> v196
+	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
+	// v196 -> v197
 	NewMigration("Add package tables", addPackageTables),
 }
 

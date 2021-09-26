@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -59,7 +60,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	miles, total, err := models.GetMilestones(models.GetMilestonesOption{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
 		},

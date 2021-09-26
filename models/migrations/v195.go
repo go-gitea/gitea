@@ -5,44 +5,43 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"fmt"
 
 	"xorm.io/xorm"
 )
 
-func addPackageTables(x *xorm.Engine) error {
-	type Package struct {
-		ID          int64 `xorm:"pk autoincr"`
-		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatorID   int64
-		Type        int `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name        string
-		LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Version     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		MetadataRaw string `xorm:"TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func addTableCommitStatusIndex(x *xorm.Engine) error {
+	// CommitStatusIndex represents a table for commit status index
+	type CommitStatusIndex struct {
+		ID       int64
+		RepoID   int64  `xorm:"unique(repo_sha)"`
+		SHA      string `xorm:"unique(repo_sha)"`
+		MaxIndex int64  `xorm:"index"`
 	}
 
-	if err := x.Sync2(new(Package)); err != nil {
+	if err := x.Sync2(new(CommitStatusIndex)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	type PackageFile struct {
-		ID         int64 `xorm:"pk autoincr"`
-		PackageID  int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Size       int64
-		Name       string
-		LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		HashMD5    string `xorm:"hash_md5"`
-		HashSHA1   string `xorm:"hash_sha1"`
-		HashSHA256 string `xorm:"hash_sha256"`
-		HashSHA512 string `xorm:"hash_sha512"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+	// Remove data we're goint to rebuild
+	if _, err := sess.Table("commit_status_index").Where("1=1").Delete(&CommitStatusIndex{}); err != nil {
+		return err
 	}
 
-	return x.Sync2(new(PackageFile))
+	// Create current data for all repositories with issues and PRs
+	if _, err := sess.Exec("INSERT INTO commit_status_index (repo_id, sha, max_index) " +
+		"SELECT max_data.repo_id, max_data.sha, max_data.max_index " +
+		"FROM ( SELECT commit_status.repo_id AS repo_id, commit_status.sha AS sha, max(commit_status.`index`) AS max_index " +
+		"FROM commit_status GROUP BY commit_status.repo_id, commit_status.sha) AS max_data"); err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }

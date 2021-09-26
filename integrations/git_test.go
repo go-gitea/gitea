@@ -7,10 +7,10 @@ package integrations
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -51,7 +52,7 @@ func testGit(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		forkedUserCtx.Reponame = httpContext.Reponame
 
-		dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+		dstPath, err := os.MkdirTemp("", httpContext.Reponame)
 		assert.NoError(t, err)
 		defer util.RemoveAll(dstPath)
 
@@ -101,7 +102,7 @@ func testGit(t *testing.T, u *url.URL) {
 			sshURL := createSSHUrl(sshContext.GitPath(), u)
 
 			//Setup clone folder
-			dstPath, err := ioutil.TempDir("", sshContext.Reponame)
+			dstPath, err := os.MkdirTemp("", sshContext.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstPath)
 
@@ -127,7 +128,7 @@ func testGit(t *testing.T, u *url.URL) {
 }
 
 func ensureAnonymousClone(t *testing.T, u *url.URL) {
-	dstLocalPath, err := ioutil.TempDir("", "repo1")
+	dstLocalPath, err := os.MkdirTemp("", "repo1")
 	assert.NoError(t, err)
 	defer util.RemoveAll(dstLocalPath)
 	t.Run("CloneAnonymous", doGitClone(dstLocalPath, u))
@@ -310,7 +311,7 @@ func generateCommitWithNewData(size int, repoPath, email, fullName, prefix strin
 
 	buffer := make([]byte, bufSize)
 
-	tmpFile, err := ioutil.TempFile(repoPath, prefix)
+	tmpFile, err := os.CreateTemp(repoPath, prefix)
 	if err != nil {
 		return "", err
 	}
@@ -557,7 +558,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		u.Path = ctx.GitPath()
 
 		// Create a temporary directory
-		tmpDir, err := ioutil.TempDir("", ctx.Reponame)
+		tmpDir, err := os.MkdirTemp("", ctx.Reponame)
 		assert.NoError(t, err)
 		defer util.RemoveAll(tmpDir)
 
@@ -630,12 +631,12 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		pullNum := models.GetCount(t, &models.PullRequest{})
+		pullNum := db.GetCount(t, &models.PullRequest{})
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 
 		t.Run("AddCommit", func(t *testing.T) {
-			err := ioutil.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0666)
+			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content"), 0666)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -666,8 +667,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			models.AssertCount(t, &models.PullRequest{}, pullNum+1)
-			pr1 = models.AssertExistsAndLoadBean(t, &models.PullRequest{
+			db.AssertCount(t, &models.PullRequest{}, pullNum+1)
+			pr1 = db.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Flow:       models.PullRequestFlowAGit,
 			}).(*models.PullRequest)
@@ -687,8 +688,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			models.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			pr2 = models.AssertExistsAndLoadBean(t, &models.PullRequest{
+			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			pr2 = db.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
 				Flow:       models.PullRequestFlowAGit,
@@ -709,7 +710,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		}
 
 		t.Run("AddCommit2", func(t *testing.T) {
-			err := ioutil.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content \n ## test content 2"), 0666)
+			err := os.WriteFile(path.Join(dstPath, "test_file"), []byte("## test content \n ## test content 2"), 0666)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -740,7 +741,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			models.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
@@ -752,7 +753,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			models.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return

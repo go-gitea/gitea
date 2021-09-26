@@ -15,7 +15,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	"os"
 	"path/filepath"
@@ -429,7 +428,7 @@ func loadOrCreateAsymmetricKey() (interface{}, error) {
 		}
 	}
 
-	bytes, err := ioutil.ReadFile(keyPath)
+	bytes, err := os.ReadFile(keyPath)
 	if err != nil {
 		return nil, err
 	}

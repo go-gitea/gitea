@@ -5,11 +5,12 @@
 package repo
 
 import (
-	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -21,7 +22,7 @@ import (
 )
 
 func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
-	tmpDir, err := ioutil.TempDir("", "tmp-ssh")
+	tmpDir, err := os.MkdirTemp("", "tmp-ssh")
 	if err != nil {
 		assert.Fail(t, "Unable to create temporary directory: %v", err)
 		return nil
@@ -42,7 +43,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	} else {
 		return
 	}
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
 
@@ -57,7 +58,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	models.AssertExistsAndLoadBean(t, &models.DeployKey{
+	db.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
 		Mode:    models.AccessModeRead,
@@ -71,7 +72,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 		return
 	}
 
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
 
@@ -87,7 +88,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	models.AssertExistsAndLoadBean(t, &models.DeployKey{
+	db.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
 		Mode:    models.AccessModeWrite,
@@ -96,7 +97,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 
 func TestCollaborationPost(t *testing.T) {
 
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 4)
@@ -132,7 +133,7 @@ func TestCollaborationPost(t *testing.T) {
 
 func TestCollaborationPost_InactiveUser(t *testing.T) {
 
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 9)
@@ -156,7 +157,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 
 func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 4)
@@ -198,7 +199,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 func TestCollaborationPost_NonExistentUser(t *testing.T) {
 
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -220,7 +221,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 }
 
 func TestAddTeamPost(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
@@ -260,7 +261,7 @@ func TestAddTeamPost(t *testing.T) {
 }
 
 func TestAddTeamPost_NotAllowed(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
@@ -301,7 +302,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 }
 
 func TestAddTeamPost_AddTeamTwice(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
@@ -342,7 +343,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 }
 
 func TestAddTeamPost_NonExistentTeam(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team-non-existent")
@@ -375,7 +376,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 }
 
 func TestDeleteTeam(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")

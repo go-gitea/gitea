@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -52,7 +53,7 @@ func Packages(ctx *context.Context) {
 		RepoID: repo.ID,
 		Query:  query,
 		Type:   packageType,
-		Paginator: &models.ListOptions{
+		Paginator: &db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.PackagesPagingNum,
 		},

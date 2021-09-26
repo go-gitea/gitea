@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -58,7 +59,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -137,7 +138,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 				Line:     line,
 				TreePath: treePath,
 				Type:     models.CommentTypeCode,
-				ListOptions: models.ListOptions{
+				ListOptions: db.ListOptions{
 					PageSize: 1,
 					Page:     1,
 				},
@@ -245,7 +246,7 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		return nil, nil, err
 	}
 
-	ctx := models.DefaultDBContext()
+	ctx := db.DefaultContext
 	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err

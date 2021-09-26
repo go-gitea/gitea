@@ -8,10 +8,16 @@ import (
 	"errors"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
+
+func init() {
+	db.RegisterModel(new(Package))
+	db.RegisterModel(new(PackageFile))
+}
 
 // PackageType specifies the different package types
 type PackageType int
@@ -94,7 +100,7 @@ type Package struct {
 func (p *Package) LoadCreator() error {
 	if p.Creator == nil {
 		var err error
-		p.Creator, err = getUserByID(x, p.CreatorID)
+		p.Creator, err = getUserByID(db.GetEngine(db.DefaultContext), p.CreatorID)
 		return err
 	}
 	return nil
@@ -119,7 +125,7 @@ type PackageFile struct {
 // GetFiles loads all files associated with the package
 func (p *Package) GetFiles() ([]*PackageFile, error) {
 	packageFiles := make([]*PackageFile, 0, 10)
-	return packageFiles, x.Where("package_id = ?", p.ID).Find(&packageFiles)
+	return packageFiles, db.GetEngine(db.DefaultContext).Where("package_id = ?", p.ID).Find(&packageFiles)
 }
 
 // GetFileByName gets the specific package file by name
@@ -128,7 +134,7 @@ func (p *Package) GetFileByName(name string) (*PackageFile, error) {
 		PackageID: p.ID,
 		LowerName: strings.ToLower(name),
 	}
-	has, err := x.Get(pf)
+	has, err := db.GetEngine(db.DefaultContext).Get(pf)
 	if err != nil {
 		return nil, err
 	}
@@ -141,7 +147,7 @@ func (p *Package) GetFileByName(name string) (*PackageFile, error) {
 // TryInsertPackage inserts a package
 // If a package already exists ErrDuplicatePackage is returned
 func TryInsertPackage(p *Package) (*Package, error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -169,7 +175,7 @@ func TryInsertPackage(p *Package) (*Package, error) {
 
 // UpdatePackage updates a package
 func UpdatePackage(p *Package) error {
-	_, err := x.ID(p.ID).Update(p)
+	_, err := db.GetEngine(db.DefaultContext).ID(p.ID).Update(p)
 	return err
 }
 
@@ -179,7 +185,7 @@ func DeletePackageByID(packageID int64) error {
 		return err
 	}
 
-	_, err := x.ID(packageID).Delete(&Package{})
+	_, err := db.GetEngine(db.DefaultContext).ID(packageID).Delete(&Package{})
 	return err
 }
 
@@ -204,7 +210,7 @@ type PackageSearchOptions struct {
 	RepoID int64
 	Type   string
 	Query  string
-	Paginator
+	db.Paginator
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
@@ -234,10 +240,10 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 
 // GetPackages returns a list of all packages of the repository
 func GetPackages(opts *PackageSearchOptions) ([]*Package, int64, error) {
-	sess := x.Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
 
 	if opts.Paginator != nil {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	packages := make([]*Package, 0, 10)
@@ -250,12 +256,12 @@ func GetLatestPackagesGrouped(opts *PackageSearchOptions) ([]*Package, int64, er
 	cond := opts.toConds().
 		And(builder.Expr("p2.id IS NULL"))
 
-	sess := x.Where(cond).
+	sess := db.GetEngine(db.DefaultContext).Where(cond).
 		Table("package").
 		Join("left", "package p2", "package.repo_id = p2.repo_id AND package.type = p2.type AND package.lower_name = p2.lower_name AND package.version < p2.version")
 
 	if opts.Paginator != nil {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	packages := make([]*Package, 0, 10)
@@ -266,7 +272,7 @@ func GetLatestPackagesGrouped(opts *PackageSearchOptions) ([]*Package, int64, er
 // GetPackageByID returns the package with the specific id
 func GetPackageByID(packageID int64) (*Package, error) {
 	p := &Package{}
-	has, err := x.ID(packageID).Get(p)
+	has, err := db.GetEngine(db.DefaultContext).ID(packageID).Get(p)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -277,25 +283,25 @@ func GetPackageByID(packageID int64) (*Package, error) {
 
 // HasRepositoryPackages tests if a repository has packages
 func HasRepositoryPackages(repositoryID int64) (bool, error) {
-	return x.Where("repo_id = ?", repositoryID).Exist(&Package{})
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repositoryID).Exist(&Package{})
 }
 
 // GetPackagesByRepository returns all packages of a repository
 func GetPackagesByRepository(repositoryID int64) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)
-	return packages, x.Where("repo_id = ?", repositoryID).Find(&packages)
+	return packages, db.GetEngine(db.DefaultContext).Where("repo_id = ?", repositoryID).Find(&packages)
 }
 
 // GetPackagesByRepositoryAndType returns all packages of a repository with the specific type
 func GetPackagesByRepositoryAndType(repositoryID int64, packageType PackageType) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)
-	return packages, x.Where("repo_id = ? AND type = ?", repositoryID, packageType).Find(&packages)
+	return packages, db.GetEngine(db.DefaultContext).Where("repo_id = ? AND type = ?", repositoryID, packageType).Find(&packages)
 }
 
 // GetPackagesByName gets all repository packages with the specific name
 func GetPackagesByName(repositoryID int64, packageType PackageType, packageName string) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)
-	return packages, x.Where("repo_id = ? AND type = ? AND lower_name = ?", repositoryID, packageType, strings.ToLower(packageName)).Find(&packages)
+	return packages, db.GetEngine(db.DefaultContext).Where("repo_id = ? AND type = ? AND lower_name = ?", repositoryID, packageType, strings.ToLower(packageName)).Find(&packages)
 }
 
 // GetPackageByNameAndVersion gets a repository package by name and version
@@ -306,7 +312,7 @@ func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, pac
 		LowerName: strings.ToLower(packageName),
 		Version:   packageVersion,
 	}
-	has, err := x.Get(p)
+	has, err := db.GetEngine(db.DefaultContext).Get(p)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -324,7 +330,7 @@ func GetPackagesByFilename(repositoryID int64, packageType PackageType, packageF
 	}
 
 	packages := make([]*Package, 0, 10)
-	return packages, x.
+	return packages, db.GetEngine(db.DefaultContext).
 		Table("package").
 		Where(cond).
 		Join("INNER", "package_file", "package.id = package_file.package_id").
@@ -333,7 +339,7 @@ func GetPackagesByFilename(repositoryID int64, packageType PackageType, packageF
 
 // TryInsertPackageFile inserts a package file
 func TryInsertPackageFile(pf *PackageFile) (*PackageFile, error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -359,18 +365,18 @@ func TryInsertPackageFile(pf *PackageFile) (*PackageFile, error) {
 
 // UpdatePackageFile updates a package file
 func UpdatePackageFile(pf *PackageFile) error {
-	_, err := x.ID(pf.ID).Update(pf)
+	_, err := db.GetEngine(db.DefaultContext).ID(pf.ID).Update(pf)
 	return err
 }
 
 // DeletePackageFileByID deletes a package file
 func DeletePackageFileByID(fileID int64) error {
-	_, err := x.ID(fileID).Delete(&PackageFile{})
+	_, err := db.GetEngine(db.DefaultContext).ID(fileID).Delete(&PackageFile{})
 	return err
 }
 
 // DeletePackageFilesByPackageID deletes all files associated with the package
 func DeletePackageFilesByPackageID(packageID int64) error {
-	_, err := x.Where("package_id = ?", packageID).Delete(&PackageFile{})
+	_, err := db.GetEngine(db.DefaultContext).Where("package_id = ?", packageID).Delete(&PackageFile{})
 	return err
 }

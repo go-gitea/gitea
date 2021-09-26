@@ -9,7 +9,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -34,7 +33,7 @@ func main() {
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
 
-	file, err := ioutil.TempFile(os.TempDir(), prefix)
+	file, err := os.CreateTemp(os.TempDir(), prefix)
 
 	if err != nil {
 		log.Fatalf("Failed to create temp file. %s", err)

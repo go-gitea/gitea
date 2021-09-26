@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
@@ -35,7 +36,7 @@ func SearchService(ctx *context.APIContext) {
 		RepoID: ctx.Repo.Repository.ID,
 		Type:   "nuget",
 		Query:  ctx.FormTrim("q"),
-		Paginator: models.NewAbsoluteListOptions(
+		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
 		),

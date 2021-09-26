@@ -1052,7 +1052,7 @@ strk.kbt.io/projects/go/libravatar
 # xorm.io/builder v0.3.9
 ## explicit
 xorm.io/builder
-# xorm.io/xorm v1.2.2
+# xorm.io/xorm v1.2.4
 ## explicit
 xorm.io/xorm
 xorm.io/xorm/caches

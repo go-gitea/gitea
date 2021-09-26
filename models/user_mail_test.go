@@ -7,13 +7,14 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetEmailAddresses(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	emails, _ := GetEmailAddresses(int64(1))
 	if assert.Len(t, emails, 3) {
@@ -30,7 +31,7 @@ func TestGetEmailAddresses(t *testing.T) {
 }
 
 func TestIsEmailUsed(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	isExist, _ := IsEmailUsed("")
 	assert.True(t, isExist)
@@ -41,7 +42,7 @@ func TestIsEmailUsed(t *testing.T) {
 }
 
 func TestAddEmailAddress(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	assert.NoError(t, AddEmailAddress(&EmailAddress{
 		Email:       "user1234567890@example.com",
@@ -60,7 +61,7 @@ func TestAddEmailAddress(t *testing.T) {
 }
 
 func TestAddEmailAddresses(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// insert multiple email address
 	emails := make([]*EmailAddress, 2)
@@ -83,7 +84,7 @@ func TestAddEmailAddresses(t *testing.T) {
 }
 
 func TestDeleteEmailAddress(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	assert.NoError(t, DeleteEmailAddress(&EmailAddress{
 		UID:        int64(1),
@@ -108,7 +109,7 @@ func TestDeleteEmailAddress(t *testing.T) {
 }
 
 func TestDeleteEmailAddresses(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// delete multiple email address
 	emails := make([]*EmailAddress, 2)
@@ -131,7 +132,7 @@ func TestDeleteEmailAddresses(t *testing.T) {
 }
 
 func TestMakeEmailPrimary(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	email := &EmailAddress{
 		Email: "user567890@example.com",
@@ -165,7 +166,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 }
 
 func TestActivate(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	email := &EmailAddress{
 		ID:    int64(1),
@@ -184,11 +185,11 @@ func TestActivate(t *testing.T) {
 }
 
 func TestListEmails(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// Must find all users and their emails
 	opts := &SearchEmailOptions{
-		ListOptions: ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 10000,
 		},
 	}
@@ -240,7 +241,7 @@ func TestListEmails(t *testing.T) {
 
 	// Must find more than one page, but retrieve only one
 	opts = &SearchEmailOptions{
-		ListOptions: ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 5,
 			Page:     1,
 		},

@@ -11,14 +11,15 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageGeneric(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 

@@ -15,14 +15,15 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackagePyPI(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
 
 	packageName := "test-package"
 	packageVersion := "1.0.1"
