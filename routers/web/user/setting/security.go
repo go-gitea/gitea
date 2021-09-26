@@ -56,9 +56,9 @@ func DeleteAccountLink(ctx *context.Context) {
 
 func loadSecurityData(ctx *context.Context) {
 	enrolled := true
-	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	_, err := login.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
+		if login.IsErrTwoFactorNotEnrolled(err) {
 			enrolled = false
 		} else {
 			ctx.ServerError("SettingsTwoFactor", err)
@@ -67,7 +67,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["TwofaEnrolled"] = enrolled
 	if enrolled {
-		ctx.Data["U2FRegistrations"], err = models.GetU2FRegistrationsByUID(ctx.User.ID)
+		ctx.Data["U2FRegistrations"], err = login.GetU2FRegistrationsByUID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetU2FRegistrationsByUID", err)
 			return
