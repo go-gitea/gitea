@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -57,27 +58,27 @@ func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
 
 // UpdateIssueUserByRead updates issue-user relation for reading.
 func UpdateIssueUserByRead(uid, issueID int64) error {
-	_, err := db.DefaultContext().Engine().Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
+	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `issue_user` SET is_read=? WHERE uid=? AND issue_id=?", true, uid, issueID)
 	return err
 }
 
 // UpdateIssueUsersByMentions updates issue-user pairs by mentioning.
-func UpdateIssueUsersByMentions(ctx *db.Context, issueID int64, uids []int64) error {
+func UpdateIssueUsersByMentions(ctx context.Context, issueID int64, uids []int64) error {
 	for _, uid := range uids {
 		iu := &IssueUser{
 			UID:     uid,
 			IssueID: issueID,
 		}
-		has, err := ctx.Engine().Get(iu)
+		has, err := db.GetEngine(ctx).Get(iu)
 		if err != nil {
 			return err
 		}
 
 		iu.IsMentioned = true
 		if has {
-			_, err = ctx.Engine().ID(iu.ID).Cols("is_mentioned").Update(iu)
+			_, err = db.GetEngine(ctx).ID(iu.ID).Cols("is_mentioned").Update(iu)
 		} else {
-			_, err = ctx.Engine().Insert(iu)
+			_, err = db.GetEngine(ctx).Insert(iu)
 		}
 		if err != nil {
 			return err

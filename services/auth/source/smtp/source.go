@@ -6,6 +6,7 @@ package smtp
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -29,7 +30,7 @@ type Source struct {
 	SkipLocalTwoFA bool `json:",omitempty"`
 
 	// reference to the loginSource
-	loginSource *models.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up an SMTPConfig from serialized format.
@@ -58,10 +59,10 @@ func (source *Source) UseTLS() bool {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginSMTP, &Source{})
+	login.RegisterTypeConfig(login.SMTP, &Source{})
 }

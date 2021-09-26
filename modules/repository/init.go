@@ -6,6 +6,7 @@ package repository
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +22,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-func prepareRepoCommit(ctx *db.Context, repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -196,7 +196,7 @@ func checkInitRepository(owner, name string) (err error) {
 	return nil
 }
 
-func adoptRepository(ctx *db.Context, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -283,7 +283,7 @@ func adoptRepository(ctx *db.Context, repoPath string, u *models.User, repo *mod
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx *db.Context, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+func initRepository(ctx context.Context, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
 	if err = checkInitRepository(repo.OwnerName, repo.Name); err != nil {
 		return err
 	}

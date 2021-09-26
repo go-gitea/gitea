@@ -181,6 +181,8 @@
     opacity: 1 !important; // override fomantic on edit preview
     pointer-events: auto !important; // override fomantic on edit preview
     vertical-align: middle !important; // override fomantic on edit preview
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
   }
 
   input[type="checkbox"]:not([disabled]):hover,
@@ -204,6 +206,8 @@
     content: "";
     mask-image: var(--checkbox-mask-checked);
     -webkit-mask-image: var(--checkbox-mask-checked);
+    -webkit-print-color-adjust: exact;
+    color-adjust: exact;
   }
 
   input[type="checkbox"]:indeterminate::after {

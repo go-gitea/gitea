@@ -38,7 +38,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 
 	key := new(GPGKey)
 
-	has, err := ctx.Engine().Where("owner_id = ? AND key_id = ?", ownerID, keyID).Get(key)
+	has, err := db.GetEngine(ctx).Where("owner_id = ? AND key_id = ?", ownerID, keyID).Get(key)
 	if err != nil {
 		return "", err
 	} else if !has {
@@ -92,7 +92,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	}
 
 	key.Verified = true
-	if _, err := ctx.Engine().ID(key.ID).SetExpr("verified", true).Update(new(GPGKey)); err != nil {
+	if _, err := db.GetEngine(ctx).ID(key.ID).SetExpr("verified", true).Update(new(GPGKey)); err != nil {
 		return "", err
 	}
 

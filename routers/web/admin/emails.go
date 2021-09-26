@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -28,7 +29,7 @@ func Emails(ctx *context.Context) {
 	ctx.Data["PageIsAdminEmails"] = true
 
 	opts := &models.SearchEmailOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 			Page:     ctx.FormInt("page"),
 		},

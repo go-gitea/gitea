@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -68,7 +69,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRepositories"] = true
 
-	opts := models.ListOptions{
+	opts := db.ListOptions{
 		PageSize: setting.UI.Admin.UserPagingNum,
 		Page:     ctx.FormInt("page"),
 	}

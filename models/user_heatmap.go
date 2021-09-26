@@ -59,7 +59,7 @@ func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData,
 		return nil, err
 	}
 
-	return hdata, db.DefaultContext().Engine().
+	return hdata, db.GetEngine(db.DefaultContext).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where(cond).
