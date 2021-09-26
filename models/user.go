@@ -1677,7 +1677,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	sess = db.DefaultContext().NewSession()
+	sess = db.NewSession(db.DefaultContext)
 	if !opts.IsTwoFactorEnabled.IsNone() {
 		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
 		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
@@ -1709,7 +1709,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
 	defer sessQuery.Close()
 	if opts.Page != 0 {
-		sessQuery = setSessionPagination(sessQuery, opts)
+		sessQuery = db.SetSessionPagination(sessQuery, opts)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
