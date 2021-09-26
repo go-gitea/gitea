@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -97,11 +98,11 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 }
 
 func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
-	ctx, commiter, err := models.TxDBContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	archiver, err := models.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
@@ -135,9 +136,11 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	if err == nil {
 		if archiver.Status == models.RepoArchiverGenerating {
 			archiver.Status = models.RepoArchiverReady
-			return archiver, models.UpdateRepoArchiverStatus(ctx, archiver)
+			if err = models.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
+				return nil, err
+			}
 		}
-		return archiver, nil
+		return archiver, committer.Commit()
 	}
 
 	if !errors.Is(err, os.ErrNotExist) {
@@ -206,7 +209,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		}
 	}
 
-	return archiver, commiter.Commit()
+	return archiver, committer.Commit()
 }
 
 // ArchiveRepository satisfies the ArchiveRequest being passed in.  Processing

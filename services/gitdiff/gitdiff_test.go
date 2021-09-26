@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/json"
@@ -492,10 +493,10 @@ func setupDefaultDiff() *Diff {
 	}
 }
 func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	diff := setupDefaultDiff()
 	assert.NoError(t, diff.LoadComments(issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)

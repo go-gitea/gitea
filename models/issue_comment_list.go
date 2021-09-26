@@ -4,6 +4,8 @@
 
 package models
 
+import "code.gitea.io/gitea/models/db"
+
 // CommentList defines a list of comments
 type CommentList []*Comment
 
@@ -17,7 +19,7 @@ func (comments CommentList) getPosterIDs() []int64 {
 	return keysInt64(posterIDs)
 }
 
-func (comments CommentList) loadPosters(e Engine) error {
+func (comments CommentList) loadPosters(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -70,7 +72,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadLabels(e Engine) error {
+func (comments CommentList) loadLabels(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -120,7 +122,7 @@ func (comments CommentList) getMilestoneIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadMilestones(e Engine) error {
+func (comments CommentList) loadMilestones(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -163,7 +165,7 @@ func (comments CommentList) getOldMilestoneIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadOldMilestones(e Engine) error {
+func (comments CommentList) loadOldMilestones(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -206,7 +208,7 @@ func (comments CommentList) getAssigneeIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadAssignees(e Engine) error {
+func (comments CommentList) loadAssignees(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -280,7 +282,7 @@ func (comments CommentList) Issues() IssueList {
 	return issueList
 }
 
-func (comments CommentList) loadIssues(e Engine) error {
+func (comments CommentList) loadIssues(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -337,7 +339,7 @@ func (comments CommentList) getDependentIssueIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadDependentIssues(e Engine) error {
+func (comments CommentList) loadDependentIssues(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -386,7 +388,7 @@ func (comments CommentList) loadDependentIssues(e Engine) error {
 	return nil
 }
 
-func (comments CommentList) loadAttachments(e Engine) (err error) {
+func (comments CommentList) loadAttachments(e db.Engine) (err error) {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -438,7 +440,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadReviews(e Engine) error {
+func (comments CommentList) loadReviews(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -481,7 +483,7 @@ func (comments CommentList) loadReviews(e Engine) error {
 }
 
 // loadAttributes loads all attributes
-func (comments CommentList) loadAttributes(e Engine) (err error) {
+func (comments CommentList) loadAttributes(e db.Engine) (err error) {
 	if err = comments.loadPosters(e); err != nil {
 		return
 	}
@@ -524,20 +526,20 @@ func (comments CommentList) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads attributes of the comments, except for attachments and
 // comments
 func (comments CommentList) LoadAttributes() error {
-	return comments.loadAttributes(x)
+	return comments.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments() error {
-	return comments.loadAttachments(x)
+	return comments.loadAttachments(db.GetEngine(db.DefaultContext))
 }
 
 // LoadPosters loads posters
 func (comments CommentList) LoadPosters() error {
-	return comments.loadPosters(x)
+	return comments.loadPosters(db.GetEngine(db.DefaultContext))
 }
 
 // LoadIssues loads issues of comments
 func (comments CommentList) LoadIssues() error {
-	return comments.loadIssues(x)
+	return comments.loadIssues(db.GetEngine(db.DefaultContext))
 }

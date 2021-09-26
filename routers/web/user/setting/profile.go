@@ -8,13 +8,14 @@ package setting
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -167,9 +168,9 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 		}
 
-		data, err := ioutil.ReadAll(fr)
+		data, err := io.ReadAll(fr)
 		if err != nil {
-			return fmt.Errorf("ioutil.ReadAll: %v", err)
+			return fmt.Errorf("io.ReadAll: %v", err)
 		}
 
 		st := typesniffer.DetectContentType(data)
@@ -235,7 +236,7 @@ func Repos(ctx *context.Context) {
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 
-	opts := models.ListOptions{
+	opts := db.ListOptions{
 		PageSize: setting.UI.Admin.UserPagingNum,
 		Page:     ctx.FormInt("page"),
 	}
@@ -284,7 +285,7 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		if err := ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
+		if err := ctxUser.GetRepositories(db.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return
 		}

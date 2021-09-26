@@ -5,6 +5,7 @@
 package webhook
 
 import (
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -15,6 +16,16 @@ import (
 )
 
 func TestDingTalkPayload(t *testing.T) {
+	parseRealSingleURL := func(singleURL string) string {
+		if u, err := url.Parse(singleURL); err == nil {
+			assert.Equal(t, "dingtalk", u.Scheme)
+			assert.Equal(t, "dingtalkclient", u.Host)
+			assert.Equal(t, "/page/link", u.Path)
+			return u.Query().Get("url")
+		}
+		return ""
+	}
+
 	t.Run("Create", func(t *testing.T) {
 		p := createTestPayload()
 
@@ -27,7 +38,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] branch test created", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo] branch test created", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view ref test", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -42,7 +53,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] branch test deleted", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo] branch test deleted", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view ref test", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Fork", func(t *testing.T) {
@@ -57,7 +68,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "test/repo2 is forked to test/repo", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "test/repo2 is forked to test/repo", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view forked repo test/repo", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Push", func(t *testing.T) {
@@ -72,7 +83,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo:test] 2 new commits", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view commit 2020558...2020558", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/src/test", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Issue", func(t *testing.T) {
@@ -88,7 +99,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Issue opened: #2 crash by user1\r\n\r\nissue body", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view issue", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 
 		p.Action = api.HookIssueClosed
 		pl, err = d.Issue(p)
@@ -99,7 +110,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Issue closed: #2 crash by user1", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view issue", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("IssueComment", func(t *testing.T) {
@@ -114,7 +125,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] New comment on issue #2 crash by user1\r\n\r\nmore info needed", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "#2 crash", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view issue comment", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/issues/2#issuecomment-4", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/issues/2#issuecomment-4", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("PullRequest", func(t *testing.T) {
@@ -129,7 +140,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Pull request opened: #12 Fix bug by user1\r\n\r\nfixes bug #2", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "#12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view pull request", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("PullRequestComment", func(t *testing.T) {
@@ -144,7 +155,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] New comment on pull request #12 Fix bug by user1\r\n\r\nchanges requested", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "#12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view issue comment", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12#issuecomment-4", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Review", func(t *testing.T) {
@@ -160,7 +171,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug\r\n\r\ngood job", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo] Pull request review approved : #12 Fix bug", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view pull request", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo/pulls/12", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Repository", func(t *testing.T) {
@@ -175,7 +186,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Repository created", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo] Repository created", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view repository", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/test/repo", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Release", func(t *testing.T) {
@@ -190,7 +201,7 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo] Release created: v1.0 by user1", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view release", pl.(*DingtalkPayload).ActionCard.SingleTitle)
-		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", pl.(*DingtalkPayload).ActionCard.SingleURL)
+		assert.Equal(t, "http://localhost:3000/api/v1/repos/test/repo/releases/2", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 }
 

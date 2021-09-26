@@ -8,7 +8,6 @@ package pull
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -75,7 +74,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 		}
 	}
 
-	indexTmpPath, err := ioutil.TempDir(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
+	indexTmpPath, err := os.MkdirTemp(os.TempDir(), "gitea-"+pr.BaseRepo.Name)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create temp dir for repository %s: %v", pr.BaseRepo.RepoPath(), err)
 	}
@@ -98,7 +97,7 @@ func getMergeCommit(pr *models.PullRequest) (*git.Commit, error) {
 		return nil, fmt.Errorf("git merge-base --is-ancestor: %v", err)
 	}
 
-	commitIDBytes, err := ioutil.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
+	commitIDBytes, err := os.ReadFile(pr.BaseRepo.RepoPath() + "/" + headFile)
 	if err != nil {
 		return nil, fmt.Errorf("ReadFile(%s): %v", headFile, err)
 	}

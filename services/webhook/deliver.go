@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -181,7 +180,7 @@ func Deliver(t *models.HookTask) error {
 		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	p, err := ioutil.ReadAll(resp.Body)
+	p, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
 		return err

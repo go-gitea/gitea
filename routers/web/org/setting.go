@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -103,7 +104,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// update forks visibility
 	if visibilityChanged {
-		if err := org.GetRepositories(models.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
+		if err := org.GetRepositories(db.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return
 		}
