@@ -198,15 +198,9 @@ func NotificationPurgePost(c *context.Context) {
 
 // NotificationSubscriptions returns the list of subscribed issues
 func NotificationSubscriptions(c *context.Context) {
-	var (
-		page    = c.FormInt("page")
-		perPage = c.FormInt("perPage")
-	)
+	var page = c.FormInt("page")
 	if page < 1 {
 		page = 1
-	}
-	if perPage < 1 {
-		perPage = 20
 	}
 
 	viewType := c.FormString("type")
