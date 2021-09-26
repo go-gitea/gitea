@@ -2,15 +2,39 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/tstranex/u2f"
 )
+
+// ____ ________________________________              .__          __                 __  .__
+// |    |   \_____  \_   _____/\______   \ ____   ____ |__| _______/  |_____________ _/  |_|__| ____   ____
+// |    |   //  ____/|    __)   |       _// __ \ / ___\|  |/  ___/\   __\_  __ \__  \\   __\  |/  _ \ /    \
+// |    |  //       \|     \    |    |   \  ___// /_/  >  |\___ \  |  |  |  | \// __ \|  | |  (  <_> )   |  \
+// |______/ \_______ \___  /    |____|_  /\___  >___  /|__/____  > |__|  |__|  (____  /__| |__|\____/|___|  /
+// \/   \/            \/     \/_____/         \/                   \/                    \/
+
+// ErrU2FRegistrationNotExist represents a "ErrU2FRegistrationNotExist" kind of error.
+type ErrU2FRegistrationNotExist struct {
+	ID int64
+}
+
+func (err ErrU2FRegistrationNotExist) Error() string {
+	return fmt.Sprintf("U2F registration does not exist [id: %d]", err.ID)
+}
+
+// IsErrU2FRegistrationNotExist checks if an error is a ErrU2FRegistrationNotExist.
+func IsErrU2FRegistrationNotExist(err error) bool {
+	_, ok := err.(ErrU2FRegistrationNotExist)
+	return ok
+}
 
 // U2FRegistration represents the registration data and counter of a security key
 type U2FRegistration struct {
@@ -45,7 +69,7 @@ func (reg *U2FRegistration) updateCounter(e db.Engine) error {
 
 // UpdateCounter will update the database value of counter
 func (reg *U2FRegistration) UpdateCounter() error {
-	return reg.updateCounter(db.DefaultContext().Engine())
+	return reg.updateCounter(db.GetEngine(db.DefaultContext))
 }
 
 // U2FRegistrationList is a list of *U2FRegistration
@@ -73,7 +97,7 @@ func getU2FRegistrationsByUID(e db.Engine, uid int64) (U2FRegistrationList, erro
 
 // GetU2FRegistrationByID returns U2F registration by id
 func GetU2FRegistrationByID(id int64) (*U2FRegistration, error) {
-	return getU2FRegistrationByID(db.DefaultContext().Engine(), id)
+	return getU2FRegistrationByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getU2FRegistrationByID(e db.Engine, id int64) (*U2FRegistration, error) {
@@ -88,16 +112,16 @@ func getU2FRegistrationByID(e db.Engine, id int64) (*U2FRegistration, error) {
 
 // GetU2FRegistrationsByUID returns all U2F registrations of the given user
 func GetU2FRegistrationsByUID(uid int64) (U2FRegistrationList, error) {
-	return getU2FRegistrationsByUID(db.DefaultContext().Engine(), uid)
+	return getU2FRegistrationsByUID(db.GetEngine(db.DefaultContext), uid)
 }
 
-func createRegistration(e db.Engine, user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
+func createRegistration(e db.Engine, userID int64, name string, reg *u2f.Registration) (*U2FRegistration, error) {
 	raw, err := reg.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
 	r := &U2FRegistration{
-		UserID:  user.ID,
+		UserID:  userID,
 		Name:    name,
 		Counter: 0,
 		Raw:     raw,
@@ -110,13 +134,13 @@ func createRegistration(e db.Engine, user *User, name string, reg *u2f.Registrat
 }
 
 // CreateRegistration will create a new U2FRegistration from the given Registration
-func CreateRegistration(user *User, name string, reg *u2f.Registration) (*U2FRegistration, error) {
-	return createRegistration(db.DefaultContext().Engine(), user, name, reg)
+func CreateRegistration(userID int64, name string, reg *u2f.Registration) (*U2FRegistration, error) {
+	return createRegistration(db.GetEngine(db.DefaultContext), userID, name, reg)
 }
 
 // DeleteRegistration will delete U2FRegistration
 func DeleteRegistration(reg *U2FRegistration) error {
-	return deleteRegistration(db.DefaultContext().Engine(), reg)
+	return deleteRegistration(db.GetEngine(db.DefaultContext), reg)
 }
 
 func deleteRegistration(e db.Engine, reg *U2FRegistration) error {

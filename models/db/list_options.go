@@ -2,10 +2,9 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package db
 
 import (
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
@@ -17,22 +16,22 @@ type Paginator interface {
 	GetStartEnd() (start, end int)
 }
 
-// getPaginatedSession creates a paginated database session
-func getPaginatedSession(p Paginator) *xorm.Session {
+// GetPaginatedSession creates a paginated database session
+func GetPaginatedSession(p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
-	return db.DefaultContext().Engine().Limit(take, skip)
+	return x.Limit(take, skip)
 }
 
-// setSessionPagination sets pagination for a database session
-func setSessionPagination(sess *xorm.Session, p Paginator) *xorm.Session {
+// SetSessionPagination sets pagination for a database session
+func SetSessionPagination(sess *xorm.Session, p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
 	return sess.Limit(take, skip)
 }
 
-// setSessionPagination sets pagination for a database engine
-func setEnginePagination(e db.Engine, p Paginator) db.Engine {
+// SetEnginePagination sets pagination for a database engine
+func SetEnginePagination(e Engine, p Paginator) Engine {
 	skip, take := p.GetSkipTake()
 
 	return e.Limit(take, skip)
@@ -46,7 +45,7 @@ type ListOptions struct {
 
 // GetSkipTake returns the skip and take values
 func (opts *ListOptions) GetSkipTake() (skip, take int) {
-	opts.setDefaultValues()
+	opts.SetDefaultValues()
 	return (opts.Page - 1) * opts.PageSize, opts.PageSize
 }
 
@@ -57,7 +56,8 @@ func (opts *ListOptions) GetStartEnd() (start, end int) {
 	return
 }
 
-func (opts *ListOptions) setDefaultValues() {
+// SetDefaultValues sets default values
+func (opts *ListOptions) SetDefaultValues() {
 	if opts.PageSize <= 0 {
 		opts.PageSize = setting.API.DefaultPagingNum
 	}

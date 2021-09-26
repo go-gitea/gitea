@@ -101,7 +101,9 @@ func runPR() {
 	db.HasEngine = true
 	//x.ShowSQL(true)
 	err = db.InitFixtures(
-		path.Join(curDir, "models/fixtures/"),
+		db.FixturesOptions{
+			Dir: path.Join(curDir, "models/fixtures/"),
+		},
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)

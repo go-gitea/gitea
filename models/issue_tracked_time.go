@@ -40,7 +40,7 @@ func (t *TrackedTime) AfterLoad() {
 
 // LoadAttributes load Issue, User
 func (t *TrackedTime) LoadAttributes() (err error) {
-	return t.loadAttributes(db.DefaultContext().Engine())
+	return t.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 func (t *TrackedTime) loadAttributes(e db.Engine) (err error) {
@@ -75,7 +75,7 @@ func (tl TrackedTimeList) LoadAttributes() (err error) {
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
-	ListOptions
+	db.ListOptions
 	IssueID           int64
 	UserID            int64
 	RepositoryID      int64
@@ -118,7 +118,7 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 	sess = sess.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setEnginePagination(sess, opts)
+		sess = db.SetEnginePagination(sess, opts)
 	}
 
 	return sess
@@ -131,12 +131,12 @@ func getTrackedTimes(e db.Engine, options *FindTrackedTimesOptions) (trackedTime
 
 // GetTrackedTimes returns all tracked times that fit to the given options.
 func GetTrackedTimes(opts *FindTrackedTimesOptions) (TrackedTimeList, error) {
-	return getTrackedTimes(db.DefaultContext().Engine(), opts)
+	return getTrackedTimes(db.GetEngine(db.DefaultContext), opts)
 }
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
 func CountTrackedTimes(opts *FindTrackedTimesOptions) (int64, error) {
-	sess := db.DefaultContext().Engine().Where(opts.toCond())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.toCond())
 	if opts.RepositoryID > 0 || opts.MilestoneID > 0 {
 		sess = sess.Join("INNER", "issue", "issue.id = tracked_time.issue_id")
 	}
@@ -149,12 +149,12 @@ func getTrackedSeconds(e db.Engine, opts FindTrackedTimesOptions) (trackedSecond
 
 // GetTrackedSeconds return sum of seconds
 func GetTrackedSeconds(opts FindTrackedTimesOptions) (int64, error) {
-	return getTrackedSeconds(db.DefaultContext().Engine(), opts)
+	return getTrackedSeconds(db.GetEngine(db.DefaultContext), opts)
 }
 
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -230,7 +230,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*User]string, error) {
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *User) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -268,7 +268,7 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 
 // DeleteTime delete a specific Time
 func DeleteTime(t *TrackedTime) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -318,7 +318,7 @@ func deleteTime(e db.Engine, t *TrackedTime) error {
 // GetTrackedTimeByID returns raw TrackedTime without loading attributes by id
 func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 	time := new(TrackedTime)
-	has, err := db.DefaultContext().Engine().ID(id).Get(time)
+	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(time)
 	if err != nil {
 		return nil, err
 	} else if !has {

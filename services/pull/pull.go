@@ -59,7 +59,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 		return err
 	}
 
-	mentions, err := pull.FindAndUpdateIssueMentions(db.DefaultContext(), pull.Poster, pull.Content)
+	mentions, err := pull.FindAndUpdateIssueMentions(db.DefaultContext, pull.Poster, pull.Content)
 	if err != nil {
 		return err
 	}
@@ -780,7 +780,7 @@ func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statu
 		return nil, err
 	}
 
-	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
+	statusList, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
