@@ -464,7 +464,6 @@ func getAppPath() (string, error) {
 				appPath = oldAppPath
 				log.Error("Could not change AppPath from %s to %s while running in snap. Hooks for new repositories may fail after snap upgrades.", oldAppPath, newAppPath)
 			} else {
-				appPath = newAppPath
 				log.Info("AppPath changed from %s to %s because we are running in snap.", oldAppPath, newAppPath)
 			}
 		}
