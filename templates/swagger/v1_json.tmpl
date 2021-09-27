@@ -7400,6 +7400,12 @@
             "name": "diffType",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "whether to include binary file changes. if true, the diff is applicable with `git apply`",
+            "name": "binary",
+            "in": "query"
           }
         ],
         "responses": {

@@ -204,6 +204,10 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 	//   type: string
 	//   enum: [diff, patch]
 	//   required: true
+	// - name: binary
+	//   in: query
+	//   description: whether to include binary file changes. if true, the diff is applicable with `git apply`
+	//   type: boolean
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/string"
@@ -225,7 +229,9 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 		patch = true
 	}
 
-	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+	binary := ctx.FormBool("binary")
+
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch, binary); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
