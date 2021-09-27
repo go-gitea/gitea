@@ -674,11 +674,7 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 		groups = rawGroup
 	default:
 		str := fmt.Sprintf("%s", rawGroup)
-		if strings.Contains(str, ",") {
-			groups = strings.Split(str, ",")
-		} else {
-			groups = []string{str}
-		}
+		groups = strings.Split(str, ",")
 	}
 	return groups
 }
@@ -714,7 +710,7 @@ func setUserGroupClaims(loginSource *login.Source, u *models.User, gothUser *got
 		}
 	}
 
-	return wasAdmin == u.IsAdmin && wasRestricted == u.IsRestricted
+	return wasAdmin != u.IsAdmin || wasRestricted != u.IsRestricted
 }
 
 func getUserName(gothUser *goth.User) string {
