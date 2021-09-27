@@ -7,7 +7,7 @@ package cmd
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/stretchr/testify/assert"
@@ -23,7 +23,7 @@ func TestAddLdapBindDn(t *testing.T) {
 	// Test cases
 	var cases = []struct {
 		args        []string
-		loginSource *models.LoginSource
+		loginSource *login.Source
 		errMsg      string
 	}{
 		// case 0
@@ -52,8 +52,8 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--synchronize-users",
 				"--page-size", "99",
 			},
-			loginSource: &models.LoginSource{
-				Type:          models.LoginLDAP,
+			loginSource: &login.Source{
+				Type:          login.LDAP,
 				Name:          "ldap (via Bind DN) source full",
 				IsActive:      false,
 				IsSyncEnabled: true,
@@ -93,8 +93,8 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=min-domain-bind,dc=org)",
 				"--email-attribute", "mail-bind min",
 			},
-			loginSource: &models.LoginSource{
-				Type:     models.LoginLDAP,
+			loginSource: &login.Source{
+				Type:     login.LDAP,
 				Name:     "ldap (via Bind DN) source min",
 				IsActive: true,
 				Cfg: &ldap.Source{
@@ -205,20 +205,20 @@ func TestAddLdapBindDn(t *testing.T) {
 
 	for n, c := range cases {
 		// Mock functions.
-		var createdLoginSource *models.LoginSource
+		var createdLoginSource *login.Source
 		service := &authService{
 			initDB: func() error {
 				return nil
 			},
-			createLoginSource: func(loginSource *models.LoginSource) error {
+			createLoginSource: func(loginSource *login.Source) error {
 				createdLoginSource = loginSource
 				return nil
 			},
-			updateLoginSource: func(loginSource *models.LoginSource) error {
+			updateLoginSource: func(loginSource *login.Source) error {
 				assert.FailNow(t, "case %d: should not call updateLoginSource", n)
 				return nil
 			},
-			getLoginSourceByID: func(id int64) (*models.LoginSource, error) {
+			getLoginSourceByID: func(id int64) (*login.Source, error) {
 				assert.FailNow(t, "case %d: should not call getLoginSourceByID", n)
 				return nil, nil
 			},
@@ -249,7 +249,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 	// Test cases
 	var cases = []struct {
 		args        []string
-		loginSource *models.LoginSource
+		loginSource *login.Source
 		errMsg      string
 	}{
 		// case 0
@@ -274,8 +274,8 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--avatar-attribute", "avatar-simple full",
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 			},
-			loginSource: &models.LoginSource{
-				Type:     models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type:     login.DLDAP,
 				Name:     "ldap (simple auth) source full",
 				IsActive: false,
 				Cfg: &ldap.Source{
@@ -311,8 +311,8 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--email-attribute", "mail-simple min",
 				"--user-dn", "cn=%s,ou=Users,dc=min-domain-simple,dc=org",
 			},
-			loginSource: &models.LoginSource{
-				Type:     models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type:     login.DLDAP,
 				Name:     "ldap (simple auth) source min",
 				IsActive: true,
 				Cfg: &ldap.Source{
@@ -436,20 +436,20 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 	for n, c := range cases {
 		// Mock functions.
-		var createdLoginSource *models.LoginSource
+		var createdLoginSource *login.Source
 		service := &authService{
 			initDB: func() error {
 				return nil
 			},
-			createLoginSource: func(loginSource *models.LoginSource) error {
+			createLoginSource: func(loginSource *login.Source) error {
 				createdLoginSource = loginSource
 				return nil
 			},
-			updateLoginSource: func(loginSource *models.LoginSource) error {
+			updateLoginSource: func(loginSource *login.Source) error {
 				assert.FailNow(t, "case %d: should not call updateLoginSource", n)
 				return nil
 			},
-			getLoginSourceByID: func(id int64) (*models.LoginSource, error) {
+			getLoginSourceByID: func(id int64) (*login.Source, error) {
 				assert.FailNow(t, "case %d: should not call getLoginSourceByID", n)
 				return nil, nil
 			},
@@ -481,8 +481,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 	var cases = []struct {
 		args                []string
 		id                  int64
-		existingLoginSource *models.LoginSource
-		loginSource         *models.LoginSource
+		existingLoginSource *login.Source
+		loginSource         *login.Source
 		errMsg              string
 	}{
 		// case 0
@@ -512,15 +512,15 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--page-size", "99",
 			},
 			id: 23,
-			existingLoginSource: &models.LoginSource{
-				Type:     models.LoginLDAP,
+			existingLoginSource: &login.Source{
+				Type:     login.LDAP,
 				IsActive: true,
 				Cfg: &ldap.Source{
 					Enabled: true,
 				},
 			},
-			loginSource: &models.LoginSource{
-				Type:          models.LoginLDAP,
+			loginSource: &login.Source{
+				Type:          login.LDAP,
 				Name:          "ldap (via Bind DN) source full",
 				IsActive:      false,
 				IsSyncEnabled: true,
@@ -554,8 +554,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"ldap-test",
 				"--id", "1",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg:  &ldap.Source{},
 			},
 		},
@@ -566,8 +566,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--name", "ldap (via Bind DN) source",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Name: "ldap (via Bind DN) source",
 				Cfg: &ldap.Source{
 					Name: "ldap (via Bind DN) source",
@@ -581,13 +581,13 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--not-active",
 			},
-			existingLoginSource: &models.LoginSource{
-				Type:     models.LoginLDAP,
+			existingLoginSource: &login.Source{
+				Type:     login.LDAP,
 				IsActive: true,
 				Cfg:      &ldap.Source{},
 			},
-			loginSource: &models.LoginSource{
-				Type:     models.LoginLDAP,
+			loginSource: &login.Source{
+				Type:     login.LDAP,
 				IsActive: false,
 				Cfg:      &ldap.Source{},
 			},
@@ -599,8 +599,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--security-protocol", "LDAPS",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					SecurityProtocol: ldap.SecurityProtocol(1),
 				},
@@ -613,8 +613,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--skip-tls-verify",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					SkipVerify: true,
 				},
@@ -627,8 +627,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--host", "ldap-server",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					Host: "ldap-server",
 				},
@@ -641,8 +641,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--port", "389",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					Port: 389,
 				},
@@ -655,8 +655,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--user-search-base", "ou=Users,dc=domain,dc=org",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					UserBase: "ou=Users,dc=domain,dc=org",
 				},
@@ -669,8 +669,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--user-filter", "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					Filter: "(memberOf=cn=user-group,ou=example,dc=domain,dc=org)",
 				},
@@ -683,8 +683,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AdminFilter: "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
 				},
@@ -697,8 +697,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--username-attribute", "uid",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AttributeUsername: "uid",
 				},
@@ -711,8 +711,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--firstname-attribute", "givenName",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AttributeName: "givenName",
 				},
@@ -725,8 +725,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--surname-attribute", "sn",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AttributeSurname: "sn",
 				},
@@ -739,8 +739,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--email-attribute", "mail",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AttributeMail: "mail",
 				},
@@ -753,8 +753,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--attributes-in-bind",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AttributesInBind: true,
 				},
@@ -767,8 +767,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--public-ssh-key-attribute", "publickey",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					AttributeSSHPublicKey: "publickey",
 				},
@@ -781,8 +781,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--bind-dn", "cn=readonly,dc=domain,dc=org",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					BindDN: "cn=readonly,dc=domain,dc=org",
 				},
@@ -795,8 +795,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--bind-password", "secret",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					BindPassword: "secret",
 				},
@@ -809,8 +809,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--synchronize-users",
 			},
-			loginSource: &models.LoginSource{
-				Type:          models.LoginLDAP,
+			loginSource: &login.Source{
+				Type:          login.LDAP,
 				IsSyncEnabled: true,
 				Cfg:           &ldap.Source{},
 			},
@@ -822,8 +822,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--id", "1",
 				"--page-size", "12",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginLDAP,
+			loginSource: &login.Source{
+				Type: login.LDAP,
 				Cfg: &ldap.Source{
 					SearchPageSize: 12,
 				},
@@ -851,8 +851,8 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"ldap-test",
 				"--id", "1",
 			},
-			existingLoginSource: &models.LoginSource{
-				Type: models.LoginOAuth2,
+			existingLoginSource: &login.Source{
+				Type: login.OAuth2,
 				Cfg:  &ldap.Source{},
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (via BindDN), actual: OAuth2",
@@ -861,28 +861,28 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 	for n, c := range cases {
 		// Mock functions.
-		var updatedLoginSource *models.LoginSource
+		var updatedLoginSource *login.Source
 		service := &authService{
 			initDB: func() error {
 				return nil
 			},
-			createLoginSource: func(loginSource *models.LoginSource) error {
+			createLoginSource: func(loginSource *login.Source) error {
 				assert.FailNow(t, "case %d: should not call createLoginSource", n)
 				return nil
 			},
-			updateLoginSource: func(loginSource *models.LoginSource) error {
+			updateLoginSource: func(loginSource *login.Source) error {
 				updatedLoginSource = loginSource
 				return nil
 			},
-			getLoginSourceByID: func(id int64) (*models.LoginSource, error) {
+			getLoginSourceByID: func(id int64) (*login.Source, error) {
 				if c.id != 0 {
 					assert.Equal(t, c.id, id, "case %d: wrong id", n)
 				}
 				if c.existingLoginSource != nil {
 					return c.existingLoginSource, nil
 				}
-				return &models.LoginSource{
-					Type: models.LoginLDAP,
+				return &login.Source{
+					Type: login.LDAP,
 					Cfg:  &ldap.Source{},
 				}, nil
 			},
@@ -914,8 +914,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 	var cases = []struct {
 		args                []string
 		id                  int64
-		existingLoginSource *models.LoginSource
-		loginSource         *models.LoginSource
+		existingLoginSource *login.Source
+		loginSource         *login.Source
 		errMsg              string
 	}{
 		// case 0
@@ -942,8 +942,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 			},
 			id: 7,
-			loginSource: &models.LoginSource{
-				Type:     models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type:     login.DLDAP,
 				Name:     "ldap (simple auth) source full",
 				IsActive: false,
 				Cfg: &ldap.Source{
@@ -972,8 +972,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"ldap-test",
 				"--id", "1",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg:  &ldap.Source{},
 			},
 		},
@@ -984,8 +984,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--name", "ldap (simple auth) source",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Name: "ldap (simple auth) source",
 				Cfg: &ldap.Source{
 					Name: "ldap (simple auth) source",
@@ -999,13 +999,13 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--not-active",
 			},
-			existingLoginSource: &models.LoginSource{
-				Type:     models.LoginDLDAP,
+			existingLoginSource: &login.Source{
+				Type:     login.DLDAP,
 				IsActive: true,
 				Cfg:      &ldap.Source{},
 			},
-			loginSource: &models.LoginSource{
-				Type:     models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type:     login.DLDAP,
 				IsActive: false,
 				Cfg:      &ldap.Source{},
 			},
@@ -1017,8 +1017,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--security-protocol", "starttls",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					SecurityProtocol: ldap.SecurityProtocol(2),
 				},
@@ -1031,8 +1031,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--skip-tls-verify",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					SkipVerify: true,
 				},
@@ -1045,8 +1045,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--host", "ldap-server",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					Host: "ldap-server",
 				},
@@ -1059,8 +1059,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--port", "987",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					Port: 987,
 				},
@@ -1073,8 +1073,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--user-search-base", "ou=Users,dc=domain,dc=org",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					UserBase: "ou=Users,dc=domain,dc=org",
 				},
@@ -1087,8 +1087,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--user-filter", "(&(objectClass=posixAccount)(cn=%s))",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					Filter: "(&(objectClass=posixAccount)(cn=%s))",
 				},
@@ -1101,8 +1101,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--admin-filter", "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					AdminFilter: "(memberOf=cn=admin-group,ou=example,dc=domain,dc=org)",
 				},
@@ -1115,8 +1115,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--username-attribute", "uid",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					AttributeUsername: "uid",
 				},
@@ -1129,8 +1129,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--firstname-attribute", "givenName",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					AttributeName: "givenName",
 				},
@@ -1143,8 +1143,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--surname-attribute", "sn",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					AttributeSurname: "sn",
 				},
@@ -1157,8 +1157,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--email-attribute", "mail",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 
 					AttributeMail: "mail",
@@ -1172,8 +1172,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--public-ssh-key-attribute", "publickey",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					AttributeSSHPublicKey: "publickey",
 				},
@@ -1186,8 +1186,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--id", "1",
 				"--user-dn", "cn=%s,ou=Users,dc=domain,dc=org",
 			},
-			loginSource: &models.LoginSource{
-				Type: models.LoginDLDAP,
+			loginSource: &login.Source{
+				Type: login.DLDAP,
 				Cfg: &ldap.Source{
 					UserDN: "cn=%s,ou=Users,dc=domain,dc=org",
 				},
@@ -1215,8 +1215,8 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"ldap-test",
 				"--id", "1",
 			},
-			existingLoginSource: &models.LoginSource{
-				Type: models.LoginPAM,
+			existingLoginSource: &login.Source{
+				Type: login.PAM,
 				Cfg:  &ldap.Source{},
 			},
 			errMsg: "Invalid authentication type. expected: LDAP (simple auth), actual: PAM",
@@ -1225,28 +1225,28 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 
 	for n, c := range cases {
 		// Mock functions.
-		var updatedLoginSource *models.LoginSource
+		var updatedLoginSource *login.Source
 		service := &authService{
 			initDB: func() error {
 				return nil
 			},
-			createLoginSource: func(loginSource *models.LoginSource) error {
+			createLoginSource: func(loginSource *login.Source) error {
 				assert.FailNow(t, "case %d: should not call createLoginSource", n)
 				return nil
 			},
-			updateLoginSource: func(loginSource *models.LoginSource) error {
+			updateLoginSource: func(loginSource *login.Source) error {
 				updatedLoginSource = loginSource
 				return nil
 			},
-			getLoginSourceByID: func(id int64) (*models.LoginSource, error) {
+			getLoginSourceByID: func(id int64) (*login.Source, error) {
 				if c.id != 0 {
 					assert.Equal(t, c.id, id, "case %d: wrong id", n)
 				}
 				if c.existingLoginSource != nil {
 					return c.existingLoginSource, nil
 				}
-				return &models.LoginSource{
-					Type: models.LoginDLDAP,
+				return &login.Source{
+					Type: login.DLDAP,
 					Cfg:  &ldap.Source{},
 				}, nil
 			},

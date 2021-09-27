@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -39,13 +40,13 @@ import (
 const authorizedPrincipalsFile = "authorized_principals"
 
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
-// Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
+// Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPrincipalKeys() error {
-	return rewriteAllPrincipalKeys(x)
+	return rewriteAllPrincipalKeys(db.GetEngine(db.DefaultContext))
 }
 
-func rewriteAllPrincipalKeys(e Engine) error {
+func rewriteAllPrincipalKeys(e db.Engine) error {
 	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedPrincipalsFile {
 		return nil
@@ -101,10 +102,10 @@ func rewriteAllPrincipalKeys(e Engine) error {
 
 // RegeneratePrincipalKeys regenerates the authorized_principals file
 func RegeneratePrincipalKeys(t io.StringWriter) error {
-	return regeneratePrincipalKeys(x, t)
+	return regeneratePrincipalKeys(db.GetEngine(db.DefaultContext), t)
 }
 
-func regeneratePrincipalKeys(e Engine, t io.StringWriter) error {
+func regeneratePrincipalKeys(e db.Engine, t io.StringWriter) error {
 	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err

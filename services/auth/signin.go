@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 
 	// Register the sources
@@ -20,12 +22,12 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*models.User, *models.LoginSource, error) {
+func UserSignIn(username, password string) (*models.User, *login.Source, error) {
 	var user *models.User
 	if strings.Contains(username, "@") {
 		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := models.Count(user)
+		cnt, err := db.Count(user)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -49,7 +51,7 @@ func UserSignIn(username, password string) (*models.User, *models.LoginSource, e
 	}
 
 	if hasUser {
-		source, err := models.GetLoginSourceByID(user.LoginSource)
+		source, err := login.GetSourceByID(user.LoginSource)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -77,7 +79,7 @@ func UserSignIn(username, password string) (*models.User, *models.LoginSource, e
 		return user, source, nil
 	}
 
-	sources, err := models.AllActiveLoginSources()
+	sources, err := login.AllActiveSources()
 	if err != nil {
 		return nil, nil, err
 	}

@@ -13,9 +13,11 @@ import (
 	"context"
 	"io"
 	"math"
+	"os"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -69,25 +71,32 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		indexFilename, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 		if err == nil {
 			defer deleteTemporaryFile()
-
-			checker = &CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
-				Repo:       repo,
-				IndexFile:  indexFilename,
-			}
-			ctx, cancel := context.WithCancel(DefaultContext)
-			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-			} else {
-				go func() {
-					err = checker.Run()
-					if err != nil {
-						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-						cancel()
-					}
+			tmpWorkTree, err := os.MkdirTemp("", "empty-work-dir")
+			if err == nil {
+				defer func() {
+					_ = util.RemoveAll(tmpWorkTree)
 				}()
+
+				checker = &CheckAttributeReader{
+					Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
+					Repo:       repo,
+					IndexFile:  indexFilename,
+					WorkTree:   tmpWorkTree,
+				}
+				ctx, cancel := context.WithCancel(DefaultContext)
+				if err := checker.Init(ctx); err != nil {
+					log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+				} else {
+					go func() {
+						err = checker.Run()
+						if err != nil {
+							log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+							cancel()
+						}
+					}()
+				}
+				defer cancel()
 			}
-			defer cancel()
 		}
 	}
 
@@ -123,12 +132,11 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
 					// group languages, such as Pug -> HTML; SCSS -> CSS
 					group := enry.GetLanguageGroup(language)
-					if len(group) == 0 {
+					if len(group) != 0 {
 						language = group
 					}
 
 					sizes[language] += f.Size()
-
 					continue
 				}
 			}
@@ -186,7 +194,6 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		}
 
 		sizes[language] += f.Size()
-
 		continue
 	}
 

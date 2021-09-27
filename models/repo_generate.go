@@ -7,9 +7,11 @@ package models
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -67,9 +69,9 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 }
 
 // GenerateTopics generates topics from a template repository
-func GenerateTopics(ctx DBContext, templateRepo, generateRepo *Repository) error {
+func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository) error {
 	for _, topic := range templateRepo.Topics {
-		if _, err := addTopicByNameToRepo(ctx.e, generateRepo.ID, topic); err != nil {
+		if _, err := addTopicByNameToRepo(db.GetEngine(ctx), generateRepo.ID, topic); err != nil {
 			return err
 		}
 	}
@@ -77,7 +79,7 @@ func GenerateTopics(ctx DBContext, templateRepo, generateRepo *Repository) error
 }
 
 // GenerateGitHooks generates git hooks from a template repository
-func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
+func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *Repository) error {
 	generateGitRepo, err := git.OpenRepository(generateRepo.RepoPath())
 	if err != nil {
 		return err
@@ -110,7 +112,7 @@ func GenerateGitHooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 }
 
 // GenerateWebhooks generates webhooks from a template repository
-func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) error {
+func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *Repository) error {
 	templateWebhooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
@@ -130,7 +132,7 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 			Events:      templateWebhook.Events,
 			Meta:        templateWebhook.Meta,
 		}
-		if err := createWebhook(ctx.e, generateWebhook); err != nil {
+		if err := createWebhook(db.GetEngine(ctx), generateWebhook); err != nil {
 			return err
 		}
 	}
@@ -138,18 +140,18 @@ func GenerateWebhooks(ctx DBContext, templateRepo, generateRepo *Repository) err
 }
 
 // GenerateAvatar generates the avatar from a template repository
-func GenerateAvatar(ctx DBContext, templateRepo, generateRepo *Repository) error {
+func GenerateAvatar(ctx context.Context, templateRepo, generateRepo *Repository) error {
 	generateRepo.Avatar = strings.Replace(templateRepo.Avatar, strconv.FormatInt(templateRepo.ID, 10), strconv.FormatInt(generateRepo.ID, 10), 1)
 	if _, err := storage.Copy(storage.RepoAvatars, generateRepo.CustomAvatarRelativePath(), storage.RepoAvatars, templateRepo.CustomAvatarRelativePath()); err != nil {
 		return err
 	}
 
-	return updateRepositoryCols(ctx.e, generateRepo, "avatar")
+	return updateRepositoryCols(db.GetEngine(ctx), generateRepo, "avatar")
 }
 
 // GenerateIssueLabels generates issue labels from a template repository
-func GenerateIssueLabels(ctx DBContext, templateRepo, generateRepo *Repository) error {
-	templateLabels, err := getLabelsByRepoID(ctx.e, templateRepo.ID, "", ListOptions{})
+func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *Repository) error {
+	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -161,7 +163,7 @@ func GenerateIssueLabels(ctx DBContext, templateRepo, generateRepo *Repository) 
 			Description: templateLabel.Description,
 			Color:       templateLabel.Color,
 		}
-		if err := newLabel(ctx.e, generateLabel); err != nil {
+		if err := newLabel(db.GetEngine(ctx), generateLabel); err != nil {
 			return err
 		}
 	}
