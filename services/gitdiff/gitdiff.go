@@ -1221,7 +1221,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 // GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
+func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
 	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(afterCommitID)
@@ -1373,7 +1373,12 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 		return nil, fmt.Errorf("Wait: %v", err)
 	}
 
-	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
+	separator := "..."
+	if directComparison {
+		separator = ".."
+	}
+
+	shortstatArgs := []string{beforeCommitID + separator + afterCommitID}
 	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
 		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
 	}
@@ -1393,8 +1398,8 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 
 // GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, skipTo, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
+func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, skipTo, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior, directComparison)
 }
 
 // CommentAsDiff returns c.Patch as *Diff

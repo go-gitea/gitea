@@ -293,7 +293,8 @@ func Diff(ctx *context.Context) {
 	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(gitRepo,
 		commitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		false)
 	if err != nil {
 		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
 		return
