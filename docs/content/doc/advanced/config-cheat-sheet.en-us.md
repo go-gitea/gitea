@@ -953,6 +953,10 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
 
+## Federation (`federation`)
+
+- `ENABLED`: **true**: Enable/Disable federation capabilities
+
 ## Mirror (`mirror`)
 
 - `ENABLED`: **true**: Enables the mirror functionality. Set to **false** to disable all mirrors.
