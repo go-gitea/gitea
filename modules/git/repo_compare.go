@@ -46,7 +46,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) (_ *CompareInfo, err error) {
+func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -79,8 +79,15 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		if err != nil {
 			compareInfo.BaseCommitID = remoteBranch
 		}
+		separator := "..."
+		baseCommitID := compareInfo.MergeBase
+		if directComparison {
+			separator = ".."
+			baseCommitID = compareInfo.BaseCommitID
+		}
+
 		// We have a common base - therefore we know that ... should work
-		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+		logs, err := NewCommand("log", baseCommitID+separator+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +107,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch)
+	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
 	if err != nil {
 		return nil, err
 	}
@@ -120,12 +127,17 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 	stderr := new(bytes.Buffer)
 
-	if err := NewCommand("diff", "-z", "--name-only", base+"..."+head).
+	separator := "..."
+	if directComparison {
+		separator = ".."
+	}
+
+	if err := NewCommand("diff", "-z", "--name-only", base+separator+head).
 		RunInDirPipeline(repo.Path, w, stderr); err != nil {
 		if strings.Contains(stderr.String(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
