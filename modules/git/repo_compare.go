@@ -215,20 +215,29 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 }
 
 // GetDiffOrPatch generates either diff or formatted patch data between given revisions
-func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, formatted bool) error {
-	if formatted {
+func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, binary bool) error {
+	if patch {
 		return repo.GetPatch(base, head, w)
+	}
+	if binary {
+		return repo.GetDiffBinary(base, head, w)
 	}
 	return repo.GetDiff(base, head, w)
 }
 
-// GetDiff generates and returns patch data between given revisions.
+// GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
+	return NewCommand("diff", "-p", base, head).
+		RunInDirPipeline(repo.Path, w, nil)
+}
+
+// GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
+func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
 	return NewCommand("diff", "-p", "--binary", base, head).
 		RunInDirPipeline(repo.Path, w, nil)
 }
 
-// GetPatch generates and returns format-patch data between given revisions.
+// GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	err := NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
@@ -246,8 +255,7 @@ func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) err
 	err := NewCommand("diff", "-p", "--binary", base+"..."+head).
 		RunInDirPipeline(repo.Path, w, stderr)
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return NewCommand("diff", "-p", "--binary", base, head).
-			RunInDirPipeline(repo.Path, w, nil)
+		return repo.GetDiffBinary(base, head, w)
 	}
 	return err
 }
