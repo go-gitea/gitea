@@ -4,6 +4,8 @@
 
 package setting
 
+import "code.gitea.io/gitea/modules/log"
+
 // Federation settings
 var (
 	Federation = struct {
