@@ -414,25 +414,18 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		if !fileOnly {
-			perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
-			if err != nil {
-				ctx.ServerError("GetBranchesForRepo", err)
-				return nil
-			}
-			if perm {
-				ctx.Data["RootRepo"] = rootRepo
+		canRead := rootRepo.CheckUnitUser(ctx.User, models.UnitTypeCode)
+		if canRead {
+			ctx.Data["RootRepo"] = rootRepo
+			if !fileOnly {
+				branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
+				if err != nil {
+					ctx.ServerError("GetBranchesForRepo", err)
+					return nil
+				}
+
 				ctx.Data["RootRepoBranches"] = branches
 				ctx.Data["RootRepoTags"] = tags
-			}
-		} else {
-			perm, err := models.GetUserRepoPermission(rootRepo, ctx.User)
-			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
-				return nil
-			}
-			if perm.CanRead(models.UnitTypeCode) {
-				ctx.Data["RootRepo"] = rootRepo
 			}
 		}
 	}
@@ -446,25 +439,17 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		if !fileOnly {
-			perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
-			if err != nil {
-				ctx.ServerError("GetBranchesForRepo", err)
-				return nil
-			}
-			if perm {
-				ctx.Data["OwnForkRepo"] = ownForkRepo
+		canRead := ownForkRepo.CheckUnitUser(ctx.User, models.UnitTypeCode)
+		if canRead {
+			ctx.Data["OwnForkRepo"] = ownForkRepo
+			if !fileOnly {
+				branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
+				if err != nil {
+					ctx.ServerError("GetBranchesForRepo", err)
+					return nil
+				}
 				ctx.Data["OwnForkRepoBranches"] = branches
 				ctx.Data["OwnForkRepoTags"] = tags
-			}
-		} else {
-			perm, err := models.GetUserRepoPermission(ownForkRepo, ctx.User)
-			if err != nil {
-				ctx.ServerError("GetUserRepoPermission", err)
-				return nil
-			}
-			if perm.CanRead(models.UnitTypeCode) {
-				ctx.Data["OwnForkRepo"] = ownForkRepo
 			}
 		}
 	}
@@ -631,29 +616,22 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool, []string, []string, error) {
-	perm, err := models.GetUserRepoPermission(repo, user)
-	if err != nil {
-		return false, nil, nil, err
-	}
-	if !perm.CanRead(models.UnitTypeCode) {
-		return false, nil, nil, nil
-	}
+func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (branches, tags []string, err error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
 	defer gitRepo.Close()
 
-	branches, _, err := gitRepo.GetBranches(0, 0)
+	branches, _, err = gitRepo.GetBranches(0, 0)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
-	tags, err := gitRepo.GetTags(0, 0)
+	tags, err = gitRepo.GetTags(0, 0)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
-	return true, branches, tags, nil
+	return branches, tags, nil
 }
 
 // CompareDiff show different from one commit to another commit
