@@ -36,7 +36,6 @@ type Command struct {
 	args          []string
 	parentContext context.Context
 	desc          string
-	cmd           *exec.Cmd
 }
 
 func (c *Command) String() string {
@@ -147,15 +146,15 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	ctx, cancel := context.WithTimeout(c.parentContext, rc.Timeout)
 	defer cancel()
 
-	c.cmd = exec.CommandContext(ctx, c.name, c.args...)
+	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	if rc.Env == nil {
-		c.cmd.Env = os.Environ()
+		cmd.Env = os.Environ()
 	} else {
-		c.cmd.Env = rc.Env
+		cmd.Env = rc.Env
 	}
 
-	c.cmd.Env = append(
-		c.cmd.Env,
+	cmd.Env = append(
+		cmd.Env,
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		// avoid prompting for credentials interactively, supported since git v2.3
 		"GIT_TERMINAL_PROMPT=0",
@@ -163,20 +162,43 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 
 	// TODO: verify if this is still needed in golang 1.15
 	if goVersionLessThan115 {
-		c.cmd.Env = append(c.cmd.Env, "GODEBUG=asyncpreemptoff=1")
-	}
-	c.cmd.Dir = rc.Dir
-	c.cmd.Stdout = rc.Stdout
-	c.cmd.Stderr = rc.Stderr
-	c.cmd.Stdin = rc.Stdin
-	if err := c.cmd.Start(); err != nil {
-		return err
+		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
 
+	cmd.Dir = rc.Dir
+	cmd.Stdout = rc.Stdout
+	cmd.Stderr = rc.Stderr
+	cmd.Stdin = rc.Stdin
+	closed := make(chan struct{})
+	defer close(closed)
 	desc := c.desc
 	if desc == "" {
 		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), rc.Dir)
 	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	go func() {
+		select {
+		case <-ctx.Done():
+		case <-closed:
+			return
+		}
+		for {
+			select {
+			case <-time.After(10 * time.Second):
+				log.Warn("%s still running 10s after cancellation. Reattempt Kill", desc)
+				err := cmd.Process.Kill()
+				if err != nil {
+					log.Error("Error whilst trying to kill: %s. Error: %v", desc, err)
+				}
+			case <-closed:
+				return
+			}
+		}
+	}()
+
 	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
 
@@ -184,25 +206,16 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		err := rc.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
-			_ = c.cmd.Wait()
+			_ = cmd.Wait()
 			return err
 		}
 	}
 
-	if err := c.cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
+	if err := cmd.Wait(); err != nil && ctx.Err() != context.DeadlineExceeded {
 		return err
 	}
 
 	return ctx.Err()
-}
-
-// Kill kills a running Command - WARNING: This is racy
-func (c *Command) Kill() error {
-	if c.cmd == nil {
-		return nil
-	}
-
-	return c.cmd.Process.Kill()
 }
 
 // RunInDirTimeoutPipeline executes the command in given directory with given timeout,

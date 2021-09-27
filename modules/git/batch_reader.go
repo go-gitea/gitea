@@ -15,7 +15,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -41,29 +40,15 @@ func CatFileBatchCheck(repoPath string) (io.WriteCloser, *bufio.Reader, func()) 
 	cmd := NewCommandContext(ctx, "cat-file", "--batch-check").
 		SetDescription(desc)
 
-	closed := make(chan struct{})
 	cancel := func() {
 		ctxCancel()
 		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
 		_ = batchStdoutWriter.Close()
-		for {
-			select {
-			case <-closed:
-				return
-			case <-time.After(10 * time.Second):
-				log.Warn("%s still running 10s after cancellation. Reattempt Kill", desc)
-				err := cmd.Kill()
-				if err != nil {
-					log.Error("Error whilst trying to kill: %s. Error: %v", desc, err)
-				}
-			}
-		}
 	}
 
 	go func() {
-		defer close(closed)
 		defer ctxCancel()
 
 		stderr := strings.Builder{}
@@ -105,29 +90,15 @@ func CatFileBatch(repoPath string) (io.WriteCloser, *bufio.Reader, func()) {
 	cmd := NewCommandContext(ctx, "cat-file", "--batch").
 		SetDescription(desc)
 
-	closed := make(chan struct{})
 	cancel := func() {
 		ctxCancel()
 		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
 		_ = batchStdoutWriter.Close()
-		for {
-			select {
-			case <-closed:
-				return
-			case <-time.After(10 * time.Second):
-				log.Warn("%s still running 10s after cancellation. Reattempt Kill", desc)
-				err := cmd.Kill()
-				if err != nil {
-					log.Error("Error whilst trying to kill: %s. Error: %v", desc, err)
-				}
-			}
-		}
 	}
 
 	go func() {
-		defer close(closed)
 		defer ctxCancel()
 
 		stderr := strings.Builder{}
