@@ -44,7 +44,7 @@ var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
@@ -76,7 +76,7 @@ func (repo *Repository) GetLFSMetaObjectByOid(oid string) (*LFSMetaObject, error
 	}
 
 	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
-	has, err := db.DefaultContext().Engine().Get(m)
+	has, err := db.GetEngine(db.DefaultContext).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -92,7 +92,7 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 		return 0, ErrLFSObjectNotExist
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return -1, err
@@ -113,7 +113,7 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 
 // GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
 func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if page >= 0 && pageSize > 0 {
@@ -129,23 +129,23 @@ func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject,
 
 // CountLFSMetaObjects returns a count of all LFSMetaObjects associated with a repository
 func (repo *Repository) CountLFSMetaObjects() (int64, error) {
-	return db.DefaultContext().Engine().Count(&LFSMetaObject{RepositoryID: repo.ID})
+	return db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{RepositoryID: repo.ID})
 }
 
 // LFSObjectAccessible checks if a provided Oid is accessible to the user
 func LFSObjectAccessible(user *User, oid string) (bool, error) {
 	if user.IsAdmin {
-		count, err := db.DefaultContext().Engine().Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
 	}
 	cond := accessibleRepositoryCondition(user)
-	count, err := db.DefaultContext().Engine().Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	count, err := db.GetEngine(db.DefaultContext).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return count > 0, err
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
 func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -184,7 +184,7 @@ func IterateLFS(f func(mo *LFSMetaObject) error) error {
 	const batchSize = 100
 	for {
 		mos := make([]*LFSMetaObject, 0, batchSize)
-		if err := db.DefaultContext().Engine().Limit(batchSize, start).Find(&mos); err != nil {
+		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&mos); err != nil {
 			return err
 		}
 		if len(mos) == 0 {

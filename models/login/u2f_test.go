@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/tstranex/u2f"
 )
@@ -55,14 +56,13 @@ func TestU2FRegistration_UpdateLargeCounter(t *testing.T) {
 
 func TestCreateRegistration(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
-	res, err := CreateRegistration(user, "U2F Created Key", &u2f.Registration{Raw: []byte("Test")})
+	res, err := CreateRegistration(1, "U2F Created Key", &u2f.Registration{Raw: []byte("Test")})
 	assert.NoError(t, err)
 	assert.Equal(t, "U2F Created Key", res.Name)
 	assert.Equal(t, []byte("Test"), res.Raw)
 
-	db.AssertExistsIf(t, true, &U2FRegistration{Name: "U2F Created Key", UserID: user.ID})
+	db.AssertExistsIf(t, true, &U2FRegistration{Name: "U2F Created Key", UserID: 1})
 }
 
 func TestDeleteRegistration(t *testing.T) {

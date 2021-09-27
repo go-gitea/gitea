@@ -7,7 +7,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -247,7 +246,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Path does not exist: %s", tmpDir)
 	}
 
-	dbDump, err := ioutil.TempFile(tmpDir, "gitea-db.sql")
+	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
