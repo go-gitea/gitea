@@ -5,14 +5,14 @@
 package activitypub
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"encoding/pem"
 	"regexp"
 	"testing"
-	"encoding/pem"
-	"crypto/x509"
-	"crypto"
-	"crypto/sha256"
-	"crypto/rsa"
-	"crypto/rand"
 
 	"github.com/stretchr/testify/assert"
 )
