@@ -39,9 +39,7 @@ func TestSignUsingKeys(t *testing.T) {
 	}
 
 	privParsed, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)
-	if err != nil {
-		assert.NoError(t, err)
-	}
+	assert.NoError(t, err)
 
 	pubPem, _ := pem.Decode([]byte(pub))
 	if pubPem == nil || pubPem.Type != "PUBLIC KEY" {
@@ -49,9 +47,7 @@ func TestSignUsingKeys(t *testing.T) {
 	}
 
 	pubParsed, err := x509.ParsePKIXPublicKey(pubPem.Bytes)
-	if err != nil {
-		assert.NoError(t, err)
-	}
+	assert.NoError(t, err)
 
 	// Sign
 	msg := "activity pub is great!"
