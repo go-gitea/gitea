@@ -265,7 +265,9 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 	err := models.Iterate(
 		models.DefaultDBContext(),
 		new(RepoUnit),
-		builder.Eq{"1": "1"},
+		builder.Gt{
+			"id": 0,
+		},
 		func(idx int, bean interface{}) error {
 			unit := bean.(*RepoUnit)
 
