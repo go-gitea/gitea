@@ -2924,9 +2924,9 @@ function selectRange($list, $select, $from) {
   };
 
   const updateCopyPermalinkHref = function(anchor) {
-    let href = $copyPermalink.attr('href');
-    href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    $copyPermalink.attr('href', href);
+    let link = $copyPermalink.attr('data-clipboard-text');
+    link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
+    $copyPermalink.attr('data-clipboard-text', link);
   };
 
   if ($from) {
