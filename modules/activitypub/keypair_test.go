@@ -7,13 +7,18 @@ package activitypub
 import (
 	"regexp"
 	"testing"
+	"encoding/pem"
+	"crypto/x509"
+	"crypto"
+	"crypto/sha256"
+	"crypto/rsa"
+	"crypto/rand"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestKeygen(t *testing.T) {
 	priv, pub, err := GenerateKeyPair()
-
 	assert.NoError(t, err)
 
 	assert.NotEmpty(t, priv)
@@ -22,4 +27,41 @@ func TestKeygen(t *testing.T) {
 	assert.Regexp(t, regexp.MustCompile("^-----BEGIN RSA PRIVATE KEY-----.*"), priv)
 	assert.Regexp(t, regexp.MustCompile("^-----BEGIN PUBLIC KEY-----.*"), pub)
 
+}
+
+func TestSignUsingKeys(t *testing.T) {
+	priv, pub, err := GenerateKeyPair()
+	assert.NoError(t, err)
+
+	privPem, _ := pem.Decode([]byte(priv))
+	if privPem == nil || privPem.Type != "RSA PRIVATE KEY" {
+		t.Fatal("key is wrong type")
+	}
+
+	privParsed, err := x509.ParsePKCS1PrivateKey(privPem.Bytes)
+	if err != nil {
+		assert.NoError(t, err)
+	}
+
+	pubPem, _ := pem.Decode([]byte(pub))
+	if pubPem == nil || pubPem.Type != "PUBLIC KEY" {
+		t.Fatal("key failed to decode")
+	}
+
+	pubParsed, err := x509.ParsePKIXPublicKey(pubPem.Bytes)
+	if err != nil {
+		assert.NoError(t, err)
+	}
+
+	// Sign
+	msg := "activity pub is great!"
+	h := sha256.New()
+	h.Write([]byte(msg))
+	d := h.Sum(nil)
+	sig, err := rsa.SignPKCS1v15(rand.Reader, privParsed, crypto.SHA256, d)
+	assert.NoError(t, err)
+
+	// Verify
+	err = rsa.VerifyPKCS1v15(pubParsed.(*rsa.PublicKey), crypto.SHA256, d, sig)
+	assert.NoError(t, err)
 }
