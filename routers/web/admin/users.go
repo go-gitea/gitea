@@ -60,7 +60,14 @@ func Users(ctx *context.Context) {
 	searchOpts.IsTwoFactorEnabled = util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"])
 	searchOpts.IsProhibitLogin = util.OptionalBoolParse(statusFilterMap["is_prohibit_login"])
 
-	ctx.Data["StatusFilterMap"] = statusFilterMap
+	sortType := ctx.FormString("sort")
+	if sortType == "" {
+		sortType = explore.UserSearchDefaultSortType
+	}
+	ctx.PageData["AdminUserListSearchForm"] = map[string]interface{}{
+		"StatusFilterMap": statusFilterMap,
+		"SortType":        sortType,
+	}
 
 	explore.RenderUserSearch(ctx, searchOpts, tplUsers)
 }

@@ -58,17 +58,6 @@
 					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
 					<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
 				</div>
-
-				{{/* here we have valid go template syntax, but eslint doesn't like it and reports "error  Parsing error: Unexpected token {" */}}
-				<script>
-					<!-- /* eslint-disable */ -->
-					(function() {
-						window.config.PageData.adminUserListSearchForm = {
-							statusFilterMap: {{.StatusFilterMap}},
-							sortType: {{.SortType}} || 'oldest'
-						}
-					})();
-				</script>
 			</form>
 		</div>
 		<div class="ui attached table segment">

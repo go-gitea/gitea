@@ -25,7 +25,9 @@
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
+	{{/* here we have valid go template syntax, but eslint doesn't like it and reports "error  Parsing error: Unexpected token {" */}}
 	<script>
+		<!-- /* eslint-disable */ -->
 		window.config = {
 			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
@@ -33,6 +35,7 @@
 			CustomEmojis: {{CustomEmojis}},
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
+			PageData: {{ .PageData }},  // to store page related data, eg: pass variables to javascript module
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
@@ -44,7 +47,6 @@
 			},
 			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
 			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
-			PageData: {},  // to store page related data, eg: pass variables to javascript module
 			{{if .RequireTribute}}
 			tributeValues: Array.from(new Map([
 				{{ range .Participants }}
