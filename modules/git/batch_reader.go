@@ -42,10 +42,8 @@ func CatFileBatchCheck(repoPath string) (io.WriteCloser, *bufio.Reader, func()) 
 
 	cancel := func() {
 		ctxCancel()
-		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
 	}
 
 	go func() {
@@ -92,10 +90,8 @@ func CatFileBatch(repoPath string) (io.WriteCloser, *bufio.Reader, func()) {
 
 	cancel := func() {
 		ctxCancel()
-		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
 	}
 
 	go func() {
