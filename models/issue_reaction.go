@@ -35,7 +35,7 @@ func init() {
 
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
-	ListOptions
+	db.ListOptions
 	IssueID   int64
 	CommentID int64
 	UserID    int64
@@ -78,7 +78,7 @@ func FindCommentReactions(comment *Comment) (ReactionList, error) {
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
-func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, error) {
+func FindIssueReactions(issue *Issue, listOptions db.ListOptions) (ReactionList, error) {
 	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
 		ListOptions: listOptions,
 		IssueID:     issue.ID,
@@ -92,7 +92,7 @@ func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, error) 
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page != 0 {
-		e = setEnginePagination(e, &opts)
+		e = db.SetEnginePagination(e, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
 		return reactions, e.Find(&reactions)

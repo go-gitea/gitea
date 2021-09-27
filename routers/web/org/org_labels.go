@@ -16,7 +16,7 @@ import (
 
 // RetrieveLabels find all the labels of an organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), models.ListOptions{})
+	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return

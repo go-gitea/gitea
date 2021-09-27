@@ -399,7 +399,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	orgUsers, err := GetOrgUsersByOrgID(&FindOrgMembersOpts{
-		ListOptions: ListOptions{},
+		ListOptions: db.ListOptions{},
 		OrgID:       3,
 		PublicOnly:  false,
 	})
@@ -420,7 +420,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 	}
 
 	orgUsers, err = GetOrgUsersByOrgID(&FindOrgMembersOpts{
-		ListOptions: ListOptions{},
+		ListOptions: db.ListOptions{},
 		OrgID:       db.NonexistentID,
 		PublicOnly:  false,
 	})

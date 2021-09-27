@@ -177,7 +177,7 @@ func GetReleaseByID(id int64) (*Release, error) {
 
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
-	ListOptions
+	db.ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
 	IsPreRelease  util.OptionalBool
@@ -214,7 +214,7 @@ func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, er
 		Where(opts.toConds(repoID))
 
 	if opts.PageSize != 0 {
-		sess = setSessionPagination(sess, &opts.ListOptions)
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 
 	rels := make([]*Release, 0, opts.PageSize)

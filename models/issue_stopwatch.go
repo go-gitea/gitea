@@ -46,11 +46,11 @@ func getStopwatch(e db.Engine, userID, issueID int64) (sw *Stopwatch, exists boo
 }
 
 // GetUserStopwatches return list of all stopwatches of a user
-func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, error) {
+func GetUserStopwatches(userID int64, listOptions db.ListOptions) ([]*Stopwatch, error) {
 	sws := make([]*Stopwatch, 0, 8)
 	sess := db.GetEngine(db.DefaultContext).Where("stopwatch.user_id = ?", userID)
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	err := sess.Find(&sws)

@@ -112,10 +112,10 @@ func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 }
 
 // ListPrincipalKeys returns a list of principals belongs to given user.
-func ListPrincipalKeys(uid int64, listOptions ListOptions) ([]*PublicKey, error) {
+func ListPrincipalKeys(uid int64, listOptions db.ListOptions) ([]*PublicKey, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("owner_id = ? AND type = ?", uid, KeyTypePrincipal)
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		keys := make([]*PublicKey, 0, listOptions.PageSize)
 		return keys, sess.Find(&keys)

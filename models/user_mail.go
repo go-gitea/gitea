@@ -301,7 +301,7 @@ const (
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
 type SearchEmailOptions struct {
-	ListOptions
+	db.ListOptions
 	Keyword     string
 	SortType    SearchEmailOrderBy
 	IsPrimary   util.OptionalBool
@@ -357,7 +357,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		orderby = SearchEmailOrderByEmail.String()
 	}
 
-	opts.setDefaultValues()
+	opts.SetDefaultValues()
 
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
 	err = db.GetEngine(db.DefaultContext).Table("email_address").

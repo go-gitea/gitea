@@ -271,7 +271,7 @@ func deleteDeployKey(sess db.Engine, doer *User, id int64) error {
 
 // ListDeployKeysOptions are options for ListDeployKeys
 type ListDeployKeysOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID      int64
 	KeyID       int64
 	Fingerprint string
@@ -300,7 +300,7 @@ func listDeployKeys(e db.Engine, opts *ListDeployKeysOptions) ([]*DeployKey, err
 	sess := e.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 
 		keys := make([]*DeployKey, 0, opts.PageSize)
 		return keys, sess.Find(&keys)

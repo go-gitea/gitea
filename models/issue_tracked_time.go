@@ -75,7 +75,7 @@ func (tl TrackedTimeList) LoadAttributes() (err error) {
 
 // FindTrackedTimesOptions represent the filters for tracked times. If an ID is 0 it will be ignored.
 type FindTrackedTimesOptions struct {
-	ListOptions
+	db.ListOptions
 	IssueID           int64
 	UserID            int64
 	RepositoryID      int64
@@ -118,7 +118,7 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 	sess = sess.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setEnginePagination(sess, opts)
+		sess = db.SetEnginePagination(sess, opts)
 	}
 
 	return sess

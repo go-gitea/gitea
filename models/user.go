@@ -21,6 +21,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -106,7 +107,7 @@ type User struct {
 	// is to change his/her password after registration.
 	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
 
-	LoginType   LoginType
+	LoginType   login.Type
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
@@ -169,7 +170,7 @@ func init() {
 
 // SearchOrganizationsOptions options to filter organizations
 type SearchOrganizationsOptions struct {
-	ListOptions
+	db.ListOptions
 	All bool
 }
 
@@ -241,12 +242,12 @@ func GetAllUsers() ([]*User, error) {
 
 // IsLocal returns true if user login type is LoginPlain.
 func (u *User) IsLocal() bool {
-	return u.LoginType <= LoginPlain
+	return u.LoginType <= login.Plain
 }
 
 // IsOAuth2 returns true if user login type is LoginOAuth2.
 func (u *User) IsOAuth2() bool {
-	return u.LoginType == LoginOAuth2
+	return u.LoginType == login.OAuth2
 }
 
 // HasForkedRepo checks if user has already forked a repository with given ID.
@@ -331,13 +332,13 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 }
 
 // GetFollowers returns range of user's followers.
-func (u *User) GetFollowers(listOptions ListOptions) ([]*User, error) {
+func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.follow_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		return users, sess.Find(&users)
@@ -353,13 +354,13 @@ func (u *User) IsFollowing(followID int64) bool {
 }
 
 // GetFollowing returns range of user's following.
-func (u *User) GetFollowing(listOptions ListOptions) ([]*User, error) {
+func (u *User) GetFollowing(listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.user_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
 		return users, sess.Find(&users)
@@ -542,7 +543,7 @@ func (u *User) GetOrganizationCount() (int64, error) {
 }
 
 // GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(listOpts ListOptions, names ...string) (err error) {
+func (u *User) GetRepositories(listOpts db.ListOptions, names ...string) (err error) {
 	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts, LowerNames: names})
 	return err
 }
@@ -1252,7 +1253,7 @@ func deleteUser(e db.Engine, u *User) error {
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := listGPGKeys(e, u.ID, ListOptions{})
+	keys, err := listGPGKeys(e, u.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %v", err)
 	}
@@ -1488,7 +1489,7 @@ func GetUserIDsByNames(names []string, ignoreNonExistent bool) ([]int64, error) 
 }
 
 // GetUsersBySource returns a list of Users for a login source
-func GetUsersBySource(s *LoginSource) ([]*User, error) {
+func GetUsersBySource(s *login.Source) ([]*User, error) {
 	var users []*User
 	err := db.GetEngine(db.DefaultContext).Where("login_type = ? AND login_source = ?", s.Type, s.ID).Find(&users)
 	return users, err
@@ -1592,7 +1593,7 @@ func GetUser(user *User) (bool, error) {
 
 // SearchUserOptions contains the options for searching
 type SearchUserOptions struct {
-	ListOptions
+	db.ListOptions
 	Keyword       string
 	Type          UserType
 	UID           int64
@@ -1675,7 +1676,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 
 	sess := db.GetEngine(db.DefaultContext).Where(cond).OrderBy(opts.OrderBy.String())
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	users = make([]*User, 0, opts.PageSize)
@@ -1683,7 +1684,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 }
 
 // GetStarredRepos returns the repos starred by a particular user
-func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, error) {
+func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("star.uid=?", userID).
 		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
 	if !private {
@@ -1691,7 +1692,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 	}
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
 		return repos, sess.Find(&repos)
@@ -1702,7 +1703,7 @@ func GetStarredRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 }
 
 // GetWatchedRepos returns the repos watched by a particular user
-func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Repository, int64, error) {
+func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("watch.user_id=?", userID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
 		Join("LEFT", "watch", "`repository`.id=`watch`.repo_id")
@@ -1711,7 +1712,7 @@ func GetWatchedRepos(userID int64, private bool, listOptions ListOptions) ([]*Re
 	}
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		repos := make([]*Repository, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&repos)
