@@ -22,6 +22,7 @@ const (
 	tplExploreUsers base.TplName = "explore/users"
 )
 
+// UserSearchDefaultSortType is the default sort type for user search
 const UserSearchDefaultSortType = "alphabetically"
 
 var (
