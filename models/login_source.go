@@ -71,9 +71,9 @@ var (
 	_ convert.Conversion = &SSPIConfig{}
 )
 
-// jsonUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// JSONUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
 // possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
-func jsonUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
+func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
 	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal(bs, v)
 	if err != nil {
@@ -89,7 +89,7 @@ func jsonUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
 			rs = append(rs, temp...)
 		}
 		if ok {
-			if rs[0] == 0xff && rs[1] == 0xfe {
+			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
 				rs = rs[2:]
 			}
 			err = json.Unmarshal(rs, v)
@@ -108,7 +108,7 @@ type LDAPConfig struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (cfg *LDAPConfig) FromDB(bs []byte) error {
-	err := jsonUnmarshalHandleDoubleEncode(bs, &cfg)
+	err := JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ type SMTPConfig struct {
 
 // FromDB fills up an SMTPConfig from serialized format.
 func (cfg *SMTPConfig) FromDB(bs []byte) error {
-	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
@@ -166,7 +166,7 @@ type PAMConfig struct {
 
 // FromDB fills up a PAMConfig from serialized format.
 func (cfg *PAMConfig) FromDB(bs []byte) error {
-	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports a PAMConfig to a serialized format.
@@ -187,7 +187,7 @@ type OAuth2Config struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (cfg *OAuth2Config) FromDB(bs []byte) error {
-	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.
@@ -207,7 +207,7 @@ type SSPIConfig struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *SSPIConfig) FromDB(bs []byte) error {
-	return jsonUnmarshalHandleDoubleEncode(bs, cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.
