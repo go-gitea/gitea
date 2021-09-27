@@ -687,7 +687,7 @@ func (pr *PullRequest) IsSameRepo() bool {
 // Since there could be multiple prs to the same head branch, this function returns a slice of prs
 func GetPullRequestsByHeadBranch(headBranch string, headRepo *Repository, status PullRequestStatus) ([]*PullRequest, error) {
 	prs := make([]*PullRequest, 0, 2)
-	if err := x.Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
+	if err := db.GetEngine(db.DefaultContext).Where("head_branch = ? AND head_repo_id = ? AND status = ?", headBranch, headRepo.ID, status).
 		Desc("id").
 		Find(prs); err != nil {
 		return nil, err

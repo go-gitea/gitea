@@ -26,7 +26,7 @@ func init() {
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed
 func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message string) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -62,10 +62,10 @@ func ScheduleAutoMerge(doer *User, pullID int64, style MergeStyle, message strin
 
 // GetScheduledPullRequestMergeByPullID gets a scheduled pull request merge by pull request id
 func GetScheduledPullRequestMergeByPullID(pullID int64) (bool, *ScheduledPullRequestMerge, error) {
-	return getScheduledPullRequestMergeByPullID(x, pullID)
+	return getScheduledPullRequestMergeByPullID(db.GetEngine(db.DefaultContext), pullID)
 }
 
-func getScheduledPullRequestMergeByPullID(e Engine, pullID int64) (bool, *ScheduledPullRequestMerge, error) {
+func getScheduledPullRequestMergeByPullID(e db.Engine, pullID int64) (bool, *ScheduledPullRequestMerge, error) {
 	scheduledPRM := &ScheduledPullRequestMerge{}
 	exists, err := e.Where("pull_id = ?", pullID).Get(scheduledPRM)
 	if err != nil || !exists {
@@ -83,7 +83,7 @@ func getScheduledPullRequestMergeByPullID(e Engine, pullID int64) (bool, *Schedu
 
 // RemoveScheduledPullRequestMerge cancels a previously scheduled pull request
 func RemoveScheduledPullRequestMerge(doer *User, pullID int64, comment bool) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	if err := sess.Begin(); err != nil {
 		return err
 	}
