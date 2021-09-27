@@ -458,14 +458,14 @@ func getAppPath() (string, error) {
 		if len(split) >= 3 {
 			oldAppPath := appPath
 			split[len(split)-2] = "current"
-			newAppPath := strings.Join(split, "-")
+			newAppPath := strings.Join(split, "/")
 			appPath, err = exec.LookPath(newAppPath)
 			if err != nil {
 				appPath = oldAppPath
-				log.error("Could not change AppPath from %s to %s while running in snap. Hooks for new repositories may fail after snap upgrades.", oldAppPath, newAppPath)
+				log.Error("Could not change AppPath from %s to %s while running in snap. Hooks for new repositories may fail after snap upgrades.", oldAppPath, newAppPath)
 			} else {
 				appPath = newAppPath
-				log.debug("Apppath changed from %s to %s because we are running in snap.", oldAppPath, newAppPath)
+				log.Info("AppPath changed from %s to %s because we are running in snap.", oldAppPath, newAppPath)
 			}
 		}
 	}
