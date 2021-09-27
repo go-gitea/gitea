@@ -57,12 +57,12 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit <= 0 || limit > setting.Git.BranchesRangeSize {
 		limit = setting.Git.BranchesRangeSize
 	}
@@ -84,7 +84,7 @@ func Branches(ctx *context.Context) {
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
-	branchName := ctx.Query("name")
+	branchName := ctx.FormString("name")
 
 	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
@@ -112,8 +112,8 @@ func DeleteBranchPost(ctx *context.Context) {
 func RestoreBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 
-	branchID := ctx.QueryInt64("branch_id")
-	branchName := ctx.Query("name")
+	branchID := ctx.FormInt64("branch_id")
+	branchName := ctx.FormString("name")
 
 	deletedBranch, err := ctx.Repo.Repository.GetDeletedBranchByID(branchID)
 	if err != nil {
@@ -217,7 +217,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, totalNumOfBranches - 1
+	return branches, totalNumOfBranches
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,

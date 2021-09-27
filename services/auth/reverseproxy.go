@@ -13,13 +13,15 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 )
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &ReverseProxy{}
+	_ Method = &ReverseProxy{}
+	_ Named  = &ReverseProxy{}
 )
 
 // ReverseProxy implements the Auth interface, but actually relies on
@@ -42,16 +44,6 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 // Name represents the name of auth method
 func (r *ReverseProxy) Name() string {
 	return "reverse_proxy"
-}
-
-// Init does nothing as the ReverseProxy implementation does not need initialization
-func (r *ReverseProxy) Init() error {
-	return nil
-}
-
-// Free does nothing as the ReverseProxy implementation does not have to release resources
-func (r *ReverseProxy) Free() error {
-	return nil
 }
 
 // Verify extracts the username from the "setting.ReverseProxyAuthUser" header
@@ -78,7 +70,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		if sess != nil && (sess.Get("uid") == nil || sess.Get("uid").(int64) != user.ID) {
 			handleSignIn(w, req, sess, user)
 		}
@@ -120,6 +112,8 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 		log.Error("CreateUser: %v", err)
 		return nil
 	}
+
+	mailer.SendRegisterNotifyMail(user)
 
 	return user
 }

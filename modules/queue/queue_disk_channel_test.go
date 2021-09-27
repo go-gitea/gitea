@@ -5,7 +5,7 @@
 package queue
 
 import (
-	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 
@@ -16,7 +16,6 @@ import (
 func TestPersistableChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) {
-		assert.True(t, len(data) == 2)
 		for _, datum := range data {
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
@@ -27,7 +26,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	tmpDir, err := ioutil.TempDir("", "persistable-channel-queue-test-data")
+	tmpDir, err := os.MkdirTemp("", "persistable-channel-queue-test-data")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 

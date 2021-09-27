@@ -11,12 +11,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *httptest.ResponseRecorder {
-	forkOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: forkOwnerName}).(*models.User)
+	forkOwner := db.AssertExistsAndLoadBean(t, &models.User{Name: forkOwnerName}).(*models.User)
 
 	// Step0: check the existence of the to-fork repo
 	req := NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)

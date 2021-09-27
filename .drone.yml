@@ -65,7 +65,7 @@ steps:
 
   - name: checks-backend
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make checks-backend
     depends_on: [lint-backend]
@@ -84,7 +84,7 @@ steps:
 
   - name: build-backend-no-gcc
     pull: always
-    image: golang:1.14 # this step is kept as the lowest version of golang that we support
+    image: golang:1.16 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -93,7 +93,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -106,7 +106,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-windows
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -118,7 +118,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -193,7 +193,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make backend
     environment:
@@ -208,34 +208,25 @@ steps:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
   - name: unit-test
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
-      GITHUB_READ_TOKEN:
-        from_secret: github_read_token
-
-  - name: unit-test-race
-    image: golang:1.16
-    commands:
-      - make test-backend
-    environment:
-      GOPROXY: off
-      TAGS: sqlite sqlite_unlock_notify
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
   - name: unit-test-gogit
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
@@ -246,6 +237,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
       TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
@@ -259,6 +251,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -271,13 +264,14 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
   - name: generate-coverage
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make coverage
     environment:
@@ -351,7 +345,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make backend
     environment:
@@ -366,6 +360,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -378,6 +373,7 @@ steps:
     environment:
       GOPROXY: off
       TAGS: bindata gogit
+      RACE_ENABLED: true
       TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
@@ -463,7 +459,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
 

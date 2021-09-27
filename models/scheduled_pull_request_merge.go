@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -17,6 +18,10 @@ type ScheduledPullRequestMerge struct {
 	MergeStyle  MergeStyle         `xorm:"varchar(50)"`
 	Message     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+}
+
+func init() {
+	db.RegisterModel(new(ScheduledPullRequestMerge))
 }
 
 // ScheduleAutoMerge schedules a pull request to be merged when all checks succeed

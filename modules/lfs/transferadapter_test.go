@@ -8,12 +8,12 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,7 +34,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 		if strings.Contains(url, "download-request") {
 			assert.Equal(t, "GET", req.Method)
 
-			return &http.Response{StatusCode: http.StatusOK, Body: ioutil.NopCloser(bytes.NewBufferString("dummy"))}
+			return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(bytes.NewBufferString("dummy"))}
 		} else if strings.Contains(url, "upload-request") {
 			assert.Equal(t, "PUT", req.Method)
 			assert.Equal(t, "application/octet-stream", req.Header.Get("Content-Type"))
@@ -49,7 +49,7 @@ func TestBasicTransferAdapter(t *testing.T) {
 			assert.Equal(t, MediaType, req.Header.Get("Content-Type"))
 
 			var vp Pointer
-			err := jsoniter.NewDecoder(req.Body).Decode(&vp)
+			err := json.NewDecoder(req.Body).Decode(&vp)
 			assert.NoError(t, err)
 			assert.Equal(t, p.Oid, vp.Oid)
 			assert.Equal(t, p.Size, vp.Size)
@@ -60,9 +60,9 @@ func TestBasicTransferAdapter(t *testing.T) {
 				Message: "Object not found",
 			}
 			payload := new(bytes.Buffer)
-			jsoniter.NewEncoder(payload).Encode(er)
+			json.NewEncoder(payload).Encode(er)
 
-			return &http.Response{StatusCode: http.StatusNotFound, Body: ioutil.NopCloser(payload)}
+			return &http.Response{StatusCode: http.StatusNotFound, Body: io.NopCloser(payload)}
 		} else {
 			t.Errorf("Unknown test case: %s", url)
 			return nil

@@ -19,7 +19,8 @@ import (
 
 // Ensure the struct implements the interface.
 var (
-	_ Auth = &Basic{}
+	_ Method = &Basic{}
+	_ Named  = &Basic{}
 )
 
 // Basic implements the Auth interface and authenticates requests (API requests
@@ -33,23 +34,13 @@ func (b *Basic) Name() string {
 	return "basic"
 }
 
-// Init does nothing as the Basic implementation does not need to allocate any resources
-func (b *Basic) Init() error {
-	return nil
-}
-
-// Free does nothing as the Basic implementation does not have to release any resources
-func (b *Basic) Free() error {
-	return nil
-}
-
 // Verify extracts and validates Basic data (username and password/token) from the
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		return nil
 	}
 
@@ -116,12 +107,16 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
-	u, err := models.UserSignIn(uname, passwd)
+	u, source, err := UserSignIn(uname, passwd)
 	if err != nil {
 		if !models.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
 		}
 		return nil
+	}
+
+	if skipper, ok := source.Cfg.(LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+		store.GetData()["SkipLocalTwoFA"] = true
 	}
 
 	log.Trace("Basic Authorization: Logged in user %-v", u)

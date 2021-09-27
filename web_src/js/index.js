@@ -997,7 +997,7 @@ async function initRepository() {
       const content = $(`#comment-${$this.data('target')}`).text();
       const subject = content.split('\n', 1)[0].slice(0, 255);
 
-      const poster = $this.data('poster');
+      const poster = $this.data('poster-username');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
@@ -1030,7 +1030,7 @@ async function initRepository() {
         if ($dropzone.length === 1) {
           $dropzone.data('saved', false);
 
-          const filenameDict = {};
+          const fileUuidDict = {};
           dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
             headers: {'X-Csrf-Token': csrf},
@@ -1048,28 +1048,24 @@ async function initRepository() {
             thumbnailHeight: 480,
             init() {
               this.on('success', (file, data) => {
-                filenameDict[file.name] = {
-                  uuid: data.uuid,
+                fileUuidDict[file.uuid] = {
                   submitted: false
                 };
                 const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
                 $dropzone.find('.files').append(input);
               });
               this.on('removedfile', (file) => {
-                if (!(file.name in filenameDict)) {
-                  return;
-                }
-                $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
+                $(`#${file.uuid}`).remove();
+                if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
                   $.post($dropzone.data('remove-url'), {
-                    file: filenameDict[file.name].uuid,
+                    file: file.uuid,
                     _csrf: csrf,
                   });
                 }
               });
               this.on('submit', () => {
-                $.each(filenameDict, (name) => {
-                  filenameDict[name].submitted = true;
+                $.each(fileUuidDict, (fileUuid) => {
+                  fileUuidDict[fileUuid].submitted = true;
                 });
               });
               this.on('reload', () => {
@@ -1082,9 +1078,8 @@ async function initRepository() {
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
                     dz.files.push(this);
-                    filenameDict[this.name] = {
+                    fileUuidDict[this.uuid] = {
                       submitted: true,
-                      uuid: this.uuid
                     };
                     $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                     const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
@@ -1279,6 +1274,36 @@ async function initRepository() {
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
       $mergeNowButton.parent().show();
+    });
+
+    // Pull Request update button
+    const $pullUpdateButton = $('.update-button > button');
+    $pullUpdateButton.on('click', function (e) {
+      e.preventDefault();
+      const $this = $(this);
+      const redirect = $this.data('redirect');
+      $this.addClass('loading');
+      $.post($this.data('do'), {
+        _csrf: csrf
+      }).done((data) => {
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      });
+    });
+
+    $('.update-button > .dropdown').dropdown({
+      onChange(_text, _value, $choice) {
+        const $url = $choice.data('do');
+        if ($url) {
+          $pullUpdateButton.find('.button-text').text($choice.text());
+          $pullUpdateButton.data('do', $url);
+        }
+      }
     });
 
     initReactionSelector();
@@ -1839,7 +1864,7 @@ async function initEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
+  const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
   // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
   // to enable or disable the commit button
@@ -1862,6 +1887,14 @@ async function initEditor() {
       $commitButton.prop('disabled', !dirty);
     }
   });
+
+  // Update the editor from query params, if available,
+  // only after the dirtyFileClass initialization
+  const params = new URLSearchParams(window.location.search);
+  const value = params.get('value');
+  if (value) {
+    editor.setValue(value);
+  }
 
   $commitButton.on('click', (event) => {
     // A modal which asks if an empty file should be committed
@@ -1998,7 +2031,9 @@ function initAdmin() {
           $('#password').attr('required', 'required');
         }
       } else {
-        $('#user_name').attr('disabled', 'disabled');
+        if ($('.admin.edit.user').length > 0) {
+          $('#user_name').attr('disabled', 'disabled');
+        }
         $('#login_name').attr('required', 'required');
         $('.non-local').show();
         $('.local').hide();
@@ -2033,19 +2068,17 @@ function initAdmin() {
 
     const provider = $('#oauth2_provider').val();
     switch (provider) {
-      case 'gitea':
-      case 'nextcloud':
-      case 'mastodon':
-        $('#oauth2_use_custom_url').attr('checked', 'checked');
-        // fallthrough intentional
-      case 'github':
-      case 'gitlab':
-        $('.oauth2_use_custom_url').show();
-        break;
       case 'openidConnect':
         $('.open_id_connect_auto_discovery_url input').attr('required', 'required');
         $('.open_id_connect_auto_discovery_url').show();
         break;
+      default:
+        if ($(`#${provider}_customURLSettings`).data('required')) {
+          $('#oauth2_use_custom_url').attr('checked', 'checked');
+        }
+        if ($(`#${provider}_customURLSettings`).data('available')) {
+          $('.oauth2_use_custom_url').show();
+        }
     }
     onOAuth2UseCustomURLChange(applyDefaultValues);
   }
@@ -2056,29 +2089,14 @@ function initAdmin() {
     $('.oauth2_use_custom_url_field input[required]').removeAttr('required');
 
     if ($('#oauth2_use_custom_url').is(':checked')) {
-      if (applyDefaultValues) {
-        $('#oauth2_token_url').val($(`#${provider}_token_url`).val());
-        $('#oauth2_auth_url').val($(`#${provider}_auth_url`).val());
-        $('#oauth2_profile_url').val($(`#${provider}_profile_url`).val());
-        $('#oauth2_email_url').val($(`#${provider}_email_url`).val());
-      }
-
-      switch (provider) {
-        case 'github':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input, .oauth2_email_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url, .oauth2_email_url').show();
-          break;
-        case 'nextcloud':
-        case 'gitea':
-        case 'gitlab':
-          $('.oauth2_token_url input, .oauth2_auth_url input, .oauth2_profile_url input').attr('required', 'required');
-          $('.oauth2_token_url, .oauth2_auth_url, .oauth2_profile_url').show();
-          $('#oauth2_email_url').val('');
-          break;
-        case 'mastodon':
-          $('.oauth2_auth_url input').attr('required', 'required');
-          $('.oauth2_auth_url').show();
-          break;
+      for (const custom of ['token_url', 'auth_url', 'profile_url', 'email_url', 'tenant']) {
+        if (applyDefaultValues) {
+          $(`#oauth2_${custom}`).val($(`#${provider}_${custom}`).val());
+        }
+        if ($(`#${provider}_${custom}`).data('available')) {
+          $(`.oauth2_${custom} input`).attr('required', 'required');
+          $(`.oauth2_${custom}`).show();
+        }
       }
     }
   }
@@ -2345,8 +2363,9 @@ function initCodeView() {
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     const box = currentTarget.closest('.file-content');
+    const chevron = currentTarget.querySelector('a.chevron');
     const folded = box.dataset.folded !== 'true';
-    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+    chevron.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
@@ -2686,7 +2705,6 @@ $(document).ready(async () => {
 
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
-    const filenameDict = {};
     const $dropzone = $(el);
     await createDropzone(el, {
       url: $dropzone.data('upload-url'),
@@ -2704,18 +2722,15 @@ $(document).ready(async () => {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
-        this.on('success', (file, data) => {
-          filenameDict[file.name] = data.uuid;
+        this.on('success', (_file, data) => {
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
-          if (file.name in filenameDict) {
-            $(`#${filenameDict[file.name]}`).remove();
-          }
+          $(`#${file.uuid}`).remove();
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
-              file: filenameDict[file.name],
+              file: file.uuid,
               _csrf: csrf
             });
           }
@@ -2777,7 +2792,7 @@ $(document).ready(async () => {
     let {action, elementId, url} = this.dataset;
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.dataset.issueId;
-    }).get().join();
+    }).get().join(',');
     if (elementId === '0' && url.substr(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
@@ -2977,13 +2992,19 @@ $(() => {
 
 function showDeletePopup() {
   const $this = $(this);
+  const dataArray = $this.data();
   let filter = '';
-  if ($this.attr('id')) {
-    filter += `#${$this.attr('id')}`;
+  if ($this.data('modal-id')) {
+    filter += `#${$this.data('modal-id')}`;
   }
 
   const dialog = $(`.delete.modal${filter}`);
   dialog.find('.name').text($this.data('name'));
+  for (const [key, value] of Object.entries(dataArray)) {
+    if (key && key.startsWith('data')) {
+      dialog.find(`.${key}`).text(value);
+    }
+  }
 
   dialog.modal({
     closable: false,
@@ -2993,10 +3014,19 @@ function showDeletePopup() {
         return;
       }
 
-      $.post($this.data('url'), {
+      const postData = {
         _csrf: csrf,
-        id: $this.data('id')
-      }).done((data) => {
+      };
+      for (const [key, value] of Object.entries(dataArray)) {
+        if (key && key.startsWith('data')) {
+          postData[key.substr(4)] = value;
+        }
+        if (key === 'id') {
+          postData['id'] = value;
+        }
+      }
+
+      $.post($this.data('url'), postData).done((data) => {
         window.location.href = data.redirect;
       });
     }

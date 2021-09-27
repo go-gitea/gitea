@@ -6,7 +6,7 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -26,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -81,7 +81,11 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		return
 	}
 
-	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
+	// Check if the filename (and additional path) is specified in the querystring
+	// (filename is a misnomer, but kept for compatibility with Github)
+	filePath, fileName := path.Split(ctx.Req.URL.Query().Get("filename"))
+	filePath = strings.Trim(filePath, "/")
+	treeNames, treePaths := getParentTreeFields(path.Join(ctx.Repo.TreePath, filePath))
 
 	if !isNewFile {
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -123,7 +127,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
+		d, _ := io.ReadAll(dataRc)
 		if err := dataRc.Close(); err != nil {
 			log.Error("Error whilst closing blob data: %v", err)
 		}
@@ -136,7 +140,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.Data["FileContent"] = content
 		}
 	} else {
-		treeNames = append(treeNames, "") // Append empty string to allow user name the new file.
+		// Append filename from query, or empty string to allow user name the new file.
+		treeNames = append(treeNames, fileName)
 	}
 
 	ctx.Data["TreeNames"] = treeNames
@@ -165,7 +170,6 @@ func GetEditorConfig(ctx *context.Context, treePath string) string {
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			jsonStr, _ := json.Marshal(def)
 			return string(jsonStr)
 		}

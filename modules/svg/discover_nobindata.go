@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !bindata
 // +build !bindata
 
 package svg
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -19,7 +20,7 @@ func Discover() map[string]string {
 
 	files, _ := filepath.Glob(filepath.Join(setting.StaticRootPath, "public", "img", "svg", "*.svg"))
 	for _, file := range files {
-		content, err := ioutil.ReadFile(file)
+		content, err := os.ReadFile(file)
 		if err == nil {
 			filename := filepath.Base(file)
 			svgs[filename[:len(filename)-4]] = string(content)

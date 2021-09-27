@@ -88,8 +88,11 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	escaped := NameToFilename(wikiName)
 
 	// Look for both files
-	filesInIndex, err := gitRepo.LsFiles(unescaped, escaped)
+	filesInIndex, err := gitRepo.LsTree("master", unescaped, escaped)
 	if err != nil {
+		if strings.Contains(err.Error(), "Not a valid object name master") {
+			return false, escaped, nil
+		}
 		log.Error("%v", err)
 		return false, escaped, err
 	}
@@ -308,14 +311,9 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 	}
 
-	wikiPath := NameToFilename(wikiName)
-	filesInIndex, err := gitRepo.LsFiles(wikiPath)
-	found := false
-	for _, file := range filesInIndex {
-		if file == wikiPath {
-			found = true
-			break
-		}
+	found, wikiPath, err := prepareWikiFileName(gitRepo, wikiName)
+	if err != nil {
+		return err
 	}
 	if found {
 		err := gitRepo.RemoveFilesFromIndex(wikiPath)
@@ -366,5 +364,15 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Push: %v", err)
 	}
 
+	return nil
+}
+
+// DeleteWiki removes the actual and local copy of repository wiki.
+func DeleteWiki(repo *models.Repository) error {
+	if err := models.UpdateRepositoryUnits(repo, nil, []models.UnitType{models.UnitTypeWiki}); err != nil {
+		return err
+	}
+
+	models.RemoveAllWithNotice("Delete repository wiki", repo.WikiPath())
 	return nil
 }
