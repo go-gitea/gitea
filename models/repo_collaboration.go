@@ -8,6 +8,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -83,16 +84,21 @@ func (repo *Repository) getCollaborators(e Engine, listOptions ListOptions) ([]*
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
 
-	collaborators := make([]*Collaborator, len(collaborations))
-	for i, c := range collaborations {
+	collaborators := make([]*Collaborator, 0, len(collaborations))
+	for _, c := range collaborations {
 		user, err := getUserByID(e, c.UserID)
 		if err != nil {
-			return nil, err
+			if IsErrUserNotExist(err) {
+				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
+				user = NewGhostUser()
+			} else {
+				return nil, err
+			}
 		}
-		collaborators[i] = &Collaborator{
+		collaborators = append(collaborators, &Collaborator{
 			User:          user,
 			Collaboration: c,
-		}
+		})
 	}
 	return collaborators, nil
 }
