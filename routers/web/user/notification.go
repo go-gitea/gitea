@@ -371,14 +371,12 @@ func NotificationWatching(c *context.Context) {
 		TopicOnly:          c.FormBool("topic"),
 		IncludeDescription: setting.UI.SearchRepoDescription,
 	})
-
-	total := int(count)
-	c.Data["Total"] = total
-
 	if err != nil {
 		c.ServerError("ErrSearchRepository", err)
 		return
 	}
+	total := int(count)
+	c.Data["Total"] = total
 	c.Data["Repos"] = repos
 
 	// redirect to last page if request page is more than total pages
