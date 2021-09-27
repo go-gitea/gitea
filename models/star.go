@@ -23,7 +23,7 @@ func init() {
 
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {
@@ -65,7 +65,7 @@ func StarRepo(userID, repoID int64, star bool) error {
 
 // IsStaring checks if user has starred given repository.
 func IsStaring(userID, repoID int64) bool {
-	return isStaring(db.DefaultContext().Engine(), userID, repoID)
+	return isStaring(db.GetEngine(db.DefaultContext), userID, repoID)
 }
 
 func isStaring(e db.Engine, userID, repoID int64) bool {
@@ -74,11 +74,11 @@ func isStaring(e db.Engine, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func (repo *Repository) GetStargazers(opts ListOptions) ([]*User, error) {
-	sess := db.DefaultContext().Engine().Where("star.repo_id = ?", repo.ID).
+func (repo *Repository) GetStargazers(opts db.ListOptions) ([]*User, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
-		sess = setSessionPagination(sess, &opts)
+		sess = db.SetSessionPagination(sess, &opts)
 
 		users := make([]*User, 0, opts.PageSize)
 		return users, sess.Find(&users)
@@ -93,7 +93,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
-	sess := db.DefaultContext().Engine().
+	sess := db.GetEngine(db.DefaultContext).
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID).
 		OrderBy(orderBy)
@@ -113,7 +113,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 		return
 	}
 
-	if err = repos.loadAttributes(db.DefaultContext().Engine()); err != nil {
+	if err = repos.loadAttributes(db.GetEngine(db.DefaultContext)); err != nil {
 		return
 	}
 
@@ -122,7 +122,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 
 // GetStarredRepoCount returns the numbers of repo the user starred.
 func (u *User) GetStarredRepoCount(private bool) (int64, error) {
-	sess := db.DefaultContext().Engine().
+	sess := db.GetEngine(db.DefaultContext).
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID)
 

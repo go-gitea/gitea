@@ -5,8 +5,8 @@
 package repo
 
 import (
-	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -22,7 +22,7 @@ import (
 )
 
 func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
-	tmpDir, err := ioutil.TempDir("", "tmp-ssh")
+	tmpDir, err := os.MkdirTemp("", "tmp-ssh")
 	if err != nil {
 		assert.Fail(t, "Unable to create temporary directory: %v", err)
 		return nil
