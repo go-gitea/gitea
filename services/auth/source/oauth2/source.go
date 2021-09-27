@@ -32,7 +32,7 @@ type Source struct {
 	GroupClaimName     string
 	AdminGroup         string
 	RestrictedGroup    string
-	SkipLocalTwoFA     bool
+	SkipLocalTwoFA     bool `json:",omitempty"`
 
 	// reference to the loginSource
 	loginSource *login.Source
