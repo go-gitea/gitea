@@ -161,6 +161,7 @@ func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 		SkipVerify:     form.SkipVerify,
 		HeloHostname:   form.HeloHostname,
 		DisableHelo:    form.DisableHelo,
+		SkipLocalTwoFA: form.SkipLocalTwoFA,
 	}
 }
 
@@ -244,8 +245,9 @@ func NewAuthSourcePost(ctx *context.Context) {
 		hasTLS = true
 	case login.PAM:
 		config = &pamService.Source{
-			ServiceName: form.PAMServiceName,
-			EmailDomain: form.PAMEmailDomain,
+			ServiceName:    form.PAMServiceName,
+			EmailDomain:    form.PAMEmailDomain,
+			SkipLocalTwoFA: form.SkipLocalTwoFA,
 		}
 	case login.OAuth2:
 		config = parseOAuth2Config(form)

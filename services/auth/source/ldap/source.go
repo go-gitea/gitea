@@ -53,7 +53,7 @@ type Source struct {
 	GroupFilter           string // Group Name Filter
 	GroupMemberUID        string // Group Attribute containing array of UserUID
 	UserUID               string // User Attribute listed in Group
-	SkipLocalTwoFA        bool   // Skip Local 2fa for users authenticated with this source
+	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
 	// reference to the loginSource
 	loginSource *login.Source
