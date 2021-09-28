@@ -51,18 +51,18 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = "user.id DESC"
+		orderBy = "`user`.id DESC"
 	case "oldest":
-		orderBy = "user.id ASC"
+		orderBy = "`user`.id ASC"
 	case "recentupdate":
-		orderBy = "user.updated_unix DESC"
+		orderBy = "`user`.updated_unix DESC"
 	case "leastupdate":
-		orderBy = "user.updated_unix ASC"
+		orderBy = "`user`.updated_unix ASC"
 	case "reversealphabetically":
-		orderBy = "user.name DESC"
+		orderBy = "`user`.name DESC"
 	case UserSearchDefaultSortType: // "alphabetically"
 	default:
-		orderBy = "user.name ASC"
+		orderBy = "`user`.name ASC"
 		ctx.Data["SortType"] = UserSearchDefaultSortType
 	}
 

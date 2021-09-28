@@ -357,7 +357,6 @@ func NewFuncMap() []template.FuncMap {
 				} else if urlSort == revSort {
 					// the table is sorted with this header reverse
 					return SVG("octicon-triangle-down", 16)
-
 				}
 			}
 			// the table is NOT sorted with this header
