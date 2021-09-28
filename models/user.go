@@ -1712,6 +1712,7 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		sessQuery = db.SetSessionPagination(sessQuery, opts)
 	}
 
+	sessQuery =	sessQuery.Select("`user`.*")
 	users = make([]*User, 0, opts.PageSize)
 	return users, count, sessQuery.Find(&users)
 }
