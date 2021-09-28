@@ -209,6 +209,7 @@ steps:
 
   - name: unit-test
     image: golang:1.17
+    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -221,6 +222,7 @@ steps:
   - name: unit-test-gogit
     pull: always
     image: golang:1.17
+    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -232,6 +234,7 @@ steps:
 
   - name: test-mysql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
@@ -246,6 +249,7 @@ steps:
 
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
@@ -259,6 +263,7 @@ steps:
 
   - name: test-mssql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make test-mssql-migration test-mssql
     environment:
@@ -355,6 +360,7 @@ steps:
 
   - name: test-sqlite
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
@@ -368,6 +374,7 @@ steps:
 
   - name: test-pgsql
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
