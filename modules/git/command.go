@@ -169,8 +169,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr
 	cmd.Stdin = rc.Stdin
-	closed := make(chan struct{})
-	defer close(closed)
 	desc := c.desc
 	if desc == "" {
 		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), rc.Dir)
@@ -178,26 +176,6 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
-
-	go func() {
-		select {
-		case <-ctx.Done():
-		case <-closed:
-			return
-		}
-		for {
-			select {
-			case <-time.After(10 * time.Second):
-				log.Warn("%s still running 10s after cancellation. Reattempt Kill", desc)
-				err := cmd.Process.Kill()
-				if err != nil {
-					log.Error("Error whilst trying to kill: %s. Error: %v", desc, err)
-				}
-			case <-closed:
-				return
-			}
-		}
-	}()
 
 	pid := process.GetManager().Add(desc, cancel)
 	defer process.GetManager().Remove(pid)
