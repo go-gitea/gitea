@@ -269,6 +269,14 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	// Dummy object.
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
+		if c.IsGhost() {
+			collaboration.ID = c.Collaboration.ID
+			if _, err := sess.Delete(collaboration); err != nil {
+				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+			}
+			collaboration.ID = 0
+		}
+
 		if c.ID != newOwner.ID {
 			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
 			if err != nil {
@@ -281,6 +289,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		if _, err := sess.Delete(collaboration); err != nil {
 			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
 		}
+		collaboration.UserID = 0
 	}
 
 	// Remove old team-repository relations.

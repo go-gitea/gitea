@@ -225,6 +225,9 @@ func (repo *Repository) refreshCollaboratorAccesses(e Engine, accessMap map[int6
 		return fmt.Errorf("getCollaborations: %v", err)
 	}
 	for _, c := range collaborators {
+		if c.User.IsGhost() {
+			continue
+		}
 		updateUserAccess(accessMap, c.User, c.Collaboration.Mode)
 	}
 	return nil
