@@ -152,6 +152,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address. Required.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--bind-dn value`: The DN to bind to the LDAP server with when searching for the user.
         - `--bind-password value`: The password for the Bind DN, if any.
         - `--attributes-in-bind`: Fetch attributes in bind DN context.
@@ -177,6 +178,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--bind-dn value`: The DN to bind to the LDAP server with when searching for the user.
         - `--bind-password value`: The password for the Bind DN, if any.
         - `--attributes-in-bind`: Fetch attributes in bind DN context.
@@ -202,6 +204,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address. Required.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--user-dn value`: The user’s DN. Required.
       - Examples:
         - `gitea admin auth add-ldap-simple --name ldap --security-protocol unencrypted --host mydomain.org --port 389 --user-dn "cn=%s,ou=Users,dc=mydomain,dc=org" --user-filter "(&(objectClass=posixAccount)(cn=%s))" --email-attribute mail`
@@ -223,6 +226,7 @@ Admin operations:
         - `--surname-attribute value`: The attribute of the user’s LDAP record containing the user’s surname.
         - `--email-attribute value`: The attribute of the user’s LDAP record containing the user’s email address.
         - `--public-ssh-key-attribute value`: The attribute of the user’s LDAP record containing the user’s public ssh key.
+        - `--avatar-attribute value`: The attribute of the user’s LDAP record containing the user’s avatar.
         - `--user-dn value`: The user’s DN.
       - Examples:
         - `gitea admin auth update-ldap-simple --id 1 --name "my ldap auth source"`
