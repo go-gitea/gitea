@@ -587,6 +587,17 @@ func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
 }
 
+// GetContextUser returns context user
+func GetContextUser(req *http.Request) *models.User {
+	if apiContext, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
+		return apiContext.User
+	}
+	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
+		return ctx.User
+	}
+	return nil
+}
+
 // SignedUserName returns signed user's name via context
 func SignedUserName(req *http.Request) string {
 	if middleware.IsInternalPath(req) {
