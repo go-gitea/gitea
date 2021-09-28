@@ -25,7 +25,6 @@
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
-	{{/* here we have valid go template syntax, but eslint doesn't like it and reports "error  Parsing error: Unexpected token {" */}}
 	<script>
 		<!-- /* eslint-disable */ -->
 		window.config = {
