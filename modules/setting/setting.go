@@ -1188,6 +1188,7 @@ func NewServices() {
 	NewQueueService()
 	newProject()
 	newMimeTypeMap()
+	newFederationService()
 }
 
 // NewServicesForInstall initializes the services for install

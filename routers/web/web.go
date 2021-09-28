@@ -234,6 +234,9 @@ func RegisterRoutes(m *web.Route) {
 	// for health check
 	m.Get("/", Home)
 	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
+	if setting.Federation.Enabled {
+		m.Get("/.well-known/nodeinfo", NodeInfoLinks)
+	}
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
