@@ -636,8 +636,9 @@ func Contexter() func(next http.Handler) http.Handler {
 					"Link":          link,
 				},
 			}
+			// PageData is passed by reference, and it will be rendered to `window.config.PageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
-			ctx.Data["PageData"] = ctx.PageData // by reference
+			ctx.Data["PageData"] = ctx.PageData
 
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, &ctx)
