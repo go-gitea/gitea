@@ -898,7 +898,7 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
-	// The following an unsafe option, purposely left out of documentation. Please do not run Gitea as root. It will only cause future headaches.
+	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
 	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
