@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -819,7 +820,7 @@ func (m *webhookNotifier) NotifySyncDeleteRef(pusher *models.User, repo *models.
 	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
 }
 
-func (m *webhookNotifier) NotifyPackageCreate(repo *models.Repository, p *models.Package) {
+func (m *webhookNotifier) NotifyPackageCreate(repo *models.Repository, p *packages.Package) {
 	if err := p.LoadCreator(); err != nil {
 		log.Error("LoadCreator: %v", err)
 	}
@@ -827,11 +828,11 @@ func (m *webhookNotifier) NotifyPackageCreate(repo *models.Repository, p *models
 	notifyPackage(p.Creator, repo, p, api.HookPackageCreated)
 }
 
-func (m *webhookNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *models.Package) {
+func (m *webhookNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package) {
 	notifyPackage(doer, repo, p, api.HookPackageDeleted)
 }
 
-func notifyPackage(sender *models.User, repo *models.Repository, p *models.Package, action api.HookPackageAction) {
+func notifyPackage(sender *models.User, repo *models.Repository, p *packages.Package, action api.HookPackageAction) {
 	org := repo.MustOwner()
 	if !org.IsOrganization() {
 		org = nil

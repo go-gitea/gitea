@@ -7,7 +7,7 @@ package nuget
 import (
 	"sort"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 
@@ -16,12 +16,12 @@ import (
 
 // Package represents a package with NuGet metadata
 type Package struct {
-	*models.Package
+	*packages.Package
 	SemVer   *version.Version
 	Metadata *nuget_module.Metadata
 }
 
-func intializePackages(packages []*models.Package) ([]*Package, error) {
+func intializePackages(packages []*packages.Package) ([]*Package, error) {
 	pgs := make([]*Package, 0, len(packages))
 	for _, p := range packages {
 		np, err := intializePackage(p)
@@ -33,7 +33,7 @@ func intializePackages(packages []*models.Package) ([]*Package, error) {
 	return pgs, nil
 }
 
-func intializePackage(p *models.Package) (*Package, error) {
+func intializePackage(p *packages.Package) (*Package, error) {
 	v, err := version.NewSemver(p.Version)
 	if err != nil {
 		return nil, err

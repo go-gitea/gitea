@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
@@ -33,7 +33,7 @@ var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1
 func PackageMetadata(ctx *context.APIContext) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 
-	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackagePyPI, packageName)
+	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypePyPI, packageName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -62,9 +62,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackagePyPI, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypePyPI, packageName, packageVersion, filename)
 	if err != nil {
-		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -125,7 +125,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackagePyPI,
+		packages.TypePyPI,
 		packageName,
 		packageVersion,
 		metadata,
@@ -138,7 +138,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	_, err = package_service.AddFileToPackage(p, fileHeader.Filename, fileHeader.Size, file)
 	if err != nil {
-		if err == models.ErrDuplicatePackageFile {
+		if err == packages.ErrDuplicatePackageFile {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}

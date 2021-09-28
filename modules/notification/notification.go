@@ -6,6 +6,7 @@ package notification
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
@@ -299,14 +300,14 @@ func NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Reposit
 }
 
 // NotifyPackageCreate notifies creation of a package to notifiers
-func NotifyPackageCreate(repo *models.Repository, p *models.Package) {
+func NotifyPackageCreate(repo *models.Repository, p *packages.Package) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPackageCreate(repo, p)
 	}
 }
 
 // NotifyPackageDelete notifies deletion of a package to notifiers
-func NotifyPackageDelete(doer *models.User, repo *models.Repository, p *models.Package) {
+func NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPackageDelete(doer, repo, p)
 	}

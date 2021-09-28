@@ -6,6 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -172,9 +173,9 @@ func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo
 }
 
 // NotifyPackageCreate places a place holder function
-func (*NullNotifier) NotifyPackageCreate(repo *models.Repository, p *models.Package) {
+func (*NullNotifier) NotifyPackageCreate(repo *models.Repository, p *packages.Package) {
 }
 
 // NotifyPackageDelete places a place holder function
-func (*NullNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *models.Package) {
+func (*NullNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package) {
 }

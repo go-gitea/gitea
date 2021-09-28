@@ -7,7 +7,7 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -61,7 +61,7 @@ func ListPackages(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	packages, count, err := models.GetPackages(&models.PackageSearchOptions{
+	packages, count, err := packages.GetPackages(&packages.PackageSearchOptions{
 		RepoID:    repo.ID,
 		Type:      packageType,
 		Query:     query,
@@ -116,9 +116,9 @@ func GetPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	p, err := models.GetPackageByID(ctx.ParamsInt64(":id"))
+	p, err := packages.GetPackageByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPackageByID", err)
@@ -159,7 +159,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 	err := package_service.DeletePackageByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeletePackageByID", err)
@@ -199,9 +199,9 @@ func ListPackageFiles(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	p, err := models.GetPackageByID(ctx.ParamsInt64(":id"))
+	p, err := packages.GetPackageByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPackageByID", err)

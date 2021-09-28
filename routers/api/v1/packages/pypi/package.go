@@ -5,19 +5,19 @@
 package pypi
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 )
 
 // Package represents a package with PyPI metadata
 type Package struct {
-	*models.Package
-	Files    []*models.PackageFile
+	*packages.Package
+	Files    []*packages.PackageFile
 	Metadata *pypi_module.Metadata
 }
 
-func intializePackages(packages []*models.Package) ([]*Package, error) {
+func intializePackages(packages []*packages.Package) ([]*Package, error) {
 	pgs := make([]*Package, 0, len(packages))
 	for _, p := range packages {
 		np, err := intializePackage(p)
@@ -29,7 +29,7 @@ func intializePackages(packages []*models.Package) ([]*Package, error) {
 	return pgs, nil
 }
 
-func intializePackage(p *models.Package) (*Package, error) {
+func intializePackage(p *packages.Package) (*Package, error) {
 	var m *pypi_module.Metadata
 	err := json.Unmarshal([]byte(p.MetadataRaw), &m)
 	if err != nil {

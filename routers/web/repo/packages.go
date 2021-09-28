@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -49,7 +50,7 @@ func Packages(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	packages, count, err := models.GetLatestPackagesGrouped(&models.PackageSearchOptions{
+	pkgs, count, err := packages.GetLatestPackagesGrouped(&packages.PackageSearchOptions{
 		RepoID: repo.ID,
 		Query:  query,
 		Type:   packageType,
@@ -63,21 +64,21 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	for _, p := range packages {
+	for _, p := range pkgs {
 		if err := p.LoadCreator(); err != nil {
 			ctx.ServerError("LoadCreator", err)
 			return
 		}
 	}
 
-	hasPackages, err := models.HasRepositoryPackages(repo.ID)
+	hasPackages, err := packages.HasRepositoryPackages(repo.ID)
 	if err != nil {
 		ctx.ServerError("HasRepositoryPackages", err)
 		return
 	}
 
 	ctx.Data["HasPackages"] = hasPackages
-	ctx.Data["Packages"] = packages
+	ctx.Data["Packages"] = pkgs
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
 
@@ -91,9 +92,9 @@ func Packages(ctx *context.Context) {
 
 // ViewPackage displays a single package
 func ViewPackage(ctx *context.Context) {
-	p, err := models.GetPackageByID(ctx.ParamsInt64(":id"))
+	p, err := packages.GetPackageByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetPackageByID", err)
@@ -115,15 +116,15 @@ func ViewPackage(ctx *context.Context) {
 
 	var metadata interface{}
 	switch p.Type {
-	case models.PackageNuGet:
+	case packages.TypeNuGet:
 		metadata = &nuget.Metadata{}
-	case models.PackageNpm:
+	case packages.TypeNpm:
 		metadata = &npm.Metadata{}
-	case models.PackageMaven:
+	case packages.TypeMaven:
 		metadata = &maven.Metadata{}
-	case models.PackagePyPI:
+	case packages.TypePyPI:
 		metadata = &pypi.Metadata{}
-	case models.PackageRubyGems:
+	case packages.TypeRubyGems:
 		metadata = &rubygems.Metadata{}
 	}
 	if metadata != nil {
@@ -141,7 +142,7 @@ func ViewPackage(ctx *context.Context) {
 	}
 	ctx.Data["Files"] = files
 
-	otherVersions, err := models.GetPackagesByName(ctx.Repo.Repository.ID, p.Type, p.LowerName)
+	otherVersions, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, p.Type, p.LowerName)
 	if err != nil {
 		ctx.ServerError("GetPackagesByName", err)
 		return
@@ -174,7 +175,7 @@ func DeletePackagePost(ctx *context.Context) {
 func DownloadPackageFile(ctx *context.Context) {
 	s, pf, err := package_service.GetFileStreamByPackageID(ctx.Repo.Repository, ctx.ParamsInt64(":id"), ctx.Params(":filename"))
 	if err != nil {
-		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.NotFound("", err)
 			return
 		}

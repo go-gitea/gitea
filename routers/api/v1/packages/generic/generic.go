@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util/filebuffer"
@@ -30,9 +30,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeGeneric, packageName, packageVersion, filename)
 	if err != nil {
-		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -73,14 +73,14 @@ func UploadPackage(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackageGeneric,
+		packages.TypeGeneric,
 		packageName,
 		packageVersion,
 		nil,
 		false,
 	)
 	if err != nil {
-		if err == models.ErrDuplicatePackage {
+		if err == packages.ErrDuplicatePackage {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}
@@ -92,7 +92,7 @@ func UploadPackage(ctx *context.APIContext) {
 	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
 	if err != nil {
 		log.Error("Error adding file to package: %v", err)
-		if err := models.DeletePackageByID(p.ID); err != nil {
+		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", "")
@@ -110,9 +110,9 @@ func DeletePackage(ctx *context.APIContext) {
 		return
 	}
 
-	err = package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, models.PackageGeneric, packageName, packageVersion)
+	err = package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeGeneric, packageName, packageVersion)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}

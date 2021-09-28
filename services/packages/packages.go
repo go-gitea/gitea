@@ -14,6 +14,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
+	packages_models "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -21,7 +23,7 @@ import (
 )
 
 // CreatePackage creates a new package
-func CreatePackage(creator *models.User, repository *models.Repository, packageType models.PackageType, name, version string, metadata interface{}, allowDuplicate bool) (*models.Package, error) {
+func CreatePackage(creator *models.User, repository *models.Repository, packageType packages_models.Type, name, version string, metadata interface{}, allowDuplicate bool) (*packages_models.Package, error) {
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		log.Error("Error converting metadata to JSON: %v", err)
@@ -30,7 +32,7 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 
 	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %v", creator.ID, repository.ID, packageType, name, version, metadata, allowDuplicate)
 
-	p := &models.Package{
+	p := &packages_models.Package{
 		RepoID:      repository.ID,
 		CreatorID:   creator.ID,
 		Type:        packageType,
@@ -39,8 +41,8 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 		Version:     version,
 		MetadataRaw: string(metadataJSON),
 	}
-	if p, err = models.TryInsertPackage(p); err != nil {
-		if err == models.ErrDuplicatePackage {
+	if p, err = packages_models.TryInsertPackage(p); err != nil {
+		if err == packages_models.ErrDuplicatePackage {
 			if allowDuplicate {
 				return p, nil
 			}
@@ -56,18 +58,18 @@ func CreatePackage(creator *models.User, repository *models.Repository, packageT
 }
 
 // AddFileToPackage adds a new file to package and stores its content
-func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reader) (*models.PackageFile, error) {
+func AddFileToPackage(p *packages_models.Package, filename string, size int64, r io.Reader) (*packages_models.PackageFile, error) {
 	log.Trace("Creating package file: %v, %v, %s", p.ID, size, filename)
 
-	pf := &models.PackageFile{
+	pf := &packages_models.PackageFile{
 		PackageID: p.ID,
 		Size:      size,
 		Name:      filename,
 		LowerName: strings.ToLower(filename),
 	}
 	var err error
-	if pf, err = models.TryInsertPackageFile(pf); err != nil {
-		if err == models.ErrDuplicatePackageFile {
+	if pf, err = packages_models.TryInsertPackageFile(pf); err != nil {
+		if err == packages_models.ErrDuplicatePackageFile {
 			return nil, err
 		}
 		log.Error("Error inserting package file: %v", err)
@@ -94,7 +96,7 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 		pf.HashSHA1 = fmt.Sprintf("%x", h1.Sum(nil))
 		pf.HashSHA256 = fmt.Sprintf("%x", h256.Sum(nil))
 		pf.HashSHA512 = fmt.Sprintf("%x", h512.Sum(nil))
-		if err = models.UpdatePackageFile(pf); err != nil {
+		if err = packages_models.UpdatePackageFile(pf); err != nil {
 			log.Error("Error updating package file: %v", err)
 			return err
 		}
@@ -103,7 +105,7 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 	if err != nil {
 		_ = contentStore.Delete(p.ID, pf.ID)
 
-		if err := models.DeletePackageFileByID(pf.ID); err != nil {
+		if err := packages_models.DeletePackageFileByID(pf.ID); err != nil {
 			log.Error("Error deleting package file: %v", err)
 		}
 		return nil, err
@@ -112,12 +114,12 @@ func AddFileToPackage(p *models.Package, filename string, size int64, r io.Reade
 }
 
 // DeletePackageByNameAndVersion deletes a package and all associated files
-func DeletePackageByNameAndVersion(doer *models.User, repository *models.Repository, packageType models.PackageType, name, version string) error {
+func DeletePackageByNameAndVersion(doer *models.User, repository *models.Repository, packageType packages_models.Type, name, version string) error {
 	log.Trace("Deleting package: %v, %v, %s, %s", repository.ID, packageType, name, version)
 
-	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
+	p, err := packages_models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages_models.ErrPackageNotExist {
 			return err
 		}
 		log.Error("Error getting package: %v", err)
@@ -131,9 +133,9 @@ func DeletePackageByNameAndVersion(doer *models.User, repository *models.Reposit
 func DeletePackageByID(doer *models.User, repository *models.Repository, packageID int64) error {
 	log.Trace("Deleting package: %v, %v", repository.ID, packageID)
 
-	p, err := models.GetPackageByID(packageID)
+	p, err := packages_models.GetPackageByID(packageID)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages_models.ErrPackageNotExist {
 			return err
 		}
 		log.Error("Error getting package: %v", err)
@@ -141,13 +143,13 @@ func DeletePackageByID(doer *models.User, repository *models.Repository, package
 	}
 
 	if p.RepoID != repository.ID {
-		return models.ErrPackageNotExist
+		return packages_models.ErrPackageNotExist
 	}
 
 	return deletePackage(doer, repository, p)
 }
 
-func deletePackage(doer *models.User, repository *models.Repository, p *models.Package) error {
+func deletePackage(doer *models.User, repository *models.Repository, p *packages_models.Package) error {
 	pfs, err := p.GetFiles()
 	if err != nil {
 		log.Error("Error getting package files: %v", err)
@@ -162,7 +164,7 @@ func deletePackage(doer *models.User, repository *models.Repository, p *models.P
 		}
 	}
 
-	if err := models.DeletePackageByID(p.ID); err != nil {
+	if err := packages_models.DeletePackageByID(p.ID); err != nil {
 		log.Error("Error deleting package: %v", err)
 		return err
 	}
@@ -173,12 +175,12 @@ func deletePackage(doer *models.User, repository *models.Repository, p *models.P
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(repository *models.Repository, packageType models.PackageType, name, version, filename string) (io.ReadCloser, *models.PackageFile, error) {
+func GetFileStreamByPackageNameAndVersion(repository *models.Repository, packageType packages.Type, name, version, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s", repository.ID, packageType, name, version, filename)
 
-	p, err := models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
+	p, err := packages_models.GetPackageByNameAndVersion(repository.ID, packageType, name, version)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages_models.ErrPackageNotExist {
 			return nil, nil, err
 		}
 		log.Error("Error getting package: %v", err)
@@ -189,12 +191,12 @@ func GetFileStreamByPackageNameAndVersion(repository *models.Repository, package
 }
 
 // GetFileStreamByPackageID returns the content of the specific package file
-func GetFileStreamByPackageID(repository *models.Repository, packageID int64, filename string) (io.ReadCloser, *models.PackageFile, error) {
+func GetFileStreamByPackageID(repository *models.Repository, packageID int64, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s", repository.ID, packageID, filename)
 
-	p, err := models.GetPackageByID(packageID)
+	p, err := packages_models.GetPackageByID(packageID)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages_models.ErrPackageNotExist {
 			return nil, nil, err
 		}
 		log.Error("Error getting package: %v", err)
@@ -202,14 +204,14 @@ func GetFileStreamByPackageID(repository *models.Repository, packageID int64, fi
 	}
 
 	if p.RepoID != repository.ID {
-		return nil, nil, models.ErrPackageNotExist
+		return nil, nil, packages_models.ErrPackageNotExist
 	}
 
 	return GetPackageFileStream(p, filename)
 }
 
 // GetPackageFileStream returns the cotent of the specific package file
-func GetPackageFileStream(p *models.Package, filename string) (io.ReadCloser, *models.PackageFile, error) {
+func GetPackageFileStream(p *packages_models.Package, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
 	pf, err := p.GetFileByName(filename)
 	if err != nil {
 		return nil, nil, err

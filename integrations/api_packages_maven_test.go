@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/maven"
 
@@ -44,7 +45,7 @@ func TestPackageMaven(t *testing.T) {
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusCreated)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageMaven)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)
@@ -99,7 +100,7 @@ func TestPackageMaven(t *testing.T) {
   <description>` + packageDescription + `</description>
 </project>`
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageMaven)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 
@@ -110,7 +111,7 @@ func TestPackageMaven(t *testing.T) {
 
 		putFile(t, fmt.Sprintf("/%s/%s.pom", packageVersion, filename), pomContent, http.StatusCreated)
 
-		ps, err = models.GetPackagesByRepositoryAndType(repository.ID, models.PackageMaven)
+		ps, err = packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 

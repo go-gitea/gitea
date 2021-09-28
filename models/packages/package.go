@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package packages
 
 import (
 	"errors"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -19,51 +20,51 @@ func init() {
 	db.RegisterModel(new(PackageFile))
 }
 
-// PackageType specifies the different package types
-type PackageType int
+// Type specifies the different package types
+type Type int
 
 // Note: new type must append to the end of list to maintain compatibility.
 const (
-	PackageGeneric  PackageType = iota
-	PackageNuGet                // 1
-	PackageNpm                  // 2
-	PackageMaven                // 3
-	PackagePyPI                 // 4
-	PackageRubyGems             // 5
+	TypeGeneric  Type = iota
+	TypeNuGet         // 1
+	TypeNpm           // 2
+	TypeMaven         // 3
+	TypePyPI          // 4
+	TypeRubyGems      // 5
 )
 
-func (pt PackageType) String() string {
+func (pt Type) String() string {
 	switch pt {
-	case PackageGeneric:
+	case TypeGeneric:
 		return "Generic"
-	case PackageNuGet:
+	case TypeNuGet:
 		return "NuGet"
-	case PackageNpm:
+	case TypeNpm:
 		return "npm"
-	case PackageMaven:
+	case TypeMaven:
 		return "Maven"
-	case PackagePyPI:
+	case TypePyPI:
 		return "PyPI"
-	case PackageRubyGems:
+	case TypeRubyGems:
 		return "RubyGems"
 	}
 	return ""
 }
 
 // SVGName returns the name of the package type svg image
-func (pt PackageType) SVGName() string {
+func (pt Type) SVGName() string {
 	switch pt {
-	case PackageGeneric:
+	case TypeGeneric:
 		return "octicon-package"
-	case PackageNuGet:
+	case TypeNuGet:
 		return "gitea-nuget"
-	case PackageNpm:
+	case TypeNpm:
 		return "gitea-npm"
-	case PackageMaven:
+	case TypeMaven:
 		return "gitea-maven"
-	case PackagePyPI:
+	case TypePyPI:
 		return "gitea-python"
-	case PackageRubyGems:
+	case TypeRubyGems:
 		return "gitea-rubygems"
 	}
 	return ""
@@ -85,8 +86,8 @@ type Package struct {
 	ID          int64 `xorm:"pk autoincr"`
 	RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	CreatorID   int64
-	Creator     *User       `xorm:"-"`
-	Type        PackageType `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	Creator     *models.User `xorm:"-"`
+	Type        Type         `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name        string
 	LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Version     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
@@ -100,7 +101,7 @@ type Package struct {
 func (p *Package) LoadCreator() error {
 	if p.Creator == nil {
 		var err error
-		p.Creator, err = getUserByID(db.GetEngine(db.DefaultContext), p.CreatorID)
+		p.Creator, err = models.GetUserByID(p.CreatorID)
 		return err
 	}
 	return nil
@@ -218,17 +219,17 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 
 	switch opts.Type {
 	case "generic":
-		cond = cond.And(builder.Eq{"package.type": PackageGeneric})
+		cond = cond.And(builder.Eq{"package.type": TypeGeneric})
 	case "nuget":
-		cond = cond.And(builder.Eq{"package.type": PackageNuGet})
+		cond = cond.And(builder.Eq{"package.type": TypeNuGet})
 	case "npm":
-		cond = cond.And(builder.Eq{"package.type": PackageNpm})
+		cond = cond.And(builder.Eq{"package.type": TypeNpm})
 	case "maven":
-		cond = cond.And(builder.Eq{"package.type": PackageMaven})
+		cond = cond.And(builder.Eq{"package.type": TypeMaven})
 	case "pypi":
-		cond = cond.And(builder.Eq{"package.type": PackagePyPI})
+		cond = cond.And(builder.Eq{"package.type": TypePyPI})
 	case "rubygems":
-		cond = cond.And(builder.Eq{"package.type": PackageRubyGems})
+		cond = cond.And(builder.Eq{"package.type": TypeRubyGems})
 	}
 
 	if opts.Query != "" {
@@ -293,19 +294,19 @@ func GetPackagesByRepository(repositoryID int64) ([]*Package, error) {
 }
 
 // GetPackagesByRepositoryAndType returns all packages of a repository with the specific type
-func GetPackagesByRepositoryAndType(repositoryID int64, packageType PackageType) ([]*Package, error) {
+func GetPackagesByRepositoryAndType(repositoryID int64, packageType Type) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)
 	return packages, db.GetEngine(db.DefaultContext).Where("repo_id = ? AND type = ?", repositoryID, packageType).Find(&packages)
 }
 
 // GetPackagesByName gets all repository packages with the specific name
-func GetPackagesByName(repositoryID int64, packageType PackageType, packageName string) ([]*Package, error) {
+func GetPackagesByName(repositoryID int64, packageType Type, packageName string) ([]*Package, error) {
 	packages := make([]*Package, 0, 10)
 	return packages, db.GetEngine(db.DefaultContext).Where("repo_id = ? AND type = ? AND lower_name = ?", repositoryID, packageType, strings.ToLower(packageName)).Find(&packages)
 }
 
 // GetPackageByNameAndVersion gets a repository package by name and version
-func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, packageName, packageVersion string) (*Package, error) {
+func GetPackageByNameAndVersion(repositoryID int64, packageType Type, packageName, packageVersion string) (*Package, error) {
 	p := &Package{
 		RepoID:    repositoryID,
 		Type:      packageType,
@@ -322,7 +323,7 @@ func GetPackageByNameAndVersion(repositoryID int64, packageType PackageType, pac
 }
 
 // GetPackagesByFilename gets a repository packages by filename
-func GetPackagesByFilename(repositoryID int64, packageType PackageType, packageFilename string) ([]*Package, error) {
+func GetPackagesByFilename(repositoryID int64, packageType Type, packageFilename string) ([]*Package, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.repo_id":         repositoryID,
 		"package.type":            packageType,

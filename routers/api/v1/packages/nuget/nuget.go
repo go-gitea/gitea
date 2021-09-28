@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
@@ -32,7 +32,7 @@ func ServiceIndex(ctx *context.APIContext) {
 
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.APIContext) {
-	packages, count, err := models.GetPackages(&models.PackageSearchOptions{
+	packages, count, err := packages.GetPackages(&packages.PackageSearchOptions{
 		RepoID: ctx.Repo.Repository.ID,
 		Type:   "nuget",
 		Query:  ctx.FormTrim("q"),
@@ -65,7 +65,7 @@ func SearchService(ctx *context.APIContext) {
 func RegistrationIndex(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 
-	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageNuGet, packageName)
+	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -94,9 +94,9 @@ func RegistrationLeaf(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
-	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageNuGet, packageName, packageVersion)
+	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -122,7 +122,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 func EnumeratePackageVersions(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 
-	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageNuGet, packageName)
+	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -149,9 +149,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackageNuGet, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNuGet, packageName, packageVersion, filename)
 	if err != nil {
-		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -179,14 +179,14 @@ func UploadPackage(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackageNuGet,
+		packages.TypeNuGet,
 		meta.ID,
 		meta.Version,
 		meta,
 		false,
 	)
 	if err != nil {
-		if err == models.ErrDuplicatePackage {
+		if err == packages.ErrDuplicatePackage {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}
@@ -197,7 +197,7 @@ func UploadPackage(ctx *context.APIContext) {
 	filename := strings.ToLower(fmt.Sprintf("%s.%s.nupkg", meta.ID, meta.Version))
 	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
 	if err != nil {
-		if err := models.DeletePackageByID(p.ID); err != nil {
+		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", err)
@@ -220,9 +220,9 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 		return
 	}
 
-	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageNuGet, meta.ID, meta.Version)
+	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeNuGet, meta.ID, meta.Version)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -233,7 +233,7 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 	filename := strings.ToLower(fmt.Sprintf("%s.%s.snupkg", meta.ID, meta.Version))
 	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
 	if err != nil {
-		if err == models.ErrDuplicatePackageFile {
+		if err == packages.ErrDuplicatePackageFile {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}
@@ -286,9 +286,9 @@ func DeletePackage(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 	packageVersion := ctx.Params("version")
 
-	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, models.PackageNuGet, packageName, packageVersion)
+	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeNuGet, packageName, packageVersion)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}

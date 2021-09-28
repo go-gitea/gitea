@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -63,7 +64,7 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.whl"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackagePyPI)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)
@@ -82,7 +83,7 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.tar.gz"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackagePyPI)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)

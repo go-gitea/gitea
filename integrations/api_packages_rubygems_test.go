@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -122,7 +123,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
 		uploadFile(t, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageRubyGems)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)
@@ -198,7 +199,7 @@ gAAAAP//MS06Gw==`)
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageRubyGems)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Empty(t, ps)
 	})

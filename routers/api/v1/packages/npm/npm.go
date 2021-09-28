@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
@@ -26,7 +26,7 @@ func PackageMetadata(ctx *context.APIContext) {
 		return
 	}
 
-	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageNpm, packageName)
+	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNpm, packageName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -60,9 +60,9 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, models.PackageNpm, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNpm, packageName, packageVersion, filename)
 	if err != nil {
-		if err == models.ErrPackageNotExist || err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -85,14 +85,14 @@ func UploadPackage(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackageNpm,
+		packages.TypeNpm,
 		npmPackage.Name,
 		npmPackage.Version,
 		npmPackage.Metadata,
 		false,
 	)
 	if err != nil {
-		if err == models.ErrDuplicatePackage {
+		if err == packages.ErrDuplicatePackage {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}
@@ -102,7 +102,7 @@ func UploadPackage(ctx *context.APIContext) {
 
 	_, err = package_service.AddFileToPackage(p, npmPackage.Filename, int64(len(npmPackage.Data)), bytes.NewReader(npmPackage.Data))
 	if err != nil {
-		if err := models.DeletePackageByID(p.ID); err != nil {
+		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", err)

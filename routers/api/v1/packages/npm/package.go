@@ -7,7 +7,7 @@ package npm
 import (
 	"sort"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/json"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 
@@ -16,13 +16,13 @@ import (
 
 // Package represents a package with npm metadata
 type Package struct {
-	*models.Package
-	*models.PackageFile
+	*packages.Package
+	*packages.PackageFile
 	SemVer   *version.Version
 	Metadata *npm_module.Metadata
 }
 
-func intializePackages(packages []*models.Package) ([]*Package, error) {
+func intializePackages(packages []*packages.Package) ([]*Package, error) {
 	pgs := make([]*Package, 0, len(packages))
 	for _, p := range packages {
 		np, err := intializePackage(p)
@@ -34,7 +34,7 @@ func intializePackages(packages []*models.Package) ([]*Package, error) {
 	return pgs, nil
 }
 
-func intializePackage(p *models.Package) (*Package, error) {
+func intializePackage(p *packages.Package) (*Package, error) {
 	v, err := version.NewSemver(p.Version)
 	if err != nil {
 		return nil, err

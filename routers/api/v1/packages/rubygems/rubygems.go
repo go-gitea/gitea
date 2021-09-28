@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
@@ -23,7 +23,7 @@ import (
 
 // EnumeratePackages serves the package list
 func EnumeratePackages(ctx *context.APIContext) {
-	packages, err := models.GetPackagesByRepositoryAndType(ctx.Repo.Repository.ID, models.PackageRubyGems)
+	packages, err := packages.GetPackagesByRepositoryAndType(ctx.Repo.Repository.ID, packages.TypeRubyGems)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -34,7 +34,7 @@ func EnumeratePackages(ctx *context.APIContext) {
 
 // EnumeratePackagesLatest serves the list of the lastest version of every package
 func EnumeratePackagesLatest(ctx *context.APIContext) {
-	packages, _, err := models.GetLatestPackagesGrouped(&models.PackageSearchOptions{
+	packages, _, err := packages.GetLatestPackagesGrouped(&packages.PackageSearchOptions{
 		RepoID: ctx.Repo.Repository.ID,
 		Type:   "rubygems",
 	})
@@ -48,10 +48,10 @@ func EnumeratePackagesLatest(ctx *context.APIContext) {
 
 // EnumeratePackagesPreRelease is not supported and serves an empty list
 func EnumeratePackagesPreRelease(ctx *context.APIContext) {
-	enumeratePackages(ctx, "prerelease_specs.4.8", []*models.Package{})
+	enumeratePackages(ctx, "prerelease_specs.4.8", []*packages.Package{})
 }
 
-func enumeratePackages(ctx *context.APIContext, filename string, packages []*models.Package) {
+func enumeratePackages(ctx *context.APIContext, filename string, packages []*packages.Package) {
 	rubygemsPackages, err := intializePackages(packages)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
@@ -91,7 +91,7 @@ func ServePackageSpecification(ctx *context.APIContext) {
 		return
 	}
 
-	packages, err := models.GetPackagesByFilename(ctx.Repo.Repository.ID, models.PackageRubyGems, filename[:len(filename)-10]+"gem")
+	packages, err := packages.GetPackagesByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -124,20 +124,20 @@ func ServePackageSpecification(ctx *context.APIContext) {
 func DownloadPackageFile(ctx *context.APIContext) {
 	filename := ctx.Params("filename")
 
-	packages, err := models.GetPackagesByFilename(ctx.Repo.Repository.ID, models.PackageRubyGems, filename)
+	pkgs, err := packages.GetPackagesByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
 	}
 
-	if len(packages) != 1 {
+	if len(pkgs) != 1 {
 		ctx.Error(http.StatusNotFound, "", nil)
 		return
 	}
 
-	s, pf, err := package_service.GetPackageFileStream(packages[0], filename)
+	s, pf, err := package_service.GetPackageFileStream(pkgs[0], filename)
 	if err != nil {
-		if err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}
@@ -180,14 +180,14 @@ func UploadPackageFile(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackageRubyGems,
+		packages.TypeRubyGems,
 		meta.Name,
 		meta.Version,
 		meta,
 		false,
 	)
 	if err != nil {
-		if err == models.ErrDuplicatePackage {
+		if err == packages.ErrDuplicatePackage {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}
@@ -203,7 +203,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	}
 	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
 	if err != nil {
-		if err := models.DeletePackageByID(p.ID); err != nil {
+		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
 		ctx.Error(http.StatusInternalServerError, "", err)
@@ -218,9 +218,9 @@ func DeletePackage(ctx *context.APIContext) {
 	packageName := ctx.FormString("gem_name")
 	packageVersion := ctx.FormString("version")
 
-	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, models.PackageRubyGems, packageName, packageVersion)
+	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeRubyGems, packageName, packageVersion)
 	if err != nil {
-		if err == models.ErrPackageNotExist {
+		if err == packages.ErrPackageNotExist {
 			ctx.Error(http.StatusNotFound, "", err)
 			return
 		}

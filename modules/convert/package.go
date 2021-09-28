@@ -5,12 +5,12 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToPackage convert a models.Package to api.Package
-func ToPackage(p *models.Package) *api.Package {
+// ToPackage convert a packages.Package to api.Package
+func ToPackage(p *packages.Package) *api.Package {
 	if err := p.LoadCreator(); err != nil {
 		return &api.Package{}
 	}
@@ -26,8 +26,8 @@ func ToPackage(p *models.Package) *api.Package {
 	}
 }
 
-// ToPackageFile converts models.PackageFile to api.PackageFile
-func ToPackageFile(pf *models.PackageFile) *api.PackageFile {
+// ToPackageFile converts packages.PackageFile to api.PackageFile
+func ToPackageFile(pf *packages.PackageFile) *api.PackageFile {
 	return &api.PackageFile{
 		ID:         pf.ID,
 		Size:       pf.Size,

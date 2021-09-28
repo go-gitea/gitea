@@ -6,6 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -60,6 +61,6 @@ type Notifier interface {
 
 	NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository)
 
-	NotifyPackageCreate(repo *models.Repository, p *models.Package)
-	NotifyPackageDelete(doer *models.User, repo *models.Repository, p *models.Package)
+	NotifyPackageCreate(repo *models.Repository, p *packages.Package)
+	NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package)
 }

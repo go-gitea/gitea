@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
 
@@ -92,7 +93,7 @@ func TestPackageNuGet(t *testing.T) {
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
+			ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, ps, 1)
 			assert.Equal(t, packageName, ps[0].Name)
@@ -142,7 +143,7 @@ func TestPackageNuGet(t *testing.T) {
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
+			ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, ps, 1)
 
@@ -274,7 +275,7 @@ func TestPackageNuGet(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageNuGet)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeNuGet)
 		assert.NoError(t, err)
 		assert.Empty(t, ps)
 	})

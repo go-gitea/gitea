@@ -19,11 +19,11 @@ import (
 	"regexp"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/packages"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/util/filebuffer"
 
@@ -62,7 +62,7 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
 	packageName := params.GroupID + "-" + params.ArtifactID
-	packages, err := models.GetPackagesByName(ctx.Repo.Repository.ID, models.PackageMaven, packageName)
+	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeMaven, packageName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 		return
@@ -112,8 +112,8 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 func servePackageFile(ctx *context.APIContext, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	p, err := models.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, models.PackageMaven, packageName, params.Version)
-	if err == models.ErrPackageNotExist {
+	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeMaven, packageName, params.Version)
+	if err == packages.ErrPackageNotExist {
 		ctx.Error(http.StatusNotFound, "", err)
 		return
 	}
@@ -127,7 +127,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 
 	pf, err := p.GetFileByName(filename)
 	if err != nil {
-		if err == models.ErrPackageFileNotExist {
+		if err == packages.ErrPackageFileNotExist {
 			ctx.Error(http.StatusNotFound, "", "")
 			return
 		}
@@ -152,7 +152,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		return
 	}
 
-	s, err := packages.NewContentStore().Get(p.ID, pf.ID)
+	s, err := packages_module.NewContentStore().Get(p.ID, pf.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "", err)
 	}
@@ -182,7 +182,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	p, err := package_service.CreatePackage(
 		ctx.User,
 		ctx.Repo.Repository,
-		models.PackageMaven,
+		packages.TypeMaven,
 		packageName,
 		params.Version,
 		&maven_module.Metadata{
@@ -209,7 +209,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	if isChecksumExtension(ext) {
 		pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-len(ext)])
 		if err != nil {
-			if err == models.ErrPackageFileNotExist {
+			if err == packages.ErrPackageFileNotExist {
 				ctx.Error(http.StatusNotFound, "", "")
 				return
 			}
@@ -249,7 +249,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 				return
 			}
 			p.MetadataRaw = string(raw)
-			if err := models.UpdatePackage(p); err != nil {
+			if err := packages.UpdatePackage(p); err != nil {
 				ctx.Error(http.StatusInternalServerError, "", err)
 				return
 			}
@@ -262,7 +262,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	_, err = package_service.AddFileToPackage(p, params.Filename, buf.Size(), buf)
 	if err != nil {
-		if err == models.ErrDuplicatePackageFile {
+		if err == packages.ErrDuplicatePackageFile {
 			ctx.Error(http.StatusBadRequest, "", err)
 			return
 		}

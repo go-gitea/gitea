@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -36,7 +37,7 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageGeneric)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, ps, 1)
 		assert.Equal(t, packageName, ps[0].Name)
@@ -71,7 +72,7 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequest(t, "DELETE", url)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := models.GetPackagesByRepositoryAndType(repository.ID, models.PackageGeneric)
+		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Empty(t, ps)
 	})
