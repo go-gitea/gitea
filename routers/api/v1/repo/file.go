@@ -23,6 +23,39 @@ import (
 
 // GetRawFile get a file by path on a repository
 func GetRawFile(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/raw/{ref}/{filepath} repository repoGetRawFileOld
+	// ---
+	// summary: Get a file from a repository
+	// deprecated: true
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of the file to get
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: path
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch (usually master)"
+	//   type: string
+	//   deprecated: true
+	// responses:
+	//   200:
+	//     description: success
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
 	// swagger:operation GET /repos/{owner}/{repo}/raw/{filepath} repository repoGetRawFile
 	// ---
 	// summary: Get a file from a repository
@@ -46,7 +79,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag. Default to the repository’s default branch (usually master)"
 	//   type: string
 	//   required: false
 	// responses:
