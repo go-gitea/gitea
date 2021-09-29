@@ -109,22 +109,21 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 			)
 			client = oauth2.NewClient(downloader.ctx, ts)
 
-			githubClient := github.NewClient(client)
-			if baseURL != "https://github.com" {
-				githubClient, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
-			}
-			downloader.clients = append(downloader.clients, githubClient)
-			downloader.rates = append(downloader.rates, nil)
+			downloader.addClient(client, baseURL)
 		}
 	} else {
-		githubClient := github.NewClient(client)
-		if baseURL != "https://github.com" {
-			githubClient, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
-		}
-		downloader.clients = append(downloader.clients, githubClient)
-		downloader.rates = append(downloader.rates, nil)
+		downloader.addClient(client, baseURL)
 	}
 	return &downloader
+}
+
+func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
+	githubClient := github.NewClient(client)
+	if baseURL != "https://github.com" {
+		githubClient, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+	}
+	g.clients = append(g.clients, githubClient)
+	g.rates = append(g.rates, nil)
 }
 
 // SetContext set context
