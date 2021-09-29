@@ -374,7 +374,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 	}
 
 	if err := issue.LoadRepo(); err != nil {
-		log.Error("Unable to load rep [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
 
