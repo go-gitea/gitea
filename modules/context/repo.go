@@ -693,11 +693,8 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if refName := getRefName(ctx, RepoRefTag); len(refName) > 0 {
 			return refName
 		}
-		// For legacy and API support only full commit sha
-		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) == 40 {
-			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
-			return parts[0]
+		if refName := getRefName(ctx, RepoRefCommit); len(refName) > 0 {
+			return refName
 		}
 		if refName := getRefName(ctx, RepoRefBlob); len(refName) > 0 {
 			return refName
@@ -710,7 +707,8 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
 		parts := strings.Split(path, "/")
-		if len(parts) > 0 && len(parts[0]) >= 7 && len(parts[0]) <= 40 {
+		hasShaLength := len(parts[0]) >= 7 && len(parts[0]) <= 40
+		if len(parts) > 1 && hasShaLength && ctx.Repo.GitRepo.IsCommitExist(parts[0]) {
 			ctx.Repo.TreePath = strings.Join(parts[1:], "/")
 			return parts[0]
 		}
