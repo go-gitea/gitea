@@ -114,6 +114,8 @@
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
+  --color-project-board-dark-label: #555555;
+  --color-project-board-light-label: #a6aab5;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-active-bg: var(--color-primary-alpha-20);
@@ -2089,4 +2091,17 @@ table th[data-sortt-desc] {
   text-overflow: ellipsis;
   margin-top: -.5em;
   margin-bottom: -.5em;
+}
+
+.precolors {
+  padding-left: 0;
+  padding-right: 0;
+  margin: 3px 10px auto;
+  width: 120px;
+
+  .color {
+    float: left;
+    width: 15px;
+    height: 15px;
+  }
 }
