@@ -988,10 +988,10 @@ func (db *postgres) IsTableExist(queryer core.Queryer, ctx context.Context, tabl
 func (db *postgres) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	if len(db.getSchema()) == 0 || strings.Contains(tableName, ".") {
 		return fmt.Sprintf("alter table %s ALTER COLUMN %s TYPE %s",
-			tableName, col.Name, db.SQLType(col))
+			db.quoter.Quote(tableName), db.quoter.Quote(col.Name), db.SQLType(col))
 	}
 	return fmt.Sprintf("alter table %s.%s ALTER COLUMN %s TYPE %s",
-		db.getSchema(), tableName, col.Name, db.SQLType(col))
+		db.quoter.Quote(db.getSchema()), db.quoter.Quote(tableName), db.quoter.Quote(col.Name), db.SQLType(col))
 }
 
 func (db *postgres) DropIndexSQL(tableName string, index *schemas.Index) string {
