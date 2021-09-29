@@ -209,7 +209,6 @@ steps:
 
   - name: unit-test
     image: golang:1.17
-    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
@@ -222,7 +221,6 @@ steps:
   - name: unit-test-gogit
     pull: always
     image: golang:1.17
-    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
