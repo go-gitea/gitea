@@ -206,7 +206,7 @@ func (db *Base) DropIndexSQL(tableName string, index *schemas.Index) string {
 // ModifyColumnSQL returns a SQL to modify SQL
 func (db *Base) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, false)
-	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", tableName, s)
+	return fmt.Sprintf("ALTER TABLE %s MODIFY COLUMN %s", db.quoter.Quote(tableName), s)
 }
 
 // ForUpdateSQL returns for updateSQL
