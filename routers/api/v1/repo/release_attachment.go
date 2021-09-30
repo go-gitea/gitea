@@ -64,7 +64,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
-	ctx.JSON(http.StatusOK, convert.ToReleaseAttachment(attach))
+	ctx.JSON(http.StatusOK, convert.ToAttachment(attach))
 }
 
 // ListReleaseAttachments lists all attachments of the release
@@ -205,7 +205,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
+	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
 }
 
 // EditReleaseAttachment updates the given attachment
@@ -271,7 +271,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	if err := models.UpdateAttachment(attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
-	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
+	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
 }
 
 // DeleteReleaseAttachment delete a given attachment
