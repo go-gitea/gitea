@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
-
+	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	package_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -29,23 +29,29 @@ var nameMatcher = regexp.MustCompile(`\A[a-z0-9\.\-_]+\z`)
 // https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
 var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
 
+func apiError(ctx *context.APIContext, status int, obj interface{}) {
+	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.PlainText(status, []byte(message))
+	})
+}
+
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.APIContext) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 
 	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypePyPI, packageName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if len(packages) == 0 {
-		ctx.Error(http.StatusNotFound, "", err)
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
 	pypiPackages, err := intializePackages(packages)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -65,10 +71,10 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypePyPI, packageName, packageVersion, filename)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer s.Close()
@@ -80,30 +86,30 @@ func DownloadPackageFile(ctx *context.APIContext) {
 func UploadPackageFile(ctx *context.APIContext) {
 	file, fileHeader, err := ctx.Req.FormFile("content")
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 	defer file.Close()
 
 	h256 := sha256.New()
 	if _, err := io.Copy(h256, file); err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), fmt.Sprintf("%x", h256.Sum(nil))) {
-		ctx.Error(http.StatusBadRequest, "", "hash mismatch")
+		apiError(ctx, http.StatusBadRequest, "hash mismatch")
 		return
 	}
 
 	if _, err := file.Seek(0, io.SeekStart); err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	packageName := normalizer.Replace(ctx.Req.FormValue("name"))
 	packageVersion := ctx.Req.FormValue("version")
 	if !nameMatcher.MatchString(packageName) || !versionMatcher.MatchString(packageVersion) {
-		ctx.Error(http.StatusBadRequest, "", "invalid name or version")
+		apiError(ctx, http.StatusBadRequest, "invalid name or version")
 		return
 	}
 
@@ -132,17 +138,17 @@ func UploadPackageFile(ctx *context.APIContext) {
 		true,
 	)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	_, err = package_service.AddFileToPackage(p, fileHeader.Filename, fileHeader.Size, file)
 	if err != nil {
 		if err == packages.ErrDuplicatePackageFile {
-			ctx.Error(http.StatusBadRequest, "", err)
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

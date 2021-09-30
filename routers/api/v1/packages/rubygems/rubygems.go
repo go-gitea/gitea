@@ -17,15 +17,21 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/util/filebuffer"
-
+	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	package_service "code.gitea.io/gitea/services/packages"
 )
+
+func apiError(ctx *context.APIContext, status int, obj interface{}) {
+	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.PlainText(status, []byte(message))
+	})
+}
 
 // EnumeratePackages serves the package list
 func EnumeratePackages(ctx *context.APIContext) {
 	packages, err := packages.GetPackagesByRepositoryAndType(ctx.Repo.Repository.ID, packages.TypeRubyGems)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -39,7 +45,7 @@ func EnumeratePackagesLatest(ctx *context.APIContext) {
 		Type:   "rubygems",
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -54,7 +60,7 @@ func EnumeratePackagesPreRelease(ctx *context.APIContext) {
 func enumeratePackages(ctx *context.APIContext, filename string, packages []*packages.Package) {
 	rubygemsPackages, err := intializePackages(packages)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -87,24 +93,24 @@ func ServePackageSpecification(ctx *context.APIContext) {
 	filename := ctx.Params("filename")
 
 	if !strings.HasSuffix(filename, ".gemspec.rz") {
-		ctx.Error(http.StatusBadRequest, "", nil)
+		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
 
 	packages, err := packages.GetPackagesByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	if len(packages) != 1 {
-		ctx.Error(http.StatusNotFound, "", nil)
+		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
 
 	p, err := intializePackage(packages[0])
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -126,22 +132,22 @@ func DownloadPackageFile(ctx *context.APIContext) {
 
 	pkgs, err := packages.GetPackagesByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	if len(pkgs) != 1 {
-		ctx.Error(http.StatusNotFound, "", nil)
+		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
 
 	s, pf, err := package_service.GetPackageFileStream(pkgs[0], filename)
 	if err != nil {
 		if err == packages.ErrPackageFileNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer s.Close()
@@ -153,7 +159,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 func UploadPackageFile(ctx *context.APIContext) {
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 	if close {
@@ -162,18 +168,18 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
 
 	meta, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -188,10 +194,10 @@ func UploadPackageFile(ctx *context.APIContext) {
 	)
 	if err != nil {
 		if err == packages.ErrDuplicatePackage {
-			ctx.Error(http.StatusBadRequest, "", err)
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -206,7 +212,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -221,9 +227,9 @@ func DeletePackage(ctx *context.APIContext) {
 	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeRubyGems, packageName, packageVersion)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", "")
+		apiError(ctx, http.StatusInternalServerError, err)
 	}
 }

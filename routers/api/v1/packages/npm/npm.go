@@ -14,31 +14,39 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
-
+	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	package_service "code.gitea.io/gitea/services/packages"
 )
+
+func apiError(ctx *context.APIContext, status int, obj interface{}) {
+	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.JSON(status, map[string]string{
+			"error": message,
+		})
+	})
+}
 
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.APIContext) {
 	packageName, err := url.QueryUnescape(ctx.Params("id"))
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNpm, packageName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if len(packages) == 0 {
-		ctx.Error(http.StatusNotFound, "", err)
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
 	npmPackages, err := intializePackages(packages)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -54,7 +62,7 @@ func PackageMetadata(ctx *context.APIContext) {
 func DownloadPackageFile(ctx *context.APIContext) {
 	packageName, err := url.QueryUnescape(ctx.Params("id"))
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 	packageVersion := ctx.Params("version")
@@ -63,10 +71,10 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNpm, packageName, packageVersion, filename)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer s.Close()
@@ -78,7 +86,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 func UploadPackage(ctx *context.APIContext) {
 	npmPackage, err := npm_module.ParsePackage(ctx.Req.Body)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -93,10 +101,10 @@ func UploadPackage(ctx *context.APIContext) {
 	)
 	if err != nil {
 		if err == packages.ErrDuplicatePackage {
-			ctx.Error(http.StatusBadRequest, "", err)
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -105,7 +113,7 @@ func UploadPackage(ctx *context.APIContext) {
 		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

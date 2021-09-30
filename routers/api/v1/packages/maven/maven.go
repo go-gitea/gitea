@@ -26,7 +26,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/util/filebuffer"
-
+	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	package_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -39,15 +39,21 @@ const (
 )
 
 var (
-	errInvalidParameters = errors.New("Request parameters are invalid")
+	errInvalidParameters = errors.New("request parameters are invalid")
 	illegalCharacters    = regexp.MustCompile(`[\\/:"<>|?\*]`)
 )
+
+func apiError(ctx *context.APIContext, status int, obj interface{}) {
+	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.PlainText(status, []byte(message))
+	})
+}
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.APIContext) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -62,25 +68,25 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
 	packageName := params.GroupID + "-" + params.ArtifactID
-	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeMaven, packageName)
+	pkgs, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeMaven, packageName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(packages) == 0 {
-		ctx.Error(http.StatusNotFound, "", "")
+	if len(pkgs) == 0 {
+		apiError(ctx, http.StatusNotFound, packages.ErrPackageNotExist)
 		return
 	}
 
-	mavenPackages, err := intializePackages(packages)
+	mavenPackages, err := intializePackages(pkgs)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	xmlMetadata, err := xml.Marshal(createMetadataResponse(mavenPackages))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	xmlMetadataWithHeader := append([]byte(xml.Header), xmlMetadata...)
@@ -114,7 +120,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 
 	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeMaven, packageName, params.Version)
 	if err == packages.ErrPackageNotExist {
-		ctx.Error(http.StatusNotFound, "", err)
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
@@ -128,11 +134,10 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 	pf, err := p.GetFileByName(filename)
 	if err != nil {
 		if err == packages.ErrPackageFileNotExist {
-			ctx.Error(http.StatusNotFound, "", "")
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		log.Error("Error getting file by name: %v", err)
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -154,7 +159,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 
 	s, err := packages_module.NewContentStore().Get(p.ID, pf.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 	}
 	defer s.Close()
 
@@ -165,7 +170,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 func UploadPackageFile(ctx *context.APIContext) {
 	params, err := extractPathParameters(ctx)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -192,13 +197,13 @@ func UploadPackageFile(ctx *context.APIContext) {
 		true,
 	)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	buf, err := filebuffer.CreateFromReader(ctx.Req.Body, 32*1024*1024)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
@@ -210,17 +215,16 @@ func UploadPackageFile(ctx *context.APIContext) {
 		pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-len(ext)])
 		if err != nil {
 			if err == packages.ErrPackageFileNotExist {
-				ctx.Error(http.StatusNotFound, "", "")
+				apiError(ctx, http.StatusNotFound, err)
 				return
 			}
-			log.Error("GetFileByName: %v", err)
-			ctx.Error(http.StatusInternalServerError, "", err)
+			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 
 		hash, err := ioutil.ReadAll(buf)
 		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "", err)
+			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -228,7 +232,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 			(ext == extensionSHA1 && pf.HashSHA1 != string(hash)) ||
 			(ext == extensionSHA256 && pf.HashSHA256 != string(hash)) ||
 			(ext == extensionSHA512 && pf.HashSHA512 != string(hash)) {
-			ctx.Error(http.StatusBadRequest, "", "hash mismatch")
+			apiError(ctx, http.StatusBadRequest, "hash mismatch")
 			return
 		}
 
@@ -245,17 +249,17 @@ func UploadPackageFile(ctx *context.APIContext) {
 		if metadata != nil {
 			raw, err := json.Marshal(metadata)
 			if err != nil {
-				ctx.Error(http.StatusInternalServerError, "", err)
+				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
 			p.MetadataRaw = string(raw)
 			if err := packages.UpdatePackage(p); err != nil {
-				ctx.Error(http.StatusInternalServerError, "", err)
+				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
 		}
 		if _, err := buf.Seek(0, io.SeekStart); err != nil {
-			ctx.Error(http.StatusInternalServerError, "", err)
+			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 	}
@@ -263,10 +267,10 @@ func UploadPackageFile(ctx *context.APIContext) {
 	_, err = package_service.AddFileToPackage(p, params.Filename, buf.Size(), buf)
 	if err != nil {
 		if err == packages.ErrDuplicatePackageFile {
-			ctx.Error(http.StatusBadRequest, "", err)
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 

@@ -5,6 +5,7 @@
 package nuget
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,9 +18,17 @@ import (
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util/filebuffer"
-
+	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	package_service "code.gitea.io/gitea/services/packages"
 )
+
+func apiError(ctx *context.APIContext, status int, obj interface{}) {
+	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.JSON(status, map[string]string{
+			"Message": message,
+		})
+	})
+}
 
 // ServiceIndex https://docs.microsoft.com/en-us/nuget/api/service-index
 func ServiceIndex(ctx *context.APIContext) {
@@ -42,13 +51,13 @@ func SearchService(ctx *context.APIContext) {
 		),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	nugetPackages, err := intializePackages(packages)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -67,17 +76,17 @@ func RegistrationIndex(ctx *context.APIContext) {
 
 	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if len(packages) == 0 {
-		ctx.Error(http.StatusNotFound, "", err)
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
 	nugetPackages, err := intializePackages(packages)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -97,16 +106,16 @@ func RegistrationLeaf(ctx *context.APIContext) {
 	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName, packageVersion)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	nugetPackage, err := intializePackage(p)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -124,17 +133,17 @@ func EnumeratePackageVersions(ctx *context.APIContext) {
 
 	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if len(packages) == 0 {
-		ctx.Error(http.StatusNotFound, "", err)
+		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
 	nugetPackages, err := intializePackages(packages)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -152,10 +161,10 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNuGet, packageName, packageVersion, filename)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer s.Close()
@@ -187,10 +196,10 @@ func UploadPackage(ctx *context.APIContext) {
 	)
 	if err != nil {
 		if err == packages.ErrDuplicatePackage {
-			ctx.Error(http.StatusBadRequest, "", err)
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -200,7 +209,7 @@ func UploadPackage(ctx *context.APIContext) {
 		if err := packages.DeletePackageByID(p.ID); err != nil {
 			log.Error("Error deleting package by id: %v", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -223,10 +232,10 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeNuGet, meta.ID, meta.Version)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -234,10 +243,10 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
 	if err != nil {
 		if err == packages.ErrDuplicatePackageFile {
-			ctx.Error(http.StatusBadRequest, "", err)
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -249,7 +258,7 @@ func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.Pack
 
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return nil, nil, closables
 	}
 
@@ -259,22 +268,26 @@ func processUploadedFile(ctx *context.APIContext, expectedType nuget_module.Pack
 
 	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables
 	}
 	closables = append(closables, buf)
 
 	meta, err := nuget_module.ParsePackageMetaData(buf, buf.Size())
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		if err == nuget_module.ErrMissingNuspecFile || err == nuget_module.ErrNuspecFileTooLarge || err == nuget_module.ErrNuspecInvalidID || err == nuget_module.ErrNuspecInvalidVersion {
+			apiError(ctx, http.StatusBadRequest, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return nil, nil, closables
 	}
 	if meta.PackageType != expectedType {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, errors.New("unexpected package type"))
 		return nil, nil, closables
 	}
 	if _, err := buf.Seek(0, io.SeekStart); err != nil {
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return nil, nil, closables
 	}
 	return meta, buf, closables
@@ -289,9 +302,9 @@ func DeletePackage(ctx *context.APIContext) {
 	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeNuGet, packageName, packageVersion)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", "")
+		apiError(ctx, http.StatusInternalServerError, err)
 	}
 }
