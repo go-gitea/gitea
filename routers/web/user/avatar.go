@@ -32,6 +32,7 @@ func AvatarByUserName(ctx *context.Context) {
 		var err error
 		if user, err = models.GetUserByName(userName); err != nil {
 			ctx.ServerError("Invalid user: "+userName, err)
+			return
 		}
 	} else {
 		user = models.NewGhostUser()
