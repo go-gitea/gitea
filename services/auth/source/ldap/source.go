@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,6 +42,7 @@ type Source struct {
 	AttributeMail         string // E-mail attribute
 	AttributesInBind      bool   // fetch attributes in bind context (not user)
 	AttributeSSHPublicKey string // LDAP SSH Public Key attribute
+	AttributeAvatar       string
 	SearchPageSize        uint32 // Search with paging page size
 	Filter                string // Query filter to validate entry
 	AdminFilter           string // Query filter to check if user is admin
@@ -52,12 +54,13 @@ type Source struct {
 	GroupFilter           string // Group Name Filter
 	GroupMemberUID        string // Group Attribute containing array of UserUID
 	UserUID               string // User Attribute listed in Group
+	SkipLocalTwoFA        bool   `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 	TeamGroupMap          string // Map LDAP groups to teams
 	TeamGroupMapRemoval   bool   // Remove user from teams which are synchronized and user is not a member of the corresponding LDAP group
 	TeamGroupMapEnabled   bool   // if LDAP groups mapping to gitea organizations teams is enabled
 
 	// reference to the loginSource
-	loginSource *models.LoginSource
+	loginSource *login.Source
 }
 
 // FromDB fills up a LDAPConfig from serialized format.
@@ -111,11 +114,11 @@ func (source *Source) ProvidesSSHKeys() bool {
 }
 
 // SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *models.LoginSource) {
+func (source *Source) SetLoginSource(loginSource *login.Source) {
 	source.loginSource = loginSource
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginLDAP, &Source{})
-	models.RegisterLoginTypeConfig(models.LoginDLDAP, &Source{})
+	login.RegisterTypeConfig(login.LDAP, &Source{})
+	login.RegisterTypeConfig(login.DLDAP, &Source{})
 }

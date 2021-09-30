@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 
 	// Register the sources
@@ -20,24 +22,24 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*models.User, error) {
+func UserSignIn(username, password string) (*models.User, *login.Source, error) {
 	var user *models.User
 	if strings.Contains(username, "@") {
 		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := models.Count(user)
+		cnt, err := db.Count(user)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		if cnt > 1 {
-			return nil, models.ErrEmailAlreadyUsed{
+			return nil, nil, models.ErrEmailAlreadyUsed{
 				Email: user.Email,
 			}
 		}
 	} else {
 		trimmedUsername := strings.TrimSpace(username)
 		if len(trimmedUsername) == 0 {
-			return nil, models.ErrUserNotExist{Name: username}
+			return nil, nil, models.ErrUserNotExist{Name: username}
 		}
 
 		user = &models.User{LowerName: strings.ToLower(trimmedUsername)}
@@ -45,41 +47,41 @@ func UserSignIn(username, password string) (*models.User, error) {
 
 	hasUser, err := models.GetUser(user)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if hasUser {
-		source, err := models.GetLoginSourceByID(user.LoginSource)
+		source, err := login.GetSourceByID(user.LoginSource)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		if !source.IsActive {
-			return nil, models.ErrLoginSourceNotActived
+			return nil, nil, models.ErrLoginSourceNotActived
 		}
 
 		authenticator, ok := source.Cfg.(PasswordAuthenticator)
 		if !ok {
-			return nil, models.ErrUnsupportedLoginType
+			return nil, nil, models.ErrUnsupportedLoginType
 		}
 
 		user, err := authenticator.Authenticate(user, username, password)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		// WARN: DON'T check user.IsActive, that will be checked on reqSign so that
 		// user could be hint to resend confirm email.
 		if user.ProhibitLogin {
-			return nil, models.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
+			return nil, nil, models.ErrUserProhibitLogin{UID: user.ID, Name: user.Name}
 		}
 
-		return user, nil
+		return user, source, nil
 	}
 
-	sources, err := models.AllActiveLoginSources()
+	sources, err := login.AllActiveSources()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	for _, source := range sources {
@@ -97,7 +99,7 @@ func UserSignIn(username, password string) (*models.User, error) {
 
 		if err == nil {
 			if !authUser.ProhibitLogin {
-				return authUser, nil
+				return authUser, source, nil
 			}
 			err = models.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
@@ -109,5 +111,5 @@ func UserSignIn(username, password string) (*models.User, error) {
 		}
 	}
 
-	return nil, models.ErrUserNotExist{Name: username}
+	return nil, nil, models.ErrUserNotExist{Name: username}
 }

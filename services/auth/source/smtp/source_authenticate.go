@@ -11,31 +11,32 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
 // Users will be autoregistered as required
-func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
+func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
-		idx := strings.Index(login, "@")
+		idx := strings.Index(userName, "@")
 		if idx == -1 {
-			return nil, models.ErrUserNotExist{Name: login}
-		} else if !util.IsStringInSlice(login[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
-			return nil, models.ErrUserNotExist{Name: login}
+			return nil, models.ErrUserNotExist{Name: userName}
+		} else if !util.IsStringInSlice(userName[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
+			return nil, models.ErrUserNotExist{Name: userName}
 		}
 	}
 
 	var auth smtp.Auth
 	switch source.Auth {
 	case PlainAuthentication:
-		auth = smtp.PlainAuth("", login, password, source.Host)
+		auth = smtp.PlainAuth("", userName, password, source.Host)
 	case LoginAuthentication:
-		auth = &loginAuthenticator{login, password}
+		auth = &loginAuthenticator{userName, password}
 	case CRAMMD5Authentication:
-		auth = smtp.CRAMMD5Auth(login, password)
+		auth = smtp.CRAMMD5Auth(userName, password)
 	default:
 		return nil, errors.New("unsupported SMTP auth type")
 	}
@@ -46,11 +47,11 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		tperr, ok := err.(*textproto.Error)
 		if (ok && tperr.Code == 535) ||
 			strings.Contains(err.Error(), "Username and Password not accepted") {
-			return nil, models.ErrUserNotExist{Name: login}
+			return nil, models.ErrUserNotExist{Name: userName}
 		}
 		if (ok && tperr.Code == 534) ||
 			strings.Contains(err.Error(), "Application-specific password required") {
-			return nil, models.ErrUserNotExist{Name: login}
+			return nil, models.ErrUserNotExist{Name: userName}
 		}
 		return nil, err
 	}
@@ -59,20 +60,20 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		return user, nil
 	}
 
-	username := login
-	idx := strings.Index(login, "@")
+	username := userName
+	idx := strings.Index(userName, "@")
 	if idx > -1 {
-		username = login[:idx]
+		username = userName[:idx]
 	}
 
 	user = &models.User{
 		LowerName:   strings.ToLower(username),
 		Name:        strings.ToLower(username),
-		Email:       login,
+		Email:       userName,
 		Passwd:      password,
-		LoginType:   models.LoginSMTP,
+		LoginType:   login.SMTP,
 		LoginSource: source.loginSource.ID,
-		LoginName:   login,
+		LoginName:   userName,
 		IsActive:    true,
 	}
 
@@ -83,4 +84,9 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
+}
+
+// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
+func (source *Source) IsSkipLocalTwoFA() bool {
+	return source.SkipLocalTwoFA
 }

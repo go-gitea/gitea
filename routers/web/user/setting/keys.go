@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -208,7 +209,7 @@ func DeleteKey(ctx *context.Context) {
 			return
 		}
 		if external {
-			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Flash.Error(ctx.Tr("settings.ssh_externally_managed"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
@@ -233,7 +234,7 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := models.ListPublicKeys(ctx.User.ID, models.ListOptions{})
+	keys, err := models.ListPublicKeys(ctx.User.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -247,7 +248,7 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["ExternalKeys"] = externalKeys
 
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
@@ -258,7 +259,7 @@ func loadKeysData(ctx *context.Context) {
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign
 
-	principals, err := models.ListPrincipalKeys(ctx.User.ID, models.ListOptions{})
+	principals, err := models.ListPrincipalKeys(ctx.User.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPrincipalKeys", err)
 		return

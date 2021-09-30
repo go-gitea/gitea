@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -17,9 +18,13 @@ type Session struct {
 	Expiry timeutil.TimeStamp // has to be Expiry to match with go-chi/session
 }
 
+func init() {
+	db.RegisterModel(new(Session))
+}
+
 // UpdateSession updates the session with provided id
 func UpdateSession(key string, data []byte) error {
-	_, err := x.ID(key).Update(&Session{
+	_, err := db.GetEngine(db.DefaultContext).ID(key).Update(&Session{
 		Data:   data,
 		Expiry: timeutil.TimeStampNow(),
 	})
@@ -31,7 +36,7 @@ func ReadSession(key string) (*Session, error) {
 	session := Session{
 		Key: key,
 	}
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -55,12 +60,12 @@ func ExistSession(key string) (bool, error) {
 	session := Session{
 		Key: key,
 	}
-	return x.Get(&session)
+	return db.GetEngine(db.DefaultContext).Get(&session)
 }
 
 // DestroySession destroys a session
 func DestroySession(key string) error {
-	_, err := x.Delete(&Session{
+	_, err := db.GetEngine(db.DefaultContext).Delete(&Session{
 		Key: key,
 	})
 	return err
@@ -68,7 +73,7 @@ func DestroySession(key string) error {
 
 // RegenerateSession regenerates a session from the old id
 func RegenerateSession(oldKey, newKey string) (*Session, error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -112,11 +117,11 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 
 // CountSessions returns the number of sessions
 func CountSessions() (int64, error) {
-	return x.Count(&Session{})
+	return db.GetEngine(db.DefaultContext).Count(&Session{})
 }
 
 // CleanupSessions cleans up expired sessions
 func CleanupSessions(maxLifetime int64) error {
-	_, err := x.Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
+	_, err := db.GetEngine(db.DefaultContext).Where("expiry <= ?", timeutil.TimeStampNow().Add(-maxLifetime)).Delete(&Session{})
 	return err
 }

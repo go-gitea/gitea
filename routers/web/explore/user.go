@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -99,7 +100,7 @@ func Users(ctx *context.Context) {
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Actor:       ctx.User,
 		Type:        models.UserTypeIndividual,
-		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    util.OptionalBoolTrue,
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)

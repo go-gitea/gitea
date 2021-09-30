@@ -7,11 +7,11 @@ package repository
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -109,7 +109,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		if err = util.Remove(oldHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove old hook file '%s' prior to rewriting: %v ", oldHookPath, err)
 		}
-		if err = ioutil.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
+		if err = os.WriteFile(oldHookPath, []byte(hookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write old hook file '%s': %v", oldHookPath, err)
 		}
 
@@ -120,7 +120,7 @@ func createDelegateHooks(repoPath string) (err error) {
 		if err = util.Remove(newHookPath); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("unable to pre-remove new hook file '%s' prior to rewriting: %v", newHookPath, err)
 		}
-		if err = ioutil.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
+		if err = os.WriteFile(newHookPath, []byte(giteaHookTpls[i]), 0777); err != nil {
 			return fmt.Errorf("write new hook file '%s': %v", newHookPath, err)
 		}
 
@@ -191,7 +191,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		if cont {
 			continue
 		}
-		contents, err := ioutil.ReadFile(oldHookPath)
+		contents, err := os.ReadFile(oldHookPath)
 		if err != nil {
 			return results, err
 		}
@@ -201,7 +201,7 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		if !checkExecutable(oldHookPath) {
 			results = append(results, fmt.Sprintf("old hook file %s is not executable", oldHookPath))
 		}
-		contents, err = ioutil.ReadFile(newHookPath)
+		contents, err = os.ReadFile(newHookPath)
 		if err != nil {
 			return results, err
 		}
@@ -220,8 +220,8 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 func SyncRepositoryHooks(ctx context.Context) error {
 	log.Trace("Doing: SyncRepositoryHooks")
 
-	if err := models.Iterate(
-		models.DefaultDBContext(),
+	if err := db.Iterate(
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -214,10 +215,14 @@ func (ctx *APIContext) RequireCSRF() {
 
 // CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
+	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
+		return // Skip 2FA
+	}
+
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := login.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
+		if login.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
 		ctx.Context.Error(http.StatusInternalServerError)

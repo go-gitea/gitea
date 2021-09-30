@@ -14,6 +14,8 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -21,6 +23,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/urfave/cli"
@@ -288,6 +291,10 @@ var (
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -525,7 +532,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: models.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
@@ -616,6 +623,7 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
+		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 	}
 }
 
@@ -624,8 +632,8 @@ func runAddOauth(c *cli.Context) error {
 		return err
 	}
 
-	return models.CreateLoginSource(&models.LoginSource{
-		Type:     models.LoginOAuth2,
+	return login.CreateSource(&login.Source{
+		Type:     login.OAuth2,
 		Name:     c.String("name"),
 		IsActive: true,
 		Cfg:      parseOAuth2Config(c),
@@ -641,7 +649,7 @@ func runUpdateOauth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	source, err := login.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
@@ -700,7 +708,7 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return models.UpdateSource(source)
+	return login.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
@@ -708,7 +716,7 @@ func runListAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSources, err := models.LoginSources()
+	loginSources, err := login.Sources()
 
 	if err != nil {
 		return err
@@ -728,7 +736,7 @@ func runListAuth(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActive)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, source.Type.String(), source.IsActive)
 	}
 	w.Flush()
 
@@ -744,10 +752,10 @@ func runDeleteAuth(c *cli.Context) error {
 		return err
 	}
 
-	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	source, err := login.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return models.DeleteSource(source)
+	return auth_service.DeleteLoginSource(source)
 }

@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/services/auth"
 
 	"github.com/stretchr/testify/assert"
@@ -323,7 +324,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 	assert.NoError(t, err)
 	auth.SyncExternalUsers(context.Background(), true)
 	for _, gitLDAPUser := range gitLDAPUsers {
-		user := models.AssertExistsAndLoadBean(t, &models.User{
+		user := db.AssertExistsAndLoadBean(t, &models.User{
 			Name: gitLDAPUser.UserName,
 		}).(*models.User)
 		usersOrgs, err := models.GetOrgsByUserID(user.ID, true)
@@ -364,7 +365,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	team, err := models.GetTeam(org.ID, "team11")
 	assert.NoError(t, err)
 	loginUserWithPassword(t, gitLDAPUsers[0].UserName, gitLDAPUsers[0].Password)
-	user := models.AssertExistsAndLoadBean(t, &models.User{
+	user := db.AssertExistsAndLoadBean(t, &models.User{
 		Name: gitLDAPUsers[0].UserName,
 	}).(*models.User)
 	err = org.AddMember(user.ID)
