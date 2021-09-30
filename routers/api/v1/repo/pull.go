@@ -564,8 +564,8 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if form.State != nil {
-		if pr.HasMerged && api.StateType(*form.State) == api.StateOpen {
-			ctx.Error(http.StatusPreconditionFailed, "OpenMergedPR", "cannot reopen this pull request, it was already merged")
+		if pr.HasMerged {
+			ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
 			return
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
