@@ -372,6 +372,12 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 		// No mail service configured
 		return nil
 	}
+
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		return err
+	}
+
 	langMap := make(map[string][]*models.User)
 	for _, user := range recipients {
 		langMap[user.Language] = append(langMap[user.Language], user)
