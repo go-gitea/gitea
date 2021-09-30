@@ -146,7 +146,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//   required: true
 	// - name: index
 	//   in: path
-	//   description: id of the issue
+	//   description: index of the issue
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -172,9 +172,10 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
+	repoID := ctx.Repo.Repository.ID
+
 	// Check if issue exists an load issue
-	issueID := ctx.ParamsInt64(":index")
-	issue, err := models.GetIssueWithAttrsByID(issueID)
+	issue, err := models.GetIssueByIndex(repoID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
 		return
