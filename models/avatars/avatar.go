@@ -112,7 +112,6 @@ func GenerateUserAvatarFastLink(userName string, size int) string {
 	if size < 0 {
 		size = 0
 	}
-	//AppSubURL: It is either "" or starts with '/' and ends without '/', such as '/{subpath}'. question: should we use AppURL or StaticURLPrefix?
 	return setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
 }
 
@@ -124,6 +123,17 @@ func GenerateUserAvatarImageLink(userAvatar string, size int) string {
 	return setting.AppSubURL + "/avatars/" + userAvatar
 }
 
+// generateRecognizedAvatarURL generate a recognized avatar (Gravatar/Libravatar) URL, it modifies the URL so the parameter is passed by a copy
+func generateRecognizedAvatarURL(u url.URL, size int) string {
+	urlQuery := u.Query()
+	urlQuery.Set("d", "identicon")
+	if size > 0 {
+		urlQuery.Set("s", strconv.Itoa(size))
+	}
+	u.RawQuery = urlQuery.Encode()
+	return u.String()
+}
+
 // generateEmailAvatarLink returns a email avatar link.
 // if final is true, it may use a slow path (eg: query DNS).
 // if final is false, it always uses a fast path.
@@ -133,36 +143,30 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return DefaultAvatarLink()
 	}
 
-	var avatarURL *url.URL
 	var err error
-
 	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
 		emailHash := saveEmailHash(email)
 		if final {
+			// for final link, we can spend more time on slow external query
+			var avatarURL *url.URL
 			if avatarURL, err = LibravatarURL(email); err != nil {
 				return DefaultAvatarLink()
 			}
-		} else {
-			if size > 0 {
-				return setting.AppSubURL + "/avatar/" + emailHash + "?size=" + strconv.Itoa(size)
-			}
-			return setting.AppSubURL + "/avatar/" + emailHash
+			return generateRecognizedAvatarURL(*avatarURL, size)
 		}
+		// for non-final link, we should return fast (use a 302 redirection link)
+		urlStr := setting.AppSubURL + "/avatar/" + emailHash
+		if size > 0 {
+			urlStr += "?size=" + strconv.Itoa(size)
+		}
+		return urlStr
 	} else if !setting.DisableGravatar {
-		avatarURLDummy := *setting.GravatarSourceURL // copy GravatarSourceURL, because we will modify its Path.
-		avatarURL = &avatarURLDummy
-		avatarURL.Path = path.Join(avatarURL.Path, HashEmail(email))
-	} else {
-		return DefaultAvatarLink()
+		// copy GravatarSourceURL, because we will modify its Path.
+		avatarURLCopy := *setting.GravatarSourceURL
+		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
+		return generateRecognizedAvatarURL(avatarURLCopy, size)
 	}
-
-	urlQuery := avatarURL.Query()
-	urlQuery.Set("d", "identicon")
-	if size > 0 {
-		urlQuery.Set("s", strconv.Itoa(size))
-	}
-	avatarURL.RawQuery = urlQuery.Encode()
-	return avatarURL.String()
+	return DefaultAvatarLink()
 }
 
 //GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
