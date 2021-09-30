@@ -345,6 +345,8 @@ var migrations = []Migration{
 	// v195 -> v196
 	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
 	// v196 -> v197
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	// v197 -> v198
 	NewMigration("Add package tables", addPackageTables),
 }
 
