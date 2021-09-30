@@ -39,21 +39,16 @@ func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachmen
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName string, allowedTypes string) (*models.Attachment, error) {
+func UploadAttachment(file io.Reader, allowedTypes string, opts *models.Attachment) (*models.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := file.Read(buf)
 	if n > 0 {
 		buf = buf[:n]
 	}
 
-	if err := upload.Verify(buf, fileName, allowedTypes); err != nil {
+	if err := upload.Verify(buf, opts.Name, allowedTypes); err != nil {
 		return nil, err
 	}
 
-	return NewAttachment(&models.Attachment{
-		RepoID:     repoID,
-		UploaderID: actorID,
-		ReleaseID:  releaseID,
-		Name:       fileName,
-	}, io.MultiReader(bytes.NewReader(buf), file))
+	return NewAttachment(opts, io.MultiReader(bytes.NewReader(buf), file))
 }

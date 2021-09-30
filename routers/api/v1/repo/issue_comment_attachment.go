@@ -13,8 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/attachment"
 	comment_service "code.gitea.io/gitea/services/comments"
 )
 
@@ -167,33 +167,20 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
-
-	// Check if the filetype is allowed by the settings
-	err = upload.Verify(buf, header.Filename, setting.Attachment.AllowedTypes)
-	if err != nil {
-		ctx.Error(http.StatusBadRequest, "DetectContentType", err)
-		return
-	}
-
 	var filename = header.Filename
-	if query := ctx.Query("name"); query != "" {
+	if query := ctx.FormString("name"); query != "" {
 		filename = query
 	}
 
-	// Create a new attachment and save the file
-	attach, err := models.NewAttachment(&models.Attachment{
-		UploaderID: ctx.User.ID,
+	attach, err := attachment.UploadAttachment(file, setting.Attachment.AllowedTypes, &models.Attachment{
 		Name:       filename,
-		CommentID:  comment.ID,
+		UploaderID: ctx.User.ID,
+		RepoID:     ctx.Repo.Repository.ID,
 		IssueID:    comment.IssueID,
-	}, buf, file)
+		CommentID:  comment.ID,
+	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "NewAttachment", err)
+		ctx.Error(http.StatusInternalServerError, "UploadAttachment", err)
 		return
 	}
 	if err := comment.LoadAttachments(); err != nil {
