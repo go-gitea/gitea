@@ -615,6 +615,23 @@
         }
       }
     },
+    "/nodeinfo": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns the nodeinfo of the Gitea application",
+        "operationId": "getNodeInfo",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NodeInfo"
+          }
+        }
+      }
+    },
     "/notifications": {
       "get": {
         "consumes": [
@@ -7400,6 +7417,12 @@
             "name": "diffType",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "whether to include binary file changes. if true, the diff is applicable with `git apply`",
+            "name": "binary",
+            "in": "query"
           }
         ],
         "responses": {
@@ -15554,6 +15577,127 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NodeInfo": {
+      "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "type": "object",
+          "x-go-name": "Metadata"
+        },
+        "openRegistrations": {
+          "type": "boolean",
+          "x-go-name": "OpenRegistrations"
+        },
+        "protocols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Protocols"
+        },
+        "services": {
+          "$ref": "#/definitions/NodeInfoServices"
+        },
+        "software": {
+          "$ref": "#/definitions/NodeInfoSoftware"
+        },
+        "usage": {
+          "$ref": "#/definitions/NodeInfoUsage"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoServices": {
+      "description": "NodeInfoServices contains the third party sites this server can connect to via their application API",
+      "type": "object",
+      "properties": {
+        "inbound": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Inbound"
+        },
+        "outbound": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Outbound"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoSoftware": {
+      "description": "NodeInfoSoftware contains Metadata about server software in use",
+      "type": "object",
+      "properties": {
+        "homepage": {
+          "type": "string",
+          "x-go-name": "Homepage"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "repository": {
+          "type": "string",
+          "x-go-name": "Repository"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoUsage": {
+      "description": "NodeInfoUsage contains usage statistics for this server",
+      "type": "object",
+      "properties": {
+        "localComments": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LocalComments"
+        },
+        "localPosts": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LocalPosts"
+        },
+        "users": {
+          "$ref": "#/definitions/NodeInfoUsageUsers"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoUsageUsers": {
+      "description": "NodeInfoUsageUsers contains statistics about the users of this server",
+      "type": "object",
+      "properties": {
+        "activeHalfyear": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActiveHalfyear"
+        },
+        "activeMonth": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActiveMonth"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Total"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Note": {
       "description": "Note contains information related to a git note",
       "type": "object",
@@ -15584,6 +15728,14 @@
       "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
       "type": "object",
       "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "latest_comment_html_url": {
+          "type": "string",
+          "x-go-name": "LatestCommentHTMLURL"
+        },
         "latest_comment_url": {
           "type": "string",
           "x-go-name": "LatestCommentURL"
@@ -17525,6 +17677,12 @@
         "items": {
           "$ref": "#/definitions/Milestone"
         }
+      }
+    },
+    "NodeInfo": {
+      "description": "NodeInfo",
+      "schema": {
+        "$ref": "#/definitions/NodeInfo"
       }
     },
     "Note": {

@@ -321,7 +321,7 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-The default built-in themes are `gitea` (light) and `arc-green` (dark).
+The default built-in themes are `gitea` (light), `arc-green` (dark), and `auto` (chooses light or dark depending on operating system settings).
 The default theme can be changed via `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
 
 Gitea also has support for user themes, which means every user can select which theme should be used.
