@@ -13,8 +13,8 @@ import (
 // UserSetting is a key value store of user settings
 type UserSetting struct {
 	ID     int64  `xorm:"pk autoincr"`
-	UserID int64  `xorm:"index"`              // to load all of someone's settings
-	Key    string `xorm:"varchar(255) index"` // ensure key is always lowercase
+	UserID int64  `xorm:"index unique(key_userid)"`                     // to load all of someone's settings
+	Key    string `xorm:"varchar(255) index unique(key_userid)"` // ensure key is always lowercase
 	Value  string `xorm:"text"`
 }
 
