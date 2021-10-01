@@ -123,7 +123,7 @@ func NewCollector() Collector {
 		),
 		Projects: prometheus.NewDesc(
 			namespace+"projects",
-			"Number of project",
+			"Number of projects",
 			nil, nil,
 		),
 		ProjectBoards: prometheus.NewDesc(
