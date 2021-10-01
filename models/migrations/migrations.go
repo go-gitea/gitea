@@ -344,6 +344,8 @@ var migrations = []Migration{
 	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
 	// v195 -> v196
 	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
+	// v196 -> v197
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
 }
 
 // GetCurrentDBVersion returns the current db version
