@@ -23,6 +23,7 @@ type Statistic struct {
 	}
 }
 
+// IssueByLabelCount contains the number of issue group by label
 type IssueByLabelCount struct {
 	Count int64
 	Label string
