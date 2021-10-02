@@ -1006,7 +1006,6 @@ async function initRepository() {
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
-      $modal.find('input[name="title"').val(subject);
       $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
 
       $modal.modal('show');
