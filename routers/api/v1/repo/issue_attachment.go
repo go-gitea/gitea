@@ -252,7 +252,7 @@ func reqIssueAttachment(ctx *context.APIContext, attachID int64) *models.Attachm
 		unitType = models.UnitTypePullRequests
 	}
 	if !ctx.IsUserRepoWriter([]models.UnitType{unitType}) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-		ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
+		ctx.Error(http.StatusForbidden, "reqIssueAttachment", "user should have a permission to write to a repo")
 		return nil
 	}
 	return attach
