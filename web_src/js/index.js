@@ -1000,13 +1000,11 @@ async function initRepository() {
       $this.closest('.dropdown').find('.menu').toggle('visible');
 
       const content = $(`#comment-${$this.data('target')}`).text();
-      const subject = content.split('\n', 1)[0].slice(0, 255);
 
       const poster = $this.data('poster-username');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
-      $modal.find('input[name="title"').val(subject);
       $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
 
       $modal.modal('show');
