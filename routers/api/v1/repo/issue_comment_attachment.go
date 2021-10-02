@@ -46,14 +46,14 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
 
-	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
+	attach := getIssueAttachmentSafeRead(ctx)
+	if attach == nil {
 		return
 	}
+	// FIXME: if we had the commentID here (which we should..), we could pass the comment in,
+	// and validate the exact comment..
 	if attach.CommentID == 0 {
-		log.Info("User requested attachment is not in comment, attachment_id: %v", attachID)
+		log.Debug("User requested attachment[%d] is not in comment.", attach.ID)
 		ctx.NotFound()
 		return
 	}
@@ -146,11 +146,6 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	// Check if attachments are enabled
-	if !setting.Attachment.Enabled {
-		ctx.NotFound("Attachment is not enabled")
-		return
-	}
 	// Check if comment exists and load comment
 	commentID := ctx.ParamsInt64(":id")
 	comment, err := models.GetCommentByID(commentID)
@@ -298,4 +293,41 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func getIssueCommentAttachmentSafeRead(ctx *context.APIContext) *models.Attachment {
+	attachID := ctx.ParamsInt64(":asset")
+	attach, err := models.GetAttachmentByID(attachID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetAttachmentByID", models.IsErrAttachmentNotExist, err)
+		return nil
+	}
+	if !attachmentBelongsToRepoOrIssue(ctx, attach, nil, nil) {
+		return nil
+	}
+	return attach
+}
+
+func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *models.Attachment, issue *models.Issue, comment *models.Comment) (success bool) {
+	if a.RepoID != ctx.Repo.Repository.ID {
+		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
+		ctx.NotFound()
+		return
+	}
+	if a.IssueID == 0 {
+		// catch people trying to get release assets ;)
+		log.Debug("Requested attachment[%d] is not in an issue.", a.ID)
+		ctx.NotFound()
+		return
+	} else if issue != nil && a.IssueID != issue.ID {
+		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", a.ID, issue.ID, issue.Index)
+		ctx.NotFound()
+		return
+	}
+	if comment != nil && a.CommentID != comment.ID {
+		log.Debug("Requested attachment[%d] does not belong to comment[%d].", a.ID, comment.ID)
+		ctx.NotFound()
+		return
+	}
+	return true
 }
