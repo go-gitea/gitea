@@ -1000,7 +1000,6 @@ async function initRepository() {
       $this.closest('.dropdown').find('.menu').toggle('visible');
 
       const content = $(`#comment-${$this.data('target')}`).text();
-      const subject = content.split('\n', 1)[0].slice(0, 255);
 
       const poster = $this.data('poster-username');
       const reference = $this.data('reference');
