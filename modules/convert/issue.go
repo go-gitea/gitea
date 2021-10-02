@@ -28,7 +28,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 
 	assets := make([]*api.Attachment, 0, len(issue.Attachments))
 	for _, att := range issue.Attachments {
-		assets = append(assets, ToIssueAttachment(att))
+		assets = append(assets, ToAttachment(att))
 	}
 
 	apiIssue := &api.Issue{
@@ -211,17 +211,4 @@ func ToAPIMilestone(m *models.Milestone) *api.Milestone {
 		apiMilestone.Deadline = m.DeadlineUnix.AsTimePtr()
 	}
 	return apiMilestone
-}
-
-// ToIssueAttachment converts models.Attachment to api.Attachment
-func ToIssueAttachment(a *models.Attachment) *api.Attachment {
-	return &api.Attachment{
-		ID:            a.ID,
-		Name:          a.Name,
-		Created:       a.CreatedUnix.AsTime(),
-		DownloadCount: a.DownloadCount,
-		Size:          a.Size,
-		UUID:          a.UUID,
-		DownloadURL:   a.DownloadURL(),
-	}
 }

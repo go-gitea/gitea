@@ -20,6 +20,19 @@ import (
 	"code.gitea.io/gitea/services/webhook"
 )
 
+// ToAttachment converts models.Attachment to api.Attachment
+func ToAttachment(a *models.Attachment) *api.Attachment {
+	return &api.Attachment{
+		ID:            a.ID,
+		Name:          a.Name,
+		Created:       a.CreatedUnix.AsTime(),
+		DownloadCount: a.DownloadCount,
+		Size:          a.Size,
+		UUID:          a.UUID,
+		DownloadURL:   a.DownloadURL(),
+	}
+}
+
 // ToEmail convert models.EmailAddress to api.Email
 func ToEmail(email *models.EmailAddress) *api.Email {
 	return &api.Email{
