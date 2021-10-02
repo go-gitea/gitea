@@ -30,6 +30,8 @@ type Collector struct {
 	Mirrors       *prometheus.Desc
 	Oauths        *prometheus.Desc
 	Organizations *prometheus.Desc
+	Projects      *prometheus.Desc
+	ProjectBoards *prometheus.Desc
 	PublicKeys    *prometheus.Desc
 	Releases      *prometheus.Desc
 	Repositories  *prometheus.Desc
@@ -119,6 +121,16 @@ func NewCollector() Collector {
 			"Number of Organizations",
 			nil, nil,
 		),
+		Projects: prometheus.NewDesc(
+			namespace+"projects",
+			"Number of projects",
+			nil, nil,
+		),
+		ProjectBoards: prometheus.NewDesc(
+			namespace+"projects_boards",
+			"Number of project boards",
+			nil, nil,
+		),
 		PublicKeys: prometheus.NewDesc(
 			namespace+"publickeys",
 			"Number of PublicKeys",
@@ -185,6 +197,8 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Mirrors
 	ch <- c.Oauths
 	ch <- c.Organizations
+	ch <- c.Projects
+	ch <- c.ProjectBoards
 	ch <- c.PublicKeys
 	ch <- c.Releases
 	ch <- c.Repositories
@@ -274,6 +288,16 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		c.Organizations,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Org),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Projects,
+		prometheus.GaugeValue,
+		float64(stats.Counter.Project),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.ProjectBoards,
+		prometheus.GaugeValue,
+		float64(stats.Counter.ProjectBoard),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.PublicKeys,
