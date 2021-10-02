@@ -18,6 +18,17 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 )
 
+/**
+ * NOTE about permissions:
+ * - repo access is already checked via middleware on the /repos/{owner}/{name} group
+ * - issue/pull *read* access is checked on the ../issues group middleware
+ *   ("read" access allows posting issues, so posting attachments is fine too!)
+ * - setting.Attachment.Enabled is checked on ../assets group middleware
+ * All that is left to be checked is
+ * - canUserWriteIssueAttachment()
+ * - attachmentBelongsToIssue()
+ */
+
 // GetIssueAttachment gets a single attachment of the issue
 func GetIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/assets/{attachment_id} issue issueGetIssueAttachment
@@ -46,36 +57,10 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
 
-	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
+	attach := getIssueAttachmentSafeRead(ctx)
+	if attach == nil {
 		return
 	}
-	if attach.IssueID == 0 {
-		log.Debug("Requested attachment[%d] is not in an issue.", attachID)
-		ctx.NotFound()
-		return
-	}
-	issue, err := models.GetIssueByID(attach.IssueID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
-		return
-	}
-	if issue.RepoID != ctx.Repo.Repository.ID {
-		log.Debug("Requested attachment[%d] belongs to issue[%d, #%d] which is not in Repo: %-v.", attachID, issue.ID, issue.Index, ctx.Repo.Repository)
-		ctx.NotFound()
-		return
-	}
-	unitType := models.UnitTypeIssues
-	if issue.IsPull {
-		unitType = models.UnitTypePullRequests
-	}
-	if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-		ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have a permission to read repo")
-		return
-	}
-
 	ctx.JSON(http.StatusOK, convert.ToAttachment(attach))
 }
 
@@ -107,14 +92,9 @@ func ListIssueAttachments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
 
-	issueID := ctx.ParamsInt64(":index")
-	issue, err := models.GetIssueByID(issueID)
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
-		return
-	}
-	if issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.NotFound()
+		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
 	}
 	if err := issue.LoadAttributes(); err != nil {
@@ -166,18 +146,14 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	// Check if attachments are enabled
-	if !setting.Attachment.Enabled {
-		ctx.NotFound("Attachment is not enabled")
+	// Check if issue exists and load issue
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return
 	}
 
-	repoID := ctx.Repo.Repository.ID
-
-	// Check if issue exists an load issue
-	issue, err := models.GetIssueByIndex(repoID, ctx.ParamsInt64(":index"))
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
+	if !canUserWriteIssueAttachment(ctx, issue) {
 		return
 	}
 
@@ -219,38 +195,6 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
 }
 
-func reqIssueAttachment(ctx *context.APIContext, attachID int64) *models.Attachment {
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
-		return nil
-	}
-	if attach.IssueID == 0 {
-		log.Debug("Requested attachment[%d] is not in an issue.", attachID)
-		ctx.NotFound()
-		return nil
-	}
-	issue, err := models.GetIssueByID(attach.IssueID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByID", err)
-		return nil
-	}
-	if issue.RepoID != ctx.Repo.Repository.ID {
-		log.Debug("Requested attachment[%d] belongs to issue[%d, #%d] which is not in Repo: %-v.", attachID, issue.ID, issue.Index, ctx.Repo.Repository)
-		ctx.NotFound()
-		return nil
-	}
-	unitType := models.UnitTypeIssues
-	if issue.IsPull {
-		unitType = models.UnitTypePullRequests
-	}
-	if !ctx.IsUserRepoWriter([]models.UnitType{unitType}) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
-		ctx.Error(http.StatusForbidden, "reqIssueAttachment", "user should have a permission to write to a repo")
-		return nil
-	}
-	return attach
-}
-
 // EditIssueAttachment updates the given attachment
 func EditIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/assets/{attachment_id} issue issueEditIssueAttachment
@@ -285,17 +229,16 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
 
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
-
-	attachID := ctx.ParamsInt64(":asset")
-	attach := reqIssueAttachment(ctx, attachID)
+	// get attachment and check permissions
+	attach := getIssueAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
 	}
+	// do changes to attachment. only meaningful change is name.
+	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 	if form.Name != "" {
 		attach.Name = form.Name
 	}
-
 	if err := models.UpdateAttachment(attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
@@ -330,8 +273,7 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	attachID := ctx.ParamsInt64(":asset")
-	attach := reqIssueAttachment(ctx, attachID)
+	attach := getIssueAttachmentSafeWrite(ctx)
 	if attach == nil {
 		return
 	}
@@ -340,4 +282,67 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+func getIssueAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
+	attach := getIssueAttachmentSafeRead(ctx)
+	if attach == nil {
+		return nil
+	}
+	issue, err := models.GetIssueByID(attach.IssueID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByID", models.IsErrIssueNotExist, err)
+		return nil
+	}
+	if !canUserWriteIssueAttachment(ctx, issue) {
+		return nil
+	}
+	return attach
+}
+
+func getIssueAttachmentSafeRead(ctx *context.APIContext) *models.Attachment {
+	attachID := ctx.ParamsInt64(":asset")
+	attach, err := models.GetAttachmentByID(attachID)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetAttachmentByID", models.IsErrAttachmentNotExist, err)
+		return nil
+	}
+	if !attachmentBelongsToRepoOrIssue(ctx, attach, nil, nil) {
+		return nil
+	}
+	return attach
+}
+
+func canUserWriteIssueAttachment(ctx *context.APIContext, i *models.Issue) (success bool) {
+	canEditIssue := ctx.User.ID == i.PosterID && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin()
+	if !canEditIssue {
+		ctx.Error(http.StatusForbidden, "IssueEditPerm", "user should have a permission to editIssue")
+		return
+	}
+
+	return true
+}
+
+func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, a *models.Attachment, issue *models.Issue, comment *models.Comment) (success bool) {
+	if a.RepoID != ctx.Repo.Repository.ID {
+		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
+		ctx.NotFound()
+		return
+	}
+	if a.IssueID == 0 {
+		// catch people trying to get release assets ;)
+		log.Debug("Requested attachment[%d] is not in an issue.", a.ID)
+		ctx.NotFound()
+		return
+	} else if issue != nil && a.IssueID != issue.ID {
+		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", a.ID, issue.ID, issue.Index)
+		ctx.NotFound()
+		return
+	}
+	if comment != nil && a.CommentID != comment.ID {
+		log.Debug("Requested attachment[%d] does not belong to comment[%d].", a.ID, comment.ID)
+		ctx.NotFound()
+		return
+	}
+	return true
 }
