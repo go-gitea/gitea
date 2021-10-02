@@ -3,36 +3,22 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<div class="ui stackable grid">
-			<div class="fourteen wide column">
-				<form class="ui form ignore-dirty">
-					<div class="ui fluid action input">
-						<input type="hidden" name="package_type" value="{{.PackageType}}">
-						<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-						<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
-					</div>
-				</form>
+		<form class="ui form ignore-dirty">
+			<div class="ui fluid action input">
+				<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+				<select class="ui dropdown" name="package_type">
+					<option value="">{{.i18n.Tr "repo.packages.filter.package_type"}}</option>
+					<option value="all">{{.i18n.Tr "repo.packages.filter.package_type.all"}}</option>
+					<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
+					<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
+					<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
+					<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
+					<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
+					<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
+				  </select>
+				<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
 			</div>
-			<div class="two wide column">
-				<div class="ui right floated secondary filter stackable menu">
-					<div class="ui dropdown type jump item">
-						<span class="text">
-							{{.i18n.Tr "repo.packages.filter.package_type"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</span>
-						<div class="menu">
-							<a class="{{if eq .PackageType "all"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=all">{{.i18n.Tr "repo.packages.filter.package_type.all"}}</a>
-							<a class="{{if eq .PackageType "generic"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=generic">Generic</a>
-							<a class="{{if eq .PackageType "nuget"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=nuget">NuGet</a>
-							<a class="{{if eq .PackageType "npm"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=npm">npm</a>
-							<a class="{{if eq .PackageType "maven"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=maven">Maven</a>
-							<a class="{{if eq .PackageType "pypi"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=pypi">PyPI</a>
-							<a class="{{if eq .PackageType "rubygems"}}active{{end}} item" href="{{$.Link}}?q={{$.Query}}&package_type=rubygems">RubyGems</a>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
+		</form>
 		<div class="ui segment issue list">
 			{{range .Packages}}
 				<li class="item df py-3">
