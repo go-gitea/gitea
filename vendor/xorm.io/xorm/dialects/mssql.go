@@ -423,7 +423,7 @@ func (db *mssql) DropTableSQL(tableName string) (string, bool) {
 
 func (db *mssql) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	s, _ := ColumnString(db.dialect, col, false)
-	return fmt.Sprintf("ALTER TABLE %s ALTER COLUMN %s", tableName, s)
+	return fmt.Sprintf("ALTER TABLE %s ALTER COLUMN %s", db.quoter.Quote(tableName), s)
 }
 
 func (db *mssql) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {

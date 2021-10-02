@@ -159,13 +159,8 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  createColorPicker($('.color-picker'));
+  initColorPicker();
 
-  $('.precolors .color').on('click', function () {
-    const color_hex = $(this).data('color-hex');
-    $('.color-picker').val(color_hex);
-    $('.minicolors-swatch-color').css('background-color', color_hex);
-  });
   $('.edit-label-button').on('click', function () {
     $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
@@ -179,6 +174,16 @@ function initLabelEdit() {
       }
     }).modal('show');
     return false;
+  });
+}
+
+function initColorPicker() {
+  createColorPicker($('.color-picker'));
+
+  $('.precolors .color').on('click', function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
   });
 }
 
@@ -2753,6 +2758,10 @@ $(document).ready(async () => {
   });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
+    const colorPickers = $($(this).data('modal')).find('.color-picker');
+    if (colorPickers.length > 0) {
+      initColorPicker();
+    }
   });
   $('.delete-post.button').on('click', function () {
     const $this = $(this);

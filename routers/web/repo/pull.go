@@ -1043,7 +1043,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if ci.HeadGitRepo != nil {
+		if ci != nil && ci.HeadGitRepo != nil {
 			ci.HeadGitRepo.Close()
 		}
 	}()
@@ -1345,8 +1345,9 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 	}
 
 	pr := issue.PullRequest
+	binary := ctx.FormBool("binary")
 
-	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch, binary); err != nil {
 		ctx.ServerError("DownloadDiffOrPatch", err)
 		return
 	}
