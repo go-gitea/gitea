@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Statistic contains the database statistics
@@ -47,15 +48,18 @@ func GetStatistic() (stats Statistic) {
 		IsClosed bool
 	}
 
-	issueCounts := []IssueCount{}
-	stats.Counter.IssueByLabel = []IssueByLabelCount{}
+	if setting.Metrics.EnabledIssueByLabel {
+		stats.Counter.IssueByLabel = []IssueByLabelCount{}
 
-	_ = db.GetEngine(db.DefaultContext).
-		Select("COUNT(*) AS count, l.name AS label").
-		Join("LEFT", "label l", "l.id=il.label_id").
-		Table("issue_label il").
-		GroupBy("l.name").
-		Find(&stats.Counter.IssueByLabel)
+		_ = db.GetEngine(db.DefaultContext).
+			Select("COUNT(*) AS count, l.name AS label").
+			Join("LEFT", "label l", "l.id=il.label_id").
+			Table("issue_label il").
+			GroupBy("l.name").
+			Find(&stats.Counter.IssueByLabel)
+	}
+
+	issueCounts := []IssueCount{}
 
 	_ = e.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {
