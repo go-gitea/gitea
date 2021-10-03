@@ -830,7 +830,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 #### Cron -  Delete all old actions from database ('cron.update_checker')
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
-- `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
+- `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
 - `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
 - `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
