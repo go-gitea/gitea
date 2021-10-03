@@ -23,6 +23,21 @@
 .board-column-header {
   display: flex;
   justify-content: space-between;
+
+  &.dark-label {
+    color: var(--color-project-board-dark-label) !important;
+
+    .board-label {
+      color: var(--color-project-board-dark-label) !important;
+    }
+  }
+  &.light-label {
+    color: var(--color-project-board-light-label) !important;
+
+    .board-label {
+      color: var(--color-project-board-light-label) !important;
+    }
+  }
 }
 
 .board-label {
@@ -80,4 +95,28 @@
 
 .card-ghost * {
   opacity: 0;
+}
+
+.color-field .minicolors.minicolors-theme-default {
+  display: block;
+
+  .minicolors-input {
+    height: 38px;
+    padding-left: 2rem;
+  }
+
+  .minicolors-swatch {
+    top: 10px;
+  }
+}
+
+.edit-project-board,
+.new-board-modal {
+  .color.picker.column {
+    display: flex;
+
+    .minicolors {
+      flex: 1;
+    }
+  }
 }

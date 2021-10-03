@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
+	"code.gitea.io/gitea/services/mailer"
 
 	gouuid "github.com/google/uuid"
 	"github.com/quasoft/websspi"
@@ -151,7 +153,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig() (*sspi.Source, error) {
-	sources, err := models.ActiveLoginSources(models.LoginSSPI)
+	sources, err := login.ActiveSources(login.SSPI)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +199,9 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) 
 	if err := models.CreateUser(user); err != nil {
 		return nil, err
 	}
+
+	mailer.SendRegisterNotifyMail(user)
+
 	return user, nil
 }
 
@@ -244,7 +249,7 @@ func sanitizeUsername(username string, cfg *sspi.Source) string {
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
 func specialInit() {
-	if models.IsSSPIEnabled() {
+	if login.IsSSPIEnabled() {
 		Register(&SSPI{})
 	}
 }

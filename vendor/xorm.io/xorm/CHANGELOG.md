@@ -3,6 +3,55 @@
 This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log.
 
+## [1.2.2](https://gitea.com/xorm/xorm/releases/tag/1.2.2) - 2021-08-11
+
+* MISC
+  * Move convert back to xorm.io/xorm/convert (#2030)
+
+## [1.2.1](https://gitea.com/xorm/xorm/releases/tag/1.2.1) - 2021-08-08
+
+* FEATURES
+  * Add pgx driver support (#1795)
+* BUGFIXES
+  * Fix wrong comment (#2027)
+  * Fix import file bug (#2025)
+* ENHANCEMENTS
+  * Fix timesatmp (#2021)
+
+## [1.2.0](https://gitea.com/xorm/xorm/releases/tag/1.2.0) - 2021-08-04
+
+* BREAKING
+  * Exec with time arg now will obey time zone settings on engine (#1989)
+  * Query interface (#1965)
+  * Support delete with no bean (#1926)
+  * Nil ptr is nullable (#1919)
+* FEATURES
+  * Support batch insert map (#2019)
+  * Support big.Float (#1973)
+* BUGFIXES
+  * fix possible null dereference in internal/statements/query.go (#1988)
+  * Fix bug on dumptable (#1984)
+* ENHANCEMENTS
+  * Move assign functions to convert package (#2015)
+  * refactor conversion (#2001)
+  * refactor some code (#2000)
+  * refactor insert condition generation (#1998)
+  * refactor and add setjson function (#1997)
+  * Get struct and Find support big.Float (#1976)
+  * refactor slice2Bean (#1974, #1975)
+  * refactor get (#1967)
+  * Replace #1044 (#1935)
+  * Support Get time.Time (#1933)
+* TESTING
+  * Add benchmark tests (#1978)
+  * Add tests for github.com/shopspring/decimal support (#1977)
+  * Add test for get map with NULL column (#1948)
+  * Add test for limit with query (#1787)
+* MISC
+  * Fix DBMetas returned unsigned tinyint (#2017)
+  * Fix deleted column (#2014)
+  * Add database alias table and fix wrong warning (#1947)
+
 ## [1.1.2](https://gitea.com/xorm/xorm/releases/tag/1.1.2) - 2021-07-04
 
 * BUILD

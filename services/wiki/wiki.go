@@ -90,6 +90,9 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	// Look for both files
 	filesInIndex, err := gitRepo.LsTree("master", unescaped, escaped)
 	if err != nil {
+		if strings.Contains(err.Error(), "Not a valid object name master") {
+			return false, escaped, nil
+		}
 		log.Error("%v", err)
 		return false, escaped, err
 	}
@@ -361,5 +364,15 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Push: %v", err)
 	}
 
+	return nil
+}
+
+// DeleteWiki removes the actual and local copy of repository wiki.
+func DeleteWiki(repo *models.Repository) error {
+	if err := models.UpdateRepositoryUnits(repo, nil, []models.UnitType{models.UnitTypeWiki}); err != nil {
+		return err
+	}
+
+	models.RemoveAllWithNotice("Delete repository wiki", repo.WikiPath())
 	return nil
 }

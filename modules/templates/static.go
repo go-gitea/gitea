@@ -1,14 +1,15 @@
-// +build bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build bindata
+// +build bindata
 
 package templates
 
 import (
 	"html/template"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,7 +28,7 @@ var (
 
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
-	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	bs, err := os.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	} else if err == nil {
@@ -102,7 +103,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 					continue
 				}
 
-				content, err := ioutil.ReadFile(path.Join(customDir, filePath))
+				content, err := os.ReadFile(path.Join(customDir, filePath))
 
 				if err != nil {
 					log.Warn("Failed to read custom %s template. %v", filePath, err)
@@ -129,7 +130,7 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {

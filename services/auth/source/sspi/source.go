@@ -6,6 +6,7 @@ package sspi
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -36,5 +37,5 @@ func (cfg *Source) ToDB() ([]byte, error) {
 }
 
 func init() {
-	models.RegisterLoginTypeConfig(models.LoginSSPI, &Source{})
+	login.RegisterTypeConfig(login.SSPI, &Source{})
 }

@@ -9,15 +9,17 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
-	sr := source.SearchEntry(login, password, source.loginSource.Type == models.LoginDLDAP)
+func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
+	sr := source.SearchEntry(userName, password, source.loginSource.Type == login.DLDAP)
 	if sr == nil {
 		// User not in LDAP, do nothing
-		return nil, models.ErrUserNotExist{Name: login}
+		return nil, models.ErrUserNotExist{Name: userName}
 	}
 
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
@@ -63,7 +65,7 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 
 	// Fallback.
 	if len(sr.Username) == 0 {
-		sr.Username = login
+		sr.Username = userName
 	}
 
 	if len(sr.Mail) == 0 {
@@ -77,17 +79,31 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		Email:        sr.Mail,
 		LoginType:    source.loginSource.Type,
 		LoginSource:  source.loginSource.ID,
-		LoginName:    login,
+		LoginName:    userName,
 		IsActive:     true,
 		IsAdmin:      sr.IsAdmin,
 		IsRestricted: sr.IsRestricted,
 	}
 
 	err := models.CreateUser(user)
+	if err != nil {
+		return user, err
+	}
 
-	if err == nil && isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
+	mailer.SendRegisterNotifyMail(user)
+
+	if isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
 		err = models.RewriteAllPublicKeys()
 	}
 
+	if err == nil && len(source.AttributeAvatar) > 0 {
+		_ = user.UploadAvatar(sr.Avatar)
+	}
+
 	return user, err
+}
+
+// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
+func (source *Source) IsSkipLocalTwoFA() bool {
+	return source.SkipLocalTwoFA
 }

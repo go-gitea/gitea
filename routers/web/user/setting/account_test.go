@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -81,7 +81,7 @@ func TestChangePassword(t *testing.T) {
 			PasswordComplexity: pcLU,
 		},
 	} {
-		models.PrepareTestEnv(t)
+		db.PrepareTestEnv(t)
 		ctx := test.MockContext(t, "user/settings/security")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)

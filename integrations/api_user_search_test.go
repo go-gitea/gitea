@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -51,7 +52,7 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 	var modelUser *models.User
 	for _, user := range results.Data {
 		assert.Contains(t, user.UserName, query)
-		modelUser = models.AssertExistsAndLoadBean(t, &models.User{ID: user.ID}).(*models.User)
+		modelUser = db.AssertExistsAndLoadBean(t, &models.User{ID: user.ID}).(*models.User)
 		if modelUser.KeepEmailPrivate {
 			assert.EqualValues(t, fmt.Sprintf("%s@%s", modelUser.LowerName, setting.Service.NoReplyAddress), user.Email)
 		} else {

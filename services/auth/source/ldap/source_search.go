@@ -8,6 +8,8 @@ package ldap
 import (
 	"crypto/tls"
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -24,6 +26,8 @@ type SearchResult struct {
 	SSHPublicKey []string // SSH Public Key
 	IsAdmin      bool     // if user is administrator
 	IsRestricted bool     // if user is restricted
+	LowerName    string   // Lowername
+	Avatar       []byte
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -103,26 +107,27 @@ func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	return userDN, true
 }
 
-func dial(ls *Source) (*ldap.Conn, error) {
-	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", ls.SecurityProtocol, ls.SkipVerify)
+func dial(source *Source) (*ldap.Conn, error) {
+	log.Trace("Dialing LDAP with security protocol (%v) without verifying: %v", source.SecurityProtocol, source.SkipVerify)
 
-	tlsCfg := &tls.Config{
-		ServerName:         ls.Host,
-		InsecureSkipVerify: ls.SkipVerify,
-	}
-	if ls.SecurityProtocol == SecurityProtocolLDAPS {
-		return ldap.DialTLS("tcp", fmt.Sprintf("%s:%d", ls.Host, ls.Port), tlsCfg)
+	tlsConfig := &tls.Config{
+		ServerName:         source.Host,
+		InsecureSkipVerify: source.SkipVerify,
 	}
 
-	conn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", ls.Host, ls.Port))
+	if source.SecurityProtocol == SecurityProtocolLDAPS {
+		return ldap.DialTLS("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)), tlsConfig)
+	}
+
+	conn, err := ldap.Dial("tcp", net.JoinHostPort(source.Host, strconv.Itoa(source.Port)))
 	if err != nil {
-		return nil, fmt.Errorf("Dial: %v", err)
+		return nil, fmt.Errorf("error during Dial: %v", err)
 	}
 
-	if ls.SecurityProtocol == SecurityProtocolStartTLS {
-		if err = conn.StartTLS(tlsCfg); err != nil {
+	if source.SecurityProtocol == SecurityProtocolStartTLS {
+		if err = conn.StartTLS(tlsConfig); err != nil {
 			conn.Close()
-			return nil, fmt.Errorf("StartTLS: %v", err)
+			return nil, fmt.Errorf("error during StartTLS: %v", err)
 		}
 	}
 
@@ -153,7 +158,7 @@ func checkAdmin(l *ldap.Conn, ls *Source, userDN string) bool {
 	sr, err := l.Search(search)
 
 	if err != nil {
-		log.Error("LDAP Admin Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Admin Search with filter %s for %s failed unexpectedly! (%v)", ls.AdminFilter, userDN, err)
 	} else if len(sr.Entries) < 1 {
 		log.Trace("LDAP Admin Search found no matching entries.")
 	} else {
@@ -178,7 +183,7 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 	sr, err := l.Search(search)
 
 	if err != nil {
-		log.Error("LDAP Restrictred Search failed unexpectedly! (%v)", err)
+		log.Error("LDAP Restrictred Search with filter %s for %s failed unexpectedly! (%v)", ls.RestrictedFilter, userDN, err)
 	} else if len(sr.Entries) < 1 {
 		log.Trace("LDAP Restricted Search found no matching entries.")
 	} else {
@@ -262,7 +267,8 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	}
 
-	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAtributeAvatarSet := len(strings.TrimSpace(ls.AttributeAvatar)) > 0
 
 	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
 	if len(strings.TrimSpace(ls.UserUID)) > 0 {
@@ -271,8 +277,11 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
+	if isAtributeAvatarSet {
+		attribs = append(attribs, ls.AttributeAvatar)
+	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.UserUID, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, ls.UserUID, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -292,6 +301,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	var sshPublicKey []string
+	var Avatar []byte
 
 	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
@@ -359,7 +369,12 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		}
 	}
 
+	if isAtributeAvatarSet {
+		Avatar = sr.Entries[0].GetRawAttributeValue(ls.AttributeAvatar)
+	}
+
 	return &SearchResult{
+		LowerName:    strings.ToLower(username),
 		Username:     username,
 		Name:         firstname,
 		Surname:      surname,
@@ -367,6 +382,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		SSHPublicKey: sshPublicKey,
 		IsAdmin:      isAdmin,
 		IsRestricted: isRestricted,
+		Avatar:       Avatar,
 	}
 }
 
@@ -398,14 +414,18 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 
 	userFilter := fmt.Sprintf(ls.Filter, "*")
 
-	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAtributeAvatarSet := len(strings.TrimSpace(ls.AttributeAvatar)) > 0
 
 	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
+	if isAtributeAvatarSet {
+		attribs = append(attribs, ls.AttributeAvatar)
+	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, ls.UserBase)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, userFilter, ls.UserBase)
 	search := ldap.NewSearchRequest(
 		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -437,6 +457,10 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
+		if isAtributeAvatarSet {
+			result[i].Avatar = v.GetRawAttributeValue(ls.AttributeAvatar)
+		}
+		result[i].LowerName = strings.ToLower(result[i].Username)
 	}
 
 	return result, nil

@@ -5,16 +5,20 @@
 package migrations
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
 )
 
-func addRenamedBranchTable(x *xorm.Engine) error {
-	type RenamedBranch struct {
-		ID          int64 `xorm:"pk autoincr"`
-		RepoID      int64 `xorm:"INDEX NOT NULL"`
-		From        string
-		To          string
-		CreatedUnix int64 `xorm:"created"`
+func addAgitFlowPullRequest(x *xorm.Engine) error {
+	type PullRequestFlow int
+
+	type PullRequest struct {
+		Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 	}
-	return x.Sync2(new(RenamedBranch))
+
+	if err := x.Sync2(new(PullRequest)); err != nil {
+		return fmt.Errorf("sync2: %v", err)
+	}
+	return nil
 }

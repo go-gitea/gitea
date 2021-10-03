@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 
 	"code.gitea.io/gitea/modules/typesniffer"
 )
@@ -83,7 +82,7 @@ func (b *Blob) GetBlobContentBase64() (string, error) {
 		}
 	}()
 
-	out, err := ioutil.ReadAll(pr)
+	out, err := io.ReadAll(pr)
 	if err != nil {
 		return "", err
 	}

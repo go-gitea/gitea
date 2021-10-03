@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/url"
@@ -189,6 +188,7 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	SuccessfulTokensCacheSize          int
 
 	// UI settings
 	UI = struct {
@@ -255,8 +255,8 @@ var (
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
-		DefaultTheme:        `gitea`,
-		Themes:              []string{`gitea`, `arc-green`},
+		DefaultTheme:        `auto`,
+		Themes:              []string{`auto`, `gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
@@ -346,12 +346,6 @@ var (
 	CSRFCookieHTTPOnly = true
 
 	ManifestData string
-
-	// Mirror settings
-	Mirror struct {
-		DefaultInterval time.Duration
-		MinInterval     time.Duration
-	}
 
 	// API settings
 	API = struct {
@@ -769,7 +763,7 @@ func NewContext() {
 
 		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
 			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
-			if err := ioutil.WriteFile(fname,
+			if err := os.WriteFile(fname,
 				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
 				log.Fatal("Failed to create '%s': %v", fname, err)
 			}
@@ -840,6 +834,7 @@ func NewContext() {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadInternalToken(sec)
 
@@ -936,31 +931,23 @@ func NewContext() {
 
 	newGit()
 
-	sec = Cfg.Section("mirror")
-	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
-	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
-	if Mirror.MinInterval.Minutes() < 1 {
-		log.Warn("Mirror.MinInterval is too low")
-		Mirror.MinInterval = 1 * time.Minute
-	}
-	if Mirror.DefaultInterval < Mirror.MinInterval {
-		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
-		Mirror.DefaultInterval = time.Hour * 8
-	}
+	newMirror()
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
 		Langs = []string{
 			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
 			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pt-PT", "pl-PL", "bg-BG",
-			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
+			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR", "el-GR",
+			"fa-IR", "hu-HU", "id-ID", "ml-IN"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
 		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
 			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
 			"español", "português do Brasil", "Português de Portugal", "polski", "български",
-			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
+			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어", "ελληνικά",
+			"فارسی", "magyar nyelv", "bahasa Indonesia", "മലയാളം"}
 	}
 
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
@@ -1042,7 +1029,7 @@ func loadInternalToken(sec *ini.Section) string {
 		}
 		defer fp.Close()
 
-		buf, err := ioutil.ReadAll(fp)
+		buf, err := io.ReadAll(fp)
 		if err != nil {
 			log.Fatal("Failed to read InternalTokenURI (%s): %v", uri, err)
 		}
@@ -1193,6 +1180,7 @@ func NewServices() {
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
+	newProxyService()
 	newWebhookService()
 	newMigrationsService()
 	newIndexerService()
@@ -1200,6 +1188,7 @@ func NewServices() {
 	NewQueueService()
 	newProject()
 	newMimeTypeMap()
+	newFederationService()
 }
 
 // NewServicesForInstall initializes the services for install
