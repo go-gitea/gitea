@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -28,9 +29,13 @@ type Reaction struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
+func init() {
+	db.RegisterModel(new(Reaction))
+}
+
 // FindReactionsOptions describes the conditions to Find reactions
 type FindReactionsOptions struct {
-	ListOptions
+	db.ListOptions
 	IssueID   int64
 	CommentID int64
 	UserID    int64
@@ -66,28 +71,28 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 
 // FindCommentReactions returns a ReactionList of all reactions from an comment
 func FindCommentReactions(comment *Comment) (ReactionList, error) {
-	return findReactions(x, FindReactionsOptions{
+	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
 		IssueID:   comment.IssueID,
 		CommentID: comment.ID,
 	})
 }
 
 // FindIssueReactions returns a ReactionList of all reactions from an issue
-func FindIssueReactions(issue *Issue, listOptions ListOptions) (ReactionList, error) {
-	return findReactions(x, FindReactionsOptions{
+func FindIssueReactions(issue *Issue, listOptions db.ListOptions) (ReactionList, error) {
+	return findReactions(db.GetEngine(db.DefaultContext), FindReactionsOptions{
 		ListOptions: listOptions,
 		IssueID:     issue.ID,
 		CommentID:   -1,
 	})
 }
 
-func findReactions(e Engine, opts FindReactionsOptions) ([]*Reaction, error) {
+func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, error) {
 	e = e.
 		Where(opts.toConds()).
 		In("reaction.`type`", setting.UI.Reactions).
 		Asc("reaction.issue_id", "reaction.comment_id", "reaction.created_unix", "reaction.id")
 	if opts.Page != 0 {
-		e = opts.setEnginePagination(e)
+		e = db.SetEnginePagination(e, &opts)
 
 		reactions := make([]*Reaction, 0, opts.PageSize)
 		return reactions, e.Find(&reactions)
@@ -143,7 +148,7 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, err
@@ -179,7 +184,7 @@ func CreateCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 	})
 }
 
-func deleteReaction(e Engine, opts *ReactionOptions) error {
+func deleteReaction(e db.Engine, opts *ReactionOptions) error {
 	reaction := &Reaction{
 		Type: opts.Type,
 	}
@@ -198,7 +203,7 @@ func deleteReaction(e Engine, opts *ReactionOptions) error {
 
 // DeleteReaction deletes reaction for issue or comment.
 func DeleteReaction(opts *ReactionOptions) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -235,7 +240,7 @@ func (r *Reaction) LoadUser() (*User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := getUserByID(x, r.UserID)
+	user, err := getUserByID(db.GetEngine(db.DefaultContext), r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -281,7 +286,7 @@ func (list ReactionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (list ReactionList) loadUsers(e Engine, repo *Repository) ([]*User, error) {
+func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*User, error) {
 	if len(list) == 0 {
 		return nil, nil
 	}
@@ -309,7 +314,7 @@ func (list ReactionList) loadUsers(e Engine, repo *Repository) ([]*User, error) 
 
 // LoadUsers loads reactions' all users
 func (list ReactionList) LoadUsers(repo *Repository) ([]*User, error) {
-	return list.loadUsers(x, repo)
+	return list.loadUsers(db.GetEngine(db.DefaultContext), repo)
 }
 
 // GetFirstUsers returns first reacted user display names separated by comma

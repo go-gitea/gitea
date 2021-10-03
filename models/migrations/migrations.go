@@ -339,6 +339,14 @@ var migrations = []Migration{
 	// v192 -> v193
 	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
 	// v193 -> v194
+	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
+	// v194 -> v195
+	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
+	// v195 -> v196
+	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
+	// v196 -> v197
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	// v197 -> v198
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 }
 

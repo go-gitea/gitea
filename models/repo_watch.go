@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -35,8 +36,12 @@ type Watch struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(Watch))
+}
+
 // getWatch gets what kind of subscription a user has on a given repository; returns dummy record if none found
-func getWatch(e Engine, userID, repoID int64) (Watch, error) {
+func getWatch(e db.Engine, userID, repoID int64) (Watch, error) {
 	watch := Watch{UserID: userID, RepoID: repoID}
 	has, err := e.Get(&watch)
 	if err != nil {
@@ -55,11 +60,11 @@ func isWatchMode(mode RepoWatchMode) bool {
 
 // IsWatching checks if user has watched given repository.
 func IsWatching(userID, repoID int64) bool {
-	watch, err := getWatch(x, userID, repoID)
+	watch, err := getWatch(db.GetEngine(db.DefaultContext), userID, repoID)
 	return err == nil && isWatchMode(watch.Mode)
 }
 
-func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
+func watchRepoMode(e db.Engine, watch Watch, mode RepoWatchMode) (err error) {
 	if watch.Mode == mode {
 		return nil
 	}
@@ -102,13 +107,13 @@ func watchRepoMode(e Engine, watch Watch, mode RepoWatchMode) (err error) {
 // WatchRepoMode watch repository in specific mode.
 func WatchRepoMode(userID, repoID int64, mode RepoWatchMode) (err error) {
 	var watch Watch
-	if watch, err = getWatch(x, userID, repoID); err != nil {
+	if watch, err = getWatch(db.GetEngine(db.DefaultContext), userID, repoID); err != nil {
 		return err
 	}
-	return watchRepoMode(x, watch, mode)
+	return watchRepoMode(db.GetEngine(db.DefaultContext), watch, mode)
 }
 
-func watchRepo(e Engine, userID, repoID int64, doWatch bool) (err error) {
+func watchRepo(e db.Engine, userID, repoID int64, doWatch bool) (err error) {
 	var watch Watch
 	if watch, err = getWatch(e, userID, repoID); err != nil {
 		return err
@@ -125,10 +130,10 @@ func watchRepo(e Engine, userID, repoID int64, doWatch bool) (err error) {
 
 // WatchRepo watch or unwatch repository.
 func WatchRepo(userID, repoID int64, watch bool) (err error) {
-	return watchRepo(x, userID, repoID, watch)
+	return watchRepo(db.GetEngine(db.DefaultContext), userID, repoID, watch)
 }
 
-func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
+func getWatchers(e db.Engine, repoID int64) ([]*Watch, error) {
 	watches := make([]*Watch, 0, 10)
 	return watches, e.Where("`watch`.repo_id=?", repoID).
 		And("`watch`.mode<>?", RepoWatchModeDont).
@@ -140,17 +145,17 @@ func getWatchers(e Engine, repoID int64) ([]*Watch, error) {
 
 // GetWatchers returns all watchers of given repository.
 func GetWatchers(repoID int64) ([]*Watch, error) {
-	return getWatchers(x, repoID)
+	return getWatchers(db.GetEngine(db.DefaultContext), repoID)
 }
 
 // GetRepoWatchersIDs returns IDs of watchers for a given repo ID
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetRepoWatchersIDs(repoID int64) ([]int64, error) {
-	return getRepoWatchersIDs(x, repoID)
+	return getRepoWatchersIDs(db.GetEngine(db.DefaultContext), repoID)
 }
 
-func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
+func getRepoWatchersIDs(e db.Engine, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	return ids, e.Table("watch").
 		Where("watch.repo_id=?", repoID).
@@ -160,12 +165,12 @@ func getRepoWatchersIDs(e Engine, repoID int64) ([]int64, error) {
 }
 
 // GetWatchers returns range of users watching given repository.
-func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
-	sess := x.Where("watch.repo_id=?", repo.ID).
+func (repo *Repository) GetWatchers(opts db.ListOptions) ([]*User, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repo.ID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, &opts)
 		users := make([]*User, 0, opts.PageSize)
 
 		return users, sess.Find(&users)
@@ -175,7 +180,7 @@ func (repo *Repository) GetWatchers(opts ListOptions) ([]*User, error) {
 	return users, sess.Find(&users)
 }
 
-func notifyWatchers(e Engine, actions ...*Action) error {
+func notifyWatchers(e db.Engine, actions ...*Action) error {
 	var watchers []*Watch
 	var repo *Repository
 	var err error
@@ -279,12 +284,12 @@ func notifyWatchers(e Engine, actions ...*Action) error {
 
 // NotifyWatchers creates batch of actions for every watcher.
 func NotifyWatchers(actions ...*Action) error {
-	return notifyWatchers(x, actions...)
+	return notifyWatchers(db.GetEngine(db.DefaultContext), actions...)
 }
 
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -297,7 +302,7 @@ func NotifyWatchersActions(acts []*Action) error {
 	return sess.Commit()
 }
 
-func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
+func watchIfAuto(e db.Engine, userID, repoID int64, isWrite bool) error {
 	if !isWrite || !setting.Service.AutoWatchOnChanges {
 		return nil
 	}
@@ -313,5 +318,5 @@ func watchIfAuto(e Engine, userID, repoID int64, isWrite bool) error {
 
 // WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
 func WatchIfAuto(userID, repoID int64, isWrite bool) error {
-	return watchIfAuto(x, userID, repoID, isWrite)
+	return watchIfAuto(db.GetEngine(db.DefaultContext), userID, repoID, isWrite)
 }

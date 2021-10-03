@@ -7,6 +7,8 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -21,6 +23,10 @@ type RepoUnit struct {
 	Type        UnitType           `xorm:"INDEX(s)"`
 	Config      convert.Conversion `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+}
+
+func init() {
+	db.RegisterModel(new(RepoUnit))
 }
 
 // UnitConfig describes common unit config
@@ -148,7 +154,7 @@ func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch UnitType(Cell2Int64(val)) {
+		switch UnitType(login.Cell2Int64(val)) {
 		case UnitTypeCode, UnitTypeReleases, UnitTypeWiki, UnitTypeProjects:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
@@ -200,7 +206,7 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
 
-func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
+func getUnitsByRepoID(e db.Engine, repoID int64) (units []*RepoUnit, err error) {
 	var tmpUnits []*RepoUnit
 	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
 		return nil, err
@@ -213,4 +219,10 @@ func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	}
 
 	return units, nil
+}
+
+// UpdateRepoUnit updates the provided repo unit
+func UpdateRepoUnit(unit *RepoUnit) error {
+	_, err := db.GetEngine(db.DefaultContext).ID(unit.ID).Update(unit)
+	return err
 }

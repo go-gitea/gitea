@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,8 +26,8 @@ func TestAPILFSNotStarted(t *testing.T) {
 
 	setting.LFS.StartServer = false
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -45,8 +46,8 @@ func TestAPILFSMediaType(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusUnsupportedMediaType)
@@ -253,6 +254,10 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
+			repo2 := createLFSTestRepository(t, "batch2")
+			content := []byte("dummy0")
+			storeObjectInRepo(t, repo2.ID, &content)
+
 			meta, err := repo.GetLFSMetaObjectByOid(p.Oid)
 			assert.Nil(t, meta)
 			assert.Equal(t, models.ErrLFSObjectNotExist, err)
@@ -358,13 +363,19 @@ func TestAPILFSUpload(t *testing.T) {
 		assert.Nil(t, meta)
 		assert.Equal(t, models.ErrLFSObjectNotExist, err)
 
-		req := newRequest(t, p, "")
+		t.Run("InvalidAccess", func(t *testing.T) {
+			req := newRequest(t, p, "invalid")
+			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		})
 
-		session.MakeRequest(t, req, http.StatusOK)
+		t.Run("ValidAccess", func(t *testing.T) {
+			req := newRequest(t, p, "dummy5")
 
-		meta, err = repo.GetLFSMetaObjectByOid(p.Oid)
-		assert.NoError(t, err)
-		assert.NotNil(t, meta)
+			session.MakeRequest(t, req, http.StatusOK)
+			meta, err = repo.GetLFSMetaObjectByOid(p.Oid)
+			assert.NoError(t, err)
+			assert.NotNil(t, meta)
+		})
 	})
 
 	t.Run("MetaAlreadyExists", func(t *testing.T) {

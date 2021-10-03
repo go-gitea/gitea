@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -17,8 +18,8 @@ func TestRepoWatch(t *testing.T) {
 		// Test round-trip auto-watch
 		setting.Service.AutoWatchOnChanges = true
 		session := loginUser(t, "user2")
-		models.AssertNotExistsBean(t, &models.Watch{UserID: 2, RepoID: 3})
+		db.AssertNotExistsBean(t, &models.Watch{UserID: 2, RepoID: 3})
 		testEditFile(t, session, "user3", "repo3", "master", "README.md", "Hello, World (Edited for watch)\n")
-		models.AssertExistsAndLoadBean(t, &models.Watch{UserID: 2, RepoID: 3, Mode: models.RepoWatchModeAuto})
+		db.AssertExistsAndLoadBean(t, &models.Watch{UserID: 2, RepoID: 3, Mode: models.RepoWatchModeAuto})
 	})
 }

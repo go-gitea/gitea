@@ -5,7 +5,7 @@
 package queue
 
 import (
-	"io/ioutil"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -28,7 +28,7 @@ func TestLevelQueue(t *testing.T) {
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
-	tmpDir, err := ioutil.TempDir("", "level-queue-test-data")
+	tmpDir, err := os.MkdirTemp("", "level-queue-test-data")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 

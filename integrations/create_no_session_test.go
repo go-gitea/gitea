@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -69,7 +68,7 @@ func TestSessionFileCreation(t *testing.T) {
 	config.Provider = "file"
 
 	// Now create a temporaryDirectory
-	tmpDir, err := ioutil.TempDir("", "sessions")
+	tmpDir, err := os.MkdirTemp("", "sessions")
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {

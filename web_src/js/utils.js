@@ -26,7 +26,13 @@ export function isObject(obj) {
 
 // returns whether a dark theme is enabled
 export function isDarkTheme() {
-  return document.documentElement.classList.contains('theme-arc-green');
+  if (document.documentElement.classList.contains('theme-auto')) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  if (document.documentElement.classList.contains('theme-arc-green')) {
+    return true;
+  }
+  return false;
 }
 
 // removes duplicate elements in an array
