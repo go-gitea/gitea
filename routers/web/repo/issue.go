@@ -804,7 +804,7 @@ func NewIssue(ctx *context.Context) {
 		}
 
 		if len(ctx.Req.URL.Query().Get("project")) > 0 {
-			ctx.Data["redirection_after_creation"] = "project"
+			ctx.Data["redirect_after_creation"] = "project"
 		}
 	}
 
@@ -993,7 +993,7 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	if ctx.FormString("redirection_after_creation") == "project" {
+	if ctx.FormString("redirect_after_creation") == "project" {
 		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + fmt.Sprint(form.ProjectID))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
