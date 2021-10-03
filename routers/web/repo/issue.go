@@ -803,6 +803,9 @@ func NewIssue(ctx *context.Context) {
 			ctx.Data["Project"] = project
 		}
 
+		if ctx.FormBool("redirect_on_project") {
+			ctx.Data["redirect_on_project"] = true
+		}
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
@@ -990,7 +993,11 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
+	if ctx.FormBool("redirect_on_project") {
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + fmt.Sprint(form.ProjectID))
+	} else {
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
+	}
 }
 
 // commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
