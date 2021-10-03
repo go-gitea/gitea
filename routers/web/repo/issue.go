@@ -803,7 +803,7 @@ func NewIssue(ctx *context.Context) {
 			ctx.Data["Project"] = project
 		}
 
-		if ctx.FormBool("redirect_on_project") {
+		if len(ctx.Req.URL.Query().Get("project")) > 0 {
 			ctx.Data["redirect_on_project"] = true
 		}
 	}
