@@ -51,8 +51,7 @@ func GetStatistic() (stats Statistic) {
 	if setting.Metrics.EnabledIssueByLabel {
 		stats.Counter.IssueByLabel = []IssueByLabelCount{}
 
-		_ = db.GetEngine(db.DefaultContext).
-			Select("COUNT(*) AS count, l.name AS label").
+		_ = e.Select("COUNT(*) AS count, l.name AS label").
 			Join("LEFT", "label l", "l.id=il.label_id").
 			Table("issue_label il").
 			GroupBy("l.name").
