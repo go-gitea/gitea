@@ -5,11 +5,11 @@
 package repository
 
 import (
-	"container/list"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -83,7 +83,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -95,7 +95,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsNewRef() && opts.IsDelRef() {
 			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
-		var commits = &repo_module.PushCommits{}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
@@ -148,7 +147,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				refName := opts.RefName()
 
 				// Push new branch.
-				var l *list.List
+				var l []*git.Commit
 				if opts.IsNewRef() {
 					if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
 						repo.DefaultBranch = refName
@@ -192,7 +191,8 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
-				commits = repo_module.ListToPushCommits(l)
+				commits := repo_module.GitToPushCommits(l)
+				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
 				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
 					log.Error("updateIssuesCommit: %v", err)

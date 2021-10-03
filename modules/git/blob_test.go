@@ -6,7 +6,7 @@
 package git
 
 import (
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -30,7 +30,7 @@ func TestBlob_Data(t *testing.T) {
 	assert.NoError(t, err)
 	require.NotNil(t, r)
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	assert.NoError(t, r.Close())
 
 	assert.NoError(t, err)
@@ -55,7 +55,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		ioutil.ReadAll(r)
+		io.ReadAll(r)
 		_ = r.Close()
 	}
 }

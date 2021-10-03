@@ -8,7 +8,7 @@ package context
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -38,7 +38,7 @@ var IssueTemplateDirCandidates = []string{
 	".gitlab/issue_template",
 }
 
-// PullRequest contains informations to make a pull request
+// PullRequest contains information to make a pull request
 type PullRequest struct {
 	BaseRepo *models.Repository
 	Allowed  bool
@@ -346,7 +346,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 
 	// Check access.
 	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {
-		if ctx.Query("go-get") == "1" {
+		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
@@ -415,7 +415,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		owner, err = models.GetUserByName(userName)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				if ctx.Query("go-get") == "1" {
+				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
@@ -437,7 +437,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 			if err == nil {
 				RedirectToRepo(ctx, redirectRepoID)
 			} else if models.IsErrRepoRedirectNotExist(err) {
-				if ctx.Query("go-get") == "1" {
+				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
@@ -547,7 +547,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags()
+	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -618,7 +618,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 
-	if ctx.Query("go-get") == "1" {
+	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
 		prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", "branch", ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
@@ -915,7 +915,7 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 						_ = r.Close()
 					}
 				}()
-				data, err := ioutil.ReadAll(r)
+				data, err := io.ReadAll(r)
 				if err != nil {
 					log.Debug("ReadAll: %v", err)
 					continue

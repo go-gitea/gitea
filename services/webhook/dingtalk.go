@@ -6,13 +6,14 @@ package webhook
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
-	jsoniter "github.com/json-iterator/go"
 	dingtalk "github.com/lunny/dingtalk_webhook"
 )
 
@@ -27,7 +28,6 @@ var (
 
 // JSONPayload Marshals the DingtalkPayload to json
 func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -176,7 +176,10 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) *Dingtalk
 			Title:       strings.TrimSpace(title),
 			HideAvatar:  "0",
 			SingleTitle: singleTitle,
-			SingleURL:   singleURL,
+
+			// https://developers.dingtalk.com/document/app/message-link-description
+			// to open the link in browser, we should use this URL, otherwise the page is displayed inside DingTalk client, very difficult to visit non-public URLs.
+			SingleURL: "dingtalk://dingtalkclient/page/link?pc_slide=false&url=" + url.QueryEscape(singleURL),
 		},
 	}
 }

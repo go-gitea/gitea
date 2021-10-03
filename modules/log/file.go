@@ -15,8 +15,8 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // FileLogger implements LoggerProvider.
@@ -101,7 +101,6 @@ func NewFileLogger() LoggerProvider {
 //	"rotate":true
 //	}
 func (log *FileLogger) Init(config string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(config), log); err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)
 	}
@@ -177,7 +176,7 @@ func (log *FileLogger) DoRotate() error {
 
 		// close fd before rename
 		// Rename the file to its newfound home
-		if err = os.Rename(log.Filename, fname); err != nil {
+		if err = util.Rename(log.Filename, fname); err != nil {
 			return fmt.Errorf("Rotate: %v", err)
 		}
 

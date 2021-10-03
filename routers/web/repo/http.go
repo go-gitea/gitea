@@ -10,7 +10,6 @@ import (
 	"compress/gzip"
 	gocontext "context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -22,6 +21,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -32,7 +32,7 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-// httpBase implmentation git smart HTTP protocol
+// httpBase implementation git smart HTTP protocol
 func httpBase(ctx *context.Context) (h *serviceHandler) {
 	if setting.Repository.DisableHTTPGit {
 		ctx.Resp.WriteHeader(http.StatusForbidden)
@@ -70,13 +70,13 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 
-	if ctx.Query("go-get") == "1" {
+	if ctx.FormString("go-get") == "1" {
 		context.EarlyResponseForGoGetMeta(ctx)
 		return
 	}
 
 	var isPull, receivePack bool
-	service := ctx.Query("service")
+	service := ctx.FormString("service")
 	if service == "git-receive-pack" ||
 		strings.HasSuffix(ctx.Req.URL.Path, "git-receive-pack") {
 		isPull = false
@@ -175,12 +175,12 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if ctx.IsBasicAuth && ctx.Data["IsApiToken"] != true {
-			_, err = models.GetTwoFactorByUID(ctx.User.ID)
+			_, err = login.GetTwoFactorByUID(ctx.User.ID)
 			if err == nil {
 				// TODO: This response should be changed to "invalid credentials" for security reasons once the expectation behind it (creating an app token to authenticate) is properly documented
 				ctx.HandleText(http.StatusUnauthorized, "Users with two-factor authentication enabled cannot perform HTTP/HTTPS operations via plain username and password. Please create and use a personal access token on the user settings page")
 				return
-			} else if !models.IsErrTwoFactorNotEnrolled(err) {
+			} else if !login.IsErrTwoFactorNotEnrolled(err) {
 				ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 				return
 			}
@@ -196,6 +196,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
+			}
+
+			// Because of special ref "refs/for" .. , need delay write permission check
+			if git.SupportProcReceive {
+				accessMode = models.AccessModeRead
 			}
 
 			if !perm.CanAccess(accessMode, unitType) {
@@ -303,7 +308,7 @@ var (
 
 func dummyInfoRefs(ctx *context.Context) {
 	infoRefsOnce.Do(func() {
-		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-info-refs-cache")
+		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-info-refs-cache")
 		if err != nil {
 			log.Error("Failed to create temp dir for git-receive-pack cache: %v", err)
 			return

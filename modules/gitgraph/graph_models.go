@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -114,7 +115,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 
 		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
 
-		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), models.ListOptions{})
+		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

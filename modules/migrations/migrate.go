@@ -292,6 +292,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 		reviewBatchSize  = uploader.MaxBatchInsertSize("review")
 	)
 
+	supportAllComments := downloader.SupportGetRepoComments()
+
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		messenger("repo.migrate.migrating_issues")
@@ -311,11 +313,13 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				return err
 			}
 
-			if opts.Comments {
+			if opts.Comments && !supportAllComments {
 				var allComments = make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
-					comments, err := downloader.GetComments(issue.Number)
+					comments, _, err := downloader.GetComments(base.GetCommentOptions{
+						Context: issue.Context,
+					})
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -366,55 +370,47 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 
 			if opts.Comments {
-				// plain comments
-				var allComments = make([]*base.Comment, 0, commentBatchSize)
-				for _, pr := range prs {
-					log.Trace("migrating pull request %d's comments", pr.Number)
-					comments, err := downloader.GetComments(pr.Number)
-					if err != nil {
-						if !base.IsErrNotSupported(err) {
+				if !supportAllComments {
+					// plain comments
+					var allComments = make([]*base.Comment, 0, commentBatchSize)
+					for _, pr := range prs {
+						log.Trace("migrating pull request %d's comments", pr.Number)
+						comments, _, err := downloader.GetComments(base.GetCommentOptions{
+							Context: pr.Context,
+						})
+						if err != nil {
+							if !base.IsErrNotSupported(err) {
+								return err
+							}
+							log.Warn("migrating comments is not supported, ignored")
+						}
+
+						allComments = append(allComments, comments...)
+
+						if len(allComments) >= commentBatchSize {
+							if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
+								return err
+							}
+							allComments = allComments[commentBatchSize:]
+						}
+					}
+					if len(allComments) > 0 {
+						if err = uploader.CreateComments(allComments...); err != nil {
 							return err
 						}
-						log.Warn("migrating comments is not supported, ignored")
-					}
-
-					allComments = append(allComments, comments...)
-
-					if len(allComments) >= commentBatchSize {
-						if err = uploader.CreateComments(allComments[:commentBatchSize]...); err != nil {
-							return err
-						}
-						allComments = allComments[commentBatchSize:]
-					}
-				}
-				if len(allComments) > 0 {
-					if err = uploader.CreateComments(allComments...); err != nil {
-						return err
 					}
 				}
 
 				// migrate reviews
 				var allReviews = make([]*base.Review, 0, reviewBatchSize)
 				for _, pr := range prs {
-					number := pr.Number
-
-					// on gitlab migrations pull number change
-					if pr.OriginalNumber > 0 {
-						number = pr.OriginalNumber
-					}
-
-					reviews, err := downloader.GetReviews(number)
+					reviews, err := downloader.GetReviews(pr.Context)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
 						}
 						log.Warn("migrating reviews is not supported, ignored")
 						break
-					}
-					if pr.OriginalNumber > 0 {
-						for i := range reviews {
-							reviews[i].IssueIndex = pr.Number
-						}
 					}
 
 					allReviews = append(allReviews, reviews...)
@@ -431,6 +427,27 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 						return err
 					}
 				}
+			}
+
+			if isEnd {
+				break
+			}
+		}
+	}
+
+	if opts.Comments && supportAllComments {
+		log.Trace("migrating comments")
+		for i := 1; ; i++ {
+			comments, isEnd, err := downloader.GetComments(base.GetCommentOptions{
+				Page:     i,
+				PageSize: commentBatchSize,
+			})
+			if err != nil {
+				return err
+			}
+
+			if err := uploader.CreateComments(comments...); err != nil {
+				return err
 			}
 
 			if isEnd {
@@ -458,10 +475,7 @@ func Init() error {
 	return nil
 }
 
-// isIPPrivate reports whether ip is a private address, according to
-// RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
-// from https://github.com/golang/go/pull/42793
-// TODO remove if https://github.com/golang/go/issues/29146 got resolved
+// TODO: replace with `ip.IsPrivate()` if min go version is bumped to 1.17
 func isIPPrivate(ip net.IP) bool {
 	if ip4 := ip.To4(); ip4 != nil {
 		return ip4[0] == 10 ||

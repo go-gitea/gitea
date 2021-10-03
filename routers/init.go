@@ -35,11 +35,14 @@ import (
 	web_routers "code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/mailer"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
+
+	"gitea.com/go-chi/session"
 )
 
 // NewServices init new services
@@ -52,7 +55,9 @@ func NewServices() {
 		log.Fatal("repository init failed: %v", err)
 	}
 	mailer.NewContext()
-	_ = cache.NewContext()
+	if err := cache.NewContext(); err != nil {
+		log.Fatal("Unable to start cache service: %v", err)
+	}
 	notification.NewContext()
 	if err := archiver.Init(); err != nil {
 		log.Fatal("archiver init failed: %v", err)
@@ -76,6 +81,7 @@ func GlobalInit(ctx context.Context) {
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
 
 	// Setup i18n
@@ -98,7 +104,7 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("ORM engine initialization failed: %v", err)
 	}
 
-	if err := models.InitOAuth2(); err != nil {
+	if err := oauth2.Init(); err != nil {
 		log.Fatal("Failed to initialize OAuth2 support: %v", err)
 	}
 
@@ -142,8 +148,20 @@ func NormalRoutes() *web.Route {
 		r.Use(middle)
 	}
 
-	r.Mount("/", web_routers.Routes())
-	r.Mount("/api/v1", apiv1.Routes())
+	sessioner := session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
+		Domain:         setting.SessionConfig.Domain,
+	})
+
+	r.Mount("/", web_routers.Routes(sessioner))
+	r.Mount("/api/v1", apiv1.Routes(sessioner))
 	r.Mount("/api/internal", private.Routes())
 	return r
 }

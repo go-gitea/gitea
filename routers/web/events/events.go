@@ -9,14 +9,15 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/user"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Events listens for events
@@ -93,7 +94,7 @@ loop:
 			go unregister()
 			break loop
 		case <-stopwatchTimer.C:
-			sws, err := models.GetUserStopwatches(ctx.User.ID, models.ListOptions{})
+			sws, err := models.GetUserStopwatches(ctx.User.ID, db.ListOptions{})
 			if err != nil {
 				log.Error("Unable to GetUserStopwatches: %v", err)
 				continue
@@ -103,7 +104,6 @@ loop:
 				log.Error("Unable to APIFormat stopwatches: %v", err)
 				continue
 			}
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			dataBs, err := json.Marshal(apiSWs)
 			if err != nil {
 				log.Error("Unable to marshal stopwatches: %v", err)

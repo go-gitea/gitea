@@ -615,6 +615,23 @@
         }
       }
     },
+    "/nodeinfo": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns the nodeinfo of the Gitea application",
+        "operationId": "getNodeInfo",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NodeInfo"
+          }
+        }
+      }
+    },
     "/notifications": {
       "get": {
         "consumes": [
@@ -739,7 +756,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -822,7 +839,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThread"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1937,6 +1954,18 @@
             "type": "boolean",
             "description": "filter pulls requesting your review, default is false",
             "name": "review_requested",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by owner",
+            "name": "owner",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by team (requires organization owner parameter to be provided)",
+            "name": "team",
             "in": "query"
           },
           {
@@ -3569,6 +3598,106 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}.{diffType}": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a commit's diff or patch",
+        "operationId": "repoDownloadCommitDiffOrPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to get",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/notes/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a note corresponding to a single commit from a repository",
+        "operationId": "repoGetNote",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "a git ref or commit sha",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Note"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -4276,32 +4405,32 @@
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) created to",
+            "description": "Only show items which were created by the the given user",
             "name": "created_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) assigned to",
+            "description": "Only show items for which the given user is assigned",
             "name": "assigned_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) mentioning to",
+            "description": "Only show items in which the given user was mentioned",
             "name": "mentioned_by",
             "in": "query"
           },
@@ -7456,7 +7585,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -7701,7 +7830,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}.diff": {
+    "/repos/{owner}/{repo}/pulls/{index}.{diffType}": {
       "get": {
         "produces": [
           "text/plain"
@@ -7709,8 +7838,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a pull request diff",
-        "operationId": "repoDownloadPullDiff",
+        "summary": "Get a pull request diff or patch",
+        "operationId": "repoDownloadPullDiffOrPatch",
         "parameters": [
           {
             "type": "string",
@@ -7733,6 +7862,23 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "boolean",
+            "description": "whether to include binary file changes. if true, the diff is applicable with `git apply`",
+            "name": "binary",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7745,16 +7891,16 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}.patch": {
+    "/repos/{owner}/{repo}/pulls/{index}/commits": {
       "get": {
         "produces": [
-          "text/plain"
+          "application/json"
         ],
         "tags": [
           "repository"
         ],
-        "summary": "Get a pull request patch file",
-        "operationId": "repoDownloadPullPatch",
+        "summary": "Get commits for a pull request",
+        "operationId": "repoGetPullRequestCommits",
         "parameters": [
           {
             "type": "string",
@@ -7777,11 +7923,23 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "$ref": "#/responses/string"
+            "$ref": "#/responses/CommitList"
           },
           "404": {
             "$ref": "#/responses/notFound"
@@ -8470,6 +8628,16 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "merge",
+              "rebase"
+            ],
+            "type": "string",
+            "description": "how to update pull request",
+            "name": "style",
+            "in": "query"
           }
         ],
         "responses": {
@@ -10051,7 +10219,7 @@
           "repository"
         ],
         "summary": "Add a topic to a repository",
-        "operationId": "repoAddTopíc",
+        "operationId": "repoAddTopic",
         "parameters": [
           {
             "type": "string",
@@ -10170,6 +10338,61 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{template_owner}/{template_repo}/generate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a repository using a template",
+        "operationId": "generateRepo",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "name of the template repository owner",
+            "name": "template_owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the template repository",
+            "name": "template_repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/GenerateRepoOption"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Repository"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "409": {
+            "description": "The repository with the same name already exists."
           },
           "422": {
             "$ref": "#/responses/validationError"
@@ -11059,6 +11282,52 @@
         }
       }
     },
+    "/user/gpg_key_token": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a Token to verify",
+        "operationId": "getVerificationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/gpg_key_verify": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Verify a GPG key",
+        "operationId": "userVerifyGPGKey",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/GPGKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/user/gpg_keys": {
       "get": {
         "produces": [
@@ -11351,7 +11620,7 @@
         "tags": [
           "user"
         ],
-        "summary": "List the repos that the authenticated user owns or has access to",
+        "summary": "List the repos that the authenticated user owns",
         "operationId": "userCurrentListRepos",
         "parameters": [
           {
@@ -12216,18 +12485,10 @@
             "required": true
           },
           {
-            "name": "accessToken",
+            "name": "userCreateToken",
             "in": "body",
             "schema": {
-              "type": "object",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/CreateAccessTokenOption"
             }
           }
         ],
@@ -12626,6 +12887,10 @@
           },
           "x-go-name": "StatusCheckContexts"
         },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -12960,6 +13225,17 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateAccessTokenOption": {
+      "description": "CreateAccessTokenOption options when create access token",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateBranchProtectionOption": {
       "description": "CreateBranchProtectionOption options for creating a branch protection",
       "type": "object",
@@ -13069,6 +13345,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13178,6 +13458,10 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "ArmoredKey"
+        },
+        "armored_signature": {
+          "type": "string",
+          "x-go-name": "Signature"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -13219,7 +13503,8 @@
             "msteams",
             "slack",
             "telegram",
-            "feishu"
+            "feishu",
+            "wechatwork"
           ],
           "x-go-name": "Type"
         }
@@ -14066,6 +14351,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14409,6 +14698,11 @@
           "description": "sets the default branch for this repository.",
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_delete_branch_after_merge": {
+          "description": "set to `true` to delete pr branch after merge by default",
+          "type": "boolean",
+          "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
           "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
@@ -14831,6 +15125,10 @@
             "$ref": "#/definitions/GPGKey"
           },
           "x-go-name": "SubsKey"
+        },
+        "verified": {
+          "type": "boolean",
+          "x-go-name": "Verified"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14944,9 +15242,78 @@
           },
           "x-go-name": "AllowedReactions"
         },
+        "custom_emojis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "CustomEmojis"
+        },
         "default_theme": {
           "type": "string",
           "x-go-name": "DefaultTheme"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "GenerateRepoOption": {
+      "description": "GenerateRepoOption options when creating repository using a template",
+      "type": "object",
+      "required": [
+        "owner",
+        "name"
+      ],
+      "properties": {
+        "avatar": {
+          "description": "include avatar of the template repo",
+          "type": "boolean",
+          "x-go-name": "Avatar"
+        },
+        "description": {
+          "description": "Description of the repository to create",
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "git_content": {
+          "description": "include git content of default branch in template repo",
+          "type": "boolean",
+          "x-go-name": "GitContent"
+        },
+        "git_hooks": {
+          "description": "include git hooks in template repo",
+          "type": "boolean",
+          "x-go-name": "GitHooks"
+        },
+        "labels": {
+          "description": "include labels in template repo",
+          "type": "boolean",
+          "x-go-name": "Labels"
+        },
+        "name": {
+          "description": "Name of the repository to create",
+          "type": "string",
+          "uniqueItems": true,
+          "x-go-name": "Name"
+        },
+        "owner": {
+          "description": "The organization or person who will own the new repository",
+          "type": "string",
+          "x-go-name": "Owner"
+        },
+        "private": {
+          "description": "Whether the repository is private",
+          "type": "boolean",
+          "x-go-name": "Private"
+        },
+        "topics": {
+          "description": "include topics in template repo",
+          "type": "boolean",
+          "x-go-name": "Topics"
+        },
+        "webhooks": {
+          "description": "include webhooks in template repo",
+          "type": "boolean",
+          "x-go-name": "Webhooks"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15427,6 +15794,10 @@
         "MergeTitleField": {
           "type": "string"
         },
+        "delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DeleteBranchAfterMerge"
+        },
         "force_merge": {
           "type": "boolean",
           "x-go-name": "ForceMerge"
@@ -15676,6 +16047,141 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NodeInfo": {
+      "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "type": "object",
+          "x-go-name": "Metadata"
+        },
+        "openRegistrations": {
+          "type": "boolean",
+          "x-go-name": "OpenRegistrations"
+        },
+        "protocols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Protocols"
+        },
+        "services": {
+          "$ref": "#/definitions/NodeInfoServices"
+        },
+        "software": {
+          "$ref": "#/definitions/NodeInfoSoftware"
+        },
+        "usage": {
+          "$ref": "#/definitions/NodeInfoUsage"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoServices": {
+      "description": "NodeInfoServices contains the third party sites this server can connect to via their application API",
+      "type": "object",
+      "properties": {
+        "inbound": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Inbound"
+        },
+        "outbound": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Outbound"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoSoftware": {
+      "description": "NodeInfoSoftware contains Metadata about server software in use",
+      "type": "object",
+      "properties": {
+        "homepage": {
+          "type": "string",
+          "x-go-name": "Homepage"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "repository": {
+          "type": "string",
+          "x-go-name": "Repository"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoUsage": {
+      "description": "NodeInfoUsage contains usage statistics for this server",
+      "type": "object",
+      "properties": {
+        "localComments": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LocalComments"
+        },
+        "localPosts": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LocalPosts"
+        },
+        "users": {
+          "$ref": "#/definitions/NodeInfoUsageUsers"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoUsageUsers": {
+      "description": "NodeInfoUsageUsers contains statistics about the users of this server",
+      "type": "object",
+      "properties": {
+        "activeHalfyear": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActiveHalfyear"
+        },
+        "activeMonth": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActiveMonth"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Total"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Note": {
+      "description": "Note contains information related to a git note",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/Commit"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NotificationCount": {
       "description": "NotificationCount number of unread notifications",
       "type": "object",
@@ -15692,6 +16198,14 @@
       "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
       "type": "object",
       "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "latest_comment_html_url": {
+          "type": "string",
+          "x-go-name": "LatestCommentHTMLURL"
+        },
         "latest_comment_url": {
           "type": "string",
           "x-go-name": "LatestCommentURL"
@@ -15704,8 +16218,7 @@
           "x-go-name": "Title"
         },
         "type": {
-          "type": "string",
-          "x-go-name": "Type"
+          "$ref": "#/definitions/NotifySubjectType"
         },
         "url": {
           "type": "string",
@@ -15747,6 +16260,11 @@
           "x-go-name": "URL"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NotifySubjectType": {
+      "description": "NotifySubjectType represent type of notification subject",
+      "type": "string",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "OAuth2Application": {
@@ -17267,20 +17785,8 @@
   "responses": {
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
-      "headers": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "name": {
-          "type": "string"
-        },
-        "sha1": {
-          "type": "string"
-        },
-        "token_last_eight": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/AccessToken"
       }
     },
     "AccessTokenList": {
@@ -17641,6 +18147,18 @@
         "items": {
           "$ref": "#/definitions/Milestone"
         }
+      }
+    },
+    "NodeInfo": {
+      "description": "NodeInfo",
+      "schema": {
+        "$ref": "#/definitions/NodeInfo"
+      }
+    },
+    "Note": {
+      "description": "Note",
+      "schema": {
+        "$ref": "#/definitions/Note"
       }
     },
     "NotificationCount": {

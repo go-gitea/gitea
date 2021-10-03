@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,10 +26,10 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
-	return u.generateRandomAvatar(x)
+	return u.generateRandomAvatar(db.GetEngine(db.DefaultContext))
 }
 
-func (u *User) generateRandomAvatar(e Engine) error {
+func (u *User) generateRandomAvatar(e db.Engine) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -124,7 +125,7 @@ func (u *User) UploadAvatar(data []byte) error {
 		return err
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -152,6 +153,15 @@ func (u *User) UploadAvatar(data []byte) error {
 	return sess.Commit()
 }
 
+// IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data
+func (u *User) IsUploadAvatarChanged(data []byte) bool {
+	if !u.UseCustomAvatar || len(u.Avatar) == 0 {
+		return true
+	}
+	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	return u.Avatar != avatarID
+}
+
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
 	aPath := u.CustomAvatarRelativePath()
@@ -164,7 +174,7 @@ func (u *User) DeleteAvatar() error {
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
-	if _, err := x.ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil

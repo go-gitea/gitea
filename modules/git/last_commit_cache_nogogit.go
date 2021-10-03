@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -94,7 +95,8 @@ func (c *LastCommitCache) recursiveCache(ctx context.Context, commit *Commit, tr
 		if err := c.Put(commit.ID.String(), path.Join(treePath, entry), entryCommit.ID.String()); err != nil {
 			return err
 		}
-		if entryMap[entry].IsDir() {
+		// entryMap won't contain "" therefore skip this.
+		if treeEntry := entryMap[entry]; treeEntry != nil && treeEntry.IsDir() {
 			subTree, err := tree.SubTree(entry)
 			if err != nil {
 				return err

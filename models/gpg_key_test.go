@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -192,9 +193,9 @@ Unknown GPG key with good email
 }
 
 func TestCheckGPGUserEmail(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	_ = AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	_ = db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
 	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
@@ -227,7 +228,7 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 =zHo9
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	keys, err := AddGPGKey(1, testEmailWithUpperCaseLetters)
+	keys, err := AddGPGKey(1, testEmailWithUpperCaseLetters, "", "")
 	assert.NoError(t, err)
 	if assert.NotEmpty(t, keys) {
 		key := keys[0]

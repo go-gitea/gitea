@@ -215,6 +215,17 @@ func (f *AccessTokenForm) Validate(req *http.Request, errs binding.Errors) bindi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// IntrospectTokenForm for introspecting tokens
+type IntrospectTokenForm struct {
+	Token string `json:"token"`
+}
+
+// Validate validates the fields
+func (f *IntrospectTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 //   __________________________________________.___ _______    ________  _________
 //  /   _____/\_   _____/\__    ___/\__    ___/|   |\      \  /  _____/ /   _____/
 //  \_____  \  |    __)_   |    |     |    |   |   |/   |   \/   \  ___ \_____  \
@@ -326,6 +337,8 @@ type AddKeyForm struct {
 	Type       string `binding:"OmitEmpty"`
 	Title      string `binding:"Required;MaxSize(50)"`
 	Content    string `binding:"Required"`
+	Signature  string `binding:"OmitEmpty"`
+	KeyID      string `binding:"OmitEmpty"`
 	IsWritable bool
 }
 

@@ -5,10 +5,12 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -54,7 +56,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 	var rollbackRepo *models.Repository
 
-	if err := models.WithTx(func(ctx models.DBContext) error {
+	if err := db.WithTx(func(ctx context.Context) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}

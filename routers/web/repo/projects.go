@@ -46,11 +46,11 @@ func MustEnableProjects(ctx *context.Context) {
 func Projects(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
-	sortType := ctx.QueryTrim("sort")
+	sortType := ctx.FormTrim("sort")
 
-	isShowClosed := strings.ToLower(ctx.QueryTrim("state")) == "closed"
+	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 	repo := ctx.Repo.Repository
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -82,6 +82,7 @@ func Projects(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -324,6 +325,7 @@ func ViewProject(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -346,7 +348,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectID := ctx.QueryInt64("id")
+	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		oldProjectID := issue.ProjectID()
 		if oldProjectID == projectID {
@@ -442,6 +444,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	if err := models.NewProjectBoard(&models.ProjectBoard{
 		ProjectID: project.ID,
 		Title:     form.Title,
+		Color:     form.Color,
 		CreatorID: ctx.User.ID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
@@ -510,6 +513,8 @@ func EditProjectBoard(ctx *context.Context) {
 	if form.Title != "" {
 		board.Title = form.Title
 	}
+
+	board.Color = form.Color
 
 	if form.Sorting != 0 {
 		board.Sorting = form.Sorting

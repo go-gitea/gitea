@@ -22,12 +22,16 @@ type Collector struct {
 	Follows       *prometheus.Desc
 	HookTasks     *prometheus.Desc
 	Issues        *prometheus.Desc
+	IssuesOpen    *prometheus.Desc
+	IssuesClosed  *prometheus.Desc
 	Labels        *prometheus.Desc
 	LoginSources  *prometheus.Desc
 	Milestones    *prometheus.Desc
 	Mirrors       *prometheus.Desc
 	Oauths        *prometheus.Desc
 	Organizations *prometheus.Desc
+	Projects      *prometheus.Desc
+	ProjectBoards *prometheus.Desc
 	PublicKeys    *prometheus.Desc
 	Releases      *prometheus.Desc
 	Repositories  *prometheus.Desc
@@ -77,6 +81,16 @@ func NewCollector() Collector {
 			"Number of Issues",
 			nil, nil,
 		),
+		IssuesOpen: prometheus.NewDesc(
+			namespace+"issues_open",
+			"Number of open Issues",
+			nil, nil,
+		),
+		IssuesClosed: prometheus.NewDesc(
+			namespace+"issues_closed",
+			"Number of closed Issues",
+			nil, nil,
+		),
 		Labels: prometheus.NewDesc(
 			namespace+"labels",
 			"Number of Labels",
@@ -105,6 +119,16 @@ func NewCollector() Collector {
 		Organizations: prometheus.NewDesc(
 			namespace+"organizations",
 			"Number of Organizations",
+			nil, nil,
+		),
+		Projects: prometheus.NewDesc(
+			namespace+"projects",
+			"Number of projects",
+			nil, nil,
+		),
+		ProjectBoards: prometheus.NewDesc(
+			namespace+"projects_boards",
+			"Number of project boards",
 			nil, nil,
 		),
 		PublicKeys: prometheus.NewDesc(
@@ -165,12 +189,16 @@ func (c Collector) Describe(ch chan<- *prometheus.Desc) {
 	ch <- c.Follows
 	ch <- c.HookTasks
 	ch <- c.Issues
+	ch <- c.IssuesOpen
+	ch <- c.IssuesClosed
 	ch <- c.Labels
 	ch <- c.LoginSources
 	ch <- c.Milestones
 	ch <- c.Mirrors
 	ch <- c.Oauths
 	ch <- c.Organizations
+	ch <- c.Projects
+	ch <- c.ProjectBoards
 	ch <- c.PublicKeys
 	ch <- c.Releases
 	ch <- c.Repositories
@@ -222,6 +250,16 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		float64(stats.Counter.Issue),
 	)
 	ch <- prometheus.MustNewConstMetric(
+		c.IssuesClosed,
+		prometheus.GaugeValue,
+		float64(stats.Counter.IssueClosed),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.IssuesOpen,
+		prometheus.GaugeValue,
+		float64(stats.Counter.IssueOpen),
+	)
+	ch <- prometheus.MustNewConstMetric(
 		c.Labels,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Label),
@@ -250,6 +288,16 @@ func (c Collector) Collect(ch chan<- prometheus.Metric) {
 		c.Organizations,
 		prometheus.GaugeValue,
 		float64(stats.Counter.Org),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.Projects,
+		prometheus.GaugeValue,
+		float64(stats.Counter.Project),
+	)
+	ch <- prometheus.MustNewConstMetric(
+		c.ProjectBoards,
+		prometheus.GaugeValue,
+		float64(stats.Counter.ProjectBoard),
 	)
 	ch <- prometheus.MustNewConstMetric(
 		c.PublicKeys,

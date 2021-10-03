@@ -11,7 +11,6 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
@@ -19,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
 )
 
@@ -335,6 +336,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					ctx.Data["MarkupType"] = string(markupType)
 					var result strings.Builder
 					err := markup.Render(&markup.RenderContext{
+						Ctx:       ctx,
 						Filename:  readmeFile.name,
 						URLPrefix: readmeTreelink,
 						Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
@@ -342,7 +344,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}, rd, &result)
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
-						bs, _ := ioutil.ReadAll(rd)
+						bs, _ := io.ReadAll(rd)
 						ctx.Data["FileContent"] = strings.ReplaceAll(
 							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
 						)
@@ -351,6 +353,10 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
+					buf, err = io.ReadAll(rd)
+					if err != nil {
+						log.Error("ReadAll failed: %v", err)
+					}
 					ctx.Data["FileContent"] = strings.ReplaceAll(
 						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 					)
@@ -372,7 +378,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 
 	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -414,7 +420,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	isTextFile := st.IsText()
 
 	isLFSFile := false
-	isDisplayingSource := ctx.Query("display") == "source"
+	isDisplayingSource := ctx.FormString("display") == "source"
 	isDisplayingRendered := !isDisplayingSource
 
 	//Check for LFS meta file
@@ -510,6 +516,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
 			err := markup.Render(&markup.RenderContext{
+				Ctx:       ctx,
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
@@ -521,13 +528,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			ctx.Data["FileContent"] = result.String()
 		} else if readmeExist {
-			buf, _ := ioutil.ReadAll(rd)
+			buf, _ := io.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
 		} else {
-			buf, _ := ioutil.ReadAll(rd)
+			buf, _ := io.ReadAll(rd)
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
@@ -569,6 +576,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
 			err := markup.Render(&markup.RenderContext{
+				Ctx:       ctx,
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
@@ -624,6 +632,7 @@ func Home(ctx *context.Context) {
 			ctx.Data["Repo"] = ctx.Repo
 			ctx.Data["MigrateTask"] = task
 			ctx.Data["CloneAddr"] = safeURL(cfg.CloneAddr)
+			ctx.Data["Failed"] = task.Status == structs.TaskStatusFailed
 			ctx.HTML(http.StatusOK, tplMigrating)
 			return
 		}
@@ -669,7 +678,7 @@ func renderLanguageStats(ctx *context.Context) {
 }
 
 func renderRepoTopics(ctx *context.Context) {
-	topics, err := models.FindTopics(&models.FindTopicOptions{
+	topics, _, err := models.FindTopics(&models.FindTopicOptions{
 		RepoID: ctx.Repo.Repository.ID,
 	})
 	if err != nil {
@@ -749,16 +758,16 @@ func renderCode(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplRepoHome)
 }
 
-// RenderUserCards render a page show users according the input templaet
-func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
-	page := ctx.QueryInt("page")
+// RenderUserCards render a page show users according the input template
+func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOptions) ([]*models.User, error), tpl base.TplName) {
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(models.ListOptions{
+	items, err := getter(db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})
@@ -793,7 +802,7 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
 	// TODO: need pagination
-	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
+	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return

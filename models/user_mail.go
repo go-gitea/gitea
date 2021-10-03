@@ -10,6 +10,7 @@ import (
 	"net/mail"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -26,6 +27,10 @@ type EmailAddress struct {
 	LowerEmail  string `xorm:"UNIQUE NOT NULL"`
 	IsActivated bool
 	IsPrimary   bool `xorm:"DEFAULT(false) NOT NULL"`
+}
+
+func init() {
+	db.RegisterModel(new(EmailAddress))
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -53,7 +58,7 @@ func ValidateEmail(email string) error {
 // GetEmailAddresses returns all email addresses belongs to given user.
 func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
-	if err := x.
+	if err := db.GetEngine(db.DefaultContext).
 		Where("uid=?", uid).
 		Asc("id").
 		Find(&emails); err != nil {
@@ -66,7 +71,7 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
 	// User ID is required for security reasons
 	email := &EmailAddress{UID: uid}
-	if has, err := x.ID(id).Get(email); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, nil
@@ -74,14 +79,15 @@ func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
 	return email, nil
 }
 
-func isEmailActive(e Engine, email string, userID, emailID int64) (bool, error) {
+// isEmailActive check if email is activated with a different emailID
+func isEmailActive(e db.Engine, email string, excludeEmailID int64) (bool, error) {
 	if len(email) == 0 {
 		return true, nil
 	}
 
 	// Can't filter by boolean field unless it's explicit
 	cond := builder.NewCond()
-	cond = cond.And(builder.Eq{"lower_email": strings.ToLower(email)}, builder.Neq{"id": emailID})
+	cond = cond.And(builder.Eq{"lower_email": strings.ToLower(email)}, builder.Neq{"id": excludeEmailID})
 	if setting.Service.RegisterEmailConfirm {
 		// Inactive (unvalidated) addresses don't count as active if email validation is required
 		cond = cond.And(builder.Eq{"is_activated": true})
@@ -90,7 +96,7 @@ func isEmailActive(e Engine, email string, userID, emailID int64) (bool, error) 
 	var em EmailAddress
 	if has, err := e.Where(cond).Get(&em); has || err != nil {
 		if has {
-			log.Info("isEmailActive('%s',%d,%d) found duplicate in email ID %d", email, userID, emailID, em.ID)
+			log.Info("isEmailActive(%q, %d) found duplicate in email ID %d", email, excludeEmailID, em.ID)
 		}
 		return has, err
 	}
@@ -98,7 +104,7 @@ func isEmailActive(e Engine, email string, userID, emailID int64) (bool, error) 
 	return false, nil
 }
 
-func isEmailUsed(e Engine, email string) (bool, error) {
+func isEmailUsed(e db.Engine, email string) (bool, error) {
 	if len(email) == 0 {
 		return true, nil
 	}
@@ -108,10 +114,10 @@ func isEmailUsed(e Engine, email string) (bool, error) {
 
 // IsEmailUsed returns true if the email has been used.
 func IsEmailUsed(email string) (bool, error) {
-	return isEmailUsed(x, email)
+	return isEmailUsed(db.GetEngine(db.DefaultContext), email)
 }
 
-func addEmailAddress(e Engine, email *EmailAddress) error {
+func addEmailAddress(e db.Engine, email *EmailAddress) error {
 	email.Email = strings.TrimSpace(email.Email)
 	used, err := isEmailUsed(e, email.Email)
 	if err != nil {
@@ -130,7 +136,7 @@ func addEmailAddress(e Engine, email *EmailAddress) error {
 
 // AddEmailAddress adds an email address to given user.
 func AddEmailAddress(email *EmailAddress) error {
-	return addEmailAddress(x, email)
+	return addEmailAddress(db.GetEngine(db.DefaultContext), email)
 }
 
 // AddEmailAddresses adds an email address to given user.
@@ -153,7 +159,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 		}
 	}
 
-	if _, err := x.Insert(emails); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).Insert(emails); err != nil {
 		return fmt.Errorf("Insert: %v", err)
 	}
 
@@ -162,7 +168,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 
 // Activate activates the email address to given user.
 func (email *EmailAddress) Activate() error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -173,7 +179,7 @@ func (email *EmailAddress) Activate() error {
 	return sess.Commit()
 }
 
-func (email *EmailAddress) updateActivation(e Engine, activate bool) error {
+func (email *EmailAddress) updateActivation(e db.Engine, activate bool) error {
 	user, err := getUserByID(e, email.UID)
 	if err != nil {
 		return err
@@ -200,12 +206,12 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 		UID: email.UID,
 	}
 	if email.ID > 0 {
-		deleted, err = x.ID(email.ID).Delete(&address)
+		deleted, err = db.GetEngine(db.DefaultContext).ID(email.ID).Delete(&address)
 	} else {
 		if email.Email != "" && email.LowerEmail == "" {
 			email.LowerEmail = strings.ToLower(email.Email)
 		}
-		deleted, err = x.
+		deleted, err = db.GetEngine(db.DefaultContext).
 			Where("lower_email=?", email.LowerEmail).
 			Delete(&address)
 	}
@@ -231,7 +237,7 @@ func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 
 // MakeEmailPrimary sets primary email address of given user.
 func MakeEmailPrimary(email *EmailAddress) error {
-	has, err := x.Get(email)
+	has, err := db.GetEngine(db.DefaultContext).Get(email)
 	if err != nil {
 		return err
 	} else if !has {
@@ -243,14 +249,14 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	}
 
 	user := &User{}
-	has, err = x.ID(email.UID).Get(user)
+	has, err = db.GetEngine(db.DefaultContext).ID(email.UID).Get(user)
 	if err != nil {
 		return err
 	} else if !has {
 		return ErrUserNotExist{email.UID, "", 0}
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -269,7 +275,7 @@ func MakeEmailPrimary(email *EmailAddress) error {
 		return err
 	}
 
-	// 3. update new primay email
+	// 3. update new primary email
 	email.IsPrimary = true
 	if _, err = sess.ID(email.ID).Cols("is_primary").Update(email); err != nil {
 		return err
@@ -295,7 +301,7 @@ const (
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
 type SearchEmailOptions struct {
-	ListOptions
+	db.ListOptions
 	Keyword     string
 	SortType    SearchEmailOrderBy
 	IsPrimary   util.OptionalBool
@@ -316,7 +322,7 @@ type SearchEmailResult struct {
 // SearchEmails takes options i.e. keyword and part of email name to search,
 // it returns results in given range and number of total results.
 func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
-	var cond builder.Cond = builder.Eq{"user.`type`": UserTypeIndividual}
+	var cond builder.Cond = builder.Eq{"`user`.`type`": UserTypeIndividual}
 	if len(opts.Keyword) > 0 {
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		cond = cond.And(builder.Or(
@@ -340,7 +346,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		cond = cond.And(builder.Eq{"email_address.is_activated": false})
 	}
 
-	count, err := x.Join("INNER", "`user`", "`user`.ID = email_address.uid").
+	count, err := db.GetEngine(db.DefaultContext).Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
@@ -351,10 +357,10 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		orderby = SearchEmailOrderByEmail.String()
 	}
 
-	opts.setDefaultValues()
+	opts.SetDefaultValues()
 
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
-	err = x.Table("email_address").
+	err = db.GetEngine(db.DefaultContext).Table("email_address").
 		Select("email_address.*, `user`.name, `user`.full_name").
 		Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).
@@ -366,9 +372,9 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 }
 
 // ActivateUserEmail will change the activated state of an email address,
-// either primary (in the user table) or secondary (in the email_address table)
-func ActivateUserEmail(userID int64, email string, primary, activate bool) (err error) {
-	sess := x.NewSession()
+// either primary or secondary (all in the email_address table)
+func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -387,34 +393,33 @@ func ActivateUserEmail(userID int64, email string, primary, activate bool) (err 
 		return nil
 	}
 	if activate {
-		if used, err := isEmailActive(sess, email, 0, addr.ID); err != nil {
-			return fmt.Errorf("isEmailActive(): %v", err)
+		if used, err := isEmailActive(sess, email, addr.ID); err != nil {
+			return fmt.Errorf("unable to check isEmailActive() for %s: %v", email, err)
 		} else if used {
 			return ErrEmailAlreadyUsed{Email: email}
 		}
 	}
 	if err = addr.updateActivation(sess, activate); err != nil {
-		return fmt.Errorf("updateActivation(): %v", err)
+		return fmt.Errorf("unable to updateActivation() for %d:%s: %w", addr.ID, addr.Email, err)
 	}
 
-	if primary {
-		// Activate/deactivate a user's primary email address
+	// Activate/deactivate a user's primary email address and account
+	if addr.IsPrimary {
 		user := User{ID: userID, Email: email}
 		if has, err := sess.Get(&user); err != nil {
 			return err
 		} else if !has {
-			return fmt.Errorf("no such user: %d (%s)", userID, email)
+			return fmt.Errorf("no user with ID: %d and Email: %s", userID, email)
 		}
-		if user.IsActive == activate {
-			// Already in the desired state; no action
-			return nil
-		}
-		user.IsActive = activate
-		if user.Rands, err = GetUserSalt(); err != nil {
-			return fmt.Errorf("generate salt: %v", err)
-		}
-		if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
-			return fmt.Errorf("updateUserCols(): %v", err)
+		// The user's activation state should be synchronized with the primary email
+		if user.IsActive != activate {
+			user.IsActive = activate
+			if user.Rands, err = GetUserSalt(); err != nil {
+				return fmt.Errorf("unable to generate salt: %v", err)
+			}
+			if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
+				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %v", userID, err)
+			}
 		}
 	}
 

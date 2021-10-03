@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -42,7 +43,7 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(e Engine) error {
+func (repos RepositoryList) loadAttributes(e db.Engine) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -89,13 +90,13 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // MirrorRepositoryList contains the mirror repositories
 type MirrorRepositoryList []*Repository
 
-func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
+func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -129,12 +130,12 @@ func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
 
 // LoadAttributes loads the attributes for the given MirrorRepositoryList
 func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	ListOptions
+	db.ListOptions
 	Actor           *User
 	Keyword         string
 	OwnerID         int64
@@ -148,11 +149,11 @@ type SearchRepoOptions struct {
 	AllLimited      bool // Include also all public repositories of limited organisations
 	// None -> include public and private
 	// True -> include just private
-	// False -> incude just public
+	// False -> include just public
 	IsPrivate util.OptionalBool
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
-	// False -> incude just non-collaborative
+	// False -> include just non-collaborative
 	Collaborate util.OptionalBool
 	// None -> include forks AND non-forks
 	// True -> include just forks
@@ -217,16 +218,14 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			cond = cond.And(accessibleRepositoryCondition(opts.Actor))
 		}
 	} else {
-		// Not looking at private organisations
+		// Not looking at private organisations and users
 		// We should be able to see all non-private repositories that
 		// isn't in a private or limited organisation.
 		cond = cond.And(
 			builder.Eq{"is_private": false},
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
-				builder.And(
-					builder.Eq{"type": UserTypeOrganization},
-					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-				))))
+				builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+			)))
 	}
 
 	if opts.IsPrivate != util.OptionalBoolNone {
@@ -411,7 +410,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -521,7 +520,7 @@ func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
 func FindUserAccessibleRepoIDs(user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	if err := x.
+	if err := db.GetEngine(db.DefaultContext).
 		Table("repository").
 		Cols("id").
 		Where(accessibleRepositoryCondition(user)).

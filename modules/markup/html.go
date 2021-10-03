@@ -6,14 +6,13 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -66,14 +65,11 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`:[\w\+\-]+:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
-
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
 
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
@@ -89,12 +85,17 @@ func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
-// FIXME: This function is not concurrent safe
+// regexp for full links to issues/pulls
+var issueFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var issueFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
+	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
 			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
+	})
 	return issueFullPattern
 }
 
@@ -275,7 +276,7 @@ func RenderDescriptionHTML(
 }
 
 // RenderEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown procesor
+// in various places it isn't already run through the normal markdown processor
 func RenderEmoji(
 	content string,
 ) (string, error) {
@@ -288,7 +289,7 @@ var nulCleaner = strings.NewReplacer("\000", "")
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
 	// FIXME: don't read all content to memory
-	rawHTML, err := ioutil.ReadAll(input)
+	rawHTML, err := io.ReadAll(input)
 	if err != nil {
 		return err
 	}
@@ -365,7 +366,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 		}
 	case html.ElementNode:
 		if node.Data == "img" {
-			for _, attr := range node.Attr {
+			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
@@ -378,6 +379,7 @@ func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
+				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
 			visitText = false
@@ -460,17 +462,14 @@ func createEmoji(content, class, name string) *html.Node {
 	return span
 }
 
-func createCustomEmoji(alias, class string) *html.Node {
-
+func createCustomEmoji(alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
-	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: "emoji"})
+	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
 		Type:     html.ElementNode,
@@ -478,10 +477,8 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Data:     "img",
 		Attr:     []html.Attribute{},
 	}
-	if class != "" {
-		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
-		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/assets/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
-	}
+	img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: ":" + alias + ":"})
+	img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: setting.StaticURLPrefix + "/assets/img/emoji/" + alias + ".png"})
 
 	span.AppendChild(img)
 	return span
@@ -783,7 +780,7 @@ func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// extract repo and org name from matched link like
 		// http://localhost:3000/gituser/myrepo/issues/1
-		linkParts := strings.Split(path.Clean(link), "/")
+		linkParts := strings.Split(link, "/")
 		matchOrg := linkParts[len(linkParts)-4]
 		matchRepo := linkParts[len(linkParts)-3]
 
@@ -832,7 +829,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 		if exttrack && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
-			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue")
+			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -948,9 +945,8 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 		converted := emoji.FromAlias(alias)
 		if converted == nil {
 			// check if this is a custom reaction
-			s := strings.Join(setting.UI.Reactions, " ") + "gitea"
-			if strings.Contains(s, alias) {
-				replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
+				replaceContent(node, m[0], m[1], createCustomEmoji(alias))
 				node = node.NextSibling.NextSibling
 				start = 0
 				continue

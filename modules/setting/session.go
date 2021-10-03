@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var (
-	// SessionConfig difines Session settings
+	// SessionConfig defines Session settings
 	SessionConfig = struct {
 		Provider string
 		// Provider configuration, it's corresponding to provider.
@@ -65,8 +65,6 @@ func newSessionService() {
 	default:
 		SessionConfig.SameSite = http.SameSiteLaxMode
 	}
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	shadowConfig, err := json.Marshal(SessionConfig)
 	if err != nil {
 		log.Fatal("Can't shadow session config: %v", err)
