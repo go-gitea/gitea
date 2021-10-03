@@ -501,6 +501,14 @@ type EditProjectBoardForm struct {
 	Sorting int8
 }
 
+// MoveProjectIssuesForm is a form for moving and sorting project-issues in a column
+type MoveProjectIssuesForm struct {
+	Issues map[string]struct {
+		IssueID int64 `binding:"Required"`
+		Sorting int64 `binding:"Required"`
+	} `binding:"Required"`
+}
+
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \

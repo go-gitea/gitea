@@ -544,9 +544,8 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 	})
 }
 
-// MoveIssueAcrossBoards move a card from one board to another in a project
-func MoveIssueAcrossBoards(ctx *context.Context) {
-
+// MoveIssues moves or keeps issuses in a column and sorts them inside of that column
+func MoveIssues(ctx *context.Context) {
 	if ctx.User == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -602,19 +601,29 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		}
 	}
 
-	issue, err := models.GetIssueByID(ctx.ParamsInt64(":issueID"))
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("", nil)
-		} else {
-			ctx.ServerError("GetIssueByID", err)
+	form := web.GetForm(ctx).(*forms.MoveProjectIssuesForm)
+
+	issues := make(map[int64]*models.Issue)
+	for _, i := range form.Issues {
+		issue, err := models.GetIssueByID(i.IssueID)
+		if err != nil {
+			if models.IsErrIssueNotExist(err) {
+				ctx.NotFound("", nil)
+			} else {
+				ctx.ServerError("GetIssueByID", err)
+			}
+
+			return
 		}
 
-		return
+		issues[i.Sorting] = issue
 	}
 
-	if err := models.MoveIssueAcrossProjectBoards(issue, board, ctx.ParamsInt64(":sorting")); err != nil {
-		ctx.ServerError("MoveIssueAcrossProjectBoards", err)
+	// TODO: fix form is always empty
+	fmt.Println("uff", issues, form)
+
+	if err := models.MoveIssuesOnProjectBoard(board, issues); err != nil {
+		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
 

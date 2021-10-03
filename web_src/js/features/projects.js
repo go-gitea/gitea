@@ -37,21 +37,27 @@ export default async function initProject() {
   );
 
   const moveIssue = (e) => {
-    const boardCards = e.to.getElementsByClassName('board-card');
+    const columnCards = e.to.getElementsByClassName('board-card');
 
-    boardCards.forEach((card, i) => {
-      const id = $(card).data('issue');
-      $.ajax(`${e.to.dataset.url}/${id}/${i}`, {
-        headers: {
-          'X-Csrf-Token': csrf,
-          'X-Remote': true,
-        },
-        contentType: 'application/json',
-        type: 'POST',
-        error: () => {
-          e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
-        },
-      });
+    const columnSorting = {
+      issues: [...columnCards].map((card, i) => ({
+        issueID: $(card).data('issue'),
+        sorting: i,
+      })),
+    };
+
+    $.ajax({
+      url: `${e.to.dataset.url}/move`,
+      data: JSON.stringify(columnSorting),
+      headers: {
+        'X-Csrf-Token': csrf,
+        'X-Remote': true,
+      },
+      contentType: 'application/json',
+      type: 'POST',
+      error: () => {
+        e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
+      },
     });
   };
 

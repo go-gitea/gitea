@@ -182,28 +182,30 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 // |_|   |_|  \___// |\___|\___|\__|____/ \___/ \__,_|_|  \__,_|
 //               |__/
 
-// MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard, sorting int64) error {
+// MoveIssuesOnProjectBoard moves or keeps issuses in a column and sorts them inside of that column
+func MoveIssuesOnProjectBoard(board *ProjectBoard, issues map[int64]*Issue) error {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	var pis ProjectIssue
-	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
-	if err != nil {
-		return err
-	}
+	for sorting, issue := range issues {
+		var pis ProjectIssue
+		has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
+		if err != nil {
+			return err
+		}
 
-	if !has {
-		return fmt.Errorf("issue has to be added to a project first")
-	}
+		if !has {
+			return fmt.Errorf("issue has to be added to a project first")
+		}
 
-	pis.ProjectBoardID = board.ID
-	pis.Sorting = sorting
-	if _, err := sess.ID(pis.ID).Cols("project_board_id").Cols("sorting").Update(&pis); err != nil {
-		return err
+		pis.ProjectBoardID = board.ID
+		pis.Sorting = sorting
+		if _, err := sess.ID(pis.ID).Cols("project_board_id").Cols("sorting").Update(&pis); err != nil {
+			return err
+		}
 	}
 
 	return sess.Commit()
