@@ -80,7 +80,7 @@ func settingExists(e db.Engine, uid int64, key string) (bool, error) {
 
 // DeleteUserSetting deletes a specific setting for a user
 func DeleteUserSetting(setting *UserSetting) error {
-	sess := db.GetEngine(db.DefaultContext).NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
