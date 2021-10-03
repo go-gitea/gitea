@@ -60,7 +60,7 @@ func GetTree(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "sha not provided")
 		return
 	}
-	if tree, err := repofiles.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.QueryInt("page"), ctx.QueryInt("per_page"), ctx.QueryBool("recursive")); err != nil {
+	if tree, err := repofiles.GetTreeBySHA(ctx.Repo.Repository, sha, ctx.FormInt("page"), ctx.FormInt("per_page"), ctx.FormBool("recursive")); err != nil {
 		ctx.Error(http.StatusBadRequest, "", err.Error())
 	} else {
 		ctx.JSON(http.StatusOK, tree)

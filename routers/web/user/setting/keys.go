@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -193,22 +194,22 @@ func KeysPost(ctx *context.Context) {
 // DeleteKey response for delete user's SSH/GPG key
 func DeleteKey(ctx *context.Context) {
 
-	switch ctx.Query("type") {
+	switch ctx.FormString("type") {
 	case "gpg":
-		if err := models.DeleteGPGKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		if err := models.DeleteGPGKey(ctx.User, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.gpg_key_deletion_success"))
 		}
 	case "ssh":
-		keyID := ctx.QueryInt64("id")
+		keyID := ctx.FormInt64("id")
 		external, err := models.PublicKeyIsExternallyManaged(keyID)
 		if err != nil {
 			ctx.ServerError("sshKeysExternalManaged", err)
 			return
 		}
 		if external {
-			ctx.Flash.Error(ctx.Tr("setting.ssh_externally_managed"))
+			ctx.Flash.Error(ctx.Tr("settings.ssh_externally_managed"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 			return
 		}
@@ -218,7 +219,7 @@ func DeleteKey(ctx *context.Context) {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_key_deletion_success"))
 		}
 	case "principal":
-		if err := models.DeletePublicKey(ctx.User, ctx.QueryInt64("id")); err != nil {
+		if err := models.DeletePublicKey(ctx.User, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeletePublicKey: " + err.Error())
 		} else {
 			ctx.Flash.Success(ctx.Tr("settings.ssh_principal_deletion_success"))
@@ -233,7 +234,7 @@ func DeleteKey(ctx *context.Context) {
 }
 
 func loadKeysData(ctx *context.Context) {
-	keys, err := models.ListPublicKeys(ctx.User.ID, models.ListOptions{})
+	keys, err := models.ListPublicKeys(ctx.User.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -247,7 +248,7 @@ func loadKeysData(ctx *context.Context) {
 	}
 	ctx.Data["ExternalKeys"] = externalKeys
 
-	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, models.ListOptions{})
+	gpgkeys, err := models.ListGPGKeys(ctx.User.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
@@ -258,12 +259,12 @@ func loadKeysData(ctx *context.Context) {
 	// generate a new aes cipher using the csrfToken
 	ctx.Data["TokenToSign"] = tokenToSign
 
-	principals, err := models.ListPrincipalKeys(ctx.User.ID, models.ListOptions{})
+	principals, err := models.ListPrincipalKeys(ctx.User.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPrincipalKeys", err)
 		return
 	}
 	ctx.Data["Principals"] = principals
 
-	ctx.Data["VerifyingID"] = ctx.Query("verify_gpg")
+	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
 }

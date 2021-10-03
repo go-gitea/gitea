@@ -1,8 +1,9 @@
-// +build bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build bindata
+// +build bindata
 
 package public
 
@@ -10,7 +11,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
@@ -30,7 +30,7 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {

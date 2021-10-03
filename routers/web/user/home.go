@@ -15,9 +15,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -26,7 +28,6 @@ import (
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
 	"xorm.io/builder"
@@ -49,7 +50,7 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetUserOrgsList(ctx.User.ID)
+	orgs, err := models.GetUserOrgsList(ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil
@@ -157,7 +158,7 @@ func Dashboard(ctx *context.Context) {
 		IncludePrivate:  true,
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
-		Date:            ctx.Query("date"),
+		Date:            ctx.FormString("date"),
 	})
 
 	if ctx.Written() {
@@ -200,11 +201,11 @@ func Milestones(ctx *context.Context) {
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
-		reposQuery   = ctx.Query("repos")
-		isShowClosed = ctx.Query("state") == "closed"
-		sortType     = ctx.Query("sort")
-		page         = ctx.QueryInt("page")
-		keyword      = strings.Trim(ctx.Query("q"), " ")
+		reposQuery   = ctx.FormString("repos")
+		isShowClosed = ctx.FormString("state") == "closed"
+		sortType     = ctx.FormString("sort")
+		page         = ctx.FormInt("page")
+		keyword      = ctx.FormTrim("q")
 	)
 
 	if page <= 1 {
@@ -272,6 +273,7 @@ func Milestones(ctx *context.Context) {
 		milestones[i].RenderedContent, err = markdown.RenderString(&markup.RenderContext{
 			URLPrefix: milestones[i].Repo.Link(),
 			Metas:     milestones[i].Repo.ComposeMetas(),
+			Ctx:       ctx,
 		}, milestones[i].Content)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -380,7 +382,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 
 	var (
 		viewType   string
-		sortType   = ctx.Query("sort")
+		sortType   = ctx.FormString("sort")
 		filterMode = models.FilterModeAll
 	)
 
@@ -390,14 +392,14 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// - Remember pre-determined viewType string for later. Will be posted to ctx.Data.
 	//   Organization does not have view type and filter mode.
 	// User:
-	// - Use ctx.Query("type") to determine filterMode.
+	// - Use ctx.FormString("type") to determine filterMode.
 	//  The type is set when clicking for example "assigned to me" on the overview page.
 	// - Remember either this or a fallback. Will be posted to ctx.Data.
 	// --------------------------------------------------------------------------------
 
 	// TODO: distinguish during routing
 
-	viewType = ctx.Query("type")
+	viewType = ctx.FormString("type")
 	switch viewType {
 	case "assigned":
 		filterMode = models.FilterModeAssign
@@ -456,7 +458,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// keyword holds the search term entered into the search field.
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := strings.Trim(ctx.FormString("q"), " ")
 	ctx.Data["Keyword"] = keyword
 
 	// Execute keyword search for issues.
@@ -477,7 +479,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Educated guess: Do or don't show closed issues.
-	isShowClosed := ctx.Query("state") == "closed"
+	isShowClosed := ctx.FormString("state") == "closed"
 	opts.IsClosed = util.OptionalBoolOf(isShowClosed)
 
 	// Filter repos and count issues in them. Count will be used later.
@@ -492,7 +494,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Make sure page number is at least 1. Will be posted to ctx.Data.
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -502,7 +504,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	// Get IDs for labels (a filter option for issues/pulls).
 	// Required for IssuesOptions.
 	var labelIDs []int64
-	selectedLabels := ctx.Query("labels")
+	selectedLabels := ctx.FormString("labels")
 	if len(selectedLabels) > 0 && selectedLabels != "0" {
 		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
 		if err != nil {
@@ -512,9 +514,9 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 	opts.LabelIDs = labelIDs
 
-	// Parse ctx.Query("repos") and remember matched repo IDs for later.
+	// Parse ctx.FormString("repos") and remember matched repo IDs for later.
 	// Gets set when clicking filters on the issues overview page.
-	repoIDs := getRepoIDs(ctx.Query("repos"))
+	repoIDs := getRepoIDs(ctx.FormString("repos"))
 	if len(repoIDs) > 0 {
 		opts.RepoIDs = repoIDs
 	}
@@ -658,7 +660,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	ctx.Data["IsShowClosed"] = isShowClosed
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
-		issue_service.GetRefEndNamesAndURLs(issues, ctx.Query("RepoLink"))
+		issue_service.GetRefEndNamesAndURLs(issues, ctx.FormString("RepoLink"))
 
 	ctx.Data["Issues"] = issues
 
@@ -703,7 +705,6 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	}
 
 	// Convert []int64 to string
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	reposParam, _ := json.Marshal(repoIDs)
 
 	ctx.Data["ReposParam"] = string(reposParam)
@@ -846,7 +847,7 @@ func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType 
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid, models.ListOptions{})
+	keys, err := models.ListPublicKeys(uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -862,7 +863,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid, models.ListOptions{})
+	keys, err := models.ListGPGKeys(uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return
@@ -901,7 +902,7 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 
 // Email2User show user page via email
 func Email2User(ctx *context.Context) {
-	u, err := models.GetUserByEmail(ctx.Query("email"))
+	u, err := models.GetUserByEmail(ctx.FormString("email"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound("GetUserByEmail", err)

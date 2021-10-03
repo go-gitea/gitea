@@ -87,13 +87,12 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
-	"gitea.com/go-chi/session"
 	"github.com/go-chi/cors"
 )
 
 func sudo() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
-		sudo := ctx.Query("sudo")
+		sudo := ctx.FormString("sudo")
 		if len(sudo) == 0 {
 			sudo = ctx.Req.Header.Get("Sudo")
 		}
@@ -547,20 +546,11 @@ func bind(obj interface{}) http.HandlerFunc {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
+func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	var m = web.NewRoute()
 
-	m.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	}))
+	m.Use(sessioner)
+
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
@@ -569,6 +559,7 @@ func Routes() *web.Route {
 			//setting.CORSConfig.AllowSubdomain // FIXME: the cors middleware needs allowSubdomain option
 			AllowedMethods:   setting.CORSConfig.Methods,
 			AllowCredentials: setting.CORSConfig.AllowCredentials,
+			AllowedHeaders:   []string{"Authorization", "X-CSRFToken", "X-Gitea-OTP"},
 			MaxAge:           int(setting.CORSConfig.MaxAge.Seconds()),
 		}))
 	}
@@ -589,6 +580,9 @@ func Routes() *web.Route {
 			})
 		}
 		m.Get("/version", misc.Version)
+		if setting.Federation.Enabled {
+			m.Get("/nodeinfo", misc.NodeInfo)
+		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
@@ -906,8 +900,7 @@ func Routes() *web.Route {
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
-						m.Get(".diff", repo.DownloadPullDiff)
-						m.Get(".patch", repo.DownloadPullPatch)
+						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
@@ -946,12 +939,14 @@ func Routes() *web.Route {
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
 						m.Get("/{sha}", repo.GetSingleCommit)
+						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
 					m.Get("/trees/{sha}", context.RepoRefForAPI, repo.GetTree)
 					m.Get("/blobs/{sha}", context.RepoRefForAPI, repo.GetBlob)
 					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
+					m.Get("/notes/{sha}", repo.GetNote)
 				}, reqRepoReader(models.UnitTypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)

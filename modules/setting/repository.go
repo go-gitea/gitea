@@ -41,7 +41,6 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
-		DisableMirrors                          bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
@@ -87,7 +86,8 @@ var (
 		} `ini:"repository.issue"`
 
 		Release struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -154,7 +154,6 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
-		DisableMirrors:                          false,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "master",
@@ -223,9 +222,11 @@ var (
 		},
 
 		Release: struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		}{
-			AllowedTypes: "",
+			AllowedTypes:     "",
+			DefaultPagingNum: 10,
 		},
 
 		// Signing settings

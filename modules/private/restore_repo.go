@@ -7,12 +7,12 @@ package private
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // RestoreParams structure holds a data for restore repository
@@ -30,7 +30,6 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req.SetTimeout(3*time.Second, 0) // since the request will spend much time, don't timeout
 	req = req.Header("Content-Type", "application/json")
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(RestoreParams{
 		RepoDir:   repoDir,
 		OwnerName: ownerName,
@@ -48,13 +47,14 @@ func RestoreRepo(ctx context.Context, repoDir, ownerName, repoName string, units
 		var ret = struct {
 			Err string `json:"err"`
 		}{}
-		body, err := ioutil.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return http.StatusInternalServerError, fmt.Sprintf("Response body error: %v", err.Error())
 		}
 		if err := json.Unmarshal(body, &ret); err != nil {
 			return http.StatusInternalServerError, fmt.Sprintf("Response body Unmarshal error: %v", err.Error())
 		}
+		return http.StatusInternalServerError, ret.Err
 	}
 
 	return http.StatusOK, fmt.Sprintf("Restore repo %s/%s successfully", ownerName, repoName)

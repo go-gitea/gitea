@@ -7,7 +7,6 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -28,7 +27,7 @@ import (
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 
-	tmpDir, err := ioutil.TempDir("", "key-file")
+	tmpDir, err := os.MkdirTemp("", "key-file")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 
@@ -39,7 +38,7 @@ func withKeyFile(t *testing.T, keyname string, callback func(string)) {
 	err = ssh.GenKeyPair(keyFile)
 	assert.NoError(t, err)
 
-	err = ioutil.WriteFile(path.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
+	err = os.WriteFile(path.Join(tmpDir, "ssh"), []byte("#!/bin/bash\n"+
 		"ssh -o \"UserKnownHostsFile=/dev/null\" -o \"StrictHostKeyChecking=no\" -o \"IdentitiesOnly=yes\" -i \""+keyFile+"\" \"$@\""), 0700)
 	assert.NoError(t, err)
 
@@ -125,7 +124,7 @@ func doGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 
 func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		tmpDir, err := ioutil.TempDir("", "doGitCloneFail")
+		tmpDir, err := os.MkdirTemp("", "doGitCloneFail")
 		assert.NoError(t, err)
 		defer util.RemoveAll(tmpDir)
 		assert.Error(t, git.Clone(u.String(), tmpDir, git.CloneRepoOptions{}))
@@ -139,7 +138,7 @@ func doGitInitTestRepository(dstPath string) func(*testing.T) {
 	return func(t *testing.T) {
 		// Init repository in dstPath
 		assert.NoError(t, git.InitRepository(dstPath, false))
-		assert.NoError(t, ioutil.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
+		assert.NoError(t, os.WriteFile(filepath.Join(dstPath, "README.md"), []byte(fmt.Sprintf("# Testing Repository\n\nOriginally created in: %s", dstPath)), 0644))
 		assert.NoError(t, git.AddChanges(dstPath, true))
 		signature := git.Signature{
 			Email: "test@example.com",

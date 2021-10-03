@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,6 +24,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/gobwas/glob"
 )
@@ -180,7 +180,7 @@ func Deliver(t *models.HookTask) error {
 		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	p, err := ioutil.ReadAll(resp.Body)
+	p, err := io.ReadAll(resp.Body)
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
 		return err
@@ -260,7 +260,7 @@ var (
 
 func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	if setting.Webhook.ProxyURL == "" {
-		return http.ProxyFromEnvironment
+		return proxy.Proxy()
 	}
 
 	once.Do(func() {

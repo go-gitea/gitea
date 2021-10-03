@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/ldap"
+	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/services/auth/source/ldap"
 
 	"github.com/urfave/cli"
 )
@@ -17,9 +17,9 @@ import (
 type (
 	authService struct {
 		initDB             func() error
-		createLoginSource  func(loginSource *models.LoginSource) error
-		updateLoginSource  func(loginSource *models.LoginSource) error
-		getLoginSourceByID func(id int64) (*models.LoginSource, error)
+		createLoginSource  func(loginSource *login.Source) error
+		updateLoginSource  func(loginSource *login.Source) error
+		getLoginSourceByID func(id int64) (*login.Source, error)
 	}
 )
 
@@ -88,6 +88,14 @@ var (
 		cli.StringFlag{
 			Name:  "public-ssh-key-attribute",
 			Usage: "The attribute of the user’s LDAP record containing the user’s public ssh key.",
+		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
+		cli.StringFlag{
+			Name:  "avatar-attribute",
+			Usage: "The attribute of the user’s LDAP record containing the user’s avatar.",
 		},
 	}
 
@@ -160,19 +168,19 @@ var (
 func newAuthService() *authService {
 	return &authService{
 		initDB:             initDB,
-		createLoginSource:  models.CreateLoginSource,
-		updateLoginSource:  models.UpdateSource,
-		getLoginSourceByID: models.GetLoginSourceByID,
+		createLoginSource:  login.CreateSource,
+		updateLoginSource:  login.UpdateSource,
+		getLoginSourceByID: login.GetSourceByID,
 	}
 }
 
 // parseLoginSource assigns values on loginSource according to command line flags.
-func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) {
+func parseLoginSource(c *cli.Context, loginSource *login.Source) {
 	if c.IsSet("name") {
 		loginSource.Name = c.String("name")
 	}
 	if c.IsSet("not-active") {
-		loginSource.IsActived = !c.Bool("not-active")
+		loginSource.IsActive = !c.Bool("not-active")
 	}
 	if c.IsSet("synchronize-users") {
 		loginSource.IsSyncEnabled = c.Bool("synchronize-users")
@@ -180,78 +188,85 @@ func parseLoginSource(c *cli.Context, loginSource *models.LoginSource) {
 }
 
 // parseLdapConfig assigns values on config according to command line flags.
-func parseLdapConfig(c *cli.Context, config *models.LDAPConfig) error {
+func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("name") {
-		config.Source.Name = c.String("name")
+		config.Name = c.String("name")
 	}
 	if c.IsSet("host") {
-		config.Source.Host = c.String("host")
+		config.Host = c.String("host")
 	}
 	if c.IsSet("port") {
-		config.Source.Port = c.Int("port")
+		config.Port = c.Int("port")
 	}
 	if c.IsSet("security-protocol") {
 		p, ok := findLdapSecurityProtocolByName(c.String("security-protocol"))
 		if !ok {
 			return fmt.Errorf("Unknown security protocol name: %s", c.String("security-protocol"))
 		}
-		config.Source.SecurityProtocol = p
+		config.SecurityProtocol = p
 	}
 	if c.IsSet("skip-tls-verify") {
-		config.Source.SkipVerify = c.Bool("skip-tls-verify")
+		config.SkipVerify = c.Bool("skip-tls-verify")
 	}
 	if c.IsSet("bind-dn") {
-		config.Source.BindDN = c.String("bind-dn")
+		config.BindDN = c.String("bind-dn")
 	}
 	if c.IsSet("user-dn") {
-		config.Source.UserDN = c.String("user-dn")
+		config.UserDN = c.String("user-dn")
 	}
 	if c.IsSet("bind-password") {
-		config.Source.BindPassword = c.String("bind-password")
+		config.BindPassword = c.String("bind-password")
 	}
 	if c.IsSet("user-search-base") {
-		config.Source.UserBase = c.String("user-search-base")
+		config.UserBase = c.String("user-search-base")
 	}
 	if c.IsSet("username-attribute") {
-		config.Source.AttributeUsername = c.String("username-attribute")
+		config.AttributeUsername = c.String("username-attribute")
 	}
 	if c.IsSet("firstname-attribute") {
-		config.Source.AttributeName = c.String("firstname-attribute")
+		config.AttributeName = c.String("firstname-attribute")
 	}
 	if c.IsSet("surname-attribute") {
-		config.Source.AttributeSurname = c.String("surname-attribute")
+		config.AttributeSurname = c.String("surname-attribute")
 	}
 	if c.IsSet("email-attribute") {
-		config.Source.AttributeMail = c.String("email-attribute")
+		config.AttributeMail = c.String("email-attribute")
 	}
 	if c.IsSet("attributes-in-bind") {
-		config.Source.AttributesInBind = c.Bool("attributes-in-bind")
+		config.AttributesInBind = c.Bool("attributes-in-bind")
 	}
 	if c.IsSet("public-ssh-key-attribute") {
-		config.Source.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
+		config.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
+	}
+	if c.IsSet("avatar-attribute") {
+		config.AttributeAvatar = c.String("avatar-attribute")
 	}
 	if c.IsSet("page-size") {
-		config.Source.SearchPageSize = uint32(c.Uint("page-size"))
+		config.SearchPageSize = uint32(c.Uint("page-size"))
 	}
 	if c.IsSet("user-filter") {
-		config.Source.Filter = c.String("user-filter")
+		config.Filter = c.String("user-filter")
 	}
 	if c.IsSet("admin-filter") {
-		config.Source.AdminFilter = c.String("admin-filter")
+		config.AdminFilter = c.String("admin-filter")
 	}
 	if c.IsSet("restricted-filter") {
-		config.Source.RestrictedFilter = c.String("restricted-filter")
+		config.RestrictedFilter = c.String("restricted-filter")
 	}
 	if c.IsSet("allow-deactivate-all") {
-		config.Source.AllowDeactivateAll = c.Bool("allow-deactivate-all")
+		config.AllowDeactivateAll = c.Bool("allow-deactivate-all")
 	}
+	if c.IsSet("skip-local-2fa") {
+		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
+	}
+
 	return nil
 }
 
 // findLdapSecurityProtocolByName finds security protocol by its name ignoring case.
 // It returns the value of the security protocol and if it was found.
 func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
-	for i, n := range models.SecurityProtocolNames {
+	for i, n := range ldap.SecurityProtocolNames {
 		if strings.EqualFold(name, n) {
 			return i, true
 		}
@@ -261,7 +276,7 @@ func findLdapSecurityProtocolByName(name string) (ldap.SecurityProtocol, bool) {
 
 // getLoginSource gets the login source by its id defined in the command line flags.
 // It returns an error if the id is not set, does not match any source or if the source is not of expected type.
-func (a *authService) getLoginSource(c *cli.Context, loginType models.LoginType) (*models.LoginSource, error) {
+func (a *authService) getLoginSource(c *cli.Context, loginType login.Type) (*login.Source, error) {
 	if err := argsSet(c, "id"); err != nil {
 		return nil, err
 	}
@@ -272,7 +287,7 @@ func (a *authService) getLoginSource(c *cli.Context, loginType models.LoginType)
 	}
 
 	if loginSource.Type != loginType {
-		return nil, fmt.Errorf("Invalid authentication type. expected: %s, actual: %s", models.LoginNames[loginType], models.LoginNames[loginSource.Type])
+		return nil, fmt.Errorf("Invalid authentication type. expected: %s, actual: %s", loginType.String(), loginSource.Type.String())
 	}
 
 	return loginSource, nil
@@ -288,18 +303,16 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	loginSource := &models.LoginSource{
-		Type:      models.LoginLDAP,
-		IsActived: true, // active by default
-		Cfg: &models.LDAPConfig{
-			Source: &ldap.Source{
-				Enabled: true, // always true
-			},
+	loginSource := &login.Source{
+		Type:     login.LDAP,
+		IsActive: true, // active by default
+		Cfg: &ldap.Source{
+			Enabled: true, // always true
 		},
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
 
@@ -312,13 +325,13 @@ func (a *authService) updateLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	loginSource, err := a.getLoginSource(c, models.LoginLDAP)
+	loginSource, err := a.getLoginSource(c, login.LDAP)
 	if err != nil {
 		return err
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
 
@@ -335,18 +348,16 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSource := &models.LoginSource{
-		Type:      models.LoginDLDAP,
-		IsActived: true, // active by default
-		Cfg: &models.LDAPConfig{
-			Source: &ldap.Source{
-				Enabled: true, // always true
-			},
+	loginSource := &login.Source{
+		Type:     login.DLDAP,
+		IsActive: true, // active by default
+		Cfg: &ldap.Source{
+			Enabled: true, // always true
 		},
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
 
@@ -359,13 +370,13 @@ func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	loginSource, err := a.getLoginSource(c, models.LoginDLDAP)
+	loginSource, err := a.getLoginSource(c, login.DLDAP)
 	if err != nil {
 		return err
 	}
 
 	parseLoginSource(c, loginSource)
-	if err := parseLdapConfig(c, loginSource.LDAP()); err != nil {
+	if err := parseLdapConfig(c, loginSource.Cfg.(*ldap.Source)); err != nil {
 		return err
 	}
 

@@ -7,11 +7,11 @@ package private
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Email structure holds a data for sending general emails
@@ -33,7 +33,6 @@ func SendEmail(ctx context.Context, subject, message string, to []string) (int, 
 
 	req := newInternalRequest(ctx, reqURL, "POST")
 	req = req.Header("Content-Type", "application/json")
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, _ := json.Marshal(Email{
 		Subject: subject,
 		Message: message,
@@ -46,7 +45,7 @@ func SendEmail(ctx context.Context, subject, message string, to []string) (int, 
 	}
 	defer resp.Body.Close()
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return http.StatusInternalServerError, fmt.Sprintf("Response body error: %v", err.Error())
 	}

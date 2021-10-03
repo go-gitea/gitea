@@ -127,8 +127,12 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 				if err != nil {
 					return nil, nil, err
 				}
-
-				val = data
+				if data != nil {
+					val = data
+					if !col.SQLType.IsBlob() {
+						val = string(data)
+					}
+				}
 				goto APPEND
 			}
 		}
@@ -138,8 +142,12 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 			if err != nil {
 				return nil, nil, err
 			}
-
-			val = data
+			if data != nil {
+				val = data
+				if !col.SQLType.IsBlob() {
+					val = string(data)
+				}
+			}
 			goto APPEND
 		}
 
@@ -200,7 +208,10 @@ func (statement *Statement) BuildUpdates(tableValue reflect.Value,
 				if !requiredField && (t.IsZero() || !fieldValue.IsValid()) {
 					continue
 				}
-				val = dialects.FormatColumnTime(statement.dialect, statement.defaultTimeZone, col, t)
+				val, err = dialects.FormatColumnTime(statement.dialect, statement.defaultTimeZone, col, t)
+				if err != nil {
+					return nil, nil, err
+				}
 			} else if nulType, ok := fieldValue.Interface().(driver.Valuer); ok {
 				val, _ = nulType.Value()
 				if val == nil && !requiredField {
