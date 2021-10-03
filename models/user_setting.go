@@ -59,7 +59,7 @@ func GetUserAllSettings(uid int64) ([]*UserSetting, error) {
 	return settings, nil
 }
 
-func addUserSetting(e Engine, setting *UserSetting) error {
+func addUserSetting(e db.Engine, setting *UserSetting) error {
 	used, err := settingExists(e, setting.UserID, setting.Key)
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func addUserSetting(e Engine, setting *UserSetting) error {
 	return err
 }
 
-func settingExists(e Engine, uid int64, key string) (bool, error) {
+func settingExists(e db.Engine, uid int64, key string) (bool, error) {
 	if len(key) == 0 {
 		return true, nil
 	}
@@ -97,12 +97,12 @@ func DeleteUserSetting(setting *UserSetting) error {
 func SetUserSetting(setting *UserSetting) error {
 	err := addUserSetting(db.GetEngine(db.DefaultContext), setting)
 	if err != nil && IsErrUserSettingExists(err) {
-		return updateUserSettingValue(x, setting)
+		return updateUserSettingValue(db.GetEngine(db.DefaultContext), setting)
 	}
 	return err
 }
 
-func updateUserSettingValue(e Engine, setting *UserSetting) error {
+func updateUserSettingValue(e db.Engine, setting *UserSetting) error {
 	used, err := settingExists(e, setting.UserID, setting.Key)
 	if err != nil {
 		return err
