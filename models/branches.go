@@ -572,8 +572,8 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	}
 }
 
-// RenamedBranch proivde renamed branch log
-// will check it when an branch can't be found
+// RenamedBranch provide renamed branch log
+// will check it when a branch can't be found
 type RenamedBranch struct {
 	ID          int64 `xorm:"pk autoincr"`
 	RepoID      int64 `xorm:"INDEX NOT NULL"`
