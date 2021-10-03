@@ -499,6 +499,7 @@ type UserCreateProjectForm struct {
 type EditProjectBoardForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
+	Color   string `binding:"MaxSize(7)"`
 }
 
 // MoveProjectIssuesForm is a form for moving and sorting project-issues in a column

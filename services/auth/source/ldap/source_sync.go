@@ -112,11 +112,17 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.loginSource.Name, su.Username, err)
-			} else if isAttributeSSHPublicKeySet {
+			}
+
+			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.loginSource.Name, usr.Name)
 				if models.AddPublicKeysBySource(usr, source.loginSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
+			}
+
+			if err == nil && len(source.AttributeAvatar) > 0 {
+				_ = usr.UploadAvatar(su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
@@ -149,6 +155,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
+			}
+
+			if usr.IsUploadAvatarChanged(su.Avatar) {
+				if err == nil && len(source.AttributeAvatar) > 0 {
+					_ = usr.UploadAvatar(su.Avatar)
+				}
+
 			}
 		}
 	}

@@ -5,14 +5,18 @@
 package migrations
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
 )
 
-func addProjectIssueSorting(x *xorm.Engine) error {
-	// ProjectIssue saves relation from issue to a project
-	type ProjectIssue struct {
-		Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
+func addColorColToProjectBoard(x *xorm.Engine) error {
+	type ProjectBoard struct {
+		Color string `xorm:"VARCHAR(7)"`
 	}
 
-	return x.Sync2(new(ProjectIssue))
+	if err := x.Sync2(new(ProjectBoard)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}
+	return nil
 }
