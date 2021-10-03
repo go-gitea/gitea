@@ -52,9 +52,8 @@ func GetStatistic() (stats Statistic) {
 
 	_ = db.GetEngine(db.DefaultContext).
 		Select("COUNT(*) AS count, l.name AS label").
-		Join("LEFT", "issue_label il", "i.id=il.issue_id").
 		Join("LEFT", "label l", "l.id=il.label_id").
-		Table("issue i").
+		Table("issue_label il").
 		GroupBy("l.name").
 		Find(&stats.Counter.IssueByLabel)
 
