@@ -266,7 +266,7 @@ func (b *ProjectBoard) LoadIssues() (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
-			SortType:       "project-sorting",
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -278,7 +278,7 @@ func (b *ProjectBoard) LoadIssues() (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
-			SortType:       "project-sorting",
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err

@@ -203,7 +203,7 @@ func MoveIssuesOnProjectBoard(board *ProjectBoard, issues map[int64]*Issue) erro
 
 		pis.ProjectBoardID = board.ID
 		pis.Sorting = sorting
-		if _, err := sess.ID(pis.ID).Cols("project_board_id").Cols("sorting").Update(&pis); err != nil {
+		if _, err := sess.ID(pis.ID).Cols("project_board_id", "sorting").Update(&pis); err != nil {
 			return err
 		}
 	}
