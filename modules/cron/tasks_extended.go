@@ -131,6 +131,25 @@ func registerDeleteOldActions() {
 	})
 }
 
+func registerUpdateGiteaChecker() {
+	type UpdateCheckerConfig struct {
+		BaseConfig
+		Timeout      time.Duration
+		HttpEndpoint string
+	}
+	RegisterTaskFatal("update_checker", &UpdateCheckerConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		HttpEndpoint: "https://dl.gitea.io/gitea/version.json",
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		updateCheckerConfig := config.(*UpdateCheckerConfig)
+		return models.GiteaUpdateChecker(updateCheckerConfig.HttpEndpoint)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -142,4 +161,5 @@ func initExtendedTasks() {
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
+	registerUpdateGiteaChecker()
 }
