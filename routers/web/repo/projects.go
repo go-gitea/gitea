@@ -622,9 +622,6 @@ func MoveIssues(ctx *context.Context) {
 		issues[i.Sorting] = issue
 	}
 
-	// TODO: fix form is always empty
-	fmt.Println("uff", issues, form)
-
 	if err := models.MoveIssuesOnProjectBoard(board, issues); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
