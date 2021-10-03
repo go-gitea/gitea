@@ -135,7 +135,7 @@ func registerUpdateGiteaChecker() {
 	type UpdateCheckerConfig struct {
 		BaseConfig
 		Timeout      time.Duration
-		HttpEndpoint string
+		HTTPEndpoint string
 	}
 	RegisterTaskFatal("update_checker", &UpdateCheckerConfig{
 		BaseConfig: BaseConfig{
@@ -143,10 +143,10 @@ func registerUpdateGiteaChecker() {
 			RunAtStart: false,
 			Schedule:   "@every 168h",
 		},
-		HttpEndpoint: "https://dl.gitea.io/gitea/version.json",
+		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		updateCheckerConfig := config.(*UpdateCheckerConfig)
-		return models.GiteaUpdateChecker(updateCheckerConfig.HttpEndpoint)
+		return models.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
 	})
 }
 
