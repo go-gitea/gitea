@@ -853,6 +853,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 ## Metrics (`metrics`)
 
 - `ENABLED`: **false**: Enables /metrics endpoint for prometheus.
+- `ENABLED_ISSUE_BY_LABEL`: **false**: Enable issue by label metrics
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
 
 ## API (`api`)
