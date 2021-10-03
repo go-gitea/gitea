@@ -34,22 +34,26 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
-	type v struct {
-		Latest string `json:"latest"`
+	if err != nil {
+		return err
 	}
-	/*
-		expect something like:
-		{"latest":"1.15.3"}
-	*/
+
+	type v struct {
+		Latest struct {
+			Version string `json:"version"`
+		} `json:"latest"`
+	}
 	ver := v{}
 	err = json.Unmarshal(body, &ver)
 	if err != nil {
 		return err
 	}
+
 	giteaVersion, _ := version.NewVersion(setting.AppVer)
-	updateVersion, _ := version.NewVersion(ver.Latest)
+	updateVersion, _ := version.NewVersion(ver.Latest.Version)
 	if giteaVersion.LessThan(updateVersion) {
-		return fmt.Errorf("Newer version of Gitea available: %s Check the blog for more details https://blog.gitea.io", ver.Latest)
+		return fmt.Errorf("Newer version of Gitea available: %s Check the blog for more details https://blog.gitea.io", ver.Latest.Version)
 	}
+
 	return nil
 }
