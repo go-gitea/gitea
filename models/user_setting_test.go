@@ -7,11 +7,13 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserSettings(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	newSetting := &UserSetting{UserID: 99, Key: "test_user_setting", Value: "Gitea User Setting Test"}
 
