@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Statistic contains the database statistics
@@ -20,7 +21,14 @@ type Statistic struct {
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
 		ProjectBoard, Attachment int64
+		IssueByLabel []IssueByLabelCount
 	}
+}
+
+// IssueByLabelCount contains the number of issue group by label
+type IssueByLabelCount struct {
+	Count int64
+	Label string
 }
 
 // GetStatistic returns the database statistics
@@ -39,6 +47,17 @@ func GetStatistic() (stats Statistic) {
 		Count    int64
 		IsClosed bool
 	}
+
+	if setting.Metrics.EnabledIssueByLabel {
+		stats.Counter.IssueByLabel = []IssueByLabelCount{}
+
+		_ = e.Select("COUNT(*) AS count, l.name AS label").
+			Join("LEFT", "label l", "l.id=il.label_id").
+			Table("issue_label il").
+			GroupBy("l.name").
+			Find(&stats.Counter.IssueByLabel)
+	}
+
 	issueCounts := []IssueCount{}
 
 	_ = e.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
