@@ -134,7 +134,6 @@ func registerDeleteOldActions() {
 func registerUpdateGiteaChecker() {
 	type UpdateCheckerConfig struct {
 		BaseConfig
-		Timeout      time.Duration
 		HTTPEndpoint string
 	}
 	RegisterTaskFatal("update_checker", &UpdateCheckerConfig{
