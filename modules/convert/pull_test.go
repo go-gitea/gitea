@@ -21,7 +21,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NoError(t, pr.LoadIssue())
-	apiPullRequest := ToAPIPullRequest(pr)
+	apiPullRequest := ToAPIPullRequest(pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.EqualValues(t, &structs.PRBranchInfo{
 		Name:       "branch1",
@@ -38,7 +38,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	// simulate fork deletion
 	pr.HeadRepo = nil
 	pr.HeadRepoID = 100000
-	apiPullRequest = ToAPIPullRequest(pr)
+	apiPullRequest = ToAPIPullRequest(pr, nil)
 	assert.NotNil(t, apiPullRequest)
 	assert.Nil(t, apiPullRequest.Head.Repository)
 	assert.EqualValues(t, -1, apiPullRequest.Head.RepoID)
