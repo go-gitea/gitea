@@ -243,12 +243,25 @@ func NotificationSubscriptions(c *context.Context) {
 		assigneeID = c.User.ID
 	}
 
+	var issueTypeBool util.OptionalBool
+	issueType := c.FormString("issueType")
+	switch issueType {
+	case "issues" :
+		issueTypeBool = util.OptionalBoolFalse
+	case "pulls":
+		issueTypeBool = util.OptionalBoolTrue
+	default:
+		issueTypeBool = util.OptionalBoolNone
+	}
+	c.Data["IssueType"] = issueType
+
 	count, err := models.CountIssues(&models.IssuesOptions{
 		SubscriberID: c.User.ID,
 		AssigneeID:   assigneeID,
 		MentionedID:  mentionedID,
 		PosterID:     posterID,
 		IsClosed:     showClosed,
+		IsPull:       issueTypeBool,
 	})
 	if err != nil {
 		c.ServerError("CountIssues", err)
@@ -265,6 +278,7 @@ func NotificationSubscriptions(c *context.Context) {
 		PosterID:     posterID,
 		SortType:     sortType,
 		IsClosed:     showClosed,
+		IsPull:       issueTypeBool,
 	})
 	if err != nil {
 		c.ServerError("Issues", err)
