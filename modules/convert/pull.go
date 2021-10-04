@@ -42,7 +42,7 @@ func ToAPIPullRequest(pr *models.PullRequest, user *models.User) *api.PullReques
 	}
 
 	perm, err := models.GetUserRepoPermission(pr.BaseRepo, user)
-	if err == nil {
+	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		perm.AccessMode = models.AccessModeNone
 	}
@@ -103,7 +103,7 @@ func ToAPIPullRequest(pr *models.PullRequest, user *models.User) *api.PullReques
 
 	if pr.HeadRepo != nil {
 		perm, err := models.GetUserRepoPermission(pr.HeadRepo, user)
-		if err == nil {
+		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			perm.AccessMode = models.AccessModeNone
 		}
