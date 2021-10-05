@@ -97,6 +97,68 @@ func ListUserOrgs(ctx *context.APIContext) {
 	listUserOrgs(ctx, u)
 }
 
+// GetUserOrgsPermissions get user permissions in organization
+func GetUserOrgsPermissions(ctx *context.APIContext) {
+	// swagger:operation GET /users/{username}/orgs/{org}/permissions organization orgGetUserPermissions
+	// ---
+	// summary: Get user permissions in organization
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of user
+	//   type: string
+	//   required: true
+	// - name: org
+	//   in: path
+	//   description: name of the organization
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/OrganizationPermissions"
+
+	u := user.GetUserByParams(ctx)
+	o := user.GetUserByParamsName(ctx, ":org")
+	op := api.OrganizationPermissions{}
+
+	if !models.HasOrgOrUserVisible(o, u) {
+		ctx.NotFound("HasOrgOrUserVisible", nil)
+		return
+	}
+
+	authorizeLevel, err := o.GetOrgUserMaxAuthorizeLevel(u.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetOrgUserAuthorizeLevel", err)
+		return
+	}
+
+	op.IsOwner = false
+	op.IsAdmin = false
+	op.CanWrite = false
+	if authorizeLevel > 0 {
+		op.CanRead = true
+	}
+	if authorizeLevel > 1 {
+		op.CanWrite = true
+	}
+	if authorizeLevel > 2 {
+		op.IsAdmin = true
+	}
+	if authorizeLevel > 3 {
+		op.IsOwner = true
+	}
+
+	op.CanCreateRepository, err = o.CanCreateOrgRepo(u.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CanCreateOrgRepo", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, op)
+}
+
 // GetAll return list of all public organizations
 func GetAll(ctx *context.APIContext) {
 	// swagger:operation Get /orgs organization orgGetAll

@@ -17,6 +17,15 @@ type Organization struct {
 	RepoAdminChangeTeamAccess bool   `json:"repo_admin_change_team_access"`
 }
 
+// OrganizationPermissions list differents users permissions on an organization
+type OrganizationPermissions struct {
+	IsOwner             bool `json:"is_owner"`
+	IsAdmin             bool `json:"is_admin"`
+	CanWrite            bool `json:"can_write"`
+	CanRead             bool `json:"can_read"`
+	CanCreateRepository bool `json:"can_create_repository"`
+}
+
 // CreateOrgOption options for creating an organization
 type CreateOrgOption struct {
 	// required: true
