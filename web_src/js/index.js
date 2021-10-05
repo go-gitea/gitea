@@ -159,13 +159,8 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  createColorPicker($('.color-picker'));
+  initColorPicker();
 
-  $('.precolors .color').on('click', function () {
-    const color_hex = $(this).data('color-hex');
-    $('.color-picker').val(color_hex);
-    $('.minicolors-swatch-color').css('background-color', color_hex);
-  });
   $('.edit-label-button').on('click', function () {
     $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
@@ -179,6 +174,16 @@ function initLabelEdit() {
       }
     }).modal('show');
     return false;
+  });
+}
+
+function initColorPicker() {
+  createColorPicker($('.color-picker'));
+
+  $('.precolors .color').on('click', function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
   });
 }
 
@@ -995,13 +1000,11 @@ async function initRepository() {
       $this.closest('.dropdown').find('.menu').toggle('visible');
 
       const content = $(`#comment-${$this.data('target')}`).text();
-      const subject = content.split('\n', 1)[0].slice(0, 255);
 
-      const poster = $this.data('poster');
+      const poster = $this.data('poster-username');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
-      $modal.find('input[name="title"').val(subject);
       $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
 
       $modal.modal('show');
@@ -1030,7 +1033,7 @@ async function initRepository() {
         if ($dropzone.length === 1) {
           $dropzone.data('saved', false);
 
-          const filenameDict = {};
+          const fileUuidDict = {};
           dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
             headers: {'X-Csrf-Token': csrf},
@@ -1048,28 +1051,24 @@ async function initRepository() {
             thumbnailHeight: 480,
             init() {
               this.on('success', (file, data) => {
-                filenameDict[file.name] = {
-                  uuid: data.uuid,
+                fileUuidDict[file.uuid] = {
                   submitted: false
                 };
                 const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
                 $dropzone.find('.files').append(input);
               });
               this.on('removedfile', (file) => {
-                if (!(file.name in filenameDict)) {
-                  return;
-                }
-                $(`#${filenameDict[file.name].uuid}`).remove();
-                if ($dropzone.data('remove-url') && !filenameDict[file.name].submitted) {
+                $(`#${file.uuid}`).remove();
+                if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
                   $.post($dropzone.data('remove-url'), {
-                    file: filenameDict[file.name].uuid,
+                    file: file.uuid,
                     _csrf: csrf,
                   });
                 }
               });
               this.on('submit', () => {
-                $.each(filenameDict, (name) => {
-                  filenameDict[name].submitted = true;
+                $.each(fileUuidDict, (fileUuid) => {
+                  fileUuidDict[fileUuid].submitted = true;
                 });
               });
               this.on('reload', () => {
@@ -1082,9 +1081,8 @@ async function initRepository() {
                     dz.emit('thumbnail', this, imgSrc);
                     dz.emit('complete', this);
                     dz.files.push(this);
-                    filenameDict[this.name] = {
+                    fileUuidDict[this.uuid] = {
                       submitted: true,
-                      uuid: this.uuid
                     };
                     $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                     const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
@@ -1265,6 +1263,36 @@ async function initRepository() {
       $(this).closest('.form').hide();
       $mergeButton.parent().show();
       $('.instruct-toggle').show();
+    });
+
+    // Pull Request update button
+    const $pullUpdateButton = $('.update-button > button');
+    $pullUpdateButton.on('click', function (e) {
+      e.preventDefault();
+      const $this = $(this);
+      const redirect = $this.data('redirect');
+      $this.addClass('loading');
+      $.post($this.data('do'), {
+        _csrf: csrf
+      }).done((data) => {
+        if (data.redirect) {
+          window.location.href = data.redirect;
+        } else if (redirect) {
+          window.location.href = redirect;
+        } else {
+          window.location.reload();
+        }
+      });
+    });
+
+    $('.update-button > .dropdown').dropdown({
+      onChange(_text, _value, $choice) {
+        const $url = $choice.data('do');
+        if ($url) {
+          $pullUpdateButton.find('.button-text').text($choice.text());
+          $pullUpdateButton.data('do', $url);
+        }
+      }
     });
 
     initReactionSelector();
@@ -2324,8 +2352,9 @@ function initCodeView() {
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     const box = currentTarget.closest('.file-content');
+    const chevron = currentTarget.querySelector('a.chevron');
     const folded = box.dataset.folded !== 'true';
-    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+    chevron.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
@@ -2665,7 +2694,6 @@ $(document).ready(async () => {
 
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
-    const filenameDict = {};
     const $dropzone = $(el);
     await createDropzone(el, {
       url: $dropzone.data('upload-url'),
@@ -2683,18 +2711,15 @@ $(document).ready(async () => {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
-        this.on('success', (file, data) => {
-          filenameDict[file.name] = data.uuid;
+        this.on('success', (_file, data) => {
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
         });
         this.on('removedfile', (file) => {
-          if (file.name in filenameDict) {
-            $(`#${filenameDict[file.name]}`).remove();
-          }
+          $(`#${file.uuid}`).remove();
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
-              file: filenameDict[file.name],
+              file: file.uuid,
               _csrf: csrf
             });
           }
@@ -2731,6 +2756,10 @@ $(document).ready(async () => {
   });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
+    const colorPickers = $($(this).data('modal')).find('.color-picker');
+    if (colorPickers.length > 0) {
+      initColorPicker();
+    }
   });
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
@@ -2886,6 +2915,27 @@ function deSelect() {
 
 function selectRange($list, $select, $from) {
   $list.removeClass('active');
+
+  // add hashchange to permalink
+  const $issue = $('a.ref-in-new-issue');
+  const $copyPermalink = $('a.copy-line-permalink');
+
+  if ($issue.length === 0 || $copyPermalink.length === 0) {
+    return;
+  }
+
+  const updateIssueHref = function(anchor) {
+    let href = $issue.attr('href');
+    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
+    $issue.attr('href', href);
+  };
+
+  const updateCopyPermalinkHref = function(anchor) {
+    let link = $copyPermalink.attr('data-clipboard-text');
+    link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
+    $copyPermalink.attr('data-clipboard-text', link);
+  };
+
   if ($from) {
     let a = parseInt($select.attr('rel').substr(1));
     let b = parseInt($from.attr('rel').substr(1));
@@ -2903,38 +2953,16 @@ function selectRange($list, $select, $from) {
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
 
-      // add hashchange to permalink
-      const $issue = $('a.ref-in-new-issue');
-
-      if ($issue.length === 0) {
-        return;
-      }
-
-      const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-      if (matched) {
-        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
-      } else {
-        $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
-      }
+      updateIssueHref(`L${a}-L${b}`);
+      updateCopyPermalinkHref(`L${a}-L${b}`);
       return;
     }
   }
   $select.addClass('active');
   changeHash(`#${$select.attr('rel')}`);
 
-  // add hashchange to permalink
-  const $issue = $('a.ref-in-new-issue');
-
-  if ($issue.length === 0) {
-    return;
-  }
-
-  const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-  if (matched) {
-    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
-  } else {
-    $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
-  }
+  updateIssueHref($select.attr('rel'));
+  updateCopyPermalinkHref($select.attr('rel'));
 }
 
 $(() => {

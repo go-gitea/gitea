@@ -5,42 +5,14 @@
 package models
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUploadAttachment(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
-
-	user := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-
-	fPath := "./attachment_test.go"
-	f, err := os.Open(fPath)
-	assert.NoError(t, err)
-	defer f.Close()
-
-	buf := make([]byte, 1024)
-	n, err := f.Read(buf)
-	assert.NoError(t, err)
-	buf = buf[:n]
-
-	attach, err := NewAttachment(&Attachment{
-		UploaderID: user.ID,
-		Name:       filepath.Base(fPath),
-	}, buf, f)
-	assert.NoError(t, err)
-
-	attachment, err := GetAttachmentByUUID(attach.UUID)
-	assert.NoError(t, err)
-	assert.EqualValues(t, user.ID, attachment.UploaderID)
-	assert.Equal(t, int64(0), attachment.DownloadCount)
-}
-
 func TestIncreaseDownloadCount(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	attachment, err := GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
@@ -56,7 +28,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 }
 
 func TestGetByCommentOrIssueID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// count of attachments from issue ID
 	attachments, err := GetAttachmentsByIssueID(1)
@@ -69,7 +41,7 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 }
 
 func TestDeleteAttachments(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	count, err := DeleteAttachmentsByIssue(4, false)
 	assert.NoError(t, err)
@@ -89,7 +61,7 @@ func TestDeleteAttachments(t *testing.T) {
 }
 
 func TestGetAttachmentByID(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	attach, err := GetAttachmentByID(1)
 	assert.NoError(t, err)
@@ -105,7 +77,7 @@ func TestAttachment_DownloadURL(t *testing.T) {
 }
 
 func TestUpdateAttachment(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	attach, err := GetAttachmentByID(1)
 	assert.NoError(t, err)
@@ -114,13 +86,13 @@ func TestUpdateAttachment(t *testing.T) {
 	attach.Name = "new_name"
 	assert.NoError(t, UpdateAttachment(attach))
 
-	AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
+	db.AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
 }
 
 func TestGetAttachmentsByUUIDs(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	attachList, err := GetAttachmentsByUUIDs(DefaultDBContext(), []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
+	attachList, err := GetAttachmentsByUUIDs(db.DefaultContext, []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
 	assert.NoError(t, err)
 	assert.Len(t, attachList, 2)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)
@@ -130,7 +102,7 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 }
 
 func TestLinkedRepository(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	testCases := []struct {
 		name             string
 		attachID         int64

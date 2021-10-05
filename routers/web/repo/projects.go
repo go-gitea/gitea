@@ -82,6 +82,7 @@ func Projects(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -324,6 +325,7 @@ func ViewProject(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -442,6 +444,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	if err := models.NewProjectBoard(&models.ProjectBoard{
 		ProjectID: project.ID,
 		Title:     form.Title,
+		Color:     form.Color,
 		CreatorID: ctx.User.ID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
@@ -510,6 +513,8 @@ func EditProjectBoard(ctx *context.Context) {
 	if form.Title != "" {
 		board.Title = form.Title
 	}
+
+	board.Color = form.Color
 
 	if form.Sorting != 0 {
 		board.Sorting = form.Sorting

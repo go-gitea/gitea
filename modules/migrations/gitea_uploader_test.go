@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
@@ -23,9 +24,9 @@ func TestGiteaUploadRepo(t *testing.T) {
 	// FIXME: Since no accesskey or user/password will trigger rate limit of github, just skip
 	t.Skip()
 
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	var (
 		downloader = NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", "", "go-xorm", "builder")
@@ -50,7 +51,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	}, nil)
 	assert.NoError(t, err)
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, models.RepositoryReady, repo.Status)
 
@@ -68,12 +69,12 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, milestones)
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
 	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
 		},
@@ -83,7 +84,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, releases, 8)
 
 	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
 		},

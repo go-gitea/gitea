@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
@@ -18,11 +19,11 @@ import (
 
 // Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, login, password string) (*models.User, error) {
-	pamLogin, err := pam.Auth(source.ServiceName, login, password)
+func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
+	pamLogin, err := pam.Auth(source.ServiceName, userName, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
-			return nil, models.ErrUserNotExist{Name: login}
+			return nil, models.ErrUserNotExist{Name: userName}
 		}
 		return nil, err
 	}
@@ -54,9 +55,9 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 		Name:        username,
 		Email:       email,
 		Passwd:      password,
-		LoginType:   models.LoginPAM,
+		LoginType:   login.PAM,
 		LoginSource: source.loginSource.ID,
-		LoginName:   login, // This is what the user typed in
+		LoginName:   userName, // This is what the user typed in
 		IsActive:    true,
 	}
 
@@ -67,4 +68,9 @@ func (source *Source) Authenticate(user *models.User, login, password string) (*
 	mailer.SendRegisterNotifyMail(user)
 
 	return user, nil
+}
+
+// IsSkipLocalTwoFA returns if this source should skip local 2fa for password authentication
+func (source *Source) IsSkipLocalTwoFA() bool {
+	return source.SkipLocalTwoFA
 }

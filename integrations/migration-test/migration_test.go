@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -19,7 +19,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/integrations"
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -113,7 +113,7 @@ func readSQLFromFile(version string) (string, error) {
 	}
 	defer gr.Close()
 
-	bytes, err := ioutil.ReadAll(gr)
+	bytes, err := io.ReadAll(gr)
 	if err != nil {
 		return "", err
 	}
@@ -256,13 +256,13 @@ func doMigrationTest(t *testing.T, version string) {
 
 	setting.NewXORMLogService(false)
 
-	err := models.NewEngine(context.Background(), wrappedMigrate)
+	err := db.NewEngine(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 
-	beans, _ := models.NamesToBean()
+	beans, _ := db.NamesToBean()
 
-	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	err = db.NewEngine(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
 	})
@@ -270,7 +270,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	err = db.NewEngine(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
 	})

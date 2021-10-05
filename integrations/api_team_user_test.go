@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
@@ -29,7 +30,7 @@ func TestAPITeamUser(t *testing.T) {
 	var user2 *api.User
 	DecodeJSON(t, resp, &user2)
 	user2.Created = user2.Created.In(time.Local)
-	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
 	expectedUser := convert.ToUser(user, user)
 
