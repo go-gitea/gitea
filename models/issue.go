@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -413,18 +412,6 @@ func (issue *Issue) hasLabel(e db.Engine, labelID int64) bool {
 // HasLabel returns true if issue has been labeled by given ID.
 func (issue *Issue) HasLabel(labelID int64) bool {
 	return issue.hasLabel(db.GetEngine(db.DefaultContext), labelID)
-}
-
-// ReplyReference returns tokenized address to use for email reply headers
-func (issue *Issue) ReplyReference() string {
-	var path string
-	if issue.IsPull {
-		path = "pulls"
-	} else {
-		path = "issues"
-	}
-
-	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
 }
 
 func (issue *Issue) addLabel(e db.Engine, label *Label, doer *User) error {
