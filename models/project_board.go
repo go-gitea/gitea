@@ -5,6 +5,9 @@
 package models
 
 import (
+	"fmt"
+	"regexp"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -32,12 +35,16 @@ const (
 	ProjectBoardTypeBugTriage
 )
 
+// BoardColorPattern is a regexp witch can validate BoardColor
+var BoardColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+
 // ProjectBoard is used to represent boards on a project
 type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
-	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
-	Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
+	Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
+	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
+	Color   string `xorm:"VARCHAR(7)"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -100,6 +107,10 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 
 // NewProjectBoard adds a new project board to a given project
 func NewProjectBoard(board *ProjectBoard) error {
+	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
+		return fmt.Errorf("bad color code: %s", board.Color)
+	}
+
 	_, err := db.GetEngine(db.DefaultContext).Insert(board)
 	return err
 }
@@ -177,6 +188,11 @@ func updateProjectBoard(e db.Engine, board *ProjectBoard) error {
 	if board.Title != "" {
 		fieldToUpdate = append(fieldToUpdate, "title")
 	}
+
+	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
+		return fmt.Errorf("bad color code: %s", board.Color)
+	}
+	fieldToUpdate = append(fieldToUpdate, "color")
 
 	_, err := e.ID(board.ID).Cols(fieldToUpdate...).Update(board)
 

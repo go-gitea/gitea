@@ -635,7 +635,7 @@ func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool
 func CompareDiff(ctx *context.Context) {
 	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if ci.HeadGitRepo != nil {
+		if ci != nil && ci.HeadGitRepo != nil {
 			ci.HeadGitRepo.Close()
 		}
 	}()
