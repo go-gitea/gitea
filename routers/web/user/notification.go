@@ -246,7 +246,7 @@ func NotificationSubscriptions(c *context.Context) {
 	var issueTypeBool util.OptionalBool
 	issueType := c.FormString("issueType")
 	switch issueType {
-	case "issues" :
+	case "issues":
 		issueTypeBool = util.OptionalBoolFalse
 	case "pulls":
 		issueTypeBool = util.OptionalBoolTrue
