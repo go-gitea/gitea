@@ -211,6 +211,8 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - whoami && pwd
+      - ls -la
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
