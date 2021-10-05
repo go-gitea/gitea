@@ -914,7 +914,8 @@ func NewContext() {
 		}
 	}
 
-	if RunUser == "root" {
+	// check if we run as root
+	if os.Getuid() == 0 {
 		if !unsafeAllowRunAsRoot {
 			// Special thanks to VLC which inspired the wording of this messaging.
 			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
