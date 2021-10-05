@@ -21,7 +21,8 @@ type Statistic struct {
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
 		ProjectBoard, Attachment int64
-		IssueByLabel []IssueByLabelCount
+		IssueByLabel      []IssueByLabelCount
+		IssueByRepository []IssueByRepositoryCount
 	}
 }
 
@@ -29,6 +30,13 @@ type Statistic struct {
 type IssueByLabelCount struct {
 	Count int64
 	Label string
+}
+
+// IssueByRepositoryCount contains the number of issue group by repository
+type IssueByRepositoryCount struct {
+	Count      int64
+	OwnerName  string
+	Repository string
 }
 
 // GetStatistic returns the database statistics
@@ -56,6 +64,16 @@ func GetStatistic() (stats Statistic) {
 			Table("issue_label il").
 			GroupBy("l.name").
 			Find(&stats.Counter.IssueByLabel)
+	}
+
+	if setting.Metrics.EnabledIssueByRepository {
+		stats.Counter.IssueByRepository = []IssueByRepositoryCount{}
+
+		_ = e.Select("COUNT(*) AS count, r.owner_name, r.name AS repository").
+			Join("LEFT", "repository r", "r.id=i.repo_id").
+			Table("issue i").
+			GroupBy("r.owner_name, r.name").
+			Find(&stats.Counter.IssueByRepository)
 	}
 
 	issueCounts := []IssueCount{}
