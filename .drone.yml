@@ -207,6 +207,11 @@ steps:
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
+  - name: fix-permissions
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - chown -R gitea:gitea .
+
   - name: unit-test
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
