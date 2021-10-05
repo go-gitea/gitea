@@ -114,20 +114,20 @@ func Deliver(t *models.HookTask) error {
 	}
 
 	event := t.EventType.Event()
-	eventSingle := string(t.EventType)
+	eventType := string(t.EventType)
 	req.Header.Add("X-Gitea-Delivery", t.UUID)
 	req.Header.Add("X-Gitea-Event", event)
-	req.Header.Add("X-Gitea-Event-Single", eventSingle)
+	req.Header.Add("X-Gitea-Event-Type", eventType)
 	req.Header.Add("X-Gitea-Signature", signatureSHA256)
 	req.Header.Add("X-Gogs-Delivery", t.UUID)
 	req.Header.Add("X-Gogs-Event", event)
-	req.Header.Add("X-Gogs-Event-Single", eventSingle)
+	req.Header.Add("X-Gogs-Event-Type", eventType)
 	req.Header.Add("X-Gogs-Signature", signatureSHA256)
 	req.Header.Add("X-Hub-Signature", "sha1="+signatureSHA1)
 	req.Header.Add("X-Hub-Signature-256", "sha256="+signatureSHA256)
 	req.Header["X-GitHub-Delivery"] = []string{t.UUID}
 	req.Header["X-GitHub-Event"] = []string{event}
-	req.Header["X-GitHub-Event-Single"] = []string{eventSingle}
+	req.Header["X-GitHub-Event-Type"] = []string{eventType}
 
 	// Record delivery information.
 	t.RequestInfo = &models.HookRequest{
