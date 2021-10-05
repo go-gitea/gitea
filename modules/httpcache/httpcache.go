@@ -25,7 +25,7 @@ func AddCacheControlToHeader(h http.Header, d time.Duration) {
 		// to remind users they are using non-prod setting.
 		// some users may be confused by "Cache-Control: no-store" in their setup if they did wrong to `RUN_MODE` in `app.ini`.
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
-		h.Add("X-Gitea-Debug", "CacheControl=not-prod")
+		h.Add("X-Gitea-Debug", "CacheControl=no-store")
 	}
 }
 
