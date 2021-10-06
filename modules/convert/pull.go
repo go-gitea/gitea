@@ -17,7 +17,7 @@ import (
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest, user *models.User) *api.PullRequest {
+func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -41,7 +41,7 @@ func ToAPIPullRequest(pr *models.PullRequest, user *models.User) *api.PullReques
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(pr.BaseRepo, user)
+	perm, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		perm.AccessMode = models.AccessModeNone
@@ -102,7 +102,7 @@ func ToAPIPullRequest(pr *models.PullRequest, user *models.User) *api.PullReques
 	}
 
 	if pr.HeadRepo != nil {
-		perm, err := models.GetUserRepoPermission(pr.HeadRepo, user)
+		perm, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			perm.AccessMode = models.AccessModeNone
