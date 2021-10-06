@@ -76,6 +76,10 @@
 		<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
 		<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
 	</div>
+	<div class="field">
+		<label for="attribute_avatar">{{.i18n.Tr "admin.auths.attribute_avatar"}}</label>
+		<input id="attribute_avatar" name="attribute_avatar" value="{{.attribute_avatar}}" placeholder="e.g. jpegPhoto">
+	</div>
 	<div class="inline field">
 		<div class="ui checkbox">
 			<label for="groups_enabled"><strong>{{.i18n.Tr "admin.auths.verify_group_membership"}}</strong></label>
@@ -110,5 +114,18 @@
 	<div class="ldap field search-page-size required {{if or (not (eq .type 2)) (not .use_paged_search)}}hide{{end}}">
 		<label for="search_page_size">{{.i18n.Tr "admin.auths.search_page_size"}}</label>
 		<input id="search_page_size" name="search_page_size" value="{{.search_page_size}}">
+	</div>
+	<div class="optional field">
+		<div class="ui checkbox">
+			<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+			<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+			<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+		</div>
+	</div>
+	<div class="inline field">
+		<div class="ui checkbox">
+			<label for="allow_deactivate_all"><strong>{{.i18n.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
+			<input id="allow_deactivate_all" name="allow_deactivate_all" type="checkbox" {{if .allow_deactivate_all}}checked{{end}}>
+		</div>
 	</div>
 </div>

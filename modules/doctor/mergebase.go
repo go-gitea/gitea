@@ -9,14 +9,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+
 	"xorm.io/builder"
 )
 
 func iteratePRs(repo *models.Repository, each func(*models.Repository, *models.PullRequest) error) error {
-	return models.Iterate(
-		models.DefaultDBContext(),
+	return db.Iterate(
+		db.DefaultContext,
 		new(models.PullRequest),
 		builder.Eq{"base_repo_id": repo.ID},
 		func(idx int, bean interface{}) error {

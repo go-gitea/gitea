@@ -10,6 +10,7 @@ import (
 	"io"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -84,6 +85,10 @@ type PullRequest struct {
 	Flow PullRequestFlow `xorm:"NOT NULL DEFAULT 0"`
 }
 
+func init() {
+	db.RegisterModel(new(PullRequest))
+}
+
 // MustHeadUserName returns the HeadRepo's username if failed return blank
 func (pr *PullRequest) MustHeadUserName() string {
 	if err := pr.LoadHeadRepo(); err != nil {
@@ -101,7 +106,7 @@ func (pr *PullRequest) MustHeadUserName() string {
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) loadAttributes(e Engine) (err error) {
+func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
 		pr.Merger, err = getUserByID(e, pr.MergerID)
 		if IsErrUserNotExist(err) {
@@ -117,10 +122,10 @@ func (pr *PullRequest) loadAttributes(e Engine) (err error) {
 
 // LoadAttributes loads pull request attributes from database
 func (pr *PullRequest) LoadAttributes() error {
-	return pr.loadAttributes(x)
+	return pr.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadHeadRepo(e Engine) (err error) {
+func (pr *PullRequest) loadHeadRepo(e db.Engine) (err error) {
 	if !pr.isHeadRepoLoaded && pr.HeadRepo == nil && pr.HeadRepoID > 0 {
 		if pr.HeadRepoID == pr.BaseRepoID {
 			if pr.BaseRepo != nil {
@@ -143,15 +148,15 @@ func (pr *PullRequest) loadHeadRepo(e Engine) (err error) {
 
 // LoadHeadRepo loads the head repository
 func (pr *PullRequest) LoadHeadRepo() error {
-	return pr.loadHeadRepo(x)
+	return pr.loadHeadRepo(db.GetEngine(db.DefaultContext))
 }
 
 // LoadBaseRepo loads the target repository
 func (pr *PullRequest) LoadBaseRepo() error {
-	return pr.loadBaseRepo(x)
+	return pr.loadBaseRepo(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadBaseRepo(e Engine) (err error) {
+func (pr *PullRequest) loadBaseRepo(e db.Engine) (err error) {
 	if pr.BaseRepo != nil {
 		return nil
 	}
@@ -175,10 +180,10 @@ func (pr *PullRequest) loadBaseRepo(e Engine) (err error) {
 
 // LoadIssue loads issue information from database
 func (pr *PullRequest) LoadIssue() (err error) {
-	return pr.loadIssue(x)
+	return pr.loadIssue(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadIssue(e Engine) (err error) {
+func (pr *PullRequest) loadIssue(e db.Engine) (err error) {
 	if pr.Issue != nil {
 		return nil
 	}
@@ -192,10 +197,10 @@ func (pr *PullRequest) loadIssue(e Engine) (err error) {
 
 // LoadProtectedBranch loads the protected branch of the base branch
 func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	return pr.loadProtectedBranch(x)
+	return pr.loadProtectedBranch(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) loadProtectedBranch(e Engine) (err error) {
+func (pr *PullRequest) loadProtectedBranch(e db.Engine) (err error) {
 	if pr.ProtectedBranch == nil {
 		if pr.BaseRepo == nil {
 			if pr.BaseRepoID == 0 {
@@ -252,10 +257,10 @@ type ReviewCount struct {
 // GetApprovalCounts returns the approval counts by type
 // FIXME: Only returns official counts due to double counting of non-official counts
 func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
-	return pr.getApprovalCounts(x)
+	return pr.getApprovalCounts(db.GetEngine(db.DefaultContext))
 }
 
-func (pr *PullRequest) getApprovalCounts(e Engine) ([]*ReviewCount, error) {
+func (pr *PullRequest) getApprovalCounts(e db.Engine) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
 	sess := e.Where("issue_id = ?", pr.IssueID)
 	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
@@ -279,7 +284,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -388,7 +393,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 
 	pr.HasMerged = true
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return false, err
@@ -443,14 +448,14 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	idx, err := GetNextResourceIndex("issue_index", repo.ID)
+	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
 	if err != nil {
-		return fmt.Errorf("generate issue index failed: %v", err)
+		return fmt.Errorf("generate pull request index failed: %v", err)
 	}
 
 	issue.Index = idx
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -487,7 +492,7 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 // by given head/base and repo/branch.
 func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch string, flow PullRequestFlow) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := x.
+	has, err := db.GetEngine(db.DefaultContext).
 		Where("head_repo_id=? AND head_branch=? AND base_repo_id=? AND base_branch=? AND has_merged=? AND flow = ? AND issue.is_closed=?",
 			headRepoID, headBranch, baseRepoID, baseBranch, false, flow, false).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
@@ -505,7 +510,7 @@ func GetUnmergedPullRequest(headRepoID, baseRepoID int64, headBranch, baseBranch
 // by given head information (repo and branch).
 func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := x.
+	has, err := db.GetEngine(db.DefaultContext).
 		Where("head_repo_id = ? AND head_branch = ? AND flow = ?", repoID, branch, PullRequestFlowGithub).
 		OrderBy("id DESC").
 		Get(pr)
@@ -517,12 +522,15 @@ func GetLatestPullRequestByHeadInfo(repoID int64, branch string) (*PullRequest, 
 
 // GetPullRequestByIndex returns a pull request by the given index
 func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
+	if index < 1 {
+		return nil, ErrPullRequestNotExist{}
+	}
 	pr := &PullRequest{
 		BaseRepoID: repoID,
 		Index:      index,
 	}
 
-	has, err := x.Get(pr)
+	has, err := db.GetEngine(db.DefaultContext).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -539,7 +547,7 @@ func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	return pr, nil
 }
 
-func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
+func getPullRequestByID(e db.Engine, id int64) (*PullRequest, error) {
 	pr := new(PullRequest)
 	has, err := e.ID(id).Get(pr)
 	if err != nil {
@@ -552,13 +560,13 @@ func getPullRequestByID(e Engine, id int64) (*PullRequest, error) {
 
 // GetPullRequestByID returns a pull request by given ID.
 func GetPullRequestByID(id int64) (*PullRequest, error) {
-	return getPullRequestByID(x, id)
+	return getPullRequestByID(db.GetEngine(db.DefaultContext), id)
 }
 
 // GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
 func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error) {
 	var pr PullRequest
-	has, err := x.Where("issue_id = ?", issueID).Get(&pr)
+	has, err := db.GetEngine(db.DefaultContext).Where("issue_id = ?", issueID).Get(&pr)
 	if err != nil {
 		return nil, err
 	}
@@ -568,7 +576,7 @@ func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error
 	return &pr, nil
 }
 
-func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
+func getPullRequestByIssueID(e db.Engine, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,
 	}
@@ -586,7 +594,7 @@ func getPullRequestByIssueID(e Engine, issueID int64) (*PullRequest, error) {
 func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
 	pulls := make([]*PullRequest, 0, 10)
 
-	err := x.
+	err := db.GetEngine(db.DefaultContext).
 		Where("has_merged=? AND flow = ? AND issue.is_closed=? AND issue.poster_id=?",
 			false, PullRequestFlowAGit, false, uid).
 		Join("INNER", "issue", "issue.id=pull_request.issue_id").
@@ -597,24 +605,24 @@ func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
-	return getPullRequestByIssueID(x, issueID)
+	return getPullRequestByIssueID(db.GetEngine(db.DefaultContext), issueID)
 }
 
 // Update updates all fields of pull request.
 func (pr *PullRequest) Update() error {
-	_, err := x.ID(pr.ID).AllCols().Update(pr)
+	_, err := db.GetEngine(db.DefaultContext).ID(pr.ID).AllCols().Update(pr)
 	return err
 }
 
 // UpdateCols updates specific fields of pull request.
 func (pr *PullRequest) UpdateCols(cols ...string) error {
-	_, err := x.ID(pr.ID).Cols(cols...).Update(pr)
+	_, err := db.GetEngine(db.DefaultContext).ID(pr.ID).Cols(cols...).Update(pr)
 	return err
 }
 
 // UpdateColsIfNotMerged updates specific fields of a pull request if it has not been merged
 func (pr *PullRequest) UpdateColsIfNotMerged(cols ...string) error {
-	_, err := x.Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
+	_, err := db.GetEngine(db.DefaultContext).Where("id = ? AND has_merged = ?", pr.ID, false).Cols(cols...).Update(pr)
 	return err
 }
 
@@ -660,10 +668,10 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 
 // UpdateCommitDivergence update Divergence of a pull request
 func (pr *PullRequest) UpdateCommitDivergence(ahead, behind int) error {
-	return pr.updateCommitDivergence(x, ahead, behind)
+	return pr.updateCommitDivergence(db.GetEngine(db.DefaultContext), ahead, behind)
 }
 
-func (pr *PullRequest) updateCommitDivergence(e Engine, ahead, behind int) error {
+func (pr *PullRequest) updateCommitDivergence(e db.Engine, ahead, behind int) error {
 	if pr.ID == 0 {
 		return fmt.Errorf("pull ID is 0")
 	}

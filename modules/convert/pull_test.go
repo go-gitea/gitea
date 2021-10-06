@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -15,9 +16,9 @@ import (
 
 func TestPullRequest_APIFormat(t *testing.T) {
 	//with HeadRepo
-	assert.NoError(t, models.PrepareTestDatabase())
-	headRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	pr := models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
+	assert.NoError(t, db.PrepareTestDatabase())
+	headRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NoError(t, pr.LoadIssue())
 	apiPullRequest := ToAPIPullRequest(pr)
@@ -31,7 +32,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	}, apiPullRequest.Head)
 
 	//withOut HeadRepo
-	pr = models.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
+	pr = db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
 	assert.NoError(t, pr.LoadIssue())
 	assert.NoError(t, pr.LoadAttributes())
 	// simulate fork deletion

@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddTime(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	user3, err := GetUserByID(3)
 	assert.NoError(t, err)
@@ -27,15 +28,15 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(1), trackedTime.IssueID)
 	assert.Equal(t, int64(3661), trackedTime.Time)
 
-	tt := AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
+	tt := db.AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
 	assert.Equal(t, int64(3661), tt.Time)
 
-	comment := AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
+	comment := db.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
 	assert.Equal(t, comment.Content, "1h 1min 1s")
 }
 
 func TestGetTrackedTimes(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	// by Issue
 	times, err := GetTrackedTimes(&FindTrackedTimesOptions{IssueID: 1})
@@ -76,7 +77,7 @@ func TestGetTrackedTimes(t *testing.T) {
 }
 
 func TestTotalTimes(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	total, err := TotalTimes(&FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)

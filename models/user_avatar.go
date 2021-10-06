@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"image/png"
 	"io"
-	"strconv"
-	"strings"
 
+	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,10 +25,10 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
-	return u.generateRandomAvatar(x)
+	return u.generateRandomAvatar(db.GetEngine(db.DefaultContext))
 }
 
-func (u *User) generateRandomAvatar(e Engine) error {
+func (u *User) generateRandomAvatar(e db.Engine) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -39,7 +39,7 @@ func (u *User) generateRandomAvatar(e Engine) error {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
 
-	u.Avatar = HashEmail(seed)
+	u.Avatar = avatars.HashEmail(seed)
 
 	// Don't share the images so that we can delete them easily
 	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
@@ -59,61 +59,41 @@ func (u *User) generateRandomAvatar(e Engine) error {
 	return nil
 }
 
-// SizedRelAvatarLink returns a link to the user's avatar via
-// the local explore page. Function returns immediately.
-// When applicable, the link is for an avatar of the indicated size (in pixels).
-func (u *User) SizedRelAvatarLink(size int) string {
-	return setting.AppSubURL + "/user/avatar/" + u.Name + "/" + strconv.Itoa(size)
-}
-
-// RealSizedAvatarLink returns a link to the user's avatar. When
-// applicable, the link is for an avatar of the indicated size (in pixels).
-//
-// This function make take time to return when federated avatars
-// are in use, due to a DNS lookup need
-//
-func (u *User) RealSizedAvatarLink(size int) string {
+// AvatarLinkWithSize returns a link to the user's avatar with size. size <= 0 means default size
+func (u *User) AvatarLinkWithSize(size int) string {
 	if u.ID == -1 {
-		return DefaultAvatarLink()
+		// ghost user
+		return avatars.DefaultAvatarLink()
 	}
+
+	useLocalAvatar := false
+	autoGenerateAvatar := false
 
 	switch {
 	case u.UseCustomAvatar:
-		if u.Avatar == "" {
-			return DefaultAvatarLink()
-		}
-		if size > 0 {
-			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
-		}
-		return setting.AppSubURL + "/avatars/" + u.Avatar
+		useLocalAvatar = true
 	case setting.DisableGravatar, setting.OfflineMode:
-		if u.Avatar == "" {
+		useLocalAvatar = true
+		autoGenerateAvatar = true
+	}
+
+	if useLocalAvatar {
+		if u.Avatar == "" && autoGenerateAvatar {
 			if err := u.GenerateRandomAvatar(); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}
-		if size > 0 {
-			return setting.AppSubURL + "/avatars/" + u.Avatar + "?size=" + strconv.Itoa(size)
+		if u.Avatar == "" {
+			return avatars.DefaultAvatarLink()
 		}
-		return setting.AppSubURL + "/avatars/" + u.Avatar
+		return avatars.GenerateUserAvatarImageLink(u.Avatar, size)
 	}
-	return SizedAvatarLink(u.AvatarEmail, size)
+	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
 }
 
-// RelAvatarLink returns a relative link to the user's avatar. The link
-// may either be a sub-URL to this site, or a full URL to an external avatar
-// service.
-func (u *User) RelAvatarLink() string {
-	return u.SizedRelAvatarLink(DefaultAvatarSize)
-}
-
-// AvatarLink returns user avatar absolute link.
+// AvatarLink returns a avatar link with default size
 func (u *User) AvatarLink() string {
-	link := u.RelAvatarLink()
-	if link[0] == '/' && link[1] != '/' {
-		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-	}
-	return link
+	return u.AvatarLinkWithSize(0)
 }
 
 // UploadAvatar saves custom avatar for user.
@@ -124,7 +104,7 @@ func (u *User) UploadAvatar(data []byte) error {
 		return err
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -152,6 +132,15 @@ func (u *User) UploadAvatar(data []byte) error {
 	return sess.Commit()
 }
 
+// IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data
+func (u *User) IsUploadAvatarChanged(data []byte) bool {
+	if !u.UseCustomAvatar || len(u.Avatar) == 0 {
+		return true
+	}
+	avatarID := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	return u.Avatar != avatarID
+}
+
 // DeleteAvatar deletes the user's custom avatar.
 func (u *User) DeleteAvatar() error {
 	aPath := u.CustomAvatarRelativePath()
@@ -164,7 +153,7 @@ func (u *User) DeleteAvatar() error {
 
 	u.UseCustomAvatar = false
 	u.Avatar = ""
-	if _, err := x.ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil

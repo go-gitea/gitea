@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -152,7 +154,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 
 // getConfig retrieves the SSPI configuration from login sources
 func (s *SSPI) getConfig() (*sspi.Source, error) {
-	sources, err := models.ActiveLoginSources(models.LoginSSPI)
+	sources, err := login.ActiveSources(login.SSPI)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +194,7 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) 
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
-		Avatar:                       models.DefaultAvatarLink(),
+		Avatar:                       avatars.DefaultAvatarLink(),
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
 	if err := models.CreateUser(user); err != nil {
@@ -248,7 +250,7 @@ func sanitizeUsername(username string, cfg *sspi.Source) string {
 // fails (or if negotiation should continue), which would prevent other authentication methods
 // to execute at all.
 func specialInit() {
-	if models.IsSSPIEnabled() {
+	if login.IsSSPIEnabled() {
 		Register(&SSPI{})
 	}
 }

@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -45,8 +46,8 @@ func TestDeleteDeployKeyNoLogin(t *testing.T) {
 
 func TestCreateReadOnlyDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -61,7 +62,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
-	models.AssertExistsAndLoadBean(t, &models.DeployKey{
+	db.AssertExistsAndLoadBean(t, &models.DeployKey{
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
@@ -71,8 +72,8 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 func TestCreateReadWriteDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -86,7 +87,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 
 	var newDeployKey api.DeployKey
 	DecodeJSON(t, resp, &newDeployKey)
-	models.AssertExistsAndLoadBean(t, &models.DeployKey{
+	db.AssertExistsAndLoadBean(t, &models.DeployKey{
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
@@ -96,7 +97,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 
 func TestCreateUserKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := models.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 
 	session := loginUser(t, "user1")
 	token := url.QueryEscape(getTokenForLoggedInUser(t, session))
@@ -112,7 +113,7 @@ func TestCreateUserKey(t *testing.T) {
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
-	models.AssertExistsAndLoadBean(t, &models.PublicKey{
+	db.AssertExistsAndLoadBean(t, &models.PublicKey{
 		ID:      newPublicKey.ID,
 		OwnerID: user.ID,
 		Name:    rawKeyBody.Title,

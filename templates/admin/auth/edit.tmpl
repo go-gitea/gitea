@@ -104,6 +104,10 @@
 						<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
 						<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
 					</div>
+					<div class="field">
+						<label for="attribute_avatar">{{.i18n.Tr "admin.auths.attribute_avatar"}}</label>
+						<input id="attribute_avatar" name="attribute_avatar" value="{{$cfg.AttributeAvatar}}" placeholder="e.g. jpegPhoto">
+					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label for="groups_enabled"><strong>{{.i18n.Tr "admin.auths.verify_group_membership"}}</strong></label>
@@ -147,6 +151,13 @@
 							</div>
 						</div>
 					{{end}}
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
+					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label for="allow_deactivate_all"><strong>{{.i18n.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
@@ -208,6 +219,13 @@
 						<input id="allowed_domains" name="allowed_domains" value="{{$cfg.AllowedDomains}}">
 						<p class="help">{{.i18n.Tr "admin.auths.allowed_domains_helper"}}</p>
 					</div>
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
+					</div>
 				{{end}}
 
 				<!-- PAM -->
@@ -220,6 +238,13 @@
 					<div class="field">
 						<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
 						<input id="pam_email_domain" name="pam_email_domain" value="{{$cfg.EmailDomain}}">
+					</div>
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
 					</div>
 				{{end}}
 
