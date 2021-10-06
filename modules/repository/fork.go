@@ -105,6 +105,10 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 			return fmt.Errorf("git clone: %v", err)
 		}
 
+		if err := repo.CheckDaemonExportOK(); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
+
 		if stdout, err := git.NewCommand("update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunInDir(repoPath); err != nil {

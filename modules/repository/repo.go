@@ -96,6 +96,17 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
+	if err = repo.CheckDaemonExportOK(); err != nil {
+		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
+	}
+
+	if stdout, err := git.NewCommand("update-server-info").
+		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
+		RunInDir(repoPath); err != nil {
+		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
+	}
+
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
