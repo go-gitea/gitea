@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -114,8 +115,7 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentI
 	}
 
 	for _, item := range res {
-		// FIXME: use avatar refactor later
-		item.UserAvatarLink = "/user/avatar/" + item.UserName + "/0"
+		item.UserAvatarLink = avatars.GenerateUserAvatarFastLink(item.UserName, 0)
 	}
 	return res, nil
 }
