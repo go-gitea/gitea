@@ -843,7 +843,7 @@ func (issue *Issue) GetLastEventLabel() string {
 func (issue *Issue) GetLastComment() (*Comment, error) {
 	var c Comment
 	exist, err := db.GetEngine(db.DefaultContext).Where("type = ?", CommentTypeComment).
-		And("issue_id = ?", issue.ID).Desc("id").Get(&c)
+		And("issue_id = ?", issue.ID).Desc("created_unix").Get(&c)
 	if err != nil {
 		return nil, err
 	}
