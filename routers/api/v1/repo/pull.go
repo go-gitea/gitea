@@ -564,6 +564,10 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if form.State != nil {
+		if pr.HasMerged {
+			ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
+			return
+		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
@@ -585,7 +589,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// change pull target branch
-	if len(form.Base) != 0 && form.Base != pr.BaseBranch {
+	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
 		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
 			ctx.Error(http.StatusNotFound, "NewBaseBranchNotExist", fmt.Errorf("new base '%s' not exist", form.Base))
 			return
