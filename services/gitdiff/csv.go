@@ -176,14 +176,6 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		// diffTableCells is a row of the diff table. It will have a cells for added, deleted, changed, and unchanged content, thus either
 		// the same size as the head table or bigger
 		diffTableCells := make([]*TableDiffCell, numDiffTableCols)
-		var aRow *[]string
-		if aLineNum > 0 {
-			row, err := baseCSVReader.GetRow(aLineNum - 1)
-			if err != nil {
-				return nil, err
-			}
-			aRow = &row
-		}
 		var bRow *[]string
 		if bLineNum > 0 {
 			row, err := headCSVReader.GetRow(bLineNum - 1)
@@ -191,6 +183,14 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 				return nil, err
 			}
 			bRow = &row
+		}
+		var aRow *[]string
+		if aLineNum > 0 {
+			row, err := baseCSVReader.GetRow(aLineNum - 1)
+			if err != nil {
+				return nil, err
+			}
+			aRow = &row
 		}
 		if aRow == nil && bRow == nil {
 			// No content
@@ -221,8 +221,14 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 				colsDeleted++
 			}
 
+			// aIndex is now pointing to a column that also exists in b, or is at the end of a2bColMap. If the former,
+			// we can just increment aIndex until it points to a -1 column or one greater than the current bIndex
+			for aIndex < len(a2bColMap) && a2bColMap[aIndex] != -1 {
+				aIndex++
+			}
+
 			// Starting from where bIndex is currently pointing, we see if the map is -1 (added) and if is, create column to note that, increment, and look at the next aIndex
-			for bIndex < len(b2aColMap) && b2aColMap[bIndex] == -1 {
+			for bIndex < len(b2aColMap) && b2aColMap[bIndex] == -1 && (aIndex >= len(a2bColMap) || bIndex < aIndex) {
 				var bCell string
 				cellType := TableDiffCellAdd
 				if bRow != nil {
@@ -241,15 +247,9 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 				colsAdded++
 			}
 
-			// aIndex is now pointing to a column that also exists in b, or is at the end of a2bColMap. If the former,
-			// we can just increment aIndex until it points to a -1 column or is at the end
-			for aIndex < len(a2bColMap) && a2bColMap[aIndex] != -1 {
-				aIndex++
-			}
-
 			// aIndex is now pointing to a column that also exists in a, or is at the end of b2aColMap. If the former,
 			// we get the a col and b col values (if they exist), figure out if they are the same or not, and if the column moved, and add it to the diff table
-			for bIndex < len(b2aColMap) && b2aColMap[bIndex] != -1 {
+			for bIndex < len(b2aColMap) && b2aColMap[bIndex] != -1 && (aIndex >= len(a2bColMap) || bIndex < aIndex) {
 				var diffTableCell TableDiffCell
 
 				var aCell *string
@@ -283,7 +283,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 				}
 
 				// if both a and b have a row that exists, compare the value and determine if the row has moved
-				if aRow != nil && bRow != nil {
+				if aCell != nil && bCell != nil {
 					moved := ((bIndex + colsDeleted) != (b2aColMap[bIndex] + colsAdded))
 					if *aCell != *bCell {
 						if moved {
