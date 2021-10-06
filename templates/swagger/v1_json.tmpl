@@ -15910,6 +15910,33 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "OrganizationPermissions": {
+      "description": "OrganizationPermissions list differents users permissions on an organization",
+      "type": "object",
+      "properties": {
+        "can_create_repository": {
+          "type": "boolean",
+          "x-go-name": "CanCreateRepository"
+        },
+        "can_read": {
+          "type": "boolean",
+          "x-go-name": "CanRead"
+        },
+        "can_write": {
+          "type": "boolean",
+          "x-go-name": "CanWrite"
+        },
+        "is_admin": {
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
+        },
+        "is_owner": {
+          "type": "boolean",
+          "x-go-name": "IsOwner"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "PRBranchInfo": {
       "description": "PRBranchInfo information about a branch",
       "type": "object",
@@ -17773,6 +17800,12 @@
         "items": {
           "$ref": "#/definitions/Organization"
         }
+      }
+    },
+    "OrganizationPermissions": {
+      "description": "OrganizationPermissions",
+      "schema": {
+        "$ref": "#/definitions/OrganizationPermissions"
       }
     },
     "PublicKey": {
