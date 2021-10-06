@@ -355,6 +355,11 @@ steps:
         exclude:
           - pull_request
 
+  - name: fix-permissions
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - chown -R gitea:gitea .
+
   - name: build
     pull: always
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
