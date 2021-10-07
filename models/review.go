@@ -434,7 +434,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	// try to remove team review request if need
 	if issue.Repo.Owner.IsOrganization() && (reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject) {
 		teamReviewRequests := make([]*Review, 0, 10)
-		if err := sess.SQL("SELECT * FROM review WHERE reviewer_team_id > 0 AND type = ?", ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
+		if err := sess.SQL("SELECT * FROM review WHERE issue_id = ? AND reviewer_team_id > 0 AND type = ?", issue.ID, ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
 			return nil, nil, err
 		}
 
