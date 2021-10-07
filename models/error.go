@@ -340,7 +340,7 @@ func (err ErrUserSettingExists) Error() string {
 	return fmt.Sprintf("setting already exists for user [uid: %d, key: %s]", err.Setting.UserID, err.Setting.Key)
 }
 
-// ErrUserSettingNotExists represents a "setting already exists for user" error.
+// ErrUserSettingNotExists represents a "setting does not exist for user" error.
 type ErrUserSettingNotExists struct {
 	Setting *UserSetting
 }
