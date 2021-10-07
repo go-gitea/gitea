@@ -109,15 +109,22 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			if original, has := id2key[id]; has {
 				// Coalesce this with the other one
 				for _, subkey := range ekey.Subkeys {
+					if subkey.PublicKey == nil {
+						continue
+					}
+					found := false
+
 					for _, originalSubkey := range original.Subkeys {
-						if subkey.PublicKey == nil || originalSubkey.PublicKey == nil {
+						if originalSubkey.PublicKey == nil {
 							continue
 						}
 						if originalSubkey.PublicKey.KeyId == subkey.PublicKey.KeyId {
-							continue
+							found = true
+							break
 						}
+					}
+					if !found {
 						original.Subkeys = append(original.Subkeys, subkey)
-						break
 					}
 				}
 				for name, identity := range ekey.Identities {
