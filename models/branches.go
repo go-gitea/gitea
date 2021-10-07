@@ -53,6 +53,7 @@ type ProtectedBranch struct {
 func init() {
 	db.RegisterModel(new(ProtectedBranch))
 	db.RegisterModel(new(DeletedBranch))
+	db.RegisterModel(new(RenamedBranch))
 }
 
 // IsProtected returns if the branch is protected
