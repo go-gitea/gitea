@@ -103,7 +103,7 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 
 	if len(ekeys) > 1 {
 		id2key := map[string]*openpgp.Entity{}
-		newKeys := make([]*openpgp.Entity, 0, len(ekeys))
+		newEKeys := make([]*openpgp.Entity, 0, len(ekeys))
 		for _, ekey := range ekeys {
 			id := ekey.PrimaryKey.KeyIdString()
 			if original, has := id2key[id]; has {
@@ -136,9 +136,9 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 				continue
 			}
 			id2key[id] = ekey
-			newKeys = append(newKeys, ekey)
+			newEKeys = append(newEKeys, ekey)
 		}
-		ekeys = newKeys
+		ekeys = newEKeys
 	}
 
 	for _, ekey := range ekeys {
