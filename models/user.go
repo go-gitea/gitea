@@ -296,7 +296,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return u.OrganisationLink() + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard"
 	}
 	return setting.AppSubURL + "/"
 }
