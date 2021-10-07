@@ -17,7 +17,7 @@ import (
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
+func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -39,6 +39,12 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
+	}
+
+	perm, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
+		perm.AccessMode = models.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -68,7 +74,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(pr.BaseRepo, models.AccessModeNone),
+			Repository: ToRepo(pr.BaseRepo, perm.AccessMode),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -96,8 +102,14 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	}
 
 	if pr.HeadRepo != nil {
+		perm, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+		if err != nil {
+			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
+			perm.AccessMode = models.AccessModeNone
+		}
+
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
+		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, perm.AccessMode)
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
