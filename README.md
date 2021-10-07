@@ -148,7 +148,7 @@ Support this project by becoming a sponsor. Your logo will show up here with a l
 
 **How do you pronounce Gitea?**
 
-Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "gi-tea" with a hard g.
+Gitea is pronounced [/ɡɪ’ti:/](https://youtu.be/EM71-2uDAoY) as in "g-tea" with a hard g.
 
 **Why is this not hosted on a Gitea instance?**
 
