@@ -36,7 +36,7 @@ func init() {
 
 // GetUserSetting returns specific settings from user
 func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
-	settings := make([]*UserSetting, 0, 5)
+	settings := make([]*UserSetting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
 		And(builder.In("key", keys)).
