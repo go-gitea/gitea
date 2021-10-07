@@ -99,6 +99,46 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		verified = true
 	}
 
+	if len(ekeys) > 1 {
+		id2key := map[string]*openpgp.Entity{}
+		newEKeys := make([]*openpgp.Entity, 0, len(ekeys))
+		for _, ekey := range ekeys {
+			id := ekey.PrimaryKey.KeyIdString()
+			if original, has := id2key[id]; has {
+				// Coalesce this with the other one
+				for _, subkey := range ekey.Subkeys {
+					if subkey.PublicKey == nil {
+						continue
+					}
+					found := false
+
+					for _, originalSubkey := range original.Subkeys {
+						if originalSubkey.PublicKey == nil {
+							continue
+						}
+						if originalSubkey.PublicKey.KeyId == subkey.PublicKey.KeyId {
+							found = true
+							break
+						}
+					}
+					if !found {
+						original.Subkeys = append(original.Subkeys, subkey)
+					}
+				}
+				for name, identity := range ekey.Identities {
+					if _, has := original.Identities[name]; has {
+						continue
+					}
+					original.Identities[name] = identity
+				}
+				continue
+			}
+			id2key[id] = ekey
+			newEKeys = append(newEKeys, ekey)
+		}
+		ekeys = newEKeys
+	}
+
 	for _, ekey := range ekeys {
 		// Key ID cannot be duplicated.
 		has, err := sess.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
