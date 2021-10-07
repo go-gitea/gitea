@@ -119,8 +119,16 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OrganizationPermissions"
 
-	u := user.GetUserByParams(ctx)
-	o := user.GetUserByParamsName(ctx, ":org")
+	var u *models.User
+	if u = user.GetUserByParams(ctx); u == nil {
+		return
+	}
+
+	var o *models.User
+	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
+		return
+	}
+
 	op := api.OrganizationPermissions{}
 
 	if !models.HasOrgOrUserVisible(o, u) {
