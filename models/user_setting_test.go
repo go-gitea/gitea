@@ -33,7 +33,7 @@ func TestUserSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get all settings
-	userSettings, err = GetUserAllSettings(99)
+	userSettings, err = GetAllUserSettings(99)
 	assert.NoError(t, err)
 	assert.Len(t, userSettings, 1)
 	assert.EqualValues(t, userSettings[0].Value, updatedSetting.Value)

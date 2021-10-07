@@ -30,6 +30,11 @@ func (setting *UserSetting) BeforeUpdate() {
 	setting.Key = strings.ToLower(setting.Key)
 }
 
+// BeforeDelete will be invoked by XORM before updating a record
+func (setting *UserSetting) BeforeDelete() {
+	setting.Key = strings.ToLower(setting.Key)
+}
+
 func init() {
 	db.RegisterModel(new(UserSetting))
 }
@@ -47,8 +52,8 @@ func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
 	return settings, nil
 }
 
-// GetUserAllSettings returns all settings from user
-func GetUserAllSettings(uid int64) ([]*UserSetting, error) {
+// GetAllUserSettings returns all settings from user
+func GetAllUserSettings(uid int64) ([]*UserSetting, error) {
 	settings := make([]*UserSetting, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
