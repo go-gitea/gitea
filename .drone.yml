@@ -542,7 +542,7 @@ steps:
 
   - name: release-branch
     pull: always
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
       bucket: gitea-artifacts
@@ -563,7 +563,7 @@ steps:
         - push
 
   - name: release-main
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
       bucket: gitea-artifacts
@@ -638,7 +638,7 @@ steps:
 
   - name: release-tag
     pull: always
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
       bucket: gitea-artifacts
