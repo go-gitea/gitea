@@ -133,6 +133,10 @@ func TestGetPullRequestByIndex(t *testing.T) {
 	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
+
+	_, err = GetPullRequestByIndex(1, 0)
+	assert.Error(t, err)
+	assert.True(t, IsErrPullRequestNotExist(err))
 }
 
 func TestGetPullRequestByID(t *testing.T) {
