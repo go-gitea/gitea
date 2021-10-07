@@ -393,8 +393,8 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 }
 
 // GetOrgUserMaxAuthorizeLevel returns highest authorize level of user in an organization
-func (org *User) GetOrgUserMaxAuthorizeLevel(uid int64) (int, error) {
-	var authorize int
+func (org *User) GetOrgUserMaxAuthorizeLevel(uid int64) (AccessMode, error) {
+	var authorize AccessMode
 	_, err := db.GetEngine(db.DefaultContext).
 		Select("max(team.authorize)").
 		Table("team").

@@ -118,6 +118,10 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/OrganizationPermissions"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	var u *models.User
 	if u = user.GetUserByParams(ctx); u == nil {
@@ -145,16 +149,16 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	op.IsOwner = false
 	op.IsAdmin = false
 	op.CanWrite = false
-	if authorizeLevel > 0 {
+	if authorizeLevel > models.AccessModeNone {
 		op.CanRead = true
 	}
-	if authorizeLevel > 1 {
+	if authorizeLevel > models.AccessModeRead {
 		op.CanWrite = true
 	}
-	if authorizeLevel > 2 {
+	if authorizeLevel > models.AccessModeWrite {
 		op.IsAdmin = true
 	}
-	if authorizeLevel > 3 {
+	if authorizeLevel > models.AccessModeAdmin {
 		op.IsOwner = true
 	}
 
