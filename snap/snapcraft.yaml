@@ -21,7 +21,6 @@ environment:
   GITEA_WORK_DIR: "$SNAP_COMMON"
   GIT_TEMPLATE_DIR: "$SNAP/usr/share/git-core/templates"
   GIT_EXEC_PATH: "$SNAP/usr/lib/git-core"
-  GITEA_APP_PATH: "$(echo \"$SNAP/$SNAP_NAME\"|sed \"s/$SNAP_REVISION/current/\")"
 
 apps:
   gitea:
@@ -46,7 +45,7 @@ parts:
     source: .
     stage-packages: [ git, sqlite3, openssh-client ]
     build-packages: [ git, libpam0g-dev, libsqlite3-dev]
-    build-snaps: [ go, node/14/stable ]
+    build-snaps: [ go, node/16/stable ]
     build-environment:
       - LDFLAGS: ""
     override-pull: |

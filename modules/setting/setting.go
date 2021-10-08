@@ -453,9 +453,24 @@ func getAppPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	// Note: we don't use path.Dir here because it does not handle case
 	//	which path starts with two "/" in Windows: "//psf/Home/..."
-	return strings.ReplaceAll(appPath, "\\", "/"), err
+	appPath = strings.ReplaceAll(appPath, "\\", "/")
+
+	// Fix issue 16209: When running in a snap and repositories are
+	// created, paths in the hooks include the snap revision. But as new
+	// revisions come out the older revisions are eventually deleted, and
+	// the hooks begin to fail.
+	// The code below replaces the snap revision with "current", which
+	// is a link to the current snap revision.
+	snapPath := os.Getenv("SNAP")
+	if snapPath != "" && strings.HasPrefix(appPath, snapPath) {
+		revision := os.Getenv("SNAP_REVISION")
+		appPath = strings.Replace(appPath, revision, "current", 1)
+	}
+
+	return appPath, nil
 }
 
 func getWorkPath(appPath string) string {
