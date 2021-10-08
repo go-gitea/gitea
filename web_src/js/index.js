@@ -2969,7 +2969,11 @@ $(() => {
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
   if ($('.user.signin').length === 0) {
-    $('form:not(.ignore-dirty)').areYouSure();
+    // Chrome always auto fills some inputs, and triggers `areYouSure` confirm when leaving, `autocomplete=off` doesn't help at all.
+    // so we can just wait for a few seconds, then the changes of the inputs are sure to be caused by real users.
+    setTimeout(() => {
+      $('form:not(.ignore-dirty)').areYouSure();
+    }, 3000);
   }
 
   // Parse SSH Key
