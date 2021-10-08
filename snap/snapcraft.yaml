@@ -67,7 +67,7 @@ parts:
 
     override-build: |
       set -x
-      GITEA_APP_PATH: "$(echo "$SNAP/$SNAP_NAME"|sed "s/$SNAP_REVISION/current/")"
+      export GITEA_APP_PATH="$(echo "$SNAP/$SNAP_NAME"|sed "s/$SNAP_REVISION/current/")"
       export LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.AppPath=$GITEA_APP_PATH\" ${LDFLAGS}"
       TAGS="bindata sqlite sqlite_unlock_notify pam cert" make build
       install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
