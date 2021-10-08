@@ -431,7 +431,11 @@ func IsProd() bool {
 }
 
 func getAppPath() (string, error) {
-	var appPath string
+	appPath := AppPath
+	if appPath != "" {
+		return appPath, nil
+	}
+
 	var err error
 	if IsWindows && filepath.IsAbs(os.Args[0]) {
 		appPath = filepath.Clean(os.Args[0])
