@@ -23,6 +23,7 @@ type Milestone struct {
 	ID              int64       `xorm:"pk autoincr"`
 	RepoID          int64       `xorm:"INDEX"`
 	Repo            *Repository `xorm:"-"`
+	Labels          []*Label    `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`

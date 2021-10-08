@@ -346,6 +346,8 @@ var migrations = []Migration{
 	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
 	// v196 -> v197
 	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	// v197 -> v198
+	NewMigration("Add labels to Milestones", addLabelsToMilestones),
 }
 
 // GetCurrentDBVersion returns the current db version

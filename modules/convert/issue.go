@@ -220,6 +220,7 @@ func ToAPIMilestone(m *models.Milestone) *api.Milestone {
 		ClosedIssues: m.NumClosedIssues,
 		Created:      m.CreatedUnix.AsTime(),
 		Updated:      m.UpdatedUnix.AsTimePtr(),
+		Labels:       ToLabelList(m.Labels, m.Repo, m.Repo.Owner),
 	}
 	if m.IsClosed {
 		apiMilestone.Closed = m.ClosedDateUnix.AsTimePtr()

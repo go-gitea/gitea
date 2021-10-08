@@ -16,6 +16,7 @@ type Milestone struct {
 	State        StateType `json:"state"`
 	OpenIssues   int       `json:"open_issues"`
 	ClosedIssues int       `json:"closed_issues"`
+	Labels       []*Label  `json:"labels"`
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
