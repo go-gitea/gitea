@@ -94,7 +94,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return
 	}
 	if err := issue.LoadAttributes(); err != nil {
@@ -181,10 +181,6 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 		return
 	}
 
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "NewAttachment", err)
-		return
-	}
 	issue.Attachments = append(issue.Attachments, attach)
 
 	if err := issue_service.ChangeContent(issue, ctx.User, issue.Content); err != nil {
@@ -307,23 +303,23 @@ func getIssueAttachmentSafeRead(ctx *context.APIContext) *models.Attachment {
 		ctx.NotFoundOrServerError("GetAttachmentByID", models.IsErrAttachmentNotExist, err)
 		return nil
 	}
-	if !attachmentBelongsToRepoOrIssue(ctx, attach, nil, nil) {
+	if !attachmentBelongsToRepoOrIssue(ctx, attach, issue) {
 		return nil
 	}
 	return attach
 }
 
 func canUserWriteIssueAttachment(ctx *context.APIContext, i *models.Issue) (success bool) {
-	canEditIssue := ctx.User.ID == i.PosterID && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin()
+	canEditIssue := ctx.User.ID == i.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()
 	if !canEditIssue {
-		ctx.Error(http.StatusForbidden, "IssueEditPerm", "user should have a permission to editIssue")
+		ctx.Error(http.StatusForbidden, "IssueEditPerm", "user should have permission to edit issue")
 		return
 	}
 
 	return true
 }
 
-func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, a *models.Attachment, issue *models.Issue, comment *models.Comment) (success bool) {
+func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, a *models.Attachment, issue *models.Issue) (success bool) {
 	if a.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
 		ctx.NotFound()
@@ -336,11 +332,6 @@ func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, a *models.Attachmen
 		return
 	} else if issue != nil && a.IssueID != issue.ID {
 		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", a.ID, issue.ID, issue.Index)
-		ctx.NotFound()
-		return
-	}
-	if comment != nil && a.CommentID != comment.ID {
-		log.Debug("Requested attachment[%d] does not belong to comment[%d].", a.ID, comment.ID)
 		ctx.NotFound()
 		return
 	}
