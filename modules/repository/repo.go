@@ -96,6 +96,14 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
+	if repo.OwnerID == u.ID {
+		repo.Owner = u
+	}
+
+	if err = repo.GetOwner(); err != nil {
+		return repo, fmt.Errorf("unable to get owner[%d] for repo [%d]. Error: %v", repo.OwnerID, repo.ID, err)
+	}
+
 	if err = repo.CheckDaemonExportOK(); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
