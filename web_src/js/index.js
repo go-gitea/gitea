@@ -393,8 +393,8 @@ function initSimpleMDEImagePaste(simplemde, dropzone, files) {
 let autoSimpleMDE;
 
 function initCommentForm() {
-  if ($('.comment.form').length === 0) {
-    return;
+  if ($('.comment.form').length === 0 && $('.select-label').length < 1) {
+      return;
   }
 
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));

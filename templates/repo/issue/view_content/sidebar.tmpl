@@ -141,6 +141,7 @@
 
 		<div class="ui divider"></div>
 
+		<!-- milestones -->
 		<div class="ui {{if or (not .HasIssuesOrPullsWritePermission) .Repository.IsArchived}}disabled{{end}} floating jump select-milestone dropdown">
 			<a class="text df ac muted">
 				<strong>{{.i18n.Tr "repo.issues.new.milestone"}}</strong>
@@ -197,6 +198,13 @@
 						{{svg "octicon-milestone" 18 "mr-3"}}
 						{{.Issue.Milestone.Name}}
 					</a>
+					<div class="menu">
+						{{range .Issue.Milestone.Labels}}
+							<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+								{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							</div>
+						{{end}}
+					</div>
 				{{end}}
 			</div>
 		</div>

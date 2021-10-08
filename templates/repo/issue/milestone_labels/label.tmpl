@@ -1,0 +1,9 @@
+<a
+	class="ui label item {{if not .label.IsChecked}}hide{{end}}"
+	id="label_{{.label.ID}}"
+	href="{{.Link}}"
+	style="color: {{.label.ForegroundColor}}; background-color: {{.label.Color}}"
+	title="{{.label.Description | RenderEmojiPlain}}"
+>
+	{{.label.Name | RenderEmoji}}
+</a>

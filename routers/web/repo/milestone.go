@@ -6,6 +6,7 @@ package repo
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -116,6 +117,41 @@ func NewMilestone(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.milestones.new")
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsMilestones"] = true
+	var labelIDs []int64
+	var err error
+	selectLabels := ctx.FormString("labels")
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
+
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+
+		ctx.Data["OrgLabels"] = orgLabels
+		labels = append(labels, orgLabels...)
+	}
+
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs)
+	}
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SelectLabels"] = selectLabels
+	ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
@@ -141,11 +177,38 @@ func NewMilestonePost(ctx *context.Context) {
 		return
 	}
 
+	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+	if ctx.Written() {
+		return
+	}
+	var labelIDs []int64
+	hasSelected := false
+	// Check labels.
+	if len(form.LabelIDs) > 0 {
+		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+		if err != nil {
+			return
+		}
+		labelIDMark := base.Int64sToMap(labelIDs)
+
+		for i := range labels {
+			if labelIDMark[labels[i].ID] {
+				labels[i].IsChecked = true
+				hasSelected = true
+			}
+		}
+	}
+
+	ctx.Data["Labels"] = labels
+	ctx.Data["HasSelectedLabel"] = hasSelected
+	ctx.Data["label_ids"] = form.LabelIDs
+
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
 	if err = models.NewMilestone(&models.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
+		Labels:       labels,
 		DeadlineUnix: timeutil.TimeStamp(deadline.Unix()),
 	}); err != nil {
 		ctx.ServerError("NewMilestone", err)
@@ -173,6 +236,40 @@ func EditMilestone(ctx *context.Context) {
 	}
 	ctx.Data["title"] = m.Name
 	ctx.Data["content"] = m.Content
+	var labelIDs []int64
+	selectLabels := ctx.FormString("labels")
+	if len(selectLabels) > 0 && selectLabels != "0" {
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectLabels, ","))
+		if err != nil {
+			ctx.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
+
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("GetLabelsByRepoID", err)
+		return
+	}
+
+	if ctx.Repo.Owner.IsOrganization() {
+		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetLabelsByOrgID", err)
+			return
+		}
+
+		ctx.Data["OrgLabels"] = orgLabels
+		labels = append(labels, orgLabels...)
+	}
+
+	for _, l := range labels {
+		l.LoadSelectedLabelsAfterClick(labelIDs)
+	}
+	ctx.Data["Labels"] = labels
+	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["SelectLabels"] = selectLabels
+	ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 	if len(m.DeadlineString) > 0 {
 		ctx.Data["deadline"] = m.DeadlineString
 	}
@@ -190,6 +287,33 @@ func EditMilestonePost(ctx *context.Context) {
 		ctx.HTML(http.StatusOK, tplMilestoneNew)
 		return
 	}
+
+	labels := RetrieveRepoMetas(ctx, ctx.Repo.Repository, true)
+	if ctx.Written() {
+		return
+	}
+	var labelIDs []int64
+	var err error
+	hasSelected := false
+	// Check labels.
+	if len(form.LabelIDs) > 0 {
+		labelIDs, err = base.StringsToInt64s(strings.Split(form.LabelIDs, ","))
+		if err != nil {
+			return
+		}
+		labelIDMark := base.Int64sToMap(labelIDs)
+
+		for i := range labels {
+			if labelIDMark[labels[i].ID] {
+				labels[i].IsChecked = true
+				hasSelected = true
+			}
+		}
+	}
+
+	ctx.Data["Labels"] = labels
+	ctx.Data["HasSelectedLabel"] = hasSelected
+	ctx.Data["label_ids"] = form.LabelIDs
 
 	if len(form.Deadline) == 0 {
 		form.Deadline = "9999-12-31"
@@ -211,6 +335,7 @@ func EditMilestonePost(ctx *context.Context) {
 		}
 		return
 	}
+	m.Labels = labels
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())

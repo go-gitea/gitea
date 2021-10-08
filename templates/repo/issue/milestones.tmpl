@@ -102,6 +102,13 @@
 							{{.RenderedContent|Str2html}}
 						</div>
 					{{end}}
+					<div class="menu">
+						{{range .Labels}}
+							<div class="item issue-action" data-action="toggle" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/labels">
+								{{if contain $.SelLabelIDs .ID}}{{svg "octicon-check"}}{{end}}<span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
+							</div>
+						{{end}}
+					</div>
 				</li>
 			{{end}}
 

@@ -98,6 +98,26 @@ func NewMilestone(m *Milestone) (err error) {
 		return err
 	}
 
+	if len(m.Labels) > 0 {
+		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
+		// So we have to get all needed labels first.
+		labels := m.Labels
+		if err = sess.Find(&m.Labels); err != nil {
+			return fmt.Errorf("find all labels [label_ids: %v]: %v", m.Labels, err)
+		}
+
+		for _, label := range labels {
+			// Silently drop invalid labels.
+			if label.RepoID != m.Repo.ID && label.OrgID != m.Repo.OwnerID {
+				continue
+			}
+
+			if err = m.addLabel(sess, label, nil); err != nil {
+				return fmt.Errorf("addLabel [id: %d]: %v", label.ID, err)
+			}
+		}
+	}
+
 	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}

@@ -863,6 +863,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("/{id}").Get(repo.GetMilestone).
 						Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
 						Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), repo.DeleteMilestone)
+					m.Group("/labels", func() {
+						m.Combo("").Get(repo.ListMilestoneLabels).
+							Post(reqToken(), bind(api.MilestoneLabelsOption{}), repo.AddMilestoneLabels).
+							Put(reqToken(), bind(api.MilestoneLabelsOption{}), repo.ReplaceMilestoneLabels).
+							Delete(reqToken(), repo.ClearMilestoneLabels)
+						m.Delete("/{id}", reqToken(), repo.DeleteMilestoneLabel)
+					})
 				})
 				m.Get("/stargazers", repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)
