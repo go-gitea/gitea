@@ -24,11 +24,10 @@ func addTableIssueContentHistory(x *xorm.Engine) error {
 		IsDeleted      bool
 	}
 
-	if err := x.Sync2(new(IssueContentHistory)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-
 	sess := x.NewSession()
 	defer sess.Close()
+	if err := sess.Sync2(new(IssueContentHistory)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
+	}	
 	return sess.Commit()
 }
