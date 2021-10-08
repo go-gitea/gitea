@@ -52,7 +52,58 @@ func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, ed
 		log.Error("can not save issue content history. err=%v", err)
 		return err
 	}
+	// We only keep at most 20 history revisions now. It is enough in most cases.
+	// If there is a special requirement to keep more, we can consider introducing a new setting option then, but not now.
+	keepLimitedContentHistory(e, issueID, commentID, 20)
 	return nil
+}
+
+// keepLimitedContentHistory keeps at most `limit` history revisions, it will hard delete out-dated revisions, sorting by revision interval
+// we can ignore all errors in this function, so we just log them
+func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int) {
+	type IdEditTime struct {
+		ID             int64
+		EditedUnix     timeutil.TimeStamp
+	}
+
+	var res []*IdEditTime
+	err := e.Select("id, edited_unix").Table("issue_content_history").
+		Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).
+		OrderBy("edited_unix ASC").
+		Find(&res)
+	if err != nil {
+		log.Error("can not query content history for deletion, err=%v", err)
+		return
+	}
+	if len(res) <= 1 {
+		return
+	}
+
+	outDatedCount := len(res) - limit
+	for outDatedCount > 0 {
+		var indexToDelete int
+		minEditedInterval := -1
+		// find a history revision with minimal edited interval to delete
+		for i := 1; i < len(res); i++ {
+			editedInterval := int(res[i].EditedUnix - res[i-1].EditedUnix)
+			if minEditedInterval == -1 || editedInterval < minEditedInterval {
+				minEditedInterval = editedInterval
+				indexToDelete = i
+			}
+		}
+		if indexToDelete == 0 {
+			break
+		}
+
+		// hard delete the found one
+		_, err = e.Delete(&ContentHistory{ID: res[indexToDelete].ID})
+		if err != nil {
+			log.Error("can not delete out-dated content history, err=%v", err)
+			break
+		}
+		res = append(res[:indexToDelete], res[indexToDelete+1:]...)
+		outDatedCount--
+	}
 }
 
 // QueryIssueContentHistoryEditedCountMap query related history count of each comment (comment_id = 0 means the main issue)
@@ -84,12 +135,9 @@ func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64
 
 // IssueContentListItem the list for web ui
 type IssueContentListItem struct {
-	UserID          int64
-	UserName        string
-	UserAvatar      string
-	UserAvatarEmail string
-	UseCustomAvatar bool
-	UserAvatarLink  string
+	UserID         int64
+	UserName       string
+	UserAvatarLink string
 
 	HistoryID      int64
 	EditedUnix     timeutil.TimeStamp
@@ -100,11 +148,10 @@ type IssueContentListItem struct {
 // FetchIssueContentHistoryList fetch list
 func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
 	res := make([]*IssueContentListItem, 0)
-	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name,"+
-		"u.avatar as user_avatar, u.avatar_email as user_avatar_email, u.use_custom_avatar,"+
+	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name," +
 		"h.id as history_id, h.edited_unix, h.is_first_created, h.is_deleted").
 		Table([]string{"issue_content_history", "h"}).
-		Join("INNER", []string{"user", "u"}, "h.poster_id = u.id").
+		Join("LEFT", []string{"user", "u"}, "h.poster_id = u.id").
 		Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).
 		OrderBy("edited_unix DESC").
 		Find(&res)
