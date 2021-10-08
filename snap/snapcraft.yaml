@@ -21,7 +21,7 @@ environment:
   GITEA_WORK_DIR: "$SNAP_COMMON"
   GIT_TEMPLATE_DIR: "$SNAP/usr/share/git-core/templates"
   GIT_EXEC_PATH: "$SNAP/usr/lib/git-core"
-  GITEA_APP_PATH: "$(echo "$SNAP/$SNAP_NAME"|sed "s/$SNAP_REVISION/current/")"
+  GITEA_APP_PATH: "$(echo \"$SNAP/$SNAP_NAME\"|sed \"s/$SNAP_REVISION/current/\")"
 
 apps:
   gitea:
