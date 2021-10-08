@@ -140,6 +140,43 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 	return results
 }
 
+func pruneBrokenReferences(ctx context.Context,
+	m *models.Mirror,
+	repoPath string,
+	timeout time.Duration,
+	stdoutBuilder, stderrBuilder *strings.Builder,
+	sanitizer *strings.Replacer,
+	isWiki bool) error {
+
+	wiki := ""
+	if isWiki {
+		wiki = "Wiki "
+	}
+
+	stderrBuilder.Reset()
+	stdoutBuilder.Reset()
+	pruneErr := git.NewCommandContext(ctx, "remote", "prune", m.GetRemoteName()).
+		SetDescription(fmt.Sprintf("Mirror.runSync %ssPrune references: %s ", wiki, m.Repo.FullName())).
+		RunInDirTimeoutPipeline(timeout, repoPath, stdoutBuilder, stderrBuilder)
+	if pruneErr != nil {
+		stdout := stdoutBuilder.String()
+		stderr := stderrBuilder.String()
+
+		// sanitize the output, since it may contain the remote address, which may
+		// contain a password
+		stderrMessage := sanitizer.Replace(stderr)
+		stdoutMessage := sanitizer.Replace(stdout)
+
+		log.Error("Failed to prune mirror repository %s%-v references:\nStdout: %s\nStderr: %s\nErr: %v", wiki, m.Repo, stdoutMessage, stderrMessage, pruneErr)
+		desc := fmt.Sprintf("Failed to prune mirror repository %s'%s' references: %s", wiki, repoPath, stderrMessage)
+		if err := models.CreateRepositoryNotice(desc); err != nil {
+			log.Error("CreateRepositoryNotice: %v", err)
+		}
+		// this if will only be reached on a successful prune so try to get the mirror again
+	}
+	return pruneErr
+}
+
 // runSync returns true if sync finished without error.
 func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
@@ -160,7 +197,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 
 	stdoutBuilder := strings.Builder{}
 	stderrBuilder := strings.Builder{}
-	if err := git.NewCommand(gitArgs...).
+	if err := git.NewCommandContext(ctx, gitArgs...).
 		SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
 		RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
 		stdout := stdoutBuilder.String()
@@ -178,35 +215,22 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 			err = nil
 
 			// Attempt prune
-			stderrBuilder.Reset()
-			stdoutBuilder.Reset()
-			if pruneErr := git.NewCommand("remote", "prune", m.GetRemoteName()).
-				SetDescription(fmt.Sprintf("Mirror.runSync Prune references: %s ", m.Repo.FullName())).
-				RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); pruneErr != nil {
-				stdout := stdoutBuilder.String()
-				stderr := stderrBuilder.String()
+			pruneErr := pruneBrokenReferences(ctx, m, repoPath, timeout, &stdoutBuilder, &stderrBuilder, sanitizer, false)
+			if pruneErr == nil {
+				// Successful prune - reattempt mirror
+				stderrBuilder.Reset()
+				stdoutBuilder.Reset()
+				if err = git.NewCommandContext(ctx, gitArgs...).
+					SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
+					RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
+					stdout := stdoutBuilder.String()
+					stderr := stderrBuilder.String()
 
-				// sanitize the output, since it may contain the remote address, which may
-				// contain a password
-				stderrMessage := sanitizer.Replace(stderr)
-				stdoutMessage := sanitizer.Replace(stdout)
-
-				log.Error("Failed to prune mirror repository %-v references:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, pruneErr)
-				desc := fmt.Sprintf("Failed to prune mirror repository '%s' references: %s", repoPath, stderrMessage)
-				if err := models.CreateRepositoryNotice(desc); err != nil {
-					log.Error("CreateRepositoryNotice: %v", err)
+					// sanitize the output, since it may contain the remote address, which may
+					// contain a password
+					stderrMessage = sanitizer.Replace(stderr)
+					stdoutMessage = sanitizer.Replace(stdout)
 				}
-				// this if will only be reached on a successful prune so try to get the mirror again
-			} else if err = git.NewCommand(gitArgs...).
-				SetDescription(fmt.Sprintf("Mirror.runSync: %s", m.Repo.FullName())).
-				RunInDirTimeoutPipeline(timeout, repoPath, &stdoutBuilder, &stderrBuilder); err != nil {
-				stdout := stdoutBuilder.String()
-				stderr := stderrBuilder.String()
-
-				// sanitize the output, since it may contain the remote address, which may
-				// contain a password
-				stderrMessage = sanitizer.Replace(stderr)
-				stdoutMessage = sanitizer.Replace(stdout)
 			}
 		}
 
@@ -251,7 +275,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 		log.Trace("SyncMirrors [repo: %-v Wiki]: running git remote update...", m.Repo)
 		stderrBuilder.Reset()
 		stdoutBuilder.Reset()
-		if err := git.NewCommand("remote", "update", "--prune", m.GetRemoteName()).
+		if err := git.NewCommandContext(ctx, "remote", "update", "--prune", m.GetRemoteName()).
 			SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
 			RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
 			stdout := stdoutBuilder.String()
@@ -277,30 +301,20 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 				err = nil
 
 				// Attempt prune
-				stderrBuilder.Reset()
-				stdoutBuilder.Reset()
-				if err := git.NewCommand("remote", "prune", m.GetRemoteName()).
-					SetDescription(fmt.Sprintf("Mirror.runSync Prune Wiki references: %s ", m.Repo.FullName())).
-					RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
-					stdout := stdoutBuilder.String()
-					stderr := stderrBuilder.String()
+				pruneErr := pruneBrokenReferences(ctx, m, repoPath, timeout, &stdoutBuilder, &stderrBuilder, sanitizer, true)
+				if pruneErr == nil {
+					// Successful prune - reattempt mirror
+					stderrBuilder.Reset()
+					stdoutBuilder.Reset()
 
-					stderrMessage := sanitizer.Replace(stderr)
-					stdoutMessage := sanitizer.Replace(stdout)
-
-					log.Error("Failed to prune mirror repository wiki %-v references:\nStdout: %s\nStderr: %s\nErr: %v", m.Repo, stdoutMessage, stderrMessage, err)
-					desc := fmt.Sprintf("Failed to prune mirror repository wiki '%s' references: %s", wikiPath, stderrMessage)
-					if err = models.CreateRepositoryNotice(desc); err != nil {
-						log.Error("CreateRepositoryNotice: %v", err)
+					if err = git.NewCommandContext(ctx, "remote", "update", "--prune", m.GetRemoteName()).
+						SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
+						RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
+						stdout := stdoutBuilder.String()
+						stderr := stderrBuilder.String()
+						stderrMessage = sanitizer.Replace(stderr)
+						stdoutMessage = sanitizer.Replace(stdout)
 					}
-					// this if will only be reached on a successful prune so try to get the mirror again
-				} else if err = git.NewCommand("remote", "update", "--prune", m.GetRemoteName()).
-					SetDescription(fmt.Sprintf("Mirror.runSync Wiki: %s ", m.Repo.FullName())).
-					RunInDirTimeoutPipeline(timeout, wikiPath, &stdoutBuilder, &stderrBuilder); err != nil {
-					stdout := stdoutBuilder.String()
-					stderr := stderrBuilder.String()
-					stderrMessage = sanitizer.Replace(stderr)
-					stdoutMessage = sanitizer.Replace(stdout)
 				}
 			}
 
