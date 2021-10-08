@@ -4753,6 +4753,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/AttachmentList"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4811,6 +4814,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -4843,6 +4849,14 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to get",
             "name": "attachment_id",
             "in": "path",
@@ -4852,6 +4866,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Attachment"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4882,6 +4899,14 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to delete",
             "name": "attachment_id",
             "in": "path",
@@ -4891,6 +4916,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -4924,6 +4952,14 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "id of the comment",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to edit",
             "name": "attachment_id",
             "in": "path",
@@ -4940,6 +4976,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Attachment"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5228,7 +5267,7 @@
           {
             "type": "integer",
             "format": "int64",
-            "description": "id of the issue",
+            "description": "index of the issue",
             "name": "index",
             "in": "path",
             "required": true
@@ -5237,6 +5276,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/AttachmentList"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5295,6 +5337,9 @@
           },
           "400": {
             "$ref": "#/responses/error"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }
@@ -5327,6 +5372,14 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to get",
             "name": "attachment_id",
             "in": "path",
@@ -5336,6 +5389,9 @@
         "responses": {
           "200": {
             "$ref": "#/responses/Attachment"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5366,6 +5422,14 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to delete",
             "name": "attachment_id",
             "in": "path",
@@ -5375,6 +5439,9 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       },
@@ -5408,6 +5475,14 @@
           {
             "type": "integer",
             "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
             "description": "id of the attachment to edit",
             "name": "attachment_id",
             "in": "path",
@@ -5424,6 +5499,9 @@
         "responses": {
           "201": {
             "$ref": "#/responses/Attachment"
+          },
+          "404": {
+            "$ref": "#/responses/error"
           }
         }
       }

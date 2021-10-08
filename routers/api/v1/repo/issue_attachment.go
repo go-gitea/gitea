@@ -47,6 +47,12 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to get
@@ -56,6 +62,9 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
+	//   "404":
+	//     "$ref": "#/responses/error"
+
 	issueIndex := ctx.ParamsInt64(":index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.RepoID, issueIndex)
 	if err != nil {
@@ -90,13 +99,15 @@ func ListIssueAttachments(ctx *context.APIContext) {
 	//   required: true
 	// - name: index
 	//   in: path
-	//   description: id of the issue
+	//   description: index of the issue
 	//   type: integer
 	//   format: int64
 	//   required: true
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
@@ -150,6 +161,8 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
 	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
 	//     "$ref": "#/responses/error"
 
 	// Check if issue exists and load issue
@@ -217,6 +230,12 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to edit
@@ -230,6 +249,8 @@ func EditIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	// get attachment and check permissions
 	attach := getIssueAttachmentSafeWrite(ctx)
@@ -265,6 +286,12 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to delete
@@ -274,6 +301,8 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	attach := getIssueAttachmentSafeWrite(ctx)
 	if attach == nil {

@@ -36,6 +36,12 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to get
@@ -45,6 +51,8 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	comment := getIssueCommentSafe(ctx)
 	if comment == nil {
@@ -90,6 +98,8 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
+	//   "404":
+	//     "$ref": "#/responses/error"
 	comment := getIssueCommentSafe(ctx)
 	if comment == nil {
 		return
@@ -143,6 +153,8 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
 	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "404":
 	//     "$ref": "#/responses/error"
 
 	// Check if comment exists and load comment
@@ -212,6 +224,12 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to edit
@@ -225,6 +243,8 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
@@ -260,6 +280,12 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the comment
+	//   type: integer
+	//   format: int64
+	//   required: true
 	// - name: attachment_id
 	//   in: path
 	//   description: id of the attachment to delete
@@ -269,6 +295,8 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "404":
+	//     "$ref": "#/responses/error"
 
 	attach := getIssueCommentAttachmentSafeWrite(ctx)
 	if attach == nil {
