@@ -20,6 +20,7 @@ import initTableSort from './features/tablesort.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {initLastCommitLoader} from './features/lastcommitloader.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {showLineButton} from './code/linebutton.js';
 import {initMarkupContent, initCommentContent} from './markup/content.js';
@@ -2749,6 +2750,9 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
+  $('.hide-panel.button').on('click', function () {
+    $($(this).data('panel')).hide();
+  });
   $('.show-create-branch-modal.button').on('click', function () {
     $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
     $('#modal-create-branch-from-span').text($(this).data('branch-from'));
@@ -2864,6 +2868,7 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
+  initLastCommitLoader();
   initPullRequestMergeInstruction();
   initFileViewToggle();
   initReleaseEditor();
