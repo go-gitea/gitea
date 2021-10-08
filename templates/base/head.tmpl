@@ -48,11 +48,11 @@
 			tributeValues: Array.from(new Map([
 				{{ range .Participants }}
 				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
 				{{ end }}
 				{{ range .Assignees }}
 				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
 				{{ end }}
 				{{ range .MentionableTeams }}
 					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
