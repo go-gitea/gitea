@@ -1,3 +1,7 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package issues
 
 import (
@@ -34,11 +38,11 @@ func TestContentHistory(t *testing.T) {
 	assert.Equal(t, 5, m[100])
 
 	/*
-	we can not have this test with real `User` now, because we can not depend on `User` model (circle-import), so there is no `user` table
-	when the refactor of models are done, this test will be possible to be run then with a real `User` model.
+		we can not have this test with real `User` now, because we can not depend on `User` model (circle-import), so there is no `user` table
+		when the refactor of models are done, this test will be possible to be run then with a real `User` model.
 	*/
 	type User struct {
-		ID int64
+		ID   int64
 		Name string
 	}
 	_ = dbEngine.Sync2(&User{})

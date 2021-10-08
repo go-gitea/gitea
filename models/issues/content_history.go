@@ -61,12 +61,12 @@ func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, ed
 // keepLimitedContentHistory keeps at most `limit` history revisions, it will hard delete out-dated revisions, sorting by revision interval
 // we can ignore all errors in this function, so we just log them
 func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int) {
-	type IdEditTime struct {
-		ID             int64
-		EditedUnix     timeutil.TimeStamp
+	type IDEditTime struct {
+		ID         int64
+		EditedUnix timeutil.TimeStamp
 	}
 
-	var res []*IdEditTime
+	var res []*IDEditTime
 	err := e.Select("id, edited_unix").Table("issue_content_history").
 		Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).
 		OrderBy("edited_unix ASC").
@@ -148,7 +148,7 @@ type IssueContentListItem struct {
 // FetchIssueContentHistoryList fetch list
 func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentID int64) ([]*IssueContentListItem, error) {
 	res := make([]*IssueContentListItem, 0)
-	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name," +
+	err := db.GetEngine(dbCtx).Select("u.id as user_id, u.name as user_name,"+
 		"h.id as history_id, h.edited_unix, h.is_first_created, h.is_deleted").
 		Table([]string{"issue_content_history", "h"}).
 		Join("LEFT", []string{"user", "u"}, "h.poster_id = u.id").
