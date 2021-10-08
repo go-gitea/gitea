@@ -46,7 +46,7 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
 
-	attach := getIssueAttachmentSafeRead(ctx)
+	attach := getIssueCommentAttachmentSafeRead(ctx)
 	if attach == nil {
 		return
 	}
@@ -88,11 +88,8 @@ func ListIssueCommentAttachments(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/AttachmentList"
-
-	commentID := ctx.ParamsInt64(":id")
-	comment, err := models.GetCommentByID(commentID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
+	comment := getIssueCommentSafe(ctx)
+	if comment == nil {
 		return
 	}
 
@@ -147,10 +144,12 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	// Check if comment exists and load comment
-	commentID := ctx.ParamsInt64(":id")
-	comment, err := models.GetCommentByID(commentID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
+	comment := getIssueCommentSafe(ctx)
+	if comment == nil {
+		return
+	}
+
+	if !canUserWriteIssueCommentAttachment(ctx, comment) {
 		return
 	}
 
@@ -225,19 +224,12 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 	//   "201":
 	//     "$ref": "#/responses/Attachment"
 
-	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
+	attach := getIssueCommentAttachmentSafeWrite(ctx)
+	if attach == nil {
+		return
+	}
 
-	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
-		return
-	}
-	if attach.CommentID == 0 {
-		log.Info("User requested attachment is not in comment, attachment_id: %v", attachID)
-		ctx.NotFound()
-		return
-	}
+	form := web.GetForm(ctx).(*api.EditAttachmentOptions)
 	if form.Name != "" {
 		attach.Name = form.Name
 	}
@@ -276,15 +268,8 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
-		return
-	}
-	if attach.CommentID == 0 {
-		log.Info("User requested attachment is not in comment, attachment_id: %v", attachID)
-		ctx.NotFound()
+	attach := getIssueCommentAttachmentSafeWrite(ctx)
+	if attach == nil {
 		return
 	}
 
@@ -295,6 +280,36 @@ func DeleteIssueCommentAttachment(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+func getIssueCommentSafe(ctx *context.APIContext) *models.Comment {
+	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
+		return nil
+	}
+	// deny accessing arbitrary comments via this API
+	// TODO: if issue ID were available, we could check that too.
+	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.RepoID {
+		ctx.Error(http.StatusNotFound, "", err)
+		return nil
+	}
+	return comment
+}
+
+func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
+	attach := getIssueCommentAttachmentSafeRead(ctx)
+	if attach == nil {
+		return nil
+	}
+	comment := getIssueCommentSafe(ctx)
+	if comment == nil {
+		return nil
+	}
+	if !canUserWriteIssueCommentAttachment(ctx, comment) {
+		return nil
+	}
+	return attach
+}
+
 func getIssueCommentAttachmentSafeRead(ctx *context.APIContext) *models.Attachment {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
@@ -302,10 +317,20 @@ func getIssueCommentAttachmentSafeRead(ctx *context.APIContext) *models.Attachme
 		ctx.NotFoundOrServerError("GetAttachmentByID", models.IsErrAttachmentNotExist, err)
 		return nil
 	}
-	if !attachmentBelongsToRepoOrIssue(ctx, attach, nil, nil) {
+	if !attachmentBelongsToRepoOrComment(ctx, attach, nil, nil) {
 		return nil
 	}
 	return attach
+}
+
+func canUserWriteIssueCommentAttachment(ctx *context.APIContext, c *models.Comment) (success bool) {
+	canEditComment := ctx.User.ID == c.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()
+	if !canEditComment {
+		ctx.Error(http.StatusForbidden, "CommentEditPerm", "user should have permission to edit comment")
+		return
+	}
+
+	return true
 }
 
 func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *models.Attachment, issue *models.Issue, comment *models.Comment) (success bool) {
