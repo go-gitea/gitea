@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -69,17 +70,17 @@ func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, re
 func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	switch tp {
 	case "issue":
-		return models.MaxBatchInsertSize(new(models.Issue))
+		return db.MaxBatchInsertSize(new(models.Issue))
 	case "comment":
-		return models.MaxBatchInsertSize(new(models.Comment))
+		return db.MaxBatchInsertSize(new(models.Comment))
 	case "milestone":
-		return models.MaxBatchInsertSize(new(models.Milestone))
+		return db.MaxBatchInsertSize(new(models.Milestone))
 	case "label":
-		return models.MaxBatchInsertSize(new(models.Label))
+		return db.MaxBatchInsertSize(new(models.Label))
 	case "release":
-		return models.MaxBatchInsertSize(new(models.Release))
+		return db.MaxBatchInsertSize(new(models.Release))
 	case "pullrequest":
-		return models.MaxBatchInsertSize(new(models.PullRequest))
+		return db.MaxBatchInsertSize(new(models.PullRequest))
 	}
 	return 10
 }
@@ -689,6 +690,23 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		}
 	} else {
 		head = pr.Head.Ref
+		// Ensure the closed PR SHA still points to an existing ref
+		_, err = git.NewCommand("rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		if err != nil {
+			if pr.Head.SHA != "" {
+				// Git update-ref remove bad references with a relative path
+				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
+				relPath := pr.GetGitRefName()
+				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+			} else {
+				// The SHA is empty, remove the head file
+				log.Warn("Empty reference, removing : %v", pullHead)
+				err = os.Remove(filepath.Join(pullHead, "head"))
+			}
+			if err != nil {
+				log.Error("Cannot remove local head ref, %v", err)
+			}
+		}
 	}
 
 	if pr.Created.IsZero() {

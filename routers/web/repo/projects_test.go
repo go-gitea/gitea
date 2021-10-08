@@ -7,14 +7,14 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCheckProjectBoardChangePermissions(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/projects/1/2")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)

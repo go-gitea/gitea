@@ -7,6 +7,7 @@ package ldap
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -17,7 +18,7 @@ import (
 func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers[%s]", source.loginSource.Name)
 
-	var existingUsers []int64
+	var existingUsers []int
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 	var sshKeysNeedUpdate bool
 
@@ -34,6 +35,10 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	default:
 	}
 
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].LowerName < users[j].LowerName
+	})
+
 	sr, err := source.SearchEntries()
 	if err != nil {
 		log.Error("SyncExternalUsers LDAP source failure [%s], skipped", source.loginSource.Name)
@@ -47,6 +52,12 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 		log.Warn("LDAP search found no entries but did not report an error. All users will be deactivated as per settings")
 	}
+
+	sort.Slice(sr, func(i, j int) bool {
+		return sr[i].LowerName < sr[j].LowerName
+	})
+
+	userPos := 0
 
 	for _, su := range sr {
 		select {
@@ -71,12 +82,12 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 
 		var usr *models.User
-		// Search for existing user
-		for _, du := range users {
-			if du.LowerName == strings.ToLower(su.Username) {
-				usr = du
-				break
-			}
+		for userPos < len(users) && users[userPos].LowerName < su.LowerName {
+			userPos++
+		}
+		if userPos < len(users) && users[userPos].LowerName == su.LowerName {
+			usr = users[userPos]
+			existingUsers = append(existingUsers, userPos)
 		}
 
 		fullName := composeFullName(su.Name, su.Surname, su.Username)
@@ -85,7 +96,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Trace("SyncExternalUsers[%s]: Creating user %s", source.loginSource.Name, su.Username)
 
 			usr = &models.User{
-				LowerName:    strings.ToLower(su.Username),
+				LowerName:    su.LowerName,
 				Name:         su.Username,
 				FullName:     fullName,
 				LoginType:    source.loginSource.Type,
@@ -101,15 +112,19 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.loginSource.Name, su.Username, err)
-			} else if isAttributeSSHPublicKeySet {
+			}
+
+			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.loginSource.Name, usr.Name)
 				if models.AddPublicKeysBySource(usr, source.loginSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
 			}
-		} else if updateExisting {
-			existingUsers = append(existingUsers, usr.ID)
 
+			if err == nil && len(source.AttributeAvatar) > 0 {
+				_ = usr.UploadAvatar(su.Avatar)
+			}
+		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
 			if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(usr, source.loginSource, su.SSHPublicKey) {
 				sshKeysNeedUpdate = true
@@ -141,6 +156,13 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
 			}
+
+			if usr.IsUploadAvatarChanged(su.Avatar) {
+				if err == nil && len(source.AttributeAvatar) > 0 {
+					_ = usr.UploadAvatar(su.Avatar)
+				}
+
+			}
 		}
 	}
 
@@ -161,15 +183,12 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Deactivate users not present in LDAP
 	if updateExisting {
-		for _, usr := range users {
-			found := false
-			for _, uid := range existingUsers {
-				if usr.ID == uid {
-					found = true
-					break
-				}
+		existPos := 0
+		for i, usr := range users {
+			for existPos < len(existingUsers) && i > existingUsers[existPos] {
+				existPos++
 			}
-			if !found {
+			if usr.IsActive && (existPos >= len(existingUsers) || i < existingUsers[existPos]) {
 				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.loginSource.Name, usr.Name)
 
 				usr.IsActive = false

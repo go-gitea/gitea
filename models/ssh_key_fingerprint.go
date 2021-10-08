@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,7 +30,7 @@ import (
 
 // checkKeyFingerprint only checks if key fingerprint has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
-func checkKeyFingerprint(e Engine, fingerprint string) error {
+func checkKeyFingerprint(e db.Engine, fingerprint string) error {
 	has, err := e.Get(&PublicKey{
 		Fingerprint: fingerprint,
 	})

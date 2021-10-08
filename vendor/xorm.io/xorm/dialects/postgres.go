@@ -965,41 +965,6 @@ func (db *postgres) AutoIncrStr() string {
 	return ""
 }
 
-func (db *postgres) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
-	var sql string
-	sql = "CREATE TABLE IF NOT EXISTS "
-	if tableName == "" {
-		tableName = table.Name
-	}
-
-	quoter := db.Quoter()
-	sql += quoter.Quote(tableName)
-	sql += " ("
-
-	if len(table.ColumnsSeq()) > 0 {
-		pkList := table.PrimaryKeys
-
-		for _, colName := range table.ColumnsSeq() {
-			col := table.GetColumn(colName)
-			s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
-			sql += s
-			sql = strings.TrimSpace(sql)
-			sql += ", "
-		}
-
-		if len(pkList) > 1 {
-			sql += "PRIMARY KEY ( "
-			sql += quoter.Join(pkList, ",")
-			sql += " ), "
-		}
-
-		sql = sql[:len(sql)-2]
-	}
-	sql += ")"
-
-	return []string{sql}, true
-}
-
 func (db *postgres) IndexCheckSQL(tableName, idxName string) (string, []interface{}) {
 	if len(db.getSchema()) == 0 {
 		args := []interface{}{tableName, idxName}
@@ -1023,10 +988,10 @@ func (db *postgres) IsTableExist(queryer core.Queryer, ctx context.Context, tabl
 func (db *postgres) ModifyColumnSQL(tableName string, col *schemas.Column) string {
 	if len(db.getSchema()) == 0 || strings.Contains(tableName, ".") {
 		return fmt.Sprintf("alter table %s ALTER COLUMN %s TYPE %s",
-			tableName, col.Name, db.SQLType(col))
+			db.quoter.Quote(tableName), db.quoter.Quote(col.Name), db.SQLType(col))
 	}
 	return fmt.Sprintf("alter table %s.%s ALTER COLUMN %s TYPE %s",
-		db.getSchema(), tableName, col.Name, db.SQLType(col))
+		db.quoter.Quote(db.getSchema()), db.quoter.Quote(tableName), db.quoter.Quote(col.Name), db.SQLType(col))
 }
 
 func (db *postgres) DropIndexSQL(tableName string, index *schemas.Index) string {

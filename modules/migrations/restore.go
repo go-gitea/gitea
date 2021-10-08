@@ -7,7 +7,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -55,7 +54,7 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 
 func (r *RepositoryRestorer) getRepoOptions() (map[string]string, error) {
 	p := filepath.Join(r.baseDir, "repo.yml")
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +95,7 @@ func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 		Topics []string `yaml:"topics"`
 	}{}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +119,7 @@ func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +143,7 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +174,7 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +198,7 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		return nil, false, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, false, err
 	}
@@ -226,7 +225,7 @@ func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.C
 		return nil, false, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, false, err
 	}
@@ -250,7 +249,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 		return nil, false, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, false, err
 	}
@@ -278,7 +277,7 @@ func (r *RepositoryRestorer) GetReviews(context base.IssueContext) ([]*base.Revi
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}

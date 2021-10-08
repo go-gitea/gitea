@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/json"
@@ -492,10 +493,10 @@ func setupDefaultDiff() *Diff {
 	}
 }
 func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	diff := setupDefaultDiff()
 	assert.NoError(t, diff.LoadComments(issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
@@ -522,7 +523,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	defer gitRepo.Close()
 	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
 		diffs, err := GetDiffRangeWithWhitespaceBehavior(gitRepo, "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9",
-			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior)
+			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior, false)
 		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
 		for _, f := range diffs.Files {
 			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))

@@ -9,7 +9,7 @@ package git
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -17,6 +17,7 @@ import (
 )
 
 // GetNote retrieves the git-notes data for a given commit.
+// FIXME: Add LastCommitCache support
 func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
 	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.Path)
 	notes, err := repo.GetCommit(NotesRef)
@@ -58,7 +59,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	}
 
 	defer dataRc.Close()
-	d, err := ioutil.ReadAll(dataRc)
+	d, err := io.ReadAll(dataRc)
 	if err != nil {
 		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
 		return err
@@ -75,7 +76,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		return err
 	}
 
-	lastCommits, err := GetLastCommitForPaths(ctx, commitNode, "", []string{path})
+	lastCommits, err := GetLastCommitForPaths(ctx, nil, commitNode, "", []string{path})
 	if err != nil {
 		log.Error("Unable to get the commit for the path %q. Error: %v", path, err)
 		return err

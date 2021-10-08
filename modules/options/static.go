@@ -9,7 +9,8 @@ package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
@@ -109,7 +110,7 @@ func fileFromDir(name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(customPath)
+		return os.ReadFile(customPath)
 	}
 
 	f, err := Assets.Open(name)
@@ -118,7 +119,7 @@ func fileFromDir(name string) ([]byte, error) {
 	}
 	defer f.Close()
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func Asset(name string) ([]byte, error) {
@@ -127,7 +128,7 @@ func Asset(name string) ([]byte, error) {
 		return nil, err
 	}
 	defer f.Close()
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }
 
 func AssetNames() []string {

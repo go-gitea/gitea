@@ -23,6 +23,7 @@ import (
 	"unicode"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
@@ -550,16 +551,16 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
 	if user, ok := item.(*models.User); ok {
-		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, user.DisplayName())
 		}
 	}
 	if user, ok := item.(*models.Collaborator); ok {
-		src := user.RealSizedAvatarLink(size * models.AvatarRenderedSizeFactor)
+		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, user.DisplayName())
 		}
@@ -575,7 +576,7 @@ func AvatarByAction(action *models.Action, others ...interface{}) template.HTML 
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -586,8 +587,8 @@ func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email string, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(models.DefaultAvatarPixelSize, "ui avatar image", others...)
-	src := models.SizedAvatarLink(email, size*models.AvatarRenderedSizeFactor)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	src := avatars.GenerateEmailAvatarFastLink(email, size*avatars.AvatarRenderedSizeFactor)
 
 	if src != "" {
 		return AvatarHTML(src, size, class, name)
@@ -911,13 +912,13 @@ func TrN(lang string, cnt interface{}, key1, keyN string) string {
 	return keyN
 }
 
-// MigrationIcon returns a Font Awesome name matching the service an issue/comment was migrated from
+// MigrationIcon returns a SVG name matching the service an issue/comment was migrated from
 func MigrationIcon(hostname string) string {
 	switch hostname {
 	case "github.com":
-		return "fa-github"
+		return "octicon-mark-github"
 	default:
-		return "fa-git-alt"
+		return "gitea-git"
 	}
 }
 

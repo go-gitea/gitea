@@ -521,6 +521,9 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 		created     = "created"
 		asc         = "asc"
 	)
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
 	opt := &github.IssueListCommentsOptions{
 		Sort:      &created,
 		Direction: &asc,
@@ -535,7 +538,9 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
-	log.Trace("Request get comments %d/%d, but in fact get %d", perPage, page, len(comments))
+	var isEnd = resp.NextPage == 0
+
+	log.Trace("Request get comments %d/%d, but in fact get %d, next page is %d", perPage, page, len(comments), resp.NextPage)
 	g.rate = &resp.Rate
 	for _, comment := range comments {
 		// get reactions
@@ -575,7 +580,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 		})
 	}
 
-	return allComments, len(allComments) < perPage, nil
+	return allComments, isEnd, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
