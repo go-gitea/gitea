@@ -1163,12 +1163,14 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 func (repo *Repository) CheckDaemonExportOK() error {
 	// Create/Remove git-daemon-export-ok for git-daemon...
 	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+
 	isExist, err := util.IsExist(daemonExportFile)
-	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
 		return err
 	}
+
+	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
 	if !isPublic && isExist {
 		if err = util.Remove(daemonExportFile); err != nil {
 			log.Error("Failed to remove %s: %v", daemonExportFile, err)
