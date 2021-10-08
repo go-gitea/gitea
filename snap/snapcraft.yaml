@@ -21,6 +21,7 @@ environment:
   GITEA_WORK_DIR: "$SNAP_COMMON"
   GIT_TEMPLATE_DIR: "$SNAP/usr/share/git-core/templates"
   GIT_EXEC_PATH: "$SNAP/usr/lib/git-core"
+  GITEA_APP_PATH: "$(echo "$SNAP/$SNAP_NAME"|sed "s/$SNAP_REVISION/current/")"
 
 apps:
   gitea:
@@ -67,8 +68,6 @@ parts:
 
     override-build: |
       set -x
-      export GITEA_APP_PATH="$(echo "$SNAP/$SNAP_NAME"|sed "s/$SNAP_REVISION/current/")"
-      export LDFLAGS="-X \"code.gitea.io/gitea/modules/setting.AppPath=$GITEA_APP_PATH\" ${LDFLAGS}"
       TAGS="bindata sqlite sqlite_unlock_notify pam cert" make build
       install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
       cp -r options "${SNAPCRAFT_PART_INSTALL}/"

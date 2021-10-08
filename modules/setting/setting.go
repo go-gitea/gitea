@@ -432,6 +432,9 @@ func IsProd() bool {
 
 func getAppPath() (string, error) {
 	appPath := AppPath
+	if giteaAppPath, ok := os.LookupEnv("GITEA_APP_PATH"); ok {
+		appPath = giteaAppPath
+	}
 	if appPath != "" {
 		return appPath, nil
 	}
