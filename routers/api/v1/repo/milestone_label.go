@@ -178,7 +178,7 @@ func DeleteMilestoneLabel(ctx *context.APIContext) {
 func ReplaceMilestoneLabels(ctx *context.APIContext) {
 	// swagger:operation PUT /repos/{owner}/{repo}/milestones/{id}/labels milestone milestoneReplaceLabels
 	// ---
-	// summary: Replace a milestone's labels
+	// summary: Drop all previous milestone labels and replace them with new labels
 	// consumes:
 	// - application/json
 	// produces:

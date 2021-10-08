@@ -148,11 +148,6 @@ func DeleteMilestoneLabel(milestone *Milestone, label *Label, doer *User) (err e
 		return err
 	}
 
-	milestone.Labels = nil
-	if err = milestone.loadLabels(sess); err != nil {
-		return err
-	}
-
 	return sess.Commit()
 }
 
@@ -193,24 +188,12 @@ func (milestone *Milestone) addLabels(e db.Engine, labels []*Label, doer *User) 
 	return newMilestoneLabels(e, milestone, labels, doer)
 }
 
-func (milestone *Milestone) getLabels(e db.Engine) (err error) {
-	if len(milestone.Labels) > 0 {
-		return nil
-	}
-
-	milestone.Labels, err = getLabelsByMilestoneID(e, milestone.ID)
-	if err != nil {
-		return fmt.Errorf("getLabelsByMilestoneID: %v", err)
-	}
-	return nil
-}
-
 func (milestone *Milestone) removeLabel(e db.Engine, doer *User, label *Label) error {
 	return deleteMilestoneLabel(e, milestone, label, doer)
 }
 
 func (milestone *Milestone) clearLabels(e db.Engine, doer *User) (err error) {
-	if err = milestone.getLabels(e); err != nil {
+	if err = milestone.loadLabels(e); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
 
@@ -251,7 +234,7 @@ func (milestone *Milestone) ClearLabels(doer *User) (err error) {
 	return nil
 }
 
-// ReplaceLabels removes all current labels and add new labels to the milestone.
+// ReplaceLabels removes all current labels and adds the given labels to the milestone.
 // Triggers appropriate WebHooks, if any.
 func (milestone *Milestone) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	ctx, committer, err := db.TxContext()
