@@ -31,7 +31,7 @@ import (
 
 // GetIssueAttachment gets a single attachment of the issue
 func GetIssueAttachment(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/assets/{attachment_id} issue issueGetIssueAttachment
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueGetIssueAttachment
 	// ---
 	// summary: Get a issue attachment
 	// produces:
@@ -56,8 +56,14 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
+	issueIndex := ctx.ParamsInt64(":index")
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.RepoID, issueIndex)
+	if err != nil {
+		ctx.NotFoundOrServerError("GetIssueByID", models.IsErrIssueNotExist, err)
+		return
+	}
 
-	attach := getIssueAttachmentSafeRead(ctx)
+	attach := getIssueAttachmentSafeRead(ctx, issue)
 	if attach == nil {
 		return
 	}
@@ -193,7 +199,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 
 // EditIssueAttachment updates the given attachment
 func EditIssueAttachment(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/issues/assets/{attachment_id} issue issueEditIssueAttachment
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueEditIssueAttachment
 	// ---
 	// summary: Edit a issue attachment
 	// produces:
@@ -243,7 +249,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 
 // DeleteIssueAttachment delete a given attachment
 func DeleteIssueAttachment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/issues/assets/{attachment_id} issue issueDeleteIssueAttachment
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueDeleteIssueAttachment
 	// ---
 	// summary: Delete a issue attachment
 	// produces:
@@ -281,11 +287,8 @@ func DeleteIssueAttachment(ctx *context.APIContext) {
 }
 
 func getIssueAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
-	attach := getIssueAttachmentSafeRead(ctx)
-	if attach == nil {
-		return nil
-	}
-	issue, err := models.GetIssueByID(attach.IssueID)
+	issueIndex := ctx.ParamsInt64(":index")
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByID", models.IsErrIssueNotExist, err)
 		return nil
@@ -293,10 +296,15 @@ func getIssueAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
 	if !canUserWriteIssueAttachment(ctx, issue) {
 		return nil
 	}
+
+	attach := getIssueAttachmentSafeRead(ctx, issue)
+	if attach == nil {
+		return nil
+	}
 	return attach
 }
 
-func getIssueAttachmentSafeRead(ctx *context.APIContext) *models.Attachment {
+func getIssueAttachmentSafeRead(ctx *context.APIContext, issue *models.Issue) *models.Attachment {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {

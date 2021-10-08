@@ -20,7 +20,7 @@ import (
 
 // GetIssueCommentAttachment gets a single attachment of the comment
 func GetIssueCommentAttachment(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/assets/{attachment_id} issue issueGetIssueCommentAttachment
+	// swagger:operation GET /repos/{owner}/{repo}/issues/comments/{id}/assets/{attachment_id} issue issueGetIssueCommentAttachment
 	// ---
 	// summary: Get a comment attachment
 	// produces:
@@ -46,15 +46,17 @@ func GetIssueCommentAttachment(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Attachment"
 
-	attach := getIssueCommentAttachmentSafeRead(ctx)
+	comment := getIssueCommentSafe(ctx)
+	if comment == nil {
+		return
+	}
+	attach := getIssueCommentAttachmentSafeRead(ctx, comment)
 	if attach == nil {
 		return
 	}
-	// FIXME: if we had the commentID here (which we should..), we could pass the comment in,
-	// and validate the exact comment..
-	if attach.CommentID == 0 {
-		log.Debug("User requested attachment[%d] is not in comment.", attach.ID)
-		ctx.NotFound()
+	if attach.CommentID != comment.ID {
+		log.Debug("User requested attachment[%d] is not in comment[%d].", attach.ID, comment.ID)
+		ctx.NotFound("attachment not in comment")
 		return
 	}
 
@@ -192,7 +194,7 @@ func CreateIssueCommentAttachment(ctx *context.APIContext) {
 
 // EditIssueCommentAttachment updates the given attachment
 func EditIssueCommentAttachment(ctx *context.APIContext) {
-	// swagger:operation PATCH /repos/{owner}/{repo}/issues/comments/assets/{attachment_id} issue issueEditIssueCommentAttachment
+	// swagger:operation PATCH /repos/{owner}/{repo}/issues/comments/{id}/assets/{attachment_id} issue issueEditIssueCommentAttachment
 	// ---
 	// summary: Edit a comment attachment
 	// produces:
@@ -242,7 +244,7 @@ func EditIssueCommentAttachment(ctx *context.APIContext) {
 
 // DeleteIssueCommentAttachment delete a given attachment
 func DeleteIssueCommentAttachment(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/assets/{attachment_id} issue issueDeleteIssueCommentAttachment
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/comments/{id}/assets/{attachment_id} issue issueDeleteIssueCommentAttachment
 	// ---
 	// summary: Delete a comment attachment
 	// produces:
@@ -287,19 +289,19 @@ func getIssueCommentSafe(ctx *context.APIContext) *models.Comment {
 		return nil
 	}
 	// deny accessing arbitrary comments via this API
-	// TODO: if issue ID were available, we could check that too.
-	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.RepoID {
-		ctx.Error(http.StatusNotFound, "", err)
+	// TODO: if issue ID were available on context, we could check that too.
+	if err := comment.LoadIssue(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
+		return nil
+	}
+	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
+		ctx.Error(http.StatusNotFound, "no matching issue comment found", err)
 		return nil
 	}
 	return comment
 }
 
 func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
-	attach := getIssueCommentAttachmentSafeRead(ctx)
-	if attach == nil {
-		return nil
-	}
 	comment := getIssueCommentSafe(ctx)
 	if comment == nil {
 		return nil
@@ -307,17 +309,21 @@ func getIssueCommentAttachmentSafeWrite(ctx *context.APIContext) *models.Attachm
 	if !canUserWriteIssueCommentAttachment(ctx, comment) {
 		return nil
 	}
+	attach := getIssueCommentAttachmentSafeRead(ctx, comment)
+	if attach == nil {
+		return nil
+	}
 	return attach
 }
 
-func getIssueCommentAttachmentSafeRead(ctx *context.APIContext) *models.Attachment {
+func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *models.Comment) *models.Attachment {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := models.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetAttachmentByID", models.IsErrAttachmentNotExist, err)
 		return nil
 	}
-	if !attachmentBelongsToRepoOrComment(ctx, attach, nil, nil) {
+	if !attachmentBelongsToRepoOrComment(ctx, attach, comment) {
 		return nil
 	}
 	return attach
@@ -333,19 +339,15 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, c *models.Comme
 	return true
 }
 
-func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *models.Attachment, issue *models.Issue, comment *models.Comment) (success bool) {
+func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *models.Attachment, comment *models.Comment) (success bool) {
 	if a.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
 		ctx.NotFound()
 		return
 	}
-	if a.IssueID == 0 {
+	if a.IssueID == 0 || a.CommentID == 0 {
 		// catch people trying to get release assets ;)
-		log.Debug("Requested attachment[%d] is not in an issue.", a.ID)
-		ctx.NotFound()
-		return
-	} else if issue != nil && a.IssueID != issue.ID {
-		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", a.ID, issue.ID, issue.Index)
+		log.Debug("Requested attachment[%d] is not in a comment.", a.ID)
 		ctx.NotFound()
 		return
 	}

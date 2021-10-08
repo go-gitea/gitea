@@ -812,15 +812,16 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 								Get(repo.GetIssueCommentReactions).
 								Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueCommentReaction).
 								Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueCommentReaction)
-							m.Combo("/assets").Get(repo.ListIssueCommentAttachments).
-								Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+							m.Group("/assets", func() {
+								m.Combo("").
+									Get(repo.ListIssueCommentAttachments).
+									Post(reqToken(), mustNotBeArchived, repo.CreateIssueCommentAttachment)
+								m.Combo("/{asset}").
+									Get(repo.GetIssueCommentAttachment).
+									Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
+									Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
+							}, mustEnableAttachments)
 						})
-						// FIXME: why is this a separate group?
-						m.Group("/assets", func() {
-							m.Combo("/{asset}").Get(repo.GetIssueCommentAttachment).
-								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueCommentAttachment).
-								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueCommentAttachment)
-						}, mustEnableAttachments)
 					})
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetIssue).
@@ -862,16 +863,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 							Post(reqToken(), bind(api.EditReactionOption{}), repo.PostIssueReaction).
 							Delete(reqToken(), bind(api.EditReactionOption{}), repo.DeleteIssueReaction)
 						m.Group("/assets", func() {
-							m.Combo("").Get(repo.ListIssueAttachments).
+							m.Combo("").
+								Get(repo.ListIssueAttachments).
 								Post(reqToken(), mustNotBeArchived, repo.CreateIssueAttachment)
+							m.Combo("/{asset}").
+								Get(repo.GetIssueAttachment).
+								Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
+								Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
 						}, mustEnableAttachments)
 					})
-					// FIXME: why are these on a different group? this is odd.
-					m.Group("/assets", func() {
-						m.Combo("/{asset}").Get(repo.GetIssueAttachment).
-							Patch(reqToken(), mustNotBeArchived, bind(api.EditAttachmentOptions{}), repo.EditIssueAttachment).
-							Delete(reqToken(), mustNotBeArchived, repo.DeleteIssueAttachment)
-					}, mustEnableAttachments)
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
