@@ -347,6 +347,7 @@ var migrations = []Migration{
 	// v196 -> v197
 	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
 	// v197 -> v198
+	NewMigration("Add renamed_branch table", addRenamedBranchTable),
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 }
 
