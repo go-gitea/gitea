@@ -521,6 +521,29 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableWiki(ctx *context.APIContext) {
+	if !(ctx.Repo.CanRead(models.UnitTypeWiki)) {
+		/*if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
+			if ctx.IsSigned {
+				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
+					"User in Repo has Permissions: %-+v",
+					ctx.User,
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			} else {
+				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
+					"Anonymous user in Repo has Permissions: %-+v",
+					models.UnitTypePullRequests,
+					ctx.Repo.Repository,
+					ctx.Repo.Permission)
+			}
+		}*/
+		ctx.NotFound()
+		return
+	}
+}
+
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
 		ctx.NotFound()
@@ -791,6 +814,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
 				}, mustEnableIssues, reqToken())
+				m.Group("/wiki", func() {
+					m.Combo("/page/{pageName}").
+						Get(mustEnableWiki, repo.Wiki).
+						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.NewWikiForm{}), repo.EditWiki).
+						Delete(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), repo.DeleteWikiPage)
+					m.Get("/revisions/{pageName}", mustEnableWiki, repo.WikiRevision)
+					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.NewWikiForm{}), repo.NewWiki)
+					m.Get("/pages", mustEnableWiki, repo.WikiPages)
+				})
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
