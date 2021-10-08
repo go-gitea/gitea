@@ -2973,7 +2973,7 @@ $(() => {
     // so we can just wait for a few seconds, then the changes of the inputs are sure to be caused by real users.
     setTimeout(() => {
       $('form:not(.ignore-dirty)').areYouSure();
-    }, 3000);
+    }, 1000);
   }
 
   // Parse SSH Key
