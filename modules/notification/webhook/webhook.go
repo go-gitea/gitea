@@ -310,8 +310,11 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mention
 }
 
 func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
-	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
+	if err = issue.LoadRepo(); err != nil {
+		log.Error("NotifyIssueChangeContent: coulnd't load repo", err)
+	}
+	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = webhook_services.PrepareWebhooks(issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
