@@ -4,6 +4,30 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.4](https://github.com/go-gitea/gitea/releases/tag/v1.15.4) - 2021-10-08
+* BUGFIXES
+  * Raw file API: don't try to interpret 40char filenames as commit SHA (#17185) (#17272)
+  * Don't allow merged PRs to be reopened (#17192) (#17271)
+  * Fix incorrect repository count on organization tab of dashboard (#17256) (#17266)
+  * Fix unwanted team review request deletion (#17257) (#17264)
+  * Fix broken Activities link in team dashboard (#17255) (#17258)
+  * API pull's head/base have correct permission(#17214) (#17245)
+  * Fix stange behavior of DownloadPullDiffOrPatch in incorect index (#17223) (#17227)
+  * Upgrade xorm to v1.2.5 (#17177) (#17188)
+  * Fix missing repo link in issue/pull assigned emails (#17183) (#17184)
+  * Fix bug of get context user (#17169) (#17172)
+  * Nicely handle missing user in collaborations (#17049) (#17166)
+  * Add Horizontal scrollbar to inner menu on Chrome (#17086) (#17164)
+  * Fix wrong i18n keys (#17150) (#17153)
+  * Fix Archive Creation: correct transaction ending (#17151)
+  * Prevent panic in Org mode HighlightCodeBlock (#17140) (#17141)
+  * Create doctor command to fix repo_units broken by dumps from 1.14.3-1.14.6 (#17136) (#17137)
+* ENHANCEMENT
+  * Check user instead of organization when creating a repo from a template via API (#16346) (#17195)
+* TRANSLATION
+  * v1.15 fix Sprintf format 'verbs' in locale files (#17187)
+
+
 ## [1.15.3](https://github.com/go-gitea/gitea/releases/tag/v1.15.3) - 2021-09-19
 
 * ENHANCEMENTS
