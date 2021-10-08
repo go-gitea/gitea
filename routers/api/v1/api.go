@@ -580,6 +580,9 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 			})
 		}
 		m.Get("/version", misc.Version)
+		if setting.Federation.Enabled {
+			m.Get("/nodeinfo", misc.NodeInfo)
+		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
