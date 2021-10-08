@@ -53,6 +53,7 @@ type ProtectedBranch struct {
 func init() {
 	db.RegisterModel(new(ProtectedBranch))
 	db.RegisterModel(new(DeletedBranch))
+	db.RegisterModel(new(RenamedBranch))
 }
 
 // IsProtected returns if the branch is protected
@@ -587,4 +588,84 @@ func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
 	if err != nil {
 		log.Error("DeletedBranchesCleanup: %v", err)
 	}
+}
+
+// RenamedBranch provide renamed branch log
+// will check it when a branch can't be found
+type RenamedBranch struct {
+	ID          int64 `xorm:"pk autoincr"`
+	RepoID      int64 `xorm:"INDEX NOT NULL"`
+	From        string
+	To          string
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+}
+
+// FindRenamedBranch check if a branch was renamed
+func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist bool, err error) {
+	branch = &RenamedBranch{
+		RepoID: repoID,
+		From:   from,
+	}
+	exist, err = db.GetEngine(db.DefaultContext).Get(branch)
+
+	return
+}
+
+// RenameBranch rename a branch
+func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault bool) error) (err error) {
+	sess := db.NewSession(db.DefaultContext)
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+
+	// 1. update default branch if needed
+	isDefault := repo.DefaultBranch == from
+	if isDefault {
+		repo.DefaultBranch = to
+		_, err = sess.ID(repo.ID).Cols("default_branch").Update(repo)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 2. Update protected branch if needed
+	protectedBranch, err := getProtectedBranchBy(sess, repo.ID, from)
+	if err != nil {
+		return err
+	}
+
+	if protectedBranch != nil {
+		protectedBranch.BranchName = to
+		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
+		if err != nil {
+			return err
+		}
+	}
+
+	// 3. Update all not merged pull request base branch name
+	_, err = sess.Table(new(PullRequest)).Where("base_repo_id=? AND base_branch=? AND has_merged=?",
+		repo.ID, from, false).
+		Update(map[string]interface{}{"base_branch": to})
+	if err != nil {
+		return err
+	}
+
+	// 4. do git action
+	if err = gitAction(isDefault); err != nil {
+		return err
+	}
+
+	// 5. insert renamed branch record
+	renamedBranch := &RenamedBranch{
+		RepoID: repo.ID,
+		From:   from,
+		To:     to,
+	}
+	_, err = sess.Insert(renamedBranch)
+	if err != nil {
+		return err
+	}
+
+	return sess.Commit()
 }
