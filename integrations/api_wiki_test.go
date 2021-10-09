@@ -77,22 +77,22 @@ func TestAPIGetWikiPages(t *testing.T) {
 	DecodeJSON(t, resp, &meta)
 
 	dummymeta := []*api.PageMeta{
-		&api.PageMeta{
+		{
 			Name:    "Home",
 			SubURL:  "Home",
 			Updated: "2017-11-26T20:31:18-08:00",
 		},
-		&api.PageMeta{
+		{
 			Name:    "Page With Image",
 			SubURL:  "Page-With-Image",
 			Updated: "2019-01-24T20:41:55-05:00",
 		},
-		&api.PageMeta{
+		{
 			Name:    "Page With Spaced Name",
 			SubURL:  "Page-With-Spaced-Name",
 			Updated: "2019-01-24T20:39:51-05:00",
 		},
-		&api.PageMeta{
+		{
 			Name:    "Unescaped File",
 			SubURL:  "Unescaped-File",
 			Updated: "2021-07-19T18:42:46+02:00",
