@@ -290,7 +290,7 @@ func GetWikiPage(ctx *context.APIContext) {
 		}
 		if !ctx.Written() {
 			if git.IsErrNotExist(err) {
-				ctx.NotFound(http.StatusInternalServerError, "GetBranchCommit", err)
+				ctx.NotFound(err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
 			}
@@ -302,7 +302,7 @@ func GetWikiPage(ctx *context.APIContext) {
 	pageName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
-	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
+	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName, false)
 	if noEntry && !ctx.Written() {
 		ctx.NotFound()
 		return
@@ -317,7 +317,7 @@ func GetWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar")
+	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar", true)
 	if ctx.Written() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -325,7 +325,7 @@ func GetWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer")
+	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer", true)
 	if ctx.Written() {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -398,7 +398,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 		}
 		if !ctx.Written() {
 			if git.IsErrNotExist(err) {
-				ctx.NotFound()
+				ctx.NotFound(err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
 			}
@@ -413,7 +413,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
-	_, _, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
+	_, _, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName, false)
 	if noEntry && !ctx.Written() {
 		ctx.NotFound()
 	}
@@ -489,11 +489,13 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) []byte {
 
 // wikiContentsByName returns the contents of a wiki page, along with a boolean
 // indicating whether the page exists. Writes to ctx if an error occurs.
-func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
+func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName string, isSidebarOrFooter bool) ([]byte, *git.TreeEntry, string, bool) {
 	pageFilename := wiki_service.NameToFilename(wikiName)
 	entry, err := findEntryForFile(commit, pageFilename)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "findEntryForFile", err)
+		if !isSidebarOrFooter {
+			ctx.NotFound(err)
+		}
 		return nil, nil, "", false
 	} else if entry == nil {
 		return nil, nil, "", true
