@@ -60,7 +60,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 	}, page)
 }
 
-func TestAPIGetWikiPages(t *testing.T) {
+func TestAPIListWikiPages(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	username := "user2"
@@ -100,7 +100,7 @@ func TestAPIGetWikiPages(t *testing.T) {
 	assert.Equal(t, dummymeta, meta)
 }
 
-func TestAPINewWiki(t *testing.T) {
+func TestAPINewWikiPage(t *testing.T) {
 	for _, title := range []string{
 		"New page",
 		"&&&&",
@@ -125,7 +125,7 @@ func TestAPINewWiki(t *testing.T) {
 	}
 }
 
-func TestAPIEditWiki(t *testing.T) {
+func TestAPIEditWikiPage(t *testing.T) {
 	defer prepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
@@ -141,7 +141,7 @@ func TestAPIEditWiki(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 }
 
-func TestAPIWikiRevisions(t *testing.T) {
+func TestAPIListPageRevisions(t *testing.T) {
 	defer prepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)

@@ -118,12 +118,12 @@ func EditWikiPage(ctx *context.APIContext) {
 	oldWikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 	newWikiName := wiki_service.NormalizeWikiName(form.Title)
 
-	if len(form.Message) == 0 {
-		form.Message = fmt.Sprintf("Update '%s'", form.Title)
-	}
-
 	if len(newWikiName) == 0 {
 		newWikiName = oldWikiName
+	}
+
+	if len(form.Message) == 0 {
+		form.Message = fmt.Sprintf("Update '%s'", newWikiName)
 	}
 
 	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
@@ -363,7 +363,7 @@ func GetWikiPage(ctx *context.APIContext) {
 }
 
 // WikiRevision renders file revision list of wiki page
-func WikiRevision(ctx *context.APIContext) {
+func ListPageRevisions(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/wiki/revisions/{pageName} repository repoGetWikiPageRevisions
 	// ---
 	// summary: Get revisions of a wiki page

@@ -803,7 +803,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Get(mustEnableWiki, repo.GetWikiPage).
 						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
 						Delete(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), repo.DeleteWikiPage)
-					m.Get("/revisions/{pageName}", mustEnableWiki, repo.WikiRevision)
+					m.Get("/revisions/{pageName}", mustEnableWiki, repo.ListPageRevisions)
 					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
 					m.Get("/pages", mustEnableWiki, repo.ListWikiPages)
 				})
