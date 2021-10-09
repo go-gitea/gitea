@@ -107,7 +107,7 @@ func Notices(page, pageSize int) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
 	return notices, db.GetEngine(db.DefaultContext).
 		Limit(pageSize, (page-1)*pageSize).
-		Desc("id").
+		Desc("created_unix").
 		Find(&notices)
 }
 
