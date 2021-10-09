@@ -21,7 +21,7 @@ import (
 )
 
 // NewWiki response for wiki create request
-func NewWiki(ctx *context.APIContext) {
+func NewWikiPage(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/wiki/new repository repoCreateWikiPage
 	// ---
 	// summary: Create a wiki page
@@ -78,7 +78,7 @@ func NewWiki(ctx *context.APIContext) {
 }
 
 // EditWiki response for wiki modify request
-func EditWiki(ctx *context.APIContext) {
+func EditWikiPage(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/wiki/page/{pageName} repository repoEditWikiPage
 	// ---
 	// summary: Edit a wiki page
@@ -261,7 +261,7 @@ func WikiPages(ctx *context.APIContext) {
 }
 
 // Wiki get single wiki page
-func Wiki(ctx *context.APIContext) {
+func GetWikiPage(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/wiki/page/{pageName} repository repoGetWikiPage
 	// ---
 	// summary: Get a wiki page
