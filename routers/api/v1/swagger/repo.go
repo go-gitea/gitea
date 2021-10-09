@@ -335,7 +335,7 @@ type WikiPageList struct {
 // swagger:response WikiPage
 type WikiPage struct {
 	// in:body
-	Body	api.WikiPage `json:"body"`
+	Body api.WikiPage `json:"body"`
 }
 
 // WikiCommitList
