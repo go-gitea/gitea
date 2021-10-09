@@ -41,7 +41,7 @@ For documentation about each of the variables available, refer to the
 ## Gitea files
 
 - `GITEA_WORK_DIR`: Absolute path of working directory.
-- `GITEA_APP_PATH`: Absolute path of gitea binary.
+- `GITEA_APP_PATH`: Absolute path of gitea binary. (This is usually automatically detected and should therefore be only set in limited circumstances.)
 - `GITEA_CUSTOM`: Gitea uses `GITEA_WORK_DIR`/custom folder by default. Use this variable
   to change _custom_ directory.
 - `GOGS_WORK_DIR`: Deprecated, use `GITEA_WORK_DIR`
