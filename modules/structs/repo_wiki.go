@@ -14,7 +14,7 @@ type WikiCommit struct {
 
 // WikiPage a wiki page
 type WikiPage struct {
-	*PageMeta
+	*WikiPageMetaData
 	Title       string      `json:"title"`
 	Content     string      `json:"content"`
 	CommitCount int64       `json:"commit_count"`
@@ -23,8 +23,8 @@ type WikiPage struct {
 	Footer      string      `json:"footer"`
 }
 
-// PageMeta wiki page meta information
-type PageMeta struct {
+// WikiPageMetaData wiki page meta information
+type WikiPageMetaData struct {
 	Name    string `json:"name"`
 	SubURL  string `json:"suburl"`
 	Updated string `json:"updated"`

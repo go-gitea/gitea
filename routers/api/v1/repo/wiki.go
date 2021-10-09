@@ -232,7 +232,7 @@ func WikiPages(ctx *context.APIContext) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	pages := make([]api.PageMeta, 0, len(entries))
+	pages := make([]api.WikiPageMetaData, 0, len(entries))
 	for i, entry := range entries {
 		if i < skip || i >= max || !entry.IsRegular() {
 			continue
@@ -250,7 +250,7 @@ func WikiPages(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
 			return
 		}
-		pages = append(pages, api.PageMeta{
+		pages = append(pages, api.WikiPageMetaData{
 			Name:    wikiName,
 			SubURL:  wiki_service.NameToSubURL(wikiName),
 			Updated: c.Author.When.Format(time.RFC3339),
@@ -350,7 +350,7 @@ func GetWikiPage(ctx *context.APIContext) {
 	}
 
 	wikiPage := &api.WikiPage{
-		PageMeta: &api.PageMeta{
+		WikiPageMetaData: &api.WikiPageMetaData{
 			Name:    pageName,
 			SubURL:  wiki_service.NameToSubURL(pageName),
 			Updated: lastCommit.Author.When.Format(time.RFC3339),

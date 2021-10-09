@@ -16186,25 +16186,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "PageMeta": {
-      "description": "PageMeta wiki page meta information",
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
-        },
-        "suburl": {
-          "type": "string",
-          "x-go-name": "SubURL"
-        },
-        "updated": {
-          "type": "string",
-          "x-go-name": "Updated"
-        }
-      },
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "PayloadCommit": {
       "description": "PayloadCommit represents a commit",
       "type": "object",
@@ -17694,6 +17675,25 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiPageMetaData": {
+      "description": "WikiPageMetaData wiki page meta information",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "suburl": {
+          "type": "string",
+          "x-go-name": "SubURL"
+        },
+        "updated": {
+          "type": "string",
+          "x-go-name": "Updated"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     }
   },
   "responses": {
@@ -18398,7 +18398,7 @@
       "schema": {
         "type": "array",
         "items": {
-          "$ref": "#/definitions/PageMeta"
+          "$ref": "#/definitions/WikiPageMetaData"
         }
       }
     },

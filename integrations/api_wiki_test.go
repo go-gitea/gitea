@@ -31,7 +31,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 	DecodeJSON(t, resp, &page)
 
 	assert.Equal(t, &api.WikiPage{
-		PageMeta: &api.PageMeta{
+		WikiPageMetaData: &api.WikiPageMetaData{
 			Name:    "Home",
 			SubURL:  "Home",
 			Updated: "2017-11-26T20:31:18-08:00",
@@ -73,10 +73,10 @@ func TestAPIGetWikiPages(t *testing.T) {
 	req := NewRequest(t, "GET", urlStr)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var meta []*api.PageMeta
+	var meta []*api.WikiPageMetaData
 	DecodeJSON(t, resp, &meta)
 
-	dummymeta := []*api.PageMeta{
+	dummymeta := []*api.WikiPageMetaData{
 		{
 			Name:    "Home",
 			SubURL:  "Home",

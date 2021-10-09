@@ -328,7 +328,7 @@ type swaggerCombinedStatus struct {
 // swagger:response WikiPageList
 type swaggerWikiPageList struct {
 	// in:body
-	Body []api.PageMeta `json:"body"`
+	Body []api.WikiPageMetaData `json:"body"`
 }
 
 // WikiPage
