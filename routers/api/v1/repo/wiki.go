@@ -209,11 +209,9 @@ func ListWikiPages(ctx *context.APIContext) {
 		}
 		return
 	}
-	defer func() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-	}()
+	if wikiRepo != nil {
+		defer wikiRepo.Close()
+	}
 
 	page := ctx.FormInt("page")
 	if page <= 1 {
