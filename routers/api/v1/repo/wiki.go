@@ -160,7 +160,8 @@ func DeleteWikiPage(ctx *context.APIContext) {
 
 	wikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 	if len(wikiName) == 0 {
-		wikiName = "Home"
+		ctx.Status(http.StatusBadRequest)
+		return
 	}
 
 	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
