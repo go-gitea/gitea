@@ -365,6 +365,10 @@ func WikiRevision(ctx *context.APIContext) {
 	//   description: name of the page
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WikiCommitList"
