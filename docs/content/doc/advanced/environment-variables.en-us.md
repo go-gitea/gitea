@@ -52,6 +52,8 @@ For documentation about each of the variables available, refer to the
 - `USER`: System user that Gitea will run as. Used for some repository access strings.
 - `USERNAME`: if no `USER` found, Gitea will use `USERNAME`
 - `HOME`: User home directory path. The `USERPROFILE` environment variable is used in Windows.
+- `SNAP`: Path to directory that snap uses to store Gitea's configuration. Snap defaults to using `$GITEA_APP_PATH`.
+- `SNAP_REVISION`: If Gitea is installed using snap, revision number of snap in use.
 
 ### Only on Windows
 
