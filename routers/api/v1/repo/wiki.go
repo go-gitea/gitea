@@ -189,6 +189,14 @@ func WikiPages(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WikiPageList"
@@ -206,14 +214,27 @@ func WikiPages(ctx *context.APIContext) {
 		}
 	}()
 
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+
+	limit := ctx.FormInt("limit")
+	if limit <= 1 {
+		limit = 20
+	}
+
+	skip := (page - 1) * limit
+	max := page * limit
+
 	entries, err := commit.ListEntries()
 	if err != nil {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
 	pages := make([]api.PageMeta, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsRegular() {
+	for i, entry := range entries {
+		if i < skip || i >= max || !entry.IsRegular() {
 			continue
 		}
 		c, err := wikiRepo.GetCommitByPath(entry.Name())
