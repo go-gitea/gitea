@@ -292,7 +292,9 @@ func GetWikiPage(ctx *context.APIContext) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		if !git.IsErrNotExist(err) {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(http.StatusInternalServerError, "GetBranchCommit", err)
+		} else {
 			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
 		}
 		return
@@ -399,7 +401,9 @@ func WikiRevision(ctx *context.APIContext) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		if !git.IsErrNotExist(err) {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound()
+		} else {
 			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
 		}
 		return
@@ -440,7 +444,7 @@ func WikiRevision(ctx *context.APIContext) {
 // findEntryForFile finds the tree entry for a target filepath.
 func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error) {
 	entry, err := commit.GetTreeEntryByPath(target)
-	if err != nil && !git.IsErrNotExist(err) {
+	if err != nil {
 		return nil, err
 	}
 	if entry != nil {
@@ -491,7 +495,7 @@ func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) []byte {
 func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName string) ([]byte, *git.TreeEntry, string, bool) {
 	pageFilename := wiki_service.NameToFilename(wikiName)
 	entry, err := findEntryForFile(commit, pageFilename)
-	if err != nil && !git.IsErrNotExist(err) {
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "findEntryForFile", err)
 		return nil, nil, "", false
 	} else if entry == nil {
