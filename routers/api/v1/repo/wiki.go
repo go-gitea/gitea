@@ -172,7 +172,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// WikiPages get wiki pages list
+// ListWikiPages get wiki pages list
 func ListWikiPages(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/wiki/pages repository repoGetWikiPages
 	// ---
