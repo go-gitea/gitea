@@ -109,17 +109,19 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 // InternalServerError responds with an error message to the client with the error as a message
 // and the file and line of the caller.
 func (ctx *APIContext) InternalServerError(err error) {
-	log.ErrorWithSkip(1, "InternalServerError: %v", err)
+	ctx.Error(http.StatusInternalServerError, "InternalServerError", err)
+	return
+}
 
-	var message string
-	if !setting.IsProd() || (ctx.User != nil && ctx.User.IsAdmin) {
-		message = err.Error()
+// NotFoundOrServerError use error check function to determine if the error
+// is about not found. It responds with 404 status code for not found error,
+// or error context description for logging purpose of 500 server error.
+func (ctx *APIContext) NotFoundOrServerError(title string, errck func(error) bool, err error) {
+	if errck(err) {
+		ctx.Error(http.StatusNotFound, title, err)
+		return
 	}
-
-	ctx.JSON(http.StatusInternalServerError, APIError{
-		Message: message,
-		URL:     setting.API.SwaggerURL,
-	})
+	ctx.Error(http.StatusInternalServerError, title, err)
 }
 
 var (

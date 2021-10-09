@@ -203,7 +203,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 	issue.Attachments = append(issue.Attachments, attach)
 
 	if err := issue_service.ChangeContent(issue, ctx.User, issue.Content); err != nil {
-		ctx.ServerError("ChangeContent", err)
+		ctx.Error(http.StatusInternalServerError, "ChangeContent", err)
 		return
 	}
 
@@ -263,7 +263,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 	if err := models.UpdateAttachment(attach); err != nil {
-		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
+		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", err)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToAttachment(attach))
 }
@@ -319,7 +319,7 @@ func getIssueAttachmentSafeWrite(ctx *context.APIContext) *models.Attachment {
 	issueIndex := ctx.ParamsInt64(":index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.NotFoundOrServerError("GetIssueByID", models.IsErrIssueNotExist, err)
+		ctx.NotFoundOrServerError("GetIssueByIndex", models.IsErrIssueNotExist, err)
 		return nil
 	}
 	if !canUserWriteIssueAttachment(ctx, issue) {
@@ -359,17 +359,17 @@ func canUserWriteIssueAttachment(ctx *context.APIContext, i *models.Issue) (succ
 func attachmentBelongsToRepoOrIssue(ctx *context.APIContext, a *models.Attachment, issue *models.Issue) (success bool) {
 	if a.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
-		ctx.NotFound()
+		ctx.NotFound("no such attachment in repo")
 		return
 	}
 	if a.IssueID == 0 {
 		// catch people trying to get release assets ;)
 		log.Debug("Requested attachment[%d] is not in an issue.", a.ID)
-		ctx.NotFound()
+		ctx.NotFound("no such attachment in issue")
 		return
 	} else if issue != nil && a.IssueID != issue.ID {
 		log.Debug("Requested attachment[%d] does not belong to issue[%d, #%d].", a.ID, issue.ID, issue.Index)
-		ctx.NotFound()
+		ctx.NotFound("no such attachment in issue")
 		return
 	}
 	return true

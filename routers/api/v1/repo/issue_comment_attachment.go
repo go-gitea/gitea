@@ -323,7 +323,7 @@ func getIssueCommentSafe(ctx *context.APIContext) *models.Comment {
 		return nil
 	}
 	if comment.Issue == nil || comment.Issue.RepoID != ctx.Repo.Repository.ID {
-		ctx.Error(http.StatusNotFound, "no matching issue comment found", err)
+		ctx.Error(http.StatusNotFound, "", "no matching issue comment found")
 		return nil
 	}
 	return comment
@@ -360,7 +360,7 @@ func getIssueCommentAttachmentSafeRead(ctx *context.APIContext, comment *models.
 func canUserWriteIssueCommentAttachment(ctx *context.APIContext, c *models.Comment) (success bool) {
 	canEditComment := ctx.User.ID == c.PosterID || ctx.IsUserRepoAdmin() || ctx.IsUserSiteAdmin()
 	if !canEditComment {
-		ctx.Error(http.StatusForbidden, "CommentEditPerm", "user should have permission to edit comment")
+		ctx.Error(http.StatusForbidden, "", "user should have permission to edit comment")
 		return
 	}
 
@@ -370,18 +370,18 @@ func canUserWriteIssueCommentAttachment(ctx *context.APIContext, c *models.Comme
 func attachmentBelongsToRepoOrComment(ctx *context.APIContext, a *models.Attachment, comment *models.Comment) (success bool) {
 	if a.RepoID != ctx.Repo.Repository.ID {
 		log.Debug("Requested attachment[%d] does not belong to repo[%-v].", a.ID, ctx.Repo.Repository)
-		ctx.NotFound()
+		ctx.NotFound("no such attachment in repo")
 		return
 	}
 	if a.IssueID == 0 || a.CommentID == 0 {
 		// catch people trying to get release assets ;)
 		log.Debug("Requested attachment[%d] is not in a comment.", a.ID)
-		ctx.NotFound()
+		ctx.NotFound("no such attachment in comment")
 		return
 	}
 	if comment != nil && a.CommentID != comment.ID {
 		log.Debug("Requested attachment[%d] does not belong to comment[%d].", a.ID, comment.ID)
-		ctx.NotFound()
+		ctx.NotFound("no such attachment in comment")
 		return
 	}
 	return true
