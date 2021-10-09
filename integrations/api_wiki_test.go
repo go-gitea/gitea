@@ -9,8 +9,6 @@ import (
 	"net/http"
 	"testing"
 
-	//"code.gitea.io/gitea/models"
-	//"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 
