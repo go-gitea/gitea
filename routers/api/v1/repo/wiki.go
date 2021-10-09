@@ -301,9 +301,6 @@ func GetWikiPage(ctx *context.APIContext) {
 
 	// get requested pagename
 	pageName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
-	if len(pageName) == 0 {
-		pageName = "Home"
-	}
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
