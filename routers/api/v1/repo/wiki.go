@@ -160,10 +160,6 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	wikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
-	if len(wikiName) == 0 {
-		ctx.Status(http.StatusBadRequest)
-		return
-	}
 
 	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteWikiPage", err)
@@ -292,10 +288,12 @@ func GetWikiPage(ctx *context.APIContext) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		if git.IsErrNotExist(err) {
-			ctx.NotFound(http.StatusInternalServerError, "GetBranchCommit", err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+		if !ctx.Written() {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound(http.StatusInternalServerError, "GetBranchCommit", err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			}
 		}
 		return
 	}
@@ -305,15 +303,17 @@ func GetWikiPage(ctx *context.APIContext) {
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
 	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
-	if noEntry {
+	if noEntry && !ctx.Written() {
 		ctx.NotFound()
 		return
 	}
-	if entry == nil || ctx.Written() {
+	if entry == nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		ctx.NotFound()
+		if !ctx.Written() {
+			ctx.NotFound()
+		}
 		return
 	}
 
@@ -322,7 +322,6 @@ func GetWikiPage(ctx *context.APIContext) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		ctx.NotFound()
 		return
 	}
 
@@ -331,7 +330,6 @@ func GetWikiPage(ctx *context.APIContext) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		ctx.NotFound()
 		return
 	}
 
@@ -398,10 +396,12 @@ func ListPageRevisions(ctx *context.APIContext) {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		if git.IsErrNotExist(err) {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+		if !ctx.Written() {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound()
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			}
 		}
 		return
 	}
@@ -414,7 +414,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
 	_, _, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName)
-	if noEntry {
+	if noEntry && !ctx.Written() {
 		ctx.NotFound()
 	}
 
