@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -60,7 +61,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	wikiName := wiki_service.NormalizeWikiName(form.Title)
 
 	if len(form.Message) == 0 {
-		form.Message = ctx.Tr("repo.editor.add", form.Title)
+		form.Message = fmt.Sprintf("Add '%s'", form.Title)
 	}
 
 	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
@@ -118,7 +119,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	newWikiName := wiki_service.NormalizeWikiName(form.Title)
 
 	if len(form.Message) == 0 {
-		form.Message = ctx.Tr("repo.editor.update", form.Title)
+		form.Message = fmt.Sprintf("Update '%s'", form.Title)
 	}
 
 	if len(newWikiName) == 0 {
