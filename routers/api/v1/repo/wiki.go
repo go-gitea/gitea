@@ -17,18 +17,41 @@ import (
 	"code.gitea.io/gitea/modules/web"
 
 	"code.gitea.io/gitea/models"
-	//"code.gitea.io/gitea/modules/base"
-	//"code.gitea.io/gitea/modules/setting"
-	//"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	//"code.gitea.io/gitea/routers/common"
-	//"code.gitea.io/gitea/services/forms"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
-// NewWikiPost response for wiki create request
+// NewWiki response for wiki create request
 func NewWiki(ctx *context.APIContext) {
-	form := web.GetForm(ctx).(*api.NewWikiForm)
+	// swagger:operation POST /repos/{owner}/{repo}/wiki/new repository repoCreateWikiPage
+	// ---
+	// summary: Create a wiki page
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateWikiPageOptions"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
+	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
 	if util.IsEmptyString(form.Title) {
 		ctx.Error(http.StatusBadRequest, "emptyTitle", nil)
@@ -55,9 +78,42 @@ func NewWiki(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// EditWikiPost response for wiki modify request
+// EditWiki response for wiki modify request
 func EditWiki(ctx *context.APIContext) {
-	form := web.GetForm(ctx).(*api.NewWikiForm)
+	// swagger:operation PATCH /repos/{owner}/{repo}/wiki/page/{pageName} repository repoEditWikiPage
+	// ---
+	// summary: Edit a wiki page
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: pageName
+	//   in: path
+	//   description: name of the page
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/CreateWikiPageOptions"
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "400":
+	//     "$ref": "#/responses/error"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
+	form := web.GetForm(ctx).(*api.CreateWikiPageOptions)
 
 	oldWikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 	newWikiName := wiki_service.NormalizeWikiName(form.Title)
@@ -80,6 +136,29 @@ func EditWiki(ctx *context.APIContext) {
 
 // DeleteWikiPage delete wiki page
 func DeleteWikiPage(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/wiki/page/{pageName} repository repoDeleteWikiPage
+	// ---
+	// summary: Delete a wiki page
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: pageName
+	//   in: path
+	//   description: name of the page
+	//   type: string
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+
 	wikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 	if len(wikiName) == 0 {
 		wikiName = "Home"
@@ -95,6 +174,26 @@ func DeleteWikiPage(ctx *context.APIContext) {
 
 // WikiPages get wiki pages list
 func WikiPages(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/wiki/pages repository repoGetWikiPages
+	// ---
+	// summary: Get all wiki pages
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/WikiPageList"
+
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if wikiRepo != nil {
@@ -141,8 +240,33 @@ func WikiPages(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, pages)
 }
 
-// Wiki renders single wiki page
+// Wiki get single wiki page
 func Wiki(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/wiki/page/{pageName} repository repoGetWikiPage
+	// ---
+	// summary: Get a wiki page
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: pageName
+	//   in: path
+	//   description: name of the page
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/WikiPage"
+
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if wikiRepo != nil {
@@ -221,6 +345,31 @@ func Wiki(ctx *context.APIContext) {
 
 // WikiRevision renders file revision list of wiki page
 func WikiRevision(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/wiki/revisions/{pageName} repository repoGetWikiPageRevisions
+	// ---
+	// summary: Get revisions of a wiki page
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: pageName
+	//   in: path
+	//   description: name of the page
+	//   type: string
+	//   required: true
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/WikiCommitList"
+
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
 		if wikiRepo != nil {

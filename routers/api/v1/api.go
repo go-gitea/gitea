@@ -817,10 +817,10 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Group("/wiki", func() {
 					m.Combo("/page/{pageName}").
 						Get(mustEnableWiki, repo.Wiki).
-						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.NewWikiForm{}), repo.EditWiki).
+						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.CreateWikiPageOptions{}), repo.EditWiki).
 						Delete(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), repo.DeleteWikiPage)
 					m.Get("/revisions/{pageName}", mustEnableWiki, repo.WikiRevision)
-					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.NewWikiForm{}), repo.NewWiki)
+					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.CreateWikiPageOptions{}), repo.NewWiki)
 					m.Get("/pages", mustEnableWiki, repo.WikiPages)
 				})
 				m.Group("/issues", func() {

@@ -4,6 +4,7 @@
 
 package structs
 
+// WikiCommit page commit/revision
 type WikiCommit struct {
 	ID        string      `json:"sha"`
 	Author    *CommitUser `json:"author"`
@@ -11,6 +12,7 @@ type WikiCommit struct {
 	Message   string      `json:"message"`
 }
 
+// WikiPage a wiki page
 type WikiPage struct {
 	*PageMeta
 	Title       string      `json:"title"`
@@ -28,13 +30,14 @@ type PageMeta struct {
 	Updated string `json:"updated"`
 }
 
-// NewWikiForm form for creating wiki
-type NewWikiForm struct {
+// CreateWikiPageOptions form for creating wiki
+type CreateWikiPageOptions struct {
 	Title   string `json:"title"`
 	Content string `json:"content"`
 	Message string `json:"message"`
 }
 
+// WikiCommitList commit/revision list
 type WikiCommitList struct {
 	WikiCommits []*WikiCommit `json:"commits"`
 	Count       int64         `json:"count"`
