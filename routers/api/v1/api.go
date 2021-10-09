@@ -523,22 +523,6 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 
 func mustEnableWiki(ctx *context.APIContext) {
 	if !(ctx.Repo.CanRead(models.UnitTypeWiki)) {
-		/*if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
-			if ctx.IsSigned {
-				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
-					"User in Repo has Permissions: %-+v",
-					ctx.User,
-					models.UnitTypePullRequests,
-					ctx.Repo.Repository,
-					ctx.Repo.Permission)
-			} else {
-				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
-					"Anonymous user in Repo has Permissions: %-+v",
-					models.UnitTypePullRequests,
-					ctx.Repo.Repository,
-					ctx.Repo.Permission)
-			}
-		}*/
 		ctx.NotFound()
 		return
 	}

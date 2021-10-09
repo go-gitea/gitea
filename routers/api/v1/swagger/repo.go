@@ -326,21 +326,21 @@ type swaggerCombinedStatus struct {
 
 // WikiPageList
 // swagger:response WikiPageList
-type WikiPageList struct {
+type swaggerWikiPageList struct {
 	// in:body
 	Body []api.PageMeta `json:"body"`
 }
 
 // WikiPage
 // swagger:response WikiPage
-type WikiPage struct {
+type swaggerWikiPage struct {
 	// in:body
 	Body api.WikiPage `json:"body"`
 }
 
 // WikiCommitList
 // swagger:response WikiCommitList
-type WikiCommitList struct {
+type swaggerWikiCommitList struct {
 	// in:body
 	Body api.WikiCommitList `json:"body"`
 }

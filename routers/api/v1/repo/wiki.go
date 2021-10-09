@@ -10,14 +10,13 @@ import (
 	"net/url"
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/web"
-
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
