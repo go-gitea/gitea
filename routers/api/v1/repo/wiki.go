@@ -173,7 +173,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 }
 
 // WikiPages get wiki pages list
-func WikiPages(ctx *context.APIContext) {
+func ListWikiPages(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/wiki/pages repository repoGetWikiPages
 	// ---
 	// summary: Get all wiki pages
