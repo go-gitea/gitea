@@ -20,7 +20,7 @@ import (
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
-// NewWiki response for wiki create request
+// NewWikiPage response for wiki create request
 func NewWikiPage(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/wiki/new repository repoCreateWikiPage
 	// ---
@@ -77,7 +77,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
-// EditWiki response for wiki modify request
+// EditWikiPage response for wiki modify request
 func EditWikiPage(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/wiki/page/{pageName} repository repoEditWikiPage
 	// ---
@@ -260,7 +260,7 @@ func WikiPages(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, pages)
 }
 
-// Wiki get single wiki page
+// GetWikiPage get single wiki page
 func GetWikiPage(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/wiki/page/{pageName} repository repoGetWikiPage
 	// ---
