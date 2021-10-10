@@ -68,7 +68,7 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
-		if err := repo.CheckDaemonExportOK(); err != nil {
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 

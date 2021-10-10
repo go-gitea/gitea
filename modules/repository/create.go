@@ -105,11 +105,11 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			}
 		}
 
-		if err := repo.CheckDaemonExportOK(); err != nil {
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)

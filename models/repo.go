@@ -1160,7 +1160,12 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
-func (repo *Repository) CheckDaemonExportOK() error {
+func (repo *Repository) CheckDaemonExportOK(ctx context.Context) error {
+	e := db.GetEngine(ctx)
+	if err := repo.getOwner(e); err != nil {
+		return err
+	}
+
 	// Create/Remove git-daemon-export-ok for git-daemon...
 	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
 
@@ -1335,7 +1340,7 @@ func updateRepository(e db.Engine, repo *Repository, visibilityChanged bool) (er
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := repo.CheckDaemonExportOK(); err != nil {
+		if err := repo.CheckDaemonExportOK(db.WithEngine(db.DefaultContext, e)); err != nil {
 			return err
 		}
 

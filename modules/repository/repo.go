@@ -100,15 +100,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		repo.Owner = u
 	}
 
-	if err = repo.GetOwner(); err != nil {
-		return repo, fmt.Errorf("unable to get owner[%d] for repo [%d]. Error: %v", repo.OwnerID, repo.ID, err)
-	}
-
-	if err = repo.CheckDaemonExportOK(); err != nil {
+	if err = repo.CheckDaemonExportOK(ctx); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
-	if stdout, err := git.NewCommand("update-server-info").
+	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
 		RunInDir(repoPath); err != nil {
 		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
