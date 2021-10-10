@@ -124,7 +124,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(repo.WikiPath(), "master")
+	hasMasterBranch := git.IsBranchExist(git.DefaultContext, repo.WikiPath(), "master")
 
 	basePath, err := models.CreateTemporaryPath("update-wiki")
 	if err != nil {

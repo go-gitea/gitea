@@ -312,7 +312,7 @@ func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSy
 		for _, pr := range prs {
 			divergence, err := GetDiverging(pr)
 			if err != nil {
-				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
 				} else {
 					log.Error("GetDiverging: %v", err)

@@ -73,7 +73,7 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 		return err
 	}
 
-	if !git.IsBranchExist(repo.RepoPath(), oldBranchName) {
+	if !git.IsBranchExist(git.DefaultContext, repo.RepoPath(), oldBranchName) {
 		return models.ErrBranchDoesNotExist{
 			BranchName: oldBranchName,
 		}

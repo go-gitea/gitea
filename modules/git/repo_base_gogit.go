@@ -32,7 +32,7 @@ type Repository struct {
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
 
-	ctx context.Context
+	Ctx context.Context
 }
 
 // OpenRepository opens the repository at the given path.
@@ -68,7 +68,7 @@ func OpenRepositoryCtx(ctx context.Context, repoPath string) (*Repository, error
 		gogitRepo:    gogitRepo,
 		gogitStorage: storage,
 		tagCache:     newObjectCache(),
-		ctx:          ctx,
+		Ctx:          ctx,
 	}, nil
 }
 
