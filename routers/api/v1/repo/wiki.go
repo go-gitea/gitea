@@ -200,14 +200,12 @@ func ListWikiPages(ctx *context.APIContext) {
 	//     "$ref": "#/responses/WikiPageList"
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
-	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
-		return
-	}
 	if wikiRepo != nil {
 		defer wikiRepo.Close()
+	}
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "findWikiRepoCommit", err)
+		return
 	}
 
 	page := ctx.FormInt("page")
@@ -286,10 +284,10 @@ func GetWikiPage(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	if wikiRepo != nil {
+		defer wikiRepo.Close()
+	}
 	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		if !ctx.Written() {
 			if git.IsErrNotExist(err) {
 				ctx.NotFound(err)
@@ -310,9 +308,6 @@ func GetWikiPage(ctx *context.APIContext) {
 		return
 	}
 	if entry == nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		if !ctx.Written() {
 			ctx.NotFound()
 		}
@@ -321,17 +316,11 @@ func GetWikiPage(ctx *context.APIContext) {
 
 	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar", true)
 	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		return
 	}
 
 	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer", true)
 	if ctx.Written() {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		return
 	}
 
@@ -396,10 +385,10 @@ func ListPageRevisions(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	if wikiRepo != nil {
+		defer wikiRepo.Close()
+	}
 	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		if !ctx.Written() {
 			if git.IsErrNotExist(err) {
 				ctx.NotFound(err)
@@ -436,9 +425,6 @@ func ListPageRevisions(ctx *context.APIContext) {
 	// get Commit Count
 	commitsHistory, err := wikiRepo.CommitsByFileAndRangeNoFollow("master", pageFilename, page)
 	if err != nil {
-		if wikiRepo != nil {
-			wikiRepo.Close()
-		}
 		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRangeNoFollow", err)
 		return
 	}
