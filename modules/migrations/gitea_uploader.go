@@ -690,6 +690,23 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		}
 	} else {
 		head = pr.Head.Ref
+		// Ensure the closed PR SHA still points to an existing ref
+		_, err = git.NewCommand("rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		if err != nil {
+			if pr.Head.SHA != "" {
+				// Git update-ref remove bad references with a relative path
+				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
+				relPath := pr.GetGitRefName()
+				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+			} else {
+				// The SHA is empty, remove the head file
+				log.Warn("Empty reference, removing : %v", pullHead)
+				err = os.Remove(filepath.Join(pullHead, "head"))
+			}
+			if err != nil {
+				log.Error("Cannot remove local head ref, %v", err)
+			}
+		}
 	}
 
 	if pr.Created.IsZero() {
