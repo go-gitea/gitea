@@ -78,31 +78,31 @@ func GetManager() *Manager {
 }
 
 // AddContext create a new context and add it as a process. The CancelFunc must always be called even if the context is Done()
-func (pm *Manager) AddContext(parent context.Context, description string) (context.Context, context.CancelFunc) {
+func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
-	ctx, cancel := context.WithCancel(parent)
+	ctx, cancel = context.WithCancel(parent)
 
-	pid, cancel := pm.Add(parentPID, description, cancel)
+	pid, remove := pm.Add(parentPID, description, cancel)
 
 	return &Context{
 		Context: ctx,
 		pid:     pid,
-	}, cancel
+	}, cancel, remove
 }
 
 // AddContextTimeout create a new context and add it as a process
-func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (context.Context, context.CancelFunc) {
+func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
-	ctx, cancel := context.WithTimeout(parent, timeout)
+	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	pid, cancel := pm.Add(parentPID, description, cancel)
+	pid, remove := pm.Add(parentPID, description, cancel)
 
 	return &Context{
 		Context: ctx,
 		pid:     pid,
-	}, cancel
+	}, cancel, remove
 }
 
 // Add create a new process
@@ -120,9 +120,10 @@ func (pm *Manager) Add(parentPID int64, description string, cancel context.Cance
 		ParentPID:   parentPID,
 		Description: description,
 		Start:       time.Now(),
+		Cancel:      cancel,
 	}
 
-	process.Cancel = func() {
+	remove := func() {
 		cancel()
 		pm.remove(process)
 	}
@@ -133,7 +134,7 @@ func (pm *Manager) Add(parentPID int64, description string, cancel context.Cance
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
 
-	return pid, process.Cancel
+	return pid, remove
 }
 
 // nextPID will return the next available PID. pm.mutex should already be locked.
@@ -264,8 +265,8 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	ctx, cancel := pm.AddContextTimeout(DefaultContext, timeout, desc)
-	defer cancel()
+	ctx, _, remove := pm.AddContextTimeout(DefaultContext, timeout, desc)
+	defer remove()
 
 	cmd := exec.CommandContext(ctx, cmdName, args...)
 	cmd.Dir = dir

@@ -81,8 +81,8 @@ func (t *Task) RunWithUser(doer *models.User, config Config) {
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
 		pm := process.GetManager()
-		ctx, cancel := pm.AddContext(baseCtx, config.FormatMessage(t.Name, "process", doer))
-		defer cancel()
+		ctx, _, remove := pm.AddContext(baseCtx, config.FormatMessage(t.Name, "process", doer))
+		defer remove()
 
 		if err := t.fun(ctx, doer, config); err != nil {
 			if models.IsErrCancelled(err) {

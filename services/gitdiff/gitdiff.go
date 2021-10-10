@@ -1226,8 +1226,8 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	}
 
 	timeout := time.Duration(setting.Git.Timeout.Default) * time.Second
-	ctx, cancel := process.GetManager().AddContextTimeout(git.DefaultContext, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
-	defer cancel()
+	ctx, _, remove := process.GetManager().AddContextTimeout(git.DefaultContext, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
+	defer remove()
 
 	var cmd *exec.Cmd
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {

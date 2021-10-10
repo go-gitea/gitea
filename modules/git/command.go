@@ -148,8 +148,8 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(c.args, " "), rc.Dir)
 	}
 
-	ctx, cancel := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
-	defer cancel()
+	ctx, cancel, remove := process.GetManager().AddContextTimeout(c.parentContext, rc.Timeout, desc)
+	defer remove()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)
 	if rc.Env == nil {

@@ -27,12 +27,12 @@ func TestManager_AddContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p1Ctx, cancel := pm.AddContext(ctx, "foo")
-	defer cancel()
+	p1Ctx, _, remove := pm.AddContext(ctx, "foo")
+	defer remove()
 	assert.Equal(t, int64(1), GetContext(p1Ctx).GetPID(), "expected to get pid 1 got %d", GetContext(p1Ctx).GetPID())
 
-	p2Ctx, cancel := pm.AddContext(p1Ctx, "bar")
-	defer cancel()
+	p2Ctx, _, remove := pm.AddContext(p1Ctx, "bar")
+	defer remove()
 
 	assert.Equal(t, int64(2), GetContext(p2Ctx).GetPID(), "expected to get pid 2 got %d", GetContext(p2Ctx).GetPID())
 	assert.Equal(t, int64(1), GetContext(p2Ctx).GetParent().GetPID(), "expected to get pid 1 got %d", GetContext(p2Ctx).GetParent().GetPID())
@@ -41,8 +41,8 @@ func TestManager_AddContext(t *testing.T) {
 func TestManager_Cancel(t *testing.T) {
 	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
 
-	ctx, cancel := pm.AddContext(context.Background(), "foo")
-	defer cancel()
+	ctx, _, remove := pm.AddContext(context.Background(), "foo")
+	defer remove()
 
 	pm.Cancel(GetPID(ctx))
 
@@ -51,6 +51,19 @@ func TestManager_Cancel(t *testing.T) {
 	default:
 		assert.Fail(t, "Cancel should cancel the provided context")
 	}
+	remove()
+
+	ctx, cancel, remove := pm.AddContext(context.Background(), "foo")
+	defer remove()
+
+	cancel()
+
+	select {
+	case <-ctx.Done():
+	default:
+		assert.Fail(t, "Cancel should cancel the provided context")
+	}
+	remove()
 }
 
 func TestManager_Remove(t *testing.T) {
@@ -59,12 +72,12 @@ func TestManager_Remove(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	p1Ctx, cancel := pm.AddContext(ctx, "foo")
-	defer cancel()
+	p1Ctx, _, remove := pm.AddContext(ctx, "foo")
+	defer remove()
 	assert.Equal(t, int64(1), GetContext(p1Ctx).GetPID(), "expected to get pid 1 got %d", GetContext(p1Ctx).GetPID())
 
-	p2Ctx, cancel := pm.AddContext(p1Ctx, "bar")
-	defer cancel()
+	p2Ctx, _, remove := pm.AddContext(p1Ctx, "bar")
+	defer remove()
 
 	assert.Equal(t, int64(2), GetContext(p2Ctx).GetPID(), "expected to get pid 2 got %d", GetContext(p2Ctx).GetPID())
 

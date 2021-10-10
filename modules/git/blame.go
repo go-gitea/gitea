@@ -29,6 +29,7 @@ type BlameReader struct {
 	reader  *bufio.Reader
 	lastSha *string
 	cancel  context.CancelFunc
+	remove  context.CancelFunc
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -99,7 +100,8 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	defer r.cancel()
+	defer r.remove()
+	r.cancel()
 
 	_ = r.output.Close()
 
@@ -123,7 +125,7 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 
 func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {
 	// Here we use the provided context - this should be tied to the request performing the blame so that it does not hang around.
-	ctx, cancel := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
+	ctx, cancel, remove := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
 
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
@@ -131,12 +133,13 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		defer cancel()
+		defer remove()
 		return nil, fmt.Errorf("StdoutPipe: %v", err)
 	}
 
 	if err = cmd.Start(); err != nil {
-		defer cancel()
+		defer remove()
+		_ = stdout.Close()
 		return nil, fmt.Errorf("Start: %v", err)
 	}
 
@@ -148,5 +151,6 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 		reader,
 		nil,
 		cancel,
+		remove,
 	}, nil
 }
