@@ -362,7 +362,7 @@ func GetWikiPage(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, wikiPage)
 }
 
-// WikiRevision renders file revision list of wiki page
+// ListPageRevisions renders file revision list of wiki page
 func ListPageRevisions(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/wiki/revisions/{pageName} repository repoGetWikiPageRevisions
 	// ---
