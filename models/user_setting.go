@@ -5,9 +5,11 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -21,18 +23,18 @@ type UserSetting struct {
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
-func (setting *UserSetting) BeforeInsert() {
-	setting.Key = strings.ToLower(setting.Key)
+func (userSetting *UserSetting) BeforeInsert() {
+	userSetting.Key = strings.ToLower(userSetting.Key)
 }
 
 // BeforeUpdate will be invoked by XORM before updating a record
-func (setting *UserSetting) BeforeUpdate() {
-	setting.Key = strings.ToLower(setting.Key)
+func (userSetting *UserSetting) BeforeUpdate() {
+	userSetting.Key = strings.ToLower(userSetting.Key)
 }
 
 // BeforeDelete will be invoked by XORM before updating a record
-func (setting *UserSetting) BeforeDelete() {
-	setting.Key = strings.ToLower(setting.Key)
+func (userSetting *UserSetting) BeforeDelete() {
+	userSetting.Key = strings.ToLower(userSetting.Key)
 }
 
 func init() {
@@ -64,34 +66,15 @@ func GetAllUserSettings(uid int64) ([]*UserSetting, error) {
 	return settings, nil
 }
 
-func addUserSetting(e db.Engine, setting *UserSetting) error {
-	used, err := settingExists(e, setting.UserID, setting.Key)
-	if err != nil {
-		return err
-	} else if used {
-		return ErrUserSettingExists{setting}
-	}
-	_, err = e.Insert(setting)
-	return err
-}
-
-func settingExists(e db.Engine, uid int64, key string) (bool, error) {
-	if len(key) == 0 {
-		return true, nil
-	}
-
-	return e.Table(&UserSetting{}).Exist(&UserSetting{UserID: uid, Key: strings.ToLower(key)})
-}
-
 // DeleteUserSetting deletes a specific setting for a user
-func DeleteUserSetting(setting *UserSetting) error {
+func DeleteUserSetting(userSetting *UserSetting) error {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if _, err := sess.Delete(setting); err != nil {
+	if _, err := sess.Delete(userSetting); err != nil {
 		return err
 	}
 
@@ -99,22 +82,35 @@ func DeleteUserSetting(setting *UserSetting) error {
 }
 
 // SetUserSetting updates a users' setting for a specific key
-func SetUserSetting(setting *UserSetting) error {
-	err := addUserSetting(db.GetEngine(db.DefaultContext), setting)
-	if err != nil && IsErrUserSettingExists(err) {
-		return updateUserSettingValue(db.GetEngine(db.DefaultContext), setting)
-	}
-	return err
+func SetUserSetting(userSetting *UserSetting) error {
+	return upsertUserSettingValue(db.GetEngine(db.DefaultContext), userSetting.UserID, userSetting.Key, userSetting.Value)
 }
 
-func updateUserSettingValue(e db.Engine, setting *UserSetting) error {
-	used, err := settingExists(e, setting.UserID, setting.Key)
-	if err != nil {
-		return err
-	} else if !used {
-		return ErrUserSettingNotExists{setting}
+func upsertUserSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
+	// Intentionally lowercase key here as XORM may not pick it up via Before* actions
+	key = strings.ToLower(key)
+	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
+	// that ensures that the key is actually locked.
+	switch {
+	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
+		_, err = e.Exec("INSERT INTO `user_setting` (user_id, key, value) "+
+			"VALUES (?,?,?) ON CONFLICT (user_id,key) DO UPDATE SET value = ?",
+			userID, key, value, value)
+	case setting.Database.UseMySQL:
+		_, err = e.Exec("INSERT INTO `user_setting` (user_id, key, value) "+
+			"VALUES (?,?,?) ON DUPLICATE KEY UPDATE value = ?",
+			userID, key, value, value)
+	case setting.Database.UseMSSQL:
+		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
+		_, err = e.Exec("MERGE `user_setting` WITH (HOLDLOCK) as target "+
+			"USING (SELECT ? AS user_id, ? AS key) AS src "+
+			"ON src.user_id = target.user_id AND src.key = target.key "+
+			"WHEN MATCHED THEN UPDATE SET target.value = ? "+
+			"WHEN NOT MATCHED THEN INSERT (user_id, key, value) "+
+			"VALUES (src.user_id, src.key, ?);",
+			userID, key, value, value)
+	default:
+		return fmt.Errorf("database type not supported")
 	}
-
-	_, err = e.ID(setting.ID).Cols("value").Update(setting)
-	return err
+	return
 }
