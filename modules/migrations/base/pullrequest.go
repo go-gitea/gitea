@@ -41,6 +41,11 @@ func (p *PullRequest) IsForkPullRequest() bool {
 	return p.Head.RepoPath() != p.Base.RepoPath()
 }
 
+// GetGitRefName returns pull request relative path to head
+func (p PullRequest) GetGitRefName() string {
+	return fmt.Sprintf("refs/pull/%d/head", p.Number)
+}
+
 // PullRequestBranch represents a pull request branch
 type PullRequestBranch struct {
 	CloneURL  string `yaml:"clone_url"`
