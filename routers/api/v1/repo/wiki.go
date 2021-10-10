@@ -414,8 +414,11 @@ func ListPageRevisions(ctx *context.APIContext) {
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
 	_, _, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName, false)
-	if noEntry && !ctx.Written() {
-		ctx.NotFound()
+	if noEntry {
+		if !ctx.Written() {
+			ctx.NotFound()
+		}
+		return
 	}
 
 	// get commit count - wiki revisions
@@ -433,6 +436,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 			wikiRepo.Close()
 		}
 		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRangeNoFollow", err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToWikiCommitList(commitsHistory, commitsCount))
