@@ -33,6 +33,7 @@ type WikiPageMetaData struct {
 // CreateWikiPageOptions form for creating wiki
 type CreateWikiPageOptions struct {
 	Title   string `json:"title"`
+	// content must be UTF-8 encoded
 	Content string `json:"content"`
 	Message string `json:"message"`
 }
