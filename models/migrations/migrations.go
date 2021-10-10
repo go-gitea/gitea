@@ -348,8 +348,8 @@ var migrations = []Migration{
 	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
 	// v197 -> v198
 	NewMigration("Add renamed_branch table", addRenamedBranchTable),
-  // v198 -> v199
-  NewMigration("Create key/value table for user settings", createUserSettingsTable),
+	// v198 -> v199
+	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 }
 
 // GetCurrentDBVersion returns the current db version
