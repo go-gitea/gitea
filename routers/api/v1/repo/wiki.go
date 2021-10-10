@@ -282,6 +282,8 @@ func GetWikiPage(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WikiPage"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
@@ -390,6 +392,8 @@ func ListPageRevisions(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/WikiCommitList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if err != nil {
