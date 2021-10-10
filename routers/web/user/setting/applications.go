@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -92,12 +93,12 @@ func loadApplicationsData(ctx *context.Context) {
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 	if setting.OAuth2.Enable {
-		ctx.Data["Applications"], err = models.GetOAuth2ApplicationsByUserID(ctx.User.ID)
+		ctx.Data["Applications"], err = login.GetOAuth2ApplicationsByUserID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
 		}
-		ctx.Data["Grants"], err = models.GetOAuth2GrantsByUserID(ctx.User.ID)
+		ctx.Data["Grants"], err = login.GetOAuth2GrantsByUserID(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2GrantsByUserID", err)
 			return

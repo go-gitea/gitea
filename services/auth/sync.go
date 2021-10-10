@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -15,7 +16,7 @@ import (
 func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 	log.Trace("Doing: SyncExternalUsers")
 
-	ls, err := models.LoginSources()
+	ls, err := login.Sources()
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err

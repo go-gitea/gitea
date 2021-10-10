@@ -210,7 +210,7 @@ type PushActionContent struct {
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
-	return c.loadIssue(db.DefaultContext().Engine())
+	return c.loadIssue(db.GetEngine(db.DefaultContext))
 }
 
 func (c *Comment) loadIssue(e db.Engine) (err error) {
@@ -284,7 +284,7 @@ func (c *Comment) HTMLURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.DefaultContext().Engine())
+	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -313,7 +313,7 @@ func (c *Comment) APIURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.DefaultContext().Engine())
+	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -334,7 +334,7 @@ func (c *Comment) IssueURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.DefaultContext().Engine())
+	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -350,7 +350,7 @@ func (c *Comment) PRURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.DefaultContext().Engine())
+	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -380,7 +380,7 @@ func (c *Comment) EventTag() string {
 // LoadLabel if comment.Type is CommentTypeLabel, then load Label
 func (c *Comment) LoadLabel() error {
 	var label Label
-	has, err := db.DefaultContext().Engine().ID(c.LabelID).Get(&label)
+	has, err := db.GetEngine(db.DefaultContext).ID(c.LabelID).Get(&label)
 	if err != nil {
 		return err
 	} else if has {
@@ -397,7 +397,7 @@ func (c *Comment) LoadLabel() error {
 func (c *Comment) LoadProject() error {
 	if c.OldProjectID > 0 {
 		var oldProject Project
-		has, err := db.DefaultContext().Engine().ID(c.OldProjectID).Get(&oldProject)
+		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldProject)
 		if err != nil {
 			return err
 		} else if has {
@@ -407,7 +407,7 @@ func (c *Comment) LoadProject() error {
 
 	if c.ProjectID > 0 {
 		var project Project
-		has, err := db.DefaultContext().Engine().ID(c.ProjectID).Get(&project)
+		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&project)
 		if err != nil {
 			return err
 		} else if has {
@@ -422,7 +422,7 @@ func (c *Comment) LoadProject() error {
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
 		var oldMilestone Milestone
-		has, err := db.DefaultContext().Engine().ID(c.OldMilestoneID).Get(&oldMilestone)
+		has, err := db.GetEngine(db.DefaultContext).ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
 		} else if has {
@@ -432,7 +432,7 @@ func (c *Comment) LoadMilestone() error {
 
 	if c.MilestoneID > 0 {
 		var milestone Milestone
-		has, err := db.DefaultContext().Engine().ID(c.MilestoneID).Get(&milestone)
+		has, err := db.GetEngine(db.DefaultContext).ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
 		} else if has {
@@ -444,7 +444,7 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	return c.loadPoster(db.DefaultContext().Engine())
+	return c.loadPoster(db.GetEngine(db.DefaultContext))
 }
 
 // LoadAttachments loads attachments
@@ -454,7 +454,7 @@ func (c *Comment) LoadAttachments() error {
 	}
 
 	var err error
-	c.Attachments, err = getAttachmentsByCommentID(db.DefaultContext().Engine(), c.ID)
+	c.Attachments, err = getAttachmentsByCommentID(db.GetEngine(db.DefaultContext), c.ID)
 	if err != nil {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
@@ -463,7 +463,7 @@ func (c *Comment) LoadAttachments() error {
 
 // UpdateAttachments update attachments by UUIDs for the comment
 func (c *Comment) UpdateAttachments(uuids []string) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -487,7 +487,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = getUserByID(db.DefaultContext().Engine(), c.AssigneeID)
+		c.Assignee, err = getUserByID(db.GetEngine(db.DefaultContext), c.AssigneeID)
 		if err != nil {
 			if !IsErrUserNotExist(err) {
 				return err
@@ -522,7 +522,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = getUserByID(db.DefaultContext().Engine(), c.ResolveDoerID)
+	c.ResolveDoer, err = getUserByID(db.GetEngine(db.DefaultContext), c.ResolveDoerID)
 	if err != nil {
 		if IsErrUserNotExist(err) {
 			c.ResolveDoer = NewGhostUser()
@@ -542,7 +542,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
 		return nil
 	}
-	c.DependentIssue, err = getIssueByID(db.DefaultContext().Engine(), c.DependentIssueID)
+	c.DependentIssue, err = getIssueByID(db.GetEngine(db.DefaultContext), c.DependentIssueID)
 	return err
 }
 
@@ -576,7 +576,7 @@ func (c *Comment) loadReactions(e db.Engine, repo *Repository) (err error) {
 
 // LoadReactions loads comment reactions
 func (c *Comment) LoadReactions(repo *Repository) error {
-	return c.loadReactions(db.DefaultContext().Engine(), repo)
+	return c.loadReactions(db.GetEngine(db.DefaultContext), repo)
 }
 
 func (c *Comment) loadReview(e db.Engine) (err error) {
@@ -591,7 +591,7 @@ func (c *Comment) loadReview(e db.Engine) (err error) {
 
 // LoadReview loads the associated review
 func (c *Comment) LoadReview() error {
-	return c.loadReview(db.DefaultContext().Engine())
+	return c.loadReview(db.GetEngine(db.DefaultContext))
 }
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
@@ -642,7 +642,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.DefaultContext().Engine())
+	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -899,7 +899,7 @@ type CreateCommentOptions struct {
 
 // CreateComment creates comment of issue or commit.
 func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
@@ -924,7 +924,7 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 	}
 
 	// Check if same reference from same commit has already existed.
-	has, err := db.DefaultContext().Engine().Get(&Comment{
+	has, err := db.GetEngine(db.DefaultContext).Get(&Comment{
 		Type:      CommentTypeCommitRef,
 		IssueID:   issue.ID,
 		CommitSHA: commitSHA,
@@ -948,7 +948,7 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
-	return getCommentByID(db.DefaultContext().Engine(), id)
+	return getCommentByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getCommentByID(e db.Engine, id int64) (*Comment, error) {
@@ -964,7 +964,7 @@ func getCommentByID(e db.Engine, id int64) (*Comment, error) {
 
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID   int64
 	IssueID  int64
 	ReviewID int64
@@ -1012,7 +1012,7 @@ func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 	}
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 	}
 
 	// WARNING: If you change this order you will need to fix createCodeComment
@@ -1025,12 +1025,12 @@ func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 
 // FindComments returns all comments according options
 func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
-	return findComments(db.DefaultContext().Engine(), opts)
+	return findComments(db.GetEngine(db.DefaultContext), opts)
 }
 
 // CountComments count all comments according options by ignoring pagination
 func CountComments(opts *FindCommentsOptions) (int64, error) {
-	sess := db.DefaultContext().Engine().Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
@@ -1039,7 +1039,7 @@ func CountComments(opts *FindCommentsOptions) (int64, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment, doer *User) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -1063,7 +1063,7 @@ func UpdateComment(c *Comment, doer *User) error {
 
 // DeleteComment deletes the comment
 func DeleteComment(comment *Comment) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -1207,17 +1207,17 @@ func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, l
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(db.DefaultContext().Engine(), opts, issue, currentUser, nil)
+	return findCodeComments(db.GetEngine(db.DefaultContext), opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
 func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
-	return fetchCodeComments(db.DefaultContext().Engine(), issue, currentUser)
+	return fetchCodeComments(db.GetEngine(db.DefaultContext), issue, currentUser)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.DefaultContext().Engine().Table("comment").
+	_, err := db.GetEngine(db.DefaultContext).Table("comment").
 		Where(builder.In("issue_id",
 			builder.Select("issue.id").
 				From("issue").

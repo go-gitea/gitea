@@ -26,7 +26,7 @@ func init() {
 
 // LoadAssignees load assignees of this issue.
 func (issue *Issue) LoadAssignees() error {
-	return issue.loadAssignees(db.DefaultContext().Engine())
+	return issue.loadAssignees(db.GetEngine(db.DefaultContext))
 }
 
 // This loads all assignees of an issue
@@ -56,7 +56,7 @@ func (issue *Issue) loadAssignees(e db.Engine) (err error) {
 // User permissions must be verified elsewhere if required.
 func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
-	return userIDs, db.DefaultContext().Engine().Table("issue_assignees").
+	return userIDs, db.GetEngine(db.DefaultContext).Table("issue_assignees").
 		Cols("assignee_id").
 		Where("issue_id = ?", issueID).
 		Distinct("assignee_id").
@@ -65,7 +65,7 @@ func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 
 // GetAssigneesByIssue returns everyone assigned to that issue
 func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
-	return getAssigneesByIssue(db.DefaultContext().Engine(), issue)
+	return getAssigneesByIssue(db.GetEngine(db.DefaultContext), issue)
 }
 
 func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*User, err error) {
@@ -79,7 +79,7 @@ func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*User, err erro
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	return isUserAssignedToIssue(db.DefaultContext().Engine(), issue, user)
+	return isUserAssignedToIssue(db.GetEngine(db.DefaultContext), issue, user)
 }
 
 func isUserAssignedToIssue(e db.Engine, issue *Issue, user *User) (isAssigned bool, err error) {
@@ -94,7 +94,7 @@ func clearAssigneeByUserID(sess db.Engine, userID int64) (err error) {
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	if err := sess.Begin(); err != nil {

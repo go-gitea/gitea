@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -51,7 +52,7 @@ func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
 func (repo *Repository) AddCollaborator(u *User) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -64,13 +65,13 @@ func (repo *Repository) AddCollaborator(u *User) error {
 	return sess.Commit()
 }
 
-func (repo *Repository) getCollaborations(e db.Engine, listOptions ListOptions) ([]*Collaboration, error) {
+func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
 		collaborations := make([]*Collaboration, 0, 8)
 		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
 	}
 
-	e = setEnginePagination(e, &listOptions)
+	e = db.SetEnginePagination(e, &listOptions)
 
 	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
 	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
@@ -82,34 +83,39 @@ type Collaborator struct {
 	Collaboration *Collaboration
 }
 
-func (repo *Repository) getCollaborators(e db.Engine, listOptions ListOptions) ([]*Collaborator, error) {
+func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions) ([]*Collaborator, error) {
 	collaborations, err := repo.getCollaborations(e, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
 
-	collaborators := make([]*Collaborator, len(collaborations))
-	for i, c := range collaborations {
+	collaborators := make([]*Collaborator, 0, len(collaborations))
+	for _, c := range collaborations {
 		user, err := getUserByID(e, c.UserID)
 		if err != nil {
-			return nil, err
+			if IsErrUserNotExist(err) {
+				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
+				user = NewGhostUser()
+			} else {
+				return nil, err
+			}
 		}
-		collaborators[i] = &Collaborator{
+		collaborators = append(collaborators, &Collaborator{
 			User:          user,
 			Collaboration: c,
-		}
+		})
 	}
 	return collaborators, nil
 }
 
 // GetCollaborators returns the collaborators for a repository
-func (repo *Repository) GetCollaborators(listOptions ListOptions) ([]*Collaborator, error) {
-	return repo.getCollaborators(db.DefaultContext().Engine(), listOptions)
+func (repo *Repository) GetCollaborators(listOptions db.ListOptions) ([]*Collaborator, error) {
+	return repo.getCollaborators(db.GetEngine(db.DefaultContext), listOptions)
 }
 
 // CountCollaborators returns total number of collaborators for a repository
 func (repo *Repository) CountCollaborators() (int64, error) {
-	return db.DefaultContext().Engine().Where("repo_id = ? ", repo.ID).Count(&Collaboration{})
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Count(&Collaboration{})
 }
 
 func (repo *Repository) getCollaboration(e db.Engine, uid int64) (*Collaboration, error) {
@@ -130,7 +136,7 @@ func (repo *Repository) isCollaborator(e db.Engine, userID int64) (bool, error) 
 
 // IsCollaborator check if a user is a collaborator of a repository
 func (repo *Repository) IsCollaborator(userID int64) (bool, error) {
-	return repo.isCollaborator(db.DefaultContext().Engine(), userID)
+	return repo.isCollaborator(db.GetEngine(db.DefaultContext), userID)
 }
 
 func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mode AccessMode) error {
@@ -169,7 +175,7 @@ func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mo
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -189,7 +195,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		UserID: uid,
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -259,7 +265,7 @@ func (repo *Repository) getRepoTeams(e db.Engine) (teams []*Team, err error) {
 
 // GetRepoTeams gets the list of teams that has access to the repository
 func (repo *Repository) GetRepoTeams() ([]*Team, error) {
-	return repo.getRepoTeams(db.DefaultContext().Engine())
+	return repo.getRepoTeams(db.GetEngine(db.DefaultContext))
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
@@ -267,7 +273,7 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	teamMember, err := db.DefaultContext().Engine().Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
 		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).
 		And("team_unit.`type` = ?", UnitTypeCode).
@@ -279,5 +285,5 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 		return true, nil
 	}
 
-	return db.DefaultContext().Engine().Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
 }

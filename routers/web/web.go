@@ -234,6 +234,9 @@ func RegisterRoutes(m *web.Route) {
 	// for health check
 	m.Get("/", Home)
 	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
+	if setting.Federation.Enabled {
+		m.Get("/.well-known/nodeinfo", NodeInfoLinks)
+	}
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -363,7 +366,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/activate", user.Activate, reqSignIn)
 		m.Post("/activate", user.ActivatePost, reqSignIn)
 		m.Any("/activate_email", user.ActivateEmail)
-		m.Get("/avatar/{username}/{size}", user.Avatar)
+		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
 		m.Get("/email2user", user.Email2User)
 		m.Get("/recover_account", user.ResetPasswd)
 		m.Post("/recover_account", user.ResetPasswdPost)
@@ -609,6 +612,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Combo("/*").Get(repo.SettingsProtectedBranch).
 					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
+			m.Post("/rename_branch", bindIgnErr(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo.RenameBranchPost)
 
 			m.Group("/tags", func() {
 				m.Get("", repo.Tags)
@@ -992,6 +996,9 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}",
 			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
+
+	m.Post("/{username}/{reponame}/lastcommit/*", ignSignInAndCsrf, context.RepoAssignment, context.UnitTypes(), context.RepoRefByType(context.RepoRefCommit), reqRepoCodeReader, repo.LastCommit)
+
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/stars", repo.Stars)
 		m.Get("/watchers", repo.Watchers)

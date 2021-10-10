@@ -47,7 +47,7 @@ func init() {
 
 // SearchTeamOptions holds the search options
 type SearchTeamOptions struct {
-	ListOptions
+	db.ListOptions
 	UserID      int64
 	Keyword     string
 	OrgID       int64
@@ -56,7 +56,7 @@ type SearchTeamOptions struct {
 
 // SearchMembersOptions holds the search options
 type SearchMembersOptions struct {
-	ListOptions
+	db.ListOptions
 }
 
 // SearchTeam search for teams. Caller is responsible to check permissions.
@@ -82,7 +82,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 
 	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	count, err := sess.
@@ -120,7 +120,7 @@ func (t *Team) ColorFormat(s fmt.State) {
 
 // GetUnits return a list of available units for a team
 func (t *Team) GetUnits() error {
-	return t.getUnits(db.DefaultContext().Engine())
+	return t.getUnits(db.GetEngine(db.DefaultContext))
 }
 
 func (t *Team) getUnits(e db.Engine) (err error) {
@@ -173,10 +173,10 @@ func (t *Team) getRepositories(e db.Engine) error {
 // GetRepositories returns paginated repositories in team of organization.
 func (t *Team) GetRepositories(opts *SearchTeamOptions) error {
 	if opts.Page == 0 {
-		return t.getRepositories(db.DefaultContext().Engine())
+		return t.getRepositories(db.GetEngine(db.DefaultContext))
 	}
 
-	return t.getRepositories(getPaginatedSession(opts))
+	return t.getRepositories(db.GetPaginatedSession(opts))
 }
 
 func (t *Team) getMembers(e db.Engine) (err error) {
@@ -187,10 +187,10 @@ func (t *Team) getMembers(e db.Engine) (err error) {
 // GetMembers returns paginated members in team of organization.
 func (t *Team) GetMembers(opts *SearchMembersOptions) (err error) {
 	if opts.Page == 0 {
-		return t.getMembers(db.DefaultContext().Engine())
+		return t.getMembers(db.GetEngine(db.DefaultContext))
 	}
 
-	return t.getMembers(getPaginatedSession(opts))
+	return t.getMembers(db.GetPaginatedSession(opts))
 }
 
 // AddMember adds new membership of the team to the organization,
@@ -210,7 +210,7 @@ func (t *Team) hasRepository(e db.Engine, repoID int64) bool {
 
 // HasRepository returns true if given repository belong to team.
 func (t *Team) HasRepository(repoID int64) bool {
-	return t.hasRepository(db.DefaultContext().Engine(), repoID)
+	return t.hasRepository(db.GetEngine(db.DefaultContext), repoID)
 }
 
 func (t *Team) addRepository(e db.Engine, repo *Repository) (err error) {
@@ -264,7 +264,7 @@ func (t *Team) addAllRepositories(e db.Engine) error {
 
 // AddAllRepositories adds all repositories to the team
 func (t *Team) AddAllRepositories() (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -285,7 +285,7 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 		return nil
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -304,7 +304,7 @@ func (t *Team) RemoveAllRepositories() (err error) {
 		return nil
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -421,7 +421,7 @@ func (t *Team) RemoveRepository(repoID int64) error {
 		return err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -436,7 +436,7 @@ func (t *Team) RemoveRepository(repoID int64) error {
 
 // UnitEnabled returns if the team has the given unit type enabled
 func (t *Team) UnitEnabled(tp UnitType) bool {
-	return t.unitEnabled(db.DefaultContext().Engine(), tp)
+	return t.unitEnabled(db.GetEngine(db.DefaultContext), tp)
 }
 
 func (t *Team) unitEnabled(e db.Engine, tp UnitType) bool {
@@ -473,7 +473,7 @@ func NewTeam(t *Team) (err error) {
 		return err
 	}
 
-	has, err := db.DefaultContext().Engine().ID(t.OrgID).Get(new(User))
+	has, err := db.GetEngine(db.DefaultContext).ID(t.OrgID).Get(new(User))
 	if err != nil {
 		return err
 	}
@@ -482,7 +482,7 @@ func NewTeam(t *Team) (err error) {
 	}
 
 	t.LowerName = strings.ToLower(t.Name)
-	has, err = db.DefaultContext().Engine().
+	has, err = db.GetEngine(db.DefaultContext).
 		Where("org_id=?", t.OrgID).
 		And("lower_name=?", t.LowerName).
 		Get(new(Team))
@@ -493,7 +493,7 @@ func NewTeam(t *Team) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -556,7 +556,7 @@ func getTeam(e db.Engine, orgID int64, name string) (*Team, error) {
 
 // GetTeam returns team by given team name and organization.
 func GetTeam(orgID int64, name string) (*Team, error) {
-	return getTeam(db.DefaultContext().Engine(), orgID, name)
+	return getTeam(db.GetEngine(db.DefaultContext), orgID, name)
 }
 
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
@@ -594,7 +594,7 @@ func getTeamByID(e db.Engine, teamID int64) (*Team, error) {
 
 // GetTeamByID returns team by given ID.
 func GetTeamByID(teamID int64) (*Team, error) {
-	return getTeamByID(db.DefaultContext().Engine(), teamID)
+	return getTeamByID(db.GetEngine(db.DefaultContext), teamID)
 }
 
 // GetTeamNamesByID returns team's lower name from a list of team ids.
@@ -604,7 +604,7 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	}
 
 	var teamNames []string
-	err := db.DefaultContext().Engine().Table("team").
+	err := db.GetEngine(db.DefaultContext).Table("team").
 		Select("lower_name").
 		In("id", teamIDs).
 		Asc("name").
@@ -623,7 +623,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 		t.Description = t.Description[:255]
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -697,7 +697,7 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -764,7 +764,7 @@ func isTeamMember(e db.Engine, orgID, teamID, userID int64) (bool, error) {
 
 // IsTeamMember returns true if given user is a member of team.
 func IsTeamMember(orgID, teamID, userID int64) (bool, error) {
-	return isTeamMember(db.DefaultContext().Engine(), orgID, teamID, userID)
+	return isTeamMember(db.GetEngine(db.DefaultContext), orgID, teamID, userID)
 }
 
 func getTeamUsersByTeamID(e db.Engine, teamID int64) ([]*TeamUser, error) {
@@ -795,7 +795,7 @@ func getTeamMembers(e db.Engine, teamID int64) (_ []*User, err error) {
 
 // GetTeamMembers returns all members in given team of organization.
 func GetTeamMembers(teamID int64) ([]*User, error) {
-	return getTeamMembers(db.DefaultContext().Engine(), teamID)
+	return getTeamMembers(db.GetEngine(db.DefaultContext), teamID)
 }
 
 func getUserOrgTeams(e db.Engine, orgID, userID int64) (teams []*Team, err error) {
@@ -818,7 +818,7 @@ func getUserRepoTeams(e db.Engine, orgID, userID, repoID int64) (teams []*Team, 
 
 // GetUserOrgTeams returns all teams that user belongs to in given organization.
 func GetUserOrgTeams(orgID, userID int64) ([]*Team, error) {
-	return getUserOrgTeams(db.DefaultContext().Engine(), orgID, userID)
+	return getUserOrgTeams(db.GetEngine(db.DefaultContext), orgID, userID)
 }
 
 // AddTeamMember adds new membership of given team to given organization,
@@ -838,7 +838,7 @@ func AddTeamMember(team *Team, userID int64) error {
 		return err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -933,7 +933,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(team *Team, userID int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -946,7 +946,7 @@ func RemoveTeamMember(team *Team, userID int64) error {
 
 // IsUserInTeams returns if a user in some teams
 func IsUserInTeams(userID int64, teamIDs []int64) (bool, error) {
-	return isUserInTeams(db.DefaultContext().Engine(), userID, teamIDs)
+	return isUserInTeams(db.GetEngine(db.DefaultContext), userID, teamIDs)
 }
 
 func isUserInTeams(e db.Engine, userID int64, teamIDs []int64) (bool, error) {
@@ -956,7 +956,7 @@ func isUserInTeams(e db.Engine, userID int64, teamIDs []int64) (bool, error) {
 // UsersInTeamsCount counts the number of users which are in userIDs and teamIDs
 func UsersInTeamsCount(userIDs, teamIDs []int64) (int64, error) {
 	var ids []int64
-	if err := db.DefaultContext().Engine().In("uid", userIDs).In("team_id", teamIDs).
+	if err := db.GetEngine(db.DefaultContext).In("uid", userIDs).In("team_id", teamIDs).
 		Table("team_user").
 		Cols("uid").GroupBy("uid").Find(&ids); err != nil {
 		return 0, err
@@ -990,7 +990,7 @@ func hasTeamRepo(e db.Engine, orgID, teamID, repoID int64) bool {
 
 // HasTeamRepo returns true if given repository belongs to team.
 func HasTeamRepo(orgID, teamID, repoID int64) bool {
-	return hasTeamRepo(db.DefaultContext().Engine(), orgID, teamID, repoID)
+	return hasTeamRepo(db.GetEngine(db.DefaultContext), orgID, teamID, repoID)
 }
 
 func addTeamRepo(e db.Engine, orgID, teamID, repoID int64) error {
@@ -1013,7 +1013,7 @@ func removeTeamRepo(e db.Engine, teamID, repoID int64) error {
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
 func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
-	return teams, db.DefaultContext().Engine().Where("team.authorize >= ?", mode).
+	return teams, db.GetEngine(db.DefaultContext).Where("team.authorize >= ?", mode).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).
@@ -1046,7 +1046,7 @@ func getUnitsByTeamID(e db.Engine, teamID int64) (units []*TeamUnit, err error) 
 
 // UpdateTeamUnits updates a teams's units
 func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err

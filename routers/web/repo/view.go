@@ -7,6 +7,7 @@ package repo
 
 import (
 	"bytes"
+	gocontext "context"
 	"encoding/base64"
 	"fmt"
 	gotemplate "html/template"
@@ -16,8 +17,10 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
@@ -33,11 +36,12 @@ import (
 )
 
 const (
-	tplRepoEMPTY base.TplName = "repo/empty"
-	tplRepoHome  base.TplName = "repo/home"
-	tplWatchers  base.TplName = "repo/watchers"
-	tplForks     base.TplName = "repo/forks"
-	tplMigrating base.TplName = "repo/migrate/migrating"
+	tplRepoEMPTY    base.TplName = "repo/empty"
+	tplRepoHome     base.TplName = "repo/home"
+	tplRepoViewList base.TplName = "repo/view_list"
+	tplWatchers     base.TplName = "repo/watchers"
+	tplForks        base.TplName = "repo/forks"
+	tplMigrating    base.TplName = "repo/migrate/migrating"
 )
 
 type namedBlob struct {
@@ -127,28 +131,8 @@ func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, err
 }
 
 func renderDirectory(ctx *context.Context, treeLink string) {
-	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
-		return
-	}
-
-	entries, err := tree.ListEntries()
-	if err != nil {
-		ctx.ServerError("ListEntries", err)
-		return
-	}
-	entries.CustomSort(base.NaturalSortLess)
-
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
-	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(ctx, ctx.Repo.Commit, ctx.Repo.TreePath, c)
-	if err != nil {
-		ctx.ServerError("GetCommitsInfo", err)
+	entries := renderDirectoryFiles(ctx, 1*time.Second)
+	if ctx.Written() {
 		return
 	}
 
@@ -185,6 +169,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 				isSymlink := entry.IsLink()
 				target := entry
 				if isSymlink {
+					var err error
 					target, err = entry.FollowLinks()
 					if err != nil && !git.IsErrBadLink(err) {
 						ctx.ServerError("FollowLinks", err)
@@ -206,6 +191,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			name := entry.Name()
 			isSymlink := entry.IsLink()
 			if isSymlink {
+				var err error
 				entry, err = entry.FollowLinks()
 				if err != nil && !git.IsErrBadLink(err) {
 					ctx.ServerError("FollowLinks", err)
@@ -236,6 +222,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			if entry == nil {
 				continue
 			}
+			var err error
 			readmeFile, err = getReadmeFileFromPath(ctx.Repo.Commit, entry.GetSubJumpablePathName())
 			if err != nil {
 				ctx.ServerError("getReadmeFileFromPath", err)
@@ -364,34 +351,12 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		}
 	}
 
-	// Show latest commit info of repository in table header,
-	// or of directory if not in root directory.
-	ctx.Data["LatestCommit"] = latestCommit
-	verification := models.ParseCommitWithSignature(latestCommit)
-
-	if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
-		ctx.ServerError("CalculateTrustStatus", err)
-		return
-	}
-	ctx.Data["LatestCommitVerification"] = verification
-
-	ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
-
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), models.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
-
-	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
-	ctx.Data["LatestCommitStatuses"] = statuses
-
 	// Check permission to add or upload new file.
 	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
 
-	ctx.Data["SSHDomain"] = setting.SSH.Domain
 }
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
@@ -613,8 +578,7 @@ func safeURL(address string) string {
 	return u.String()
 }
 
-// Home render repository home page
-func Home(ctx *context.Context) {
+func checkHomeCodeViewable(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
@@ -647,7 +611,6 @@ func Home(ctx *context.Context) {
 		var firstUnit *models.Unit
 		for _, repoUnit := range ctx.Repo.Units {
 			if repoUnit.Type == models.UnitTypeCode {
-				renderCode(ctx)
 				return
 			}
 
@@ -664,6 +627,145 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
+}
+
+// Home render repository home page
+func Home(ctx *context.Context) {
+	checkHomeCodeViewable(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	renderCode(ctx)
+}
+
+// LastCommit returns lastCommit data for the provided branch/tag/commit and directory (in url) and filenames in body
+func LastCommit(ctx *context.Context) {
+	checkHomeCodeViewable(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	renderDirectoryFiles(ctx, 0)
+	if ctx.Written() {
+		return
+	}
+
+	var treeNames []string
+	paths := make([]string, 0, 5)
+	if len(ctx.Repo.TreePath) > 0 {
+		treeNames = strings.Split(ctx.Repo.TreePath, "/")
+		for i := range treeNames {
+			paths = append(paths, strings.Join(treeNames[:i+1], "/"))
+		}
+
+		ctx.Data["HasParentPath"] = true
+		if len(paths)-2 >= 0 {
+			ctx.Data["ParentPath"] = "/" + paths[len(paths)-2]
+		}
+	}
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	ctx.Data["BranchLink"] = branchLink
+
+	ctx.HTML(http.StatusOK, tplRepoViewList)
+}
+
+func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entries {
+	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
+		return nil
+	}
+
+	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + ctx.Repo.CommitID + "/" + ctx.Repo.TreePath
+
+	// Get current entry user currently looking at.
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return nil
+	}
+
+	if !entry.IsDir() {
+		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return nil
+	}
+
+	allEntries, err := tree.ListEntries()
+	if err != nil {
+		ctx.ServerError("ListEntries", err)
+		return nil
+	}
+	allEntries.CustomSort(base.NaturalSortLess)
+
+	commitInfoCtx := gocontext.Context(ctx)
+	if timeout > 0 {
+		var cancel gocontext.CancelFunc
+		commitInfoCtx, cancel = gocontext.WithTimeout(ctx, timeout)
+		defer cancel()
+	}
+
+	var c *git.LastCommitCache
+	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
+	}
+
+	selected := map[string]bool{}
+	for _, pth := range ctx.FormStrings("f[]") {
+		selected[pth] = true
+	}
+
+	entries := allEntries
+	if len(selected) > 0 {
+		entries = make(git.Entries, 0, len(selected))
+		for _, entry := range allEntries {
+			if selected[entry.Name()] {
+				entries = append(entries, entry)
+			}
+		}
+	}
+
+	var latestCommit *git.Commit
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath, c)
+	if err != nil {
+		ctx.ServerError("GetCommitsInfo", err)
+		return nil
+	}
+
+	// Show latest commit info of repository in table header,
+	// or of directory if not in root directory.
+	ctx.Data["LatestCommit"] = latestCommit
+	if latestCommit != nil {
+
+		verification := models.ParseCommitWithSignature(latestCommit)
+
+		if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+			ctx.ServerError("CalculateTrustStatus", err)
+			return nil
+		}
+		ctx.Data["LatestCommitVerification"] = verification
+		ctx.Data["LatestCommitUser"] = models.ValidateCommitWithEmail(latestCommit)
+	}
+
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCommitStatus: %v", err)
+	}
+
+	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["LatestCommitStatuses"] = statuses
+
+	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
+	treeLink := branchLink
+
+	if len(ctx.Repo.TreePath) > 0 {
+		treeLink += "/" + ctx.Repo.TreePath
+	}
+
+	ctx.Data["TreeLink"] = treeLink
+	ctx.Data["SSHDomain"] = setting.SSH.Domain
+
+	return allEntries
 }
 
 func renderLanguageStats(ctx *context.Context) {
@@ -758,7 +860,7 @@ func renderCode(ctx *context.Context) {
 }
 
 // RenderUserCards render a page show users according the input template
-func RenderUserCards(ctx *context.Context, total int, getter func(opts models.ListOptions) ([]*models.User, error), tpl base.TplName) {
+func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOptions) ([]*models.User, error), tpl base.TplName) {
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
@@ -766,7 +868,7 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts models.Li
 	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	items, err := getter(models.ListOptions{
+	items, err := getter(db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})
@@ -801,7 +903,7 @@ func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
 	// TODO: need pagination
-	forks, err := ctx.Repo.Repository.GetForks(models.ListOptions{})
+	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return

@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"sort"
@@ -16,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -113,7 +113,7 @@ func (issue *Issue) IsOverdue() bool {
 
 // LoadRepo loads issue's repository
 func (issue *Issue) LoadRepo() error {
-	return issue.loadRepo(db.DefaultContext().Engine())
+	return issue.loadRepo(db.GetEngine(db.DefaultContext))
 }
 
 func (issue *Issue) loadRepo(e db.Engine) (err error) {
@@ -128,7 +128,7 @@ func (issue *Issue) loadRepo(e db.Engine) (err error) {
 
 // IsTimetrackerEnabled returns true if the repo enables timetracking
 func (issue *Issue) IsTimetrackerEnabled() bool {
-	return issue.isTimetrackerEnabled(db.DefaultContext().Engine())
+	return issue.isTimetrackerEnabled(db.GetEngine(db.DefaultContext))
 }
 
 func (issue *Issue) isTimetrackerEnabled(e db.Engine) bool {
@@ -145,7 +145,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 		return nil, fmt.Errorf("Issue is not a pull request")
 	}
 
-	pr, err = getPullRequestByIssueID(db.DefaultContext().Engine(), issue.ID)
+	pr, err = getPullRequestByIssueID(db.GetEngine(db.DefaultContext), issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -155,7 +155,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 
 // LoadLabels loads labels
 func (issue *Issue) LoadLabels() error {
-	return issue.loadLabels(db.DefaultContext().Engine())
+	return issue.loadLabels(db.GetEngine(db.DefaultContext))
 }
 
 func (issue *Issue) loadLabels(e db.Engine) (err error) {
@@ -170,7 +170,7 @@ func (issue *Issue) loadLabels(e db.Engine) (err error) {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster() error {
-	return issue.loadPoster(db.DefaultContext().Engine())
+	return issue.loadPoster(db.GetEngine(db.DefaultContext))
 }
 
 func (issue *Issue) loadPoster(e db.Engine) (err error) {
@@ -205,7 +205,7 @@ func (issue *Issue) loadPullRequest(e db.Engine) (err error) {
 
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest() error {
-	return issue.loadPullRequest(db.DefaultContext().Engine())
+	return issue.loadPullRequest(db.GetEngine(db.DefaultContext))
 }
 
 func (issue *Issue) loadComments(e db.Engine) (err error) {
@@ -214,7 +214,7 @@ func (issue *Issue) loadComments(e db.Engine) (err error) {
 
 // LoadDiscussComments loads discuss comments
 func (issue *Issue) LoadDiscussComments() error {
-	return issue.loadCommentsByType(db.DefaultContext().Engine(), CommentTypeComment)
+	return issue.loadCommentsByType(db.GetEngine(db.DefaultContext), CommentTypeComment)
 }
 
 func (issue *Issue) loadCommentsByType(e db.Engine, tp CommentType) (err error) {
@@ -327,18 +327,18 @@ func (issue *Issue) loadAttributes(e db.Engine) (err error) {
 
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
-	return issue.loadAttributes(db.DefaultContext().Engine())
+	return issue.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadMilestone load milestone of this issue.
 func (issue *Issue) LoadMilestone() error {
-	return issue.loadMilestone(db.DefaultContext().Engine())
+	return issue.loadMilestone(db.GetEngine(db.DefaultContext))
 }
 
 // GetIsRead load the `IsRead` field of the issue
 func (issue *Issue) GetIsRead(userID int64) error {
 	issueUser := &IssueUser{IssueID: issue.ID, UID: userID}
-	if has, err := db.DefaultContext().Engine().Get(issueUser); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).Get(issueUser); err != nil {
 		return err
 	} else if !has {
 		issue.IsRead = false
@@ -411,19 +411,7 @@ func (issue *Issue) hasLabel(e db.Engine, labelID int64) bool {
 
 // HasLabel returns true if issue has been labeled by given ID.
 func (issue *Issue) HasLabel(labelID int64) bool {
-	return issue.hasLabel(db.DefaultContext().Engine(), labelID)
-}
-
-// ReplyReference returns tokenized address to use for email reply headers
-func (issue *Issue) ReplyReference() string {
-	var path string
-	if issue.IsPull {
-		path = "pulls"
-	} else {
-		path = "issues"
-	}
-
-	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
+	return issue.hasLabel(db.GetEngine(db.DefaultContext), labelID)
 }
 
 func (issue *Issue) addLabel(e db.Engine, label *Label, doer *User) error {
@@ -473,13 +461,13 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 	}
 	defer committer.Close()
 
-	if err := issue.loadRepo(ctx.Engine()); err != nil {
+	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return err
-	} else if err = issue.loadPullRequest(ctx.Engine()); err != nil {
+	} else if err = issue.loadPullRequest(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	perm, err := getUserRepoPermission(ctx.Engine(), issue.Repo, doer)
+	perm, err := getUserRepoPermission(db.GetEngine(ctx), issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -487,7 +475,7 @@ func (issue *Issue) ClearLabels(doer *User) (err error) {
 		return ErrRepoLabelNotExist{}
 	}
 
-	if err = issue.clearLabels(ctx.Engine(), doer); err != nil {
+	if err = issue.clearLabels(db.GetEngine(ctx), doer); err != nil {
 		return err
 	}
 
@@ -521,11 +509,11 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	}
 	defer committer.Close()
 
-	if err = issue.loadRepo(ctx.Engine()); err != nil {
+	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	if err = issue.loadLabels(ctx.Engine()); err != nil {
+	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
@@ -561,19 +549,19 @@ func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
 	toRemove = append(toRemove, issue.Labels[removeIndex:]...)
 
 	if len(toAdd) > 0 {
-		if err = issue.addLabels(ctx.Engine(), toAdd, doer); err != nil {
+		if err = issue.addLabels(db.GetEngine(ctx), toAdd, doer); err != nil {
 			return fmt.Errorf("addLabels: %v", err)
 		}
 	}
 
 	for _, l := range toRemove {
-		if err = issue.removeLabel(ctx.Engine(), doer, l); err != nil {
+		if err = issue.removeLabel(db.GetEngine(ctx), doer, l); err != nil {
 			return fmt.Errorf("removeLabel: %v", err)
 		}
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(ctx.Engine()); err != nil {
+	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
@@ -586,7 +574,7 @@ func (issue *Issue) ReadBy(userID int64) error {
 		return err
 	}
 
-	return setIssueNotificationStatusReadIfUnread(db.DefaultContext().Engine(), userID, issue.ID)
+	return setIssueNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, issue.ID)
 }
 
 func updateIssueCols(e db.Engine, issue *Issue, cols ...string) error {
@@ -688,14 +676,14 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 	}
 	defer committer.Close()
 
-	if err := issue.loadRepo(ctx.Engine()); err != nil {
+	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
-	if err := issue.loadPoster(ctx.Engine()); err != nil {
+	if err := issue.loadPoster(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
 
-	comment, err := issue.changeStatus(ctx.Engine(), doer, isClosed, false)
+	comment, err := issue.changeStatus(db.GetEngine(ctx), doer, isClosed, false)
 	if err != nil {
 		return nil, err
 	}
@@ -715,11 +703,11 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(ctx.Engine(), issue, "name"); err != nil {
+	if err = updateIssueCols(db.GetEngine(ctx), issue, "name"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
-	if err = issue.loadRepo(ctx.Engine()); err != nil {
+	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
 
@@ -731,10 +719,10 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 		OldTitle: oldTitle,
 		NewTitle: issue.Title,
 	}
-	if _, err = createComment(ctx.Engine(), opts); err != nil {
+	if _, err = createComment(db.GetEngine(ctx), opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
-	if err = issue.addCrossReferences(ctx.Engine(), doer, true); err != nil {
+	if err = issue.addCrossReferences(db.GetEngine(ctx), doer, true); err != nil {
 		return err
 	}
 
@@ -749,7 +737,7 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(ctx.Engine(), issue, "ref"); err != nil {
+	if err = updateIssueCols(db.GetEngine(ctx), issue, "ref"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
@@ -758,7 +746,7 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
 func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branchName string) error {
-	issue, err := getIssueByID(db.DefaultContext().Engine(), issueID)
+	issue, err := getIssueByID(db.GetEngine(db.DefaultContext), issueID)
 	if err != nil {
 		return err
 	}
@@ -774,7 +762,7 @@ func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branc
 		Issue:  issue,
 		OldRef: branchName,
 	}
-	if _, err = createComment(ctx.Engine(), opts); err != nil {
+	if _, err = createComment(db.GetEngine(ctx), opts); err != nil {
 		return err
 	}
 
@@ -788,13 +776,13 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 		return err
 	}
 	defer committer.Close()
-	attachments, err := getAttachmentsByUUIDs(ctx.Engine(), uuids)
+	attachments, err := getAttachmentsByUUIDs(db.GetEngine(ctx), uuids)
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
 	}
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = issue.ID
-		if err := updateAttachment(ctx.Engine(), attachments[i]); err != nil {
+		if err := updateAttachment(db.GetEngine(ctx), attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -811,11 +799,11 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 	}
 	defer committer.Close()
 
-	if err = updateIssueCols(ctx.Engine(), issue, "content"); err != nil {
+	if err = updateIssueCols(db.GetEngine(ctx), issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issue.addCrossReferences(ctx.Engine(), doer, true); err != nil {
+	if err = issue.addCrossReferences(db.GetEngine(ctx), doer, true); err != nil {
 		return err
 	}
 
@@ -854,8 +842,8 @@ func (issue *Issue) GetLastEventLabel() string {
 // GetLastComment return last comment for the current issue.
 func (issue *Issue) GetLastComment() (*Comment, error) {
 	var c Comment
-	exist, err := db.DefaultContext().Engine().Where("type = ?", CommentTypeComment).
-		And("issue_id = ?", issue.ID).Desc("id").Get(&c)
+	exist, err := db.GetEngine(db.DefaultContext).Where("type = ?", CommentTypeComment).
+		And("issue_id = ?", issue.ID).Desc("created_unix").Get(&c)
 	if err != nil {
 		return nil, err
 	}
@@ -996,16 +984,16 @@ func RecalculateIssueIndexForRepo(repoID int64) error {
 	}
 	defer committer.Close()
 
-	if err := db.UpsertResourceIndex(ctx.Engine(), "issue_index", repoID); err != nil {
+	if err := db.UpsertResourceIndex(db.GetEngine(ctx), "issue_index", repoID); err != nil {
 		return err
 	}
 
 	var max int64
-	if _, err := ctx.Engine().Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
+	if _, err := db.GetEngine(ctx).Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
 		return err
 	}
 
-	if _, err := ctx.Engine().Exec("UPDATE `issue_index` SET max_index=? WHERE group_id=?", max, repoID); err != nil {
+	if _, err := db.GetEngine(ctx).Exec("UPDATE `issue_index` SET max_index=? WHERE group_id=?", max, repoID); err != nil {
 		return err
 	}
 
@@ -1027,7 +1015,7 @@ func NewIssue(repo *Repository, issue *Issue, labelIDs []int64, uuids []string) 
 	}
 	defer committer.Close()
 
-	if err = newIssue(ctx.Engine(), issue.Poster, NewIssueOptions{
+	if err = newIssue(db.GetEngine(ctx), issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
@@ -1055,7 +1043,7 @@ func GetIssueByIndex(repoID, index int64) (*Issue, error) {
 		RepoID: repoID,
 		Index:  index,
 	}
-	has, err := db.DefaultContext().Engine().Get(issue)
+	has, err := db.GetEngine(db.DefaultContext).Get(issue)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1086,16 +1074,16 @@ func getIssueByID(e db.Engine, id int64) (*Issue, error) {
 
 // GetIssueWithAttrsByID returns an issue with attributes by given ID.
 func GetIssueWithAttrsByID(id int64) (*Issue, error) {
-	issue, err := getIssueByID(db.DefaultContext().Engine(), id)
+	issue, err := getIssueByID(db.GetEngine(db.DefaultContext), id)
 	if err != nil {
 		return nil, err
 	}
-	return issue, issue.loadAttributes(db.DefaultContext().Engine())
+	return issue, issue.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // GetIssueByID returns an issue by given ID.
 func GetIssueByID(id int64) (*Issue, error) {
-	return getIssueByID(db.DefaultContext().Engine(), id)
+	return getIssueByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getIssuesByIDs(e db.Engine, issueIDs []int64) ([]*Issue, error) {
@@ -1111,17 +1099,17 @@ func getIssueIDsByRepoID(e db.Engine, repoID int64) ([]int64, error) {
 
 // GetIssueIDsByRepoID returns all issue ids by repo id
 func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
-	return getIssueIDsByRepoID(db.DefaultContext().Engine(), repoID)
+	return getIssueIDsByRepoID(db.GetEngine(db.DefaultContext), repoID)
 }
 
 // GetIssuesByIDs return issues with the given IDs.
 func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
-	return getIssuesByIDs(db.DefaultContext().Engine(), issueIDs)
+	return getIssuesByIDs(db.GetEngine(db.DefaultContext), issueIDs)
 }
 
 // IssuesOptions represents options of an issue.
 type IssuesOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoIDs            []int64 // include all repos if empty
 	AssigneeID         int64
 	PosterID           int64
@@ -1316,7 +1304,7 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
@@ -1344,7 +1332,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
@@ -1364,7 +1352,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 
 // Issues returns a list of issues by given conditions.
 func Issues(opts *IssuesOptions) ([]*Issue, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
@@ -1386,7 +1374,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 // CountIssues number return of issues by given conditions.
 func CountIssues(opts *IssuesOptions) (int64, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	countsSlice := make([]*struct {
@@ -1411,7 +1399,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 // User permissions must be verified elsewhere if required.
 func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 	userIDs := make([]int64, 0, 5)
-	return userIDs, db.DefaultContext().Engine().Table("comment").
+	return userIDs, db.GetEngine(db.DefaultContext).Table("comment").
 		Cols("poster_id").
 		Where("issue_id = ?", issueID).
 		And("type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
@@ -1421,7 +1409,7 @@ func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 
 // IsUserParticipantsOfIssue return true if user is participants of an issue
 func IsUserParticipantsOfIssue(user *User, issue *Issue) bool {
-	userIDs, err := issue.getParticipantIDsByIssue(db.DefaultContext().Engine())
+	userIDs, err := issue.getParticipantIDsByIssue(db.GetEngine(db.DefaultContext))
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -1430,7 +1418,7 @@ func IsUserParticipantsOfIssue(user *User, issue *Issue) bool {
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
-func UpdateIssueMentions(ctx *db.Context, issueID int64, mentions []*User) error {
+func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*User) error {
 	if len(mentions) == 0 {
 		return nil
 	}
@@ -1529,7 +1517,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 	stats := &IssueStats{}
 
 	countSession := func(opts *IssueStatsOptions) *xorm.Session {
-		sess := db.DefaultContext().Engine().
+		sess := db.GetEngine(db.DefaultContext).
 			Where("issue.repo_id = ?", opts.RepoID)
 
 		if len(opts.IssueIDs) > 0 {
@@ -1623,7 +1611,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
-		s := db.DefaultContext().Engine().Where(cond)
+		s := db.GetEngine(db.DefaultContext).Where(cond)
 		if len(opts.LabelIDs) > 0 {
 			s.Join("INNER", "issue_label", "issue_label.issue_id = issue.id").
 				In("issue_label.label_id", opts.LabelIDs)
@@ -1735,7 +1723,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 // GetRepoIssueStats returns number of open and closed repository issues by given filter mode.
 func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen, numClosed int64) {
 	countSession := func(isClosed, isPull bool, repoID int64) *xorm.Session {
-		sess := db.DefaultContext().Engine().
+		sess := db.GetEngine(db.DefaultContext).
 			Where("is_closed = ?", isClosed).
 			And("is_pull = ?", isPull).
 			And("repo_id = ?", repoID)
@@ -1787,7 +1775,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		ID          int64
 		UpdatedUnix int64
 	}, 0, limit)
-	err := db.DefaultContext().Engine().Distinct("id", "updated_unix").Table("issue").Where(cond).
+	err := db.GetEngine(db.DefaultContext).Distinct("id", "updated_unix").Table("issue").Where(cond).
 		OrderBy("`updated_unix` DESC").Limit(limit, start).
 		Find(&res)
 	if err != nil {
@@ -1797,7 +1785,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 		ids = append(ids, r.ID)
 	}
 
-	total, err := db.DefaultContext().Engine().Distinct("id").Table("issue").Where(cond).Count()
+	total, err := db.GetEngine(db.DefaultContext).Distinct("id").Table("issue").Where(cond).Count()
 	if err != nil {
 		return 0, nil, err
 	}
@@ -1809,7 +1797,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 // If the issue status is changed a statusChangeComment is returned
 // similarly if the title is changed the titleChanged bool is set to true
 func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, titleChanged bool, err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return nil, false, err
@@ -1868,7 +1856,7 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *Us
 		return nil
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -1941,12 +1929,12 @@ func (issue *Issue) getBlockingDependencies(e db.Engine) (issueDeps []*Dependenc
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by
 func (issue *Issue) BlockedByDependencies() ([]*DependencyInfo, error) {
-	return issue.getBlockedByDependencies(db.DefaultContext().Engine())
+	return issue.getBlockedByDependencies(db.GetEngine(db.DefaultContext))
 }
 
 // BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
 func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
-	return issue.getBlockingDependencies(db.DefaultContext().Engine())
+	return issue.getBlockingDependencies(db.GetEngine(db.DefaultContext))
 }
 
 func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
@@ -1969,7 +1957,7 @@ func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
 }
 
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
-func (issue *Issue) FindAndUpdateIssueMentions(ctx *db.Context, doer *User, content string) (mentions []*User, err error) {
+func (issue *Issue) FindAndUpdateIssueMentions(ctx context.Context, doer *User, content string) (mentions []*User, err error) {
 	rawMentions := references.FindAllMentionsMarkdown(content)
 	mentions, err = issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
 	if err != nil {
@@ -1983,18 +1971,18 @@ func (issue *Issue) FindAndUpdateIssueMentions(ctx *db.Context, doer *User, cont
 
 // ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
-func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, mentions []string) (users []*User, err error) {
+func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User, mentions []string) (users []*User, err error) {
 	if len(mentions) == 0 {
 		return
 	}
-	if err = issue.loadRepo(ctx.Engine()); err != nil {
+	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return
 	}
 
 	resolved := make(map[string]bool, 10)
 	var mentionTeams []string
 
-	if err := issue.Repo.getOwner(ctx.Engine()); err != nil {
+	if err := issue.Repo.getOwner(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
 
@@ -2023,7 +2011,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, men
 
 	if issue.Repo.Owner.IsOrganization() && len(mentionTeams) > 0 {
 		teams := make([]*Team, 0, len(mentionTeams))
-		if err := ctx.Engine().
+		if err := db.GetEngine(ctx).
 			Join("INNER", "team_repo", "team_repo.team_id = team.id").
 			Where("team_repo.repo_id=?", issue.Repo.ID).
 			In("team.lower_name", mentionTeams).
@@ -2042,7 +2030,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, men
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
 				}
-				has, err := ctx.Engine().Get(&TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
+				has, err := db.GetEngine(ctx).Get(&TeamUnit{OrgID: issue.Repo.Owner.ID, TeamID: team.ID, Type: unittype})
 				if err != nil {
 					return nil, fmt.Errorf("get team units (%d): %v", team.ID, err)
 				}
@@ -2053,7 +2041,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, men
 			}
 			if len(checked) != 0 {
 				teamusers := make([]*User, 0, 20)
-				if err := ctx.Engine().
+				if err := db.GetEngine(ctx).
 					Join("INNER", "team_user", "team_user.uid = `user`.id").
 					In("`team_user`.team_id", checked).
 					And("`user`.is_active = ?", true).
@@ -2090,7 +2078,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, men
 	}
 
 	unchecked := make([]*User, 0, len(mentionUsers))
-	if err := ctx.Engine().
+	if err := db.GetEngine(ctx).
 		Where("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).
 		In("`user`.lower_name", mentionUsers).
@@ -2102,7 +2090,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, men
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := getUserRepoPermission(ctx.Engine(), issue.Repo, user)
+		perm, err := getUserRepoPermission(db.GetEngine(ctx), issue.Repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
 		}
@@ -2117,7 +2105,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx *db.Context, doer *User, men
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
 func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.DefaultContext().Engine().Table("issue").
+	_, err := db.GetEngine(db.DefaultContext).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{
@@ -2130,7 +2118,7 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
-	_, err := db.DefaultContext().Engine().Table("reaction").
+	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
 		Update(map[string]interface{}{

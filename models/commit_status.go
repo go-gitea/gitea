@@ -136,7 +136,7 @@ func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadAttributes(db.DefaultContext().Engine())
+	_ = status.loadAttributes(db.GetEngine(db.DefaultContext))
 	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
@@ -163,7 +163,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
-	ListOptions
+	db.ListOptions
 	State    string
 	SortType string
 }
@@ -178,7 +178,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
-	countSession = setSessionPagination(countSession, opts)
+	countSession = db.SetSessionPagination(countSession, opts)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
@@ -187,13 +187,13 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 
 	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
-	findSession = setSessionPagination(findSession, opts)
+	findSession = db.SetSessionPagination(findSession, opts)
 	sortCommitStatusesSession(findSession, opts.SortType)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
 
 func listCommitStatusesStatement(repo *Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
-	sess := db.DefaultContext().Engine().Where("repo_id = ?", repo.ID).And("sha = ?", sha)
+	sess := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
 		sess.And("state = ?", opts.State)
@@ -227,18 +227,18 @@ type CommitStatusIndex struct {
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
-	return getLatestCommitStatus(db.DefaultContext().Engine(), repoID, sha, listOptions)
+func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
+	return getLatestCommitStatus(db.GetEngine(db.DefaultContext), repoID, sha, listOptions)
 }
 
-func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
+func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	ids := make([]int64, 0, 10)
 	sess := e.Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
 
-	sess = setSessionPagination(sess, &listOptions)
+	sess = db.SetSessionPagination(sess, &listOptions)
 
 	err := sess.Find(&ids)
 	if err != nil {
@@ -255,7 +255,7 @@ func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions Li
 func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
 	ids := make([]int64, 0, 10)
-	if err := db.DefaultContext().Engine().Table("commit_status").
+	if err := db.GetEngine(db.DefaultContext).Table("commit_status").
 		Where("repo_id = ?", repoID).
 		And("updated_unix >= ?", start).
 		Select("max( id ) as id").
@@ -268,7 +268,7 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 	if len(ids) == 0 {
 		return contexts, nil
 	}
-	return contexts, db.DefaultContext().Engine().Select("context").Table("commit_status").In("id", ids).Find(&contexts)
+	return contexts, db.GetEngine(db.DefaultContext).Select("context").Table("commit_status").In("id", ids).Find(&contexts)
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus
@@ -314,7 +314,7 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
-	if _, err = ctx.Engine().Insert(opts.CommitStatus); err != nil {
+	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
 		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
@@ -336,7 +336,7 @@ func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *Repository) []*SignC
 		commit := &SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), ListOptions{})
+		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

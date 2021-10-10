@@ -20,6 +20,7 @@ import initTableSort from './features/tablesort.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
+import {initLastCommitLoader} from './features/lastcommitloader.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {showLineButton} from './code/linebutton.js';
 import {initMarkupContent, initCommentContent} from './markup/content.js';
@@ -159,13 +160,8 @@ function initLabelEdit() {
     $newLabelPanel.hide();
   });
 
-  createColorPicker($('.color-picker'));
+  initColorPicker();
 
-  $('.precolors .color').on('click', function () {
-    const color_hex = $(this).data('color-hex');
-    $('.color-picker').val(color_hex);
-    $('.minicolors-swatch-color').css('background-color', color_hex);
-  });
   $('.edit-label-button').on('click', function () {
     $('.edit-label .color-picker').minicolors('value', $(this).data('color'));
     $('#label-modal-id').val($(this).data('id'));
@@ -179,6 +175,16 @@ function initLabelEdit() {
       }
     }).modal('show');
     return false;
+  });
+}
+
+function initColorPicker() {
+  createColorPicker($('.color-picker'));
+
+  $('.precolors .color').on('click', function () {
+    const color_hex = $(this).data('color-hex');
+    $('.color-picker').val(color_hex);
+    $('.minicolors-swatch-color').css('background-color', color_hex);
   });
 }
 
@@ -995,13 +1001,11 @@ async function initRepository() {
       $this.closest('.dropdown').find('.menu').toggle('visible');
 
       const content = $(`#comment-${$this.data('target')}`).text();
-      const subject = content.split('\n', 1)[0].slice(0, 255);
 
       const poster = $this.data('poster-username');
       const reference = $this.data('reference');
 
       const $modal = $($this.data('modal'));
-      $modal.find('input[name="title"').val(subject);
       $modal.find('textarea[name="content"]').val(`${content}\n\n_Originally posted by @${poster} in ${reference}_`);
 
       $modal.modal('show');
@@ -2746,6 +2750,9 @@ $(document).ready(async () => {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
+  $('.hide-panel.button').on('click', function () {
+    $($(this).data('panel')).hide();
+  });
   $('.show-create-branch-modal.button').on('click', function () {
     $('#create-branch-form')[0].action = $('#create-branch-form').data('base-action') + $(this).data('branch-from');
     $('#modal-create-branch-from-span').text($(this).data('branch-from'));
@@ -2753,6 +2760,10 @@ $(document).ready(async () => {
   });
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
+    const colorPickers = $($(this).data('modal')).find('.color-picker');
+    if (colorPickers.length > 0) {
+      initColorPicker();
+    }
   });
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
@@ -2857,6 +2868,7 @@ $(document).ready(async () => {
   initContextPopups();
   initTableSort();
   initNotificationsTable();
+  initLastCommitLoader();
   initPullRequestMergeInstruction();
   initFileViewToggle();
   initReleaseEditor();
@@ -2908,6 +2920,27 @@ function deSelect() {
 
 function selectRange($list, $select, $from) {
   $list.removeClass('active');
+
+  // add hashchange to permalink
+  const $issue = $('a.ref-in-new-issue');
+  const $copyPermalink = $('a.copy-line-permalink');
+
+  if ($issue.length === 0 || $copyPermalink.length === 0) {
+    return;
+  }
+
+  const updateIssueHref = function(anchor) {
+    let href = $issue.attr('href');
+    href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
+    $issue.attr('href', href);
+  };
+
+  const updateCopyPermalinkHref = function(anchor) {
+    let link = $copyPermalink.attr('data-clipboard-text');
+    link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
+    $copyPermalink.attr('data-clipboard-text', link);
+  };
+
   if ($from) {
     let a = parseInt($select.attr('rel').substr(1));
     let b = parseInt($from.attr('rel').substr(1));
@@ -2925,38 +2958,16 @@ function selectRange($list, $select, $from) {
       $list.filter(classes.join(',')).addClass('active');
       changeHash(`#L${a}-L${b}`);
 
-      // add hashchange to permalink
-      const $issue = $('a.ref-in-new-issue');
-
-      if ($issue.length === 0) {
-        return;
-      }
-
-      const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-      if (matched) {
-        $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23L${a}-L${b}`));
-      } else {
-        $issue.attr('href', `${$issue.attr('href')}%23L${a}-L${b}`);
-      }
+      updateIssueHref(`L${a}-L${b}`);
+      updateCopyPermalinkHref(`L${a}-L${b}`);
       return;
     }
   }
   $select.addClass('active');
   changeHash(`#${$select.attr('rel')}`);
 
-  // add hashchange to permalink
-  const $issue = $('a.ref-in-new-issue');
-
-  if ($issue.length === 0) {
-    return;
-  }
-
-  const matched = $issue.attr('href').match(/%23L\d+$|%23L\d+-L\d+$/);
-  if (matched) {
-    $issue.attr('href', $issue.attr('href').replace($issue.attr('href').substr(matched.index), `%23${$select.attr('rel')}`));
-  } else {
-    $issue.attr('href', `${$issue.attr('href')}%23${$select.attr('rel')}`);
-  }
+  updateIssueHref($select.attr('rel'));
+  updateCopyPermalinkHref($select.attr('rel'));
 }
 
 $(() => {

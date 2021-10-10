@@ -208,7 +208,7 @@ func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.DefaultContext().Engine())
+	return a.getCommentLink(db.GetEngine(db.DefaultContext))
 }
 
 func (a *Action) getCommentLink(e db.Engine) string {
@@ -317,7 +317,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := db.DefaultContext().Engine().Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -408,6 +408,6 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 		return nil
 	}
 
-	_, err = db.DefaultContext().Engine().Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
 	return
 }

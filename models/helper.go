@@ -51,7 +51,7 @@ func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
 			rs = append(rs, temp...)
 		}
 		if ok {
-			if rs[0] == 0xff && rs[1] == 0xfe {
+			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
 				rs = rs[2:]
 			}
 			err = json.Unmarshal(rs, v)

@@ -5,6 +5,9 @@
 package models
 
 import (
+	"fmt"
+	"regexp"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -32,12 +35,16 @@ const (
 	ProjectBoardTypeBugTriage
 )
 
+// BoardColorPattern is a regexp witch can validate BoardColor
+var BoardColorPattern = regexp.MustCompile("^#[0-9a-fA-F]{6}$")
+
 // ProjectBoard is used to represent boards on a project
 type ProjectBoard struct {
 	ID      int64 `xorm:"pk autoincr"`
 	Title   string
-	Default bool `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
-	Sorting int8 `xorm:"NOT NULL DEFAULT 0"`
+	Default bool   `xorm:"NOT NULL DEFAULT false"` // issues not assigned to a specific board will be assigned to this board
+	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
+	Color   string `xorm:"VARCHAR(7)"`
 
 	ProjectID int64 `xorm:"INDEX NOT NULL"`
 	CreatorID int64 `xorm:"NOT NULL"`
@@ -100,13 +107,17 @@ func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
 
 // NewProjectBoard adds a new project board to a given project
 func NewProjectBoard(board *ProjectBoard) error {
-	_, err := db.DefaultContext().Engine().Insert(board)
+	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
+		return fmt.Errorf("bad color code: %s", board.Color)
+	}
+
+	_, err := db.GetEngine(db.DefaultContext).Insert(board)
 	return err
 }
 
 // DeleteProjectBoardByID removes all issues references to the project board.
 func DeleteProjectBoardByID(boardID int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -146,7 +157,7 @@ func deleteProjectBoardByProjectID(e db.Engine, projectID int64) error {
 
 // GetProjectBoard fetches the current board of a project
 func GetProjectBoard(boardID int64) (*ProjectBoard, error) {
-	return getProjectBoard(db.DefaultContext().Engine(), boardID)
+	return getProjectBoard(db.GetEngine(db.DefaultContext), boardID)
 }
 
 func getProjectBoard(e db.Engine, boardID int64) (*ProjectBoard, error) {
@@ -164,7 +175,7 @@ func getProjectBoard(e db.Engine, boardID int64) (*ProjectBoard, error) {
 
 // UpdateProjectBoard updates a project board
 func UpdateProjectBoard(board *ProjectBoard) error {
-	return updateProjectBoard(db.DefaultContext().Engine(), board)
+	return updateProjectBoard(db.GetEngine(db.DefaultContext), board)
 }
 
 func updateProjectBoard(e db.Engine, board *ProjectBoard) error {
@@ -178,6 +189,11 @@ func updateProjectBoard(e db.Engine, board *ProjectBoard) error {
 		fieldToUpdate = append(fieldToUpdate, "title")
 	}
 
+	if len(board.Color) != 0 && !BoardColorPattern.MatchString(board.Color) {
+		return fmt.Errorf("bad color code: %s", board.Color)
+	}
+	fieldToUpdate = append(fieldToUpdate, "color")
+
 	_, err := e.ID(board.ID).Cols(fieldToUpdate...).Update(board)
 
 	return err
@@ -186,7 +202,7 @@ func updateProjectBoard(e db.Engine, board *ProjectBoard) error {
 // GetProjectBoards fetches all boards related to a project
 // if no default board set, first board is a temporary "Uncategorized" board
 func GetProjectBoards(projectID int64) (ProjectBoardList, error) {
-	return getProjectBoards(db.DefaultContext().Engine(), projectID)
+	return getProjectBoards(db.GetEngine(db.DefaultContext), projectID)
 }
 
 func getProjectBoards(e db.Engine, projectID int64) ([]*ProjectBoard, error) {
@@ -226,7 +242,7 @@ func getDefaultBoard(e db.Engine, projectID int64) (*ProjectBoard, error) {
 // SetDefaultBoard represents a board for issues not assigned to one
 // if boardID is 0 unset default
 func SetDefaultBoard(projectID, boardID int64) error {
-	_, err := db.DefaultContext().Engine().Where(builder.Eq{
+	_, err := db.GetEngine(db.DefaultContext).Where(builder.Eq{
 		"project_id": projectID,
 		"`default`":  true,
 	}).Cols("`default`").Update(&ProjectBoard{Default: false})
@@ -235,7 +251,7 @@ func SetDefaultBoard(projectID, boardID int64) error {
 	}
 
 	if boardID > 0 {
-		_, err = db.DefaultContext().Engine().ID(boardID).Where(builder.Eq{"project_id": projectID}).
+		_, err = db.GetEngine(db.DefaultContext).ID(boardID).Where(builder.Eq{"project_id": projectID}).
 			Cols("`default`").Update(&ProjectBoard{Default: true})
 	}
 
@@ -293,7 +309,7 @@ func (bs ProjectBoardList) LoadIssues() (IssueList, error) {
 // UpdateProjectBoardSorting update project board sorting
 func UpdateProjectBoardSorting(bs ProjectBoardList) error {
 	for i := range bs {
-		_, err := db.DefaultContext().Engine().ID(bs[i].ID).Cols(
+		_, err := db.GetEngine(db.DefaultContext).ID(bs[i].ID).Cols(
 			"sorting",
 		).Update(bs[i])
 		if err != nil {

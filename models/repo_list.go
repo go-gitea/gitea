@@ -90,7 +90,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext().Engine())
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // MirrorRepositoryList contains the mirror repositories
@@ -130,12 +130,12 @@ func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
 
 // LoadAttributes loads the attributes for the given MirrorRepositoryList
 func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext().Engine())
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	ListOptions
+	db.ListOptions
 	Actor           *User
 	Keyword         string
 	OwnerID         int64
@@ -410,7 +410,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -520,7 +520,7 @@ func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
 func FindUserAccessibleRepoIDs(user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	if err := db.DefaultContext().Engine().
+	if err := db.GetEngine(db.DefaultContext).
 		Table("repository").
 		Cols("id").
 		Where(accessibleRepositoryCondition(user)).

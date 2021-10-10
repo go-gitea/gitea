@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package login
 
 import (
 	"crypto/sha256"
@@ -23,19 +23,14 @@ import (
 
 // OAuth2Application represents an OAuth2 client (RFC 6749)
 type OAuth2Application struct {
-	ID   int64 `xorm:"pk autoincr"`
-	UID  int64 `xorm:"INDEX"`
-	User *User `xorm:"-"`
-
-	Name string
-
+	ID           int64 `xorm:"pk autoincr"`
+	UID          int64 `xorm:"INDEX"`
+	Name         string
 	ClientID     string `xorm:"unique"`
 	ClientSecret string
-
-	RedirectURIs []string `xorm:"redirect_uris JSON TEXT"`
-
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	RedirectURIs []string           `xorm:"redirect_uris JSON TEXT"`
+	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -57,14 +52,6 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 	return app.RedirectURIs[0]
 }
 
-// LoadUser will load User by UID
-func (app *OAuth2Application) LoadUser() (err error) {
-	if app.User == nil {
-		app.User, err = GetUserByID(app.UID)
-	}
-	return
-}
-
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
@@ -81,7 +68,7 @@ func (app *OAuth2Application) GenerateClientSecret() (string, error) {
 		return "", err
 	}
 	app.ClientSecret = string(hashedSecret)
-	if _, err := db.DefaultContext().Engine().ID(app.ID).Cols("client_secret").Update(app); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).ID(app.ID).Cols("client_secret").Update(app); err != nil {
 		return "", err
 	}
 	return clientSecret, nil
@@ -94,7 +81,7 @@ func (app *OAuth2Application) ValidateClientSecret(secret []byte) bool {
 
 // GetGrantByUserID returns a OAuth2Grant by its user and application ID
 func (app *OAuth2Application) GetGrantByUserID(userID int64) (*OAuth2Grant, error) {
-	return app.getGrantByUserID(db.DefaultContext().Engine(), userID)
+	return app.getGrantByUserID(db.GetEngine(db.DefaultContext), userID)
 }
 
 func (app *OAuth2Application) getGrantByUserID(e db.Engine, userID int64) (grant *OAuth2Grant, err error) {
@@ -109,7 +96,7 @@ func (app *OAuth2Application) getGrantByUserID(e db.Engine, userID int64) (grant
 
 // CreateGrant generates a grant for an user
 func (app *OAuth2Application) CreateGrant(userID int64, scope string) (*OAuth2Grant, error) {
-	return app.createGrant(db.DefaultContext().Engine(), userID, scope)
+	return app.createGrant(db.GetEngine(db.DefaultContext), userID, scope)
 }
 
 func (app *OAuth2Application) createGrant(e db.Engine, userID int64, scope string) (*OAuth2Grant, error) {
@@ -127,7 +114,7 @@ func (app *OAuth2Application) createGrant(e db.Engine, userID int64, scope strin
 
 // GetOAuth2ApplicationByClientID returns the oauth2 application with the given client_id. Returns an error if not found.
 func GetOAuth2ApplicationByClientID(clientID string) (app *OAuth2Application, err error) {
-	return getOAuth2ApplicationByClientID(db.DefaultContext().Engine(), clientID)
+	return getOAuth2ApplicationByClientID(db.GetEngine(db.DefaultContext), clientID)
 }
 
 func getOAuth2ApplicationByClientID(e db.Engine, clientID string) (app *OAuth2Application, err error) {
@@ -141,7 +128,7 @@ func getOAuth2ApplicationByClientID(e db.Engine, clientID string) (app *OAuth2Ap
 
 // GetOAuth2ApplicationByID returns the oauth2 application with the given id. Returns an error if not found.
 func GetOAuth2ApplicationByID(id int64) (app *OAuth2Application, err error) {
-	return getOAuth2ApplicationByID(db.DefaultContext().Engine(), id)
+	return getOAuth2ApplicationByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getOAuth2ApplicationByID(e db.Engine, id int64) (app *OAuth2Application, err error) {
@@ -158,7 +145,7 @@ func getOAuth2ApplicationByID(e db.Engine, id int64) (app *OAuth2Application, er
 
 // GetOAuth2ApplicationsByUserID returns all oauth2 applications owned by the user
 func GetOAuth2ApplicationsByUserID(userID int64) (apps []*OAuth2Application, err error) {
-	return getOAuth2ApplicationsByUserID(db.DefaultContext().Engine(), userID)
+	return getOAuth2ApplicationsByUserID(db.GetEngine(db.DefaultContext), userID)
 }
 
 func getOAuth2ApplicationsByUserID(e db.Engine, userID int64) (apps []*OAuth2Application, err error) {
@@ -176,7 +163,7 @@ type CreateOAuth2ApplicationOptions struct {
 
 // CreateOAuth2Application inserts a new oauth2 application
 func CreateOAuth2Application(opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	return createOAuth2Application(db.DefaultContext().Engine(), opts)
+	return createOAuth2Application(db.GetEngine(db.DefaultContext), opts)
 }
 
 func createOAuth2Application(e db.Engine, opts CreateOAuth2ApplicationOptions) (*OAuth2Application, error) {
@@ -203,7 +190,7 @@ type UpdateOAuth2ApplicationOptions struct {
 
 // UpdateOAuth2Application updates an oauth2 application
 func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Application, error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	if err := sess.Begin(); err != nil {
 		return nil, err
 	}
@@ -264,7 +251,7 @@ func deleteOAuth2Application(sess *xorm.Session, id, userid int64) error {
 
 // DeleteOAuth2Application deletes the application with the given id and the grants and auth codes related to it. It checks if the userid was the creator of the app.
 func DeleteOAuth2Application(id, userid int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -276,13 +263,13 @@ func DeleteOAuth2Application(id, userid int64) error {
 }
 
 // ListOAuth2Applications returns a list of oauth2 applications belongs to given user.
-func ListOAuth2Applications(uid int64, listOptions ListOptions) ([]*OAuth2Application, int64, error) {
-	sess := db.DefaultContext().Engine().
+func ListOAuth2Applications(uid int64, listOptions db.ListOptions) ([]*OAuth2Application, int64, error) {
+	sess := db.GetEngine(db.DefaultContext).
 		Where("uid=?", uid).
 		Desc("id")
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 
 		apps := make([]*OAuth2Application, 0, listOptions.PageSize)
 		total, err := sess.FindAndCount(&apps)
@@ -329,7 +316,7 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 
 // Invalidate deletes the auth code from the database to invalidate this code
 func (code *OAuth2AuthorizationCode) Invalidate() error {
-	return code.invalidate(db.DefaultContext().Engine())
+	return code.invalidate(db.GetEngine(db.DefaultContext))
 }
 
 func (code *OAuth2AuthorizationCode) invalidate(e db.Engine) error {
@@ -361,7 +348,7 @@ func (code *OAuth2AuthorizationCode) validateCodeChallenge(verifier string) bool
 
 // GetOAuth2AuthorizationByCode returns an authorization by its code
 func GetOAuth2AuthorizationByCode(code string) (*OAuth2AuthorizationCode, error) {
-	return getOAuth2AuthorizationByCode(db.DefaultContext().Engine(), code)
+	return getOAuth2AuthorizationByCode(db.GetEngine(db.DefaultContext), code)
 }
 
 func getOAuth2AuthorizationByCode(e db.Engine, code string) (auth *OAuth2AuthorizationCode, err error) {
@@ -402,7 +389,7 @@ func (grant *OAuth2Grant) TableName() string {
 
 // GenerateNewAuthorizationCode generates a new authorization code for a grant and saves it to the database
 func (grant *OAuth2Grant) GenerateNewAuthorizationCode(redirectURI, codeChallenge, codeChallengeMethod string) (*OAuth2AuthorizationCode, error) {
-	return grant.generateNewAuthorizationCode(db.DefaultContext().Engine(), redirectURI, codeChallenge, codeChallengeMethod)
+	return grant.generateNewAuthorizationCode(db.GetEngine(db.DefaultContext), redirectURI, codeChallenge, codeChallengeMethod)
 }
 
 func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI, codeChallenge, codeChallengeMethod string) (code *OAuth2AuthorizationCode, err error) {
@@ -426,7 +413,7 @@ func (grant *OAuth2Grant) generateNewAuthorizationCode(e db.Engine, redirectURI,
 
 // IncreaseCounter increases the counter and updates the grant
 func (grant *OAuth2Grant) IncreaseCounter() error {
-	return grant.increaseCount(db.DefaultContext().Engine())
+	return grant.increaseCount(db.GetEngine(db.DefaultContext))
 }
 
 func (grant *OAuth2Grant) increaseCount(e db.Engine) error {
@@ -454,7 +441,7 @@ func (grant *OAuth2Grant) ScopeContains(scope string) bool {
 
 // SetNonce updates the current nonce value of a grant
 func (grant *OAuth2Grant) SetNonce(nonce string) error {
-	return grant.setNonce(db.DefaultContext().Engine(), nonce)
+	return grant.setNonce(db.GetEngine(db.DefaultContext), nonce)
 }
 
 func (grant *OAuth2Grant) setNonce(e db.Engine, nonce string) error {
@@ -468,7 +455,7 @@ func (grant *OAuth2Grant) setNonce(e db.Engine, nonce string) error {
 
 // GetOAuth2GrantByID returns the grant with the given ID
 func GetOAuth2GrantByID(id int64) (*OAuth2Grant, error) {
-	return getOAuth2GrantByID(db.DefaultContext().Engine(), id)
+	return getOAuth2GrantByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getOAuth2GrantByID(e db.Engine, id int64) (grant *OAuth2Grant, err error) {
@@ -483,7 +470,7 @@ func getOAuth2GrantByID(e db.Engine, id int64) (grant *OAuth2Grant, err error) {
 
 // GetOAuth2GrantsByUserID lists all grants of a certain user
 func GetOAuth2GrantsByUserID(uid int64) ([]*OAuth2Grant, error) {
-	return getOAuth2GrantsByUserID(db.DefaultContext().Engine(), uid)
+	return getOAuth2GrantsByUserID(db.GetEngine(db.DefaultContext), uid)
 }
 
 func getOAuth2GrantsByUserID(e db.Engine, uid int64) ([]*OAuth2Grant, error) {
@@ -515,7 +502,7 @@ func getOAuth2GrantsByUserID(e db.Engine, uid int64) ([]*OAuth2Grant, error) {
 
 // RevokeOAuth2Grant deletes the grant with grantID and userID
 func RevokeOAuth2Grant(grantID, userID int64) error {
-	return revokeOAuth2Grant(db.DefaultContext().Engine(), grantID, userID)
+	return revokeOAuth2Grant(db.GetEngine(db.DefaultContext), grantID, userID)
 }
 
 func revokeOAuth2Grant(e db.Engine, grantID, userID int64) error {

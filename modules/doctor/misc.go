@@ -26,7 +26,7 @@ import (
 
 func iterateRepositories(each func(*models.Repository) error) error {
 	err := db.Iterate(
-		db.DefaultContext(),
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

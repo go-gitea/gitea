@@ -44,7 +44,7 @@ func (n *Notice) TrStr() string {
 
 // CreateNotice creates new system notice.
 func CreateNotice(tp NoticeType, desc string, args ...interface{}) error {
-	return createNotice(db.DefaultContext().Engine(), tp, desc, args...)
+	return createNotice(db.GetEngine(db.DefaultContext), tp, desc, args...)
 }
 
 func createNotice(e db.Engine, tp NoticeType, desc string, args ...interface{}) error {
@@ -61,19 +61,19 @@ func createNotice(e db.Engine, tp NoticeType, desc string, args ...interface{}) 
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string, args ...interface{}) error {
-	return createNotice(db.DefaultContext().Engine(), NoticeRepository, desc, args...)
+	return createNotice(db.GetEngine(db.DefaultContext), NoticeRepository, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
 // creates a system notice when error occurs.
 func RemoveAllWithNotice(title, path string) {
-	removeAllWithNotice(db.DefaultContext().Engine(), title, path)
+	removeAllWithNotice(db.GetEngine(db.DefaultContext), title, path)
 }
 
 // RemoveStorageWithNotice removes a file from the storage and
 // creates a system notice when error occurs.
 func RemoveStorageWithNotice(bucket storage.ObjectStorage, title, path string) {
-	removeStorageWithNotice(db.DefaultContext().Engine(), bucket, title, path)
+	removeStorageWithNotice(db.GetEngine(db.DefaultContext), bucket, title, path)
 }
 
 func removeStorageWithNotice(e db.Engine, bucket storage.ObjectStorage, title, path string) {
@@ -98,33 +98,33 @@ func removeAllWithNotice(e db.Engine, title, path string) {
 
 // CountNotices returns number of notices.
 func CountNotices() int64 {
-	count, _ := db.DefaultContext().Engine().Count(new(Notice))
+	count, _ := db.GetEngine(db.DefaultContext).Count(new(Notice))
 	return count
 }
 
 // Notices returns notices in given page.
 func Notices(page, pageSize int) ([]*Notice, error) {
 	notices := make([]*Notice, 0, pageSize)
-	return notices, db.DefaultContext().Engine().
+	return notices, db.GetEngine(db.DefaultContext).
 		Limit(pageSize, (page-1)*pageSize).
-		Desc("id").
+		Desc("created_unix").
 		Find(&notices)
 }
 
 // DeleteNotice deletes a system notice by given ID.
 func DeleteNotice(id int64) error {
-	_, err := db.DefaultContext().Engine().ID(id).Delete(new(Notice))
+	_, err := db.GetEngine(db.DefaultContext).ID(id).Delete(new(Notice))
 	return err
 }
 
 // DeleteNotices deletes all notices with ID from start to end (inclusive).
 func DeleteNotices(start, end int64) error {
 	if start == 0 && end == 0 {
-		_, err := db.DefaultContext().Engine().Exec("DELETE FROM notice")
+		_, err := db.GetEngine(db.DefaultContext).Exec("DELETE FROM notice")
 		return err
 	}
 
-	sess := db.DefaultContext().Engine().Where("id >= ?", start)
+	sess := db.GetEngine(db.DefaultContext).Where("id >= ?", start)
 	if end > 0 {
 		sess.And("id <= ?", end)
 	}
@@ -137,7 +137,7 @@ func DeleteNoticesByIDs(ids []int64) error {
 	if len(ids) == 0 {
 		return nil
 	}
-	_, err := db.DefaultContext().Engine().
+	_, err := db.GetEngine(db.DefaultContext).
 		In("id", ids).
 		Delete(new(Notice))
 	return err
@@ -146,7 +146,7 @@ func DeleteNoticesByIDs(ids []int64) error {
 // GetAdminUser returns the first administrator
 func GetAdminUser() (*User, error) {
 	var admin User
-	has, err := db.DefaultContext().Engine().Where("is_admin=?", true).Get(&admin)
+	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
 	if err != nil {
 		return nil, err
 	} else if !has {
