@@ -4,6 +4,45 @@
 	{{template "repo/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		<div {{if not .HasError}}class="hide"{{end}} id="add-deploy-key-panel">
+			<h4 class="ui top attached header">
+				{{.i18n.Tr "repo.settings.add_deploy_key"}}
+				<div class="ui right">
+					<button class="ui red tiny hide-panel button" data-panel="#add-deploy-key-panel">
+						{{.i18n.Tr "cancel"}}
+					</button>
+				</div>
+			</h4>
+			<div class="ui attached segment">
+				<form class="ui form" action="{{.Link}}" method="post">
+					{{.CsrfTokenHtml}}
+					<div class="field">
+						{{.i18n.Tr "repo.settings.deploy_key_desc"}}
+					</div>
+					<div class="field {{if .Err_Title}}error{{end}}">
+						<label for="title">{{.i18n.Tr "repo.settings.title"}}</label>
+						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
+					</div>
+					<div class="field {{if .Err_Content}}error{{end}}">
+						<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
+						<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+					</div>
+					<div class="field">
+						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
+							<input id="ssh-key-is-writable" name="is_writable" class="hidden" type="checkbox" value="1">
+							<label for="is_writable">
+								{{.i18n.Tr "repo.settings.is_writable"}}
+							</label>
+							<small style="padding-left: 26px;">{{$.i18n.Tr "repo.settings.is_writable_info" | Str2html}}</small>
+						</div>
+					</div>
+					<button class="ui green button">
+						{{.i18n.Tr "repo.settings.add_deploy_key"}}
+					</button>
+				</form>
+			</div>
+			<br>
+		</div>
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "repo.settings.deploy_keys"}}
 			<div class="ui right">
@@ -42,40 +81,6 @@
 			{{else}}
 				{{.i18n.Tr "repo.settings.no_deploy_keys"}}
 			{{end}}
-		</div>
-		<br>
-		<div {{if not .HasError}}class="hide"{{end}} id="add-deploy-key-panel">
-			<h4 class="ui top attached header">
-				{{.i18n.Tr "repo.settings.add_deploy_key"}}
-			</h4>
-			<div class="ui attached segment">
-				<form class="ui form" action="{{.Link}}" method="post">
-					{{.CsrfTokenHtml}}
-					<div class="field">
-						{{.i18n.Tr "repo.settings.deploy_key_desc"}}
-					</div>
-					<div class="field {{if .Err_Title}}error{{end}}">
-						<label for="title">{{.i18n.Tr "repo.settings.title"}}</label>
-						<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
-					</div>
-					<div class="field {{if .Err_Content}}error{{end}}">
-						<label for="content">{{.i18n.Tr "repo.settings.deploy_key_content"}}</label>
-						<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
-					</div>
-					<div class="field">
-						<div class="ui checkbox {{if .Err_IsWritable}}error{{end}}">
-							<input id="ssh-key-is-writable" name="is_writable" class="hidden" type="checkbox" value="1">
-							<label for="is_writable">
-								{{.i18n.Tr "repo.settings.is_writable"}}
-							</label>
-							<small style="padding-left: 26px;">{{$.i18n.Tr "repo.settings.is_writable_info" | Str2html}}</small>
-						</div>
-					</div>
-					<button class="ui green button">
-						{{.i18n.Tr "repo.settings.add_deploy_key"}}
-					</button>
-				</form>
-			</div>
 		</div>
 	</div>
 </div>

@@ -535,12 +535,7 @@
 			</div>
 
 			{{if and .CanCreateIssueDependencies (not .Repository.IsArchived)}}
-				<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
-				<input type="hidden" id="repoId" value="{{.Repository.ID}}">
 				<input type="hidden" id="crossRepoSearch" value="{{.AllowCrossRepositoryDependencies}}">
-				<input type="hidden" id="type" value="{{.IssueType}}">
-				<!-- I know, there is probably a better way to do this -->
-				<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 
 				<div class="ui basic modal remove-dependency">
 					<div class="ui icon header">
