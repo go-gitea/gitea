@@ -489,15 +489,23 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
 
-	if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
+	canSignedUserFork, err := ctx.Repo.Repository.CanUserFork(ctx.User)
+	if err != nil {
 		ctx.ServerError("CanUserFork", err)
 		return
 	}
+	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
-	if ctx.Data["UserAndOrgForks"], err = ctx.Repo.Repository.GetForksByUserAndOwnedOrgs(ctx.User); err != nil {
+	userAndOrgForks, err := ctx.Repo.Repository.GetForksByUserAndOwnedOrgs(ctx.User)
+	if err != nil {
 		ctx.ServerError("GetForksByUserAndOwnedOrgs", err)
 		return
 	}
+	ctx.Data["UserAndOrgForks"] = userAndOrgForks
+
+	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
+	ctx.Data["RedirectToForkedRepo"] = len(userAndOrgForks) == 1 && !canSignedUserFork
+	ctx.Data["RedirectToForkPage"] = len(userAndOrgForks) == 0 && canSignedUserFork
 
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous

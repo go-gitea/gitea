@@ -775,7 +775,7 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 
 // GetForksByUserAndOwnedOrgs return forked repos of the user and owned orgs
 func (repo *Repository) GetForksByUserAndOwnedOrgs(user *User) ([]*Repository, error) {
-	repoList := make([]*Repository, 0)
+	var repoList []*Repository
 	if user == nil {
 		return repoList, nil
 	}
