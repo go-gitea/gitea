@@ -13,6 +13,7 @@ import octiconProject from '../../public/img/svg/octicon-project.svg';
 import octiconRepo from '../../public/img/svg/octicon-repo.svg';
 import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
+import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 
 import Vue from 'vue';
 
@@ -32,6 +33,7 @@ export const svgs = {
   'octicon-repo': octiconRepo,
   'octicon-repo-forked': octiconRepoForked,
   'octicon-repo-template': octiconRepoTemplate,
+  'octicon-triangle-down': octiconTriangleDown,
 };
 
 const parser = new DOMParser();
