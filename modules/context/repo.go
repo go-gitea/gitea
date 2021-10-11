@@ -494,6 +494,11 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
+	if ctx.Data["UserAndOrgForks"], err = ctx.Repo.Repository.GetForksByUserAndOwnedOrgs(ctx.User); err != nil {
+		ctx.ServerError("GetForksByUserAndOwnedOrgs", err)
+		return
+	}
+
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
 	ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit

@@ -773,6 +773,35 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 	return false, nil
 }
 
+// GetForksByUserAndOwnedOrgs return forked repos of the user and owned orgs
+func (repo *Repository) GetForksByUserAndOwnedOrgs(user *User) ([]*Repository, error) {
+	repoList := make([]*Repository, 0)
+	if user == nil {
+		return repoList, nil
+	}
+	var forkedRepo *Repository
+	forkedRepo, err := repo.GetUserFork(user.ID)
+	if err != nil {
+		return repoList, err
+	}
+	if forkedRepo != nil {
+		repoList = append(repoList, forkedRepo)
+	}
+	if err := user.GetOwnedOrganizations(); err != nil {
+		return repoList, err
+	}
+	for _, org := range user.OwnedOrgs {
+		forkedRepo, err := repo.GetUserFork(org.ID)
+		if err != nil {
+			return repoList, err
+		}
+		if forkedRepo != nil {
+			repoList = append(repoList, forkedRepo)
+		}
+	}
+	return repoList, nil
+}
+
 // CanUserDelete returns true if user could delete the repository
 func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	if user.IsAdmin || user.ID == repo.OwnerID {

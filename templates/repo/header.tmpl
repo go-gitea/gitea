@@ -85,10 +85,33 @@
 						</form>
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-						<div class="ui labeled button{{if not $.CanSignedUserFork}} poping up disabled{{end}}"{{if and (not $.CanSignedUserFork) $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_from_self"}}" {{else if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"{{end}} data-position="top center" data-variation="tiny" tabindex="0">
-							<a class="ui compact small basic button"{{if $.CanSignedUserFork}} href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{end}}>
+						<div class="ui labeled button{{if or (not $.IsSigned)}} poping up disabled{{end}}" {{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"{{end}} data-position="top center" data-variation="tiny" tabindex="0">
+							{{$showModal := or (gt (len $.UserAndOrgForks) 1) (and $.CanSignedUserFork (gt (len $.UserAndOrgForks) 0))}}
+							{{$redirectToForkedRepo := and (eq (len $.UserAndOrgForks) 1) (not $.CanSignedUserFork)}}
+							{{$redirectToForkPage := and (eq (len $.UserAndOrgForks) 0) $.CanSignedUserFork}}
+							<a class="ui compact{{if $showModal}} show-modal{{end}} small basic button"{{if $showModal}} data-modal="#fork-repo-modal"{{end}}{{if $redirectToForkedRepo}} href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"{{else if $redirectToForkPage}} href="{{AppSubUrl}}/repo/fork/{{.ID}}"{{end}}>
 								{{svg "octicon-repo-forked"}}{{$.i18n.Tr "repo.fork"}}
 							</a>
+							<div class="ui small modal" id="fork-repo-modal">
+								<div class="header">
+									{{$.i18n.Tr "repo.already_forked" .FullName}}
+								</div>
+								<div class="content">
+									{{range $.UserAndOrgForks}}
+										<div class="text left">
+											<a href="{{.Link}}">
+												{{svg "octicon-repo-forked"}}{{.FullName}}
+											</a>
+										</div>
+									{{end}}
+									{{if $.CanSignedUserFork}}
+									<br><br>
+									<a class="ui compact small button right actions" style="margin-bottom: 20px;" href="{{AppSubUrl}}/repo/fork/{{.ID}}">
+										{{$.i18n.Tr "repo.fork_to_different_account"}}
+									</a>
+									{{end}}
+								</div>
+							</div>
 							<a class="ui basic label" href="{{.Link}}/forks">
 								{{CountFmt .NumForks}}
 							</a>
