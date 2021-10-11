@@ -378,6 +378,7 @@ func NewFuncMap() []template.FuncMap {
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
+		"DisableFormAutofill": disableFormAutofill,
 	}}
 }
 
@@ -964,4 +965,40 @@ func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
 	a.Address = u.String()
 
 	return a
+}
+
+func disableFormAutofill() template.HTML {
+	/*
+		Why we need to disable form autofill:
+		1. Many pages contain different password inputs for different usages, eg: repo setting, autofill will make a mess.
+		2. We have `areYouSure` confirm dialog if a user leaves a pages without submit.
+		   Autofill will make the form changed even if the user didn't input anything. Then the user keeps seeing annoying confirm dialog.
+
+		In history, Gitea put `<input class="fake" type="password">` in forms to bypass the autofill,
+		but there were still many forms suffered the autofill problem.
+
+		Now we improve it.
+
+		Solutions which do NOT work:
+		1. Adding `autocomplete=off` doesn't help. New Chrome completely ignores it.
+		2. Use a JavaScript to run in a few seconds later after the page is loaded to process the autofilled inputs, it doesn't work.
+		   Because for security reason, the inputs won't be filled before the user makes an interaction in the page.
+		   So we can not predict the correct time to run the JavaScript code.
+
+		Solutions which work:
+		1. Some hacky methods like: https://github.com/matteobad/detect-autofill
+		2. This solution: use invisible inputs. Be aware of:
+		   (a) The inputs must be at the beginning of the form, and can not be hidden.
+		   (b) The input for username must have a valid name.
+		   (c) There should be no negative word (eg: fake) in the `name` attribute.
+		   (d) Chrome seems to use a weighted algorithm to choose an input to fill text, so the using "username" as input name is better than using "user".
+		   We make the names of these dummy inputs begin with an underline to indicate it is for special usage,
+		   and these dummy form values won't be used by backend code.
+	*/
+	return `
+<div style="position: absolute; width: 1px; height: 1px; overflow: hidden; z-index: -10000;">
+  <input type="text" name="_autofill_dummy_username" class="ays-ignore">
+  <input type="password" name="_autofill_dummy_password" class="ays-ignore">
+</div>
+`
 }

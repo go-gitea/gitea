@@ -30,7 +30,6 @@
 		<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
 		<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
 	</div>
-	<input class="fake" type="password">
 	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
 		<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 		<input id="bind_password" name="bind_password" type="password" autocomplete="off" value="{{.bind_password}}">
