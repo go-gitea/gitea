@@ -54,7 +54,9 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		opts.Dir = fixturesDir
 	} else {
 		for _, f := range fixtureFiles {
-			opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
+			if len(f) != 0 {
+				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
+			}
 		}
 	}
 
