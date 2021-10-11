@@ -996,7 +996,7 @@ func disableFormAutofill() template.HTML {
 		   and these dummy form values won't be used by backend code.
 	*/
 	return `
-<div style="position: absolute; width: 1px; height: 1px; overflow: hidden; z-index: -10000;">
+<div class="auto-fill-dummy">
   <input type="text" name="_autofill_dummy_username" class="ays-ignore">
   <input type="password" name="_autofill_dummy_password" class="ays-ignore">
 </div>
