@@ -90,7 +90,7 @@
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}
 										data-modal="#fork-repo-modal"
-									{{else}}
+									{{else if eq (len $.UserAndOrgForks) 1}}
 										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
 									{{end}}
 								{{else if eq (len $.UserAndOrgForks) 0}}
