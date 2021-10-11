@@ -503,9 +503,10 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["UserAndOrgForks"] = userAndOrgForks
 
+	// canSignedUserFork is true if the current user doesn't have a fork of this repo yet or
+	// if he owns an org that doesn't have a fork of this repo yet
+	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
-	ctx.Data["RedirectToForkedRepo"] = len(userAndOrgForks) == 1 && !canSignedUserFork
-	ctx.Data["RedirectToForkPage"] = len(userAndOrgForks) == 0 && canSignedUserFork
 
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
