@@ -35,3 +35,10 @@ type swaggerResponseTeamList struct {
 	// in:body
 	Body []api.Team `json:"body"`
 }
+
+// OrganizationPermissions
+// swagger:response OrganizationPermissions
+type swaggerResponseOrganizationPermissions struct {
+	// in:body
+	Body api.OrganizationPermissions `json:"body"`
+}
