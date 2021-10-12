@@ -146,9 +146,6 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	op.IsOwner = false
-	op.IsAdmin = false
-	op.CanWrite = false
 	if authorizeLevel > models.AccessModeNone {
 		op.CanRead = true
 	}
