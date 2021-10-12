@@ -162,6 +162,10 @@
 					</a>
 				{{end}}
 
+				<a class="{{if .PageIsActivity}}active{{end}} item" href="{{.RepoLink}}/actions">
+					{{svg "octicon-pulse"}} {{.i18n.Tr "repo.actions"}}
+				</a>
+
 				{{template "custom/extra_tabs" .}}
 
 				{{if .Permission.IsAdmin}}
