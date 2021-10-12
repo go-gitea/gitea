@@ -39,37 +39,34 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
-	searchOpts := &models.SearchUserOptions{
-		Actor: ctx.User,
-		Type:  models.UserTypeIndividual,
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.Admin.UserPagingNum,
-		},
-		SearchByEmail: true,
-	}
-
 	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
 	statusFilterMap := map[string]string{}
 	for _, filterKey := range statusFilterKeys {
 		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
 	}
 
-	searchOpts.IsActive = util.OptionalBoolParse(statusFilterMap["is_active"])
-	searchOpts.IsAdmin = util.OptionalBoolParse(statusFilterMap["is_admin"])
-	searchOpts.IsRestricted = util.OptionalBoolParse(statusFilterMap["is_restricted"])
-	searchOpts.IsTwoFactorEnabled = util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"])
-	searchOpts.IsProhibitLogin = util.OptionalBoolParse(statusFilterMap["is_prohibit_login"])
-
 	sortType := ctx.FormString("sort")
 	if sortType == "" {
 		sortType = explore.UserSearchDefaultSortType
 	}
-	ctx.PageData["AdminUserListSearchForm"] = map[string]interface{}{
+	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
 		"StatusFilterMap": statusFilterMap,
 		"SortType":        sortType,
 	}
 
-	explore.RenderUserSearch(ctx, searchOpts, tplUsers)
+	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
+		Actor: ctx.User,
+		Type:  models.UserTypeIndividual,
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.Admin.UserPagingNum,
+		},
+		SearchByEmail:      true,
+		IsActive:           util.OptionalBoolParse(statusFilterMap["is_active"]),
+		IsAdmin:            util.OptionalBoolParse(statusFilterMap["is_admin"]),
+		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
+		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
+		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
+	}, tplUsers)
 }
 
 // NewUser render adding a new user page

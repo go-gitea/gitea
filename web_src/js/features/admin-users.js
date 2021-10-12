@@ -1,5 +1,5 @@
 export function initAdminUserListSearchForm() {
-  const searchForm = window.config.PageData.AdminUserListSearchForm;
+  const searchForm = window.config.PageData.adminUserListSearchForm;
   if (!searchForm) return;
 
   const $form = $('#user-list-search-form');
