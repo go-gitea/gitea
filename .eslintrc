@@ -3,7 +3,6 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
-  - /templates/base/head.tmpl
   - /templates/repo/activity.tmpl
   - /templates/repo/view_file.tmpl
 
