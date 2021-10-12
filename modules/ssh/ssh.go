@@ -322,9 +322,10 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 	// that the PublicKey().Type() matches the signature algorithm.
 	//
 	// Therefore we need to add duplicates for the RSA with different signing algorithms.
-	for i, signer := range srv.HostSigners {
+	signers := make([]ssh.Signer, 0, len(srv.HostSigners))
+	for _, signer := range srv.HostSigners {
 		if signer.PublicKey().Type() == "ssh-rsa" {
-			front := append(srv.HostSigners[:i],
+			signers = append(signers,
 				&wrapSigner{
 					Signer:    signer,
 					algorithm: gossh.SigAlgoRSASHA2512,
@@ -334,11 +335,10 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 					algorithm: gossh.SigAlgoRSASHA2256,
 				},
 			)
-			srv.HostSigners = append(front,
-				srv.HostSigners[i:]...,
-			)
 		}
+		signers = append(signers, signer)
 	}
+	srv.HostSigners = signers
 
 	go listen(&srv)
 
