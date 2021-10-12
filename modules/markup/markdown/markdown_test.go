@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	. "code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -94,10 +95,11 @@ func TestRender_Images(t *testing.T) {
 	title := "Train"
 	href := "https://gitea.io"
 	result := util.URLJoin(AppSubURL, url)
+	// hint: With Markdown v2.5.2, there is a new syntax: [link](URL){:target="_blank"} , but we do not support it now
 
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -109,7 +111,7 @@ func TestRender_Images(t *testing.T) {
 	url = "/../../.images/src/02/train.jpg"
 	test(
 		"!["+title+"]("+url+")",
-		`<p><a href="`+result+`" rel="nofollow"><img src="`+result+`" alt="`+title+`"/></a></p>`)
+		`<p><a href="`+result+`" target="_blank" rel="nofollow noopener"><img src="`+result+`" alt="`+title+`"/></a></p>`)
 
 	test(
 		"[["+title+"|"+url+"]]",
@@ -373,6 +375,7 @@ func TestMarkdownRenderRaw(t *testing.T) {
 	}
 
 	for _, testcase := range testcases {
+		log.Info("Test markdown render error with fuzzy data: %x, the following errors can be recovered", testcase)
 		_, err := RenderRawString(&markup.RenderContext{}, string(testcase))
 		assert.NoError(t, err)
 	}
@@ -382,8 +385,8 @@ func TestRenderSiblingImages_Issue12925(t *testing.T) {
 	testcase := `![image1](/image1)
 ![image2](/image2)
 `
-	expected := `<p><a href="/image1" rel="nofollow"><img src="/image1" alt="image1"></a><br>
-<a href="/image2" rel="nofollow"><img src="/image2" alt="image2"></a></p>
+	expected := `<p><a href="/image1" target="_blank" rel="nofollow noopener"><img src="/image1" alt="image1"></a><br>
+<a href="/image2" target="_blank" rel="nofollow noopener"><img src="/image2" alt="image2"></a></p>
 `
 	res, err := RenderRawString(&markup.RenderContext{}, testcase)
 	assert.NoError(t, err)

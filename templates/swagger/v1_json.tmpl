@@ -11856,6 +11856,45 @@
         }
       }
     },
+    "/users/{username}/orgs/{org}/permissions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get user permissions in organization",
+        "operationId": "orgGetUserPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationPermissions"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/users/{username}/repos": {
       "get": {
         "produces": [
@@ -15877,6 +15916,33 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "OrganizationPermissions": {
+      "description": "OrganizationPermissions list differents users permissions on an organization",
+      "type": "object",
+      "properties": {
+        "can_create_repository": {
+          "type": "boolean",
+          "x-go-name": "CanCreateRepository"
+        },
+        "can_read": {
+          "type": "boolean",
+          "x-go-name": "CanRead"
+        },
+        "can_write": {
+          "type": "boolean",
+          "x-go-name": "CanWrite"
+        },
+        "is_admin": {
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
+        },
+        "is_owner": {
+          "type": "boolean",
+          "x-go-name": "IsOwner"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "PRBranchInfo": {
       "description": "PRBranchInfo information about a branch",
       "type": "object",
@@ -17740,6 +17806,12 @@
         "items": {
           "$ref": "#/definitions/Organization"
         }
+      }
+    },
+    "OrganizationPermissions": {
+      "description": "OrganizationPermissions",
+      "schema": {
+        "$ref": "#/definitions/OrganizationPermissions"
       }
     },
     "PublicKey": {
