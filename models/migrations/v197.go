@@ -5,20 +5,17 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addLabelsToMilestones(x *xorm.Engine) error {
-	type MilestoneLabel struct {
+func addRenamedBranchTable(x *xorm.Engine) error {
+	type RenamedBranch struct {
 		ID          int64 `xorm:"pk autoincr"`
-		MilestoneID int64 `xorm:"UNIQUE(s)"`
-		LabelID     int64 `xorm:"UNIQUE(s)"`
+		RepoID      int64 `xorm:"INDEX NOT NULL"`
+		From        string
+		To          string
+		CreatedUnix int64 `xorm:"created"`
 	}
-
-	if err := x.Sync2(new(MilestoneLabel)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(RenamedBranch))
 }
+
