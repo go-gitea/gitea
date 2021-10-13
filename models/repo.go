@@ -1152,16 +1152,6 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
-	if u.Visibility == api.VisibleTypePublic && !repo.IsPrivate {
-		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
-		if f, err := os.Create(daemonExportFile); err != nil {
-			log.Error("Failed to create %s: %v", daemonExportFile, err)
-		} else {
-			f.Close()
-		}
-	}
-
 	if setting.Service.AutoWatchNewRepos {
 		if err = watchRepo(ctx.e, doer.ID, repo.ID, true); err != nil {
 			return fmt.Errorf("watchRepo: %v", err)
@@ -1170,6 +1160,46 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 
 	if err = copyDefaultWebhooksToRepo(ctx.e, repo.ID); err != nil {
 		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
+	}
+
+	return nil
+}
+
+// CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
+func (repo *Repository) CheckDaemonExportOK() error {
+	return repo.checkDaemonExportOK(x)
+}
+
+// CheckDaemonExportOKCtx creates/removes git-daemon-export-ok for git-daemon...
+func (repo *Repository) CheckDaemonExportOKCtx(ctx DBContext) error {
+	return repo.checkDaemonExportOK(ctx.e)
+}
+
+func (repo *Repository) checkDaemonExportOK(e Engine) error {
+	if err := repo.getOwner(e); err != nil {
+		return err
+	}
+
+	// Create/Remove git-daemon-export-ok for git-daemon...
+	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+
+	isExist, err := util.IsExist(daemonExportFile)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		return err
+	}
+
+	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
+	if !isPublic && isExist {
+		if err = util.Remove(daemonExportFile); err != nil {
+			log.Error("Failed to remove %s: %v", daemonExportFile, err)
+		}
+	} else if isPublic && !isExist {
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
 	}
 
 	return nil
@@ -1324,23 +1354,8 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
-		isExist, err := util.IsExist(daemonExportFile)
-		isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		if err := repo.checkDaemonExportOK(e); err != nil {
 			return err
-		}
-		if !isPublic && isExist {
-			if err = util.Remove(daemonExportFile); err != nil {
-				log.Error("Failed to remove %s: %v", daemonExportFile, err)
-			}
-		} else if isPublic && !isExist {
-			if f, err := os.Create(daemonExportFile); err != nil {
-				log.Error("Failed to create %s: %v", daemonExportFile, err)
-			} else {
-				f.Close()
-			}
 		}
 
 		forkRepos, err := getRepositoriesByForkID(e, repo.ID)
