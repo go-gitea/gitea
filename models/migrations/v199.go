@@ -13,8 +13,8 @@ import (
 func addLabelsToMilestones(x *xorm.Engine) error {
 	type MilestoneLabel struct {
 		ID          int64 `xorm:"pk autoincr"`
-		MilestoneID int64 `xorm:"UNIQUE(s)"`
-		LabelID     int64 `xorm:"UNIQUE(s)"`
+		MilestoneID int64 `xorm:"UNIQUE(milestoneid_labelid)"`
+		LabelID     int64 `xorm:"UNIQUE(milestoneid_labelid)"`
 	}
 
 	if err := x.Sync2(new(MilestoneLabel)); err != nil {
