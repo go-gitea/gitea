@@ -1,6 +1,7 @@
 package chi
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,20 +19,19 @@ var _ Router = &Mux{}
 // particularly useful for writing large REST API services that break a handler
 // into many smaller parts composed of middlewares and end handlers.
 type Mux struct {
-	// The radix trie router
-	tree *node
-
-	// The middleware stack
-	middlewares []func(http.Handler) http.Handler
-
-	// Controls the behaviour of middleware chain generation when a mux
-	// is registered as an inline group inside another mux.
-	inline bool
-	parent *Mux
-
 	// The computed mux handler made of the chained middleware stack and
 	// the tree router
 	handler http.Handler
+
+	// The radix trie router
+	tree *node
+
+	// Custom method not allowed handler
+	methodNotAllowedHandler http.HandlerFunc
+
+	// Controls the behaviour of middleware chain generation when a mux
+	// is registered as an inline group inside another mux.
+	parent *Mux
 
 	// Routing context pool
 	pool *sync.Pool
@@ -39,8 +39,10 @@ type Mux struct {
 	// Custom route not found handler
 	notFoundHandler http.HandlerFunc
 
-	// Custom method not allowed handler
-	methodNotAllowedHandler http.HandlerFunc
+	// The middleware stack
+	middlewares []func(http.Handler) http.Handler
+
+	inline bool
 }
 
 // NewMux returns a newly initialized Mux object that implements the Router
@@ -79,8 +81,8 @@ func (mx *Mux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	rctx.Routes = mx
 	rctx.parentCtx = r.Context()
 
-	// NOTE: r.WithContext() causes 2 allocations
-	r = r.WithContext((*directContext)(rctx))
+	// NOTE: r.WithContext() causes 2 allocations and context.WithValue() causes 1 allocation
+	r = r.WithContext(context.WithValue(r.Context(), RouteCtxKey, rctx))
 
 	// Serve the request and once its done, put the request context back in the sync pool
 	mx.handler.ServeHTTP(w, r)
@@ -419,6 +421,9 @@ func (mx *Mux) routeHTTP(w http.ResponseWriter, r *http.Request) {
 			routePath = r.URL.RawPath
 		} else {
 			routePath = r.URL.Path
+		}
+		if routePath == "" {
+			routePath = "/"
 		}
 	}
 

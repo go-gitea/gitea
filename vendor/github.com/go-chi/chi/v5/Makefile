@@ -12,3 +12,7 @@ test-router:
 
 test-middleware:
 	go test -race -v ./middleware
+
+.PHONY: docs
+docs:
+	npx docsify-cli serve ./docs

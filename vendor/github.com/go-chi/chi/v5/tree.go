@@ -6,7 +6,6 @@ package chi
 
 import (
 	"fmt"
-	"math"
 	"net/http"
 	"regexp"
 	"sort"
@@ -14,7 +13,7 @@ import (
 	"strings"
 )
 
-type methodTyp int
+type methodTyp uint
 
 const (
 	mSTUB methodTyp = 1 << iota
@@ -55,10 +54,10 @@ func RegisterMethod(method string) {
 		return
 	}
 	n := len(methodMap)
-	if n > strconv.IntSize {
+	if n > strconv.IntSize-2 {
 		panic(fmt.Sprintf("chi: max number of methods reached (%d)", strconv.IntSize))
 	}
-	mt := methodTyp(math.Exp2(float64(n)))
+	mt := methodTyp(2 << n)
 	methodMap[method] = mt
 	mALL |= mt
 }
@@ -73,17 +72,8 @@ const (
 )
 
 type node struct {
-	// node type: static, regexp, param, catchAll
-	typ nodeTyp
-
-	// first byte of the prefix
-	label byte
-
-	// first byte of the child prefix
-	tail byte
-
-	// prefix is the common prefix we ignore
-	prefix string
+	// subroutes on the leaf node
+	subroutes Routes
 
 	// regexp matcher for regexp nodes
 	rex *regexp.Regexp
@@ -91,12 +81,21 @@ type node struct {
 	// HTTP handler endpoints on the leaf node
 	endpoints endpoints
 
-	// subroutes on the leaf node
-	subroutes Routes
+	// prefix is the common prefix we ignore
+	prefix string
 
 	// child nodes should be stored in-order for iteration,
 	// in groups of the node type.
 	children [ntCatchAll + 1]nodes
+
+	// first byte of the child prefix
+	tail byte
+
+	// node type: static, regexp, param, catchAll
+	typ nodeTyp
+
+	// first byte of the prefix
+	label byte
 }
 
 // endpoints is a mapping of http method constants to handlers
@@ -430,6 +429,8 @@ func (n *node) findRoute(rctx *Context, method methodTyp, path string) *node {
 					} else {
 						continue
 					}
+				} else if ntyp == ntRegexp && p == 0 {
+					continue
 				}
 
 				if ntyp == ntRegexp && xn.rex != nil {
@@ -630,7 +631,7 @@ func (n *node) routes() []Route {
 				hs[m] = h.handler
 			}
 
-			rt := Route{p, hs, subroutes}
+			rt := Route{subroutes, hs, p}
 			rts = append(rts, rt)
 		}
 
@@ -814,9 +815,9 @@ func (ns nodes) findEdge(label byte) *node {
 // Route describes the details of a routing handler.
 // Handlers map key is an HTTP method
 type Route struct {
-	Pattern   string
-	Handlers  map[string]http.Handler
 	SubRoutes Routes
+	Handlers  map[string]http.Handler
+	Pattern   string
 }
 
 // WalkFunc is the type of the function called for each method and route visited by Walk.

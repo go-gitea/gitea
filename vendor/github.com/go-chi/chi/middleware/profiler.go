@@ -23,10 +23,10 @@ func Profiler() http.Handler {
 	r.Use(NoCache)
 
 	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, r.RequestURI+"/pprof/", http.StatusMovedPermanently)
+		http.Redirect(w, r, r.RequestURI+"/pprof/", 301)
 	})
 	r.HandleFunc("/pprof", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, r.RequestURI+"/", http.StatusMovedPermanently)
+		http.Redirect(w, r, r.RequestURI+"/", 301)
 	})
 
 	r.HandleFunc("/pprof/*", pprof.Index)

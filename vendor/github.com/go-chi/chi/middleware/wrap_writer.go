@@ -19,15 +19,18 @@ func NewWrapResponseWriter(w http.ResponseWriter, protoMajor int) WrapResponseWr
 
 	if protoMajor == 2 {
 		_, ps := w.(http.Pusher)
-		if fl || ps {
+		if fl && ps {
 			return &http2FancyWriter{bw}
 		}
 	} else {
 		_, hj := w.(http.Hijacker)
 		_, rf := w.(io.ReaderFrom)
-		if fl || hj || rf {
+		if fl && hj && rf {
 			return &httpFancyWriter{bw}
 		}
+	}
+	if fl {
+		return &flushWriter{bw}
 	}
 
 	return &bw
@@ -107,6 +110,18 @@ func (b *basicWriter) Unwrap() http.ResponseWriter {
 	return b.ResponseWriter
 }
 
+type flushWriter struct {
+	basicWriter
+}
+
+func (f *flushWriter) Flush() {
+	f.wroteHeader = true
+	fl := f.basicWriter.ResponseWriter.(http.Flusher)
+	fl.Flush()
+}
+
+var _ http.Flusher = &flushWriter{}
+
 // httpFancyWriter is a HTTP writer that additionally satisfies
 // http.Flusher, http.Hijacker, and io.ReaderFrom. It exists for the common case
 // of wrapping the http.ResponseWriter that package http gives you, in order to
@@ -126,6 +141,10 @@ func (f *httpFancyWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	return hj.Hijack()
 }
 
+func (f *http2FancyWriter) Push(target string, opts *http.PushOptions) error {
+	return f.basicWriter.ResponseWriter.(http.Pusher).Push(target, opts)
+}
+
 func (f *httpFancyWriter) ReadFrom(r io.Reader) (int64, error) {
 	if f.basicWriter.tee != nil {
 		n, err := io.Copy(&f.basicWriter, r)
@@ -141,6 +160,7 @@ func (f *httpFancyWriter) ReadFrom(r io.Reader) (int64, error) {
 
 var _ http.Flusher = &httpFancyWriter{}
 var _ http.Hijacker = &httpFancyWriter{}
+var _ http.Pusher = &http2FancyWriter{}
 var _ io.ReaderFrom = &httpFancyWriter{}
 
 // http2FancyWriter is a HTTP2 writer that additionally satisfies
@@ -157,9 +177,4 @@ func (f *http2FancyWriter) Flush() {
 	fl.Flush()
 }
 
-func (f *http2FancyWriter) Push(target string, opts *http.PushOptions) error {
-	return f.basicWriter.ResponseWriter.(http.Pusher).Push(target, opts)
-}
-
 var _ http.Flusher = &http2FancyWriter{}
-var _ http.Pusher = &http2FancyWriter{}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 )
 
 // URLParam returns the url parameter from a http.Request object.
@@ -46,19 +45,23 @@ var (
 type Context struct {
 	Routes Routes
 
+	// parentCtx is the parent of this one, for using Context as a
+	// context.Context directly. This is an optimization that saves
+	// 1 allocation.
+	parentCtx context.Context
+
 	// Routing path/method override used during the route search.
 	// See Mux#routeHTTP method.
 	RoutePath   string
 	RouteMethod string
 
-	// Routing pattern stack throughout the lifecycle of the request,
-	// across all connected routers. It is a record of all matching
-	// patterns across a stack of sub-routers.
-	RoutePatterns []string
-
 	// URLParams are the stack of routeParams captured during the
 	// routing lifecycle across a stack of sub-routers.
 	URLParams RouteParams
+
+	// Route parameters matched for the current sub-router. It is
+	// intentionally unexported so it cant be tampered.
+	routeParams RouteParams
 
 	// The endpoint routing pattern that matched the request URI path
 	// or `RoutePath` of the current sub-router. This value will update
@@ -66,17 +69,13 @@ type Context struct {
 	// sub-routers.
 	routePattern string
 
-	// Route parameters matched for the current sub-router. It is
-	// intentionally unexported so it cant be tampered.
-	routeParams RouteParams
+	// Routing pattern stack throughout the lifecycle of the request,
+	// across all connected routers. It is a record of all matching
+	// patterns across a stack of sub-routers.
+	RoutePatterns []string
 
 	// methodNotAllowed hint
 	methodNotAllowed bool
-
-	// parentCtx is the parent of this one, for using Context as a
-	// context.Context directly. This is an optimization that saves
-	// 1 allocation.
-	parentCtx context.Context
 }
 
 // Reset a routing context to its initial state.
@@ -144,32 +143,6 @@ type RouteParams struct {
 func (s *RouteParams) Add(key, value string) {
 	s.Keys = append(s.Keys, key)
 	s.Values = append(s.Values, value)
-}
-
-// directContext provides direct access to the routing *Context object,
-// while implementing the context.Context interface, thereby allowing
-// us to saving 1 allocation during routing.
-type directContext Context
-
-var _ context.Context = (*directContext)(nil)
-
-func (d *directContext) Deadline() (deadline time.Time, ok bool) {
-	return d.parentCtx.Deadline()
-}
-
-func (d *directContext) Done() <-chan struct{} {
-	return d.parentCtx.Done()
-}
-
-func (d *directContext) Err() error {
-	return d.parentCtx.Err()
-}
-
-func (d *directContext) Value(key interface{}) interface{} {
-	if key == RouteCtxKey {
-		return (*Context)(d)
-	}
-	return d.parentCtx.Value(key)
 }
 
 // contextKey is a value for use with context.WithValue. It's used as

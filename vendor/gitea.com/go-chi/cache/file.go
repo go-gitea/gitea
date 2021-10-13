@@ -25,8 +25,6 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
-
-	"github.com/unknwon/com"
 )
 
 // Item represents a cache item.
@@ -136,7 +134,10 @@ func (c *FileCacher) Decr(key string) error {
 
 // IsExist returns true if cached value exists.
 func (c *FileCacher) IsExist(key string) bool {
-	return com.IsExist(c.filepath(key))
+	if item, err := c.read(key); err == nil {
+		return !item.hasExpired()
+	}
+	return false
 }
 
 // Flush deletes all cached data.
