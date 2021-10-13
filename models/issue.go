@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -803,8 +804,13 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issue.addCrossReferences(db.GetEngine(ctx), doer, true); err != nil {
-		return err
+	if err = issues.SaveIssueContentHistory(db.GetEngine(ctx), issue.PosterID, issue.ID, 0,
+		timeutil.TimeStampNow(), issue.Content, false); err != nil {
+		return fmt.Errorf("SaveIssueContentHistory: %v", err)
+	}
+
+	if err = issue.addCrossReferences(ctx.Engine(), doer, true); err != nil {
+		return fmt.Errorf("addCrossReferences: %v", err)
 	}
 
 	return committer.Commit()
@@ -972,6 +978,12 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
+
+	if err = issues.SaveIssueContentHistory(e, opts.Issue.PosterID, opts.Issue.ID, 0,
+		timeutil.TimeStampNow(), opts.Issue.Content, true); err != nil {
+		return err
+	}
+
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
@@ -2131,6 +2143,12 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 
 func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []string, err error) {
 	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
+
+	// Delete content histories
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&issues.ContentHistory{}); err != nil {
+		return
+	}
 
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).

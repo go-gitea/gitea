@@ -114,6 +114,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				wrap := ast.NewLink()
 				wrap.Destination = link
 				wrap.Title = v.Title
+				wrap.SetAttributeString("target", []byte("_blank"))
 
 				// Duplicate the current image node
 				image := ast.NewImage(ast.NewLink())

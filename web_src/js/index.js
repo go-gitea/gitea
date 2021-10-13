@@ -17,10 +17,12 @@ import initMigration from './features/migration.js';
 import initProject from './features/projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initTableSort from './features/tablesort.js';
+import {initAdminUserListSearchForm} from './features/admin-users.js';
 import {createCodeEditor, createMonaco} from './features/codeeditor.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationsTable, initNotificationCount} from './features/notification.js';
 import {initLastCommitLoader} from './features/lastcommitloader.js';
+import {initIssueContentHistory} from './features/issue-content-history.js';
 import {initStopwatch} from './features/stopwatch.js';
 import {showLineButton} from './code/linebutton.js';
 import {initMarkupContent, initCommentContent} from './markup/content.js';
@@ -2873,6 +2875,8 @@ $(document).ready(async () => {
   initFileViewToggle();
   initReleaseEditor();
   initRelease();
+  initIssueContentHistory();
+  initAdminUserListSearchForm();
 
   const routes = {
     'div.user.settings': initUserSettings,
