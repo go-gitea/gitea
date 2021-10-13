@@ -397,7 +397,7 @@ let autoSimpleMDE;
 
 function initCommentForm() {
   if ($('.comment.form').length === 0 && $('.select-label').length < 1) {
-      return;
+    return;
   }
 
   autoSimpleMDE = setCommentSimpleMDE($('.comment.form textarea:not(.review-textarea)'));
