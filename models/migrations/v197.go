@@ -18,4 +18,3 @@ func addRenamedBranchTable(x *xorm.Engine) error {
 	}
 	return x.Sync2(new(RenamedBranch))
 }
-
