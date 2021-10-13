@@ -1,8 +1,7 @@
-<div id="app" class="six wide column">
+<div id="dashboard-repo-list" class="six wide column">
 	<repo-search
 	:search-limit="searchLimit"
-	:suburl="suburl"
-	:uid="uid"
+	:sub-url="subUrl"
 	{{if .Team}}
 	:team-id="{{.Team.ID}}"
 	{{end}}
@@ -31,7 +30,7 @@
 					{{.i18n.Tr "home.my_repos"}}
 					<span class="ui grey label ml-3">${reposTotalCount}</span>
 				</div>
-				<a class="poping up" :href="suburl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
+				<a class="poping up" :href="subUrl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-variation="tiny inverted" data-position="left center">
 					{{svg "octicon-plus"}}
 					<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
 				</a>
@@ -122,7 +121,7 @@
 			<div v-if="repos.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="repo in repos" :class="{'private': repo.private || repo.internal}">
-						<a class="repo-list-link df ac sb" :href="suburl + '/' + repo.full_name">
+						<a class="repo-list-link df ac sb" :href="subUrl + '/' + repo.full_name">
 							<div class="text truncate item-name f1">
 								<component v-bind:is="repoIcon(repo)" size="16"></component>
 								<strong>${repo.full_name}</strong>
@@ -168,7 +167,7 @@
 					{{.i18n.Tr "home.my_orgs"}}
 					<span class="ui grey label ml-3">${organizationsTotalCount}</span>
 				</div>
-				<a v-if="canCreateOrganization" class="poping up" :href="suburl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
+				<a v-if="canCreateOrganization" class="poping up" :href="subUrl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-variation="tiny inverted" data-position="left center">
 					{{svg "octicon-plus"}}
 					<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
 				</a>
@@ -176,7 +175,7 @@
 			<div v-if="organizations.length" class="ui attached table segment rounded-bottom">
 				<ul class="repo-owner-name-list">
 					<li v-for="org in organizations">
-						<a class="repo-list-link df ac sb" :href="suburl + '/' + org.name">
+						<a class="repo-list-link df ac sb" :href="subUrl + '/' + org.name">
 							<div class="text truncate item-name f1">
 								{{svg "octicon-organization" 16 "mr-2"}}
 								<strong>${org.name}</strong>

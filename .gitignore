@@ -9,6 +9,8 @@ _test
 
 # IntelliJ
 .idea
+# Goland's output filename can not be set manually
+/go_build_*
 
 # MS VSCode
 .vscode
