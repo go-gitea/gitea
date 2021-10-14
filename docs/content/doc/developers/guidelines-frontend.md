@@ -31,23 +31,21 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 
 Guidelines specialized for Gitea:
 
-1. Every feature (Fomantic-UI/jQuery module) should be put in separated files/directories.
-2. HTML id/css-class-name should use kebab-case.
-3. HTML id/css-class-name used by JavaScript top-level selector should be unique in whole project,
-   and should contain 2-3 feature related keywords. Recommend to use `js-` prefix for CSS names for JavaScript usage only.
+1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/ directories.
+2. HTML ids and classes should use kebab-case.
+3. HTML ids and classes used in JavaScript should be unique for the whole project, and should contain 2-3 feature related keywords. We recommend to use the `js-` prefix for classes that are only used in JavaScript.
 4. jQuery events across different features should use their own namespaces.
-5. CSS styles provided by frameworks should not be overwritten by framework's selectors globally.
-   Always use new defined CSS names to overwrite framework styles. Recommend to use `us-` prefix for user defined styles.  
-6. Backend can pass data to frontend (JavaScript) by `ctx.PageData["myModuleData"] = map{}`
+5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names to overwrite framework styles. We recommend to use the `us-` prefix for user defined styles.  
+6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map{}`
 7. Simple pages and SEO-related pages use Go Text Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
 
 ## Legacy Problems and Solutions
 
-### Too many codes in `web_src/index.js`
+### Too much code in `web_src/index.js`
 
-In history, many JavaScript codes are written into `web_src/index.js` directly, which becomes too big to maintain.
-We should split this file into small modules, the separated files can be put in `web_src/js/features` for the first step.
+Previously, most JavaScript code was written into `web_src/index.js` directly, making the file unmaintainable.
+Try to keep this file small by creating new modules instead. These modules can be put in the `web_src/js/features` directory for now.
 
 ### Vue2/Vue3 and JSX
 
-Gitea is using Vue2 now, we have plan to upgrade to Vue3. We decide not to introduce JSX now to make sure the HTML and JavaScript codes are not mixed together.
+Gitea is using Vue2 now, we plan to upgrade to Vue3. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.
