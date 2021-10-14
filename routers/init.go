@@ -48,10 +48,7 @@ import (
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
-<<<<<<< HEAD
 
-=======
->>>>>>> 7afa66cba (Fix test)
 	"gitea.com/go-chi/session"
 )
 
