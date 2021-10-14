@@ -68,7 +68,7 @@ const sfc = {
     // * home_link: (...)
     // * login: (...)
     // * name: (...)
-    activityTopAuthors: window.config.PageData.repoActivityTopAuthors || [],
+    activityTopAuthors: window.config.pageData.repoActivityTopAuthors || [],
   }),
   computed: {
     graphPoints() {

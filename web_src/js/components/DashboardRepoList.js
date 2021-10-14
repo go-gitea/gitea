@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
-const {AppSubUrl, AssetUrlPrefix, PageData} = window.config;
+const {AppSubUrl, AssetUrlPrefix, pageData} = window.config;
 
 function initVueComponents() {
   Vue.component('repo-search', {
@@ -350,7 +350,7 @@ function initVueComponents() {
 
 function initDashboardRepoList() {
   const el = document.getElementById('dashboard-repo-list');
-  const dashboardRepoListData = PageData.dashboardRepoList || null;
+  const dashboardRepoListData = pageData.dashboardRepoList || null;
   if (!el || !dashboardRepoListData) return;
 
   initVueSvg();
