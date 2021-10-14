@@ -13,7 +13,7 @@
 // License for the specific language governing permissions and limitations
 // under the License.
 
-// Package captcha a middleware that provides captcha service for Macaron.
+// Package captcha a middleware that provides captcha service for chi.
 package captcha
 
 import (
@@ -202,7 +202,7 @@ func NewCaptcha(opts ...Options) *Captcha {
 	}
 }
 
-// Captchaer is a middleware that maps a captcha.Captcha service into the Macaron handler chain.
+// Captchaer is a middleware that maps a captcha.Captcha service into the chi handler chain.
 // An single variadic captcha.Options struct can be optionally provided to configure.
 // This should be register after cache.Cacher.
 func Captchaer(cpt *Captcha) func(http.Handler) http.Handler {
