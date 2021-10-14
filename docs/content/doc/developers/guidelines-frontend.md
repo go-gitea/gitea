@@ -29,7 +29,7 @@ The HTML pages are rendered by [Go HTML Template](https://pkg.go.dev/html/templa
 
 We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/htmlcssguide.html) and [Google JavaScript Style Guide](https://google.github.io/styleguide/jsguide.html)
 
-Guidelines specialized for Gitea:
+### Gitea specific guidelines:
 
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case.
