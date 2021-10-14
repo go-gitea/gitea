@@ -81,7 +81,7 @@ func (list U2FRegistrationList) ToRegistrations() []u2f.Registration {
 	for _, reg := range list {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal("parsing u2f registration: %v", err)
+			log.Error("parsing u2f registration: %v", err)
 			continue
 		}
 		regs = append(regs, *r)
