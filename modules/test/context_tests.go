@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/web/middleware"
 
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/unrolled/render"
 )
