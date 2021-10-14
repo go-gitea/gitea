@@ -23,7 +23,7 @@ menu:
 
 Gitea uses [Less CSS](https://lesscss.org), [Fomantic-UI](https://fomantic-ui.com/introduction/getting-started.html) (based on [jQuery](https://api.jquery.com)) and [Vue2](https://vuejs.org/v2/guide/) for its frontend.
 
-The HTML pages are rendered by [Go Text Template](https://pkg.go.dev/text/template)
+The HTML pages are rendered by [Go HTML Template](https://pkg.go.dev/html/template)
 
 ## General Guidelines
 
