@@ -10,7 +10,55 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			{{template "admin/base/search" .}}
+			<form class="ui form ignore-dirty" id="user-list-search-form">
+
+				<!-- Right Menu -->
+				<div class="ui right floated secondary filter menu">
+					<!-- Status Filter Menu Item -->
+					<div class="ui dropdown type jump item">
+						<span class="text">{{.i18n.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
+						<div class="menu">
+							<a class="item j-reset-status-filter">{{.i18n.Tr "admin.users.list_status_filter.reset"}}</a>
+							<div class="ui divider"></div>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_admin"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_admin"}}</label>
+							<div class="ui divider"></div>
+							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_active"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_active"}}</label>
+							<div class="ui divider"></div>
+							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_restricted"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_restricted"}}</label>
+							<div class="ui divider"></div>
+							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
+							<div class="ui divider"></div>
+							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
+						</div>
+					</div>
+
+					<!-- Sort Menu Item -->
+					<div class="ui dropdown type jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+						<div class="menu">
+							<button class="item" name="sort" value="oldest">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button class="item" name="sort" value="newest">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button class="item" name="sort" value="alphabetically">{{.i18n.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button class="item" name="sort" value="reversealphabetically">{{.i18n.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button class="item" name="sort" value="recentupdate">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</button>
+							<button class="item" name="sort" value="leastupdate">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Search Text -->
+				<div class="ui fluid action input" style="max-width: 70%;">
+					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+					<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+				</div>
+			</form>
 		</div>
 		<div class="ui attached table segment">
 			<table class="ui very basic striped table">
@@ -28,9 +76,9 @@
 						<th>{{.i18n.Tr "admin.users.2fa"}}</th>
 						<th>{{.i18n.Tr "admin.users.repos"}}</th>
 						<th>{{.i18n.Tr "admin.users.created"}}</th>
-						<th data-sortt-asc="recentupdate" data-sortt-desc="leastupdate">
+						<th data-sortt-asc="leastupdate" data-sortt-desc="recentupdate">
 							{{.i18n.Tr "admin.users.last_login"}}
-							{{SortArrow "recentupdate" "leastupdate" $.SortType false}}
+							{{SortArrow "leastupdate" "recentupdate" $.SortType false}}
 						</th>
 						<th>{{.i18n.Tr "admin.users.edit"}}</th>
 					</tr>
