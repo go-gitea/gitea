@@ -2233,7 +2233,7 @@ function searchUsers() {
       url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
-        const searchQuery = $searchUserBox.find('input').val();
+        const searchQueryUppercase = $searchUserBox.find('input').val().toUpperCase();
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
@@ -2243,7 +2243,7 @@ function searchUsers() {
             title,
             image: item.avatar_url
           };
-          if (searchQuery === item.login) {
+          if (searchQueryUppercase === item.login.toUpperCase()) {
             items.unshift(resultItem);
           } else {
             items.push(resultItem);
