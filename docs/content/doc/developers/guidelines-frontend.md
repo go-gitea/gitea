@@ -37,7 +37,7 @@ Guidelines specialized for Gitea:
 4. jQuery events across different features should use their own namespaces.
 5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names to overwrite framework styles. We recommend to use the `us-` prefix for user defined styles.  
 6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map{}`
-7. Simple pages and SEO-related pages use Go Text Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
+7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
 
 ## Legacy Problems and Solutions
 
