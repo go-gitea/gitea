@@ -26,7 +26,7 @@ function initVueComponents() {
       },
       organizations: {
         type: Array,
-        default: [],
+        default: () => [],
       },
       isOrganization: {
         type: Boolean,
