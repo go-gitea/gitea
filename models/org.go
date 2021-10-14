@@ -392,6 +392,19 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		Exist(new(Team))
 }
 
+// GetOrgUserMaxAuthorizeLevel returns highest authorize level of user in an organization
+func (org *User) GetOrgUserMaxAuthorizeLevel(uid int64) (AccessMode, error) {
+	var authorize AccessMode
+	_, err := db.GetEngine(db.DefaultContext).
+		Select("max(team.authorize)").
+		Table("team").
+		Join("INNER", "team_user", "team_user.team_id = team.id").
+		Where("team_user.uid = ?", uid).
+		And("team_user.org_id = ?", org.ID).
+		Get(&authorize)
+	return authorize, err
+}
+
 // GetUsersWhoCanCreateOrgRepo returns users which are able to create repo in organization
 func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
 	return getUsersWhoCanCreateOrgRepo(db.GetEngine(db.DefaultContext), orgID)
@@ -456,7 +469,7 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
-	sess.Select(groupByStr+", count(repo_id) as org_count").
+	sess.Select(groupByStr+", count(distinct repo_id) as org_count").
 		Table("user").
 		Join("INNER", "team", "`team`.org_id = `user`.id").
 		Join("INNER", "team_user", "`team`.id = `team_user`.team_id").

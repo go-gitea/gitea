@@ -13,3 +13,4 @@ rules:
   rule-empty-line-before: null
   selector-pseudo-element-colon-notation: double
   shorthand-property-no-redundant-values: true
+  no-invalid-position-at-import-rule: null

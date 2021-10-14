@@ -26,6 +26,7 @@
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
 {{end}}
 	<script>
+		<!-- /* eslint-disable */ -->
 		window.config = {
 			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
@@ -33,6 +34,7 @@
 			CustomEmojis: {{CustomEmojis}},
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
+			PageData: {{ .PageData }},
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
@@ -48,11 +50,11 @@
 			tributeValues: Array.from(new Map([
 				{{ range .Participants }}
 				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
 				{{ end }}
 				{{ range .Assignees }}
 				['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.RelAvatarLink}}'}],
+				name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
 				{{ end }}
 				{{ range .MentionableTeams }}
 					['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',
@@ -75,7 +77,6 @@
 			.ui.secondary.menu .dropdown.item > .menu { margin-top: 0; }
 		</style>
 	</noscript>
-	<style class="list-search-style"></style>
 {{if .PageIsUserProfile}}
 	<meta property="og:title" content="{{.Owner.Name}}" />
 	<meta property="og:type" content="profile" />
@@ -134,8 +135,10 @@
 				{{template "base/head_navbar" .}}
 			</div><!-- end bar -->
 		{{end}}
-{{/*
+
+{{if false}}
+	{{/* to make html structure "likely" complete to prevent IDE warnings */}}
 	</div>
 </body>
 </html>
-*/}}
+{{end}}

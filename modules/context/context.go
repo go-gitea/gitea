@@ -33,7 +33,7 @@ import (
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -48,10 +48,11 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp   ResponseWriter
-	Req    *http.Request
-	Data   map[string]interface{}
-	Render Render
+	Resp     ResponseWriter
+	Req      *http.Request
+	Data     map[string]interface{} // data used by MVC templates
+	PageData map[string]interface{} // data used by JavaScript modules in one page
+	Render   Render
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF
@@ -547,6 +548,17 @@ func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
 }
 
+// GetContextUser returns context user
+func GetContextUser(req *http.Request) *models.User {
+	if apiContext, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
+		return apiContext.User
+	}
+	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
+		return ctx.User
+	}
+	return nil
+}
+
 // SignedUserName returns signed user's name via context
 func SignedUserName(req *http.Request) string {
 	if middleware.IsInternalPath(req) {
@@ -635,6 +647,9 @@ func Contexter() func(next http.Handler) http.Handler {
 					"Link":          link,
 				},
 			}
+			// PageData is passed by reference, and it will be rendered to `window.config.PageData` in `head.tmpl` for JavaScript modules
+			ctx.PageData = map[string]interface{}{}
+			ctx.Data["PageData"] = ctx.PageData
 
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, &ctx)
