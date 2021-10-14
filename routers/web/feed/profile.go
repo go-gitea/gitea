@@ -71,7 +71,12 @@ func ShowUserFeed(ctx *context.Context, ctxUser *models.User, formatType string)
 		Created:     time.Now(),
 	}
 
-	feed.Items = feedActionsToFeedItems(ctx, actions)
+	var err error
+	feed.Items, err = feedActionsToFeedItems(ctx, actions)
+	if err != nil {
+		ctx.ServerError("convert feed", err)
+		return
+	}
 
 	writeFeed(ctx, feed, formatType)
 }

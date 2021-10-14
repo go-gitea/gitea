@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"html"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 
@@ -20,7 +20,7 @@ import (
 )
 
 // feedActionsToFeedItems convert gitea's Action feed to feeds Item
-func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (items []*feeds.Item) {
+func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (items []*feeds.Item, err error) {
 	for _, act := range actions {
 		act.LoadActUser()
 
@@ -89,7 +89,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 			title += ctx.Tr("action.watched_repo", act.GetRepoLink(), act.GetRepoPath())
 			link = &feeds.Link{Href: act.GetRepoLink()}
 		default:
-			log.Error("unknown action type: %v", act.OpType)
+			return nil, fmt.Errorf("unknown action type: %v", act.OpType)
 		}
 
 		// description & content
@@ -145,7 +145,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 				Name:  act.ActUser.DisplayName(),
 				Email: act.ActUser.GetEmail(),
 			},
-			Id:      fmt.Sprint(act.ID),
+			Id:      strconv.FormatInt(act.ID, 10),
 			Created: act.CreatedUnix.AsTime(),
 			Content: content,
 		})
