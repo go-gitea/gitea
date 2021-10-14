@@ -97,7 +97,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		needsRollback = true
 
 		repoPath := models.RepoPath(owner.Name, repo.Name)
-		if stdout, err := git.NewCommand(
+		if stdout, err := git.NewCommandContext(ctx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunInDirTimeout(10*time.Minute, ""); err != nil {
@@ -105,7 +105,11 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
+
+		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunInDir(repoPath); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)

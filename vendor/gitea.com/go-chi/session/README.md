@@ -1,6 +1,6 @@
 # Session
 
-Middleware session provides session management which copied from [Macaron Session](https://gitea.com/go-chi/session) for [go-chi](https://github.com/go-chi/chi). It can use many session providers, including memory, file, Redis, Memcache, PostgreSQL, MySQL, Couchbase, Ledis and Nodb.
+Middleware session provides session management which based on a [fork](https://gitea.com/macaron/session) of [Macaron Session](https://github.com/go-macaron/session) for [go-chi](https://github.com/go-chi/chi). It can use many session providers, including memory, file, Redis, Memcache, PostgreSQL, MySQL, Couchbase, Ledis and Nodb.
 
 ## Installation
 
@@ -10,7 +10,7 @@ go get gitea.com/go-chi/session
 
 ## Credits
 
-This package is a modified version of [go-macaron/session](github.com/go-macaron/session).
+This package is a modified version of [go-macaron/session](https://github.com/go-macaron/session).
 
 ## License
 

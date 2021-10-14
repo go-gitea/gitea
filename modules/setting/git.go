@@ -26,6 +26,7 @@ var (
 		EnableAutoGitWireProtocol bool
 		PullRequestPushMessage    bool
 		LargeObjectThreshold      int64
+		DisableCoreProtectNTFS    bool
 		Timeout                   struct {
 			Default int
 			Migrate int
