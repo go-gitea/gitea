@@ -31,7 +31,7 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 
 Guidelines specialized for Gitea:
 
-1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/ directories.
+1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case.
 3. HTML ids and classes used in JavaScript should be unique for the whole project, and should contain 2-3 feature related keywords. We recommend to use the `js-` prefix for classes that are only used in JavaScript.
 4. jQuery events across different features should use their own namespaces.
