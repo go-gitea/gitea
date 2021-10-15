@@ -32,27 +32,6 @@ var (
 // IDType is a pid type
 type IDType string
 
-// Process represents a working process inheriting from Gitea.
-type Process struct {
-	PID         IDType // Process ID, not system one.
-	ParentPID   IDType
-	children    []*Process
-	Description string
-	Start       time.Time
-	Cancel      context.CancelFunc
-}
-
-// Children gets the children of the process
-func (p *Process) Children() []*Process {
-	var children []*Process
-	pm := GetManager()
-	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
-	children = make([]*Process, len(p.children))
-	copy(children, p.children)
-	return children
-}
-
 // Manager knows about all processes and counts PIDs.
 type Manager struct {
 	mutex sync.Mutex
@@ -74,7 +53,7 @@ func GetManager() *Manager {
 	return manager
 }
 
-// AddContext create a new context and add it as a process. The CancelFunc must always be called even if the context is Done()
+// AddContext create a new context and add it as a process. The remove CancelFunc must always be called even if the context is Done()
 func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
@@ -88,7 +67,7 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 	}, cancel, remove
 }
 
-// AddContextTimeout create a new context and add it as a process
+// AddContextTimeout create a new context and add it as a process. The remove CancelFunc must always be called even if the context is Done()
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
@@ -126,7 +105,7 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 	}
 
 	if parent != nil {
-		parent.children = append(parent.children, process)
+		parent.AddChild(process)
 	}
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
@@ -160,22 +139,17 @@ func (pm *Manager) Remove(pid IDType) {
 
 func (pm *Manager) remove(process *Process) {
 	pm.mutex.Lock()
-	defer pm.mutex.Unlock()
 	if p := pm.processes[process.PID]; p == process {
 		delete(pm.processes, process.PID)
-		for _, child := range process.children {
-			child.ParentPID = ""
-		}
-		parent := pm.processes[process.ParentPID]
-		if parent != nil {
-			for i, child := range parent.children {
-				if child == process {
-					parent.children = append(parent.children[:i], parent.children[i+1:]...)
-					return
-				}
-			}
-		}
 	}
+	parent := pm.processes[process.ParentPID]
+	pm.mutex.Unlock()
+
+	if parent == nil {
+		return
+	}
+
+	parent.RemoveChild(process)
 }
 
 // Cancel a process in the ProcessManager.
@@ -194,7 +168,7 @@ func (pm *Manager) Processes(onlyRoots bool) []*Process {
 	processes := make([]*Process, 0, len(pm.processes))
 	if onlyRoots {
 		for _, process := range pm.processes {
-			if process.ParentPID == "" {
+			if _, has := pm.processes[process.ParentPID]; !has {
 				processes = append(processes, process)
 			}
 		}
