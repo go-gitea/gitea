@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
+// RemoteVersion stores the remote version from the JSON endpoint
 type RemoteVersion struct {
 	ID      int64  `xorm:"pk autoincr"`
 	Version string `xorm:"VARCHAR(50)"`
@@ -92,6 +93,7 @@ func UpdateRemoteVersion(version string) (err error) {
 	return sess.Commit()
 }
 
+// GetRemoteVersion returns the current remote version
 func GetRemoteVersion() string {
 	e := db.GetEngine(db.DefaultContext)
 	v := &RemoteVersion{ID: 1}
@@ -102,6 +104,8 @@ func GetRemoteVersion() string {
 	}
 	return v.Version
 }
+
+// GetNeedUpdate returns true if there is an update needed of Gitea
 func GetNeedUpdate() bool {
 	e := db.GetEngine(db.DefaultContext)
 	v := &RemoteVersion{ID: 1}
