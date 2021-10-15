@@ -773,8 +773,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *TestContext, baseBranch, headBran
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
-		apiCtx := ctx.CreateAPITestContext(t)
-		t.Run("Merge", doMergePullRequest(apiCtx, ctx.Username, ctx.Reponame, pr1.Index))
+		t.Run("Merge", doMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
 }
