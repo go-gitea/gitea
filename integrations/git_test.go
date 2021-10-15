@@ -398,8 +398,8 @@ func doBranchProtectPRMerge(baseCtx *TestContext, dstPath string) func(t *testin
 			pr2, err = doCreatePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
 			assert.NoError(t, err)
 		})
-		t.Run("MergePR2", doMergePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
-		t.Run("MergePR", doMergePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("MergePR2", doMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
+		t.Run("MergePR", doMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 
 		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "unprotected-file-*"))
@@ -486,7 +486,7 @@ func doMergeFork(ctx, baseCtx TestContext, baseBranch, headBranch string) func(t
 		})
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
-		t.Run("MergePR", doMergePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("MergePR", doMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 		t.Run("CheckPR", func(t *testing.T) {
 			oldMergeBase := pr.MergeBase

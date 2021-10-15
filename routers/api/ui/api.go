@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/cors"
@@ -329,6 +330,8 @@ func Routes(sess func(next http.Handler) http.Handler) *web.Route {
 							Patch(reqToken(), bind(api.EditIssueOption{}), repo.EditIssue)
 					})
 				}, mustEnableIssuesOrPulls)
+
+				m.Post("/pulls/{index}/merge", reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			}, repoAssignment())
 		})
 
