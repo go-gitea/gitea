@@ -18,20 +18,26 @@ function onError(btn) {
 
 export default function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', async (e) => {
-    const target = e.target;
-    let text;
-    if (target.dataset.clipboardText) {
-      text = target.dataset.clipboardText;
-    } else if (target.dataset.clipboardTarget) {
-      text = document.querySelector(target.dataset.clipboardTarget)?.value;
-    }
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      onSuccess(target);
-    } catch {
-      onError(target);
+    let target = e.target;
+    // in case <button data-clipboard-text><svg></button>, so we just search up to 3 levels for performance.
+    for (let i = 0; i < 3 && target; i++) {
+      let text;
+      if (target.dataset.clipboardText) {
+        text = target.dataset.clipboardText;
+      } else if (target.dataset.clipboardTarget) {
+        text = document.querySelector(target.dataset.clipboardTarget)?.value;
+      }
+      if (text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          onSuccess(target);
+        } catch {
+          onError(target);
+        }
+        e.preventDefault();
+        break;
+      }
+      target = target.parentElement;
     }
   });
 }
