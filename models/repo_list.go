@@ -281,10 +281,6 @@ func userOrgTeamUnitRepoBuilder(userID int64, unitType UnitType) *builder.Builde
 		Where(builder.Eq{"`team_unit`.`type`": unitType})
 }
 
-func userOrgTeamUnitRepoCond(idStr string, userID int64, unitType UnitType) builder.Cond {
-	return builder.In(idStr, userOrgTeamUnitRepoBuilder(userID, unitType))
-}
-
 func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType UnitType) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
@@ -516,41 +512,6 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db
 
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(user *user_model.User) builder.Cond {
-	cond := builder.NewCond()
-
-	if user == nil || !user.IsRestricted || user.ID <= 0 {
-		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
-		if user == nil || user.ID <= 0 {
-			orgVisibilityLimit = append(orgVisibilityLimit, structs.VisibleTypeLimited)
-		}
-		// 1. Be able to see all non-private repositories that either:
-		cond = cond.Or(builder.And(
-			builder.Eq{"`repository`.is_private": false},
-			// 2. Aren't in an private organisation or limited organisation if we're not logged in
-			builder.NotIn("`repository`.owner_id", builder.Select("id").From("`user`").Where(
-				builder.And(
-					builder.Eq{"type": user_model.UserTypeOrganization},
-					builder.In("visibility", orgVisibilityLimit)),
-			))))
-	}
-
-	if user != nil {
-		cond = cond.Or(
-			// 2. Be able to see all repositories that we have access to
-			userCollaborationRepoCond("`repository`.id", user.ID),
-			// 3. Repositories that we directly own
-			builder.Eq{"`repository`.owner_id": user.ID},
-			// 4. Be able to see all repositories that we are in a team
-			userOrgTeamRepoCond("`repository`.id", user.ID),
-			// 5. Be able to see all public repos in private organizations that we are an org_user of
-			userOrgPublicRepoCond(user.ID),
-		)
-	}
-
-	return cond
-}
-
-func accessibleRepoUnitCond(user *user_mdoel.User, unitType unit.Type) builder.Cond {
 	cond := builder.NewCond()
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
