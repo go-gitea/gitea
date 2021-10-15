@@ -106,7 +106,10 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+
+	ctx.PageData["dashboardRepoList"] = map[string]interface{}{
+		"searchLimit": setting.UI.User.RepoPagingNum,
+	}
 
 	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
