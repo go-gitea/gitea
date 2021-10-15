@@ -345,6 +345,12 @@ var migrations = []Migration{
 	// v195 -> v196
 	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
 	// v196 -> v197
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	// v197 -> v198
+	NewMigration("Add renamed_branch table", addRenamedBranchTable),
+	// v198 -> v199
+	NewMigration("Add issue content history table", addTableIssueContentHistory),
+	// v199 -> v200
 	NewMigration("Add auto merge table", addAutoMergeTable),
 }
 

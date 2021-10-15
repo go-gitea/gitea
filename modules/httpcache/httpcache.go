@@ -16,12 +16,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// GetCacheControl returns a suitable "Cache-Control" header value
-func GetCacheControl() string {
-	if !setting.IsProd() {
-		return "no-store"
+// AddCacheControlToHeader adds suitable cache-control headers to response
+func AddCacheControlToHeader(h http.Header, d time.Duration) {
+	if setting.IsProd() {
+		h.Set("Cache-Control", "private, max-age="+strconv.Itoa(int(d.Seconds())))
+	} else {
+		h.Set("Cache-Control", "no-store")
+		// to remind users they are using non-prod setting.
+		// some users may be confused by "Cache-Control: no-store" in their setup if they did wrong to `RUN_MODE` in `app.ini`.
+		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
+		h.Add("X-Gitea-Debug", "CacheControl=no-store")
 	}
-	return "private, max-age=" + strconv.FormatInt(int64(setting.StaticCacheTime.Seconds()), 10)
 }
 
 // generateETag generates an ETag based on size, filename and file modification time
@@ -32,7 +37,7 @@ func generateETag(fi os.FileInfo) string {
 
 // HandleTimeCache handles time-based caching for a HTTP request
 func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (handled bool) {
-	w.Header().Set("Cache-Control", GetCacheControl())
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
 
 	ifModifiedSince := req.Header.Get("If-Modified-Since")
 	if ifModifiedSince != "" {
@@ -63,7 +68,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	w.Header().Set("Cache-Control", GetCacheControl())
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
 	return false
 }
 

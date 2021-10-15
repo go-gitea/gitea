@@ -327,6 +327,20 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 		return 0
 	}
+
+	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
+		projects, _, err := models.GetProjects(models.ProjectSearchOptions{
+			RepoID:   repo.ID,
+			Type:     models.ProjectTypeRepository,
+			IsClosed: util.OptionalBoolOf(isShowClosed),
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		ctx.Data["Projects"] = projects
+	}
+
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
@@ -803,6 +817,9 @@ func NewIssue(ctx *context.Context) {
 			ctx.Data["Project"] = project
 		}
 
+		if len(ctx.Req.URL.Query().Get("project")) > 0 {
+			ctx.Data["redirect_after_creation"] = "project"
+		}
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
@@ -990,7 +1007,11 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
-	ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
+	if ctx.FormString("redirect_after_creation") == "project" {
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + fmt.Sprint(form.ProjectID))
+	} else {
+		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
+	}
 }
 
 // commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
@@ -2614,5 +2635,5 @@ func handleTeamMentions(ctx *context.Context) {
 
 	ctx.Data["MentionableTeams"] = ctx.Repo.Owner.Teams
 	ctx.Data["MentionableTeamsOrg"] = ctx.Repo.Owner.Name
-	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.RelAvatarLink()
+	ctx.Data["MentionableTeamsOrgAvatar"] = ctx.Repo.Owner.AvatarLink()
 }

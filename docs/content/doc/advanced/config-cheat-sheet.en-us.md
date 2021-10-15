@@ -842,6 +842,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
 - `LARGE_OBJECT_THRESHOLD`: **1048576**: (Go-Git only), don't cache objects greater than this in memory. (Set to 0 to disable.)
+- `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
 ## Git - Timeout settings (`git.timeout`)
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
@@ -853,6 +854,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 ## Metrics (`metrics`)
 
 - `ENABLED`: **false**: Enables /metrics endpoint for prometheus.
+- `ENABLED_ISSUE_BY_LABEL`: **false**: Enable issue by label metrics with format `gitea_issues_by_label{label="bug"} 2`.
+- `ENABLED_ISSUE_BY_REPOSITORY`: **false**: Enable issue by repository metrics with format `gitea_issues_by_repository{repository="org/repo"} 5`.
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
 
 ## API (`api`)
@@ -952,6 +955,10 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
+
+## Federation (`federation`)
+
+- `ENABLED`: **true**: Enable/Disable federation capabilities
 
 ## Mirror (`mirror`)
 

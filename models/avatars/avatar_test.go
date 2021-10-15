@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package avatars
 
 import (
 	"net/url"
@@ -44,11 +44,11 @@ func TestSizedAvatarLink(t *testing.T) {
 
 	disableGravatar()
 	assert.Equal(t, "/testsuburl/assets/img/avatar_default.png",
-		SizedAvatarLink("gitea@example.com", 100))
+		GenerateEmailAvatarFastLink("gitea@example.com", 100))
 
 	enableGravatar(t)
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
-		SizedAvatarLink("gitea@example.com", 100),
+		GenerateEmailAvatarFastLink("gitea@example.com", 100),
 	)
 }
