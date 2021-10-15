@@ -51,7 +51,7 @@ type Context struct {
 	Resp     ResponseWriter
 	Req      *http.Request
 	Data     map[string]interface{} // data used by MVC templates
-	PageData map[string]interface{} // data used by JavaScript modules in one page
+	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
 	Render   Render
 	translation.Locale
 	Cache   cache.Cache
@@ -645,9 +645,10 @@ func Contexter() func(next http.Handler) http.Handler {
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"Link":          link,
+					"IsProd":        setting.IsProd(),
 				},
 			}
-			// PageData is passed by reference, and it will be rendered to `window.config.PageData` in `head.tmpl` for JavaScript modules
+			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
 			ctx.Data["PageData"] = ctx.PageData
 
