@@ -2232,15 +2232,21 @@ function searchUsers() {
       url: `${AppSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
+        const searchQueryUppercase = $searchUserBox.find('input').val().toUpperCase();
         $.each(response.data, (_i, item) => {
           let title = item.login;
           if (item.full_name && item.full_name.length > 0) {
             title += ` (${htmlEscape(item.full_name)})`;
           }
-          items.push({
+          const resultItem = {
             title,
             image: item.avatar_url
-          });
+          };
+          if (searchQueryUppercase === item.login.toUpperCase()) {
+            items.unshift(resultItem);
+          } else {
+            items.push(resultItem);
+          }
         });
 
         return {results: items};
