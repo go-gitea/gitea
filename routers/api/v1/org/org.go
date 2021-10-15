@@ -47,7 +47,7 @@ func listUserOrgs(ctx *context.APIContext, u *models.User) {
 		apiOrgs[i] = convert.ToOrganization(orgs[i])
 	}
 
-	ctx.SetLinkHeader(maxResults, listOptions.PageSize)
+	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
 	ctx.SetTotalCountHeader(int64(maxResults))
 	ctx.JSON(http.StatusOK, &apiOrgs)
 }

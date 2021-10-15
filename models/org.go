@@ -526,6 +526,11 @@ type FindOrgOptions struct {
 	IncludePrivate bool
 }
 
+func queryUserOrgIDs(userID int64) *builder.Builder {
+	return builder.Select("org_id").From("org_user").
+		Where(builder.Eq{"uid": userID})
+}
+
 func (opts FindOrgOptions) toConds() builder.Cond {
 	var cond = builder.NewCond()
 	if opts.UserID > 0 {

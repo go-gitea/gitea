@@ -216,7 +216,7 @@ func Organization(ctx *context.Context) {
 	ctx.Data["PageIsSettingsOrganization"] = true
 
 	opts := models.FindOrgOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 			Page:     ctx.FormInt("page"),
 		},
