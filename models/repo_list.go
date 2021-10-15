@@ -637,7 +637,6 @@ func FindUserAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
 	return repoIDs, nil
 }
 
-<<<<<<< HEAD
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int64, error) {
 	if len(opts.OrderBy) == 0 {
@@ -664,9 +663,9 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*repo_model.Repository, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
-=======
+}
+
 // FindReposMapByIDs find repos as map
 func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
-	return x.In("id", repoIDs).Find(&res)
->>>>>>> f6ddec83b (Improve the performance of pulls/issue)
+	return db.GetEngine(db.DefaultContext).In("id", repoIDs).Find(&res)
 }
