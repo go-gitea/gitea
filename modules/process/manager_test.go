@@ -22,7 +22,7 @@ func TestGetManager(t *testing.T) {
 }
 
 func TestManager_AddContext(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
+	pm := Manager{processes: make(map[IDType]*Process), next: 1}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -39,7 +39,7 @@ func TestManager_AddContext(t *testing.T) {
 }
 
 func TestManager_Cancel(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
+	pm := Manager{processes: make(map[IDType]*Process), next: 1}
 
 	ctx, _, remove := pm.AddContext(context.Background(), "foo")
 	defer remove()
@@ -67,7 +67,7 @@ func TestManager_Cancel(t *testing.T) {
 }
 
 func TestManager_Remove(t *testing.T) {
-	pm := Manager{processes: make(map[int64]*Process), next: 1, low: 1}
+	pm := Manager{processes: make(map[IDType]*Process), next: 1}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

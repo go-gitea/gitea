@@ -331,8 +331,8 @@ func Monitor(ctx *context.Context) {
 
 // MonitorCancel cancels a process
 func MonitorCancel(ctx *context.Context) {
-	pid := ctx.ParamsInt64("pid")
-	process.GetManager().Cancel(pid)
+	pid := ctx.Params("pid")
+	process.GetManager().Cancel(process.IDType(pid))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/monitor",
 	})

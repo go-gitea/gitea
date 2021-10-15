@@ -12,6 +12,7 @@ import (
 	"io"
 	"os/exec"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -26,18 +27,15 @@ var (
 
 	// DefaultContext is the default context to run processing commands in
 	DefaultContext = context.Background()
-
-	// RecyclePID is the PID number at which we will attempt to recycle PIDs
-	RecyclePID int64 = 1 << 16
-
-	// HuntSize is the size of the hunt for the lowest free PID
-	HuntSize int64 = 512
 )
+
+// IDType is a pid type
+type IDType string
 
 // Process represents a working process inheriting from Gitea.
 type Process struct {
-	PID         int64 // Process ID, not system one.
-	ParentPID   int64
+	PID         IDType // Process ID, not system one.
+	ParentPID   IDType
 	children    []*Process
 	Description string
 	Start       time.Time
@@ -59,19 +57,18 @@ func (p *Process) Children() []*Process {
 type Manager struct {
 	mutex sync.Mutex
 
-	next int64
-	low  int64
+	next     int64
+	lastTime time.Time
 
-	processes map[int64]*Process
+	processes map[IDType]*Process
 }
 
 // GetManager returns a Manager and initializes one as singleton if there's none yet
 func GetManager() *Manager {
 	managerInit.Do(func() {
 		manager = &Manager{
-			processes: make(map[int64]*Process),
+			processes: make(map[IDType]*Process),
 			next:      1,
-			low:       1,
 		}
 	})
 	return manager
@@ -106,20 +103,20 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 }
 
 // Add create a new process
-func (pm *Manager) Add(parentPID int64, description string, cancel context.CancelFunc) (int64, context.CancelFunc) {
+func (pm *Manager) Add(parentPID IDType, description string, cancel context.CancelFunc) (IDType, context.CancelFunc) {
 	pm.mutex.Lock()
-	pid := pm.nextPID()
+	start, pid := pm.nextPID()
 
 	parent := pm.processes[parentPID]
 	if parent == nil {
-		parentPID = 0
+		parentPID = ""
 	}
 
 	process := &Process{
 		PID:         pid,
 		ParentPID:   parentPID,
 		Description: description,
-		Start:       time.Now(),
+		Start:       start,
 		Cancel:      cancel,
 	}
 
@@ -138,38 +135,26 @@ func (pm *Manager) Add(parentPID int64, description string, cancel context.Cance
 }
 
 // nextPID will return the next available PID. pm.mutex should already be locked.
-func (pm *Manager) nextPID() int64 {
-	if pm.next > RecyclePID {
-		for i := int64(0); i < HuntSize; i++ {
-			if pm.low >= pm.next {
-				pm.low = 1
-				break
-			}
-			if _, ok := pm.processes[pm.low]; !ok {
-				next := pm.low
-				pm.low++
-				return next
-			}
-			pm.low++
-		}
+func (pm *Manager) nextPID() (start time.Time, pid IDType) {
+	start = time.Now()
+	if pm.lastTime == start {
+		pm.next++
+	} else {
+		pm.next = 1
 	}
-	next := pm.next
-	pm.next++
-	return next
-}
+	pid = IDType(strconv.FormatInt(start.Unix(), 16))
 
-// releasePID will release the PID. pm.mutex should already be locked.
-func (pm *Manager) releasePID(pid int64) {
-	if pid < pm.low+RecyclePID {
-		pm.low = pid
+	if pm.next == 1 {
+		return
 	}
+	pid += IDType("-" + strconv.FormatInt(pm.next, 10))
+	return
 }
 
 // Remove a process from the ProcessManager.
-func (pm *Manager) Remove(pid int64) {
+func (pm *Manager) Remove(pid IDType) {
 	pm.mutex.Lock()
 	delete(pm.processes, pid)
-	pm.releasePID(pid)
 	pm.mutex.Unlock()
 }
 
@@ -178,9 +163,8 @@ func (pm *Manager) remove(process *Process) {
 	defer pm.mutex.Unlock()
 	if p := pm.processes[process.PID]; p == process {
 		delete(pm.processes, process.PID)
-		pm.releasePID(process.PID)
 		for _, child := range process.children {
-			child.ParentPID = 0
+			child.ParentPID = ""
 		}
 		parent := pm.processes[process.ParentPID]
 		if parent != nil {
@@ -195,7 +179,7 @@ func (pm *Manager) remove(process *Process) {
 }
 
 // Cancel a process in the ProcessManager.
-func (pm *Manager) Cancel(pid int64) {
+func (pm *Manager) Cancel(pid IDType) {
 	pm.mutex.Lock()
 	process, ok := pm.processes[pid]
 	pm.mutex.Unlock()
@@ -210,7 +194,7 @@ func (pm *Manager) Processes(onlyRoots bool) []*Process {
 	processes := make([]*Process, 0, len(pm.processes))
 	if onlyRoots {
 		for _, process := range pm.processes {
-			if process.ParentPID == 0 {
+			if process.ParentPID == "" {
 				processes = append(processes, process)
 			}
 		}
@@ -299,7 +283,7 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 
 // Error is a wrapped error describing the error results of Process Execution
 type Error struct {
-	PID         int64
+	PID         IDType
 	Description string
 	Err         error
 	CtxErr      error
@@ -308,7 +292,7 @@ type Error struct {
 }
 
 func (err *Error) Error() string {
-	return fmt.Sprintf("exec(%d:%s) failed: %v(%v) stdout: %s stderr: %s", err.PID, err.Description, err.Err, err.CtxErr, err.Stdout, err.Stderr)
+	return fmt.Sprintf("exec(%s:%s) failed: %v(%v) stdout: %s stderr: %s", err.PID, err.Description, err.Err, err.CtxErr, err.Stdout, err.Stderr)
 }
 
 // Unwrap implements the unwrappable implicit interface for go1.13 Unwrap()

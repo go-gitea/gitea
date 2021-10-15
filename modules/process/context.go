@@ -11,11 +11,11 @@ import (
 // Context is a wrapper around context.Context for having the current pid for this context
 type Context struct {
 	context.Context
-	pid int64
+	pid IDType
 }
 
 // GetPID returns the PID for this context
-func (c *Context) GetPID() int64 {
+func (c *Context) GetPID() IDType {
 	return c.pid
 }
 
@@ -51,17 +51,17 @@ func GetContext(ctx context.Context) *Context {
 }
 
 // GetPID returns the PID for this context
-func GetPID(ctx context.Context) int64 {
+func GetPID(ctx context.Context) IDType {
 	pCtx := GetContext(ctx)
 	if pCtx == nil {
-		return 0
+		return ""
 	}
 	return pCtx.GetPID()
 }
 
 // GetParentPID returns the ParentPID for this context
-func GetParentPID(ctx context.Context) int64 {
-	parentPID := int64(0)
+func GetParentPID(ctx context.Context) IDType {
+	var parentPID IDType
 	if parentProcess := GetContext(ctx); parentProcess != nil {
 		parentPID = parentProcess.GetPID()
 	}
