@@ -976,7 +976,19 @@
         }
 
         .content {
-          > .merge-section {
+          @media @mediaSm {
+            .form .button {
+              width: 100%;
+              margin: 0;
+
+              &:not(:last-child) {
+                margin-bottom: 1rem;
+              }
+            }
+          }
+        }
+
+        > .merge-section {
             background-color: var(--color-box-body);
 
             .item {
@@ -1004,17 +1016,6 @@
                 border-right-color: var(--color-box-body);
               }
             }
-
-            @media @mediaSm {
-              .form .button {
-                width: 100%;
-
-                &:not(:last-child) {
-                  margin-bottom: 1rem;
-                }
-              }
-            }
-          }
 
           .markup {
             font-size: 14px;
