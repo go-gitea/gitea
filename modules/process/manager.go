@@ -37,7 +37,7 @@ type Manager struct {
 	mutex sync.Mutex
 
 	next     int64
-	lastTime time.Time
+	lastTime int64
 
 	processes map[IDType]*Process
 }
@@ -116,17 +116,19 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 // nextPID will return the next available PID. pm.mutex should already be locked.
 func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 	start = time.Now()
-	if pm.lastTime == start {
+	startUnix := start.Unix()
+	if pm.lastTime == startUnix {
 		pm.next++
 	} else {
 		pm.next = 1
 	}
+	pm.lastTime = startUnix
 	pid = IDType(strconv.FormatInt(start.Unix(), 16))
 
 	if pm.next == 1 {
 		return
 	}
-	pid += IDType("-" + strconv.FormatInt(pm.next, 10))
+	pid = IDType(string(pid) + "-" + strconv.FormatInt(pm.next, 10))
 	return
 }
 

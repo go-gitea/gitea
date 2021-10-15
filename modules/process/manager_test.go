@@ -29,13 +29,15 @@ func TestManager_AddContext(t *testing.T) {
 
 	p1Ctx, _, remove := pm.AddContext(ctx, "foo")
 	defer remove()
-	assert.Equal(t, int64(1), GetContext(p1Ctx).GetPID(), "expected to get pid 1 got %d", GetContext(p1Ctx).GetPID())
+	assert.NotEmpty(t, GetContext(p1Ctx).GetPID(), "expected to get non-empty pid")
 
 	p2Ctx, _, remove := pm.AddContext(p1Ctx, "bar")
 	defer remove()
 
-	assert.Equal(t, int64(2), GetContext(p2Ctx).GetPID(), "expected to get pid 2 got %d", GetContext(p2Ctx).GetPID())
-	assert.Equal(t, int64(1), GetContext(p2Ctx).GetParent().GetPID(), "expected to get pid 1 got %d", GetContext(p2Ctx).GetParent().GetPID())
+	assert.NotEmpty(t, GetContext(p2Ctx).GetPID(), "expected to get non-empty pid")
+
+	assert.NotEqual(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetPID(), "expected to get different pids %s == %s", GetContext(p2Ctx).GetPID(), GetContext(p1Ctx).GetPID())
+	assert.Equal(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetParent().GetPID(), "expected to get pid %s got %s", GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetParent().GetPID())
 }
 
 func TestManager_Cancel(t *testing.T) {
@@ -74,12 +76,12 @@ func TestManager_Remove(t *testing.T) {
 
 	p1Ctx, _, remove := pm.AddContext(ctx, "foo")
 	defer remove()
-	assert.Equal(t, int64(1), GetContext(p1Ctx).GetPID(), "expected to get pid 1 got %d", GetContext(p1Ctx).GetPID())
+	assert.NotEmpty(t, GetContext(p1Ctx).GetPID(), "expected to have non-empty PID")
 
 	p2Ctx, _, remove := pm.AddContext(p1Ctx, "bar")
 	defer remove()
 
-	assert.Equal(t, int64(2), GetContext(p2Ctx).GetPID(), "expected to get pid 2 got %d", GetContext(p2Ctx).GetPID())
+	assert.NotEqual(t, GetContext(p1Ctx).GetPID(), GetContext(p2Ctx).GetPID(), "expected to get different pids got %s == %s", GetContext(p2Ctx).GetPID(), GetContext(p1Ctx).GetPID())
 
 	pm.Remove(GetPID(p2Ctx))
 
