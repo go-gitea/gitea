@@ -3,8 +3,6 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
-  - /templates/repo/activity.tmpl
-  - /templates/repo/view_file.tmpl
 
 parserOptions:
   sourceType: module
