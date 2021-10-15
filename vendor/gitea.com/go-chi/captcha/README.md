@@ -1,15 +1,14 @@
-# captcha [![Build Status](https://drone.gitea.com/api/badges/macaron/captcha/status.svg)](https://drone.gitea.com/macaron/captcha)
+# captcha [![Build Status](https://drone.gitea.com/api/badges/go-chi/captcha/status.svg)](https://drone.gitea.com/go-chi/captcha)
 
-Middleware captcha provides captcha service for [Macaron](https://gitea.com/macaron/macaron).
+Middleware captcha provides captcha service for [chi](https://github.com/go-chi/chi).
 
 ### Installation
 
-	go get gitea.com/macaron/captcha
+	go get gitea.com/go-chi/captcha
 
 ## Getting Help
 
-- [API Reference](https://gowalker.org/gitea.com/macaron/captcha)
-- [Documentation](http://go-macaron.com/docs/middlewares/captcha)
+- [API Reference](https://pkg.go.dev/gitea.com/go-chi/captcha)
 
 ## License
 

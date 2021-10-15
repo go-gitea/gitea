@@ -349,6 +349,8 @@ var migrations = []Migration{
 	// v197 -> v198
 	NewMigration("Add renamed_branch table", addRenamedBranchTable),
 	// v198 -> v199
+	NewMigration("Add issue content history table", addTableIssueContentHistory),
+	// v198 -> v199
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 }
 
