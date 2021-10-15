@@ -143,7 +143,7 @@ func doEditRepository(ctx TestContext, editRepoOption *api.EditRepoOption, callb
 	}
 }
 
-func doCreatePullRequest(ctx TestContext, owner, repo, baseBranch, headBranch string) func(*testing.T) (api.PullRequest, error) {
+func doCreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBranch string) func(*testing.T) (api.PullRequest, error) {
 	return func(t *testing.T) (api.PullRequest, error) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls", owner, repo)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &api.CreatePullRequestOption{
@@ -156,9 +156,8 @@ func doCreatePullRequest(ctx TestContext, owner, repo, baseBranch, headBranch st
 		if ctx.ExpectedCode != 0 {
 			expected = ctx.ExpectedCode
 		}
-		apiCtx := ctx.CreateAPITestContext(t)
-		resp := apiCtx.MakeRequest(t, req, expected)
 
+		resp := ctx.MakeRequest(t, req, expected)
 		decoder := json.NewDecoder(resp.Body)
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
@@ -209,7 +208,7 @@ func doGetPullRequest(ctx TestContext, owner, repo string, index int64) func(*te
 	}
 }
 
-func doMergePullRequest(ctx TestContext, owner, repo string, index int64) func(*testing.T) {
+func doMergePullRequest(apiCtx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge",
 			owner, repo, index)
@@ -218,7 +217,6 @@ func doMergePullRequest(ctx TestContext, owner, repo string, index int64) func(*
 			Do:                string(models.MergeStyleMerge),
 		})
 
-		apiCtx := ctx.CreateAPITestContext(t)
 		resp := apiCtx.MakeRequest(t, req, NoExpectedStatus)
 
 		if resp.Code == http.StatusMethodNotAllowed {
@@ -233,7 +231,7 @@ func doMergePullRequest(ctx TestContext, owner, repo string, index int64) func(*
 			resp = apiCtx.MakeRequest(t, req, NoExpectedStatus)
 		}
 
-		expected := ctx.ExpectedCode
+		expected := apiCtx.ExpectedCode
 		if expected == 0 {
 			expected = 200
 		}

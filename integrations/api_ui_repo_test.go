@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
@@ -30,11 +31,11 @@ func TestAPIUISearchRepo(t *testing.T) {
 		assert.False(t, repo.Private)
 	}
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
-	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
-	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
-	orgUser := models.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
+	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
+	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
+	orgUser := db.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
 	oldAPIDefaultNum := setting.API.DefaultPagingNum
 	defer func() {

@@ -373,7 +373,8 @@ func doBranchProtectPRMerge(baseCtx *TestContext, dstPath string) func(t *testin
 		t.Run("CreateBranchProtected", doGitCreateBranch(dstPath, "protected"))
 		t.Run("PushProtectedBranch", doGitPushTestRepository(dstPath, "origin", "protected"))
 
-		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+		ctx := NewTestContext(t, baseCtx.Username, baseCtx.Reponame)
+		apiCtx := ctx.CreateAPITestContext(t)
 		t.Run("ProtectProtectedBranchNoWhitelist", doProtectBranch(ctx, "protected", "", ""))
 		t.Run("GenerateCommit", func(t *testing.T) {
 			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
@@ -384,7 +385,7 @@ func doBranchProtectPRMerge(baseCtx *TestContext, dstPath string) func(t *testin
 		var pr api.PullRequest
 		var err error
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doCreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
+			pr, err = doCreatePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected")(t)
 			assert.NoError(t, err)
 		})
 		t.Run("GenerateCommit", func(t *testing.T) {
@@ -394,11 +395,11 @@ func doBranchProtectPRMerge(baseCtx *TestContext, dstPath string) func(t *testin
 		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected-2"))
 		var pr2 api.PullRequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr2, err = doCreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
+			pr2, err = doCreatePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, "unprotected", "unprotected-2")(t)
 			assert.NoError(t, err)
 		})
-		t.Run("MergePR2", doMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
-		t.Run("MergePR", doMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("MergePR2", doMergePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, pr2.Index))
+		t.Run("MergePR", doMergePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
 
 		t.Run("ProtectProtectedBranchUnprotectedFilePaths", doProtectBranch(ctx, "protected", "", "unprotected-file-*"))
@@ -423,7 +424,7 @@ func doBranchProtectPRMerge(baseCtx *TestContext, dstPath string) func(t *testin
 	}
 }
 
-func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFilePatterns string) func(t *testing.T) {
+func doProtectBranch(ctx TestContext, branch string, userToWhitelist string, unprotectedFilePatterns string) func(t *testing.T) {
 	// We are going to just use the owner to set the protection.
 	return func(t *testing.T) {
 		csrf := GetCSRF(t, ctx.Session, fmt.Sprintf("/%s/%s/settings/branches", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)))
@@ -463,9 +464,11 @@ func doMergeFork(ctx, baseCtx TestContext, baseBranch, headBranch string) func(t
 		var pr api.PullRequest
 		var err error
 
+		apiCtx := ctx.CreateAPITestContext(t)
+
 		// Create a test pullrequest
 		t.Run("CreatePullRequest", func(t *testing.T) {
-			pr, err = doCreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			pr, err = doCreatePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
 
@@ -483,7 +486,7 @@ func doMergeFork(ctx, baseCtx TestContext, baseBranch, headBranch string) func(t
 		})
 
 		// Now: Merge the PR & make sure that doesn't break the PR page or change its diff
-		t.Run("MergePR", doMergePullRequest(baseCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+		t.Run("MergePR", doMergePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, pr.Index))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 		t.Run("CheckPR", func(t *testing.T) {
 			oldMergeBase := pr.MergeBase
@@ -526,7 +529,8 @@ func doCreatePRAndSetManuallyMerged(ctx, baseCtx TestContext, dstPath, baseBranc
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 		t.Run("PushToHeadBranch", doGitPushTestRepository(dstPath, "origin", headBranch))
 		t.Run("CreateEmptyPullRequest", func(t *testing.T) {
-			pr, err = doCreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
+			apiCtx := ctx.CreateAPITestContext(t)
+			pr, err = doCreatePullRequest(apiCtx, baseCtx.Username, baseCtx.Reponame, baseBranch, headBranch)(t)
 			assert.NoError(t, err)
 		})
 		lastCommitID = pr.Base.Sha
@@ -750,7 +754,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *TestContext, baseBranch, headBran
 				return
 			}
 			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
+			prMsg, err := doGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -762,14 +766,15 @@ func doCreateAgitFlowPull(dstPath string, ctx *TestContext, baseBranch, headBran
 				return
 			}
 			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
+			prMsg, err = doGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return
 			}
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
-		t.Run("Merge", doMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
+		apiCtx := ctx.CreateAPITestContext(t)
+		t.Run("Merge", doMergePullRequest(apiCtx, ctx.Username, ctx.Reponame, pr1.Index))
 		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
 	}
 }
