@@ -149,7 +149,7 @@ func (g *GithubDownloaderV3) waitAndPickClient() {
 			recentIdx = i
 		}
 	}
-	g.curClientIdx = recentIdx
+	g.curClientIdx = recentIdx // if no max remain, it will always pick the first client.
 
 	for g.rates[g.curClientIdx] != nil && g.rates[g.curClientIdx].Remaining <= GithubLimitRateRemaining {
 		timer := time.NewTimer(time.Until(g.rates[g.curClientIdx].Reset.Time))
