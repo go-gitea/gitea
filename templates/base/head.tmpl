@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{.Lang}}" class="theme-{{.SignedUser.Theme}}">
-<head data-suburl="{{AppSubUrl}}">
+<head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
@@ -12,15 +12,6 @@
 	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
 	<meta name="_csrf" content="{{.CsrfToken}}" />
-	{{if .IsSigned}}
-		<meta name="_uid" content="{{.SignedUser.ID}}" />
-	{{end}}
-	{{if .ContextUser}}
-		<meta name="_context_uid" content="{{.ContextUser.ID}}" />
-	{{end}}
-	{{if .SearchLimit}}
-		<meta name="_search_limit" content="{{.SearchLimit}}" />
-	{{end}}
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
@@ -31,10 +22,11 @@
 			AppVer: '{{AppVer}}',
 			AppSubUrl: '{{AppSubUrl}}',
 			AssetUrlPrefix: '{{AssetUrlPrefix}}',
+			IsProd: {{.IsProd}},
 			CustomEmojis: {{CustomEmojis}},
 			UseServiceWorker: {{UseServiceWorker}},
 			csrf: '{{.CsrfToken}}',
-			PageData: {{ .PageData }},
+			pageData: {{ .PageData }},
 			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
 			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
 			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
