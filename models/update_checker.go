@@ -10,11 +10,21 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/hashicorp/go-version"
 )
+
+type RemoteVersion struct {
+	ID      int64  `xorm:"pk autoincr"`
+	Version string `xorm:"VARCHAR(50)"`
+}
+
+func init() {
+	db.RegisterModel(new(RemoteVersion))
+}
 
 // GiteaUpdateChecker returns error when new version of Gitea is available
 func GiteaUpdateChecker(httpEndpoint string) error {
@@ -49,11 +59,71 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 		return err
 	}
 
-	giteaVersion, _ := version.NewVersion(setting.AppVer)
-	updateVersion, _ := version.NewVersion(ver.Latest.Version)
-	if giteaVersion.LessThan(updateVersion) {
-		return fmt.Errorf("Newer version of Gitea available: %s Check the blog for more details https://blog.gitea.io", ver.Latest.Version)
+	return UpdateRemoteVersion(ver.Latest.Version)
+
+}
+
+// UpdateRemoteVersion marks someone be another's follower.
+func UpdateRemoteVersion(version string) (err error) {
+	sess := db.NewSession(db.DefaultContext)
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
+		return err
 	}
 
-	return nil
+	currentVersion := &RemoteVersion{ID: 1}
+	has, err := sess.Get(currentVersion)
+	if err != nil {
+		return fmt.Errorf("get: %v", err)
+	} else if !has {
+		currentVersion.ID = 0
+		currentVersion.Version = version
+
+		if _, err = sess.InsertOne(currentVersion); err != nil {
+			return fmt.Errorf("insert: %v", err)
+		}
+		return nil
+	}
+
+	if _, err = sess.Update(&RemoteVersion{ID: 1, Version: version}); err != nil {
+		return err
+	}
+
+	return sess.Commit()
+}
+
+func GetRemoteVersion() string {
+	e := db.GetEngine(db.DefaultContext)
+	v := &RemoteVersion{ID: 1}
+	_, err := e.Get(&v)
+	if err != nil {
+		// return 0 if fail to get fetch from DB, so it fails silently
+		return "0"
+	}
+	return v.Version
+}
+func GetNeedUpdate() bool {
+	e := db.GetEngine(db.DefaultContext)
+	v := &RemoteVersion{ID: 1}
+	_, err := e.Get(&v)
+	if err != nil {
+		// return false if fail to get fetch from DB, so it fails silently
+		return false
+	}
+
+	giteaVersion, err := version.NewVersion(setting.AppVer)
+	if err != nil {
+		// return false to fail silently
+		return false
+	}
+	updateVersion, err := version.NewVersion(v.Version)
+	if err != nil {
+		// return false to fail silently
+		return false
+	}
+	if giteaVersion.LessThan(updateVersion) {
+		return true
+	}
+
+	return false
 }

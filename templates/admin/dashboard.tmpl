@@ -3,6 +3,11 @@
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		{{if .NeedUpdate}}
+			<div class="ui negative message flash-error">
+				<p>{{.RemoteVersion | Str2html}}</p>
+			</div>
+		{{end}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.dashboard.statistic"}}
 		</h4>
