@@ -1,4 +1,4 @@
-const selector = '[data-clipboard-target], [data-clipboard-text]';
+// For all DOM elements with [data-clipboard-target] or [data-clipboard-text], this copy-to-clipboard will work for them
 
 // TODO: replace these with toast-style notifications
 function onSuccess(btn) {
@@ -16,23 +16,22 @@ function onError(btn) {
   btn.dataset.content = btn.dataset.original;
 }
 
-export default async function initClipboard() {
-  for (const btn of document.querySelectorAll(selector) || []) {
-    btn.addEventListener('click', async () => {
-      let text;
-      if (btn.dataset.clipboardText) {
-        text = btn.dataset.clipboardText;
-      } else if (btn.dataset.clipboardTarget) {
-        text = document.querySelector(btn.dataset.clipboardTarget)?.value;
-      }
-      if (!text) return;
+export default function initGlobalCopyToClipboardListener() {
+  document.addEventListener('click', async (e) => {
+    const target = e.target;
+    let text;
+    if (target.dataset.clipboardText) {
+      text = target.dataset.clipboardText;
+    } else if (target.dataset.clipboardTarget) {
+      text = document.querySelector(target.dataset.clipboardTarget)?.value;
+    }
+    if (!text) return;
 
-      try {
-        await navigator.clipboard.writeText(text);
-        onSuccess(btn);
-      } catch {
-        onError(btn);
-      }
-    });
-  }
+    try {
+      await navigator.clipboard.writeText(text);
+      onSuccess(target);
+    } catch {
+      onError(target);
+    }
+  });
 }
