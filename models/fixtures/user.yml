@@ -524,6 +524,7 @@
   avatar_email: user30@example.com
   num_repos: 2
   is_active: true
+  prohibit_login: true
 
 -
   id: 31
