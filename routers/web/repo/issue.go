@@ -327,6 +327,20 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 		return 0
 	}
+
+	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
+		projects, _, err := models.GetProjects(models.ProjectSearchOptions{
+			RepoID:   repo.ID,
+			Type:     models.ProjectTypeRepository,
+			IsClosed: util.OptionalBoolOf(isShowClosed),
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		ctx.Data["Projects"] = projects
+	}
+
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
