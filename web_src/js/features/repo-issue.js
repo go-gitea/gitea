@@ -333,7 +333,7 @@ function initRepoIssueWipTitle() {
 }
 
 function updateIssuesMeta(url, action, issueIds, elementId) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     $.ajax({
       type: 'POST',
       url,
@@ -343,7 +343,8 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
         issue_ids: issueIds,
         id: elementId,
       },
-      success: resolve
+      success: resolve,
+      error: reject,
     });
   });
 }

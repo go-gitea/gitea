@@ -53,7 +53,7 @@ function initRepoCommentForm() {
 
       if (editMode === 'true') {
         const form = $('#update_issueref_form');
-        $.post(form.attr('action'), {_csrf: csrf, ref: selectedValue}, window.location.reload);
+        $.post(form.attr('action'), {_csrf: csrf, ref: selectedValue}, () => window.location.reload());
       } else if (editMode === '') {
         $selectBranch.find('.ui .branch-name').text(selectedValue);
       }
@@ -94,7 +94,7 @@ function initRepoCommentForm() {
           );
           promises.push(promise);
         });
-        Promise.all(promises).then(window.location.reload);
+        Promise.all(promises).then(() => window.location.reload());
       }
     });
 
@@ -166,7 +166,7 @@ function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(window.location.reload);
+        ).then(() => window.location.reload());
       }
 
       $(this).parent().find('.item').each(function () {
@@ -209,7 +209,7 @@ function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(window.location.reload);
+        ).then(() => window.location.reload());
       }
 
       let icon = '';
@@ -242,7 +242,7 @@ function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(window.location.reload);
+        ).then(() => window.location.reload());
       }
 
       $list.find('.selected').html('');
