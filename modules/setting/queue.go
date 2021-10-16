@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"fmt"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -125,10 +124,10 @@ func NewQueueService() {
 		}
 	}
 	if !directlySet["LENGTH"] && Indexer.UpdateQueueLength != 0 {
-		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Indexer.UpdateQueueLength))
+		_, _ = section.NewKey("LENGTH", strconv.Itoa(Indexer.UpdateQueueLength))
 	}
 	if !directlySet["BATCH_LENGTH"] && Indexer.IssueQueueBatchNumber != 0 {
-		_, _ = section.NewKey("BATCH_LENGTH", fmt.Sprintf("%d", Indexer.IssueQueueBatchNumber))
+		_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(Indexer.IssueQueueBatchNumber))
 	}
 	if !directlySet["DATADIR"] && Indexer.IssueQueueDir != "" {
 		_, _ = section.NewKey("DATADIR", Indexer.IssueQueueDir)
