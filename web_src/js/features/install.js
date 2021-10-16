@@ -1,5 +1,4 @@
-
-function initInstall() {
+export function initInstall() {
   if ($('.install').length === 0) {
     return;
   }
@@ -90,5 +89,3 @@ function initInstall() {
     }
   });
 }
-
-export {initInstall};

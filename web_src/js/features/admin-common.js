@@ -1,6 +1,6 @@
 const {csrf} = window.config;
 
-function initAdminCommon() {
+export function initAdminCommon() {
   if ($('.admin').length === 0) {
     return;
   }
@@ -212,5 +212,3 @@ function initAdminCommon() {
     });
   }
 }
-
-export {initAdminCommon};

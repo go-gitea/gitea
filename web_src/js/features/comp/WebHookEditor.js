@@ -1,6 +1,6 @@
 const {csrf} = window.config;
 
-function initWebHookEditor() {
+export function initWebHookEditor() {
   if ($('.new.webhook').length === 0) {
     return;
   }
@@ -38,5 +38,3 @@ function initWebHookEditor() {
     );
   });
 }
-
-export {initWebHookEditor};

@@ -1,11 +1,10 @@
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 
-function initCommonOrganization() {
+export function initCommonOrganization() {
   if ($('.organization').length === 0) {
     return;
   }
 
-  // Options
   if ($('.organization.settings.options').length > 0) {
     $('#org_name').on('keyup', function () {
       const $prompt = $('#org-name-change-prompt');
@@ -23,5 +22,3 @@ function initCommonOrganization() {
   // Labels
   initCompLabelEdit('.organization.settings.labels');
 }
-
-export {initCommonOrganization};

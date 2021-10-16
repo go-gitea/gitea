@@ -1,4 +1,4 @@
-function initUserAuthOauth2() {
+export function initUserAuthOauth2() {
   const $oauth2LoginNav = $('#oauth2-login-navigator');
   if ($oauth2LoginNav.length === 0) return;
 
@@ -18,7 +18,7 @@ function initUserAuthOauth2() {
   });
 }
 
-function initUserAuthLinkAccountView() {
+export function initUserAuthLinkAccountView() {
   const $lnkUserPage = $('.page-content.user.link-account');
   if ($lnkUserPage.length === 0) {
     return false;
@@ -44,5 +44,3 @@ function initUserAuthLinkAccountView() {
     $signInView.addClass('active');
   });
 }
-
-export {initUserAuthOauth2, initUserAuthLinkAccountView};

@@ -1,4 +1,4 @@
-function initAdminEmails() {
+export function initAdminEmails() {
   function linkEmailAction(e) {
     const $this = $(this);
     $('#form-uid').val($this.data('uid'));
@@ -10,5 +10,3 @@ function initAdminEmails() {
   }
   $('.link-email-action').on('click', linkEmailAction);
 }
-
-export {initAdminEmails};

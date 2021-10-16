@@ -3,7 +3,7 @@ import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {csrf} = window.config;
 
-function initRepoWikiForm() {
+export function initRepoWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
@@ -172,5 +172,3 @@ function initRepoWikiForm() {
     }, 0);
   }
 }
-
-export {initRepoWikiForm};

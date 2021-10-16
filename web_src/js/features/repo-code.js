@@ -70,7 +70,7 @@ function showLineButton() {
   $('.code-line-button').popup({popup: $('.code-line-menu'), on: 'click'});
 }
 
-function initRepoCodeView() {
+export function initRepoCodeView() {
   if ($('.code-view .lines-num').length > 0) {
     $(document).on('click', '.lines-num span', function (e) {
       const $select = $(this);
@@ -143,5 +143,3 @@ function initRepoCodeView() {
     currentTarget.closest('tr').outerHTML = blob;
   });
 }
-
-export {initRepoCodeView};

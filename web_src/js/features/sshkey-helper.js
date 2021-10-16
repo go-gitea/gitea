@@ -1,4 +1,4 @@
-function initSshKeyFormParser() {
+export function initSshKeyFormParser() {
 // Parse SSH Key
   $('#ssh-key-content').on('change paste keyup', function () {
     const arrays = $(this).val().split(' ');
@@ -8,5 +8,3 @@ function initSshKeyFormParser() {
     }
   });
 }
-
-export {initSshKeyFormParser};

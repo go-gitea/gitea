@@ -3,7 +3,7 @@ import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
 
 const {AppSubUrl, csrf} = window.config;
 
-function initRepoSettingsCollaboration() {
+export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   $('.access-mode.menu .item').on('click', function () {
     const $menu = $(this).parent();
@@ -15,7 +15,7 @@ function initRepoSettingsCollaboration() {
   });
 }
 
-function initRepoSettingSearchTeamBox() {
+export function initRepoSettingSearchTeamBox() {
   const $searchTeamBox = $('#search-team-box');
   $searchTeamBox.search({
     minCharacters: 2,
@@ -40,13 +40,13 @@ function initRepoSettingSearchTeamBox() {
 }
 
 
-async function initRepoSettingGitHook() {
+export async function initRepoSettingGitHook() {
   if ($('.edit.githook').length === 0) return;
   const filename = document.querySelector('.hook-filename').textContent;
   await createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
-function initRepoSettingBranches() {
+export function initRepoSettingBranches() {
   // Branches
   if ($('.repository.settings.branches').length > 0) {
     initRepoCommonFilterSearchDropdown('.protected-branches .dropdown');
@@ -64,5 +64,3 @@ function initRepoSettingBranches() {
     });
   }
 }
-
-export {initRepoSettingsCollaboration, initRepoSettingSearchTeamBox, initRepoSettingGitHook, initRepoSettingBranches};

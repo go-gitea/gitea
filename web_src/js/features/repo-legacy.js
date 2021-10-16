@@ -31,9 +31,10 @@ const {csrf} = window.config;
 
 const commentMDEditors = {};
 
+// FIXME: the usage of `autoSimpleMDE` is quite messy, the refactor should be done very carefully in future.
 let autoSimpleMDE;
 
-function initRepoCommentForm() {
+export function initRepoCommentForm() {
   if ($('.comment.form').length === 0) {
     return;
   }
@@ -258,7 +259,7 @@ function initRepoCommentForm() {
 }
 
 
-async function initRepository() {
+export async function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -571,5 +572,3 @@ function initRepoIssueQuoteReply() {
     event.preventDefault();
   });
 }
-
-export {initRepoCommentForm, initRepository};

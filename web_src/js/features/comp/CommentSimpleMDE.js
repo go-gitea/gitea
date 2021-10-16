@@ -1,6 +1,6 @@
 import attachTribute from '../tribute.js';
 
-function createCommentSimpleMDE($editArea) {
+export function createCommentSimpleMDE($editArea) {
   if ($editArea.length === 0) {
     return null;
   }
@@ -70,5 +70,3 @@ function createCommentSimpleMDE($editArea) {
   $(simplemde.codemirror.getInputField()).data('simplemde', simplemde);
   return simplemde;
 }
-
-export {createCommentSimpleMDE};

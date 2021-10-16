@@ -1,6 +1,6 @@
 import createColorPicker from '../colorpicker.js';
 
-function initCompColorPicker() {
+export function initCompColorPicker() {
   createColorPicker($('.color-picker'));
 
   $('.precolors .color').on('click', function () {
@@ -9,5 +9,3 @@ function initCompColorPicker() {
     $('.minicolors-swatch-color').css('background-color', color_hex);
   });
 }
-
-export {initCompColorPicker};

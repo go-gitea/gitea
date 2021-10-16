@@ -3,7 +3,7 @@ import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initSimpleMDEImagePaste} from './comp/ImagePaste.js';
 import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
 
-function initRepoRelease() {
+export function initRepoRelease() {
   $(document).on('click', '.remove-rel-attach', function() {
     const uuid = $(this).data('uuid');
     const id = $(this).data('id');
@@ -13,7 +13,7 @@ function initRepoRelease() {
 }
 
 
-function initRepoReleaseEditor() {
+export function initRepoReleaseEditor() {
   const $editor = $('.repository.new.release .content-editor');
   if ($editor.length === 0) {
     return false;
@@ -27,5 +27,3 @@ function initRepoReleaseEditor() {
   const dropzone = $editor.parent().find('.dropzone')[0];
   initSimpleMDEImagePaste($simplemde, dropzone, $files);
 }
-
-export {initRepoRelease, initRepoReleaseEditor};

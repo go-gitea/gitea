@@ -2,13 +2,13 @@ import {initCompReactionSelector} from './comp/ReactionSelector.js';
 
 const {csrf} = window.config;
 
-function initRepoDiffReviewButton() {
+export function initRepoDiffReviewButton() {
   $(document).on('click', 'button[name="is_review"]', (e) => {
     $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
   });
 }
 
-function initRepoDiffFileViewToggle() {
+export function initRepoDiffFileViewToggle() {
   $('.file-view-toggle').on('click', function () {
     const $this = $(this);
     $this.parent().children().removeClass('active');
@@ -20,7 +20,7 @@ function initRepoDiffFileViewToggle() {
   });
 }
 
-function initRepoDiffConversationForm() {
+export function initRepoDiffConversationForm() {
   $('.conversation-holder form').on('submit', async (e) => {
     e.preventDefault();
     const form = $(e.target);
@@ -58,7 +58,7 @@ function initRepoDiffConversationForm() {
   });
 }
 
-function initRepoDiffConversationNav() {
+export function initRepoDiffConversationNav() {
   // Previous/Next code review conversation
   $(document).on('click', '.previous-conversation', (e) => {
     const $conversation = $(e.currentTarget).closest('.comment-code-cloud');
@@ -79,10 +79,3 @@ function initRepoDiffConversationNav() {
     window.location.href = `#${anchor}`;
   });
 }
-
-export {
-  initRepoDiffReviewButton,
-  initRepoDiffFileViewToggle,
-  initRepoDiffConversationForm,
-  initRepoDiffConversationNav,
-};

@@ -32,7 +32,7 @@ function getArchive($target, url, first) {
   });
 }
 
-function initRepoArchiveLinks() {
+export function initRepoArchiveLinks() {
   $('.archive-link').on('click', function (event) {
     event.preventDefault();
     const url = $(this).data('url');
@@ -41,7 +41,7 @@ function initRepoArchiveLinks() {
   });
 }
 
-function initRepoClone() {
+export function initRepoClone() {
   // Quick start and repository home
   $('#repo-clone-ssh').on('click', function () {
     $('.clone-url').text($(this).data('link'));
@@ -64,7 +64,7 @@ function initRepoClone() {
   });
 }
 
-function initRepoCommonBranchOrTagDropdown(selector) {
+export function initRepoCommonBranchOrTagDropdown(selector) {
   $(selector).each(function () {
     const $dropdown = $(this);
     $dropdown.find('.reference.column').on('click', function () {
@@ -75,7 +75,7 @@ function initRepoCommonBranchOrTagDropdown(selector) {
   });
 }
 
-function initRepoCommonFilterSearchDropdown(selector) {
+export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
   $dropdown.dropdown({
     fullTextSearch: true,
@@ -89,7 +89,7 @@ function initRepoCommonFilterSearchDropdown(selector) {
   });
 }
 
-function initRepoCommonLanguageStats() {
+export function initRepoCommonLanguageStats() {
   // Language stats
   if ($('.language-stats').length > 0) {
     $('.language-stats').on('click', (e) => {
@@ -98,11 +98,3 @@ function initRepoCommonLanguageStats() {
     });
   }
 }
-
-export {
-  initRepoArchiveLinks,
-  initRepoClone,
-  initRepoCommonFilterSearchDropdown,
-  initRepoCommonLanguageStats,
-  initRepoCommonBranchOrTagDropdown,
-};

@@ -1,5 +1,4 @@
-function initUserSettings() {
-  // Options
+export function initUserSettings() {
   if ($('.user.settings.profile').length > 0) {
     $('#username').on('keyup', function () {
       const $prompt = $('#name-change-prompt');
@@ -14,5 +13,3 @@ function initUserSettings() {
     });
   }
 }
-
-export {initUserSettings};

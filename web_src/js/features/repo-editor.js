@@ -75,7 +75,7 @@ function getCursorPosition($e) {
   return pos;
 }
 
-async function initRepoEditor() {
+export async function initRepoEditor() {
   initEditorForm();
 
   $('.js-quick-pull-choice-option').on('change', function () {
@@ -178,5 +178,3 @@ async function initRepoEditor() {
     }
   });
 }
-
-export {initRepoEditor};

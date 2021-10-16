@@ -2,7 +2,7 @@ import {stripTags} from '../utils.js';
 
 const {AppSubUrl, csrf} = window.config;
 
-function initRepoTopicBar() {
+export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
   const editDiv = $('#topic_edit');
   const viewDiv = $('#repo-topics');
@@ -178,5 +178,3 @@ function initRepoTopicBar() {
     }
   });
 }
-
-export {initRepoTopicBar};

@@ -6,7 +6,7 @@ import 'jquery.are-you-sure';
 
 const {csrf} = window.config;
 
-function initGlobalFormDirtyLeaveConfirm() {
+export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
   // Except on sign-in pages, and for forms marked as 'ignore-dirty'.
   if ($('.user.signin').length === 0) {
@@ -14,7 +14,7 @@ function initGlobalFormDirtyLeaveConfirm() {
   }
 }
 
-function initHeadNavbarContentToggle() {
+export function initHeadNavbarContentToggle() {
   const content = $('#navbar');
   const toggle = $('#navbar-expand-toggle');
   let isExpanded = false;
@@ -30,7 +30,7 @@ function initHeadNavbarContentToggle() {
   });
 }
 
-function initFootLanguageMenu() {
+export function initFootLanguageMenu() {
   function linkLanguageAction() {
     const $this = $(this);
     $.post($this.data('url')).always(() => {
@@ -42,7 +42,7 @@ function initFootLanguageMenu() {
 }
 
 
-function initGlobalEnterQuickSubmit() {
+export function initGlobalEnterQuickSubmit() {
   $('.js-quick-submit').on('keydown', function (e) {
     if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
       $(this).closest('form').trigger('submit');
@@ -50,7 +50,7 @@ function initGlobalEnterQuickSubmit() {
   });
 }
 
-function initGlobalButtonClickOnEnter() {
+export function initGlobalButtonClickOnEnter() {
   $(document).on('keypress', '.ui.button', (e) => {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
       $(e.target).trigger('click');
@@ -58,7 +58,7 @@ function initGlobalButtonClickOnEnter() {
   });
 }
 
-function initGlobalCommon() {
+export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
@@ -130,7 +130,7 @@ function initGlobalCommon() {
   });
 }
 
-async function initGlobalDropzone() {
+export async function initGlobalDropzone() {
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
     const $dropzone = $(el);
@@ -168,7 +168,7 @@ async function initGlobalDropzone() {
   }
 }
 
-function initGlobalLinkActions() {
+export function initGlobalLinkActions() {
   function showDeletePopup() {
     const $this = $(this);
     const dataArray = $this.data();
@@ -278,7 +278,7 @@ function initGlobalLinkActions() {
   });
 }
 
-function initGlobalButtons() {
+export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
   });
@@ -304,15 +304,3 @@ function initGlobalButtons() {
     });
   });
 }
-
-export {
-  initHeadNavbarContentToggle,
-  initFootLanguageMenu,
-  initGlobalEnterQuickSubmit,
-  initGlobalFormDirtyLeaveConfirm,
-  initGlobalButtonClickOnEnter,
-  initGlobalCommon,
-  initGlobalDropzone,
-  initGlobalLinkActions,
-  initGlobalButtons,
-};

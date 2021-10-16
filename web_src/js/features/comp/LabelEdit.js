@@ -1,6 +1,6 @@
 import {initCompColorPicker} from './ColorPicker.js';
 
-function initCompLabelEdit(selector) {
+export function initCompLabelEdit(selector) {
   if (!$(selector).length) return;
   // Create label
   const $newLabelPanel = $('.new-label.segment');
@@ -28,5 +28,3 @@ function initCompLabelEdit(selector) {
     return false;
   });
 }
-
-export {initCompLabelEdit};

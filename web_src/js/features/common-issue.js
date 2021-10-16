@@ -1,6 +1,6 @@
 import {updateIssuesMeta} from './repo-issue.js';
 
-function initCommonIssue() {
+export function initCommonIssue() {
   $('.issue-checkbox').on('click', () => {
     const numChecked = $('.issue-checkbox').children('input:checked').length;
     if (numChecked > 0) {
@@ -38,5 +38,3 @@ function initCommonIssue() {
     $(e).trigger('click');
   });
 }
-
-export {initCommonIssue};

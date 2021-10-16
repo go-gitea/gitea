@@ -2,7 +2,7 @@ import {htmlEscape} from 'escape-goat';
 
 const {AppSubUrl} = window.config;
 
-function initRepoTemplateSearch() {
+export function initRepoTemplateSearch() {
   const $repoTemplate = $('#repo_template');
   const checkTemplate = function () {
     const $templateUnits = $('#template_units');
@@ -47,5 +47,3 @@ function initRepoTemplateSearch() {
   $('#uid').on('change', changeOwner);
   changeOwner();
 }
-
-export {initRepoTemplateSearch};

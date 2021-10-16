@@ -1,6 +1,6 @@
 const {AppSubUrl, csrf} = window.config;
 
-function initRepoMigrationStatusChecker() {
+export function initRepoMigrationStatusChecker() {
   const migrating = $('#repo_migrating');
   $('#repo_migrating_failed').hide();
   $('#repo_migrating_failed_image').hide();
@@ -46,5 +46,3 @@ function initRepoMigrationStatusChecker() {
     });
   }
 }
-
-export {initRepoMigrationStatusChecker};

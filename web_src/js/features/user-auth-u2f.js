@@ -1,6 +1,6 @@
 const {AppSubUrl, csrf} = window.config;
 
-function initUserAuthU2fAuth() {
+export function initUserAuthU2fAuth() {
   if ($('#wait-for-key').length === 0) {
     return;
   }
@@ -85,7 +85,7 @@ function u2fError(errorType) {
   $('#u2f-error').modal('show');
 }
 
-function initUserAuthU2fRegister() {
+export function initUserAuthU2fRegister() {
   $('#register-device').modal({allowMultiple: false});
   $('#u2f-error').modal({allowMultiple: false});
   $('#register-security-key').on('click', (e) => {
@@ -123,5 +123,3 @@ function u2fRegisterRequest() {
     }
   });
 }
-
-export {initUserAuthU2fRegister, initUserAuthU2fAuth};

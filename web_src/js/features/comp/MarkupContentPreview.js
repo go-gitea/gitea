@@ -2,7 +2,7 @@ import {initMarkupContent} from '../../markup/content.js';
 
 const {csrf} = window.config;
 
-function initCompMarkupContentPreviewTab($form) {
+export function initCompMarkupContentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
   $tabMenu.find('.item').tab();
   $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`).on('click', function () {
@@ -19,5 +19,3 @@ function initCompMarkupContentPreviewTab($form) {
     });
   });
 }
-
-export {initCompMarkupContentPreviewTab};

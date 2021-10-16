@@ -6,7 +6,7 @@ import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {AppSubUrl, csrf} = window.config;
 
-function initRepoIssueTimeTracking() {
+export function initRepoIssueTimeTracking() {
   $(document).on('click', '.issue-add-time', () => {
     $('.issue-start-time-modal').modal({
       duration: 200,
@@ -73,7 +73,7 @@ function updateDeadline(deadlineString) {
   });
 }
 
-function initRepoIssueDue() {
+export function initRepoIssueDue() {
   $(document).on('click', '.issue-due-edit', () => {
     $('#deadlineForm').fadeToggle(150);
   });
@@ -86,7 +86,7 @@ function initRepoIssueDue() {
   });
 }
 
-function initRepoIssueList() {
+export function initRepoIssueList() {
   const repolink = $('#repolink').val();
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
@@ -151,7 +151,7 @@ function initRepoIssueList() {
   });
 }
 
-function initRepoIssueCommentDelete() {
+export function initRepoIssueCommentDelete() {
   // Delete comment
   $(document).on('click', '.delete-comment', function () {
     const $this = $(this);
@@ -179,7 +179,7 @@ function initRepoIssueCommentDelete() {
   });
 }
 
-function initRepoIssueDependencyDelete() {
+export function initRepoIssueDependencyDelete() {
   // Delete Issue dependency
   $(document).on('click', '.delete-dependency-button', (e) => {
     const {id, type} = e.currentTarget.dataset;
@@ -196,7 +196,7 @@ function initRepoIssueDependencyDelete() {
   });
 }
 
-function initRepoIssueCodeCommentCancel() {
+export function initRepoIssueCodeCommentCancel() {
   // Cancel inline code comment
   $(document).on('click', '.cancel-code-comment', (e) => {
     const form = $(e.currentTarget).closest('form');
@@ -209,7 +209,7 @@ function initRepoIssueCodeCommentCancel() {
   });
 }
 
-function initRepoIssueStatusButton() {
+export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
   $('#comment-form textarea').on('keyup', function () {
@@ -223,7 +223,7 @@ function initRepoIssueStatusButton() {
   });
 }
 
-function initRepoPullRequestMerge() {
+export function initRepoPullRequestMerge() {
   // Pull Request merge button
   const $mergeButton = $('.merge-button > button');
   $mergeButton.on('click', function (e) {
@@ -249,7 +249,7 @@ function initRepoPullRequestMerge() {
   });
 }
 
-function initRepoPullRequestUpdate() {
+export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
   $pullUpdateButton.on('click', function (e) {
@@ -281,13 +281,13 @@ function initRepoPullRequestUpdate() {
   });
 }
 
-function initRepoPullRequestMergeInstruction() {
+export function initRepoPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
     $('.instruct-content').toggle();
   });
 }
 
-function initRepoIssueReferenceRepositorySearch() {
+export function initRepoIssueReferenceRepositorySearch() {
   $('.issue_reference_repository_search')
     .dropdown({
       apiSettings: {
@@ -313,7 +313,7 @@ function initRepoIssueReferenceRepositorySearch() {
 }
 
 
-function initRepoIssueWipTitle() {
+export function initRepoIssueWipTitle() {
   $('.title_wip_desc > a').on('click', (e) => {
     e.preventDefault();
 
@@ -332,7 +332,7 @@ function initRepoIssueWipTitle() {
   });
 }
 
-function updateIssuesMeta(url, action, issueIds, elementId) {
+export function updateIssuesMeta(url, action, issueIds, elementId) {
   return new Promise((resolve, reject) => {
     $.ajax({
       type: 'POST',
@@ -349,7 +349,7 @@ function updateIssuesMeta(url, action, issueIds, elementId) {
   });
 }
 
-function initRepoIssueComments() {
+export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
   $('.re-request-review').on('click', function (event) {
@@ -411,7 +411,7 @@ function assignMenuAttributes(menu) {
   return id;
 }
 
-function initRepoPullRequestReview() {
+export function initRepoPullRequestReview() {
   if (window.location.hash && window.location.hash.startsWith('#issuecomment-')) {
     const commentDiv = $(window.location.hash);
     if (commentDiv) {
@@ -533,7 +533,7 @@ function initRepoPullRequestReview() {
   });
 }
 
-function initRepoIssueReferenceIssue() {
+export function initRepoIssueReferenceIssue() {
   // Reference issue
   $(document).on('click', '.reference-issue', function (event) {
     const $this = $(this);
@@ -550,7 +550,7 @@ function initRepoIssueReferenceIssue() {
   });
 }
 
-function initRepoIssueWipToggle() {
+export function initRepoIssueWipToggle() {
   // Toggle WIP
   $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
     e.preventDefault();
@@ -564,7 +564,7 @@ function initRepoIssueWipToggle() {
 }
 
 
-function initRepoIssueTitleEdit() {
+export function initRepoIssueTitleEdit() {
   // Edit issue title
   const $issueTitle = $('#issue-title');
   const $editInput = $('#edit-title-input input');
@@ -619,7 +619,7 @@ function initRepoIssueTitleEdit() {
   });
 }
 
-function initRepoIssueBranchSelect() {
+export function initRepoIssueBranchSelect() {
   const changeBranchSelect = function () {
     const selectionTextField = $('#pull-target-branch');
 
@@ -636,25 +636,3 @@ function initRepoIssueBranchSelect() {
   };
   $('#branch-select > .item').on('click', changeBranchSelect);
 }
-
-export {
-  updateIssuesMeta,
-  initRepoIssueTimeTracking,
-  initRepoIssueDue,
-  initRepoIssueList,
-  initRepoIssueCommentDelete,
-  initRepoIssueDependencyDelete,
-  initRepoIssueCodeCommentCancel,
-  initRepoIssueStatusButton,
-  initRepoPullRequestMerge,
-  initRepoPullRequestUpdate,
-  initRepoPullRequestMergeInstruction,
-  initRepoIssueReferenceRepositorySearch,
-  initRepoIssueWipTitle,
-  initRepoIssueComments,
-  initRepoPullRequestReview,
-  initRepoIssueReferenceIssue,
-  initRepoIssueWipToggle,
-  initRepoIssueTitleEdit,
-  initRepoIssueBranchSelect,
-};

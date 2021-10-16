@@ -53,7 +53,7 @@ function replaceAndKeepCursor(field, oldval, newval) {
   }
 }
 
-function initCompImagePaste($target) {
+export function initCompImagePaste($target) {
   $target.each(function () {
     const dropzone = this.querySelector('.dropzone');
     if (!dropzone) {
@@ -76,7 +76,7 @@ function initCompImagePaste($target) {
   });
 }
 
-function initSimpleMDEImagePaste(simplemde, dropzone, files) {
+export function initSimpleMDEImagePaste(simplemde, dropzone, files) {
   const uploadUrl = dropzone.dataset.uploadUrl;
   simplemde.codemirror.on('paste', async (_, e) => {
     for (const img of clipboardPastedImages(e)) {
@@ -89,5 +89,3 @@ function initSimpleMDEImagePaste(simplemde, dropzone, files) {
     }
   });
 }
-
-export {initCompImagePaste, initSimpleMDEImagePaste};

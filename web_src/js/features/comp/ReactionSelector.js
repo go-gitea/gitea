@@ -1,6 +1,6 @@
 const {csrf} = window.config;
 
-function initCompReactionSelector(parent) {
+export function initCompReactionSelector(parent) {
   let reactions = '';
   if (!parent) {
     parent = $(document);
@@ -46,5 +46,3 @@ function initCompReactionSelector(parent) {
     });
   });
 }
-
-export {initCompReactionSelector};

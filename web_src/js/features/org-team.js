@@ -1,6 +1,6 @@
 const {AppSubUrl} = window.config;
 
-function initOrgTeamSettings() {
+export function initOrgTeamSettings() {
   // Change team access mode
   $('.organization.new.team input[name=permission]').on('change', () => {
     const val = $('input[name=permission]:checked', '.organization.new.team').val();
@@ -13,7 +13,7 @@ function initOrgTeamSettings() {
 }
 
 
-function initOrgTeamSearchRepoBox() {
+export function initOrgTeamSearchRepoBox() {
   const $searchRepoBox = $('#search-repo-box');
   $searchRepoBox.search({
     minCharacters: 2,
@@ -35,5 +35,3 @@ function initOrgTeamSearchRepoBox() {
     showNoResults: false
   });
 }
-
-export {initOrgTeamSettings, initOrgTeamSearchRepoBox};
