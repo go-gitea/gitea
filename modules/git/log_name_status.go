@@ -350,6 +350,9 @@ heaploop:
 		}
 		current, err := g.Next(treepath, path2idx, changed, maxpathlen)
 		if err != nil {
+			if err == context.DeadlineExceeded {
+				break heaploop
+			}
 			g.Close()
 			return nil, err
 		}
