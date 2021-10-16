@@ -39,13 +39,6 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`
 7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
 
-## Legacy Problems and Solutions
-
-### Too much code in `web_src/index.js`
-
-Previously, most JavaScript code was written into `web_src/index.js` directly, making the file unmaintainable.
-Try to keep this file small by creating new modules instead. These modules can be put in the `web_src/js/features` directory for now.
-
 ### Vue2/Vue3 and JSX
 
 Gitea is using Vue2 now, we plan to upgrade to Vue3. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.
