@@ -28,13 +28,13 @@ export default function initGlobalCopyToClipboardListener() {
         text = document.querySelector(target.dataset.clipboardTarget)?.value;
       }
       if (text) {
+        e.preventDefault();
         try {
           await navigator.clipboard.writeText(text);
           onSuccess(target);
         } catch {
           onError(target);
         }
-        e.preventDefault();
         break;
       }
       target = target.parentElement;
