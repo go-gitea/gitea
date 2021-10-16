@@ -3,6 +3,11 @@
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
+		{{if .NeedUpdate}}
+			<div class="ui negative message flash-error">
+				<p>"Gitea {{.RemoteVersion | Str2html}} is now available, you are running {{.AppVer | Str2html}}. Check the <a href="https://blog.gitea.io">blog</a> for more details.</p>
+			</div>
+		{{end}}
 		<h4 class="ui top attached header">
 			{{.i18n.Tr "admin.dashboard.statistic"}}
 		</h4>
