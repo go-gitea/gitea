@@ -155,3 +155,10 @@ func ErrInvalidCharacter(c byte, context string, cursor int64) *SyntaxError {
 		Offset: cursor,
 	}
 }
+
+func ErrInvalidBeginningOfValue(c byte, cursor int64) *SyntaxError {
+	return &SyntaxError{
+		msg:    fmt.Sprintf("invalid character '%c' looking for beginning of value", c),
+		Offset: cursor,
+	}
+}

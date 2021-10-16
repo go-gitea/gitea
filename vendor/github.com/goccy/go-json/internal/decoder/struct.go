@@ -261,7 +261,7 @@ func decodeKeyByBitmapUint8(d *structDecoder, buf []byte, cursor int64) (int64, 
 				cursor++
 			}
 		default:
-			return cursor, nil, errors.ErrNotAtBeginningOfValue(cursor)
+			return cursor, nil, errors.ErrInvalidBeginningOfValue(char(b, cursor), cursor)
 		}
 	}
 }
@@ -324,7 +324,7 @@ func decodeKeyByBitmapUint16(d *structDecoder, buf []byte, cursor int64) (int64,
 				cursor++
 			}
 		default:
-			return cursor, nil, errors.ErrNotAtBeginningOfValue(cursor)
+			return cursor, nil, errors.ErrInvalidBeginningOfValue(char(b, cursor), cursor)
 		}
 	}
 }
@@ -376,7 +376,7 @@ func decodeKeyByBitmapUint8Stream(d *structDecoder, s *Stream) (*structFieldSet,
 				_, cursor, p = s.stat()
 				continue
 			}
-			return nil, "", errors.ErrNotAtBeginningOfValue(s.totalOffset())
+			return nil, "", errors.ErrInvalidBeginningOfValue(char(p, cursor), s.totalOffset())
 		case '"':
 			cursor++
 		FIRST_CHAR:
@@ -443,7 +443,7 @@ func decodeKeyByBitmapUint8Stream(d *structDecoder, s *Stream) (*structFieldSet,
 				cursor++
 			}
 		default:
-			return nil, "", errors.ErrNotAtBeginningOfValue(s.totalOffset())
+			return nil, "", errors.ErrInvalidBeginningOfValue(char(p, cursor), s.totalOffset())
 		}
 	}
 }
@@ -463,7 +463,7 @@ func decodeKeyByBitmapUint16Stream(d *structDecoder, s *Stream) (*structFieldSet
 				_, cursor, p = s.stat()
 				continue
 			}
-			return nil, "", errors.ErrNotAtBeginningOfValue(s.totalOffset())
+			return nil, "", errors.ErrInvalidBeginningOfValue(char(p, cursor), s.totalOffset())
 		case '"':
 			cursor++
 		FIRST_CHAR:
@@ -530,7 +530,7 @@ func decodeKeyByBitmapUint16Stream(d *structDecoder, s *Stream) (*structFieldSet
 				cursor++
 			}
 		default:
-			return nil, "", errors.ErrNotAtBeginningOfValue(s.totalOffset())
+			return nil, "", errors.ErrInvalidBeginningOfValue(char(p, cursor), s.totalOffset())
 		}
 	}
 }
@@ -653,7 +653,7 @@ func (d *structDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer) e
 		return nil
 	default:
 		if s.char() != '{' {
-			return errors.ErrNotAtBeginningOfValue(s.totalOffset())
+			return errors.ErrInvalidBeginningOfValue(s.char(), s.totalOffset())
 		}
 	}
 	s.cursor++
@@ -740,7 +740,7 @@ func (d *structDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsaf
 		return cursor, nil
 	case '{':
 	default:
-		return 0, errors.ErrNotAtBeginningOfValue(cursor)
+		return 0, errors.ErrInvalidBeginningOfValue(char(b, cursor), cursor)
 	}
 	cursor++
 	cursor = skipWhiteSpace(buf, cursor)

@@ -277,7 +277,7 @@ func (d *interfaceDecoder) decodeStreamEmptyInterface(s *Stream, depth int64, p 
 		}
 		break
 	}
-	return errors.ErrNotAtBeginningOfValue(s.totalOffset())
+	return errors.ErrInvalidBeginningOfValue(c, s.totalOffset())
 }
 
 type emptyInterface struct {
@@ -454,5 +454,5 @@ func (d *interfaceDecoder) decodeEmptyInterface(ctx *RuntimeContext, cursor, dep
 		**(**interface{})(unsafe.Pointer(&p)) = nil
 		return cursor, nil
 	}
-	return cursor, errors.ErrNotAtBeginningOfValue(cursor)
+	return cursor, errors.ErrInvalidBeginningOfValue(buf[cursor], cursor)
 }

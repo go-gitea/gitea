@@ -1417,7 +1417,7 @@ func compileStruct(ctx *compileContext, isPtr bool) (*Opcode, error) {
 			valueCode = code
 		}
 
-		if field.Anonymous {
+		if field.Anonymous && !tag.IsTaggedKey {
 			tagKey := ""
 			if tag.IsTaggedKey {
 				tagKey = tag.Key
@@ -1425,6 +1425,7 @@ func compileStruct(ctx *compileContext, isPtr bool) (*Opcode, error) {
 			for k, v := range anonymousStructFieldPairMap(tags, tagKey, valueCode) {
 				anonymousFields[k] = append(anonymousFields[k], v...)
 			}
+
 			valueCode.decIndent()
 
 			// fix issue144
@@ -1505,7 +1506,6 @@ func compileStruct(ctx *compileContext, isPtr bool) (*Opcode, error) {
 
 	structEndCode := &Opcode{
 		Op:     OpStructEnd,
-		Next:   newEndOp(ctx),
 		Type:   nil,
 		Indent: ctx.indent,
 	}
@@ -1530,6 +1530,7 @@ func compileStruct(ctx *compileContext, isPtr bool) (*Opcode, error) {
 	structEndCode.DisplayIdx = ctx.opcodeIndex
 	structEndCode.Idx = opcodeOffset(ctx.ptrIndex)
 	ctx.incIndex()
+	structEndCode.Next = newEndOp(ctx)
 
 	if prevField != nil && prevField.NextField == nil {
 		prevField.NextField = structEndCode

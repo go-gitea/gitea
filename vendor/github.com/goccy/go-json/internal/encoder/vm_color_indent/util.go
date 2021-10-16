@@ -28,6 +28,15 @@ type emptyInterface struct {
 	ptr unsafe.Pointer
 }
 
+type nonEmptyInterface struct {
+	itab *struct {
+		ityp *runtime.Type // static interface type
+		typ  *runtime.Type // dynamic concrete type
+		// unused fields...
+	}
+	ptr unsafe.Pointer
+}
+
 func errUnimplementedOp(op encoder.OpType) error {
 	return fmt.Errorf("encoder (indent): opcode %s has not been implemented", op)
 }

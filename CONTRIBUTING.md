@@ -142,7 +142,6 @@ For imports you should use the following format (_without_ the comments)
 ```go
 import (
   // stdlib
-  "encoding/json"
   "fmt"
 
   // local packages

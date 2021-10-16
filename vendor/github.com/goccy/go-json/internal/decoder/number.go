@@ -52,6 +52,7 @@ func (d *numberDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsaf
 }
 
 func (d *numberDecoder) decodeStreamByte(s *Stream) ([]byte, error) {
+	start := s.cursor
 	for {
 		switch s.char() {
 		case ' ', '\n', '\t', '\r':
@@ -76,6 +77,9 @@ func (d *numberDecoder) decodeStreamByte(s *Stream) ([]byte, error) {
 		}
 	}
 ERROR:
+	if s.cursor == start {
+		return nil, errors.ErrInvalidBeginningOfValue(s.char(), s.totalOffset())
+	}
 	return nil, errors.ErrUnexpectedEndOfJSON("json.Number", s.totalOffset())
 }
 

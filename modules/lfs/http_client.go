@@ -111,7 +111,7 @@ func (c *HTTPClient) batch(ctx context.Context, operation string, objects []Poin
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
 		log.Error("Error decoding json: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("invalid json: %w", err)
 	}
 
 	if len(response.Transfer) == 0 {

@@ -9,6 +9,13 @@ import (
 	"github.com/goccy/go-json/internal/runtime"
 )
 
+var (
+	sliceType = runtime.Type2RType(
+		reflect.TypeOf((*sliceHeader)(nil)).Elem(),
+	)
+	nilSlice = unsafe.Pointer(&sliceHeader{})
+)
+
 type sliceDecoder struct {
 	elemType          *runtime.Type
 	isElemPointerType bool
@@ -107,7 +114,7 @@ func (d *sliceDecoder) DecodeStream(s *Stream, depth int64, p unsafe.Pointer) er
 			if err := nullBytes(s); err != nil {
 				return err
 			}
-			*(*unsafe.Pointer)(p) = nil
+			typedmemmove(sliceType, p, nilSlice)
 			return nil
 		case '[':
 			s.cursor++
@@ -216,7 +223,7 @@ func (d *sliceDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsafe
 				return 0, err
 			}
 			cursor += 4
-			*(*unsafe.Pointer)(p) = nil
+			typedmemmove(sliceType, p, nilSlice)
 			return cursor, nil
 		case '[':
 			cursor++

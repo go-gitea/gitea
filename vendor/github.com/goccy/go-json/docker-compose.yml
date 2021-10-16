@@ -1,7 +1,7 @@
 version: '2'
 services:
   go-json:
-    image: golang:1.16
+    image: golang:1.17
     volumes:
       - '.:/go/src/go-json'
     deploy:

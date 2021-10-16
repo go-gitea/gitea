@@ -1,3 +1,31 @@
+# v0.7.9 - 2021/09/28
+
+* Fix encoding of nil value about interface type that has method ( #291 )
+
+# v0.7.8 - 2021/09/01
+
+* Fix mapassign_faststr for indirect struct type ( #283 )
+* Fix encoding of not empty interface type ( #284 )
+* Fix encoding of empty struct interface type ( #286 )
+
+# v0.7.7 - 2021/08/25
+
+* Fix invalid utf8 on stream decoder ( #279 )
+* Fix buffer length bug on string stream decoder ( #280 )
+
+Thank you @orisano !!
+
+# v0.7.6 - 2021/08/13
+
+* Fix nil slice assignment ( #276 )
+* Improve error message ( #277 )
+
+# v0.7.5 - 2021/08/12
+
+* Fix encoding of embedded struct with tags ( #265 )
+* Fix encoding of embedded struct that isn't first field ( #272 )
+* Fix decoding of binary type with escaped char ( #273 )
+
 # v0.7.4 - 2021/07/06
 
 * Fix encoding of indirect layout structure ( #264 )

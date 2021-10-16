@@ -13,15 +13,16 @@ const uintptrSize = 4 << (^uintptr(0) >> 63)
 type OpFlags uint16
 
 const (
-	AnonymousHeadFlags    OpFlags = 1 << 0
-	AnonymousKeyFlags     OpFlags = 1 << 1
-	IndirectFlags         OpFlags = 1 << 2
-	IsTaggedKeyFlags      OpFlags = 1 << 3
-	NilCheckFlags         OpFlags = 1 << 4
-	AddrForMarshalerFlags OpFlags = 1 << 5
-	IsNextOpPtrTypeFlags  OpFlags = 1 << 6
-	IsNilableTypeFlags    OpFlags = 1 << 7
-	MarshalerContextFlags OpFlags = 1 << 8
+	AnonymousHeadFlags     OpFlags = 1 << 0
+	AnonymousKeyFlags      OpFlags = 1 << 1
+	IndirectFlags          OpFlags = 1 << 2
+	IsTaggedKeyFlags       OpFlags = 1 << 3
+	NilCheckFlags          OpFlags = 1 << 4
+	AddrForMarshalerFlags  OpFlags = 1 << 5
+	IsNextOpPtrTypeFlags   OpFlags = 1 << 6
+	IsNilableTypeFlags     OpFlags = 1 << 7
+	MarshalerContextFlags  OpFlags = 1 << 8
+	NonEmptyInterfaceFlags OpFlags = 1 << 9
 )
 
 type Opcode struct {
@@ -743,6 +744,10 @@ func newMapEndCode(ctx *compileContext, head *Opcode) *Opcode {
 }
 
 func newInterfaceCode(ctx *compileContext) *Opcode {
+	var flag OpFlags
+	if ctx.typ.NumMethod() > 0 {
+		flag |= NonEmptyInterfaceFlags
+	}
 	return &Opcode{
 		Op:         OpInterface,
 		Idx:        opcodeOffset(ctx.ptrIndex),
@@ -750,6 +755,7 @@ func newInterfaceCode(ctx *compileContext) *Opcode {
 		Type:       ctx.typ,
 		DisplayIdx: ctx.opcodeIndex,
 		Indent:     ctx.indent,
+		Flags:      flag,
 	}
 }
 
