@@ -142,11 +142,11 @@ func NewQueueService() {
 
 	// Handle the old test pull requests configuration
 	// Please note this will be a unique queue
-	handleOldLengthConfiguration("pr_patch_checker", Repository.PullRequestQueueLength)
+	handleOldLengthConfiguration("pr_patch_checker", Cfg.Section("repository").Key("PULL_REQUEST_QUEUE_LENGTH").MustInt(1000))
 
 	// Handle the old mirror queue configuration
 	// Please note this will be a unique queue
-	handleOldLengthConfiguration("mirror", Repository.MirrorQueueLength)
+	handleOldLengthConfiguration("mirror", Cfg.Section("repository").Key("MIRROR_QUEUE_LENGTH").MustInt(1000))
 }
 
 // handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
