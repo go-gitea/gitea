@@ -137,7 +137,6 @@ func AddPushMirrorToQueue(mirrorID int64) {
 		return
 	}
 	go func() {
-
 		err := mirrorQueue.Push(&SyncRequest{
 			Type:   PullMirrorType,
 			RepoID: mirrorID,
