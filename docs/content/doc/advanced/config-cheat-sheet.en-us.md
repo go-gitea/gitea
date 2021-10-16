@@ -23,8 +23,8 @@ or any corresponding location. When installing from a distribution, this will
 typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
-accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
-(s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
+accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
+(s/main/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
@@ -824,8 +824,15 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
-- `SCHEDULE`: **@every 128h**: Cron syntax for scheduling a work, e.g. `@every 128h`.
+- `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
+
+#### Cron -  Check for new Gitea versions ('cron.update_checker')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
+- `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
+- `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
 ## Git (`git`)
 

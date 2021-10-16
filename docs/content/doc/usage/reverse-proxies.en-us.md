@@ -43,13 +43,15 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /git/ { # Note: Trailing slash
-        proxy_pass http://localhost:3000/; # Note: Trailing slash
+    # Note: Trailing slash
+    location /git/ { 
+        # Note: Trailing slash
+        proxy_pass http://localhost:3000/;
     }
 }
 ```
 
-Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
 
 ## Nginx and serve static resources directly
 
@@ -139,11 +141,10 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
     ProxyRequests off
     AllowEncodedSlashes NoDecode
     ProxyPass / http://localhost:3000/ nocanon
-    ProxyPassReverse / http://localhost:3000/
 </VirtualHost>
 ```
 
-Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 If you wish to use Let's Encrypt with webroot validation, add the line `ProxyPass /.well-known !` before `ProxyPass` to disable proxying these requests to Gitea.
 
@@ -161,13 +162,12 @@ In case you already have a site, and you want Gitea to share the domain name, yo
     AllowEncodedSlashes NoDecode
     # Note: no trailing slash after either /git or port
     ProxyPass /git http://localhost:3000 nocanon
-    ProxyPassReverse /git http://localhost:3000
 </VirtualHost>
 ```
 
-Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
 
-Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 ## Caddy
 
