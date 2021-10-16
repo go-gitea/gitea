@@ -528,7 +528,10 @@ type FindOrgOptions struct {
 
 func queryUserOrgIDs(userID int64) *builder.Builder {
 	return builder.Select("org_id").From("org_user").
-		Where(builder.Eq{"uid": userID})
+		Where(builder.Eq{
+			"uid":       userID,
+			"is_public": true,
+		})
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
@@ -538,10 +541,6 @@ func (opts FindOrgOptions) toConds() builder.Cond {
 	}
 	if !opts.IncludePrivate {
 		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
-	} else {
-		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePrivate}.Or(
-			builder.Eq{"`user`.visibility": structs.VisibleTypeLimited},
-		))
 	}
 	return cond
 }
