@@ -382,7 +382,7 @@ relation to port exhaustion.
 
 ## Queue (`queue` and `queue.*`)
 
-Configuration at `[queue]` will set defaults for all queues with overrides for individual queues at `[queue.*]`.
+Configuration at `[queue]` will set defaults for queues with overrides for individual queues at `[queue.*]`. (However see below.)
 
 - `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel` (uses a LevelDB internally), `channel`, `level`, `redis`, `dummy`
 - `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.)
@@ -417,6 +417,21 @@ And the following unique queues:
 - `repo-archive`
 - `mirror`
 - `pr_patch_checker`
+
+Certain queues have defaults that override the defaults set in `[queue]` (this occurs mostly to support older configuration):
+
+- `[queue.issue_indexer]`
+  - `TYPE` this will default to `[queue]` `TYPE` if it is set but if not it will appropriately convert `[indexer]` `ISSUE_INDEXER_QUEUE_TYPE` if that is set.
+  - `LENGTH` will default to `[indexer]` `UPDATE_BUFFER_LEN` if that is set.
+  - `BATCH_LENGTH` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_BATCH_NUMBER` if that is set.
+  - `DATADIR` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_DIR` if that is set.
+  - `CONN_STR` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_CONN_STR` if that is set.
+- `[queue.mailer]`
+  - `LENGTH` will default to **100** or whatever `[mailer]` `SEND_BUFFER_LEN` is.
+- `[queue.pr_patch_checker]`
+  - `LENGTH` will default to **1000** or whatever `[repository]` `PULL_REQUEST_QUEUE_LENGTH` is.
+- `[queue.mirror]`
+  - `LENGTH` will default to **1000** or whatever `[repository]` `MIRROR_QUEUE_LENGTH` is.
 
 ## Admin (`admin`)
 
