@@ -158,4 +158,16 @@ func NewQueueService() {
 	if _, ok := sectionMap["LENGTH"]; !ok {
 		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.PullRequestQueueLength))
 	}
+
+	// Handle the old mirror queue configuration
+	// Please note this will be a unique queue
+	section = Cfg.Section("queue.mirror")
+	sectionMap = map[string]bool{}
+	for _, key := range section.Keys() {
+		sectionMap[key.Name()] = true
+	}
+	if _, ok := sectionMap["LENGTH"]; !ok {
+		_, _ = section.NewKey("LENGTH", fmt.Sprintf("%d", Repository.MirrorQueueLength))
+	}
+
 }
