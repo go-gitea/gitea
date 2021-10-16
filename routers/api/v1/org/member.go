@@ -159,7 +159,7 @@ func IsMember(ctx *context.APIContext) {
 		}
 	}
 
-	redirectURL := setting.AppURL + "api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
+	redirectURL := setting.AppSubURL + "/api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
 	ctx.Redirect(redirectURL, 302)
 }
 

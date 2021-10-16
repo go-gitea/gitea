@@ -31,6 +31,7 @@ import (
 const (
 	tplCompare     base.TplName = "repo/diff/compare"
 	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
+	tplDiffBox     base.TplName = "repo/diff/box"
 )
 
 // setCompareContext sets context data.
@@ -160,6 +161,8 @@ type CompareInfo struct {
 func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	baseRepo := ctx.Repo.Repository
 	ci := &CompareInfo{}
+
+	fileOnly := ctx.FormBool("file-only")
 
 	// Get compared branches information
 	// A full compare url is of the form:
@@ -411,15 +414,19 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
-		if err != nil {
-			ctx.ServerError("GetBranchesForRepo", err)
-			return nil
-		}
-		if perm {
+		canRead := rootRepo.CheckUnitUser(ctx.User, models.UnitTypeCode)
+		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
-			ctx.Data["RootRepoBranches"] = branches
-			ctx.Data["RootRepoTags"] = tags
+			if !fileOnly {
+				branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
+				if err != nil {
+					ctx.ServerError("GetBranchesForRepo", err)
+					return nil
+				}
+
+				ctx.Data["RootRepoBranches"] = branches
+				ctx.Data["RootRepoTags"] = tags
+			}
 		}
 	}
 
@@ -432,15 +439,18 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
-		if err != nil {
-			ctx.ServerError("GetBranchesForRepo", err)
-			return nil
-		}
-		if perm {
+		canRead := ownForkRepo.CheckUnitUser(ctx.User, models.UnitTypeCode)
+		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
-			ctx.Data["OwnForkRepoBranches"] = branches
-			ctx.Data["OwnForkRepoTags"] = tags
+			if !fileOnly {
+				branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
+				if err != nil {
+					ctx.ServerError("GetBranchesForRepo", err)
+					return nil
+				}
+				ctx.Data["OwnForkRepoBranches"] = branches
+				ctx.Data["OwnForkRepoTags"] = tags
+			}
 		}
 	}
 
@@ -492,7 +502,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison)
+	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
@@ -545,7 +555,7 @@ func PrepareCompareDiff(
 	}
 
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(ci.HeadGitRepo,
-		beforeCommitID, headCommitID, setting.Git.MaxGitDiffLines,
+		beforeCommitID, headCommitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior, ci.DirectComparison)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
@@ -606,29 +616,22 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool, []string, []string, error) {
-	perm, err := models.GetUserRepoPermission(repo, user)
-	if err != nil {
-		return false, nil, nil, err
-	}
-	if !perm.CanRead(models.UnitTypeCode) {
-		return false, nil, nil, nil
-	}
+func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (branches, tags []string, err error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
 	defer gitRepo.Close()
 
-	branches, _, err := gitRepo.GetBranches(0, 0)
+	branches, _, err = gitRepo.GetBranches(0, 0)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
-	tags, err := gitRepo.GetTags(0, 0)
+	tags, err = gitRepo.GetTags(0, 0)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
-	return true, branches, tags, nil
+	return branches, tags, nil
 }
 
 // CompareDiff show different from one commit to another commit
@@ -664,6 +667,12 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tags"] = baseTags
+
+	fileOnly := ctx.FormBool("file-only")
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
+	}
 
 	headBranches, _, err := ci.HeadGitRepo.GetBranches(0, 0)
 	if err != nil {

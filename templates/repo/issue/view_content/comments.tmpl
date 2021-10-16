@@ -521,7 +521,7 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}} p-3">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
 									<div class="ui comments mb-0">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
@@ -590,7 +590,7 @@
 											</div>
 										{{end}}
 									</div>
-									<div class="df ac fw mt-3 mb-2 mx-3">
+									<div class="code-comment-buttons df ac fw mt-3 mb-2 mx-3">
 										<div class="f1">
 											{{if $resolved}}
 												<div class="ui grey text">
@@ -599,7 +599,7 @@
 												</div>
 											{{end}}
 										</div>
-										<div>
+										<div class="code-comment-buttons-buttons">
 											{{if and $.CanMarkConversation $isNotPending}}
 												<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 													{{if $resolved}}
