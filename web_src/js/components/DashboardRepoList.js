@@ -348,7 +348,7 @@ function initVueComponents() {
 }
 
 
-function initDashboardRepoList() {
+export function initDashboardRepoList() {
   const el = document.getElementById('dashboard-repo-list');
   const dashboardRepoListData = pageData.dashboardRepoList || null;
   if (!el || !dashboardRepoListData) return;
@@ -366,5 +366,3 @@ function initDashboardRepoList() {
     },
   });
 }
-
-export {initDashboardRepoList};

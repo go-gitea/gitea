@@ -1,6 +1,7 @@
 import Vue from 'vue';
+import {vueDelimiters} from './VueComponentLoader.js';
 
-function initRepoBranchTagDropdown(selector) {
+export function initRepoBranchTagDropdown(selector) {
   $(selector).each(function () {
     const $dropdown = $(this);
     const $data = $dropdown.find('.data');
@@ -26,7 +27,7 @@ function initRepoBranchTagDropdown(selector) {
     $data.remove();
     new Vue({
       el: this,
-      delimiters: ['${', '}'],
+      delimiters: vueDelimiters,
       data,
       computed: {
         filteredItems() {
@@ -157,5 +158,3 @@ function initRepoBranchTagDropdown(selector) {
     });
   });
 }
-
-export {initRepoBranchTagDropdown};
