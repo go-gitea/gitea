@@ -19,9 +19,5 @@ func addRemoteVersionTable(x *xorm.Engine) error {
 	if err := x.Sync2(new(RemoteVersion)); err != nil {
 		return fmt.Errorf("Sync2: %v", err)
 	}
-
-	remoteVersion := new(RemoteVersion)
-	remoteVersion.Version = "0"
-	_, err := x.Insert(remoteVersion)
-	return err
+	return nil
 }

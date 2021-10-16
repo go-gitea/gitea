@@ -64,7 +64,7 @@ func GiteaUpdateChecker(httpEndpoint string) error {
 
 }
 
-// UpdateRemoteVersion marks someone be another's follower.
+// UpdateRemoteVersion updates the latest available version of Gitea
 func UpdateRemoteVersion(version string) (err error) {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
@@ -77,7 +77,7 @@ func UpdateRemoteVersion(version string) (err error) {
 	if err != nil {
 		return fmt.Errorf("get: %v", err)
 	} else if !has {
-		currentVersion.ID = 0
+		currentVersion.ID = 1
 		currentVersion.Version = version
 
 		if _, err = sess.InsertOne(currentVersion); err != nil {
@@ -93,41 +93,29 @@ func UpdateRemoteVersion(version string) (err error) {
 	return sess.Commit()
 }
 
-// GetRemoteVersion returns the current remote version
+// GetRemoteVersion returns the current remote version (or currently installed verson if fail to fetch from DB)
 func GetRemoteVersion() string {
 	e := db.GetEngine(db.DefaultContext)
 	v := &RemoteVersion{ID: 1}
 	_, err := e.Get(&v)
 	if err != nil {
-		// return 0 if fail to get fetch from DB, so it fails silently
-		return "0"
+		// return current version if fail to fetch from DB
+		return setting.AppVer
 	}
 	return v.Version
 }
 
-// GetNeedUpdate returns true if there is an update needed of Gitea
+// GetNeedUpdate returns true whether a newer version of Gitea is available
 func GetNeedUpdate() bool {
-	e := db.GetEngine(db.DefaultContext)
-	v := &RemoteVersion{ID: 1}
-	_, err := e.Get(&v)
-	if err != nil {
-		// return false if fail to get fetch from DB, so it fails silently
-		return false
-	}
-
-	giteaVersion, err := version.NewVersion(setting.AppVer)
+	curVer, err := version.NewVersion(setting.AppVer)
 	if err != nil {
 		// return false to fail silently
 		return false
 	}
-	updateVersion, err := version.NewVersion(v.Version)
+	remoteVer, err := version.NewVersion(GetRemoteVersion())
 	if err != nil {
 		// return false to fail silently
 		return false
 	}
-	if giteaVersion.LessThan(updateVersion) {
-		return true
-	}
-
-	return false
+	return curVer.LessThan(remoteVer)
 }
