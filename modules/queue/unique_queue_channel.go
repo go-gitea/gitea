@@ -66,14 +66,13 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 	}
 	queue.WorkerPool = NewWorkerPool(func(data ...Data) {
 		for _, datum := range data {
-			bs, err := json.Marshal(datum)
-			if err != nil {
-				log.Error("unable to marshal data: %v", datum)
-			} else {
-				queue.lock.Lock()
-				delete(queue.table, string(bs))
-				queue.lock.Unlock()
-			}
+			// No error is possible here because PushFunc ensures that this can be marshalled
+			bs, _ := json.Marshal(datum)
+
+			queue.lock.Lock()
+			delete(queue.table, string(bs))
+			queue.lock.Unlock()
+
 			handle(datum)
 		}
 	}, config.WorkerPoolConfiguration)
