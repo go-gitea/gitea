@@ -17,28 +17,28 @@ import (
 
 var mirrorQueue queue.UniqueQueue
 
-// RequestType type of mirror request
-type RequestType int
+// SyncType type of sync request
+type SyncType int
 
 const (
-	// PullRequestType for pull mirrors
-	PullRequestType RequestType = iota
-	// PushRequestType for push mirrors
-	PushRequestType
+	// PullMirrorType for pull mirrors
+	PullMirrorType SyncType = iota
+	// PushMirrorType for push mirrors
+	PushMirrorType
 )
 
-// Request for the mirror queue
-type Request struct {
-	Type   RequestType
+// SyncRequest for the mirror queue
+type SyncRequest struct {
+	Type   SyncType
 	RepoID int64
 }
 
-// doMirror causes this request to mirror itself
-func doMirror(ctx context.Context, req *Request) {
+// doMirrorSync causes this request to mirror itself
+func doMirrorSync(ctx context.Context, req *SyncRequest) {
 	switch req.Type {
-	case PushRequestType:
+	case PushMirrorType:
 		_ = SyncPushMirror(ctx, req.RepoID)
-	case PullRequestType:
+	case PullMirrorType:
 		_ = SyncPullMirror(ctx, req.RepoID)
 	default:
 		log.Error("Unknown Request type in queue: %v for RepoID[%d]", req.Type, req.RepoID)
@@ -54,14 +54,14 @@ func Update(ctx context.Context) error {
 	log.Trace("Doing: Update")
 
 	handler := func(idx int, bean interface{}) error {
-		var item Request
+		var item SyncRequest
 		if m, ok := bean.(*models.Mirror); ok {
 			if m.Repo == nil {
 				log.Error("Disconnected mirror found: %d", m.ID)
 				return nil
 			}
-			item = Request{
-				Type:   PullRequestType,
+			item = SyncRequest{
+				Type:   PullMirrorType,
 				RepoID: m.RepoID,
 			}
 		} else if m, ok := bean.(*models.PushMirror); ok {
@@ -69,8 +69,8 @@ func Update(ctx context.Context) error {
 				log.Error("Disconnected push-mirror found: %d", m.ID)
 				return nil
 			}
-			item = Request{
-				Type:   PushRequestType,
+			item = SyncRequest{
+				Type:   PushMirrorType,
 				RepoID: m.RepoID,
 			}
 		} else {
@@ -100,8 +100,8 @@ func Update(ctx context.Context) error {
 
 func queueHandle(data ...queue.Data) {
 	for _, datum := range data {
-		req := datum.(*Request)
-		doMirror(graceful.GetManager().ShutdownContext(), req)
+		req := datum.(*SyncRequest)
+		doMirrorSync(graceful.GetManager().ShutdownContext(), req)
 	}
 }
 
@@ -110,7 +110,7 @@ func InitSyncMirrors() {
 	if !setting.Mirror.Enabled {
 		return
 	}
-	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle, new(Request))
+	mirrorQueue = queue.CreateUniqueQueue("mirror", queueHandle, new(SyncRequest))
 
 	go graceful.GetManager().RunWithShutdownFns(mirrorQueue.Run)
 }
@@ -121,12 +121,12 @@ func StartToMirror(repoID int64) {
 		return
 	}
 	go func() {
-		err := mirrorQueue.Push(&Request{
-			Type:   PushRequestType,
+		err := mirrorQueue.Push(&SyncRequest{
+			Type:   PushMirrorType,
 			RepoID: repoID,
 		})
 		if err != nil {
-			log.Error("Unable to push push mirror request to the queue for repo[%d]: Error: %v", repoID, err)
+			log.Error("Unable to push sync request for to the queue for push mirror repo[%d]: Error: %v", repoID, err)
 		}
 	}()
 }
@@ -138,12 +138,12 @@ func AddPushMirrorToQueue(mirrorID int64) {
 	}
 	go func() {
 
-		err := mirrorQueue.Push(&Request{
-			Type:   PullRequestType,
+		err := mirrorQueue.Push(&SyncRequest{
+			Type:   PullMirrorType,
 			RepoID: mirrorID,
 		})
 		if err != nil {
-			log.Error("Unable to push pull mirror request to the queue for repo[%d]: Error: %v", mirrorID, err)
+			log.Error("Unable to push sync request to the queue for pull mirror repo[%d]: Error: %v", mirrorID, err)
 		}
 	}()
 }
