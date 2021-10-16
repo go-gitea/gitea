@@ -46,7 +46,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison bool) (_ *CompareInfo, err error) {
+func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -87,13 +87,17 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, 
 		}
 
 		// We have a common base - therefore we know that ... should work
-		logs, err := NewCommand("log", baseCommitID+separator+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
-		if err != nil {
-			return nil, err
-		}
-		compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
-		if err != nil {
-			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+		if !fileOnly {
+			logs, err := NewCommand("log", baseCommitID+separator+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+			if err != nil {
+				return nil, err
+			}
+			compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
+			if err != nil {
+				return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+			}
+		} else {
+			compareInfo.Commits = []*Commit{}
 		}
 	} else {
 		compareInfo.Commits = []*Commit{}
