@@ -74,17 +74,18 @@ func InitGitServices() {
 	guaranteeInit(repository.NewContext)
 }
 
-func syncAppPathForGitHooks(ctx context.Context) (err error) {
+func syncAppPathForGit(ctx context.Context) (err error) {
 	runtimeState := new(appstate.RuntimeState)
 	if err = setting.AppState.Get(runtimeState); err != nil {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
 		log.Info("AppPath changed from '%s' to '%s', sync repository hooks ...", runtimeState.LastAppPath, setting.AppPath)
-		err = repo_module.SyncRepositoryHooks(ctx)
-		if err != nil {
-			return err
-		}
+		guaranteeInitCtx(ctx, repo_module.SyncRepositoryHooks)
+
+		log.Info("AppPath changed from '%s' to '%s', sync ssh keys ...", runtimeState.LastAppPath, setting.AppPath)
+		guaranteeInit(models.RewriteAllPublicKeys)
+
 		runtimeState.LastAppPath = setting.AppPath
 		return setting.AppState.Set(runtimeState)
 	}
@@ -148,7 +149,7 @@ func GlobalInit(ctx context.Context) {
 	guaranteeInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
-	guaranteeInitCtx(ctx, syncAppPathForGitHooks)
+	guaranteeInitCtx(ctx, syncAppPathForGit)
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)

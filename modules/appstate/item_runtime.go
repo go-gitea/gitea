@@ -9,7 +9,7 @@ type RuntimeState struct {
 	LastAppPath string `json:"last_app_path"`
 }
 
-//Name returns the item name
+// Name returns the item name
 func (a RuntimeState) Name() string {
 	return "runtime-state"
 }

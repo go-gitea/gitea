@@ -35,7 +35,7 @@ func (f *FileStore) Get(item StateItem) error {
 	return e
 }
 
-//Set saves the state item
+// Set saves the state item
 func (f *FileStore) Set(item StateItem) error {
 	b, e := json.Marshal(item)
 	if e != nil {
@@ -44,12 +44,12 @@ func (f *FileStore) Set(item StateItem) error {
 	return ioutil.WriteFile(f.genFilePath(item), b, fs.FileMode(0644))
 }
 
-//Delete removes the state item
+// Delete removes the state item
 func (f *FileStore) Delete(item StateItem) error {
 	return os.Remove(f.genFilePath(item))
 }
 
-//NewFileStore returns a new file store
+// NewFileStore returns a new file store
 func NewFileStore(path string) (*FileStore, error) {
 	_ = os.Mkdir(path, fs.FileMode(0755))
 	if _, err := os.Stat(path); err != nil {
