@@ -5,8 +5,8 @@ export async function initLastCommitLoader() {
 
   const entries = $('table#repo-files-table tr.notready')
     .map((_, v) => {
-      elem = $(v);
-      key  = elem.attr('data-entryname');
+      const elem = $(v);
+      const key = elem.attr('data-entryname');
       entryMap[key] = elem;
       return key;
     })

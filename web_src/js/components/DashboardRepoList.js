@@ -4,7 +4,7 @@ import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 const {AppSubUrl, AssetUrlPrefix, pageData} = window.config;
 
 function setOrDeleteParam(params, data, isEqual, param, customValue = undefined) {
-  if(data === isEqual) {
+  if (data === isEqual) {
     params.delete(param);
   } else {
     params.set(param, customValue ? customValue : data);
@@ -209,14 +209,14 @@ function initVueComponents() {
         const params = new URLSearchParams(window.location.search);
 
         setOrDeleteParam(params, this.tab, 'repos', 'repo-search-tab');
-        setOrDeleteParam(params, this.reposFilter, 'all','repo-search-filter');
-        setOrDeleteParam(params, this.privateFilter, 'both','repo-search-private');
-        setOrDeleteParam(params, this.archivedFilter, 'unarchived','repo-search-archived');
-        setOrDeleteParam(params, this.searchQuery, '','repo-search-query');
+        setOrDeleteParam(params, this.reposFilter, 'all', 'repo-search-filter');
+        setOrDeleteParam(params, this.privateFilter, 'both', 'repo-search-private');
+        setOrDeleteParam(params, this.archivedFilter, 'unarchived', 'repo-search-archived');
+        setOrDeleteParam(params, this.searchQuery, '', 'repo-search-query');
         setOrDeleteParam(params, this.page, 1, 'repo-search-page', this.page.toString());
 
         const queryString = params.toString();
-        window.history.replaceState({}, '', queryString ? '?'.concat(queryString) :  window.location.pathname);
+        window.history.replaceState({}, '', queryString ? '?'.concat(queryString) : window.location.pathname);
       },
 
       toggleArchivedFilter() {
