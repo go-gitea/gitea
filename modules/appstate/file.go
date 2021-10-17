@@ -8,7 +8,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/json"
 )
@@ -19,7 +19,7 @@ type FileStore struct {
 }
 
 func (f *FileStore) genFilePath(item StateItem) string {
-	return path.Join(f.path, item.Name())
+	return filepath.Join(f.path, item.Name())
 }
 
 // Get reads the state item

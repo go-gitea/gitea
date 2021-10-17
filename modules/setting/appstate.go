@@ -5,7 +5,7 @@
 package setting
 
 import (
-	"path"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/log"
@@ -16,7 +16,7 @@ var AppState appstate.StateStore
 
 func newAppState() {
 	var err error
-	appStatePath := path.Join(AppDataPath, "appstate")
+	appStatePath := filepath.Join(AppDataPath, "appstate")
 	AppState, err = appstate.NewFileStore(appStatePath)
 	if err != nil {
 		log.Fatal("failed to init AppState, err = %v", err)
