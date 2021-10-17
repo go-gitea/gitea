@@ -21,7 +21,7 @@ export function initRepoDiffFileViewToggle() {
 }
 
 export function initRepoDiffConversationForm() {
-  $('.conversation-holder form').on('submit', async (e) => {
+  $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
     const form = $(e.target);
     const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
