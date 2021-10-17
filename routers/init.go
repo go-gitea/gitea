@@ -54,7 +54,7 @@ func guaranteeInit(fn func() error) {
 	if err != nil {
 		ptr := reflect.ValueOf(fn).Pointer()
 		fi := runtime.FuncForPC(ptr)
-		log.Fatal("%s init failed: %v", fi.Name(), err)
+		log.Fatal("%s failed: %v", fi.Name(), err)
 	}
 }
 
@@ -63,7 +63,7 @@ func guaranteeInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	if err != nil {
 		ptr := reflect.ValueOf(fn).Pointer()
 		fi := runtime.FuncForPC(ptr)
-		log.Fatal("%s(ctx) init failed: %v", fi.Name(), err)
+		log.Fatal("%s(ctx) failed: %v", fi.Name(), err)
 	}
 }
 
@@ -80,10 +80,12 @@ func syncAppPathForGit(ctx context.Context) (err error) {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
-		log.Info("AppPath changed from '%s' to '%s', sync repository hooks ...", runtimeState.LastAppPath, setting.AppPath)
+		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
+
+		log.Info("re-sync repository hooks ...")
 		guaranteeInitCtx(ctx, repo_module.SyncRepositoryHooks)
 
-		log.Info("AppPath changed from '%s' to '%s', sync ssh keys ...", runtimeState.LastAppPath, setting.AppPath)
+		log.Info("re-write ssh public keys ...")
 		guaranteeInit(models.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
