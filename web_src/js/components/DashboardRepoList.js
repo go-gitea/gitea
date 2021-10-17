@@ -11,7 +11,7 @@ function setOrDeleteParam(params, data, isEqual, param, customValue = undefined)
   }
 }
 
-function resetPage($this = this, page = 1) {
+function resetPage($this, page = 1) {
   $this.page = page;
   $this.repos = [];
   $this.setCheckboxes();
@@ -202,7 +202,7 @@ function initVueComponents() {
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
-        resetPage();
+        resetPage(this);
       },
 
       updateHistory() {
@@ -232,7 +232,7 @@ function initVueComponents() {
             this.archivedFilter = 'unarchived';
             break;
         }
-        resetPage();
+        resetPage(this);
       },
 
       togglePrivateFilter() {
@@ -248,7 +248,7 @@ function initVueComponents() {
             this.privateFilter = 'both';
             break;
         }
-        resetPage();
+        resetPage(this);
       },
 
 
