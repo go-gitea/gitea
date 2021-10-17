@@ -125,9 +125,9 @@ type Footnote struct {
 // Dump implements Node.Dump.
 func (n *Footnote) Dump(source []byte, level int) {
 	m := map[string]string{}
-	m["Index"] = fmt.Sprintf("%v", n.Index)
+	m["Index"] = strconv.Itoa(n.Index)
 	m["Ref"] = string(n.Ref)
-	m["Name"] = fmt.Sprintf("%v", n.Name)
+	m["Name"] = string(n.Name)
 	ast.DumpHelper(n, source, level, m, nil)
 }
 
