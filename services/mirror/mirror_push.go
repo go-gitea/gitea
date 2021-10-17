@@ -122,7 +122,7 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {
-		remoteAddr, err := git.GetRemoteAddress(path, m.RemoteName)
+		remoteAddr, err := git.GetRemoteAddress(ctx, path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
 			return errors.New("Unexpected error")
@@ -146,7 +146,7 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 
 		log.Trace("Pushing %s mirror[%d] remote %s", path, m.ID, m.RemoteName)
 
-		if err := git.Push(path, git.PushOptions{
+		if err := git.Push(ctx, path, git.PushOptions{
 			Remote:  m.RemoteName,
 			Force:   true,
 			Mirror:  true,
@@ -167,7 +167,7 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 
 	if m.Repo.HasWiki() {
 		wikiPath := m.Repo.WikiPath()
-		_, err := git.GetRemoteAddress(wikiPath, m.RemoteName)
+		_, err := git.GetRemoteAddress(ctx, wikiPath, m.RemoteName)
 		if err == nil {
 			err := performPush(wikiPath)
 			if err != nil {

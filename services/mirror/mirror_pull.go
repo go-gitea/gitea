@@ -155,7 +155,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 	gitArgs = append(gitArgs, m.GetRemoteName())
 
-	remoteAddr, remoteErr := git.GetRemoteAddress(repoPath, m.GetRemoteName())
+	remoteAddr, remoteErr := git.GetRemoteAddress(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("GetRemoteAddress Error %v", remoteErr)
 	}
@@ -222,7 +222,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
 
-			remoteAddr, remoteErr := git.GetRemoteAddress(wikiPath, m.GetRemoteName())
+			remoteAddr, remoteErr := git.GetRemoteAddress(ctx, wikiPath, m.GetRemoteName())
 			if remoteErr != nil {
 				log.Error("GetRemoteAddress Error %v", remoteErr)
 			}

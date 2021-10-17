@@ -430,7 +430,7 @@ func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err 
 
 	gitRefName := pr.GetGitRefName()
 
-	if err := git.Push(headRepoPath, git.PushOptions{
+	if err := git.Push(git.DefaultContext, headRepoPath, git.PushOptions{
 		Remote: baseRepoPath,
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,

@@ -79,7 +79,7 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 		}
 	}
 
-	if err := git.Push(repo.RepoPath(), git.PushOptions{
+	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", oldBranchName, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
@@ -100,7 +100,7 @@ func CreateNewBranchFromCommit(doer *models.User, repo *models.Repository, commi
 		return err
 	}
 
-	if err := git.Push(repo.RepoPath(), git.PushOptions{
+	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", commit, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),

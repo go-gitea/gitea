@@ -239,7 +239,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env: models.FullPushingEnvironment(
@@ -353,7 +353,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env:    models.PushingEnvironment(doer, repo),
