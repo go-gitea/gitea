@@ -122,7 +122,7 @@ func StartToMirror(repoID int64) {
 	}
 	go func() {
 		err := mirrorQueue.Push(&SyncRequest{
-			Type:   PushMirrorType,
+			Type:   PullMirrorType,
 			RepoID: repoID,
 		})
 		if err != nil {
@@ -138,7 +138,7 @@ func AddPushMirrorToQueue(mirrorID int64) {
 	}
 	go func() {
 		err := mirrorQueue.Push(&SyncRequest{
-			Type:   PullMirrorType,
+			Type:   PushMirrorType,
 			RepoID: mirrorID,
 		})
 		if err != nil {
