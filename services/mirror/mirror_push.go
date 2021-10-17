@@ -7,6 +7,7 @@ package mirror
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/url"
 	"regexp"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -93,6 +95,9 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m.LastError = ""
 
+	ctx, _, remove := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing PushMirror %s/%s to %s", m.Repo.OwnerName, m.Repo.Name, m.RemoteName))
+	defer remove()
+
 	log.Trace("SyncPushMirror [mirror: %d][repo: %-v]: Running Sync", m.ID, m.Repo)
 	err = runPushSync(ctx, m)
 	if err != nil {
@@ -126,7 +131,7 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 		if setting.LFS.StartServer {
 			log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
 
-			gitRepo, err := git.OpenRepository(path)
+			gitRepo, err := git.OpenRepositoryCtx(ctx, path)
 			if err != nil {
 				log.Error("OpenRepository: %v", err)
 				return errors.New("Unexpected error")
