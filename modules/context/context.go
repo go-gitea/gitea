@@ -320,7 +320,7 @@ func (ctx *Context) PlainText(status int, bs []byte) {
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		ctx.ServerError("Render JSON failed", err)
+		ctx.ServerError("Write bytes failed", err)
 	}
 }
 
