@@ -1188,6 +1188,7 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 func NewServices() {
 	InitDBConfig()
 	newService()
+	newAppState()
 	newOAuth2Client()
 	NewLogServices(false)
 	newCacheService()
