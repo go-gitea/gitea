@@ -2261,6 +2261,7 @@
     .list {
       width: 100%;
       display: flex;
+      align-items: center;
 
       .item {
         width: 100%;
@@ -2268,10 +2269,12 @@
 
         &:first-of-type {
           border-radius: var(--border-radius) 0 0 var(--border-radius);
+          padding-left: .25rem;
         }
 
         &:last-of-type {
           border-radius: 0 var(--border-radius) var(--border-radius) 0;
+          padding-right: .25rem;
         }
 
         a {
@@ -2407,6 +2410,10 @@
       width: 100%;
       border-radius: 0;
       user-select: none;
+
+      @media @mediaSm {
+        display: none;
+      }
 
       .bar {
         white-space: nowrap;
@@ -3099,6 +3106,10 @@ td.blob-excerpt {
 .repository-summary-language-stats {
   height: 48px;
   overflow: hidden;
+
+  @media @mediaSm {
+    height: auto;
+  }
 }
 
 .ui.form .right .ui.button {
