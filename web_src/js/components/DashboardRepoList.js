@@ -216,7 +216,7 @@ function initVueComponents() {
         setOrDeleteParam(params, this.page, 1, 'repo-search-page', this.page.toString());
 
         const queryString = params.toString();
-        window.history.replaceState({}, '', queryString ? `?${queryString}` :  window.location.pathname);
+        window.history.replaceState({}, '', queryString ? '?'.concat(queryString) :  window.location.pathname);
       },
 
       toggleArchivedFilter() {
