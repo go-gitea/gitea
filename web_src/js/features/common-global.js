@@ -32,8 +32,7 @@ export function initHeadNavbarContentToggle() {
 
 export function initFootLanguageMenu() {
   function linkLanguageAction() {
-    const $this = $(this);
-    $.post($this.data('url')).always(() => {
+    $.post($(this).data('url')).always(() => {
       window.location.reload();
     });
   }

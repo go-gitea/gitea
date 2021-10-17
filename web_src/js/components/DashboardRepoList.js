@@ -3,6 +3,22 @@ import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
 const {AppSubUrl, AssetUrlPrefix, pageData} = window.config;
 
+function setOrDeleteParam(params, data, isEqual, param, customValue = undefined) {
+  if(data === isEqual) {
+    params.delete(param);
+  } else {
+    params.set(param, customValue ? customValue : data);
+  }
+}
+
+function resetPage($this = this, page = 1) {
+  $this.page = page;
+  $this.repos = [];
+  $this.setCheckboxes();
+  Vue.set($this.counts, `${$this.reposFilter}:${$this.archivedFilter}:${$this.privateFilter}`, 0);
+  $this.searchRepos();
+}
+
 function initVueComponents() {
   Vue.component('repo-search', {
     delimiters: vueDelimiters,
@@ -186,79 +202,37 @@ function initVueComponents() {
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
-        this.repos = [];
-        this.page = 1;
-        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
-        this.searchRepos();
+        resetPage();
       },
 
       updateHistory() {
         const params = new URLSearchParams(window.location.search);
 
-        if (this.tab === 'repos') {
-          params.delete('repo-search-tab');
-        } else {
-          params.set('repo-search-tab', this.tab);
-        }
-
-        if (this.reposFilter === 'all') {
-          params.delete('repo-search-filter');
-        } else {
-          params.set('repo-search-filter', this.reposFilter);
-        }
-
-        if (this.privateFilter === 'both') {
-          params.delete('repo-search-private');
-        } else {
-          params.set('repo-search-private', this.privateFilter);
-        }
-
-        if (this.archivedFilter === 'unarchived') {
-          params.delete('repo-search-archived');
-        } else {
-          params.set('repo-search-archived', this.archivedFilter);
-        }
-
-        if (this.searchQuery === '') {
-          params.delete('repo-search-query');
-        } else {
-          params.set('repo-search-query', this.searchQuery);
-        }
-
-        if (this.page === 1) {
-          params.delete('repo-search-page');
-        } else {
-          params.set('repo-search-page', `${this.page}`);
-        }
+        setOrDeleteParam(params, this.tab, 'repos', 'repo-search-tab');
+        setOrDeleteParam(params, this.reposFilter, 'all','repo-search-filter');
+        setOrDeleteParam(params, this.privateFilter, 'both','repo-search-private');
+        setOrDeleteParam(params, this.archivedFilter, 'unarchived','repo-search-archived');
+        setOrDeleteParam(params, this.searchQuery, '','repo-search-query');
+        setOrDeleteParam(params, this.page, 1, 'repo-search-page', this.page.toString());
 
         const queryString = params.toString();
-        if (queryString) {
-          window.history.replaceState({}, '', `?${queryString}`);
-        } else {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
+        window.history.replaceState({}, '', queryString ? `?${queryString}` :  window.location.pathname);
       },
 
       toggleArchivedFilter() {
         switch (this.archivedFilter) {
-          case 'both':
-            this.archivedFilter = 'unarchived';
-            break;
           case 'unarchived':
             this.archivedFilter = 'archived';
             break;
           case 'archived':
             this.archivedFilter = 'both';
             break;
+          case 'both':
           default:
             this.archivedFilter = 'unarchived';
             break;
         }
-        this.page = 1;
-        this.repos = [];
-        this.setCheckboxes();
-        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
-        this.searchRepos();
+        resetPage();
       },
 
       togglePrivateFilter() {
@@ -270,31 +244,16 @@ function initVueComponents() {
             this.privateFilter = 'private';
             break;
           case 'private':
-            this.privateFilter = 'both';
-            break;
           default:
             this.privateFilter = 'both';
             break;
         }
-        this.page = 1;
-        this.repos = [];
-        this.setCheckboxes();
-        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
-        this.searchRepos();
+        resetPage();
       },
 
 
       changePage(page) {
-        this.page = page;
-        if (this.page > this.finalPage) {
-          this.page = this.finalPage;
-        }
-        if (this.page < 1) {
-          this.page = 1;
-        }
-        this.repos = [];
-        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
-        this.searchRepos();
+        resetPage(this, Math.max(Math.min(page, this.finalPage), 1));
       },
 
       searchRepos() {

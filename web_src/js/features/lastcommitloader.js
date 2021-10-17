@@ -5,8 +5,10 @@ export async function initLastCommitLoader() {
 
   const entries = $('table#repo-files-table tr.notready')
     .map((_, v) => {
-      entryMap[$(v).attr('data-entryname')] = $(v);
-      return $(v).attr('data-entryname');
+      elem = $(v);
+      key  = elem.attr('data-entryname');
+      entryMap[key] = elem;
+      return key;
     })
     .get();
 
@@ -22,19 +24,18 @@ export async function initLastCommitLoader() {
     }, (data) => {
       $('table#repo-files-table').replaceWith(data);
     });
-    return;
-  }
-
-  $.post(lastCommitLoaderURL, {
-    _csrf: csrf,
-    'f': entries,
-  }, (data) => {
-    $(data).find('tr').each((_, row) => {
-      if (row.className === 'commit-list') {
-        $('table#repo-files-table .commit-list').replaceWith(row);
-        return;
-      }
-      entryMap[$(row).attr('data-entryname')].replaceWith(row);
+  } else {
+    $.post(lastCommitLoaderURL, {
+      _csrf: csrf,
+      'f': entries,
+    }, (data) => {
+      $(data).find('tr').each((_, row) => {
+        if (row.className === 'commit-list') {
+          $('table#repo-files-table .commit-list').replaceWith(row);
+        } else {
+          entryMap[$(row).attr('data-entryname')].replaceWith(row);
+        }
+      });
     });
-  });
+  }
 }
