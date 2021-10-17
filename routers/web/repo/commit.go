@@ -262,8 +262,6 @@ func Diff(ctx *context.Context) {
 		err     error
 	)
 
-	fileOnly := ctx.FormBool("file-only")
-
 	if ctx.Data["PageIsWiki"] != nil {
 		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
 		if err != nil {
@@ -288,13 +286,26 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(gitRepo,
-		commitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		false)
+	fileOnly := ctx.FormBool("file-only")
+	maxLines, maxLineCharacters, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles
+	files := ctx.FormStrings("files")
+	if fileOnly && (len(files) == 2 || len(files) == 1) {
+		maxLines, maxLineCharacters, maxFiles = -1, 4096, -1
+		if setting.Git.MaxGitDiffLineCharacters > maxLineCharacters {
+			maxLineCharacters = setting.Git.MaxGitDiffLineCharacters
+		}
+	}
+
+	diff, err := gitdiff.GetDiff(gitRepo, gitdiff.DiffOptions{
+		AfterCommitID:      commitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  maxLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}, files...)
 	if err != nil {
-		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
+		ctx.NotFound("GetDiff", err)
 		return
 	}
 
@@ -325,10 +336,6 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
-	if fileOnly {
-		ctx.HTML(http.StatusOK, tplDiffBox)
-		return
-	}
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, db.ListOptions{})
 	if err != nil {

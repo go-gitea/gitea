@@ -103,4 +103,27 @@ export function initRepoDiffShowMore() {
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
     });
   });
+  $(document).on('click', 'a.diff-show-more-button', (e) => {
+    e.preventDefault();
+    const $target = $(e.target);
+
+    if ($target.hasClass('disabled')) {
+      return;
+    }
+
+    $target.addClass('disabled');
+
+    const url = $target.data('href');
+    $.ajax({
+      type: 'GET',
+      url,
+    }).done((resp) => {
+      if (!resp || resp.html === '' || resp.empty) {
+        $target.removeClass('disabled');
+        return;
+      }
+
+      $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+    });
+  });
 }
