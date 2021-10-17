@@ -101,10 +101,9 @@ const sfc = {
   }
 };
 
-function initRepoActivityTopAuthorsChart() {
+export function initRepoActivityTopAuthorsChart() {
   initVueApp('#repo-activity-top-authors-chart', sfc);
 }
 
-export default sfc;
-export {initRepoActivityTopAuthorsChart};
+export default sfc; // this line is necessary to activate the IDE's Vue plugin
 </script>

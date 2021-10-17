@@ -125,6 +125,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
 	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["NeedUpdate"] = models.GetNeedUpdate()
+	ctx.Data["RemoteVersion"] = models.GetRemoteVersion()
 	// FIXME: update periodically
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
