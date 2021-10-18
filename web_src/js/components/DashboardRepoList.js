@@ -3,8 +3,8 @@ import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
 const {AppSubUrl, AssetUrlPrefix, pageData} = window.config;
 
-function syncQueryParam(params, queryKey, queryValue, definedValue) {
-  if (queryValue === definedValue) {
+function syncQueryParam(params, queryKey, queryValue, defaultValue) {
+  if (queryValue === defaultValue) {
     params.delete(queryKey);
   } else {
     params.set(queryKey, queryValue);
