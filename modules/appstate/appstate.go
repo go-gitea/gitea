@@ -8,7 +8,6 @@ package appstate
 type StateStore interface {
 	Get(item StateItem) error
 	Set(item StateItem) error
-	Delete(item StateItem) error
 }
 
 // StateItem provides the name for a state item. the name will be used to generate filenames, etc

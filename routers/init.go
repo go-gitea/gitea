@@ -74,9 +74,9 @@ func InitGitServices() {
 	mustInit(repository.NewContext)
 }
 
-func syncAppPathForGit(ctx context.Context) (err error) {
+func syncAppPathForGit(ctx context.Context) error {
 	runtimeState := new(appstate.RuntimeState)
-	if err = setting.AppState.Get(runtimeState); err != nil {
+	if err := setting.AppState.Get(runtimeState); err != nil {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
