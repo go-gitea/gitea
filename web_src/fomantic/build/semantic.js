@@ -14476,7 +14476,7 @@ $.fn.search.settings = {
             + '</div>';
           } else {
             html += ''
-            + '<a href="' + response[fields.action][fields.actionURL].replace(/"/g,"") + '" class="action">'
+            + '<a href="' + response[fields.action][fields.actionURL].replace(/"/g,"") + '"rel="nofollow" class="action">'
             +   escape(response[fields.action][fields.actionText], preserveHTML)
             + '</a>';
           }
@@ -14530,7 +14530,7 @@ $.fn.search.settings = {
             + '</div>';
           } else {
             html += ''
-            + '<a href="' + response[fields.action][fields.actionURL].replace(/"/g,"") + '" class="action">'
+            + '<a href="' + response[fields.action][fields.actionURL].replace(/"/g,"") + '"rel="nofollow" class="action">'
             +   escape(response[fields.action][fields.actionText], preserveHTML)
             + '</a>';
           }

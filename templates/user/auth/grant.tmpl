@@ -24,7 +24,7 @@
 					<input type="hidden" name="nonce" value="{{.Nonce}}">
 					<input type="hidden" name="redirect_uri" value="{{.RedirectURI}}">
 					<input type="submit" id="authorize-app" value="{{.i18n.Tr "auth.authorize_application"}}" class="ui red inline button"/>
-					<a href="{{.RedirectURI}}" class="ui basic primary inline button">Cancel</a>
+					<a href="{{.RedirectURI}}" class="ui basic primary inline button" rel="nofollow">Cancel</a>
 				</form>
 			</div>
 		</div>

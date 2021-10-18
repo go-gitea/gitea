@@ -40,9 +40,9 @@
 					{{if .Author}}
 						{{avatar .Author}}
 						{{if .Author.FullName}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
+							<a href="{{.Author.HomeLink}}" rel="nofollow"><strong>{{.Author.FullName}}</strong></a>
 						{{else}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
+							<a href="{{.Author.HomeLink}}" rel="nofollow"><strong>{{.Commit.Author.Name}}</strong></a>
 						{{end}}
 					{{else}}
 						{{avatarByEmail .Commit.Author.Email .Commit.Author.Email 12}}
@@ -54,7 +54,7 @@
 							<span class="text grey">{{svg "octicon-git-commit"}}{{.i18n.Tr "repo.diff.committed_by"}}</span>
 							{{if ne .Verification.CommittingUser.ID 0}}
 								{{avatar .Verification.CommittingUser}}
-								<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+								<a href="{{.Verification.CommittingUser.HomeLink}}" rel="nofollow"><strong>{{.Commit.Committer.Name}}</strong></a>
 							{{else}}
 								{{avatarByEmail .Commit.Committer.Email .Commit.Committer.Name}}
 								<strong>{{.Commit.Committer.Name}}</strong>
@@ -99,7 +99,7 @@
 							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 						{{end}}
 						{{avatar .Verification.SigningUser}}
-						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong></a>
+						<a href="{{.Verification.SigningUser.HomeLink}}" rel="nofollow"><strong>{{.Verification.SigningUser.Name}}</strong></a>
 						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
 					{{else}}
 						<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
@@ -128,7 +128,7 @@
 				<i class="sticky note icon"></i>
 				{{.i18n.Tr "repo.diff.git-notes"}}:
 				{{if .NoteAuthor}}
-					<a href="{{.NoteAuthor.HomeLink}}">
+					<a href="{{.NoteAuthor.HomeLink}}" rel="nofollow">
 						{{if .NoteAuthor.FullName}}
 							<strong>{{.NoteAuthor.FullName}}</strong>
 						{{else}}

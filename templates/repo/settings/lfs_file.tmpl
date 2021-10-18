@@ -6,7 +6,7 @@
 		{{template "base/alert" .}}
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
+				<a href="{{.LFSFilesLink}}" rel="nofollow">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.LFSFile.Oid}}</span>
 				<div class="ui right">
 					<a class="ui blue show-panel button" href="{{.LFSFilesLink}}/find?oid={{.LFSFile.Oid}}&size={{.LFSFile.Size}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
 				</div>

@@ -53,7 +53,7 @@
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 					<div class="ui right operate">
-						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+						<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Title}} rel="nofollow">{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 						{{if .IsClosed}}
 							<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.i18n.Tr "repo.projects.open"}}</a>
 						{{else}}

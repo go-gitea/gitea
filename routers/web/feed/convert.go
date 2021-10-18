@@ -103,7 +103,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 					if len(desc) != 0 {
 						desc += "\n\n"
 					}
-					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
+					desc += fmt.Sprintf("<a href=\"%s\" rel=\"nofollow\">%s</a>\n%s",
 						fmt.Sprintf("%s/commit/%s", act.GetRepoLink(), commit.Sha1),
 						commit.Sha1,
 						templates.RenderCommitMessage(commit.Message, repoLink, nil),

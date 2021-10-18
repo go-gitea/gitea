@@ -36,7 +36,7 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{.HomeLink}}">{{.Name}}</a>
+								<a href="{{.HomeLink}}" rel="nofollow">{{.Name}}</a>
 								{{if .Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
@@ -45,7 +45,7 @@
 							<td>{{.NumMembers}}</td>
 							<td>{{.NumRepos}}</td>
 							<td><span title="{{.CreatedUnix.FormatLong}}">{{.CreatedUnix.FormatShort}}</span></td>
-							<td><a href="{{.OrganisationLink}}/settings">{{svg "octicon-pencil"}}</a></td>
+							<td><a href="{{.OrganisationLink}}/settings" rel="nofollow">{{svg "octicon-pencil"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

@@ -8,9 +8,9 @@
 					{{if .LatestCommitUser}}
 						{{avatar .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
-							<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+							<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}" rel="nofollow"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
-							<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+							<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}" rel="nofollow"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
@@ -40,7 +40,7 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3">{{svg "octicon-reply"}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
+				<td colspan="3">{{svg "octicon-reply"}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}" rel="nofollow">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
@@ -54,7 +54,7 @@
 							{{svg "octicon-file-submodule"}}
 							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
 							{{if $refURL}}
-								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
+								<a href="{{$refURL}}" rel="nofollow">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$subModuleFile.RefID}}" rel="nofollow">{{ShortSha $subModuleFile.RefID}}</a>
 							{{else}}
 								{{$entry.Name}}<span class="at">@</span>{{ShortSha $subModuleFile.RefID}}
 							{{end}}
@@ -63,7 +63,7 @@
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 								{{svg "octicon-file-directory"}}
-								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}" rel="nofollow">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
 									{{else}}
@@ -72,7 +72,7 @@
 								</a>
 							{{else}}
 								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
-								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}" rel="nofollow">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}
 					</span>
@@ -80,7 +80,7 @@
 				<td class="message nine wide">
 					<span class="truncate">
 						{{if $commit}}
-							<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
+							<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}" rel="nofollow">{{$commit.Summary | RenderEmoji}}</a>
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}

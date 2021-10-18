@@ -40,13 +40,13 @@
 						{{.i18n.Tr "sign_in"}}
 					{{end}}
 				</button>
-				<a href="{{AppSubUrl}}/user/forgot_password">{{.i18n.Tr "auth.forgot_password"}}</a>
+				<a href="{{AppSubUrl}}/user/forgot_password" rel="nofollow">{{.i18n.Tr "auth.forgot_password"}}</a>
 			</div>
 
 			{{if .ShowRegistrationButton}}
 				<div class="inline field">
 					<label></label>
-					<a href="{{AppSubUrl}}/user/sign_up">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
+					<a href="{{AppSubUrl}}/user/sign_up" rel="nofollow">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
 				</div>
 			{{end}}
 
@@ -59,7 +59,7 @@
 							<p>{{.i18n.Tr "sign_in_with"}}</p>
 							{{range $key := .OrderedOAuth2Names}}
 								{{$provider := index $.OAuth2Providers $key}}
-								<a href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+								<a href="{{AppSubUrl}}/user/oauth2/{{$key}}" rel="nofollow">
 									<img
 										alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
 										title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"

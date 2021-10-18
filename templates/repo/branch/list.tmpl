@@ -18,8 +18,8 @@
 								{{if .IsProtected}}
 									{{svg "octicon-shield-lock"}}
 								{{end}}
-								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}">{{$.DefaultBranch}}</a>
-								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+								<a href="{{$.RepoLink}}/src/branch/{{$.DefaultBranch | EscapePound}}" rel="nofollow">{{$.DefaultBranch}}</a>
+								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}" rel="nofollow">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 							{{end}}
 						{{end}}
 						</td>
@@ -54,14 +54,14 @@
 								<tr>
 									<td class="six wide">
 									{{if .IsDeleted}}
-										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a></s>
+										<s><a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}" rel="nofollow">{{.Name}}</a></s>
 										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
 									{{else}}
 										{{if .IsProtected}}
 											{{svg "octicon-shield-lock"}}
 										{{end}}
-										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}">{{.Name}}</a>
-										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<a href="{{$.RepoLink}}/src/branch/{{.Name | EscapePound}}" rel="nofollow">{{.Name}}</a>
+										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{.Commit.ID.String}}" rel="nofollow">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
@@ -85,24 +85,24 @@
 													{{svg "octicon-git-pull-request"}} {{$.i18n.Tr "repo.branch.included"}}
 												</a>
 											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
+											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}" rel="nofollow">
 												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 											{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
-											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}">
+											<a href="{{$.RepoLink}}/compare/{{$.DefaultBranch | EscapePound}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | EscapePound}}" rel="nofollow">
 												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else}}
-											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
+											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm ref-issue" rel="nofollow">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.i18n.Tr "repo.pulls.merged"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" rel="nofollow" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.i18n.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.closed_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" rel="nofollow" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" rel="nofollow" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>

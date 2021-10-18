@@ -61,7 +61,7 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					{{svg "octicon-milestone" 16 "mr-2"}} <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+					{{svg "octicon-milestone" 16 "mr-2"}} <a href="{{$.RepoLink}}/milestone/{{.ID}}" rel="nofollow">{{.Name}}</a>
 					<div class="ui right green progress" data-percent="{{.Completeness}}">
 						<div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
 							<div class="progress"></div>
@@ -88,7 +88,7 @@
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 						<div class="ui right operate">
-							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}} rel="nofollow">{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
 							{{if .IsClosed}}
 								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.i18n.Tr "repo.milestones.open"}}</a>
 							{{else}}

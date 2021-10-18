@@ -60,7 +60,7 @@ func (t *TelegramPayload) JSONPayload() ([]byte, error) {
 func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
-	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
+	title := fmt.Sprintf(`[<a href="%s" rel="nofollow">%s</a>] %s <a href="%s" rel="nofollow">%s</a> created`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
 	return createTelegramPayload(title), nil
@@ -70,7 +70,7 @@ func (t *TelegramPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 func (t *TelegramPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	// created tag/branch
 	refName := git.RefEndName(p.Ref)
-	title := fmt.Sprintf(`[<a href="%s">%s</a>] %s <a href="%s">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
+	title := fmt.Sprintf(`[<a href="%s" rel="nofollow">%s</a>] %s <a href="%s" rel="nofollow">%s</a> deleted`, p.Repo.HTMLURL, p.Repo.FullName, p.RefType,
 		p.Repo.HTMLURL+"/src/"+refName, refName)
 
 	return createTelegramPayload(title), nil
@@ -78,7 +78,7 @@ func (t *TelegramPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 
 // Fork implements PayloadConvertor Fork method
 func (t *TelegramPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
-	title := fmt.Sprintf(`%s is forked to <a href="%s">%s</a>`, p.Forkee.FullName, p.Repo.HTMLURL, p.Repo.FullName)
+	title := fmt.Sprintf(`%s is forked to <a href="%s" rel="nofollow">%s</a>`, p.Forkee.FullName, p.Repo.HTMLURL, p.Repo.FullName)
 
 	return createTelegramPayload(title), nil
 }
@@ -101,7 +101,7 @@ func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	if titleLink == "" {
 		titleLink = p.Repo.HTMLURL + "/src/" + branchName
 	}
-	title := fmt.Sprintf(`[<a href="%s">%s</a>:<a href="%s">%s</a>] %s`, p.Repo.HTMLURL, p.Repo.FullName, titleLink, branchName, commitDesc)
+	title := fmt.Sprintf(`[<a href="%s" rel="nofollow">%s</a>:<a href="%s" rel="nofollow">%s</a>] %s`, p.Repo.HTMLURL, p.Repo.FullName, titleLink, branchName, commitDesc)
 
 	var text string
 	// for each commit, generate attachment text
@@ -110,7 +110,7 @@ func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		if commit.Author != nil {
 			authorName = " - " + commit.Author.Name
 		}
-		text += fmt.Sprintf(`[<a href="%s">%s</a>] %s`, commit.URL, commit.ID[:7],
+		text += fmt.Sprintf(`[<a href="%s" rel="nofollow">%s</a>] %s`, commit.URL, commit.ID[:7],
 			strings.TrimRight(commit.Message, "\r\n")) + authorName
 		// add linebreak to each commit but the last
 		if i < len(p.Commits)-1 {
@@ -164,7 +164,7 @@ func (t *TelegramPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 	var title string
 	switch p.Action {
 	case api.HookRepoCreated:
-		title = fmt.Sprintf(`[<a href="%s">%s</a>] Repository created`, p.Repository.HTMLURL, p.Repository.FullName)
+		title = fmt.Sprintf(`[<a href="%s" rel="nofollow">%s</a>] Repository created`, p.Repository.HTMLURL, p.Repository.FullName)
 		return createTelegramPayload(title), nil
 	case api.HookRepoDeleted:
 		title = fmt.Sprintf("[%s] Repository deleted", p.Repository.FullName)

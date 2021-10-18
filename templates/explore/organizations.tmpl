@@ -21,7 +21,7 @@
 							{{end}}
 							{{if and .Website}}
 								{{svg "octicon-link"}}
-								<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
+								<a href="{{.Website}}">{{.Website}}</a>
 							{{end}}
 							{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 						</div>

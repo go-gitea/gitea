@@ -109,7 +109,7 @@ export async function initRepoEditor() {
         value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            $(`<span class="section"><a href="#">${value}</a></span>`).insertBefore($(this));
+            $(`<span class="section"><a href="#" rel="nofollow">${value}</a></span>`).insertBefore($(this));
             $('<div class="divider"> / </div>').insertBefore($(this));
           }
         } else {

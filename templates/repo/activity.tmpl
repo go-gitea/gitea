@@ -33,8 +33,8 @@
 				<div class="column">
 					{{if gt .Activity.ActivePRCount 0}}
 					<div class="stats-table">
-						<a href="#merged-pull-requests" class="table-cell tiny background purple" style="width: {{.Activity.MergedPRPerc}}{{if ne .Activity.MergedPRPerc 0}}%{{end}}"></a>
-						<a href="#proposed-pull-requests" class="table-cell tiny background green"></a>
+						<a href="#merged-pull-requests" class="table-cell tiny background purple" style="width: {{.Activity.MergedPRPerc}}{{if ne .Activity.MergedPRPerc 0}}%{{end}}" rel="nofollow"></a>
+						<a href="#proposed-pull-requests" class="table-cell tiny background green" rel="nofollow"></a>
 					</div>
 					{{else}}
 					<div class="stats-table">
@@ -48,8 +48,8 @@
 				<div class="column">
 					{{if gt .Activity.ActiveIssueCount 0}}
 					<div class="stats-table">
-						<a href="#closed-issues" class="table-cell tiny background red" style="width: {{.Activity.ClosedIssuePerc}}{{if ne .Activity.ClosedIssuePerc 0}}%{{end}}"></a>
-						<a href="#new-issues" class="table-cell tiny background green"></a>
+						<a href="#closed-issues" class="table-cell tiny background red" style="width: {{.Activity.ClosedIssuePerc}}{{if ne .Activity.ClosedIssuePerc 0}}%{{end}}" rel="nofollow"></a>
+						<a href="#new-issues" class="table-cell tiny background green" rel="nofollow"></a>
 					</div>
 					{{else}}
 					<div class="stats-table">
@@ -62,21 +62,21 @@
 		</div>
 		<div class="ui attached segment horizontal segments">
 			{{if .Permission.CanRead $.UnitTypePullRequests}}
-				<a href="#merged-pull-requests" class="ui attached segment text center">
+				<a href="#merged-pull-requests" class="ui attached segment text center" rel="nofollow">
 					<span class="text purple">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n") }}
 				</a>
-				<a href="#proposed-pull-requests" class="ui attached segment text center">
+				<a href="#proposed-pull-requests" class="ui attached segment text center" rel="nofollow">
 					<span class="text green">{{svg "octicon-git-branch"}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n") }}
 				</a>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeIssues}}
-				<a href="#closed-issues" class="ui attached segment text center">
+				<a href="#closed-issues" class="ui attached segment text center" rel="nofollow">
 					<span class="text red">{{svg "octicon-issue-closed"}}</span> <strong>{{.Activity.ClosedIssueCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n") }}
 				</a>
-				<a href="#new-issues" class="ui attached segment text center">
+				<a href="#new-issues" class="ui attached segment text center" rel="nofollow">
 					<span class="text green">{{svg "octicon-issue-opened"}}</span> <strong>{{.Activity.OpenedIssueCount}}</strong><br>
 					{{.i18n.Tr (TrN .i18n.Lang .Activity.OpenedIssueCount "repo.activity.new_issues_count_1" "repo.activity.new_issues_count_n") }}
 				</a>

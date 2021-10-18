@@ -133,7 +133,7 @@
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{if .NumComments}}
-						<a href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
+						<a href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}" rel="nofollow">
 							{{svg "octicon-comment" 16 "mr-2"}}{{.NumComments}}
 						</a>
 					{{end}}

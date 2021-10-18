@@ -45,7 +45,7 @@
 										<tr>
 											<td class="lines-num">
 												{{range .LineNumbers}}
-													<a href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
+													<a href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}" rel="nofollow"><span>{{.}}</span></a>
 												{{end}}
 											</td>
 											<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines | Safe}}</code></td>

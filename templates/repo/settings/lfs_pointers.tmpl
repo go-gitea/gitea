@@ -37,7 +37,7 @@
 						<tr>
 							<td>
 								<span class="text sha label" title="{{.SHA}}">
-									<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" class="ui detail icon button truncate">
+									<a href="{{$.RepoLink}}/raw/blob/{{.SHA}}" rel="nofollow" target="_blank" class="ui detail icon button truncate" rel="nofollow">
 										{{ShortSha .SHA}}
 									</a>
 								</span>
@@ -45,7 +45,7 @@
 							<td>
 								<span class="text sha label" title="{{.Oid}}">
 									{{if and .Exists .InRepo}}
-										<a href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank" class="ui text detail icon button brown truncate">
+										<a href="{{$.LFSFilesLink}}/show/{{.Oid}}" rel="nofollow" target="_blank" class="ui text detail icon button brown truncate" rel="nofollow">
 											{{ShortSha .Oid}}
 										</a>
 									{{else}}

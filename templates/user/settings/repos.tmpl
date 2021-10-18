@@ -30,7 +30,7 @@
 										<span>{{SizeFmt $repo.Size}}</span>
 										{{if $repo.IsFork}}
 											{{$.i18n.Tr "repo.forked_from"}}
-											<span><a href="{{AppSubUrl}}/{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
+											<span><a href="{{AppSubUrl}}/{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}" rel="nofollow">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
 										{{end}}
 									{{else}}
 										<span class="icon">{{svg "octicon-file-directory"}}</span>
@@ -123,7 +123,7 @@
 									<span>{{SizeFmt .Size}}</span>
 									{{if .IsFork}}
 										{{$.i18n.Tr "repo.forked_from"}}
-										<span><a href="{{AppSubUrl}}/{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
+										<span><a href="{{AppSubUrl}}/{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}" rel="nofollow">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>
 									{{end}}
 								</div>
 							</div>

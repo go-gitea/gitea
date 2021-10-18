@@ -22,7 +22,7 @@ func noneLinkFormatter(url string, text string) string {
 
 // htmlLinkFormatter creates a HTML link
 func htmlLinkFormatter(url string, text string) string {
-	return fmt.Sprintf(`<a href="%s">%s</a>`, url, html.EscapeString(text))
+	return fmt.Sprintf(`<a href="%s" rel="nofollow">%s</a>`, url, html.EscapeString(text))
 }
 
 func getIssuesPayloadInfo(p *api.IssuePayload, linkFormatter linkFormatter, withSender bool) (string, string, string, int) {

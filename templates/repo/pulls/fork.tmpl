@@ -37,7 +37,7 @@
 
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.fork_from"}}</label>
-						<a href="{{AppSubUrl}}/{{.ForkFrom}}">{{.ForkFrom}}</a>
+						<a href="{{AppSubUrl}}/{{.ForkFrom}}" rel="nofollow">{{.ForkFrom}}</a>
 					</div>
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>

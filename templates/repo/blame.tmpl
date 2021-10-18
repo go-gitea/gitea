@@ -32,7 +32,7 @@
 											{{$row.Avatar}}
 										</div>
 										<div class="blame-message">
-											<a href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}">
+											<a href="{{$row.CommitURL}}" title="{{$row.CommitMessage}}" rel="nofollow">
 												{{$row.CommitMessage}}
 											</a>
 										</div>
@@ -44,7 +44,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted">
+									<a href="{{$row.PreviousShaURL}}" class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted" rel="nofollow">
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}

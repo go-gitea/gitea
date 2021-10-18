@@ -165,7 +165,7 @@ func (r *Writer) WriteRegularLink(l org.RegularLink) {
 		videoSrc := getMediaURL(link)
 		fmt.Fprintf(r, `<video src="%s" title="%s">%s</video>`, videoSrc, description, description)
 	default:
-		fmt.Fprintf(r, `<a href="%s" title="%s">%s</a>`, link, description, description)
+		fmt.Fprintf(r, `<a href="%s" rel="nofollow" title="%s">%s</a>`, link, description, description)
 	}
 }
 

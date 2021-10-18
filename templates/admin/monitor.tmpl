@@ -58,7 +58,7 @@
 							<td>{{.Type}}</td>
 							<td>{{.ExemplarType}}</td>
 							<td>{{$sum := .NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
-							<td><a href="{{$.Link}}/queue/{{.QID}}" class="button">{{if lt $sum 0}}{{$.i18n.Tr "admin.monitor.queue.review"}}{{else}}{{$.i18n.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
+							<td><a href="{{$.Link}}/queue/{{.QID}}" rel="nofollow" class="button">{{if lt $sum 0}}{{$.i18n.Tr "admin.monitor.queue.review"}}{{else}}{{$.i18n.Tr "admin.monitor.queue.review_add"}}{{end}}</a>
 						</tr>
 					{{end}}
 				</tbody>

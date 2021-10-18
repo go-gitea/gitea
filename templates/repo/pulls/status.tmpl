@@ -25,7 +25,7 @@
 				{{if $.is_context_required}}
 					{{if (call $.is_context_required .Context)}}<div class="ui label">{{$.i18n.Tr "repo.pulls.status_checks_requested"}}</div>{{end}}
 				{{end}}
-				<span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}">{{$.i18n.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
+				<span class="ui">{{if .TargetURL}}<a href="{{.TargetURL}}" rel="nofollow">{{$.i18n.Tr "repo.pulls.status_checks_details"}}</a>{{end}}</span>
 			</div>
 		</div>
 	{{end}}

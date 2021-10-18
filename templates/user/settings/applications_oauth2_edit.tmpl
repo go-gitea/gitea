@@ -31,7 +31,7 @@
 				{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}}
 				<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}/regenerate_secret" method="post">
 					{{.CsrfTokenHtml}}
-					<a href="#" onclick="event.target.parentNode.submit()">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
+					<a href="#" onclick="event.target.parentNode.submit()" rel="nofollow">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
 				</form>
 			</div>
 		</div>

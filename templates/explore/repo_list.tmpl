@@ -53,7 +53,7 @@
 				{{if .Topics }}
 					<div class="ui tags">
 					{{range .Topics}}
-						{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+						{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic" rel="nofollow">{{.}}</div></a>{{end}}
 					{{end}}
 					</div>
 				{{end}}

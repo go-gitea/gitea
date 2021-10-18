@@ -3,11 +3,11 @@
 		<h1 class="ui dividing header">{{.i18n.Tr "notification.notifications"}}</h1>
 		<div class="ui top attached tabular menu">
 			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
-			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
+			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item" rel="nofollow">
 				{{.i18n.Tr "notification.unread"}}
 				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
 			</a>
-			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
+			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item" rel="nofollow">
 				{{.i18n.Tr "notification.read"}}
 			</a>
 			{{if and (eq .Status 1)}}

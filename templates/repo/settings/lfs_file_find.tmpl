@@ -6,7 +6,7 @@
 		{{template "base/alert" .}}
 		<div class="tab-size-8 non-diff-file-content">
 			<h4 class="ui top attached header">
-				<a href="{{.LFSFilesLink}}">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
+				<a href="{{.LFSFilesLink}}" rel="nofollow">{{.i18n.Tr "repo.settings.lfs"}}</a> / <span class="truncate sha">{{.Oid}}</span>
 			</h4>
 			<table id="lfs-files-find-table" class="ui attached segment single line table">
 				<tbody>
@@ -14,11 +14,11 @@
 						<tr>
 							<td>
 								{{svg "octicon-file"}}
-								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}">{{.Name}}</a>
+								<a href="{{EscapePound $.RepoLink}}/src/commit/{{.SHA}}/{{EscapePound .Name}}" title="{{.Name}}" rel="nofollow">{{.Name}}</a>
 							</td>
 							<td class="message">
 								<span class="truncate">
-									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary | RenderEmojiPlain}}">
+									<a href="{{$.RepoLink}}/commit/{{.SHA}}" title="{{.Summary | RenderEmojiPlain}}" rel="nofollow">
 										{{.Summary | RenderEmoji}}
 									</a>
 								</span>

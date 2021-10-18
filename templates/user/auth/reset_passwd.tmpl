@@ -53,7 +53,7 @@
 							<label></label>
 							<button class="ui blue button">{{.i18n.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
-								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{.i18n.Tr "auth.use_scratch_code" | Str2html}}</a>
+								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true" rel="nofollow">{{.i18n.Tr "auth.use_scratch_code" | Str2html}}</a>
 							{{end}}
 						</div>
 					{{else}}

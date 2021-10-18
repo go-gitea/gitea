@@ -30,12 +30,12 @@
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button">{{.i18n.Tr "sign_in"}}</button>
-						<a href="{{AppSubUrl}}/user/forget_password">{{.i18n.Tr "auth.forget_password"}}</a>
+						<a href="{{AppSubUrl}}/user/forget_password" rel="nofollow">{{.i18n.Tr "auth.forget_password"}}</a>
 					</div>
 					{{if .ShowRegistrationButton}}
 						<div class="inline field">
 							<label></label>
-							<a href="{{AppSubUrl}}/user/sign_up">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
+							<a href="{{AppSubUrl}}/user/sign_up" rel="nofollow">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
 						</div>
 					{{end}}
 					</form>

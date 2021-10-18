@@ -12,7 +12,7 @@
 					{{end}}
 					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
 					<div class="mx-2">/</div>
-					<a href="{{$.RepoLink}}">{{.Name}}</a>
+					<a href="{{$.RepoLink}}" rel="nofollow">{{.Name}}</a>
 					<div class="labels df ac fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
@@ -37,8 +37,8 @@
 					</div>
 				</div>
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{(MirrorRemoteAddress $.Mirror).Address}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{(MirrorRemoteAddress $.Mirror).Address}}{{end}}</a></div>{{end}}
-				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
-				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
+				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}" rel="nofollow">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
+				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}" rel="nofollow">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
 			</div>
 			{{if not .IsBeingCreated}}
 				<div class="repo-buttons">
@@ -133,7 +133,7 @@
 				{{end}}
 
 				{{ if and (not .UnitProjectsGlobalDisabled) (.Permission.CanRead $.UnitTypeProjects)}}
-					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
+					<a href="{{.RepoLink}}/projects" rel="nofollow" class="{{ if .IsProjectsPage }}active{{end}} item">
 						{{svg "octicon-project"}} {{.i18n.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
 							<span class="ui blue small label">{{CountFmt .Repository.NumOpenProjects}}</span>

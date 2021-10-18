@@ -421,7 +421,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteLink(w util.BufWriter, source []byt
 		_, _ = w.Write(n.Name)
 		_, _ = w.WriteString(`"><a href="#fn:`)
 		_, _ = w.Write(n.Name)
-		_, _ = w.WriteString(`" class="footnote-ref" role="doc-noteref">`)
+		_, _ = w.WriteString(`" rel="nofollow" class="footnote-ref" role="doc-noteref">`)
 		_, _ = w.WriteString(is)
 		_, _ = w.WriteString(`</a></sup>`)
 	}
@@ -434,7 +434,7 @@ func (r *FootnoteHTMLRenderer) renderFootnoteBackLink(w util.BufWriter, source [
 		fmt.Fprintf(os.Stdout, "source:\n%s\n", string(n.Text(source)))
 		_, _ = w.WriteString(` <a href="#fnref:`)
 		_, _ = w.Write(n.Name)
-		_, _ = w.WriteString(`" class="footnote-backref" role="doc-backlink">`)
+		_, _ = w.WriteString(`" rel="nofollow" class="footnote-backref" role="doc-backlink">`)
 		_, _ = w.WriteString("&#x21a9;&#xfe0e;")
 		_, _ = w.WriteString(`</a>`)
 	}

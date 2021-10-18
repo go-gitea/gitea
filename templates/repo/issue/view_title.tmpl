@@ -32,11 +32,11 @@
 	{{if .Issue.IsPull}}
 		{{$headHref := .HeadTarget|Escape}}
 		{{if .HeadBranchHTMLURL}}
-			{{$headHref = printf "<a href=\"%s\">%s</a>" .HeadBranchHTMLURL $headHref}}
+			{{$headHref = printf "<a href=\"%s\" rel=\"nofollow\">%s</a>" .HeadBranchHTMLURL $headHref}}
 		{{end}}
 		{{$baseHref := .BaseTarget|Escape}}
 		{{if .BaseBranchHTMLURL}}
-			{{$baseHref = printf "<a href=\"%s\">%s</a>" .BaseBranchHTMLURL $baseHref}}
+			{{$baseHref = printf "<a href=\"%s\" rel=\"nofollow\">%s</a>" .BaseBranchHTMLURL $baseHref}}
 		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
 			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
