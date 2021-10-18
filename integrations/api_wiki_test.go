@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
-	wiki_service "code.gitea.io/gitea/services/wiki"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -117,11 +116,7 @@ func TestAPINewWikiPage(t *testing.T) {
 			Content: "Wiki page content for API unit tests",
 			Message: "",
 		})
-		session.MakeRequest(t, req, http.StatusNoContent)
-
-		urlStrGet := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/%s", username, "repo1", wiki_service.NormalizeWikiName(title))
-		reqGet := NewRequest(t, "GET", urlStrGet)
-		session.MakeRequest(t, reqGet, http.StatusOK)
+		session.MakeRequest(t, req, http.StatusCreated)
 	}
 }
 
@@ -138,7 +133,7 @@ func TestAPIEditWikiPage(t *testing.T) {
 		Content: "Edited wiki page content for API unit tests",
 		Message: "",
 	})
-	session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusOK)
 }
 
 func TestAPIListPageRevisions(t *testing.T) {
