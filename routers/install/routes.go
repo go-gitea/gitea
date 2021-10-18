@@ -38,8 +38,8 @@ func installRecovery() func(next http.Handler) http.Handler {
 				// should not panic any more.
 				defer func() {
 					if err := recover(); err != nil {
-						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-						log.Error(combinedErr)
+						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+						log.Error("%s", combinedErr)
 						if setting.IsProd() {
 							http.Error(w, http.StatusText(500), 500)
 						} else {
@@ -49,8 +49,8 @@ func installRecovery() func(next http.Handler) http.Handler {
 				}()
 
 				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					log.Error("%v", combinedErr)
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+					log.Error("%s", combinedErr)
 
 					lc := middleware.Locale(w, req)
 					var store = dataStore{
@@ -85,10 +85,10 @@ func Routes() *web.Route {
 		r.Use(middle)
 	}
 
-	r.Use(public.AssetsHandler(&public.Options{
+	r.Use(common.WrapContextHandler(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory: path.Join(setting.StaticRootPath, "public"),
-		Prefix:    "/assets",
-	}))
+		Prefix:    public.AssetsURLPathPrefix,
+	}), "AssetsHandler"))
 
 	r.Use(session.Sessioner(session.Options{
 		Provider:       setting.SessionConfig.Provider,
@@ -106,8 +106,13 @@ func Routes() *web.Route {
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
-	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+
+	handlerNotFound := func(w http.ResponseWriter, req *http.Request) {
 		http.Redirect(w, req, setting.AppURL, http.StatusFound)
+	}
+	r.NotFound(func(w http.ResponseWriter, req *http.Request) {
+		common.UpdateContextHandlerFuncInfo(req.Context(), handlerNotFound)
+		handlerNotFound(w, req)
 	})
 	return r
 }

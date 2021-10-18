@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
@@ -126,8 +127,9 @@ func Recovery() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
 				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
-					log.Error("%v", combinedErr)
+					common.UpdateContextHandlerPanicError(req.Context(), err)
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
+					log.Error("%s", combinedErr)
 
 					sessionStore := session.GetSession(req)
 					if sessionStore == nil {

@@ -181,7 +181,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 			log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
 			if log.IsDebug() {
-				log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+				log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 			}
 			_ = lw.CloseWithError(fmt.Errorf("%v", err))
 		}()
@@ -214,7 +214,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 		log.Warn("Unable to render markdown due to panic in goldmark - will return sanitized raw bytes")
 		if log.IsDebug() {
-			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
 		ret := markup.SanitizeReader(input, "")
 		_, err = io.Copy(output, ret)

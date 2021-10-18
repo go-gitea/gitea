@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/misc"
+	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
@@ -74,11 +75,11 @@ func CorsHandler() func(next http.Handler) http.Handler {
 func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	routes := web.NewRoute()
 
-	routes.Use(public.AssetsHandler(&public.Options{
+	routes.Use(common.WrapContextHandler(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
 		Directory:   path.Join(setting.StaticRootPath, "public"),
-		Prefix:      "/assets",
+		Prefix:      public.AssetsURLPathPrefix,
 		CorsHandler: CorsHandler(),
-	}))
+	}), "AssetsHandler"))
 
 	routes.Use(sessioner)
 

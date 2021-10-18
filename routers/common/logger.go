@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-// LoggerHandler is a handler that will log the routing to the default gitea log
-func LoggerHandler(level log.Level) func(next http.Handler) http.Handler {
+// NewLoggerHandlerV1 is a handler that will log the routing to the default gitea log
+func NewLoggerHandlerV1(level log.Level) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()

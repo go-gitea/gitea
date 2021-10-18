@@ -45,7 +45,17 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 	if !setting.DisableRouterLog && setting.RouterLogLevel != log.NONE {
 		if log.GetLogger("router").GetLevel() <= setting.RouterLogLevel {
-			handlers = append(handlers, LoggerHandler(setting.RouterLogLevel))
+			var routerLogHandler func(http.Handler) http.Handler
+			if setting.RouterLogHandler == "v1" {
+				routerLogHandler = NewLoggerHandlerV1(setting.RouterLogLevel)
+			} else if setting.RouterLogHandler == "v2" {
+				routerLogHandler = NewLoggerHandlerV2(setting.RouterLogLevel)
+			}
+			if routerLogHandler == nil {
+				log.Warn("unknown router log handler '%s', fall back to v2")
+				routerLogHandler = NewLoggerHandlerV2(setting.RouterLogLevel)
+			}
+			handlers = append(handlers, routerLogHandler)
 		}
 	}
 	if setting.EnableAccessLog {
@@ -57,10 +67,11 @@ func Middlewares() []func(http.Handler) http.Handler {
 			// Why we need this? The Recovery() will try to render a beautiful
 			// error page for user, but the process can still panic again, and other
 			// middleware like session also may panic then we have to recover twice
-			// and send a simple error page that should not panic any more.
+			// and send a simple error page that should not panic anymore.
 			defer func() {
 				if err := recover(); err != nil {
-					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
+					UpdateContextHandlerPanicError(req.Context(), err)
+					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 					log.Error("%v", combinedErr)
 					if setting.IsProd() {
 						http.Error(resp, http.StatusText(500), 500)

@@ -79,6 +79,13 @@ changed if desired by setting the `ROUTER_LOG_LEVEL` value.
 Please note, setting the `LEVEL` of this logger to a level above
 `ROUTER_LOG_LEVEL` will result in no router logs.
 
+You can control the output format by setting a log handler to `ROUTER_LOG_HANDLER`.
+Now Gitea has two log handlers:
+* `v1` is the default handler for Gitea before 1.16
+* `v2` is the default handler for Gitea from 1.16, it's more meaningful and friendly.
+
+If you have applications depending on the log format (eg: fail2ban), please make sure you use the correct log handler and log format.
+
 Each output sublogger for this logger is configured in
 `[log.sublogger.router]` sections. There are certain default values
 which will not be inherited from the `[log]` or relevant

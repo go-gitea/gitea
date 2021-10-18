@@ -332,6 +332,7 @@ var (
 	LogRootPath        string
 	DisableRouterLog   bool
 	RouterLogLevel     log.Level
+	RouterLogHandler   string
 	EnableAccessLog    bool
 	EnableSSHLog       bool
 	AccessLogTemplate  string
@@ -579,6 +580,7 @@ func NewContext() {
 	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
 	forcePathSeparator(LogRootPath)
 	RouterLogLevel = log.FromString(Cfg.Section("log").Key("ROUTER_LOG_LEVEL").MustString("Info"))
+	RouterLogHandler = Cfg.Section("log").Key("ROUTER_LOG_HANDLER").MustString("v2")
 
 	sec := Cfg.Section("server")
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")

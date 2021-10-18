@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/routers/common"
 
 	"gitea.com/go-chi/binding"
 	chi "github.com/go-chi/chi/v5"
@@ -40,6 +41,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		for i := 0; i < len(handlers); i++ {
 			handler := handlers[i]
+			common.UpdateContextHandlerFuncInfo(req.Context(), handler)
 			switch t := handler.(type) {
 			case http.HandlerFunc:
 				t(resp, req)

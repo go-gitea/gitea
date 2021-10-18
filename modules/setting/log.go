@@ -126,6 +126,7 @@ func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
 	level := getLogLevel(sec, "LEVEL", LogLevel)
+	levelName = level.String()
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
