@@ -218,7 +218,8 @@ function initVueComponents() {
         syncQueryParam(params, 'repo-search-page', this.page.toString(), '1');
 
         const queryString = params.toString();
-        window.history.replaceState({}, '', queryString ? '?'.concat(queryString) : window.location.pathname);
+        const newUrl = queryString ? `?${queryString}` : window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
       },
 
       toggleArchivedFilter() {
