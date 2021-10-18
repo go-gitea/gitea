@@ -49,7 +49,7 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-func guaranteeInit(fn func() error) {
+func mustInit(fn func() error) {
 	err := fn()
 	if err != nil {
 		ptr := reflect.ValueOf(fn).Pointer()
@@ -58,7 +58,7 @@ func guaranteeInit(fn func() error) {
 	}
 }
 
-func guaranteeInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
+func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 	err := fn(ctx)
 	if err != nil {
 		ptr := reflect.ValueOf(fn).Pointer()
@@ -70,8 +70,8 @@ func guaranteeInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 // InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
 func InitGitServices() {
 	setting.NewServices()
-	guaranteeInit(storage.Init)
-	guaranteeInit(repository.NewContext)
+	mustInit(storage.Init)
+	mustInit(repository.NewContext)
 }
 
 func syncAppPathForGit(ctx context.Context) (err error) {
@@ -83,10 +83,10 @@ func syncAppPathForGit(ctx context.Context) (err error) {
 		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
 
 		log.Info("re-sync repository hooks ...")
-		guaranteeInitCtx(ctx, repo_module.SyncRepositoryHooks)
+		mustInitCtx(ctx, repo_module.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		guaranteeInit(models.RewriteAllPublicKeys)
+		mustInit(models.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
 		return setting.AppState.Set(runtimeState)
@@ -101,7 +101,7 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("Gitea is not installed")
 	}
 
-	guaranteeInitCtx(ctx, git.Init)
+	mustInitCtx(ctx, git.Init)
 	log.Info(git.VersionInfo())
 
 	git.CheckLFSVersion()
@@ -117,9 +117,9 @@ func GlobalInit(ctx context.Context) {
 
 	InitGitServices()
 	mailer.NewContext()
-	guaranteeInit(cache.NewContext)
+	mustInit(cache.NewContext)
 	notification.NewContext()
-	guaranteeInit(archiver.Init)
+	mustInit(archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()
@@ -131,10 +131,10 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("SQLite3 is set in settings but NOT Supported")
 	}
 
-	guaranteeInitCtx(ctx, common.InitDBEngine)
+	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 
-	guaranteeInit(oauth2.Init)
+	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
 
@@ -142,16 +142,16 @@ func GlobalInit(ctx context.Context) {
 	cron.NewContext()
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
-	guaranteeInit(stats_indexer.Init)
+	mustInit(stats_indexer.Init)
 
 	mirror_service.InitSyncMirrors()
 	webhook.InitDeliverHooks()
-	guaranteeInit(pull_service.Init)
-	guaranteeInit(task.Init)
-	guaranteeInit(repo_migrations.Init)
+	mustInit(pull_service.Init)
+	mustInit(task.Init)
+	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
-	guaranteeInitCtx(ctx, syncAppPathForGit)
+	mustInitCtx(ctx, syncAppPathForGit)
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
