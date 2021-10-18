@@ -3,20 +3,21 @@ import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
 const {AppSubUrl, AssetUrlPrefix, pageData} = window.config;
 
-function setOrDeleteParam(params, data, isEqual, param, customValue = undefined) {
-  if (data === isEqual) {
-    params.delete(param);
+function syncQueryParam(params, queryKey, queryValue, definedValue) {
+  if (queryValue === definedValue) {
+    params.delete(queryKey);
   } else {
-    params.set(param, customValue ? customValue : data);
+    params.set(queryKey, queryValue);
   }
 }
 
-function resetPage($this, page = 1) {
-  $this.page = page;
-  $this.repos = [];
-  $this.setCheckboxes();
-  Vue.set($this.counts, `${$this.reposFilter}:${$this.archivedFilter}:${$this.privateFilter}`, 0);
-  $this.searchRepos();
+function refreshRepoSearch(repoSearch, page = 1) {
+  repoSearch.page = page;
+  repoSearch.repos = [];
+  repoSearch.setCheckboxes();
+  const countKey = `${repoSearch.reposFilter}:${repoSearch.archivedFilter}:${repoSearch.privateFilter}`;
+  repoSearch.counts[countKey] = 0;
+  repoSearch.searchRepos();
 }
 
 function initVueComponents() {
@@ -202,18 +203,18 @@ function initVueComponents() {
 
       changeReposFilter(filter) {
         this.reposFilter = filter;
-        resetPage(this);
+        refreshRepoSearch(this);
       },
 
       updateHistory() {
         const params = new URLSearchParams(window.location.search);
 
-        setOrDeleteParam(params, this.tab, 'repos', 'repo-search-tab');
-        setOrDeleteParam(params, this.reposFilter, 'all', 'repo-search-filter');
-        setOrDeleteParam(params, this.privateFilter, 'both', 'repo-search-private');
-        setOrDeleteParam(params, this.archivedFilter, 'unarchived', 'repo-search-archived');
-        setOrDeleteParam(params, this.searchQuery, '', 'repo-search-query');
-        setOrDeleteParam(params, this.page, 1, 'repo-search-page', this.page.toString());
+        syncQueryParam(params, 'repo-search-tab', this.tab, 'repos');
+        syncQueryParam(params, 'repo-search-filter', this.reposFilter, 'all');
+        syncQueryParam(params, 'repo-search-private', this.privateFilter, 'both');
+        syncQueryParam(params, 'repo-search-archived', this.archivedFilter, 'unarchived');
+        syncQueryParam(params, 'repo-search-query', this.searchQuery, '');
+        syncQueryParam(params, 'repo-search-page', this.page.toString(), '1');
 
         const queryString = params.toString();
         window.history.replaceState({}, '', queryString ? '?'.concat(queryString) : window.location.pathname);
@@ -232,7 +233,7 @@ function initVueComponents() {
             this.archivedFilter = 'unarchived';
             break;
         }
-        resetPage(this);
+        refreshRepoSearch(this);
       },
 
       togglePrivateFilter() {
@@ -248,12 +249,12 @@ function initVueComponents() {
             this.privateFilter = 'both';
             break;
         }
-        resetPage(this);
+        refreshRepoSearch(this);
       },
 
 
       changePage(page) {
-        resetPage(this, Math.max(Math.min(page, this.finalPage), 1));
+        refreshRepoSearch(this, Math.max(Math.min(page, this.finalPage), 1));
       },
 
       searchRepos() {
