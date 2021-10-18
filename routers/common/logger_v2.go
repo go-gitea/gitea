@@ -13,6 +13,13 @@ import (
 )
 
 // NewLoggerHandlerV2 is a handler that will log the routing to the default gitea log
+// About performance:
+// In v1, every request outputs 2 logs (Started/Completed)
+// In v2 (this), every request only outputs one log,
+//    all runtime reflections of handler functions are cached
+//	  the mutexes work in fast path for most cases (atomic incr) because there is seldom concurrency writings.
+// So generally speaking, the `logger context` doesn't cost much, using v2 with `logger context` will not affect performance
+// Instead, the performance may be improved because now only 1 log is outputted for each request.
 func NewLoggerHandlerV2(level log.Level) func(next http.Handler) http.Handler {
 	lh := logContextHandler{
 		logLevel:         level,
