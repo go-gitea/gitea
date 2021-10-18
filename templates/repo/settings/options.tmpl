@@ -9,7 +9,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
-				{{DisableFormAutofill}}
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
@@ -105,7 +105,7 @@
 						<tr>
 							<td colspan="4">
 								<form class="ui form" method="post">
-									{{DisableFormAutofill}}
+									{{template "base/disable_form_autofill"}}
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror">
 									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
@@ -196,7 +196,7 @@
 							<tr>
 								<td colspan="4">
 									<form class="ui form" method="post">
-										{{DisableFormAutofill}}
+										{{template "base/disable_form_autofill"}}
 										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-add">
 										<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
