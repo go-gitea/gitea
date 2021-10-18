@@ -15,7 +15,8 @@ function refreshRepoSearch(repoSearch, page = 1) {
   repoSearch.page = page;
   repoSearch.repos = [];
   repoSearch.setCheckboxes();
-  // Needed to inform Vue that the value has changed initially
+  // If Vue is not notified manually, the computed property `repoTypeCount` doesn't get updated correctly
+  // Leading to a not-rendered round counter initially
   Vue.set(repoSearch.counts, `${repoSearch.reposFilter}:${repoSearch.archivedFilter}:${repoSearch.privateFilter}`, 0);
   repoSearch.searchRepos();
 }
