@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/secret"
@@ -36,6 +37,10 @@ type Task struct {
 	Created        timeutil.TimeStamp `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(Task))
+}
+
 // TranslatableMessage represents JSON struct that can be translated with a Locale
 type TranslatableMessage struct {
 	Format string
@@ -44,10 +49,10 @@ type TranslatableMessage struct {
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo() error {
-	return task.loadRepo(x)
+	return task.loadRepo(db.GetEngine(db.DefaultContext))
 }
 
-func (task *Task) loadRepo(e Engine) error {
+func (task *Task) loadRepo(e db.Engine) error {
 	if task.Repo != nil {
 		return nil
 	}
@@ -71,7 +76,7 @@ func (task *Task) LoadDoer() error {
 	}
 
 	var doer User
-	has, err := x.ID(task.DoerID).Get(&doer)
+	has, err := db.GetEngine(db.DefaultContext).ID(task.DoerID).Get(&doer)
 	if err != nil {
 		return err
 	} else if !has {
@@ -91,7 +96,7 @@ func (task *Task) LoadOwner() error {
 	}
 
 	var owner User
-	has, err := x.ID(task.OwnerID).Get(&owner)
+	has, err := db.GetEngine(db.DefaultContext).ID(task.OwnerID).Get(&owner)
 	if err != nil {
 		return err
 	} else if !has {
@@ -106,7 +111,7 @@ func (task *Task) LoadOwner() error {
 
 // UpdateCols updates some columns
 func (task *Task) UpdateCols(cols ...string) error {
-	_, err := x.ID(task.ID).Cols(cols...).Update(task)
+	_, err := db.GetEngine(db.DefaultContext).ID(task.ID).Cols(cols...).Update(task)
 	return err
 }
 
@@ -165,7 +170,7 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := x.Get(&task)
+	has, err := db.GetEngine(db.DefaultContext).Get(&task)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -181,7 +186,7 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 		DoerID: doerID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := x.Get(&task)
+	has, err := db.GetEngine(db.DefaultContext).Get(&task)
 	if err != nil {
 		return nil, nil, err
 	} else if !has {
@@ -212,16 +217,16 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 // FindTasks find all tasks
 func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 	tasks := make([]*Task, 0, 10)
-	err := x.Where(opts.ToConds()).Find(&tasks)
+	err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Find(&tasks)
 	return tasks, err
 }
 
 // CreateTask creates a task on database
 func CreateTask(task *Task) error {
-	return createTask(x, task)
+	return createTask(db.GetEngine(db.DefaultContext), task)
 }
 
-func createTask(e Engine, task *Task) error {
+func createTask(e db.Engine, task *Task) error {
 	_, err := e.Insert(task)
 	return err
 }
@@ -248,7 +253,7 @@ func FinishMigrateTask(task *Task) error {
 	}
 	task.PayloadContent = string(confBytes)
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

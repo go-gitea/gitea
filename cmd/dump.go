@@ -7,14 +7,13 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -174,7 +173,7 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := models.SetEngine()
+	err := db.SetEngine()
 	if err != nil {
 		return err
 	}
@@ -247,7 +246,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Path does not exist: %s", tmpDir)
 	}
 
-	dbDump, err := ioutil.TempFile(tmpDir, "gitea-db.sql")
+	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
@@ -264,7 +263,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Dumping database...")
 	}
 
-	if err := models.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
+	if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
 		fatal("Failed to dump database: %v", err)
 	}
 

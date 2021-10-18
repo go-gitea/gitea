@@ -7,18 +7,19 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetCommitStatuses(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	repo1 := AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	sha1 := "1234123412341234123412341234123412341234"
 
-	statuses, maxResults, err := GetCommitStatuses(repo1, sha1, &CommitStatusOptions{ListOptions: ListOptions{Page: 1, PageSize: 50}})
+	statuses, maxResults, err := GetCommitStatuses(repo1, sha1, &CommitStatusOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 50}})
 	assert.NoError(t, err)
 	assert.Equal(t, int(maxResults), 5)
 	assert.Len(t, statuses, 5)

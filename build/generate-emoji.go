@@ -12,9 +12,10 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -67,7 +68,7 @@ func main() {
 	}
 
 	// write
-	err = ioutil.WriteFile(*flagOut, buf, 0644)
+	err = os.WriteFile(*flagOut, buf, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,7 +97,7 @@ func generate() ([]byte, error) {
 	defer res.Body.Close()
 
 	// read all
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +158,7 @@ func generate() ([]byte, error) {
 
 	// write a JSON file to use with tribute (write before adding skin tones since we can't support them there yet)
 	file, _ := json.Marshal(data)
-	_ = ioutil.WriteFile("assets/emoji.json", file, 0644)
+	_ = os.WriteFile("assets/emoji.json", file, 0644)
 
 	// Add skin tones to emoji that support it
 	var (

@@ -626,42 +626,43 @@ func (db *mysql) GetIndexes(queryer core.Queryer, ctx context.Context, tableName
 }
 
 func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
-	var sql = "CREATE TABLE IF NOT EXISTS "
 	if tableName == "" {
 		tableName = table.Name
 	}
 
-	quoter := db.Quoter()
+	quoter := db.dialect.Quoter()
+	var b strings.Builder
+	b.WriteString("CREATE TABLE IF NOT EXISTS ")
+	quoter.QuoteTo(&b, tableName)
+	b.WriteString(" (")
 
-	sql += quoter.Quote(tableName)
-	sql += " ("
+	for i, colName := range table.ColumnsSeq() {
+		col := table.GetColumn(colName)
+		s, _ := ColumnString(db.dialect, col, col.IsPrimaryKey && len(table.PrimaryKeys) == 1)
+		b.WriteString(s)
 
-	if len(table.ColumnsSeq()) > 0 {
-		pkList := table.PrimaryKeys
-
-		for _, colName := range table.ColumnsSeq() {
-			col := table.GetColumn(colName)
-			s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
-			sql += s
-			sql = strings.TrimSpace(sql)
-			if len(col.Comment) > 0 {
-				sql += " COMMENT '" + col.Comment + "'"
-			}
-			sql += ", "
+		if len(col.Comment) > 0 {
+			b.WriteString(" COMMENT '")
+			b.WriteString(col.Comment)
+			b.WriteString("'")
 		}
 
-		if len(pkList) > 1 {
-			sql += "PRIMARY KEY ( "
-			sql += quoter.Join(pkList, ",")
-			sql += " ), "
+		if i != len(table.ColumnsSeq())-1 {
+			b.WriteString(", ")
 		}
-
-		sql = sql[:len(sql)-2]
 	}
-	sql += ")"
+
+	if len(table.PrimaryKeys) > 1 {
+		b.WriteString(", PRIMARY KEY (")
+		b.WriteString(quoter.Join(table.PrimaryKeys, ","))
+		b.WriteString(")")
+	}
+
+	b.WriteString(")")
 
 	if table.StoreEngine != "" {
-		sql += " ENGINE=" + table.StoreEngine
+		b.WriteString(" ENGINE=")
+		b.WriteString(table.StoreEngine)
 	}
 
 	var charset = table.Charset
@@ -669,13 +670,15 @@ func (db *mysql) CreateTableSQL(table *schemas.Table, tableName string) ([]strin
 		charset = db.URI().Charset
 	}
 	if len(charset) != 0 {
-		sql += " DEFAULT CHARSET " + charset
+		b.WriteString(" DEFAULT CHARSET ")
+		b.WriteString(charset)
 	}
 
 	if db.rowFormat != "" {
-		sql += " ROW_FORMAT=" + db.rowFormat
+		b.WriteString(" ROW_FORMAT=")
+		b.WriteString(db.rowFormat)
 	}
-	return []string{sql}, true
+	return []string{b.String()}, true
 }
 
 func (db *mysql) Filters() []Filter {

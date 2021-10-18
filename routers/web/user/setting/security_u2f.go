@@ -8,7 +8,7 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,7 +34,7 @@ func U2FRegister(ctx *context.Context) {
 		ctx.ServerError("Unable to set session key for u2fChallenge", err)
 		return
 	}
-	regs, err := models.GetU2FRegistrationsByUID(ctx.User.ID)
+	regs, err := login.GetU2FRegistrationsByUID(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetU2FRegistrationsByUID", err)
 		return
@@ -78,7 +78,7 @@ func U2FRegisterPost(ctx *context.Context) {
 		ctx.ServerError("u2f.Register", err)
 		return
 	}
-	if _, err = models.CreateRegistration(ctx.User, name, reg); err != nil {
+	if _, err = login.CreateRegistration(ctx.User.ID, name, reg); err != nil {
 		ctx.ServerError("u2f.Register", err)
 		return
 	}
@@ -88,9 +88,9 @@ func U2FRegisterPost(ctx *context.Context) {
 // U2FDelete deletes an security key by id
 func U2FDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.U2FDeleteForm)
-	reg, err := models.GetU2FRegistrationByID(form.ID)
+	reg, err := login.GetU2FRegistrationByID(form.ID)
 	if err != nil {
-		if models.IsErrU2FRegistrationNotExist(err) {
+		if login.IsErrU2FRegistrationNotExist(err) {
 			ctx.Status(200)
 			return
 		}
@@ -101,7 +101,7 @@ func U2FDelete(ctx *context.Context) {
 		ctx.Status(401)
 		return
 	}
-	if err := models.DeleteRegistration(reg); err != nil {
+	if err := login.DeleteRegistration(reg); err != nil {
 		ctx.ServerError("DeleteRegistration", err)
 		return
 	}

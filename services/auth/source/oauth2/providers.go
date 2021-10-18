@@ -9,6 +9,7 @@ import (
 	"sort"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -87,7 +88,7 @@ func GetOAuth2Providers() []Provider {
 func GetActiveOAuth2Providers() ([]string, map[string]Provider, error) {
 	// Maybe also separate used and unused providers so we can force the registration of only 1 active provider for each type
 
-	loginSources, err := models.GetActiveOAuth2ProviderLoginSources()
+	loginSources, err := login.GetActiveOAuth2ProviderLoginSources()
 	if err != nil {
 		return nil, nil, err
 	}

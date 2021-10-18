@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 
@@ -16,7 +16,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }
 
 func getExpectedReadmeContentsResponse() *api.ContentsResponse {
@@ -49,7 +49,7 @@ func getExpectedReadmeContentsResponse() *api.ContentsResponse {
 }
 
 func TestGetContents(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -77,7 +77,7 @@ func TestGetContents(t *testing.T) {
 }
 
 func TestGetContentsOrListForDir(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -112,7 +112,7 @@ func TestGetContentsOrListForDir(t *testing.T) {
 }
 
 func TestGetContentsOrListForFile(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -140,7 +140,7 @@ func TestGetContentsOrListForFile(t *testing.T) {
 }
 
 func TestGetContentsErrors(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -171,7 +171,7 @@ func TestGetContentsErrors(t *testing.T) {
 }
 
 func TestGetContentsOrListErrors(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -202,7 +202,7 @@ func TestGetContentsOrListErrors(t *testing.T) {
 }
 
 func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo15")
 	ctx.SetParams(":id", "15")
 	test.LoadRepo(t, ctx, 15)

@@ -7,6 +7,9 @@ export default function initContextPopups() {
   if (!refIssues.length) return;
 
   refIssues.each(function () {
+    if ($(this).hasClass('ref-external-issue')) {
+      return;
+    }
     const [index, _issues, repo, owner] = $(this).attr('href').replace(/[#?].*$/, '').split('/').reverse();
 
     const el = document.createElement('div');

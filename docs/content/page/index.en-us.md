@@ -69,10 +69,10 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - Logging
 - Configuration
     - Databases
-        - MySQL
-        - PostgreSQL
+        - MySQL (>=5.7)
+        - PostgreSQL (>=10)
         - SQLite3
-        - MSSQL
+        - MSSQL (>=2008R2 SP3)
         - TiDB (experimental, not recommended)
     - Configuration file
         - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)

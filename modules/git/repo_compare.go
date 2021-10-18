@@ -46,7 +46,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 }
 
 // GetCompareInfo generates and returns compare information between base and head branches of repositories.
-func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) (_ *CompareInfo, err error) {
+func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string, directComparison, fileOnly bool) (_ *CompareInfo, err error) {
 	var (
 		remoteBranch string
 		tmpRemote    string
@@ -79,14 +79,25 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 		if err != nil {
 			compareInfo.BaseCommitID = remoteBranch
 		}
-		// We have a common base - therefore we know that ... should work
-		logs, err := NewCommand("log", compareInfo.MergeBase+"..."+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
-		if err != nil {
-			return nil, err
+		separator := "..."
+		baseCommitID := compareInfo.MergeBase
+		if directComparison {
+			separator = ".."
+			baseCommitID = compareInfo.BaseCommitID
 		}
-		compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
-		if err != nil {
-			return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+
+		// We have a common base - therefore we know that ... should work
+		if !fileOnly {
+			logs, err := NewCommand("log", baseCommitID+separator+headBranch, prettyLogFormat).RunInDirBytes(repo.Path)
+			if err != nil {
+				return nil, err
+			}
+			compareInfo.Commits, err = repo.parsePrettyFormatLogToList(logs)
+			if err != nil {
+				return nil, fmt.Errorf("parsePrettyFormatLogToList: %v", err)
+			}
+		} else {
+			compareInfo.Commits = []*Commit{}
 		}
 	} else {
 		compareInfo.Commits = []*Commit{}
@@ -100,7 +111,7 @@ func (repo *Repository) GetCompareInfo(basePath, baseBranch, headBranch string) 
 	// Count number of changed files.
 	// This probably should be removed as we need to use shortstat elsewhere
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
-	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch)
+	compareInfo.NumFiles, err = repo.GetDiffNumChangedFiles(remoteBranch, headBranch, directComparison)
 	if err != nil {
 		return nil, err
 	}
@@ -120,12 +131,17 @@ func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 
 // GetDiffNumChangedFiles counts the number of changed files
 // This is substantially quicker than shortstat but...
-func (repo *Repository) GetDiffNumChangedFiles(base, head string) (int, error) {
+func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparison bool) (int, error) {
 	// Now there is git diff --shortstat but this appears to be slower than simply iterating with --nameonly
 	w := &lineCountWriter{}
 	stderr := new(bytes.Buffer)
 
-	if err := NewCommand("diff", "-z", "--name-only", base+"..."+head).
+	separator := "..."
+	if directComparison {
+		separator = ".."
+	}
+
+	if err := NewCommand("diff", "-z", "--name-only", base+separator+head).
 		RunInDirPipeline(repo.Path, w, stderr); err != nil {
 		if strings.Contains(stderr.String(), "no merge base") {
 			// git >= 2.28 now returns an error if base and head have become unrelated.
@@ -203,20 +219,29 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 }
 
 // GetDiffOrPatch generates either diff or formatted patch data between given revisions
-func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, formatted bool) error {
-	if formatted {
+func (repo *Repository) GetDiffOrPatch(base, head string, w io.Writer, patch, binary bool) error {
+	if patch {
 		return repo.GetPatch(base, head, w)
+	}
+	if binary {
+		return repo.GetDiffBinary(base, head, w)
 	}
 	return repo.GetDiff(base, head, w)
 }
 
-// GetDiff generates and returns patch data between given revisions.
+// GetDiff generates and returns patch data between given revisions, optimized for human readability
 func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
+	return NewCommand("diff", "-p", base, head).
+		RunInDirPipeline(repo.Path, w, nil)
+}
+
+// GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
+func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
 	return NewCommand("diff", "-p", "--binary", base, head).
 		RunInDirPipeline(repo.Path, w, nil)
 }
 
-// GetPatch generates and returns format-patch data between given revisions.
+// GetPatch generates and returns format-patch data between given revisions, able to be used with `git apply`
 func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)
 	err := NewCommand("format-patch", "--binary", "--stdout", base+"..."+head).
@@ -234,8 +259,7 @@ func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) err
 	err := NewCommand("diff", "-p", "--binary", base+"..."+head).
 		RunInDirPipeline(repo.Path, w, stderr)
 	if err != nil && bytes.Contains(stderr.Bytes(), []byte("no merge base")) {
-		return NewCommand("diff", "-p", "--binary", base, head).
-			RunInDirPipeline(repo.Path, w, nil)
+		return repo.GetDiffBinary(base, head, w)
 	}
 	return err
 }

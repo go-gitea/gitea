@@ -9,14 +9,14 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }
 
 func waitForCount(t *testing.T, num int) {
@@ -24,7 +24,7 @@ func waitForCount(t *testing.T, num int) {
 }
 
 func TestArchive_Basic(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	ctx := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"

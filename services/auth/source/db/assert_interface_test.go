@@ -5,7 +5,7 @@
 package db_test
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/db"
 )
@@ -15,7 +15,7 @@ import (
 
 type sourceInterface interface {
 	auth.PasswordAuthenticator
-	models.LoginConfig
+	login.Config
 }
 
 var _ (sourceInterface) = &db.Source{}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -114,9 +115,10 @@ func runMigrateStorage(ctx *cli.Context) error {
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
-	if err := models.NewEngine(context.Background(), migrations.Migrate); err != nil {
+	if err := db.NewEngine(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}

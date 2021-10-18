@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -207,7 +206,7 @@ func (b *ElasticSearchIndexer) addUpdate(batchWriter git.WriteCloserError, batch
 		return nil, err
 	}
 
-	fileContents, err := ioutil.ReadAll(io.LimitReader(batchReader, size))
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
 	if err != nil {
 		return nil, err
 	} else if !typesniffer.DetectContentType(fileContents).IsText() {

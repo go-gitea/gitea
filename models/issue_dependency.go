@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -20,6 +21,10 @@ type IssueDependency struct {
 	UpdatedUnix  timeutil.TimeStamp `xorm:"updated"`
 }
 
+func init() {
+	db.RegisterModel(new(IssueDependency))
+}
+
 // DependencyType Defines Dependency Type Constants
 type DependencyType int
 
@@ -31,7 +36,7 @@ const (
 
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *User, issue, dep *Issue) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -72,7 +77,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType) (err error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -107,16 +112,16 @@ func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType
 }
 
 // Check if the dependency already exists
-func issueDepExists(e Engine, issueID, depID int64) (bool, error) {
+func issueDepExists(e db.Engine, issueID, depID int64) (bool, error) {
 	return e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed
 func IssueNoDependenciesLeft(issue *Issue) (bool, error) {
-	return issueNoDependenciesLeft(x, issue)
+	return issueNoDependenciesLeft(db.GetEngine(db.DefaultContext), issue)
 }
 
-func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
+func issueNoDependenciesLeft(e db.Engine, issue *Issue) (bool, error) {
 	exists, err := e.
 		Table("issue_dependency").
 		Select("issue.*").
@@ -130,10 +135,10 @@ func issueNoDependenciesLeft(e Engine, issue *Issue) (bool, error) {
 
 // IsDependenciesEnabled returns if dependencies are enabled and returns the default setting if not set.
 func (repo *Repository) IsDependenciesEnabled() bool {
-	return repo.isDependenciesEnabled(x)
+	return repo.isDependenciesEnabled(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) isDependenciesEnabled(e Engine) bool {
+func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {
 	var u *RepoUnit
 	var err error
 	if u, err = repo.getUnit(e, UnitTypeIssues); err != nil {

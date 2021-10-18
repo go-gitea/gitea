@@ -7,10 +7,9 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-
-	"xorm.io/xorm"
 )
 
 type crossReference struct {
@@ -27,7 +26,7 @@ type crossReferencesContext struct {
 	RemoveOld   bool
 }
 
-func findOldCrossReferences(e Engine, issueID, commentID int64) ([]*Comment, error) {
+func findOldCrossReferences(e db.Engine, issueID, commentID int64) ([]*Comment, error) {
 	active := make([]*Comment, 0, 10)
 	return active, e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
 		And("`ref_issue_id` = ?", issueID).
@@ -35,7 +34,7 @@ func findOldCrossReferences(e Engine, issueID, commentID int64) ([]*Comment, err
 		Find(&active)
 }
 
-func neuterCrossReferences(e Engine, issueID, commentID int64) error {
+func neuterCrossReferences(e db.Engine, issueID, commentID int64) error {
 	active, err := findOldCrossReferences(e, issueID, commentID)
 	if err != nil {
 		return err
@@ -47,7 +46,7 @@ func neuterCrossReferences(e Engine, issueID, commentID int64) error {
 	return neuterCrossReferencesIds(e, ids)
 }
 
-func neuterCrossReferencesIds(e Engine, ids []int64) error {
+func neuterCrossReferencesIds(e db.Engine, ids []int64) error {
 	_, err := e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: references.XRefActionNeutered})
 	return err
 }
@@ -60,7 +59,7 @@ func neuterCrossReferencesIds(e Engine, ids []int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User, removeOld bool) error {
+func (issue *Issue) addCrossReferences(e db.Engine, doer *User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -76,7 +75,7 @@ func (issue *Issue) addCrossReferences(e *xorm.Session, doer *User, removeOld bo
 	return issue.createCrossReferences(e, ctx, issue.Title, issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
 	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
@@ -134,7 +133,7 @@ func (issue *Issue) createCrossReferences(e *xorm.Session, ctx *crossReferencesC
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e *xorm.Session, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(e db.Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var (
 		refRepo   *Repository
@@ -192,7 +191,7 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 }
 
 // verifyReferencedIssue will check if the referenced issue exists, and whether the doer has permission to do what
-func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext, repo *Repository,
+func (issue *Issue) verifyReferencedIssue(e db.Engine, ctx *crossReferencesContext, repo *Repository,
 	ref references.IssueReference) (*Issue, references.XRefAction, error) {
 	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
 	refAction := ref.Action
@@ -241,7 +240,7 @@ func (issue *Issue) verifyReferencedIssue(e Engine, ctx *crossReferencesContext,
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User, removeOld bool) error {
+func (comment *Comment) addCrossReferences(e db.Engine, doer *User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}
@@ -258,7 +257,7 @@ func (comment *Comment) addCrossReferences(e *xorm.Session, doer *User, removeOl
 	return comment.Issue.createCrossReferences(e, ctx, "", comment.Content)
 }
 
-func (comment *Comment) neuterCrossReferences(e Engine) error {
+func (comment *Comment) neuterCrossReferences(e db.Engine) error {
 	return neuterCrossReferences(e, comment.IssueID, comment.ID)
 }
 
@@ -278,7 +277,7 @@ func (comment *Comment) LoadRefIssue() (err error) {
 	}
 	comment.RefIssue, err = GetIssueByID(comment.RefIssueID)
 	if err == nil {
-		err = comment.RefIssue.loadRepo(x)
+		err = comment.RefIssue.loadRepo(db.GetEngine(db.DefaultContext))
 	}
 	return
 }
@@ -338,7 +337,7 @@ func (comment *Comment) RefIssueIdent() string {
 // ResolveCrossReferences will return the list of references to close/reopen by this PR
 func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
 	unfiltered := make([]*Comment, 0, 5)
-	if err := x.
+	if err := db.GetEngine(db.DefaultContext).
 		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
 		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
 		OrderBy("id").

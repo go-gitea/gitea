@@ -62,7 +62,7 @@ func ListLabels(ctx *context.APIContext) {
 	}
 
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToLabelList(labels))
+	ctx.JSON(http.StatusOK, convert.ToLabelList(labels, ctx.Repo.Repository, nil))
 }
 
 // GetLabel get label by repository and label id
@@ -112,7 +112,7 @@ func GetLabel(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToLabel(label))
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // CreateLabel create a label for a repository
@@ -165,7 +165,8 @@ func CreateLabel(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
-	ctx.JSON(http.StatusCreated, convert.ToLabel(label))
+
+	ctx.JSON(http.StatusCreated, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // EditLabel modify a label for a repository
@@ -235,7 +236,8 @@ func EditLabel(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToLabel(label))
+
+	ctx.JSON(http.StatusOK, convert.ToLabel(label, ctx.Repo.Repository, nil))
 }
 
 // DeleteLabel delete a label for a repository

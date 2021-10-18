@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -91,7 +92,7 @@ func Home(ctx *context.Context) {
 		err   error
 	)
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		},
@@ -110,7 +111,7 @@ func Home(ctx *context.Context) {
 	var opts = &models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
-		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
+		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
 
 	if ctx.User != nil {

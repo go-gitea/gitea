@@ -5,10 +5,12 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -35,9 +37,9 @@ func handle(data ...queue.Data) {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{}).(queue.Queue)
+	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{})
 	if pushQueue == nil {
-		return fmt.Errorf("Unable to create push_update Queue")
+		return errors.New("unable to create push_update Queue")
 	}
 
 	go graceful.GetManager().RunWithShutdownFns(pushQueue.Run)
@@ -82,7 +84,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 

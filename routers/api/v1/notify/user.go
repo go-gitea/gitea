@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // ListNotifications list users's notification threads
@@ -125,7 +126,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/NotificationThreadList"
 
 	lastRead := int64(0)
 	qLastRead := ctx.FormTrim("last_read_at")
@@ -158,14 +159,17 @@ func ReadNotifications(ctx *context.APIContext) {
 		targetStatus = models.NotificationStatusRead
 	}
 
+	changed := make([]*structs.NotificationThread, 0, len(nl))
+
 	for _, n := range nl {
-		err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+		notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-		ctx.Status(http.StatusResetContent)
+		_ = notif.LoadAttributes()
+		changed = append(changed, convert.ToNotificationThread(notif))
 	}
 
-	ctx.Status(http.StatusResetContent)
+	ctx.JSON(http.StatusResetContent, changed)
 }

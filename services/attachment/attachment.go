@@ -6,10 +6,12 @@ package attachment
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 
@@ -22,7 +24,7 @@ func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachmen
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
-	err := models.WithTx(func(ctx models.DBContext) error {
+	err := db.WithTx(func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, -1)
 		if err != nil {
@@ -30,7 +32,7 @@ func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachmen
 		}
 		attach.Size = size
 
-		return models.Insert(ctx, attach)
+		return db.Insert(ctx, attach)
 	})
 
 	return attach, err

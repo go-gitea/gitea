@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -114,13 +115,13 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 }
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.
-// Note: x.Iterate does not get latest data after insert/delete, so we have to call this function
+// Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
-	return rewriteAllPublicKeys(x)
+	return rewriteAllPublicKeys(db.GetEngine(db.DefaultContext))
 }
 
-func rewriteAllPublicKeys(e Engine) error {
+func rewriteAllPublicKeys(e db.Engine) error {
 	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
@@ -178,10 +179,10 @@ func rewriteAllPublicKeys(e Engine) error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(t io.StringWriter) error {
-	return regeneratePublicKeys(x, t)
+	return regeneratePublicKeys(db.GetEngine(db.DefaultContext), t)
 }
 
-func regeneratePublicKeys(e Engine, t io.StringWriter) error {
+func regeneratePublicKeys(e db.Engine, t io.StringWriter) error {
 	if err := e.Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err

@@ -9,7 +9,6 @@ package templates
 
 import (
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -28,14 +27,14 @@ var (
 
 // GetAsset returns asset content via name
 func GetAsset(name string) ([]byte, error) {
-	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	bs, err := os.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	} else if err == nil {
 		return bs, nil
 	}
 
-	return ioutil.ReadFile(filepath.Join(setting.StaticRootPath, name))
+	return os.ReadFile(filepath.Join(setting.StaticRootPath, name))
 }
 
 // GetAssetNames returns assets list
@@ -71,7 +70,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 					continue
 				}
 
-				content, err := ioutil.ReadFile(path.Join(staticDir, filePath))
+				content, err := os.ReadFile(path.Join(staticDir, filePath))
 
 				if err != nil {
 					log.Warn("Failed to read static %s template. %v", filePath, err)
@@ -100,7 +99,7 @@ func Mailer() (*texttmpl.Template, *template.Template) {
 					continue
 				}
 
-				content, err := ioutil.ReadFile(path.Join(customDir, filePath))
+				content, err := os.ReadFile(path.Join(customDir, filePath))
 
 				if err != nil {
 					log.Warn("Failed to read custom %s template. %v", filePath, err)

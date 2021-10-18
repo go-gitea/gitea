@@ -7,6 +7,7 @@ package models
 import (
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/keybase/go-crypto/openpgp"
@@ -28,7 +29,7 @@ import (
 // This file contains functions relating to adding GPG Keys
 
 // addGPGKey add key, import and subkeys to database
-func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
+func addGPGKey(e db.Engine, key *GPGKey, content string) (err error) {
 	// Add GPGKeyImport
 	if _, err = e.Insert(GPGKeyImport{
 		KeyID:   key.KeyID,
@@ -50,7 +51,7 @@ func addGPGKey(e Engine, key *GPGKey, content string) (err error) {
 }
 
 // addGPGSubKey add subkeys to database
-func addGPGSubKey(e Engine, key *GPGKey) (err error) {
+func addGPGSubKey(e db.Engine, key *GPGKey) (err error) {
 	// Save GPG primary key.
 	if _, err = e.Insert(key); err != nil {
 		return err
@@ -71,11 +72,12 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		return nil, err
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+
 	keys := make([]*GPGKey, 0, len(ekeys))
 
 	verified := false
@@ -99,9 +101,49 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 		verified = true
 	}
 
+	if len(ekeys) > 1 {
+		id2key := map[string]*openpgp.Entity{}
+		newEKeys := make([]*openpgp.Entity, 0, len(ekeys))
+		for _, ekey := range ekeys {
+			id := ekey.PrimaryKey.KeyIdString()
+			if original, has := id2key[id]; has {
+				// Coalesce this with the other one
+				for _, subkey := range ekey.Subkeys {
+					if subkey.PublicKey == nil {
+						continue
+					}
+					found := false
+
+					for _, originalSubkey := range original.Subkeys {
+						if originalSubkey.PublicKey == nil {
+							continue
+						}
+						if originalSubkey.PublicKey.KeyId == subkey.PublicKey.KeyId {
+							found = true
+							break
+						}
+					}
+					if !found {
+						original.Subkeys = append(original.Subkeys, subkey)
+					}
+				}
+				for name, identity := range ekey.Identities {
+					if _, has := original.Identities[name]; has {
+						continue
+					}
+					original.Identities[name] = identity
+				}
+				continue
+			}
+			id2key[id] = ekey
+			newEKeys = append(newEKeys, ekey)
+		}
+		ekeys = newEKeys
+	}
+
 	for _, ekey := range ekeys {
 		// Key ID cannot be duplicated.
-		has, err := sess.Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
+		has, err := db.GetEngine(ctx).Where("key_id=?", ekey.PrimaryKey.KeyIdString()).
 			Get(new(GPGKey))
 		if err != nil {
 			return nil, err
@@ -116,10 +158,10 @@ func AddGPGKey(ownerID int64, content, token, signature string) ([]*GPGKey, erro
 			return nil, err
 		}
 
-		if err = addGPGKey(sess, key, content); err != nil {
+		if err = addGPGKey(db.GetEngine(ctx), key, content); err != nil {
 			return nil, err
 		}
 		keys = append(keys, key)
 	}
-	return keys, sess.Commit()
+	return keys, committer.Commit()
 }

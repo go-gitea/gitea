@@ -213,3 +213,53 @@ func GetAllCommits(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusOK, &apiCommits)
 }
+
+// DownloadCommitDiffOrPatch render a commit's raw diff or patch
+func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.{diffType} repository repoDownloadCommitDiffOrPatch
+	// ---
+	// summary: Get a commit's diff or patch
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// - name: diffType
+	//   in: path
+	//   description: whether the output is diff or patch
+	//   type: string
+	//   enum: [diff, patch]
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if err := git.GetRawDiff(
+		repoPath,
+		ctx.Params(":sha"),
+		git.RawDiffType(ctx.Params(":diffType")),
+		ctx.Resp,
+	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(ctx.Params(":sha"))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "DownloadCommitDiffOrPatch", err)
+		return
+	}
+}

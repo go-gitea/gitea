@@ -229,7 +229,7 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	if _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
+	if _, _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
 		if models.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -157,6 +158,11 @@ type Webhook struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func init() {
+	db.RegisterModel(new(Webhook))
+	db.RegisterModel(new(HookTask))
 }
 
 // AfterLoad updates the webhook object upon setting a column
@@ -345,10 +351,10 @@ func (w *Webhook) EventsArray() []string {
 
 // CreateWebhook creates a new web hook.
 func CreateWebhook(w *Webhook) error {
-	return createWebhook(x, w)
+	return createWebhook(db.GetEngine(db.DefaultContext), w)
 }
 
-func createWebhook(e Engine, w *Webhook) error {
+func createWebhook(e db.Engine, w *Webhook) error {
 	w.Type = strings.TrimSpace(w.Type)
 	_, err := e.Insert(w)
 	return err
@@ -357,7 +363,7 @@ func createWebhook(e Engine, w *Webhook) error {
 // getWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func getWebhook(bean *Webhook) (*Webhook, error) {
-	has, err := x.Get(bean)
+	has, err := db.GetEngine(db.DefaultContext).Get(bean)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -391,7 +397,7 @@ func GetWebhookByOrgID(orgID, id int64) (*Webhook, error) {
 
 // ListWebhookOptions are options to filter webhooks on ListWebhooksByOpts
 type ListWebhookOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID   int64
 	OrgID    int64
 	IsActive util.OptionalBool
@@ -411,11 +417,11 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	return cond
 }
 
-func listWebhooksByOpts(e Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
+func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
 	sess := e.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, opts)
 		webhooks := make([]*Webhook, 0, opts.PageSize)
 		err := sess.Find(&webhooks)
 		return webhooks, err
@@ -428,20 +434,20 @@ func listWebhooksByOpts(e Engine, opts *ListWebhookOptions) ([]*Webhook, error) 
 
 // ListWebhooksByOpts return webhooks based on options
 func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
-	return listWebhooksByOpts(x, opts)
+	return listWebhooksByOpts(db.GetEngine(db.DefaultContext), opts)
 }
 
 // CountWebhooksByOpts count webhooks based on options and ignore pagination
 func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
-	return x.Where(opts.toCond()).Count(&Webhook{})
+	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
 }
 
 // GetDefaultWebhooks returns all admin-default webhooks.
 func GetDefaultWebhooks() ([]*Webhook, error) {
-	return getDefaultWebhooks(x)
+	return getDefaultWebhooks(db.GetEngine(db.DefaultContext))
 }
 
-func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
+func getDefaultWebhooks(e db.Engine) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, e.
 		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
@@ -451,7 +457,7 @@ func getDefaultWebhooks(e Engine) ([]*Webhook, error) {
 // GetSystemOrDefaultWebhook returns admin system or default webhook by given ID.
 func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 	webhook := &Webhook{ID: id}
-	has, err := x.
+	has, err := db.GetEngine(db.DefaultContext).
 		Where("repo_id=? AND org_id=?", 0, 0).
 		Get(webhook)
 	if err != nil {
@@ -464,10 +470,10 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 
 // GetSystemWebhooks returns all admin system webhooks.
 func GetSystemWebhooks() ([]*Webhook, error) {
-	return getSystemWebhooks(x)
+	return getSystemWebhooks(db.GetEngine(db.DefaultContext))
 }
 
-func getSystemWebhooks(e Engine) ([]*Webhook, error) {
+func getSystemWebhooks(e db.Engine) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, e.
 		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
@@ -476,20 +482,20 @@ func getSystemWebhooks(e Engine) ([]*Webhook, error) {
 
 // UpdateWebhook updates information of webhook.
 func UpdateWebhook(w *Webhook) error {
-	_, err := x.ID(w.ID).AllCols().Update(w)
+	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).AllCols().Update(w)
 	return err
 }
 
 // UpdateWebhookLastStatus updates last status of webhook.
 func UpdateWebhookLastStatus(w *Webhook) error {
-	_, err := x.ID(w.ID).Cols("last_status").Update(w)
+	_, err := db.GetEngine(db.DefaultContext).ID(w.ID).Cols("last_status").Update(w)
 	return err
 }
 
 // deleteWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func deleteWebhook(bean *Webhook) (err error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -524,7 +530,7 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 
 // DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
 func DeleteDefaultSystemWebhook(id int64) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -547,7 +553,7 @@ func DeleteDefaultSystemWebhook(id int64) error {
 }
 
 // copyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
-func copyDefaultWebhooksToRepo(e Engine, repoID int64) error {
+func copyDefaultWebhooksToRepo(e db.Engine, repoID int64) error {
 	ws, err := getDefaultWebhooks(e)
 	if err != nil {
 		return fmt.Errorf("GetDefaultWebhooks: %v", err)
@@ -707,7 +713,7 @@ func (t *HookTask) simpleMarshalJSON(v interface{}) string {
 // HookTasks returns a list of hook tasks by given conditions.
 func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, setting.Webhook.PagingNum)
-	return tasks, x.
+	return tasks, db.GetEngine(db.DefaultContext).
 		Limit(setting.Webhook.PagingNum, (page-1)*setting.Webhook.PagingNum).
 		Where("hook_id=?", hookID).
 		Desc("id").
@@ -717,10 +723,10 @@ func HookTasks(hookID int64, page int) ([]*HookTask, error) {
 // CreateHookTask creates a new hook task,
 // it handles conversion from Payload to PayloadContent.
 func CreateHookTask(t *HookTask) error {
-	return createHookTask(x, t)
+	return createHookTask(db.GetEngine(db.DefaultContext), t)
 }
 
-func createHookTask(e Engine, t *HookTask) error {
+func createHookTask(e db.Engine, t *HookTask) error {
 	data, err := t.Payloader.JSONPayload()
 	if err != nil {
 		return err
@@ -733,14 +739,14 @@ func createHookTask(e Engine, t *HookTask) error {
 
 // UpdateHookTask updates information of hook task.
 func UpdateHookTask(t *HookTask) error {
-	_, err := x.ID(t.ID).AllCols().Update(t)
+	_, err := db.GetEngine(db.DefaultContext).ID(t.ID).AllCols().Update(t)
 	return err
 }
 
 // FindUndeliveredHookTasks represents find the undelivered hook tasks
 func FindUndeliveredHookTasks() ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 10)
-	if err := x.Where("is_delivered=?", false).Find(&tasks); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Where("is_delivered=?", false).Find(&tasks); err != nil {
 		return nil, err
 	}
 	return tasks, nil
@@ -749,7 +755,7 @@ func FindUndeliveredHookTasks() ([]*HookTask, error) {
 // FindRepoUndeliveredHookTasks represents find the undelivered hook tasks of one repository
 func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 5)
-	if err := x.Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
 		return nil, err
 	}
 	return tasks, nil
@@ -761,7 +767,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 
 	if cleanupType == OlderThan {
 		deleteOlderThan := time.Now().Add(-olderThan).UnixNano()
-		deletes, err := x.
+		deletes, err := db.GetEngine(db.DefaultContext).
 			Where("is_delivered = ? and delivered < ?", true, deleteOlderThan).
 			Delete(new(HookTask))
 		if err != nil {
@@ -770,7 +776,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 		log.Trace("Deleted %d rows from hook_task", deletes)
 	} else if cleanupType == PerWebhook {
 		hookIDs := make([]int64, 0, 10)
-		err := x.Table("webhook").
+		err := db.GetEngine(db.DefaultContext).Table("webhook").
 			Where("id > 0").
 			Cols("id").
 			Find(&hookIDs)
@@ -795,7 +801,7 @@ func CleanupHookTaskTable(ctx context.Context, cleanupType HookTaskCleanupType, 
 func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int) error {
 	log.Trace("Deleting hook_task rows for webhook %d, keeping the most recent %d deliveries", hookID, numberDeliveriesToKeep)
 	deliveryDates := make([]int64, 0, 10)
-	err := x.Table("hook_task").
+	err := db.GetEngine(db.DefaultContext).Table("hook_task").
 		Where("hook_task.hook_id = ? AND hook_task.is_delivered = ? AND hook_task.delivered is not null", hookID, true).
 		Cols("hook_task.delivered").
 		Join("INNER", "webhook", "hook_task.hook_id = webhook.id").
@@ -807,7 +813,7 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 	}
 
 	if len(deliveryDates) > 0 {
-		deletes, err := x.
+		deletes, err := db.GetEngine(db.DefaultContext).
 			Where("hook_id = ? and is_delivered = ? and delivered <= ?", hookID, true, deliveryDates[0]).
 			Delete(new(HookTask))
 		if err != nil {

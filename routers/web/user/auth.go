@@ -9,11 +9,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -55,7 +56,7 @@ const (
 
 // AutoSignIn reads cookie and try to auto-login.
 func AutoSignIn(ctx *context.Context) (bool, error) {
-	if !models.HasEngine {
+	if !db.HasEngine {
 		return false, nil
 	}
 
@@ -147,7 +148,7 @@ func SignIn(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
+	ctx.Data["EnableSSPI"] = login.IsSSPIEnabled()
 
 	ctx.HTML(http.StatusOK, tplSignIn)
 }
@@ -167,7 +168,7 @@ func SignInPost(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login"
 	ctx.Data["PageIsSignIn"] = true
 	ctx.Data["PageIsLogin"] = true
-	ctx.Data["EnableSSPI"] = models.IsSSPIEnabled()
+	ctx.Data["EnableSSPI"] = login.IsSSPIEnabled()
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplSignIn)
@@ -175,7 +176,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.SignInForm)
-	u, err := auth.UserSignIn(form.UserName, form.Password)
+	u, source, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
@@ -201,11 +202,20 @@ func SignInPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	// Now handle 2FA:
+
+	// First of all if the source can skip local two fa we're done
+	if skipper, ok := source.Cfg.(auth.LocalTwoFASkipper); ok && skipper.IsSkipLocalTwoFA() {
+		handleSignIn(ctx, u, form.Remember)
+		return
+	}
+
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err = models.GetTwoFactorByUID(u.ID)
+	_, err = login.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
+		if login.IsErrTwoFactorNotEnrolled(err) {
 			handleSignIn(ctx, u, form.Remember)
 		} else {
 			ctx.ServerError("UserSignIn", err)
@@ -227,7 +237,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	regs, err := models.GetU2FRegistrationsByUID(u.ID)
+	regs, err := login.GetU2FRegistrationsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/u2f")
 		return
@@ -267,7 +277,7 @@ func TwoFactorPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := models.GetTwoFactorByUID(id)
+	twofa, err := login.GetTwoFactorByUID(id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -303,7 +313,7 @@ func TwoFactorPost(ctx *context.Context) {
 		}
 
 		twofa.LastUsedPasscode = form.Passcode
-		if err = models.UpdateTwoFactor(twofa); err != nil {
+		if err = login.UpdateTwoFactor(twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
@@ -346,7 +356,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 	}
 
 	id := idSess.(int64)
-	twofa, err := models.GetTwoFactorByUID(id)
+	twofa, err := login.GetTwoFactorByUID(id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -360,7 +370,7 @@ func TwoFactorScratchPost(ctx *context.Context) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		if err = models.UpdateTwoFactor(twofa); err != nil {
+		if err = login.UpdateTwoFactor(twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
@@ -408,7 +418,7 @@ func U2FChallenge(ctx *context.Context) {
 		return
 	}
 	id := idSess.(int64)
-	regs, err := models.GetU2FRegistrationsByUID(id)
+	regs, err := login.GetU2FRegistrationsByUID(id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -444,7 +454,7 @@ func U2FSign(ctx *context.Context) {
 	}
 	challenge := challSess.(*u2f.Challenge)
 	id := idSess.(int64)
-	regs, err := models.GetU2FRegistrationsByUID(id)
+	regs, err := login.GetU2FRegistrationsByUID(id)
 	if err != nil {
 		ctx.ServerError("UserSignIn", err)
 		return
@@ -452,7 +462,7 @@ func U2FSign(ctx *context.Context) {
 	for _, reg := range regs {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal("parsing u2f registration: %v", err)
+			log.Error("parsing u2f registration: %v", err)
 			continue
 		}
 		newCounter, authErr := r.Authenticate(*signResp, *challenge, reg.Counter)
@@ -564,7 +574,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 func SignInOAuth(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -574,7 +584,7 @@ func SignInOAuth(ctx *context.Context) {
 	user, gothUser, err := oAuth2UserLoginCallback(loginSource, ctx.Req, ctx.Resp)
 	if err == nil && user != nil {
 		// we got the user without going through the whole OAuth2 authentication flow again
-		handleOAuth2SignIn(ctx, user, gothUser)
+		handleOAuth2SignIn(ctx, loginSource, user, gothUser)
 		return
 	}
 
@@ -599,7 +609,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	provider := ctx.Params(":provider")
 
 	// first look if the provider is still active
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(provider)
 	if err != nil {
 		ctx.ServerError("SignIn", err)
 		return
@@ -618,7 +628,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		if !(setting.Service.DisableRegistration || setting.Service.AllowOnlyInternalRegistration) && setting.OAuth2Client.EnableAutoRegistration {
+		if !setting.Service.AllowOnlyInternalRegistration && setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var missingFields []string
 			if gothUser.UserID == "" {
@@ -644,7 +654,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:   models.LoginOAuth2,
+				LoginType:   login.OAuth2,
 				LoginSource: loginSource.ID,
 				LoginName:   gothUser.UserID,
 			}
@@ -660,7 +670,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 		}
 	}
 
-	handleOAuth2SignIn(ctx, u, gothUser)
+	handleOAuth2SignIn(ctx, loginSource, u, gothUser)
 }
 
 func getUserName(gothUser *goth.User) string {
@@ -694,7 +704,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 		}
 		// ignore any error
 		if err == nil && resp.StatusCode == http.StatusOK {
-			data, err := ioutil.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
+			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
 				_ = u.UploadAvatar(data)
 			}
@@ -702,18 +712,22 @@ func updateAvatarIfNeed(url string, u *models.User) {
 	}
 }
 
-func handleOAuth2SignIn(ctx *context.Context, u *models.User, gothUser goth.User) {
+func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.User, gothUser goth.User) {
 	updateAvatarIfNeed(gothUser.AvatarURL, u)
 
-	// If this user is enrolled in 2FA, we can't sign the user in just yet.
-	// Instead, redirect them to the 2FA authentication page.
-	_, err := models.GetTwoFactorByUID(u.ID)
-	if err != nil {
-		if !models.IsErrTwoFactorNotEnrolled(err) {
+	needs2FA := false
+	if !source.Cfg.(*oauth2.Source).SkipLocalTwoFA {
+		_, err := login.GetTwoFactorByUID(u.ID)
+		if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
+		needs2FA = err == nil
+	}
 
+	// If this user is enrolled in 2FA and this source doesn't override it,
+	// we can't sign the user in just yet. Instead, redirect them to the 2FA authentication page.
+	if !needs2FA {
 		if err := ctx.Session.Set("uid", u.ID); err != nil {
 			log.Error("Error setting uid in session: %v", err)
 		}
@@ -761,7 +775,7 @@ func handleOAuth2SignIn(ctx *context.Context, u *models.User, gothUser goth.User
 	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
-	regs, err := models.GetU2FRegistrationsByUID(u.ID)
+	regs, err := login.GetU2FRegistrationsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/u2f")
 		return
@@ -772,7 +786,7 @@ func handleOAuth2SignIn(ctx *context.Context, u *models.User, gothUser goth.User
 
 // OAuth2UserLoginCallback attempts to handle the callback from the OAuth2 provider and if successful
 // login the user
-func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
+func oAuth2UserLoginCallback(loginSource *login.Source, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := loginSource.Cfg.(*oauth2.Source).Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" {
@@ -784,7 +798,7 @@ func oAuth2UserLoginCallback(loginSource *models.LoginSource, request *http.Requ
 
 	user := &models.User{
 		LoginName:   gothUser.UserID,
-		LoginType:   models.LoginOAuth2,
+		LoginType:   login.OAuth2,
 		LoginSource: loginSource.ID,
 	}
 
@@ -901,7 +915,7 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 		return
 	}
 
-	u, err := auth.UserSignIn(signInForm.UserName, signInForm.Password)
+	u, _, err := auth.UserSignIn(signInForm.UserName, signInForm.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Data["user_exists"] = true
@@ -920,9 +934,10 @@ func linkAccount(ctx *context.Context, u *models.User, gothUser goth.User, remem
 
 	// If this user is enrolled in 2FA, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err := models.GetTwoFactorByUID(u.ID)
+	// We deliberately ignore the skip local 2fa setting here because we are linking to a previous user here
+	_, err := login.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if !models.IsErrTwoFactorNotEnrolled(err) {
+		if !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("UserLinkAccount", err)
 			return
 		}
@@ -952,7 +967,7 @@ func linkAccount(ctx *context.Context, u *models.User, gothUser goth.User, remem
 	}
 
 	// If U2F is enrolled -> Redirect to U2F instead
-	regs, err := models.GetU2FRegistrationsByUID(u.ID)
+	regs, err := login.GetU2FRegistrationsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
 		ctx.Redirect(setting.AppSubURL + "/user/u2f")
 		return
@@ -1054,7 +1069,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		}
 	}
 
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		ctx.ServerError("CreateUser", err)
 	}
@@ -1064,7 +1079,7 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Email:       form.Email,
 		Passwd:      form.Password,
 		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
-		LoginType:   models.LoginOAuth2,
+		LoginType:   login.OAuth2,
 		LoginSource: loginSource.ID,
 		LoginName:   gothUser.UserID,
 	}
@@ -1546,7 +1561,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplForgotPassword)
 }
 
-func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor) {
+func commonResetPassword(ctx *context.Context) (*models.User, *login.TwoFactor) {
 	code := ctx.FormString("code")
 
 	ctx.Data["Title"] = ctx.Tr("auth.reset_password")
@@ -1568,9 +1583,9 @@ func commonResetPassword(ctx *context.Context) (*models.User, *models.TwoFactor)
 		return nil, nil
 	}
 
-	twofa, err := models.GetTwoFactorByUID(u.ID)
+	twofa, err := login.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if !models.IsErrTwoFactorNotEnrolled(err) {
+		if !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.Error(http.StatusInternalServerError, "CommonResetPassword", err.Error())
 			return nil, nil
 		}
@@ -1665,7 +1680,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			}
 
 			twofa.LastUsedPasscode = passcode
-			if err = models.UpdateTwoFactor(twofa); err != nil {
+			if err = login.UpdateTwoFactor(twofa); err != nil {
 				ctx.ServerError("ResetPasswdPost: UpdateTwoFactor", err)
 				return
 			}
@@ -1697,7 +1712,7 @@ func ResetPasswdPost(ctx *context.Context) {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}
-		if err = models.UpdateTwoFactor(twofa); err != nil {
+		if err = login.UpdateTwoFactor(twofa); err != nil {
 			ctx.ServerError("UserSignIn", err)
 			return
 		}

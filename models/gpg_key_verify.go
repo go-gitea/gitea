@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -29,15 +30,15 @@ import (
 
 // VerifyGPGKey marks a GPG key as verified
 func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return "", err
 	}
+	defer committer.Close()
 
 	key := new(GPGKey)
 
-	has, err := sess.Where("owner_id = ? AND key_id = ?", ownerID, keyID).Get(key)
+	has, err := db.GetEngine(ctx).Where("owner_id = ? AND key_id = ?", ownerID, keyID).Get(key)
 	if err != nil {
 		return "", err
 	} else if !has {
@@ -91,11 +92,11 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 	}
 
 	key.Verified = true
-	if _, err := sess.ID(key.ID).SetExpr("verified", true).Update(new(GPGKey)); err != nil {
+	if _, err := db.GetEngine(ctx).ID(key.ID).SetExpr("verified", true).Update(new(GPGKey)); err != nil {
 		return "", err
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return "", err
 	}
 

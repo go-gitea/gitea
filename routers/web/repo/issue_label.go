@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -38,7 +39,7 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(models.DefaultDBContext(), ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
+	if err := models.InitializeLabels(db.DefaultContext, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
 		if models.IsErrIssueLabelTemplateLoad(err) {
 			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
@@ -53,7 +54,7 @@ func InitializeLabels(ctx *context.Context) {
 
 // RetrieveLabels find all the labels of a repository and organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -66,7 +67,7 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), models.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return

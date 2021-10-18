@@ -57,3 +57,29 @@ func TestRender_Images(t *testing.T) {
 	test("[[file:"+url+"]]",
 		"<p><img src=\""+result+"\" alt=\""+result+"\" title=\""+result+"\" /></p>")
 }
+
+func TestRender_Source(t *testing.T) {
+	setting.AppURL = AppURL
+	setting.AppSubURL = AppSubURL
+
+	test := func(input, expected string) {
+		buffer, err := RenderString(&markup.RenderContext{
+			URLPrefix: setting.AppSubURL,
+		}, input)
+		assert.NoError(t, err)
+		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
+	}
+
+	test(`#+begin_src go
+// HelloWorld prints "Hello World"
+func HelloWorld() {
+	fmt.Println("Hello World")
+}
+#+end_src
+`, `<div class="src src-go">
+<pre><code class="chroma language-go"><span class="c1">// HelloWorld prints &#34;Hello World&#34;
+</span><span class="c1"></span><span class="kd">func</span> <span class="nf">HelloWorld</span><span class="p">()</span> <span class="p">{</span>
+	<span class="nx">fmt</span><span class="p">.</span><span class="nf">Println</span><span class="p">(</span><span class="s">&#34;Hello World&#34;</span><span class="p">)</span>
+<span class="p">}</span></code></pre>
+</div>`)
+}

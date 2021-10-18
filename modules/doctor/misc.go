@@ -12,19 +12,21 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+
 	lru "github.com/hashicorp/golang-lru"
 	"xorm.io/builder"
 )
 
 func iterateRepositories(each func(*models.Repository) error) error {
-	err := models.Iterate(
-		models.DefaultDBContext(),
+	err := db.Iterate(
+		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {

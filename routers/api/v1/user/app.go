@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -212,7 +213,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
+	app, err := login.CreateOAuth2Application(login.CreateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.User.ID,
 		RedirectURIs: data.RedirectURIs,
@@ -251,7 +252,7 @@ func ListOauth2Applications(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/OAuth2ApplicationList"
 
-	apps, total, err := models.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
+	apps, total, err := login.ListOAuth2Applications(ctx.User.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListOAuth2Applications", err)
 		return
@@ -287,8 +288,8 @@ func DeleteOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	if err := models.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
-		if models.IsErrOAuthApplicationNotFound(err) {
+	if err := login.DeleteOAuth2Application(appID, ctx.User.ID); err != nil {
+		if login.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteOauth2ApplicationByID", err)
@@ -319,9 +320,9 @@ func GetOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	app, err := models.GetOAuth2ApplicationByID(appID)
+	app, err := login.GetOAuth2ApplicationByID(appID)
 	if err != nil {
-		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
+		if login.IsErrOauthClientIDInvalid(err) || login.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetOauth2ApplicationByID", err)
@@ -362,14 +363,14 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := models.UpdateOAuth2Application(models.UpdateOAuth2ApplicationOptions{
+	app, err := login.UpdateOAuth2Application(login.UpdateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.User.ID,
 		ID:           appID,
 		RedirectURIs: data.RedirectURIs,
 	})
 	if err != nil {
-		if models.IsErrOauthClientIDInvalid(err) || models.IsErrOAuthApplicationNotFound(err) {
+		if login.IsErrOauthClientIDInvalid(err) || login.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateOauth2ApplicationByID", err)

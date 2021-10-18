@@ -4,6 +4,50 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.4](https://github.com/go-gitea/gitea/releases/tag/v1.15.4) - 2021-10-08
+* BUGFIXES
+  * Raw file API: don't try to interpret 40char filenames as commit SHA (#17185) (#17272)
+  * Don't allow merged PRs to be reopened (#17192) (#17271)
+  * Fix incorrect repository count on organization tab of dashboard (#17256) (#17266)
+  * Fix unwanted team review request deletion (#17257) (#17264)
+  * Fix broken Activities link in team dashboard (#17255) (#17258)
+  * API pull's head/base have correct permission(#17214) (#17245)
+  * Fix stange behavior of DownloadPullDiffOrPatch in incorect index (#17223) (#17227)
+  * Upgrade xorm to v1.2.5 (#17177) (#17188)
+  * Fix missing repo link in issue/pull assigned emails (#17183) (#17184)
+  * Fix bug of get context user (#17169) (#17172)
+  * Nicely handle missing user in collaborations (#17049) (#17166)
+  * Add Horizontal scrollbar to inner menu on Chrome (#17086) (#17164)
+  * Fix wrong i18n keys (#17150) (#17153)
+  * Fix Archive Creation: correct transaction ending (#17151)
+  * Prevent panic in Org mode HighlightCodeBlock (#17140) (#17141)
+  * Create doctor command to fix repo_units broken by dumps from 1.14.3-1.14.6 (#17136) (#17137)
+* ENHANCEMENT
+  * Check user instead of organization when creating a repo from a template via API (#16346) (#17195)
+* TRANSLATION
+  * v1.15 fix Sprintf format 'verbs' in locale files (#17187)
+
+## [1.15.3](https://github.com/go-gitea/gitea/releases/tag/v1.15.3) - 2021-09-19
+
+* ENHANCEMENTS
+  * Add fluid to ui container class to remove margin (#16396) (#16976)
+  * Add caller to cat-file batch calls (#17082) (#17089)
+* BUGFIXES
+  * Render full plain readme. (#17083) (#17090)
+  * Upgrade xorm to v1.2.4 (#17059)
+  * Fix bug of migrate comments which only fetch one page (#17055) (#17058)
+  * Do not show issue context popup on external issues (#17050) (#17054)
+  * Decrement Fork Num when converting from Fork (#17035) (#17046)
+  * Correctly rollback in ForkRepository (#17034) (#17045)
+  * Fix missing close in WalkGitLog (#17008) (#17009)
+  * Add prefix to SVG id/class attributes (#16997) (#17000)
+  * Fix bug of migrated repository not index (#16991) (#16996)
+  * Skip AllowedUserVisibilityModes validation on update user if it is an organisation (#16988) (#16990)
+  * Fix storage Iterate bug and Add storage doctor to delete garbage attachments (#16971) (#16977)
+  * Fix issue with issue default mail template (#16956) (#16975)
+  * Ensure that rebase conflicts are handled in updates (#16952) (#16960)
+  * Prevent panic on diff generation (#16950) (#16951)
+
 ## [1.15.2](https://github.com/go-gitea/gitea/releases/tag/v1.15.2) - 2021-09-03
 
 * BUGFIXES

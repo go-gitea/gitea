@@ -24,7 +24,7 @@
 					<div class="comment-header-left df ac">
 						{{if .OriginalAuthor }}
 							<span class="text black mr-2">
-								<i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i>
+								{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 								{{ .OriginalAuthor }}
 							</span>
 							<span class="text grey">
@@ -408,7 +408,12 @@
 				<span class="badge{{if eq .Review.Type 1}} bg-green text-white{{else if eq .Review.Type 3}} bg-red text-white{{end}}">{{svg (printf "octicon-%s" .Review.Type.Icon)}}</span>
 				<span class="text grey">
 					{{if .OriginalAuthor }}
-						<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+						<span class="text black">
+							{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+							{{ .OriginalAuthor }}
+						</span>
+						<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
+						<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
 					{{else}}
 						<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 					{{end}}
@@ -433,7 +438,12 @@
 					<div class="ui top attached header comment-header df ac sb">
 						<span class="text grey">
 							{{if .OriginalAuthor }}
-								<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+								<span class="text black">
+									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+									{{ .OriginalAuthor }}
+								</span>
+								<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
+								<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
 							{{else}}
 								<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 							{{end}}
@@ -511,7 +521,7 @@
 										</div>
 									</div>
 								{{end}}
-								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}} p-3">
+								<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
 									<div class="ui comments mb-0">
 										{{range $comms}}
 											{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
@@ -526,7 +536,12 @@
 															{{end}}
 															<span class="text grey">
 																{{if .OriginalAuthor }}
-																	<span class="text black"><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span><span class="text grey"> {{if $.Repository.OriginalURL}}</span><span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+																	<span class="text black">
+																		{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+																		{{ .OriginalAuthor }}
+																	</span>
+																	<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
+																	<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
 																{{else}}
 																	<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 																{{end}}
@@ -575,7 +590,7 @@
 											</div>
 										{{end}}
 									</div>
-									<div class="df ac fw mt-3 mb-2 mx-3">
+									<div class="code-comment-buttons df ac fw mt-3 mb-2 mx-3">
 										<div class="f1">
 											{{if $resolved}}
 												<div class="ui grey text">
@@ -584,7 +599,7 @@
 												</div>
 											{{end}}
 										</div>
-										<div>
+										<div class="code-comment-buttons-buttons">
 											{{if and $.CanMarkConversation $isNotPending}}
 												<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 													{{if $resolved}}
@@ -731,7 +746,7 @@
 		<div class="timeline-item-group">
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-					<img src="{{.Poster.RelAvatarLink}}">
+					<img src="{{.Poster.AvatarLink}}">
 				</a>
 				<span class="badge grey">{{svg "octicon-x" 16}}</span>
 				<span class="text grey">

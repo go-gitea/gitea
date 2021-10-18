@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -115,7 +116,7 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(grant *models.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(grant *login.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
 		if err := grant.IncreaseCounter(); err != nil {
 			return nil, &AccessTokenError{
@@ -162,7 +163,7 @@ func newAccessTokenResponse(grant *models.OAuth2Grant, serverKey, clientKey oaut
 	// generate OpenID Connect id_token
 	signedIDToken := ""
 	if grant.ScopeContains("openid") {
-		app, err := models.GetOAuth2ApplicationByID(grant.ApplicationID)
+		app, err := login.GetOAuth2ApplicationByID(grant.ApplicationID)
 		if err != nil {
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -268,9 +269,9 @@ func IntrospectOAuth(ctx *context.Context) {
 	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
 	if err == nil {
 		if token.Valid() == nil {
-			grant, err := models.GetOAuth2GrantByID(token.GrantID)
+			grant, err := login.GetOAuth2GrantByID(token.GrantID)
 			if err == nil && grant != nil {
-				app, err := models.GetOAuth2ApplicationByID(grant.ApplicationID)
+				app, err := login.GetOAuth2ApplicationByID(grant.ApplicationID)
 				if err == nil && app != nil {
 					response.Active = true
 					response.Scope = grant.Scope
@@ -299,9 +300,9 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
+	app, err := login.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
-		if models.IsErrOauthClientIDInvalid(err) {
+		if login.IsErrOauthClientIDInvalid(err) {
 			handleAuthorizeError(ctx, AuthorizeError{
 				ErrorCode:        ErrorCodeUnauthorizedClient,
 				ErrorDescription: "Client ID not registered",
@@ -312,8 +313,10 @@ func AuthorizeOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	if err := app.LoadUser(); err != nil {
-		ctx.ServerError("LoadUser", err)
+
+	user, err := models.GetUserByID(app.UID)
+	if err != nil {
+		ctx.ServerError("GetUserByID", err)
 		return
 	}
 
@@ -406,7 +409,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(setting.AppURL) + html.EscapeString(url.PathEscape(app.User.LowerName)) + "\">@" + html.EscapeString(app.User.Name) + "</a>"
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(setting.AppURL) + html.EscapeString(url.PathEscape(user.LowerName)) + "\">@" + html.EscapeString(user.Name) + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
@@ -443,7 +446,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
-	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
+	app, err := login.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
@@ -581,7 +584,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		return
 	}
 	// get grant before increasing counter
-	grant, err := models.GetOAuth2GrantByID(token.GrantID)
+	grant, err := login.GetOAuth2GrantByID(token.GrantID)
 	if err != nil || grant == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
@@ -608,7 +611,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 }
 
 func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
-	app, err := models.GetOAuth2ApplicationByClientID(form.ClientID)
+	app, err := login.GetOAuth2ApplicationByClientID(form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidClient,
@@ -630,7 +633,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	authorizationCode, err := models.GetOAuth2AuthorizationByCode(form.Code)
+	authorizationCode, err := login.GetOAuth2AuthorizationByCode(form.Code)
 	if err != nil || authorizationCode == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,

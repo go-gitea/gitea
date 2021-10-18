@@ -285,41 +285,6 @@ func (db *sqlite3) DropIndexSQL(tableName string, index *schemas.Index) string {
 	return fmt.Sprintf("DROP INDEX %v", db.Quoter().Quote(idxName))
 }
 
-func (db *sqlite3) CreateTableSQL(table *schemas.Table, tableName string) ([]string, bool) {
-	var sql string
-	sql = "CREATE TABLE IF NOT EXISTS "
-	if tableName == "" {
-		tableName = table.Name
-	}
-
-	quoter := db.Quoter()
-	sql += quoter.Quote(tableName)
-	sql += " ("
-
-	if len(table.ColumnsSeq()) > 0 {
-		pkList := table.PrimaryKeys
-
-		for _, colName := range table.ColumnsSeq() {
-			col := table.GetColumn(colName)
-			s, _ := ColumnString(db, col, col.IsPrimaryKey && len(pkList) == 1)
-			sql += s
-			sql = strings.TrimSpace(sql)
-			sql += ", "
-		}
-
-		if len(pkList) > 1 {
-			sql += "PRIMARY KEY ( "
-			sql += quoter.Join(pkList, ",")
-			sql += " ), "
-		}
-
-		sql = sql[:len(sql)-2]
-	}
-	sql += ")"
-
-	return []string{sql}, true
-}
-
 func (db *sqlite3) ForUpdateSQL(query string) string {
 	return query
 }

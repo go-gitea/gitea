@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"io/ioutil"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -77,7 +76,7 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 	case "tag":
 		// then we need to parse the tag
 		// and load the commit
-		data, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		data, err := io.ReadAll(io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}

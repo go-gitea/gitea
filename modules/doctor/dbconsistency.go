@@ -8,257 +8,179 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
+type consistencyCheck struct {
+	Name         string
+	Counter      func() (int64, error)
+	Fixer        func() (int64, error)
+	FixedMessage string
+}
+
+func (c *consistencyCheck) Run(logger log.Logger, autofix bool) error {
+	count, err := c.Counter()
+	if err != nil {
+		logger.Critical("Error: %v whilst counting %s", err, c.Name)
+		return err
+	}
+	if count > 0 {
+		if autofix {
+			var fixed int64
+			if fixed, err = c.Fixer(); err != nil {
+				logger.Critical("Error: %v whilst fixing %s", err, c.Name)
+				return err
+			}
+
+			prompt := "Deleted"
+			if c.FixedMessage != "" {
+				prompt = c.FixedMessage
+			}
+
+			if fixed < 0 {
+				logger.Info(prompt+" %d %s", count, c.Name)
+			} else {
+				logger.Info(prompt+" %d/%d %s", fixed, count, c.Name)
+			}
+		} else {
+			logger.Warn("Found %d %s", count, c.Name)
+		}
+	}
+	return nil
+}
+
+func asFixer(fn func() error) func() (int64, error) {
+	return func() (int64, error) {
+		err := fn()
+		return -1, err
+	}
+}
+
+func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCheck {
+	return consistencyCheck{
+		Name: name,
+		Counter: func() (int64, error) {
+			return models.CountOrphanedObjects(subject, refobject, joincond)
+		},
+		Fixer: func() (int64, error) {
+			err := models.DeleteOrphanedObjects(subject, refobject, joincond)
+			return -1, err
+		},
+	}
+}
+
 func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := models.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
 
-	// find labels without existing repo or org
-	count, err := models.CountOrphanedLabels()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned labels", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedLabels(); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned labels", err)
-				return err
-			}
-			logger.Info("%d labels without existing repository/organisation deleted", count)
-		} else {
-			logger.Warn("%d labels without existing repository/organisation", count)
-		}
-	}
-
-	// find IssueLabels without existing label
-	count, err = models.CountOrphanedIssueLabels()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned issue_labels", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedIssueLabels(); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned issue_labels", err)
-				return err
-			}
-			logger.Info("%d issue_labels without existing label deleted", count)
-		} else {
-			logger.Warn("%d issue_labels without existing label", count)
-		}
-	}
-
-	// find issues without existing repository
-	count, err = models.CountOrphanedIssues()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned issues", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedIssues(); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned issues", err)
-				return err
-			}
-			logger.Info("%d issues without existing repository deleted", count)
-		} else {
-			logger.Warn("%d issues without existing repository", count)
-		}
-	}
-
-	// find pulls without existing issues
-	count, err = models.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects", err)
-				return err
-			}
-			logger.Info("%d pull requests without existing issue deleted", count)
-		} else {
-			logger.Warn("%d pull requests without existing issue", count)
-		}
-	}
-
-	// find tracked times without existing issues/pulls
-	count, err = models.CountOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id")
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedObjects("tracked_time", "issue", "tracked_time.issue_id=issue.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects", err)
-				return err
-			}
-			logger.Info("%d tracked times without existing issue deleted", count)
-		} else {
-			logger.Warn("%d tracked times without existing issue", count)
-		}
-	}
-
-	// find null archived repositories
-	count, err = models.CountNullArchivedRepository()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting null archived repositories", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			updatedCount, err := models.FixNullArchivedRepository()
-			if err != nil {
-				logger.Critical("Error: %v whilst fixing null archived repositories", err)
-				return err
-			}
-			logger.Info("%d repositories with null is_archived updated", updatedCount)
-		} else {
-			logger.Warn("%d repositories with null is_archived", count)
-		}
-	}
-
-	// find label comments with empty labels
-	count, err = models.CountCommentTypeLabelWithEmptyLabel()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting label comments with empty labels", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			updatedCount, err := models.FixCommentTypeLabelWithEmptyLabel()
-			if err != nil {
-				logger.Critical("Error: %v whilst removing label comments with empty labels", err)
-				return err
-			}
-			logger.Info("%d label comments with empty labels removed", updatedCount)
-		} else {
-			logger.Warn("%d label comments with empty labels", count)
-		}
-	}
-
-	// find label comments with labels from outside the repository
-	count, err = models.CountCommentTypeLabelWithOutsideLabels()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting label comments with outside labels", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			updatedCount, err := models.FixCommentTypeLabelWithOutsideLabels()
-			if err != nil {
-				logger.Critical("Error: %v whilst removing label comments with outside labels", err)
-				return err
-			}
-			log.Info("%d label comments with outside labels removed", updatedCount)
-		} else {
-			log.Warn("%d label comments with outside labels", count)
-		}
-	}
-
-	// find issue_label with labels from outside the repository
-	count, err = models.CountIssueLabelWithOutsideLabels()
-	if err != nil {
-		logger.Critical("Error: %v whilst counting issue_labels from outside the repository or organisation", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			updatedCount, err := models.FixIssueLabelWithOutsideLabels()
-			if err != nil {
-				logger.Critical("Error: %v whilst removing issue_labels from outside the repository or organisation", err)
-				return err
-			}
-			logger.Info("%d issue_labels from outside the repository or organisation removed", updatedCount)
-		} else {
-			logger.Warn("%d issue_labels from outside the repository or organisation", count)
-		}
+	consistencyChecks := []consistencyCheck{
+		{
+			// find labels without existing repo or org
+			Name:    "Orphaned Labels without existing repository or organisation",
+			Counter: models.CountOrphanedLabels,
+			Fixer:   asFixer(models.DeleteOrphanedLabels),
+		},
+		{
+			// find IssueLabels without existing label
+			Name:    "Orphaned Issue Labels without existing label",
+			Counter: models.CountOrphanedIssueLabels,
+			Fixer:   asFixer(models.DeleteOrphanedIssueLabels),
+		},
+		{
+			// find issues without existing repository
+			Name:    "Orphaned Issues without existing repository",
+			Counter: models.CountOrphanedIssues,
+			Fixer:   asFixer(models.DeleteOrphanedIssues),
+		},
+		// find releases without existing repository
+		genericOrphanCheck("Orphaned Releases without existing repository",
+			"release", "repository", "release.repo_id=repository.id"),
+		// find pulls without existing issues
+		genericOrphanCheck("Orphaned PullRequests without existing issue",
+			"pull_request", "issue", "pull_request.issue_id=issue.id"),
+		// find tracked times without existing issues/pulls
+		genericOrphanCheck("Orphaned TrackedTimes without existing issue",
+			"tracked_time", "issue", "tracked_time.issue_id=issue.id"),
+		// find attachments without existing issues or releases
+		{
+			Name:    "Orphaned Attachments without existing issues or releases",
+			Counter: models.CountOrphanedAttachments,
+			Fixer:   asFixer(models.DeleteOrphanedAttachments),
+		},
+		// find null archived repositories
+		{
+			Name:         "Repositories with is_archived IS NULL",
+			Counter:      models.CountNullArchivedRepository,
+			Fixer:        models.FixNullArchivedRepository,
+			FixedMessage: "Fixed",
+		},
+		// find label comments with empty labels
+		{
+			Name:         "Label comments with empty labels",
+			Counter:      models.CountCommentTypeLabelWithEmptyLabel,
+			Fixer:        models.FixCommentTypeLabelWithEmptyLabel,
+			FixedMessage: "Fixed",
+		},
+		// find label comments with labels from outside the repository
+		{
+			Name:         "Label comments with labels from outside the repository",
+			Counter:      models.CountCommentTypeLabelWithOutsideLabels,
+			Fixer:        models.FixCommentTypeLabelWithOutsideLabels,
+			FixedMessage: "Removed",
+		},
+		// find issue_label with labels from outside the repository
+		{
+			Name:         "IssueLabels with Labels from outside the repository",
+			Counter:      models.CountIssueLabelWithOutsideLabels,
+			Fixer:        models.FixIssueLabelWithOutsideLabels,
+			FixedMessage: "Removed",
+		},
 	}
 
 	// TODO: function to recalc all counters
 
 	if setting.Database.UsePostgreSQL {
-		count, err = models.CountBadSequences()
-		if err != nil {
-			logger.Critical("Error: %v whilst checking sequence values", err)
+		consistencyChecks = append(consistencyChecks, consistencyCheck{
+			Name:         "Sequence values",
+			Counter:      db.CountBadSequences,
+			Fixer:        asFixer(db.FixBadSequences),
+			FixedMessage: "Updated",
+		})
+	}
+
+	consistencyChecks = append(consistencyChecks,
+		// find protected branches without existing repository
+		genericOrphanCheck("Protected Branches without existing repository",
+			"protected_branch", "repository", "protected_branch.repo_id=repository.id"),
+		// find deleted branches without existing repository
+		genericOrphanCheck("Deleted Branches without existing repository",
+			"deleted_branch", "repository", "deleted_branch.repo_id=repository.id"),
+		// find LFS locks without existing repository
+		genericOrphanCheck("LFS locks without existing repository",
+			"lfs_lock", "repository", "lfs_lock.repo_id=repository.id"),
+		// find collaborations without users
+		genericOrphanCheck("Collaborations without existing user",
+			"collaboration", "user", "collaboration.user_id=user.id"),
+		// find collaborations without repository
+		genericOrphanCheck("Collaborations without existing repository",
+			"collaboration", "repository", "collaboration.repo_id=repository.id"),
+		// find access without users
+		genericOrphanCheck("Access entries without existing user",
+			"access", "user", "access.user_id=user.id"),
+		// find access without repository
+		genericOrphanCheck("Access entries without existing repository",
+			"access", "repository", "access.repo_id=repository.id"),
+	)
+
+	for _, c := range consistencyChecks {
+		if err := c.Run(logger, autofix); err != nil {
 			return err
-		}
-		if count > 0 {
-			if autofix {
-				err := models.FixBadSequences()
-				if err != nil {
-					logger.Critical("Error: %v whilst attempting to fix sequences", err)
-					return err
-				}
-				logger.Info("%d sequences updated", count)
-			} else {
-				logger.Warn("%d sequences with incorrect values", count)
-			}
-		}
-	}
-
-	// find protected branches without existing repository
-	count, err = models.CountOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id")
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedObjects("protected_branch", "repository", "protected_branch.repo_id=repository.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects", err)
-				return err
-			}
-			logger.Info("%d protected branches without existing repository deleted", count)
-		} else {
-			logger.Warn("%d protected branches without existing repository", count)
-		}
-	}
-
-	// find deleted branches without existing repository
-	count, err = models.CountOrphanedObjects("deleted_branch", "repository", "deleted_branch.repo_id=repository.id")
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedObjects("deleted_branch", "repository", "deleted_branch.repo_id=repository.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects", err)
-				return err
-			}
-			logger.Info("%d deleted branches without existing repository deleted", count)
-		} else {
-			logger.Warn("%d deleted branches without existing repository", count)
-		}
-	}
-
-	// find LFS locks without existing repository
-	count, err = models.CountOrphanedObjects("lfs_lock", "repository", "lfs_lock.repo_id=repository.id")
-	if err != nil {
-		logger.Critical("Error: %v whilst counting orphaned objects", err)
-		return err
-	}
-	if count > 0 {
-		if autofix {
-			if err = models.DeleteOrphanedObjects("lfs_lock", "repository", "lfs_lock.repo_id=repository.id"); err != nil {
-				logger.Critical("Error: %v whilst deleting orphaned objects", err)
-				return err
-			}
-			logger.Info("%d LFS locks without existing repository deleted", count)
-		} else {
-			logger.Warn("%d LFS locks without existing repository", count)
 		}
 	}
 

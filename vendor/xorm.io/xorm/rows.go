@@ -84,12 +84,18 @@ func newRows(session *Session, bean interface{}) (*Rows, error) {
 
 // Next move cursor to next record, return false if end has reached
 func (rows *Rows) Next() bool {
-	return rows.rows.Next()
+	if rows.rows != nil {
+		return rows.rows.Next()
+	}
+	return false
 }
 
 // Err returns the error, if any, that was encountered during iteration. Err may be called after an explicit or implicit Close.
 func (rows *Rows) Err() error {
-	return rows.rows.Err()
+	if rows.rows != nil {
+		return rows.rows.Err()
+	}
+	return nil
 }
 
 // Scan row record to bean properties

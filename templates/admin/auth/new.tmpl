@@ -41,6 +41,13 @@
 					<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
 					<input id="pam_email_domain" name="pam_email_domain" value="{{.pam_email_domain}}">
 				</div>
+				<div class="pam optional field {{if not (eq .type 4)}}hide{{end}}">
+					<div class="ui checkbox">
+						<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+						<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if .skip_local_two_fa}}checked{{end}}>
+						<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+					</div>
+				</div>
 
 				<!-- OAuth2 -->
 				{{ template "admin/auth/source/oauth" . }}

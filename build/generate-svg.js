@@ -30,6 +30,7 @@ async function processFile(file, {prefix, fullName} = {}) {
       {name: 'preset-default'},
       {name: 'removeXMLNS'},
       {name: 'removeDimensions'},
+      {name: 'prefixIds', params: {prefix: () => name}},
       {name: 'addClassesToSVGElement', params: {classNames: ['svg', name]}},
       {name: 'addAttributesToSVGElement', params: {attributes: [{'width': '16'}, {'height': '16'}, {'aria-hidden': 'true'}]}},
     ],

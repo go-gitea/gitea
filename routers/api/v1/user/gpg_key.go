@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -16,7 +17,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func listGPGKeys(ctx *context.APIContext, uid int64, listOptions models.ListOptions) {
+func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
 	keys, err := models.ListGPGKeys(uid, listOptions)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,8 +26,8 @@ func TestAPILFSNotStarted(t *testing.T) {
 
 	setting.LFS.StartServer = false
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -45,8 +46,8 @@ func TestAPILFSMediaType(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusUnsupportedMediaType)

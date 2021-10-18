@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 )
 
 // Wrap converts all kinds of routes to standard library one
@@ -31,6 +31,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			func(ctx *context.Context) goctx.CancelFunc,
 			func(*context.APIContext),
 			func(*context.PrivateContext),
+			func(*context.PrivateContext) goctx.CancelFunc,
 			func(http.Handler) http.Handler:
 		default:
 			panic(fmt.Sprintf("Unsupported handler type: %#v", t))
@@ -52,6 +53,15 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				}
 			case func(ctx *context.Context) goctx.CancelFunc:
 				ctx := context.GetContext(req)
+				cancel := t(ctx)
+				if cancel != nil {
+					defer cancel()
+				}
+				if ctx.Written() {
+					return
+				}
+			case func(*context.PrivateContext) goctx.CancelFunc:
+				ctx := context.GetPrivateContext(req)
 				cancel := t(ctx)
 				if cancel != nil {
 					defer cancel()

@@ -6,7 +6,10 @@ package comments
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // CreateIssueComment creates a plain issue comment.
@@ -22,10 +25,16 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 	if err != nil {
 		return nil, err
 	}
-	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+	err = issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), doer.ID, issue.ID, comment.ID, timeutil.TimeStampNow(), comment.Content, true)
 	if err != nil {
 		return nil, err
 	}
+
+	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+	if err != nil {
+		return nil, err
+	}
+
 	notification.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
 
 	return comment, nil
@@ -35,6 +44,13 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 func UpdateComment(c *models.Comment, doer *models.User, oldContent string) error {
 	if err := models.UpdateComment(c, doer); err != nil {
 		return err
+	}
+
+	if c.Type == models.CommentTypeComment && c.Content != oldContent {
+		err := issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+		if err != nil {
+			return err
+		}
 	}
 
 	notification.NotifyUpdateComment(doer, c, oldContent)

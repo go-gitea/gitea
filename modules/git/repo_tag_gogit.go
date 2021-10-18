@@ -21,7 +21,8 @@ func (repo *Repository) IsTagExist(name string) bool {
 }
 
 // GetTags returns all tags of the repository.
-func (repo *Repository) GetTags() ([]string, error) {
+// returning at most limit tags, or all if limit is 0.
+func (repo *Repository) GetTags(skip, limit int) ([]string, error) {
 	var tagNames []string
 
 	tags, err := repo.gogitRepo.Tags()
@@ -38,6 +39,16 @@ func (repo *Repository) GetTags() ([]string, error) {
 	for i := 0; i < len(tagNames)/2; i++ {
 		j := len(tagNames) - i - 1
 		tagNames[i], tagNames[j] = tagNames[j], tagNames[i]
+	}
+
+	// since we have to reverse order we can paginate only afterwards
+	if len(tagNames) < skip {
+		tagNames = []string{}
+	} else {
+		tagNames = tagNames[skip:]
+	}
+	if limit != 0 && len(tagNames) > limit {
+		tagNames = tagNames[:limit]
 	}
 
 	return tagNames, nil

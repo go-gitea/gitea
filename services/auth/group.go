@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 )
 
 // Ensure the struct implements the interface.
@@ -60,7 +61,7 @@ func (b *Group) Free() error {
 
 // Verify extracts and validates
 func (b *Group) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
-	if !models.HasEngine {
+	if !db.HasEngine {
 		return nil
 	}
 

@@ -54,6 +54,11 @@ type PasswordAuthenticator interface {
 	Authenticate(user *models.User, login, password string) (*models.User, error)
 }
 
+// LocalTwoFASkipper represents a source of authentication that can skip local 2fa
+type LocalTwoFASkipper interface {
+	IsSkipLocalTwoFA() bool
+}
+
 // SynchronizableSource represents a source that can synchronize users
 type SynchronizableSource interface {
 	Sync(ctx context.Context, updateExisting bool) error

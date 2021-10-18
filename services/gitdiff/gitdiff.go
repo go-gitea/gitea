@@ -13,7 +13,6 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
@@ -23,6 +22,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -30,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
@@ -593,6 +595,8 @@ type DiffFile struct {
 	IsIncomplete            bool
 	IsIncompleteLineTooLong bool
 	IsProtected             bool
+	IsGenerated             bool
+	IsVendored              bool
 }
 
 // GetType returns type of diff file.
@@ -649,6 +653,7 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 
 // Diff represents a difference between two git trees.
 type Diff struct {
+	Start, End                             string
 	NumFiles, TotalAddition, TotalDeletion int
 	Files                                  []*DiffFile
 	IsIncomplete                           bool
@@ -715,8 +720,11 @@ parsingLoop:
 
 		// TODO: Handle skipping first n files
 		if len(diff.Files) >= maxFiles {
+
+			lastFile := createDiffFile(diff, line)
+			diff.End = lastFile.Name
 			diff.IsIncomplete = true
-			_, err := io.Copy(ioutil.Discard, reader)
+			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
 				// By the definition of io.Copy this never returns io.EOF
 				return diff, fmt.Errorf("Copy: %v", err)
@@ -1118,7 +1126,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
 				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := models.Count(m)
+				count, err := db.Count(m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
@@ -1213,7 +1221,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 // GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
+func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
 	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(afterCommitID)
@@ -1224,31 +1232,42 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	ctx, cancel := context.WithTimeout(git.DefaultContext, time.Duration(setting.Git.Timeout.Default)*time.Second)
 	defer cancel()
 
-	var cmd *exec.Cmd
+	argsLength := 6
+	if len(whitespaceBehavior) > 0 {
+		argsLength++
+	}
+	if len(skipTo) > 0 {
+		argsLength++
+	}
+
+	diffArgs := make([]string, 0, argsLength)
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
 		// append empty tree ref
 		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 		beforeCommitID = actualBeforeCommitID
 	}
+	if skipTo != "" {
+		diffArgs = append(diffArgs, "--skip-to="+skipTo)
+	}
+	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
+
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
 
@@ -1268,7 +1287,82 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
+	diff.Start = skipTo
+
+	var checker *git.CheckAttributeReader
+
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
+		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+			workdir, err := os.MkdirTemp("", "empty-work-dir")
+			if err != nil {
+				log.Error("Unable to create temporary directory: %v", err)
+				return nil, err
+			}
+			defer func() {
+				_ = util.RemoveAll(workdir)
+			}()
+
+			checker = &git.CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated"},
+				Repo:       gitRepo,
+				IndexFile:  indexFilename,
+				WorkTree:   workdir,
+			}
+			ctx, cancel := context.WithCancel(git.DefaultContext)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+			} else {
+				go func() {
+					err := checker.Run()
+					if err != nil && err != ctx.Err() {
+						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+					}
+					cancel()
+				}()
+			}
+			defer func() {
+				cancel()
+			}()
+		}
+	}
+
 	for _, diffFile := range diff.Files {
+
+		gotVendor := false
+		gotGenerated := false
+		if checker != nil {
+			attrs, err := checker.CheckPath(diffFile.Name)
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						diffFile.IsVendored = true
+						gotVendor = true
+					} else {
+						gotVendor = vendored == "false"
+					}
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						diffFile.IsGenerated = true
+						gotGenerated = true
+					} else {
+						gotGenerated = generated == "false"
+					}
+				}
+			} else {
+				log.Error("Unexpected error: %v", err)
+			}
+		}
+
+		if !gotVendor {
+			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		}
+		if !gotGenerated {
+			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		}
+
 		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
@@ -1279,7 +1373,12 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 		return nil, fmt.Errorf("Wait: %v", err)
 	}
 
-	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
+	separator := "..."
+	if directComparison {
+		separator = ".."
+	}
+
+	shortstatArgs := []string{beforeCommitID + separator + afterCommitID}
 	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
 		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
 	}
@@ -1299,8 +1398,8 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 
 // GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior)
+func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, skipTo, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior, directComparison)
 }
 
 // CommentAsDiff returns c.Patch as *Diff

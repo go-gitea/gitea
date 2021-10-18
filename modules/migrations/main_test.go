@@ -10,14 +10,14 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/migrations/base"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }
 
 func timePtr(t time.Time) *time.Time {

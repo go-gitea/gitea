@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
@@ -36,13 +37,13 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		{10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
 	}
 	// Prepare
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	for i, tc := range testCases {
-		user := AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
+		user := db.AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
 
 		doer := &User{ID: tc.doerID}
-		_, err := loadBeanIfExists(doer)
+		_, err := db.LoadBeanIfExists(doer)
 		assert.NoError(t, err)
 		if tc.doerID == 0 {
 			doer = nil

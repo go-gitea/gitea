@@ -8,13 +8,14 @@ package repo
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -555,10 +556,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		repo.IsFork = false
-		repo.ForkID = 0
-		if err := models.UpdateRepository(repo, false); err != nil {
-			log.Error("Unable to update repository %-v whilst converting from fork", repo)
+		if err := repository.ConvertForkToNormalRepository(repo); err != nil {
+			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -770,7 +769,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators(models.ListOptions{})
+	users, err := ctx.Repo.Repository.GetCollaborators(db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -1128,9 +1127,9 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 	}
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
 	if err != nil {
-		return fmt.Errorf("ioutil.ReadAll: %v", err)
+		return fmt.Errorf("io.ReadAll: %v", err)
 	}
 	st := typesniffer.DetectContentType(data)
 	if !(st.IsImage() && !st.IsSvgImage()) {

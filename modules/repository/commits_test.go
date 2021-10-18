@@ -11,12 +11,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -47,7 +48,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	}
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
@@ -99,7 +100,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{

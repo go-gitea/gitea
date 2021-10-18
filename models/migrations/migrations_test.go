@@ -14,12 +14,13 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
 	"xorm.io/xorm"
@@ -85,7 +86,7 @@ func removeAllWithRetry(dir string) error {
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (*xorm.Engine, error) {
-	x, err := models.GetNewEngine()
+	x, err := db.GetNewEngine()
 	if err != nil {
 		return x, fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -93,7 +94,7 @@ func SetEngine() (*xorm.Engine, error) {
 	x.SetMapper(names.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	x.SetLogger(models.NewXORMLogger(setting.Database.LogSQL))
+	x.SetLogger(db.NewXORMLogger(setting.Database.LogSQL))
 	x.ShowSQL(setting.Database.LogSQL)
 	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
@@ -240,11 +241,14 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
-		if err := models.InitFixtures(fixturesDir, x); err != nil {
+		if err := db.InitFixtures(
+			db.FixturesOptions{
+				Dir: fixturesDir,
+			}, x); err != nil {
 			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}
-		if err := models.LoadFixtures(x); err != nil {
+		if err := db.LoadFixtures(x); err != nil {
 			t.Errorf("error whilst loading fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}

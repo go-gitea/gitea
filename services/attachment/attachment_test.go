@@ -10,18 +10,19 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestUploadAttachment(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -51,6 +52,12 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	htmlWriter := org.NewHTMLWriter()
 	htmlWriter.HighlightCodeBlock = func(source, lang string, inline bool) string {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Error("Panic in HighlightCodeBlock: %v\n%s", err, log.Stack(2))
+				panic(err)
+			}
+		}()
 		var w strings.Builder
 		if _, err := w.WriteString(`<pre>`); err != nil {
 			return ""
@@ -80,7 +87,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			}
 			lexer = chroma.Coalesce(lexer)
 
-			if _, err := w.WriteString(highlight.Code(lexer.Config().Filenames[0], source)); err != nil {
+			if _, err := w.WriteString(highlight.CodeFromLexer(lexer, source)); err != nil {
 				return ""
 			}
 		}

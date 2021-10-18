@@ -7,6 +7,7 @@ package pull
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -129,7 +130,7 @@ func GetPullRequestCommitStatusState(pr *models.PullRequest) (structs.CommitStat
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, models.ListOptions{})
+	commitStatuses, err := models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

@@ -7,11 +7,12 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIsUserAllowed(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	pt := &ProtectedTag{}
 	allowed, err := pt.IsUserAllowed(1)

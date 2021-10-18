@@ -199,6 +199,7 @@ type ProtectBranchForm struct {
 	DismissStaleApprovals         bool
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
+	UnprotectedFilePatterns       string
 }
 
 // Validate validates the fields
@@ -498,6 +499,7 @@ type UserCreateProjectForm struct {
 type EditProjectBoardForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
+	Color   string `binding:"MaxSize(7)"`
 }
 
 //    _____  .__.__                   __

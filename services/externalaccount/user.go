@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
@@ -15,7 +16,7 @@ import (
 
 // LinkAccountToUser link the gothUser to the user
 func LinkAccountToUser(user *models.User, gothUser goth.User) error {
-	loginSource, err := models.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
+	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return err
 	}

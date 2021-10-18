@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -27,12 +28,12 @@ func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, l
 		return
 	}
 
-	source, err := models.GetLoginSourceByID(sourceID)
+	source, err := login.GetSourceByID(sourceID)
 	if err != nil {
-		if models.IsErrLoginSourceNotExist(err) {
+		if login.IsErrSourceNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetLoginSourceByID", err)
+			ctx.Error(http.StatusInternalServerError, "login.GetSourceByID", err)
 		}
 		return
 	}
@@ -74,7 +75,7 @@ func CreateUser(ctx *context.APIContext) {
 		Passwd:             form.Password,
 		MustChangePassword: true,
 		IsActive:           true,
-		LoginType:          models.LoginPlain,
+		LoginType:          login.Plain,
 	}
 	if form.MustChangePassword != nil {
 		u.MustChangePassword = *form.MustChangePassword

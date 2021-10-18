@@ -5,12 +5,12 @@
 package wiki
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 
@@ -18,7 +18,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestWikiNameToSubURL(t *testing.T) {
@@ -110,23 +110,23 @@ func TestWikiNameToFilenameToName(t *testing.T) {
 }
 
 func TestRepository_InitWiki(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	// repo1 already has a wiki
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	assert.NoError(t, InitWiki(repo1))
 
 	// repo2 does not already have a wiki
-	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo2 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	assert.NoError(t, InitWiki(repo2))
 	assert.True(t, repo2.HasWiki())
 }
 
 func TestRepository_AddWikiPage(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	const wikiContent = "This is the wiki content"
 	const commitMsg = "Commit message"
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	doer := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	for _, wikiName := range []string{
 		"Another page",
 		"Here's a <tag> and a/slash",
@@ -166,18 +166,18 @@ func TestRepository_AddWikiPage(t *testing.T) {
 }
 
 func TestRepository_EditWikiPage(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	const newWikiContent = "This is the new content"
 	const commitMsg = "Commit message"
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	doer := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	for _, newWikiName := range []string{
 		"Home", // same name as before
 		"New home",
 		"New/name/with/slashes",
 	} {
-		models.PrepareTestEnv(t)
+		db.PrepareTestEnv(t)
 		assert.NoError(t, EditWikiPage(doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
@@ -199,9 +199,9 @@ func TestRepository_EditWikiPage(t *testing.T) {
 }
 
 func TestRepository_DeleteWikiPage(t *testing.T) {
-	models.PrepareTestEnv(t)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	db.PrepareTestEnv(t)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	doer := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	assert.NoError(t, DeleteWikiPage(doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
@@ -216,8 +216,8 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 }
 
 func TestPrepareWikiFileName(t *testing.T) {
-	models.PrepareTestEnv(t)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	db.PrepareTestEnv(t)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	gitRepo, err := git.OpenRepository(repo.WikiPath())
 	defer gitRepo.Close()
 	assert.NoError(t, err)
@@ -267,10 +267,10 @@ func TestPrepareWikiFileName(t *testing.T) {
 }
 
 func TestPrepareWikiFileName_FirstPage(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := ioutil.TempDir("", "empty-wiki")
+	tmpDir, err := os.MkdirTemp("", "empty-wiki")
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {

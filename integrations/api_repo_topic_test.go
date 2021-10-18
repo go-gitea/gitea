@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -50,11 +51,11 @@ func TestAPITopicSearch(t *testing.T) {
 
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
-	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
-	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
-	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
+	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
+	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
+	repo2 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)

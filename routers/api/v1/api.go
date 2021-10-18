@@ -87,7 +87,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
-	"gitea.com/go-chi/session"
 	"github.com/go-chi/cors"
 )
 
@@ -547,20 +546,11 @@ func bind(obj interface{}) http.HandlerFunc {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
+func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 	var m = web.NewRoute()
 
-	m.Use(session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	}))
+	m.Use(sessioner)
+
 	m.Use(securityHeaders())
 	if setting.CORSConfig.Enabled {
 		m.Use(cors.Handler(cors.Options{
@@ -586,10 +576,13 @@ func Routes() *web.Route {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", func(ctx *context.APIContext) {
-				ctx.Redirect("/api/swagger")
+				ctx.Redirect(setting.AppSubURL + "/api/swagger")
 			})
 		}
 		m.Get("/version", misc.Version)
+		if setting.Federation.Enabled {
+			m.Get("/nodeinfo", misc.NodeInfo)
+		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 		m.Post("/markdown/raw", misc.MarkdownRaw)
@@ -907,8 +900,7 @@ func Routes() *web.Route {
 					m.Group("/{index}", func() {
 						m.Combo("").Get(repo.GetPullRequest).
 							Patch(reqToken(), bind(api.EditPullRequestOption{}), repo.EditPullRequest)
-						m.Get(".diff", repo.DownloadPullDiff)
-						m.Get(".patch", repo.DownloadPullPatch)
+						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
@@ -947,6 +939,7 @@ func Routes() *web.Route {
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
 						m.Get("/{sha}", repo.GetSingleCommit)
+						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)
 					m.Get("/refs/*", repo.GetGitRefs)
@@ -980,7 +973,10 @@ func Routes() *web.Route {
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)
-		m.Get("/users/{username}/orgs", org.ListUserOrgs)
+		m.Group("/users/{username}/orgs", func() {
+			m.Get("", org.ListUserOrgs)
+			m.Get("/{org}/permissions", reqToken(), org.GetUserOrgsPermissions)
+		})
 		m.Post("/orgs", reqToken(), bind(api.CreateOrgOption{}), org.Create)
 		m.Get("/orgs", org.GetAll)
 		m.Group("/orgs/{org}", func() {

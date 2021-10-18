@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,14 +16,14 @@ func TestAddTopic(t *testing.T) {
 	repo1NrOfTopics := 3
 	repo2NrOfTopics := 2
 
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	topics, _, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)
 
 	topics, total, err := FindTopics(&FindTopicOptions{
-		ListOptions: ListOptions{Page: 1, PageSize: 2},
+		ListOptions: db.ListOptions{Page: 1, PageSize: 2},
 	})
 	assert.NoError(t, err)
 	assert.Len(t, topics, 2)

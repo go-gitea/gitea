@@ -9,7 +9,7 @@ package options
 
 import (
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path"
 
 	"code.gitea.io/gitea/modules/log"
@@ -100,7 +100,7 @@ func fileFromDir(name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(customPath)
+		return os.ReadFile(customPath)
 	}
 
 	staticPath := path.Join(setting.StaticRootPath, "options", name)
@@ -110,7 +110,7 @@ func fileFromDir(name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", staticPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(staticPath)
+		return os.ReadFile(staticPath)
 	}
 
 	return []byte{}, fmt.Errorf("Asset file does not exist: %s", name)

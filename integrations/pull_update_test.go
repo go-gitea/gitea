@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -22,8 +23,8 @@ import (
 func TestAPIPullUpdate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
-		user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-		org26 := models.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
+		user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+		org26 := db.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
@@ -50,8 +51,8 @@ func TestAPIPullUpdate(t *testing.T) {
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
-		user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-		org26 := models.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
+		user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+		org26 := db.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
@@ -162,7 +163,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	err = pull_service.NewPullRequest(baseRepo, pullIssue, nil, nil, pullRequest, nil)
 	assert.NoError(t, err)
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{Title: "Test Pull -to-update-"}).(*models.Issue)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{Title: "Test Pull -to-update-"}).(*models.Issue)
 	pr, err := models.GetPullRequestByIssueID(issue.ID)
 	assert.NoError(t, err)
 
