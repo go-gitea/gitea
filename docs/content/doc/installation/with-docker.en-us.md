@@ -333,10 +333,11 @@ sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 In the next step a file named `/app/gitea/gitea` (with executable permissions) needs to be created on the host. This file will issue the SSH forwarding from the host to the container. Add the following contents to `/app/gitea/gitea`:
 
 ```bash
+#!/bin/sh
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
 ```
 
-Here you may also need to set the permisson of `/app/gitea/gitea` correctly:
+Here you should also make sure that you've set the permisson of `/app/gitea/gitea` correctly:
 
 ```bash
 sudo chmod +x /app/gitea/gitea
