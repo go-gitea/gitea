@@ -449,20 +449,6 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
 					})
-					if err != nil {
-						return nil, false, err
-					}
-					g.setRate(&resp.Rate)
-					if len(res) == 0 {
-						break
-					}
-					for _, reaction := range res {
-						reactions = append(reactions, &base.Reaction{
-							UserID:   reaction.User.GetID(),
-							UserName: reaction.User.GetLogin(),
-							Content:  reaction.GetContent(),
-						})
-					}
 				}
 			}
 		}
@@ -553,20 +539,6 @@ func (g *GithubDownloaderV3) getComments(issueContext base.IssueContext) ([]*bas
 							UserName: reaction.User.GetLogin(),
 							Content:  reaction.GetContent(),
 						})
-						if err != nil {
-							return nil, err
-						}
-						g.setRate(&resp.Rate)
-						if len(res) == 0 {
-							break
-						}
-						for _, reaction := range res {
-							reactions = append(reactions, &base.Reaction{
-								UserID:   reaction.User.GetID(),
-								UserName: reaction.User.GetLogin(),
-								Content:  reaction.GetContent(),
-							})
-						}
 					}
 				}
 			}
@@ -641,20 +613,6 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
 					})
-					if err != nil {
-						return nil, false, err
-					}
-					g.setRate(&resp.Rate)
-					if len(res) == 0 {
-						break
-					}
-					for _, reaction := range res {
-						reactions = append(reactions, &base.Reaction{
-							UserID:   reaction.User.GetID(),
-							UserName: reaction.User.GetLogin(),
-							Content:  reaction.GetContent(),
-						})
-					}
 				}
 			}
 		}
@@ -725,20 +683,6 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
 					})
-					if err != nil {
-						return nil, false, err
-					}
-					g.setRate(&resp.Rate)
-					if len(res) == 0 {
-						break
-					}
-					for _, reaction := range res {
-						reactions = append(reactions, &base.Reaction{
-							UserID:   reaction.User.GetID(),
-							UserName: reaction.User.GetLogin(),
-							Content:  reaction.GetContent(),
-						})
-					}
 				}
 			}
 		}
@@ -822,20 +766,6 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 						UserName: reaction.User.GetLogin(),
 						Content:  reaction.GetContent(),
 					})
-					if err != nil {
-						return nil, err
-					}
-					g.setRate(&resp.Rate)
-					if len(res) == 0 {
-						break
-					}
-					for _, reaction := range res {
-						reactions = append(reactions, &base.Reaction{
-							UserID:   reaction.User.GetID(),
-							UserName: reaction.User.GetLogin(),
-							Content:  reaction.GetContent(),
-						})
-					}
 				}
 			}
 		}
