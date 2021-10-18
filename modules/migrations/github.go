@@ -452,7 +452,7 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 					if err != nil {
 						return nil, false, err
 					}
-					g.rate = &resp.Rate
+					g.setRate(&resp.Rate)
 					if len(res) == 0 {
 						break
 					}
@@ -556,7 +556,7 @@ func (g *GithubDownloaderV3) getComments(issueContext base.IssueContext) ([]*bas
 						if err != nil {
 							return nil, err
 						}
-						g.rate = &resp.Rate
+						g.setRate(&resp.Rate)
 						if len(res) == 0 {
 							break
 						}
@@ -644,7 +644,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 					if err != nil {
 						return nil, false, err
 					}
-					g.rate = &resp.Rate
+					g.setRate(&resp.Rate)
 					if len(res) == 0 {
 						break
 					}
@@ -728,7 +728,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 					if err != nil {
 						return nil, false, err
 					}
-					g.rate = &resp.Rate
+					g.setRate(&resp.Rate)
 					if len(res) == 0 {
 						break
 					}
@@ -825,7 +825,7 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 					if err != nil {
 						return nil, err
 					}
-					g.rate = &resp.Rate
+					g.setRate(&resp.Rate)
 					if len(res) == 0 {
 						break
 					}
