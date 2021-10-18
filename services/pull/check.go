@@ -253,7 +253,7 @@ func CheckPrsForBaseBranch(baseRepo *models.Repository, baseBranchName string) e
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "").(queue.UniqueQueue)
+	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
 
 	if prQueue == nil {
 		return fmt.Errorf("Unable to create pr_patch_checker Queue")

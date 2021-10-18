@@ -27,7 +27,7 @@ func handle(data ...queue.Data) {
 }
 
 func initStatsQueue() error {
-	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0)).(queue.UniqueQueue)
+	statsQueue = queue.CreateUniqueQueue("repo_stats_update", handle, int64(0))
 	if statsQueue == nil {
 		return fmt.Errorf("Unable to create repo_stats_update Queue")
 	}
