@@ -220,7 +220,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 		refName := string(refNameBytes)
 		if strings.HasPrefix(refName, "tag: ") {
 			refName = strings.TrimPrefix(refName, "tag: ")
-		} else if strings.HasPrefix(refName, "HEAD -> ") {
+		} else {
 			refName = strings.TrimPrefix(refName, "HEAD -> ")
 		}
 		refs = append(refs, git.Reference{
