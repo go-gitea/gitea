@@ -10,7 +10,10 @@ const baseOptions = {
   minimap: {enabled: false},
   occurrencesHighlight: false,
   overviewRulerLanes: 0,
-  renderIndentGuides: false,
+  guides: {
+    bracketPairs: false,
+    indentation: false,
+  },
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
   renderWhitespace: 'none',
