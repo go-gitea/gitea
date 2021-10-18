@@ -194,20 +194,7 @@ func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
 		return nil
 	}
 
-	wikiPage := &api.WikiPage{
-		WikiPageMetaData: &api.WikiPageMetaData{
-			Name:    page,
-			SubURL:  wiki_service.NameToSubURL(page),
-			Updated: lastCommit.Author.When.Format(time.RFC3339),
-		},
-		Content:     string(data),
-		CommitCount: commitsCount,
-		LastCommit:  convert.ToWikiCommit(lastCommit),
-		Sidebar:     string(sidebarContent),
-		Footer:      string(footerContent),
-	}
-
-	return wikiPage
+	return convert.ToWikiPage(page, lastCommit, commitsCount, string(data), string(sidebarContent), string(footerContent))
 }
 
 // DeleteWikiPage delete wiki page
@@ -330,11 +317,7 @@ func ListWikiPages(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
 			return
 		}
-		pages = append(pages, api.WikiPageMetaData{
-			Name:    wikiName,
-			SubURL:  wiki_service.NameToSubURL(wikiName),
-			Updated: c.Author.When.Format(time.RFC3339),
-		})
+		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c.Author.When.Format(time.RFC3339)))
 	}
 
 	ctx.JSON(http.StatusOK, pages)
