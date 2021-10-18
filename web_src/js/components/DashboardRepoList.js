@@ -15,8 +15,8 @@ function refreshRepoSearch(repoSearch, page = 1) {
   repoSearch.page = page;
   repoSearch.repos = [];
   repoSearch.setCheckboxes();
-  const countKey = `${repoSearch.reposFilter}:${repoSearch.archivedFilter}:${repoSearch.privateFilter}`;
-  repoSearch.counts[countKey] = 0;
+  // Needed to inform Vue that the value has changed initially
+  Vue.set(repoSearch.counts, `${repoSearch.reposFilter}:${repoSearch.archivedFilter}:${repoSearch.privateFilter}`, 0);
   repoSearch.searchRepos();
 }
 
