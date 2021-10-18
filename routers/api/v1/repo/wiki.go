@@ -44,8 +44,8 @@ func NewWikiPage(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/CreateWikiPageOptions"
 	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
+	//   "201":
+	//     "$ref": "#/responses/WikiPage"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -75,7 +75,11 @@ func NewWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	wikiPage := getWikiPage(ctx, wikiName)
+
+	if !ctx.Written() {
+		ctx.JSON(http.StatusCreated, wikiPage)
+	}
 }
 
 // EditWikiPage response for wiki modify request
@@ -106,8 +110,8 @@ func EditWikiPage(ctx *context.APIContext) {
 	//   schema:
 	//     "$ref": "#/definitions/CreateWikiPageOptions"
 	// responses:
-	//   "204":
-	//     "$ref": "#/responses/empty"
+	//   "200":
+	//     "$ref": "#/responses/WikiPage"
 	//   "400":
 	//     "$ref": "#/responses/error"
 	//   "403":
@@ -131,7 +135,79 @@ func EditWikiPage(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Status(http.StatusNoContent)
+	wikiPage := getWikiPage(ctx, newWikiName)
+
+	if !ctx.Written() {
+		ctx.JSON(http.StatusOK, wikiPage)
+	}
+}
+
+func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
+	page = wiki_service.NormalizeWikiName(page)
+
+	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	if wikiRepo != nil {
+		defer wikiRepo.Close()
+	}
+	if err != nil {
+		if !ctx.Written() {
+			if git.IsErrNotExist(err) {
+				ctx.NotFound(err)
+			} else {
+				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+			}
+		}
+		return nil
+	}
+
+	//lookup filename in wiki - get filecontent, gitTree entry , real filename
+	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, page, false)
+	if noEntry && !ctx.Written() {
+		ctx.NotFound()
+		return nil
+	}
+	if entry == nil {
+		if !ctx.Written() {
+			ctx.NotFound()
+		}
+		return nil
+	}
+
+	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar", true)
+	if ctx.Written() {
+		return nil
+	}
+
+	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer", true)
+	if ctx.Written() {
+		return nil
+	}
+
+	// get commit count - wiki revisions
+	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+
+	wikiPath := entry.Name()
+	// Get last change information.
+	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommitByPath", err)
+		return nil
+	}
+
+	wikiPage := &api.WikiPage{
+		WikiPageMetaData: &api.WikiPageMetaData{
+			Name:    page,
+			SubURL:  wiki_service.NameToSubURL(page),
+			Updated: lastCommit.Author.When.Format(time.RFC3339),
+		},
+		Content:     string(data),
+		CommitCount: commitsCount,
+		LastCommit:  convert.ToWikiCommit(lastCommit),
+		Sidebar:     string(sidebarContent),
+		Footer:      string(footerContent),
+	}
+
+	return wikiPage
 }
 
 // DeleteWikiPage delete wiki page
@@ -158,10 +234,18 @@ func DeleteWikiPage(ctx *context.APIContext) {
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	wikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 
 	if err := wiki_service.DeleteWikiPage(ctx.User, ctx.Repo.Repository, wikiName); err != nil {
+		if err.Error() == "file does not exist" {
+			ctx.NotFound(err)
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "DeleteWikiPage", err)
 		return
 	}
@@ -196,8 +280,10 @@ func ListWikiPages(ctx *context.APIContext) {
 	//   description: page size of results
 	//   type: integer
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/WikiPageList"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
@@ -278,77 +364,18 @@ func GetWikiPage(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/WikiPage"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	wikiRepo, commit, err := findWikiRepoCommit(ctx)
-	if wikiRepo != nil {
-		defer wikiRepo.Close()
-	}
-	if err != nil {
-		if !ctx.Written() {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound(err)
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
-			}
-		}
-		return
-	}
-
 	// get requested pagename
 	pageName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 
-	//lookup filename in wiki - get filecontent, gitTree entry , real filename
-	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, pageName, false)
-	if noEntry && !ctx.Written() {
-		ctx.NotFound()
-		return
+	wikiPage := getWikiPage(ctx, pageName)
+	if !ctx.Written() {
+		ctx.JSON(http.StatusOK, wikiPage)
 	}
-	if entry == nil {
-		if !ctx.Written() {
-			ctx.NotFound()
-		}
-		return
-	}
-
-	sidebarContent, _, _, _ := wikiContentsByName(ctx, commit, "_Sidebar", true)
-	if ctx.Written() {
-		return
-	}
-
-	footerContent, _, _, _ := wikiContentsByName(ctx, commit, "_Footer", true)
-	if ctx.Written() {
-		return
-	}
-
-	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
-
-	wikiPath := entry.Name()
-	// Get last change information.
-	lastCommit, err := wikiRepo.GetCommitByPath(wikiPath)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommitByPath", err)
-		return
-	}
-
-	wikiPage := &api.WikiPage{
-		WikiPageMetaData: &api.WikiPageMetaData{
-			Name:    pageName,
-			SubURL:  wiki_service.NameToSubURL(pageName),
-			Updated: lastCommit.Author.When.Format(time.RFC3339),
-		},
-		Content:     string(data),
-		CommitCount: commitsCount,
-		LastCommit:  convert.ToWikiCommit(lastCommit),
-		Sidebar:     string(sidebarContent),
-		Footer:      string(footerContent),
-	}
-
-	ctx.JSON(http.StatusOK, wikiPage)
 }
 
 // ListPageRevisions renders file revision list of wiki page
@@ -379,7 +406,7 @@ func ListPageRevisions(ctx *context.APIContext) {
 	//   description: page number of results to return (1-based)
 	//   type: integer
 	// responses:
-	//   "201":
+	//   "200":
 	//     "$ref": "#/responses/WikiCommitList"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
