@@ -28,8 +28,8 @@ type BlameReader struct {
 	output  io.ReadCloser
 	reader  *bufio.Reader
 	lastSha *string
-	cancel  context.CancelFunc
-	remove  context.CancelFunc
+	cancel  context.CancelFunc // Cancels the context that this reader runs in
+	remove  context.CancelFunc // Tells the process manager to remove the associated process from the process table
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -100,8 +100,8 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	defer r.remove()
-	r.cancel()
+	defer r.remove() // Only remove the process from the process table when the underlying command is closed
+	r.cancel()       // However, first cancel our own context early
 
 	_ = r.output.Close()
 
@@ -114,7 +114,7 @@ func (r *BlameReader) Close() error {
 
 // CreateBlameReader creates reader for given repository, commit and file
 func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*BlameReader, error) {
-	gitRepo, err := OpenRepository(repoPath)
+	gitRepo, err := OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		return nil, err
 	}
