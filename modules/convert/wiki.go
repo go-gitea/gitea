@@ -7,8 +7,10 @@ package convert
 import (
 	"time"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
@@ -46,23 +48,13 @@ func ToWikiCommitList(commits []*git.Commit, total int64) *api.WikiCommitList {
 	}
 }
 
-// ToWikiPage converts different data to a WikiPage
-func ToWikiPage(title string, lastCommit *git.Commit, commitsCount int64, content []byte, sidebarContent []byte, footerContent []byte) *api.WikiPage {
-	return &api.WikiPage{
-		WikiPageMetaData: ToWikiPageMetaData(title, lastCommit.Author.When),
-		Content:          string(content),
-		CommitCount:      commitsCount,
-		LastCommit:       ToWikiCommit(lastCommit),
-		Sidebar:          string(sidebarContent),
-		Footer:           string(footerContent),
-	}
-}
-
 // ToWikiPageMetaData converts meta information to a WikiPageMetaData
-func ToWikiPageMetaData(page string, updated time.Time) *api.WikiPageMetaData {
+func ToWikiPageMetaData(title string, lastCommit *git.Commit, repo *models.Repository) *api.WikiPageMetaData {
+	suburl := wiki_service.NameToSubURL(title)
 	return &api.WikiPageMetaData{
-		Title:   page,
-		SubURL:  wiki_service.NameToSubURL(page),
-		Updated: updated,
+		Title:      title,
+		HTMLURL:    util.URLJoin(repo.HTMLURL(), "wiki", suburl),
+		SubURL:     suburl,
+		LastCommit: ToWikiCommit(lastCommit),
 	}
 }

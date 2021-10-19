@@ -4,8 +4,6 @@
 
 package structs
 
-import "time"
-
 // WikiCommit page commit/revision
 type WikiCommit struct {
 	ID        string      `json:"sha"`
@@ -17,18 +15,18 @@ type WikiCommit struct {
 // WikiPage a wiki page
 type WikiPage struct {
 	*WikiPageMetaData
-	Content     string      `json:"content"`
-	CommitCount int64       `json:"commit_count"`
-	LastCommit  *WikiCommit `json:"last_commit"`
-	Sidebar     string      `json:"sidebar"`
-	Footer      string      `json:"footer"`
+	Content     string `json:"content"`
+	CommitCount int64  `json:"commit_count"`
+	Sidebar     string `json:"sidebar"`
+	Footer      string `json:"footer"`
 }
 
 // WikiPageMetaData wiki page meta information
 type WikiPageMetaData struct {
-	Title   string    `json:"title"`
-	SubURL  string    `json:"suburl"`
-	Updated time.Time `json:"updated"`
+	Title      string      `json:"title"`
+	HTMLURL    string      `json:"html_url"`
+	SubURL     string      `json:"suburl"`
+	LastCommit *WikiCommit `json:"last_commit"`
 }
 
 // CreateWikiPageOptions form for creating wiki

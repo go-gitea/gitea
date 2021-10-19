@@ -141,8 +141,8 @@ func EditWikiPage(ctx *context.APIContext) {
 	}
 }
 
-func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
-	page = wiki_service.NormalizeWikiName(page)
+func getWikiPage(ctx *context.APIContext, title string) *api.WikiPage {
+	title = wiki_service.NormalizeWikiName(title)
 
 	wikiRepo, commit, err := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
@@ -160,7 +160,7 @@ func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
 	}
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
-	content, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, page, false)
+	content, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, title, false)
 	if noEntry && !ctx.Written() {
 		ctx.NotFound()
 		return nil
@@ -193,7 +193,13 @@ func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
 		return nil
 	}
 
-	return convert.ToWikiPage(page, lastCommit, commitsCount, content, sidebarContent, footerContent)
+	return &api.WikiPage{
+		WikiPageMetaData: convert.ToWikiPageMetaData(title, lastCommit, ctx.Repo.Repository),
+		Content:          string(content),
+		CommitCount:      commitsCount,
+		Sidebar:          string(sidebarContent),
+		Footer:           string(footerContent),
+	}
 }
 
 // DeleteWikiPage delete wiki page
@@ -316,7 +322,7 @@ func ListWikiPages(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
 			return
 		}
-		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c.Author.When.UTC()))
+		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c, ctx.Repo.Repository))
 	}
 
 	ctx.JSON(http.StatusOK, pages)
