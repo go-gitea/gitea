@@ -142,8 +142,8 @@ a,b,c`,
 			head: `col1,col1a,col2
 a,d,b`,
 			cells: [][]TableDiffCellType{
-				{TableDiffCellUnchanged, TableDiffCellAdd, TableDiffCellDel, TableDiffCellUnchanged},
-				{TableDiffCellUnchanged, TableDiffCellAdd, TableDiffCellDel, TableDiffCellUnchanged},
+				{TableDiffCellUnchanged, TableDiffCellAdd, TableDiffCellDel, TableDiffCellMovedUnchanged},
+				{TableDiffCellUnchanged, TableDiffCellAdd, TableDiffCellDel, TableDiffCellMovedUnchanged},
 			},
 		},
 		// case 7 - deletes first column, inserts column after last
@@ -161,8 +161,8 @@ a,b,c`,
 			head: `col2,col3,col4
 b,c,d`,
 			cells: [][]TableDiffCellType{
-				{TableDiffCellDel, TableDiffCellMovedUnchanged, TableDiffCellMovedUnchanged, TableDiffCellAdd},
-				{TableDiffCellDel, TableDiffCellMovedUnchanged, TableDiffCellMovedUnchanged, TableDiffCellAdd},
+				{TableDiffCellDel, TableDiffCellUnchanged, TableDiffCellUnchanged, TableDiffCellAdd},
+				{TableDiffCellDel, TableDiffCellUnchanged, TableDiffCellUnchanged, TableDiffCellAdd},
 			},
 		},
 		// case 8 - two columns deleted, 2 added
