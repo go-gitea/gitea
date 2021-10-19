@@ -333,7 +333,14 @@ sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 In the next step a file named `/app/gitea/gitea` (with executable permissions) needs to be created on the host. This file will issue the SSH forwarding from the host to the container. Add the following contents to `/app/gitea/gitea`:
 
 ```bash
+#!/bin/sh
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
+```
+
+Here you should also make sure that you've set the permisson of `/app/gitea/gitea` correctly:
+
+```bash
+sudo chmod +x /app/gitea/gitea
 ```
 
 To make the forwarding work, the SSH port of the container (22) needs to be mapped to the host port 2222 in `docker-compose.yml` . Since this port does not need to be exposed to the outside world, it can be mapped to the `localhost` of the host machine:
