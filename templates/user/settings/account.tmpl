@@ -9,6 +9,7 @@
 		<div class="ui attached segment">
 			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
 			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
@@ -178,8 +179,8 @@
 				{{ end }}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<input class="fake" type="password">
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{.i18n.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
