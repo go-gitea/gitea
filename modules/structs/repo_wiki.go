@@ -4,6 +4,8 @@
 
 package structs
 
+import "time"
+
 // WikiCommit page commit/revision
 type WikiCommit struct {
 	ID        string      `json:"sha"`
@@ -24,9 +26,9 @@ type WikiPage struct {
 
 // WikiPageMetaData wiki page meta information
 type WikiPageMetaData struct {
-	Title   string `json:"title"`
-	SubURL  string `json:"suburl"`
-	Updated string `json:"updated"`
+	Title   string    `json:"title"`
+	SubURL  string    `json:"suburl"`
+	Updated time.Time `json:"updated"`
 }
 
 // CreateWikiPageOptions form for creating wiki

@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -161,7 +160,7 @@ func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
 	}
 
 	//lookup filename in wiki - get filecontent, gitTree entry , real filename
-	data, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, page, false)
+	content, entry, pageFilename, noEntry := wikiContentsByName(ctx, commit, page, false)
 	if noEntry && !ctx.Written() {
 		ctx.NotFound()
 		return nil
@@ -194,7 +193,7 @@ func getWikiPage(ctx *context.APIContext, page string) *api.WikiPage {
 		return nil
 	}
 
-	return convert.ToWikiPage(page, lastCommit, commitsCount, string(data), string(sidebarContent), string(footerContent))
+	return convert.ToWikiPage(page, lastCommit, commitsCount, content, sidebarContent, footerContent)
 }
 
 // DeleteWikiPage delete wiki page
@@ -299,7 +298,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	pages := make([]api.WikiPageMetaData, 0, len(entries))
+	pages := make([]*api.WikiPageMetaData, 0, len(entries))
 	for i, entry := range entries {
 		if i < skip || i >= max || !entry.IsRegular() {
 			continue
@@ -317,7 +316,7 @@ func ListWikiPages(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
 			return
 		}
-		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c.Author.When.Format(time.RFC3339)))
+		pages = append(pages, convert.ToWikiPageMetaData(wikiName, c.Author.When.UTC()))
 	}
 
 	ctx.JSON(http.StatusOK, pages)
