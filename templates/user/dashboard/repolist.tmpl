@@ -2,6 +2,7 @@
 	<repo-search
 	:search-limit="searchLimit"
 	:sub-url="subUrl"
+	:uid="uid"
 	{{if .Team}}
 	:team-id="{{.Team.ID}}"
 	{{end}}
@@ -95,7 +96,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="ui secondary tiny pointing borderless menu center aligned grid repos-filter">
+				<div class="ui secondary tiny pointing borderless menu center grid repos-filter">
 					<a class="item" :class="{active: reposFilter === 'all'}" @click="changeReposFilter('all')">
 						{{.i18n.Tr "all"}}
 						<div v-show="reposFilter === 'all'" class="ui circular mini grey label">${repoTypeCount}</div>
