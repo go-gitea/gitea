@@ -159,18 +159,11 @@ func EditWikiPage(ctx *context.APIContext) {
 func getWikiPage(ctx *context.APIContext, title string) *api.WikiPage {
 	title = wiki_service.NormalizeWikiName(title)
 
-	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	wikiRepo, commit := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
 		defer wikiRepo.Close()
 	}
-	if err != nil {
-		if !ctx.Written() {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound(err)
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
-			}
-		}
+	if ctx.Written() {
 		return nil
 	}
 
@@ -284,12 +277,11 @@ func ListWikiPages(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	wikiRepo, commit := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
 		defer wikiRepo.Close()
 	}
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "findWikiRepoCommit", err)
+	if ctx.Written() {
 		return
 	}
 
@@ -297,10 +289,9 @@ func ListWikiPages(ctx *context.APIContext) {
 	if page <= 1 {
 		page = 1
 	}
-
 	limit := ctx.FormInt("limit")
 	if limit <= 1 {
-		limit = 20
+		limit = setting.API.DefaultPagingNum
 	}
 
 	skip := (page - 1) * limit
@@ -406,18 +397,11 @@ func ListPageRevisions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	wikiRepo, commit, err := findWikiRepoCommit(ctx)
+	wikiRepo, commit := findWikiRepoCommit(ctx)
 	if wikiRepo != nil {
 		defer wikiRepo.Close()
 	}
-	if err != nil {
-		if !ctx.Written() {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound(err)
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
-			}
-		}
+	if ctx.Written() {
 		return
 	}
 
@@ -469,20 +453,30 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 	return commit.GetTreeEntryByPath(unescapedTarget)
 }
 
-// findWikiRepoCommit opens the wiki repo and returns the latest commit.
+// findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
-func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit, error) {
+func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
 	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return nil, nil, err
+
+		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+		}
+		return nil, nil
 	}
 
 	commit, err := wikiRepo.GetBranchCommit("master")
 	if err != nil {
-		return wikiRepo, nil, err
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetBranchCommit", err)
+		}
+		return wikiRepo, nil
 	}
-	return wikiRepo, commit, nil
+	return wikiRepo, commit
 }
 
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
