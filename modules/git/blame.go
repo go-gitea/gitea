@@ -146,11 +146,10 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 	reader := bufio.NewReader(stdout)
 
 	return &BlameReader{
-		cmd,
-		stdout,
-		reader,
-		nil,
-		cancel,
-		remove,
+		cmd:    cmd,
+		output: stdout,
+		reader: reader,
+		cancel: cancel,
+		remove: remove,
 	}, nil
 }
