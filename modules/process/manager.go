@@ -54,6 +54,12 @@ func GetManager() *Manager {
 }
 
 // AddContext create a new context and add it as a process. The remove CancelFunc must always be called even if the context is Done()
+//
+// cancel should be used to cancel the returned context, however it will not remove the process from the process table.
+// remove will cancel the returned context and remove it from the process table.
+//
+// Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
+// process table.
 func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
@@ -68,6 +74,12 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 }
 
 // AddContextTimeout create a new context and add it as a process. The remove CancelFunc must always be called even if the context is Done()
+//
+// cancel should be used to cancel the returned context, however it will not remove the process from the process table.
+// remove will cancel the returned context and remove it from the process table.
+//
+// Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
+// process table.
 func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
 	parentPID := GetParentPID(parent)
 
