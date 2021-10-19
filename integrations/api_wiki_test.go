@@ -29,11 +29,10 @@ func TestAPIGetWikiPage(t *testing.T) {
 
 	assert.Equal(t, &api.WikiPage{
 		WikiPageMetaData: &api.WikiPageMetaData{
-			Name:    "Home",
+			Title:   "Home",
 			SubURL:  "Home",
 			Updated: "2017-11-26T20:31:18-08:00",
 		},
-		Title:       "",
 		Content:     "# Home page\n\nThis is the home page!\n",
 		CommitCount: 1,
 		LastCommit: &api.WikiCommit{
@@ -75,22 +74,22 @@ func TestAPIListWikiPages(t *testing.T) {
 
 	dummymeta := []*api.WikiPageMetaData{
 		{
-			Name:    "Home",
+			Title:   "Home",
 			SubURL:  "Home",
 			Updated: "2017-11-26T20:31:18-08:00",
 		},
 		{
-			Name:    "Page With Image",
+			Title:   "Page With Image",
 			SubURL:  "Page-With-Image",
 			Updated: "2019-01-24T20:41:55-05:00",
 		},
 		{
-			Name:    "Page With Spaced Name",
+			Title:   "Page With Spaced Name",
 			SubURL:  "Page-With-Spaced-Name",
 			Updated: "2019-01-24T20:39:51-05:00",
 		},
 		{
-			Name:    "Unescaped File",
+			Title:   "Unescaped File",
 			SubURL:  "Unescaped-File",
 			Updated: "2021-07-19T18:42:46+02:00",
 		},

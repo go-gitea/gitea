@@ -15,7 +15,6 @@ type WikiCommit struct {
 // WikiPage a wiki page
 type WikiPage struct {
 	*WikiPageMetaData
-	Title       string      `json:"title"`
 	Content     string      `json:"content"`
 	CommitCount int64       `json:"commit_count"`
 	LastCommit  *WikiCommit `json:"last_commit"`
@@ -25,16 +24,18 @@ type WikiPage struct {
 
 // WikiPageMetaData wiki page meta information
 type WikiPageMetaData struct {
-	Name    string `json:"name"`
+	Title   string `json:"title"`
 	SubURL  string `json:"suburl"`
 	Updated string `json:"updated"`
 }
 
 // CreateWikiPageOptions form for creating wiki
 type CreateWikiPageOptions struct {
+	// page title. leave empty to keep unchanged
 	Title string `json:"title"`
 	// content must be UTF-8 encoded
 	Content string `json:"content"`
+	// commit message summarizing the change
 	Message string `json:"message"`
 }
 

@@ -50,7 +50,7 @@ func ToWikiCommitList(commits []*git.Commit, count int64) *api.WikiCommitList {
 func ToWikiPage(page string, lastCommit *git.Commit, commitsCount int64, data string, sidebarContent string, footerContent string) *api.WikiPage {
 	return &api.WikiPage{
 		WikiPageMetaData: &api.WikiPageMetaData{
-			Name:    page,
+			Title:   page,
 			SubURL:  wiki_service.NameToSubURL(page),
 			Updated: lastCommit.Author.When.Format(time.RFC3339),
 		},
@@ -65,7 +65,7 @@ func ToWikiPage(page string, lastCommit *git.Commit, commitsCount int64, data st
 // ToWikiPageMetaData converts meta information to a WikiPageMetaData
 func ToWikiPageMetaData(page string, updated string) api.WikiPageMetaData {
 	return api.WikiPageMetaData{
-		Name:    page,
+		Title:   page,
 		SubURL:  wiki_service.NameToSubURL(page),
 		Updated: updated,
 	}
