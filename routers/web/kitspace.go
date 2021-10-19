@@ -60,6 +60,6 @@ func Kitspace(ctx *context.Context) {
 		panic(err)
 	}
 
-	ctx.Resp.Write(body)
 	ctx.Resp.WriteHeader(resp.StatusCode)
+	ctx.Resp.Write(body)
 }
