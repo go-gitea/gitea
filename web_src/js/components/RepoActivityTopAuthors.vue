@@ -1,9 +1,9 @@
 <template>
   <div>
-    <div class="activity-bar-graph" ref="style" style="width:0px;height:0px"/>
-    <div class="activity-bar-graph-alt" ref="altStyle" style="width:0px;height:0px"/>
+    <div class="activity-bar-graph" ref="style" style="width: 0; height: 0;"/>
+    <div class="activity-bar-graph-alt" ref="altStyle" style="width: 0; height: 0;"/>
     <vue-bar-graph
-      :points="graphData"
+      :points="graphPoints"
       :show-x-axis="true"
       :show-y-axis="false"
       :show-values="true"
@@ -15,9 +15,9 @@
       :label-height="20"
     >
       <template #label="opt">
-        <g v-for="(author, idx) in authors" :key="author.position">
+        <g v-for="(author, idx) in graphAuthors" :key="author.position">
           <a
-            v-if="opt.bar.index === idx && author.home_link !== ''"
+            v-if="opt.bar.index === idx && author.home_link"
             :href="author.home_link"
           >
             <image
@@ -39,7 +39,7 @@
         </g>
       </template>
       <template #title="opt">
-        <tspan v-for="(author, idx) in authors" :key="author.position">
+        <tspan v-for="(author, idx) in graphAuthors" :key="author.position">
           <tspan v-if="opt.bar.index === idx">
             {{ author.name }}
           </tspan>
@@ -48,32 +48,39 @@
     </vue-bar-graph>
   </div>
 </template>
+
 <script>
 import VueBarGraph from 'vue-bar-graph';
+import {initVueApp} from './VueComponentLoader.js';
 
-export default {
+const sfc = {
   components: {VueBarGraph},
-  props: {
-    data: {type: Array, default: () => []},
-  },
   data: () => ({
     colors: {
       barColor: 'green',
       textColor: 'black',
       textAltColor: 'white',
     },
+
+    // possible keys:
+    // * avatar_link: (...)
+    // * commits: (...)
+    // * home_link: (...)
+    // * login: (...)
+    // * name: (...)
+    activityTopAuthors: window.config.pageData.repoActivityTopAuthors || [],
   }),
   computed: {
-    graphData() {
-      return this.data.map((item) => {
+    graphPoints() {
+      return this.activityTopAuthors.map((item) => {
         return {
           value: item.commits,
           label: item.name,
         };
       });
     },
-    authors() {
-      return this.data.map((item, idx) => {
+    graphAuthors() {
+      return this.activityTopAuthors.map((item, idx) => {
         return {
           position: idx + 1,
           ...item,
@@ -81,21 +88,22 @@ export default {
       });
     },
     graphWidth() {
-      return this.data.length * 40;
+      return this.activityTopAuthors.length * 40;
     },
   },
   mounted() {
-    const st = window.getComputedStyle(this.$refs.style);
-    const stalt = window.getComputedStyle(this.$refs.altStyle);
+    const refStyle = window.getComputedStyle(this.$refs.style);
+    const refAltStyle = window.getComputedStyle(this.$refs.altStyle);
 
-    this.colors.barColor = st.backgroundColor;
-    this.colors.textColor = st.color;
-    this.colors.textAltColor = stalt.color;
-  },
-  methods: {
-    hasHomeLink(i) {
-      return this.graphData[i].homeLink !== '' && this.graphData[i].homeLink !== null;
-    },
+    this.colors.barColor = refStyle.backgroundColor;
+    this.colors.textColor = refStyle.color;
+    this.colors.textAltColor = refAltStyle.color;
   }
 };
+
+export function initRepoActivityTopAuthorsChart() {
+  initVueApp('#repo-activity-top-authors-chart', sfc);
+}
+
+export default sfc; // this line is necessary to activate the IDE's Vue plugin
 </script>

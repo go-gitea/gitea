@@ -279,7 +279,7 @@ swagger-validate:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
+		$(GO) install github.com/kisielk/errcheck@8ddee489636a8311a376fc92e27a6a13c6658344; \
 	fi
 	@echo "Running errcheck..."
 	@errcheck $(GO_PACKAGES)
@@ -287,14 +287,14 @@ errcheck:
 .PHONY: revive
 revive:
 	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/mgechev/revive; \
+		$(GO) install github.com/mgechev/revive@v1.1.2; \
 	fi
 	@revive -config .revive.toml -exclude=./vendor/... ./...
 
 .PHONY: misspell-check
 misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
 	fi
 	@echo "Running misspell-check..."
 	@misspell -error -i unknwon $(GO_SOURCES_OWN)
@@ -302,7 +302,7 @@ misspell-check:
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
 	fi
 	@echo "Running go misspell..."
 	@misspell -w -i unknwon $(GO_SOURCES_OWN)
@@ -350,7 +350,7 @@ watch-frontend: node-check node_modules
 .PHONY: watch-backend
 watch-backend: go-check
 	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+		$(GO) install github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4; \
 	fi
 	air -c .air.conf
 
@@ -661,7 +661,7 @@ release-check: | $(DIST_DIRS)
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
 	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
+		$(GO) install github.com/ulikunitz/xz/cmd/gxz@v0.5.10; \
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 

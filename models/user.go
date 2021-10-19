@@ -35,7 +35,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
+
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -1600,11 +1602,16 @@ type SearchUserOptions struct {
 	OrderBy       SearchOrderBy
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
-	IsActive      util.OptionalBool
-	SearchByEmail bool // Search by email as well as username/full name
+	SearchByEmail bool  // Search by email as well as username/full name
+
+	IsActive           util.OptionalBool
+	IsAdmin            util.OptionalBool
+	IsRestricted       util.OptionalBool
+	IsTwoFactorEnabled util.OptionalBool
+	IsProhibitLogin    util.OptionalBool
 }
 
-func (opts *SearchUserOptions) toConds() builder.Cond {
+func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1658,14 +1665,39 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
 	}
 
-	return cond
+	if !opts.IsAdmin.IsNone() {
+		cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+	}
+
+	if !opts.IsRestricted.IsNone() {
+		cond = cond.And(builder.Eq{"is_restricted": opts.IsRestricted.IsTrue()})
+	}
+
+	if !opts.IsProhibitLogin.IsNone() {
+		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
+	}
+
+	sess = db.NewSession(db.DefaultContext)
+	if !opts.IsTwoFactorEnabled.IsNone() {
+		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+		if opts.IsTwoFactorEnabled.IsTrue() {
+			cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+		} else {
+			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+		}
+		sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
+	}
+	sess = sess.Where(cond)
+	return sess
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
 func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	cond := opts.toConds()
-	count, err := db.GetEngine(db.DefaultContext).Where(cond).Count(new(User))
+	sessCount := opts.toSearchQueryBase()
+	defer sessCount.Close()
+	count, err := sessCount.Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
@@ -1674,13 +1706,16 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := db.GetEngine(db.DefaultContext).Where(cond).OrderBy(opts.OrderBy.String())
+	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
+	defer sessQuery.Close()
 	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		sessQuery = db.SetSessionPagination(sessQuery, opts)
 	}
 
+	// the sql may contain JOIN, so we must only select User related columns
+	sessQuery = sessQuery.Select("`user`.*")
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, sess.Find(&users)
+	return users, count, sessQuery.Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user
