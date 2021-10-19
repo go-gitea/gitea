@@ -8,6 +8,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="id" value="{{.Source.ID}}">
 				<div class="inline field">
@@ -55,7 +56,6 @@
 							<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
 							<input id="bind_dn" name="bind_dn" value="{{$cfg.BindDN}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
 						</div>
-						<input class="fake" type="password">
 						<div class="field">
 							<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 							<input id="bind_password" name="bind_password" type="password" value="{{$cfg.BindPassword}}">
