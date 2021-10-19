@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models/appstate"
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +36,6 @@ func (*testItem2) Name() string {
 
 func TestAppStateDB(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	_ = db.GetEngine(db.DefaultContext).Sync2(new(appstate.AppState))
 
 	as := &DBStore{}
 

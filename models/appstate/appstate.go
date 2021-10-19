@@ -19,6 +19,10 @@ type AppState struct {
 	Content  string `xorm:"LONGTEXT"`
 }
 
+func init() {
+	db.RegisterModel(new(AppState))
+}
+
 // SaveAppStateContent saves the app state item to database
 func SaveAppStateContent(key, content string) error {
 	return db.WithTx(func(ctx context.Context) error {
