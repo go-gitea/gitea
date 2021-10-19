@@ -160,10 +160,10 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		return nil, err
 	}
 
-	// Initalizing the mappings of base to head (a2bColMap) and head to base (b2aColMap) columns
+	// Initializing the mappings of base to head (a2bColMap) and head to base (b2aColMap) columns
 	a2bColMap, b2aColMap := getColumnMapping(baseCSVReader, headCSVReader)
 
-	// Determines how many cols there will be in the diff table, which includes deleted columsn from base and added columns to base
+	// Determines how many cols there will be in the diff table, which includes deleted columns from base and added columns to base
 	numDiffTableCols := len(a2bColMap) + countUnmappedColumns(b2aColMap)
 	if len(a2bColMap) < len(b2aColMap) {
 		numDiffTableCols = len(b2aColMap) + countUnmappedColumns(a2bColMap)
@@ -202,7 +202,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		colsAdded := 0   // incremented whenever we found a column was added
 		colsDeleted := 0 // incrememted whenever a column was deleted
 
-		// We loop until both the aIndex and bIndex are greater tahn their col map, which then we are done
+		// We loop until both the aIndex and bIndex are greater than their col map, which then we are done
 		for aIndex < len(a2bColMap) || bIndex < len(b2aColMap) {
 			// Starting from where aIndex is currently pointing, we see if the map is -1 (dleeted) and if is, create column to note that, increment, and look at the next aIndex
 			for aIndex < len(a2bColMap) && a2bColMap[aIndex] == -1 && (bIndex >= len(b2aColMap) || aIndex <= bIndex) {
@@ -317,7 +317,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 		// Each section has multiple diffTableRows
 		var diffTableRows []*TableDiffRow
 		lines := tryMergeLines(section.Lines)
-		// Loop throught the merged lines to get each row of the CSV diff table for this section
+		// Loop through the merged lines to get each row of the CSV diff table for this section
 		for j, line := range lines {
 			if i == 0 && j == 0 && (line[0] != 1 || line[1] != 1) {
 				diffTableRow, err := createDiffTableRow(1, 1)
