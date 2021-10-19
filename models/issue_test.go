@@ -77,7 +77,7 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 	checkParticipants := func(issueID int64, userIDs []int) {
 		issue, err := GetIssueByID(issueID)
 		assert.NoError(t, err)
-		participants, err := issue.getParticipantIDsByIssue(db.DefaultContext().Engine())
+		participants, err := issue.getParticipantIDsByIssue(db.GetEngine(db.DefaultContext))
 		if assert.NoError(t, err) {
 			participantsIDs := make([]int, len(participants))
 			for i, uid := range participants {
@@ -125,7 +125,7 @@ func TestUpdateIssueCols(t *testing.T) {
 	issue.Content = "This should have no effect"
 
 	now := time.Now().Unix()
-	assert.NoError(t, updateIssueCols(db.DefaultContext().Engine(), issue, "name"))
+	assert.NoError(t, updateIssueCols(db.GetEngine(db.DefaultContext), issue, "name"))
 	then := time.Now().Unix()
 
 	updatedIssue := db.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
@@ -151,7 +151,7 @@ func TestIssues(t *testing.T) {
 			IssuesOptions{
 				RepoIDs:  []int64{1, 3},
 				SortType: "oldest",
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -161,7 +161,7 @@ func TestIssues(t *testing.T) {
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1},
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -171,7 +171,7 @@ func TestIssues(t *testing.T) {
 		{
 			IssuesOptions{
 				LabelIDs: []int64{1, 2},
-				ListOptions: ListOptions{
+				ListOptions: db.ListOptions{
 					Page:     1,
 					PageSize: 4,
 				},
@@ -290,7 +290,7 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	ms, err := GetIssueByID(2)
 	assert.NoError(t, err)
-	assert.NoError(t, ms.loadTotalTimes(db.DefaultContext().Engine()))
+	assert.NoError(t, ms.loadTotalTimes(db.GetEngine(db.DefaultContext)))
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
@@ -363,7 +363,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Is
 		err := NewIssue(repo, &issue, nil, nil)
 		assert.NoError(t, err)
 
-		has, err := db.DefaultContext().Engine().ID(issue.ID).Get(&newIssue)
+		has, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Get(&newIssue)
 		assert.NoError(t, err)
 		assert.True(t, has)
 		assert.EqualValues(t, issue.Title, newIssue.Title)
@@ -380,11 +380,11 @@ func TestIssue_InsertIssue(t *testing.T) {
 
 	// there are 5 issues and max index is 5 on repository 1, so this one should 6
 	issue := testInsertIssue(t, "my issue1", "special issue's comments?", 6)
-	_, err := db.DefaultContext().Engine().ID(issue.ID).Delete(new(Issue))
+	_, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)
 
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
-	_, err = db.DefaultContext().Engine().ID(issue.ID).Delete(new(Issue))
+	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Delete(new(Issue))
 	assert.NoError(t, err)
 
 }
@@ -397,7 +397,7 @@ func TestIssue_ResolveMentions(t *testing.T) {
 		r := db.AssertExistsAndLoadBean(t, &Repository{OwnerID: o.ID, LowerName: repo}).(*Repository)
 		issue := &Issue{RepoID: r.ID}
 		d := db.AssertExistsAndLoadBean(t, &User{LowerName: doer}).(*User)
-		resolved, err := issue.ResolveMentionsByVisibility(db.DefaultContext(), d, mentions)
+		resolved, err := issue.ResolveMentionsByVisibility(db.DefaultContext, d, mentions)
 		assert.NoError(t, err)
 		ids := make([]int64, len(resolved))
 		for i, user := range resolved {

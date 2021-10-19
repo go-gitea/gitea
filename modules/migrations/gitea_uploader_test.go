@@ -69,12 +69,12 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, milestones)
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", models.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
 	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
 		},
@@ -84,7 +84,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.Len(t, releases, 8)
 
 	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
 		},

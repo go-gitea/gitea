@@ -93,7 +93,7 @@ func TestIssueReactionCount(t *testing.T) {
 	addReaction(t, user4, issue, nil, "heart")
 	addReaction(t, ghost, issue, nil, "-1")
 
-	err := issue.loadReactions(db.DefaultContext().Engine())
+	err := issue.loadReactions(db.GetEngine(db.DefaultContext))
 	assert.NoError(t, err)
 
 	assert.Len(t, issue.Reactions, 7)

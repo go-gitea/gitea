@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -34,7 +34,7 @@ func OAuthApplicationsPost(ctx *context.Context) {
 		return
 	}
 	// TODO validate redirect URI
-	app, err := models.CreateOAuth2Application(models.CreateOAuth2ApplicationOptions{
+	app, err := login.CreateOAuth2Application(login.CreateOAuth2ApplicationOptions{
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
 		UserID:       ctx.User.ID,
@@ -67,7 +67,7 @@ func OAuthApplicationsEdit(ctx *context.Context) {
 	}
 	// TODO validate redirect URI
 	var err error
-	if ctx.Data["App"], err = models.UpdateOAuth2Application(models.UpdateOAuth2ApplicationOptions{
+	if ctx.Data["App"], err = login.UpdateOAuth2Application(login.UpdateOAuth2ApplicationOptions{
 		ID:           ctx.ParamsInt64("id"),
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
@@ -85,9 +85,9 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	app, err := models.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := login.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
 	if err != nil {
-		if models.IsErrOAuthApplicationNotFound(err) {
+		if login.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
 			return
 		}
@@ -110,9 +110,9 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 
 // OAuth2ApplicationShow displays the given application
 func OAuth2ApplicationShow(ctx *context.Context) {
-	app, err := models.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := login.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
 	if err != nil {
-		if models.IsErrOAuthApplicationNotFound(err) {
+		if login.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
 			return
 		}
@@ -129,7 +129,7 @@ func OAuth2ApplicationShow(ctx *context.Context) {
 
 // DeleteOAuth2Application deletes the given oauth2 application
 func DeleteOAuth2Application(ctx *context.Context) {
-	if err := models.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.User.ID); err != nil {
+	if err := login.DeleteOAuth2Application(ctx.FormInt64("id"), ctx.User.ID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
@@ -147,7 +147,7 @@ func RevokeOAuth2Grant(ctx *context.Context) {
 		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
 		return
 	}
-	if err := models.RevokeOAuth2Grant(ctx.FormInt64("id"), ctx.User.ID); err != nil {
+	if err := login.RevokeOAuth2Grant(ctx.FormInt64("id"), ctx.User.ID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}

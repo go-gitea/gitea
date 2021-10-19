@@ -28,7 +28,7 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
-	iw, exists, err := getIssueWatch(db.DefaultContext().Engine(), userID, issueID)
+	iw, exists, err := getIssueWatch(db.GetEngine(db.DefaultContext), userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -40,13 +40,13 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 			IsWatching: isWatching,
 		}
 
-		if _, err := db.DefaultContext().Engine().Insert(iw); err != nil {
+		if _, err := db.GetEngine(db.DefaultContext).Insert(iw); err != nil {
 			return err
 		}
 	} else {
 		iw.IsWatching = isWatching
 
-		if _, err := db.DefaultContext().Engine().ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
+		if _, err := db.GetEngine(db.DefaultContext).ID(iw.ID).Cols("is_watching", "updated_unix").Update(iw); err != nil {
 			return err
 		}
 	}
@@ -56,7 +56,7 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
 // the current Web-UI need iw object for watchers AND explicit non-watchers
 func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
-	return getIssueWatch(db.DefaultContext().Engine(), userID, issueID)
+	return getIssueWatch(db.GetEngine(db.DefaultContext), userID, issueID)
 }
 
 // Return watcher AND explicit non-watcher if entry in db exist
@@ -72,14 +72,14 @@ func getIssueWatch(e db.Engine, userID, issueID int64) (iw *IssueWatch, exists b
 // CheckIssueWatch check if an user is watching an issue
 // it takes participants and repo watch into account
 func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
-	iw, exist, err := getIssueWatch(db.DefaultContext().Engine(), user.ID, issue.ID)
+	iw, exist, err := getIssueWatch(db.GetEngine(db.DefaultContext), user.ID, issue.ID)
 	if err != nil {
 		return false, err
 	}
 	if exist {
 		return iw.IsWatching, nil
 	}
-	w, err := getWatch(db.DefaultContext().Engine(), user.ID, issue.RepoID)
+	w, err := getWatch(db.GetEngine(db.DefaultContext), user.ID, issue.RepoID)
 	if err != nil {
 		return false, err
 	}
@@ -90,7 +90,7 @@ func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
 func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
-	return getIssueWatchersIDs(db.DefaultContext().Engine(), issueID, watching)
+	return getIssueWatchersIDs(db.GetEngine(db.DefaultContext), issueID, watching)
 }
 
 func getIssueWatchersIDs(e db.Engine, issueID int64, watching bool) ([]int64, error) {
@@ -103,11 +103,11 @@ func getIssueWatchersIDs(e db.Engine, issueID int64, watching bool) ([]int64, er
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(issueID int64, listOptions ListOptions) (IssueWatchList, error) {
-	return getIssueWatchers(db.DefaultContext().Engine(), issueID, listOptions)
+func GetIssueWatchers(issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
+	return getIssueWatchers(db.GetEngine(db.DefaultContext), issueID, listOptions)
 }
 
-func getIssueWatchers(e db.Engine, issueID int64, listOptions ListOptions) (IssueWatchList, error) {
+func getIssueWatchers(e db.Engine, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
 	sess := e.
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).
@@ -116,7 +116,7 @@ func getIssueWatchers(e db.Engine, issueID int64, listOptions ListOptions) (Issu
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id")
 
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 		watches := make([]*IssueWatch, 0, listOptions.PageSize)
 		return watches, sess.Find(&watches)
 	}

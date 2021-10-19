@@ -9,7 +9,6 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"strconv"
@@ -300,7 +299,7 @@ func LFSFileGet(ctx *context.Context) {
 		buf := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := ioutil.ReadAll(buf)
+		fileContent, _ := io.ReadAll(buf)
 
 		var output bytes.Buffer
 		lines := strings.Split(string(fileContent), "\n")

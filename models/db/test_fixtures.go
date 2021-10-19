@@ -17,13 +17,18 @@ import (
 var fixtures *testfixtures.Loader
 
 // InitFixtures initialize test fixtures for a test database
-func InitFixtures(dir string, engine ...*xorm.Engine) (err error) {
+func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 	e := x
 	if len(engine) == 1 {
 		e = engine[0]
 	}
 
-	testfiles := testfixtures.Directory(dir)
+	var testfiles func(*testfixtures.Loader) error
+	if opts.Dir != "" {
+		testfiles = testfixtures.Directory(opts.Dir)
+	} else {
+		testfiles = testfixtures.Files(opts.Files...)
+	}
 	dialect := "unknown"
 	switch e.Dialect().URI().DBType {
 	case schemas.POSTGRES:

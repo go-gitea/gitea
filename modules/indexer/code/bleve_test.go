@@ -5,7 +5,7 @@
 package code
 
 import (
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,7 +17,7 @@ import (
 func TestBleveIndexAndSearch(t *testing.T) {
 	db.PrepareTestEnv(t)
 
-	dir, err := ioutil.TempDir("", "bleve.index")
+	dir, err := os.MkdirTemp("", "bleve.index")
 	assert.NoError(t, err)
 	if err != nil {
 		assert.Fail(t, "Unable to create temporary directory")

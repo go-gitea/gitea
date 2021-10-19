@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -79,7 +80,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		panic(panicErr)
 	}()
 
-	err = db.WithTx(func(ctx *db.Context) error {
+	err = db.WithTx(func(ctx context.Context) error {
 		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
 			return err
 		}
@@ -96,7 +97,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		needsRollback = true
 
 		repoPath := models.RepoPath(owner.Name, repo.Name)
-		if stdout, err := git.NewCommand(
+		if stdout, err := git.NewCommandContext(ctx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
 			RunInDirTimeout(10*time.Minute, ""); err != nil {
@@ -104,7 +105,11 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
+
+		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
 			RunInDir(repoPath); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
@@ -123,7 +128,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	ctx := db.DefaultContext()
+	ctx := db.DefaultContext
 	if err := repo.UpdateSize(ctx); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
@@ -136,7 +141,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
 func ConvertForkToNormalRepository(repo *models.Repository) error {
-	err := db.WithTx(func(ctx *db.Context) error {
+	err := db.WithTx(func(ctx context.Context) error {
 		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err

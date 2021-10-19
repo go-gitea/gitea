@@ -5,8 +5,8 @@
 package integrations
 
 import (
-	"io/ioutil"
 	"net/url"
+	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -55,7 +55,7 @@ func TestCreateNewTagProtected(t *testing.T) {
 			username := "user2"
 			httpContext := NewAPITestContext(t, username, "repo1")
 
-			dstPath, err := ioutil.TempDir("", httpContext.Reponame)
+			dstPath, err := os.MkdirTemp("", httpContext.Reponame)
 			assert.NoError(t, err)
 			defer util.RemoveAll(dstPath)
 

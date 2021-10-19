@@ -5,7 +5,7 @@
 package repo
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"testing"
 
@@ -47,7 +47,7 @@ func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string 
 	reader, err := entry.Blob().DataAsync()
 	assert.NoError(t, err)
 	defer reader.Close()
-	bytes, err := ioutil.ReadAll(reader)
+	bytes, err := io.ReadAll(reader)
 	assert.NoError(t, err)
 	return string(bytes)
 }

@@ -46,11 +46,11 @@ func getStopwatch(e db.Engine, userID, issueID int64) (sw *Stopwatch, exists boo
 }
 
 // GetUserStopwatches return list of all stopwatches of a user
-func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, error) {
+func GetUserStopwatches(userID int64, listOptions db.ListOptions) ([]*Stopwatch, error) {
 	sws := make([]*Stopwatch, 0, 8)
-	sess := db.DefaultContext().Engine().Where("stopwatch.user_id = ?", userID)
+	sess := db.GetEngine(db.DefaultContext).Where("stopwatch.user_id = ?", userID)
 	if listOptions.Page != 0 {
-		sess = setSessionPagination(sess, &listOptions)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	err := sess.Find(&sws)
@@ -62,18 +62,18 @@ func GetUserStopwatches(userID int64, listOptions ListOptions) ([]*Stopwatch, er
 
 // CountUserStopwatches return count of all stopwatches of a user
 func CountUserStopwatches(userID int64) (int64, error) {
-	return db.DefaultContext().Engine().Where("user_id = ?", userID).Count(&Stopwatch{})
+	return db.GetEngine(db.DefaultContext).Where("user_id = ?", userID).Count(&Stopwatch{})
 }
 
 // StopwatchExists returns true if the stopwatch exists
 func StopwatchExists(userID, issueID int64) bool {
-	_, exists, _ := getStopwatch(db.DefaultContext().Engine(), userID, issueID)
+	_, exists, _ := getStopwatch(db.GetEngine(db.DefaultContext), userID, issueID)
 	return exists
 }
 
 // HasUserStopwatch returns true if the user has a stopwatch
 func HasUserStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
-	return hasUserStopwatch(db.DefaultContext().Engine(), userID)
+	return hasUserStopwatch(db.GetEngine(db.DefaultContext), userID)
 }
 
 func hasUserStopwatch(e db.Engine, userID int64) (exists bool, sw *Stopwatch, err error) {
@@ -86,7 +86,7 @@ func hasUserStopwatch(e db.Engine, userID int64) (exists bool, sw *Stopwatch, er
 
 // CreateOrStopIssueStopwatch will create or remove a stopwatch and will log it into issue's timeline.
 func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -175,7 +175,7 @@ func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
 func CancelStopwatch(user *User, issue *Issue) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

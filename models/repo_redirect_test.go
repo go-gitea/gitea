@@ -27,7 +27,7 @@ func TestNewRepoRedirect(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	assert.NoError(t, newRepoRedirect(db.DefaultContext().Engine(), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
+	assert.NoError(t, newRepoRedirect(db.GetEngine(db.DefaultContext), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
 
 	db.AssertExistsAndLoadBean(t, &RepoRedirect{
 		OwnerID:        repo.OwnerID,
@@ -46,7 +46,7 @@ func TestNewRepoRedirect2(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	assert.NoError(t, newRepoRedirect(db.DefaultContext().Engine(), repo.OwnerID, repo.ID, repo.Name, "oldrepo1"))
+	assert.NoError(t, newRepoRedirect(db.GetEngine(db.DefaultContext), repo.OwnerID, repo.ID, repo.Name, "oldrepo1"))
 
 	db.AssertExistsAndLoadBean(t, &RepoRedirect{
 		OwnerID:        repo.OwnerID,
@@ -65,7 +65,7 @@ func TestNewRepoRedirect3(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	assert.NoError(t, newRepoRedirect(db.DefaultContext().Engine(), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
+	assert.NoError(t, newRepoRedirect(db.GetEngine(db.DefaultContext), repo.OwnerID, repo.ID, repo.Name, "newreponame"))
 
 	db.AssertExistsAndLoadBean(t, &RepoRedirect{
 		OwnerID:        repo.OwnerID,

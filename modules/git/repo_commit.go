@@ -8,7 +8,6 @@ package git
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
 
@@ -222,7 +221,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 
 	if skip > 0 {
-		_, err := io.CopyN(ioutil.Discard, stdoutReader, int64(skip*41))
+		_, err := io.CopyN(io.Discard, stdoutReader, int64(skip*41))
 		if err != nil {
 			if err == io.EOF {
 				return []*Commit{}, nil
@@ -232,7 +231,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 		}
 	}
 
-	stdout, err := ioutil.ReadAll(stdoutReader)
+	stdout, err := io.ReadAll(stdoutReader)
 	if err != nil {
 		return nil, err
 	}

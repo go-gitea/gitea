@@ -8,7 +8,6 @@ package markdown
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"sync"
 
@@ -189,7 +188,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 		// FIXME: Don't read all to memory, but goldmark doesn't support
 		pc := newParserContext(ctx)
-		buf, err := ioutil.ReadAll(input)
+		buf, err := io.ReadAll(input)
 		if err != nil {
 			log.Error("Unable to ReadAll: %v", err)
 			return

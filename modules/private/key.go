@@ -7,7 +7,7 @@ package private
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -49,7 +49,7 @@ func AuthorizedPublicKeyByContent(ctx context.Context, content string) (string, 
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
 	}
-	bs, err := ioutil.ReadAll(resp.Body)
+	bs, err := io.ReadAll(resp.Body)
 
 	return string(bs), err
 }

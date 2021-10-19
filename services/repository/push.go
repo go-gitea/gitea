@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -36,9 +37,9 @@ func handle(data ...queue.Data) {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{}).(queue.Queue)
+	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{})
 	if pushQueue == nil {
-		return fmt.Errorf("Unable to create push_update Queue")
+		return errors.New("unable to create push_update Queue")
 	}
 
 	go graceful.GetManager().RunWithShutdownFns(pushQueue.Run)
@@ -83,7 +84,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(db.DefaultContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 

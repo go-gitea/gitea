@@ -123,7 +123,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(db.DefaultContext(), rel.ID, attachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(db.DefaultContext, rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
@@ -311,7 +311,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	} else {
 		rel.IsTag = true
 
-		if err = models.UpdateRelease(db.DefaultContext(), rel); err != nil {
+		if err = models.UpdateRelease(db.DefaultContext, rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

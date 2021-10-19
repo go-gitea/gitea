@@ -49,7 +49,7 @@ type TranslatableMessage struct {
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo() error {
-	return task.loadRepo(db.DefaultContext().Engine())
+	return task.loadRepo(db.GetEngine(db.DefaultContext))
 }
 
 func (task *Task) loadRepo(e db.Engine) error {
@@ -76,7 +76,7 @@ func (task *Task) LoadDoer() error {
 	}
 
 	var doer User
-	has, err := db.DefaultContext().Engine().ID(task.DoerID).Get(&doer)
+	has, err := db.GetEngine(db.DefaultContext).ID(task.DoerID).Get(&doer)
 	if err != nil {
 		return err
 	} else if !has {
@@ -96,7 +96,7 @@ func (task *Task) LoadOwner() error {
 	}
 
 	var owner User
-	has, err := db.DefaultContext().Engine().ID(task.OwnerID).Get(&owner)
+	has, err := db.GetEngine(db.DefaultContext).ID(task.OwnerID).Get(&owner)
 	if err != nil {
 		return err
 	} else if !has {
@@ -111,7 +111,7 @@ func (task *Task) LoadOwner() error {
 
 // UpdateCols updates some columns
 func (task *Task) UpdateCols(cols ...string) error {
-	_, err := db.DefaultContext().Engine().ID(task.ID).Cols(cols...).Update(task)
+	_, err := db.GetEngine(db.DefaultContext).ID(task.ID).Cols(cols...).Update(task)
 	return err
 }
 
@@ -170,7 +170,7 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := db.DefaultContext().Engine().Get(&task)
+	has, err := db.GetEngine(db.DefaultContext).Get(&task)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -186,7 +186,7 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 		DoerID: doerID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := db.DefaultContext().Engine().Get(&task)
+	has, err := db.GetEngine(db.DefaultContext).Get(&task)
 	if err != nil {
 		return nil, nil, err
 	} else if !has {
@@ -217,13 +217,13 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 // FindTasks find all tasks
 func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 	tasks := make([]*Task, 0, 10)
-	err := db.DefaultContext().Engine().Where(opts.ToConds()).Find(&tasks)
+	err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Find(&tasks)
 	return tasks, err
 }
 
 // CreateTask creates a task on database
 func CreateTask(task *Task) error {
-	return createTask(db.DefaultContext().Engine(), task)
+	return createTask(db.GetEngine(db.DefaultContext), task)
 }
 
 func createTask(e db.Engine, task *Task) error {
@@ -253,7 +253,7 @@ func FinishMigrateTask(task *Task) error {
 	}
 	task.PayloadContent = string(confBytes)
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

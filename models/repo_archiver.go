@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -43,7 +44,7 @@ func (archiver *RepoArchiver) LoadRepo() (*Repository, error) {
 	}
 
 	var repo Repository
-	has, err := db.DefaultContext().Engine().ID(archiver.RepoID).Get(&repo)
+	has, err := db.GetEngine(db.DefaultContext).ID(archiver.RepoID).Get(&repo)
 	if err != nil {
 		return nil, err
 	}
@@ -61,9 +62,9 @@ func (archiver *RepoArchiver) RelativePath() (string, error) {
 }
 
 // GetRepoArchiver get an archiver
-func GetRepoArchiver(ctx *db.Context, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
+func GetRepoArchiver(ctx context.Context, repoID int64, tp git.ArchiveType, commitID string) (*RepoArchiver, error) {
 	var archiver RepoArchiver
-	has, err := ctx.Engine().Where("repo_id=?", repoID).And("`type`=?", tp).And("commit_id=?", commitID).Get(&archiver)
+	has, err := db.GetEngine(ctx).Where("repo_id=?", repoID).And("`type`=?", tp).And("commit_id=?", commitID).Get(&archiver)
 	if err != nil {
 		return nil, err
 	}
@@ -74,19 +75,19 @@ func GetRepoArchiver(ctx *db.Context, repoID int64, tp git.ArchiveType, commitID
 }
 
 // AddRepoArchiver adds an archiver
-func AddRepoArchiver(ctx *db.Context, archiver *RepoArchiver) error {
-	_, err := ctx.Engine().Insert(archiver)
+func AddRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
+	_, err := db.GetEngine(ctx).Insert(archiver)
 	return err
 }
 
 // UpdateRepoArchiverStatus updates archiver's status
-func UpdateRepoArchiverStatus(ctx *db.Context, archiver *RepoArchiver) error {
-	_, err := ctx.Engine().ID(archiver.ID).Cols("status").Update(archiver)
+func UpdateRepoArchiverStatus(ctx context.Context, archiver *RepoArchiver) error {
+	_, err := db.GetEngine(ctx).ID(archiver.ID).Cols("status").Update(archiver)
 	return err
 }
 
 // DeleteAllRepoArchives deletes all repo archives records
 func DeleteAllRepoArchives() error {
-	_, err := db.DefaultContext().Engine().Where("1=1").Delete(new(RepoArchiver))
+	_, err := db.GetEngine(db.DefaultContext).Where("1=1").Delete(new(RepoArchiver))
 	return err
 }

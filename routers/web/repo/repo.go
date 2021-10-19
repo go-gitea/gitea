@@ -343,7 +343,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(db.DefaultContext(), curRepo.ID, tagNames)
+	releases, err := models.GetReleasesByRepoIDAndNames(db.DefaultContext, curRepo.ID, tagNames)
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -380,7 +380,7 @@ func Download(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(db.DefaultContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("models.GetRepoArchiver", err)
 		return
@@ -410,7 +410,7 @@ func Download(ctx *context.Context) {
 				return
 			}
 			times++
-			archiver, err = models.GetRepoArchiver(db.DefaultContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+			archiver, err = models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 			if err != nil {
 				ctx.ServerError("archiver_service.StartArchive", err)
 				return
@@ -466,7 +466,7 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(db.DefaultContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return

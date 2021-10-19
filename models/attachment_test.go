@@ -92,7 +92,7 @@ func TestUpdateAttachment(t *testing.T) {
 func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	attachList, err := GetAttachmentsByUUIDs(db.DefaultContext(), []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
+	attachList, err := GetAttachmentsByUUIDs(db.DefaultContext, []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
 	assert.NoError(t, err)
 	assert.Len(t, attachList, 2)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)

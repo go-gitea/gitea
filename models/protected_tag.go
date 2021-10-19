@@ -35,19 +35,19 @@ func init() {
 
 // InsertProtectedTag inserts a protected tag to database
 func InsertProtectedTag(pt *ProtectedTag) error {
-	_, err := db.DefaultContext().Engine().Insert(pt)
+	_, err := db.GetEngine(db.DefaultContext).Insert(pt)
 	return err
 }
 
 // UpdateProtectedTag updates the protected tag
 func UpdateProtectedTag(pt *ProtectedTag) error {
-	_, err := db.DefaultContext().Engine().ID(pt.ID).AllCols().Update(pt)
+	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).AllCols().Update(pt)
 	return err
 }
 
 // DeleteProtectedTag deletes a protected tag by ID
 func DeleteProtectedTag(pt *ProtectedTag) error {
-	_, err := db.DefaultContext().Engine().ID(pt.ID).Delete(&ProtectedTag{})
+	_, err := db.GetEngine(db.DefaultContext).ID(pt.ID).Delete(&ProtectedTag{})
 	return err
 }
 
@@ -86,13 +86,13 @@ func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
 // GetProtectedTags gets all protected tags of the repository
 func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
 	tags := make([]*ProtectedTag, 0)
-	return tags, db.DefaultContext().Engine().Find(&tags, &ProtectedTag{RepoID: repo.ID})
+	return tags, db.GetEngine(db.DefaultContext).Find(&tags, &ProtectedTag{RepoID: repo.ID})
 }
 
 // GetProtectedTagByID gets the protected tag with the specific id
 func GetProtectedTagByID(id int64) (*ProtectedTag, error) {
 	tag := new(ProtectedTag)
-	has, err := db.DefaultContext().Engine().ID(id).Get(tag)
+	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(tag)
 	if err != nil {
 		return nil, err
 	}

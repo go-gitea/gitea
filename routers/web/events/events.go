@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -93,7 +94,7 @@ loop:
 			go unregister()
 			break loop
 		case <-stopwatchTimer.C:
-			sws, err := models.GetUserStopwatches(ctx.User.ID, models.ListOptions{})
+			sws, err := models.GetUserStopwatches(ctx.User.ID, db.ListOptions{})
 			if err != nil {
 				log.Error("Unable to GetUserStopwatches: %v", err)
 				continue

@@ -63,7 +63,7 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 
 // LoadRepositories loads issues' all repositories
 func (issues IssueList) LoadRepositories() ([]*Repository, error) {
-	return issues.loadRepositories(db.DefaultContext().Engine())
+	return issues.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
@@ -502,33 +502,33 @@ func (issues IssueList) loadAttributes(e db.Engine) error {
 // LoadAttributes loads attributes of the issues, except for attachments and
 // comments
 func (issues IssueList) LoadAttributes() error {
-	return issues.loadAttributes(db.DefaultContext().Engine())
+	return issues.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadAttachments loads attachments
 func (issues IssueList) LoadAttachments() error {
-	return issues.loadAttachments(db.DefaultContext().Engine())
+	return issues.loadAttachments(db.GetEngine(db.DefaultContext))
 }
 
 // LoadComments loads comments
 func (issues IssueList) LoadComments() error {
-	return issues.loadComments(db.DefaultContext().Engine(), builder.NewCond())
+	return issues.loadComments(db.GetEngine(db.DefaultContext), builder.NewCond())
 }
 
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
-	return issues.loadComments(db.DefaultContext().Engine(), builder.Eq{"comment.type": CommentTypeComment})
+	return issues.loadComments(db.GetEngine(db.DefaultContext), builder.Eq{"comment.type": CommentTypeComment})
 }
 
 // LoadPullRequests loads pull requests
 func (issues IssueList) LoadPullRequests() error {
-	return issues.loadPullRequests(db.DefaultContext().Engine())
+	return issues.loadPullRequests(db.GetEngine(db.DefaultContext))
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
 // FIXME: only returns official counts due to double counting of non-official approvals
 func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
-	return issues.getApprovalCounts(db.DefaultContext().Engine())
+	return issues.getApprovalCounts(db.GetEngine(db.DefaultContext))
 }
 
 func (issues IssueList) getApprovalCounts(e db.Engine) (map[int64][]*ReviewCount, error) {

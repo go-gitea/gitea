@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -20,6 +21,9 @@ const (
 	// tplExploreUsers explore users page template
 	tplExploreUsers base.TplName = "explore/users"
 )
+
+// UserSearchDefaultSortType is the default sort type for user search
+const UserSearchDefaultSortType = "alphabetically"
 
 var (
 	nullByte = []byte{0x00}
@@ -43,23 +47,23 @@ func RenderUserSearch(ctx *context.Context, opts *models.SearchUserOptions, tplN
 		orderBy models.SearchOrderBy
 	)
 
+	// we can not set orderBy to `models.SearchOrderByXxx`, because there may be a JOIN in the statement, different tables may have the same name columns
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = models.SearchOrderByIDReverse
+		orderBy = "`user`.id DESC"
 	case "oldest":
-		orderBy = models.SearchOrderByID
+		orderBy = "`user`.id ASC"
 	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = "`user`.updated_unix DESC"
 	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
+		orderBy = "`user`.updated_unix ASC"
 	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
-	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = "`user`.name DESC"
+	case UserSearchDefaultSortType: // "alphabetically"
 	default:
-		ctx.Data["SortType"] = "alphabetically"
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = "`user`.name ASC"
+		ctx.Data["SortType"] = UserSearchDefaultSortType
 	}
 
 	opts.Keyword = ctx.FormTrim("q")
@@ -99,7 +103,7 @@ func Users(ctx *context.Context) {
 	RenderUserSearch(ctx, &models.SearchUserOptions{
 		Actor:       ctx.User,
 		Type:        models.UserTypeIndividual,
-		ListOptions: models.ListOptions{PageSize: setting.UI.ExplorePagingNum},
+		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		IsActive:    util.OptionalBoolTrue,
 		Visible:     []structs.VisibleType{structs.VisibleTypePublic, structs.VisibleTypeLimited, structs.VisibleTypePrivate},
 	}, tplExploreUsers)

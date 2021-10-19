@@ -5,7 +5,7 @@
 package issues
 
 import (
-	"io/ioutil"
+	"os"
 	"path"
 	"path/filepath"
 	"testing"
@@ -28,7 +28,7 @@ func TestBleveSearchIssues(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
-	tmpIndexerDir, err := ioutil.TempDir("", "issues-indexer")
+	tmpIndexerDir, err := os.MkdirTemp("", "issues-indexer")
 	if err != nil {
 		assert.Fail(t, "Unable to create temporary directory: %v", err)
 		return

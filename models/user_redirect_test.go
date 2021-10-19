@@ -27,7 +27,7 @@ func TestNewUserRedirect(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	assert.NoError(t, newUserRedirect(db.DefaultContext().Engine(), user.ID, user.Name, "newusername"))
+	assert.NoError(t, newUserRedirect(db.GetEngine(db.DefaultContext), user.ID, user.Name, "newusername"))
 
 	db.AssertExistsAndLoadBean(t, &UserRedirect{
 		LowerName:      user.LowerName,
@@ -44,7 +44,7 @@ func TestNewUserRedirect2(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	assert.NoError(t, newUserRedirect(db.DefaultContext().Engine(), user.ID, user.Name, "olduser1"))
+	assert.NoError(t, newUserRedirect(db.GetEngine(db.DefaultContext), user.ID, user.Name, "olduser1"))
 
 	db.AssertExistsAndLoadBean(t, &UserRedirect{
 		LowerName:      user.LowerName,
@@ -61,7 +61,7 @@ func TestNewUserRedirect3(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	assert.NoError(t, newUserRedirect(db.DefaultContext().Engine(), user.ID, user.Name, "newusername"))
+	assert.NoError(t, newUserRedirect(db.GetEngine(db.DefaultContext), user.ID, user.Name, "newusername"))
 
 	db.AssertExistsAndLoadBean(t, &UserRedirect{
 		LowerName:      user.LowerName,

@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -149,7 +148,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	}
 
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
-	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
+	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
 		log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", tmpBasePath, err)
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
@@ -276,7 +275,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				}
 				for _, failingCommitPath := range failingCommitPaths {
 					if _, statErr := os.Stat(filepath.Join(failingCommitPath)); statErr == nil {
-						commitShaBytes, readErr := ioutil.ReadFile(filepath.Join(failingCommitPath))
+						commitShaBytes, readErr := os.ReadFile(filepath.Join(failingCommitPath))
 						if readErr != nil {
 							// Abandon this attempt to handle the error
 							log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())

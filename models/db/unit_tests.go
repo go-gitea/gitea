@@ -5,8 +5,8 @@
 package db
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"math"
 	"net/url"
 	"os"
@@ -44,11 +44,23 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
-func MainTest(m *testing.M, pathToGiteaRoot string) {
+func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	var err error
 	giteaRoot = pathToGiteaRoot
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err = CreateTestEngine(fixturesDir); err != nil {
+
+	var opts FixturesOptions
+	if len(fixtureFiles) == 0 {
+		opts.Dir = fixturesDir
+	} else {
+		for _, f := range fixtureFiles {
+			if len(f) != 0 {
+				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
+			}
+		}
+	}
+
+	if err = CreateTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -57,11 +69,11 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
-	setting.RepoRootPath, err = ioutil.TempDir(os.TempDir(), "repos")
+	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
-	setting.AppDataPath, err = ioutil.TempDir(os.TempDir(), "appdata")
+	setting.AppDataPath, err = os.MkdirTemp(os.TempDir(), "appdata")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
 	}
@@ -102,8 +114,14 @@ func MainTest(m *testing.M, pathToGiteaRoot string) {
 	os.Exit(exitStatus)
 }
 
+// FixturesOptions fixtures needs to be loaded options
+type FixturesOptions struct {
+	Dir   string
+	Files []string
+}
+
 // CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
-func CreateTestEngine(fixturesDir string) error {
+func CreateTestEngine(opts FixturesOptions) error {
 	var err error
 	x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
 	if err != nil {
@@ -118,7 +136,12 @@ func CreateTestEngine(fixturesDir string) error {
 		x.ShowSQL(true)
 	}
 
-	return InitFixtures(fixturesDir)
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
+	}
+
+	return InitFixtures(opts)
 }
 
 // PrepareTestDatabase load test fixtures into test database

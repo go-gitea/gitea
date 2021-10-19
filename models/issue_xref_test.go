@@ -139,7 +139,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Index:    idx,
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
 	assert.NoError(t, sess.Begin())
@@ -170,7 +170,7 @@ func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *C
 	i := db.AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
 	c := &Comment{Type: CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	assert.NoError(t, sess.Begin())
 	_, err := sess.Insert(c)

@@ -26,7 +26,7 @@ func init() {
 func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 	repoName = strings.ToLower(repoName)
 	redirect := &RepoRedirect{OwnerID: ownerID, LowerName: repoName}
-	if has, err := db.DefaultContext().Engine().Get(redirect); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrRepoRedirectNotExist{OwnerID: ownerID, RepoName: repoName}

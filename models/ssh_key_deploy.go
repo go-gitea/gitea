@@ -107,7 +107,7 @@ func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string
 
 // HasDeployKey returns true if public key is a deploy key of given repository.
 func HasDeployKey(keyID, repoID int64) bool {
-	has, _ := db.DefaultContext().Engine().
+	has, _ := db.GetEngine(db.DefaultContext).
 		Where("key_id = ? AND repo_id = ?", keyID, repoID).
 		Get(new(DeployKey))
 	return has
@@ -125,7 +125,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		accessMode = AccessModeWrite
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 
 // GetDeployKeyByID returns deploy key by given ID.
 func GetDeployKeyByID(id int64) (*DeployKey, error) {
-	return getDeployKeyByID(db.DefaultContext().Engine(), id)
+	return getDeployKeyByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getDeployKeyByID(e db.Engine, id int64) (*DeployKey, error) {
@@ -180,7 +180,7 @@ func getDeployKeyByID(e db.Engine, id int64) (*DeployKey, error) {
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
 func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
-	return getDeployKeyByRepo(db.DefaultContext().Engine(), keyID, repoID)
+	return getDeployKeyByRepo(db.GetEngine(db.DefaultContext), keyID, repoID)
 }
 
 func getDeployKeyByRepo(e db.Engine, keyID, repoID int64) (*DeployKey, error) {
@@ -199,19 +199,19 @@ func getDeployKeyByRepo(e db.Engine, keyID, repoID int64) (*DeployKey, error) {
 
 // UpdateDeployKeyCols updates deploy key information in the specified columns.
 func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
-	_, err := db.DefaultContext().Engine().ID(key.ID).Cols(cols...).Update(key)
+	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).Cols(cols...).Update(key)
 	return err
 }
 
 // UpdateDeployKey updates deploy key information.
 func UpdateDeployKey(key *DeployKey) error {
-	_, err := db.DefaultContext().Engine().ID(key.ID).AllCols().Update(key)
+	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).AllCols().Update(key)
 	return err
 }
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
 func DeleteDeployKey(doer *User, id int64) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -271,7 +271,7 @@ func deleteDeployKey(sess db.Engine, doer *User, id int64) error {
 
 // ListDeployKeysOptions are options for ListDeployKeys
 type ListDeployKeysOptions struct {
-	ListOptions
+	db.ListOptions
 	RepoID      int64
 	KeyID       int64
 	Fingerprint string
@@ -293,14 +293,14 @@ func (opt ListDeployKeysOptions) toCond() builder.Cond {
 
 // ListDeployKeys returns a list of deploy keys matching the provided arguments.
 func ListDeployKeys(opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	return listDeployKeys(db.DefaultContext().Engine(), opts)
+	return listDeployKeys(db.GetEngine(db.DefaultContext), opts)
 }
 
 func listDeployKeys(e db.Engine, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
 	sess := e.Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, opts)
+		sess = db.SetSessionPagination(sess, opts)
 
 		keys := make([]*DeployKey, 0, opts.PageSize)
 		return keys, sess.Find(&keys)
@@ -312,5 +312,5 @@ func listDeployKeys(e db.Engine, opts *ListDeployKeysOptions) ([]*DeployKey, err
 
 // CountDeployKeys returns count deploy keys matching the provided arguments.
 func CountDeployKeys(opts *ListDeployKeysOptions) (int64, error) {
-	return db.DefaultContext().Engine().Where(opts.toCond()).Count(&DeployKey{})
+	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&DeployKey{})
 }

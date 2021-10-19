@@ -11,7 +11,7 @@
 					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
 				{{end}}
-				<div class="ui small modal" id="new-board-item">
+				<div class="ui small modal new-board-modal" id="new-board-item">
 					<div class="header">
 						{{$.i18n.Tr "repo.projects.board.new"}}
 					</div>
@@ -20,6 +20,16 @@
 							<div class="required field">
 								<label for="new_board">{{$.i18n.Tr "repo.projects.board.new_title"}}</label>
 								<input class="new-board" id="new_board" name="title" required>
+							</div>
+
+							<div class="field color-field">
+								<label for="new_board_color">{{$.i18n.Tr "color"}}</label>
+								<div class="color picker column">
+									<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color_picker" name="color">
+									<div class="column precolors">
+										{{template "repo/issue/label_precolors"}}
+									</div>
+								</div>
 							</div>
 
 							<div class="text right actions">
@@ -70,7 +80,7 @@
 		<div class="board">
 			{{ range $board := .Boards }}
 
-			<div class="ui segment board-column" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
+			<div class="ui segment board-column" style="background: {{.Color}}!important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 				<div class="board-column-header df ac sb">
 					<div class="ui large label board-label py-2">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
@@ -103,6 +113,16 @@
 											<div class="required field">
 												<label for="new_board_title">{{$.i18n.Tr "repo.projects.board.edit_title"}}</label>
 												<input class="project-board-title" id="new_board_title" name="title" value="{{.Title}}" required>
+											</div>
+
+											<div class="field color-field">
+												<label for="new_board_color">{{$.i18n.Tr "color"}}</label>
+												<div class="color picker column">
+													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color" name="color" value="{{.Color}}">
+													<div class="column precolors">
+														{{template "repo/issue/label_precolors"}}
+													</div>
+												</div>
 											</div>
 
 											<div class="text right actions">

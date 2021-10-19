@@ -98,7 +98,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	transfer := new(RepoTransfer)
 
-	has, err := db.DefaultContext().Engine().Where("repo_id = ? ", repo.ID).Get(transfer)
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +118,7 @@ func deleteRepositoryTransfer(e db.Engine, repoID int64) error {
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *Repository) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -150,7 +150,7 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
 func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -232,7 +232,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		}
 	}()
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return fmt.Errorf("sess.Begin: %v", err)
@@ -266,7 +266,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess, ListOptions{})
+	collaborators, err := repo.getCollaborators(sess, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
@@ -274,6 +274,14 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	// Dummy object.
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
+		if c.IsGhost() {
+			collaboration.ID = c.Collaboration.ID
+			if _, err := sess.Delete(collaboration); err != nil {
+				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+			}
+			collaboration.ID = 0
+		}
+
 		if c.ID != newOwner.ID {
 			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
 			if err != nil {
@@ -286,6 +294,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		if _, err := sess.Delete(collaboration); err != nil {
 			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
 		}
+		collaboration.UserID = 0
 	}
 
 	// Remove old team-repository relations.

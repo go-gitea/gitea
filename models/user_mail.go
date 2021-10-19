@@ -58,7 +58,7 @@ func ValidateEmail(email string) error {
 // GetEmailAddresses returns all email addresses belongs to given user.
 func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 	emails := make([]*EmailAddress, 0, 5)
-	if err := db.DefaultContext().Engine().
+	if err := db.GetEngine(db.DefaultContext).
 		Where("uid=?", uid).
 		Asc("id").
 		Find(&emails); err != nil {
@@ -71,7 +71,7 @@ func GetEmailAddresses(uid int64) ([]*EmailAddress, error) {
 func GetEmailAddressByID(uid, id int64) (*EmailAddress, error) {
 	// User ID is required for security reasons
 	email := &EmailAddress{UID: uid}
-	if has, err := db.DefaultContext().Engine().ID(id).Get(email); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).ID(id).Get(email); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, nil
@@ -114,7 +114,7 @@ func isEmailUsed(e db.Engine, email string) (bool, error) {
 
 // IsEmailUsed returns true if the email has been used.
 func IsEmailUsed(email string) (bool, error) {
-	return isEmailUsed(db.DefaultContext().Engine(), email)
+	return isEmailUsed(db.GetEngine(db.DefaultContext), email)
 }
 
 func addEmailAddress(e db.Engine, email *EmailAddress) error {
@@ -136,7 +136,7 @@ func addEmailAddress(e db.Engine, email *EmailAddress) error {
 
 // AddEmailAddress adds an email address to given user.
 func AddEmailAddress(email *EmailAddress) error {
-	return addEmailAddress(db.DefaultContext().Engine(), email)
+	return addEmailAddress(db.GetEngine(db.DefaultContext), email)
 }
 
 // AddEmailAddresses adds an email address to given user.
@@ -159,7 +159,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 		}
 	}
 
-	if _, err := db.DefaultContext().Engine().Insert(emails); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).Insert(emails); err != nil {
 		return fmt.Errorf("Insert: %v", err)
 	}
 
@@ -168,7 +168,7 @@ func AddEmailAddresses(emails []*EmailAddress) error {
 
 // Activate activates the email address to given user.
 func (email *EmailAddress) Activate() error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -206,12 +206,12 @@ func DeleteEmailAddress(email *EmailAddress) (err error) {
 		UID: email.UID,
 	}
 	if email.ID > 0 {
-		deleted, err = db.DefaultContext().Engine().ID(email.ID).Delete(&address)
+		deleted, err = db.GetEngine(db.DefaultContext).ID(email.ID).Delete(&address)
 	} else {
 		if email.Email != "" && email.LowerEmail == "" {
 			email.LowerEmail = strings.ToLower(email.Email)
 		}
-		deleted, err = db.DefaultContext().Engine().
+		deleted, err = db.GetEngine(db.DefaultContext).
 			Where("lower_email=?", email.LowerEmail).
 			Delete(&address)
 	}
@@ -237,7 +237,7 @@ func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 
 // MakeEmailPrimary sets primary email address of given user.
 func MakeEmailPrimary(email *EmailAddress) error {
-	has, err := db.DefaultContext().Engine().Get(email)
+	has, err := db.GetEngine(db.DefaultContext).Get(email)
 	if err != nil {
 		return err
 	} else if !has {
@@ -249,14 +249,14 @@ func MakeEmailPrimary(email *EmailAddress) error {
 	}
 
 	user := &User{}
-	has, err = db.DefaultContext().Engine().ID(email.UID).Get(user)
+	has, err = db.GetEngine(db.DefaultContext).ID(email.UID).Get(user)
 	if err != nil {
 		return err
 	} else if !has {
 		return ErrUserNotExist{email.UID, "", 0}
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -301,7 +301,7 @@ const (
 
 // SearchEmailOptions are options to search e-mail addresses for the admin panel
 type SearchEmailOptions struct {
-	ListOptions
+	db.ListOptions
 	Keyword     string
 	SortType    SearchEmailOrderBy
 	IsPrimary   util.OptionalBool
@@ -346,7 +346,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		cond = cond.And(builder.Eq{"email_address.is_activated": false})
 	}
 
-	count, err := db.DefaultContext().Engine().Join("INNER", "`user`", "`user`.ID = email_address.uid").
+	count, err := db.GetEngine(db.DefaultContext).Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).Count(new(EmailAddress))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
@@ -357,10 +357,10 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 		orderby = SearchEmailOrderByEmail.String()
 	}
 
-	opts.setDefaultValues()
+	opts.SetDefaultValues()
 
 	emails := make([]*SearchEmailResult, 0, opts.PageSize)
-	err = db.DefaultContext().Engine().Table("email_address").
+	err = db.GetEngine(db.DefaultContext).Table("email_address").
 		Select("email_address.*, `user`.name, `user`.full_name").
 		Join("INNER", "`user`", "`user`.ID = email_address.uid").
 		Where(cond).
@@ -374,7 +374,7 @@ func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error)
 // ActivateUserEmail will change the activated state of an email address,
 // either primary or secondary (all in the email_address table)
 func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err

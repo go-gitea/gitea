@@ -7,9 +7,9 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"testing"
 	"time"
 
@@ -163,7 +163,7 @@ func doAPICreateUserKey(ctx APITestContext, keyname, keyFile string, callback ..
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/user/keys?token=%s", ctx.Token)
 
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
+		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateKeyOption{
 			Title: keyname,
@@ -199,7 +199,7 @@ func doAPICreateDeployKey(ctx APITestContext, keyname, keyFile string, readOnly 
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/keys?token=%s", ctx.Username, ctx.Reponame, ctx.Token)
 
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
+		dataPubKey, err := os.ReadFile(keyFile + ".pub")
 		assert.NoError(t, err)
 		req := NewRequestWithJSON(t, "POST", urlStr, api.CreateKeyOption{
 			Title:    keyname,

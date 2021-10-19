@@ -6,6 +6,7 @@ package attachment
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -23,7 +24,7 @@ func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachmen
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
 
-	err := db.WithTx(func(ctx *db.Context) error {
+	err := db.WithTx(func(ctx context.Context) error {
 		attach.UUID = uuid.New().String()
 		size, err := storage.Attachments.Save(attach.RelativePath(), file, -1)
 		if err != nil {

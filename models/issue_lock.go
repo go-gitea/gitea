@@ -37,7 +37,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		commentType = CommentTypeUnlock
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

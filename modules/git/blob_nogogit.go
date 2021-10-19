@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
 	"math"
 
 	"code.gitea.io/gitea/modules/log"
@@ -46,13 +45,13 @@ func (b *Blob) DataAsync() (io.ReadCloser, error) {
 	b.size = size
 
 	if size < 4096 {
-		bs, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		bs, err := io.ReadAll(io.LimitReader(rd, size))
 		defer cancel()
 		if err != nil {
 			return nil, err
 		}
 		_, err = rd.Discard(1)
-		return ioutil.NopCloser(bytes.NewReader(bs)), err
+		return io.NopCloser(bytes.NewReader(bs)), err
 	}
 
 	return &blobReader{

@@ -54,12 +54,13 @@ var (
 )
 
 const (
-	maxDupIndexAttempts = 3
+	// MaxDupIndexAttempts max retry times to create index
+	MaxDupIndexAttempts = 3
 )
 
 // GetNextResourceIndex retried 3 times to generate a resource index
 func GetNextResourceIndex(tableName string, groupID int64) (int64, error) {
-	for i := 0; i < maxDupIndexAttempts; i++ {
+	for i := 0; i < MaxDupIndexAttempts; i++ {
 		idx, err := getNextResourceIndex(tableName, groupID)
 		if err == ErrResouceOutdated {
 			continue

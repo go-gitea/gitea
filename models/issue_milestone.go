@@ -85,7 +85,7 @@ func (m *Milestone) State() api.StateType {
 
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -116,13 +116,13 @@ func getMilestoneByRepoID(e db.Engine, repoID, id int64) (*Milestone, error) {
 
 // GetMilestoneByRepoID returns the milestone in a repository.
 func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
-	return getMilestoneByRepoID(db.DefaultContext().Engine(), repoID, id)
+	return getMilestoneByRepoID(db.GetEngine(db.DefaultContext), repoID, id)
 }
 
 // GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
 func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) {
 	var mile Milestone
-	has, err := db.DefaultContext().Engine().Where("repo_id=? AND name=?", repoID, name).Get(&mile)
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, name).Get(&mile)
 	if err != nil {
 		return nil, err
 	}
@@ -134,7 +134,7 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 
 // GetMilestoneByID returns the milestone via id .
 func GetMilestoneByID(id int64) (*Milestone, error) {
-	return getMilestoneByID(db.DefaultContext().Engine(), id)
+	return getMilestoneByID(db.GetEngine(db.DefaultContext), id)
 }
 
 func getMilestoneByID(e db.Engine, id int64) (*Milestone, error) {
@@ -150,7 +150,7 @@ func getMilestoneByID(e db.Engine, id int64) (*Milestone, error) {
 
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -207,7 +207,7 @@ func updateMilestoneCounters(e db.Engine, id int64) error {
 
 // ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
 func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -234,7 +234,7 @@ func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -303,7 +303,7 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
 func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -334,7 +334,7 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -378,7 +378,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 
 // GetMilestonesOption contain options to get milestones
 type GetMilestonesOption struct {
-	ListOptions
+	db.ListOptions
 	RepoID   int64
 	State    api.StateType
 	Name     string
@@ -410,10 +410,10 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 
 // GetMilestones returns milestones filtered by GetMilestonesOption's
 func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
-	sess := db.DefaultContext().Engine().Where(opts.toCond())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.toCond())
 
 	if opts.Page != 0 {
-		sess = setSessionPagination(sess, &opts)
+		sess = db.SetSessionPagination(sess, &opts)
 	}
 
 	switch opts.SortType {
@@ -441,7 +441,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 // SearchMilestones search milestones
 func SearchMilestones(repoCond builder.Cond, page int, isClosed bool, sortType string, keyword string) (MilestoneList, error) {
 	miles := make([]*Milestone, 0, setting.UI.IssuePagingNum)
-	sess := db.DefaultContext().Engine().Where("is_closed = ?", isClosed)
+	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -502,7 +502,7 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 	var err error
 	stats := &MilestonesStats{}
 
-	sess := db.DefaultContext().Engine().Where("is_closed = ?", false)
+	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", false)
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
 	}
@@ -511,7 +511,7 @@ func GetMilestonesStatsByRepoCond(repoCond builder.Cond) (*MilestonesStats, erro
 		return nil, err
 	}
 
-	sess = db.DefaultContext().Engine().Where("is_closed = ?", true)
+	sess = db.GetEngine(db.DefaultContext).Where("is_closed = ?", true)
 	if repoCond.IsValid() {
 		sess.And(builder.In("repo_id", builder.Select("id").From("repository").Where(repoCond)))
 	}
@@ -528,7 +528,7 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 	var err error
 	stats := &MilestonesStats{}
 
-	sess := db.DefaultContext().Engine().Where("is_closed = ?", false)
+	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", false)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -540,7 +540,7 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 		return nil, err
 	}
 
-	sess = db.DefaultContext().Engine().Where("is_closed = ?", true)
+	sess = db.GetEngine(db.DefaultContext).Where("is_closed = ?", true)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -569,12 +569,12 @@ func countRepoClosedMilestones(e db.Engine, repoID int64) (int64, error) {
 
 // CountRepoClosedMilestones returns number of closed milestones in given repository.
 func CountRepoClosedMilestones(repoID int64) (int64, error) {
-	return countRepoClosedMilestones(db.DefaultContext().Engine(), repoID)
+	return countRepoClosedMilestones(db.GetEngine(db.DefaultContext), repoID)
 }
 
 // CountMilestonesByRepoCond map from repo conditions to number of milestones matching the options`
 func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]int64, error) {
-	sess := db.DefaultContext().Engine().Where("is_closed = ?", isClosed)
+	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
 	if repoCond.IsValid() {
 		sess.In("repo_id", builder.Select("id").From("repository").Where(repoCond))
 	}
@@ -599,7 +599,7 @@ func CountMilestonesByRepoCond(repoCond builder.Cond, isClosed bool) (map[int64]
 
 // CountMilestonesByRepoCondAndKw map from repo conditions and the keyword of milestones' name to number of milestones matching the options`
 func CountMilestonesByRepoCondAndKw(repoCond builder.Cond, keyword string, isClosed bool) (map[int64]int64, error) {
-	sess := db.DefaultContext().Engine().Where("is_closed = ?", isClosed)
+	sess := db.GetEngine(db.DefaultContext).Where("is_closed = ?", isClosed)
 	if len(keyword) > 0 {
 		sess = sess.And(builder.Like{"UPPER(name)", strings.ToUpper(keyword)})
 	}
@@ -707,10 +707,10 @@ func (m *Milestone) loadTotalTrackedTime(e db.Engine) error {
 
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
 func (milestones MilestoneList) LoadTotalTrackedTimes() error {
-	return milestones.loadTotalTrackedTimes(db.DefaultContext().Engine())
+	return milestones.loadTotalTrackedTimes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadTotalTrackedTime loads the tracked time for the milestone
 func (m *Milestone) LoadTotalTrackedTime() error {
-	return m.loadTotalTrackedTime(db.DefaultContext().Engine())
+	return m.loadTotalTrackedTime(db.GetEngine(db.DefaultContext))
 }

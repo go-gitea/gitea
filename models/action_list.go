@@ -45,7 +45,7 @@ func (actions ActionList) loadUsers(e db.Engine) ([]*User, error) {
 
 // LoadUsers loads actions' all users
 func (actions ActionList) LoadUsers() ([]*User, error) {
-	return actions.loadUsers(db.DefaultContext().Engine())
+	return actions.loadUsers(db.GetEngine(db.DefaultContext))
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
@@ -80,7 +80,7 @@ func (actions ActionList) loadRepositories(e db.Engine) ([]*Repository, error) {
 
 // LoadRepositories loads actions' all repositories
 func (actions ActionList) LoadRepositories() ([]*Repository, error) {
-	return actions.loadRepositories(db.DefaultContext().Engine())
+	return actions.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 
 // loadAttributes loads all attributes
@@ -98,5 +98,5 @@ func (actions ActionList) loadAttributes(e db.Engine) (err error) {
 
 // LoadAttributes loads attributes of the actions
 func (actions ActionList) LoadAttributes() error {
-	return actions.loadAttributes(db.DefaultContext().Engine())
+	return actions.loadAttributes(db.GetEngine(db.DefaultContext))
 }

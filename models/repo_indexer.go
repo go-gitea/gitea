@@ -42,7 +42,7 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 	}).And(builder.Eq{
 		"repository.is_empty": false,
 	})
-	sess := db.DefaultContext().Engine().Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
+	sess := db.GetEngine(db.DefaultContext).Table("repository").Join("LEFT OUTER", "repo_indexer_status", "repository.id = repo_indexer_status.repo_id AND repo_indexer_status.indexer_type = ?", indexerType)
 	if maxRepoID > 0 {
 		cond = builder.And(cond, builder.Lte{
 			"repository.id": maxRepoID,
@@ -91,7 +91,7 @@ func (repo *Repository) getIndexerStatus(e db.Engine, indexerType RepoIndexerTyp
 
 // GetIndexerStatus loads repo codes indxer status
 func (repo *Repository) GetIndexerStatus(indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
-	return repo.getIndexerStatus(db.DefaultContext().Engine(), indexerType)
+	return repo.getIndexerStatus(db.GetEngine(db.DefaultContext), indexerType)
 }
 
 // updateIndexerStatus updates indexer status
@@ -120,5 +120,5 @@ func (repo *Repository) updateIndexerStatus(e db.Engine, indexerType RepoIndexer
 
 // UpdateIndexerStatus updates indexer status
 func (repo *Repository) UpdateIndexerStatus(indexerType RepoIndexerType, sha string) error {
-	return repo.updateIndexerStatus(db.DefaultContext().Engine(), indexerType, sha)
+	return repo.updateIndexerStatus(db.GetEngine(db.DefaultContext), indexerType, sha)
 }

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -226,7 +227,7 @@ func SearchIssues(ctx *context.APIContext) {
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
 		issuesOpt := &models.IssuesOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				Page:     ctx.FormInt("page"),
 				PageSize: limit,
 			},
@@ -261,7 +262,7 @@ func SearchIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
+		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
@@ -470,7 +471,7 @@ func ListIssues(ctx *context.APIContext) {
 			return
 		}
 
-		issuesOpt.ListOptions = models.ListOptions{
+		issuesOpt.ListOptions = db.ListOptions{
 			Page: -1,
 		}
 		if filteredCount, err = models.CountIssues(issuesOpt); err != nil {
@@ -789,6 +790,15 @@ func EditIssue(ctx *context.APIContext) {
 		}
 	}
 	if form.State != nil {
+		if issue.IsPull {
+			if pr, err := issue.GetPullRequest(); err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetPullRequest", err)
+				return
+			} else if pr.HasMerged {
+				ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
+				return
+			}
+		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)

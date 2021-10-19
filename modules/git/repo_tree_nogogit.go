@@ -9,7 +9,6 @@ package git
 
 import (
 	"io"
-	"io/ioutil"
 )
 
 func (repo *Repository) getTree(id SHA1) (*Tree, error) {
@@ -27,7 +26,7 @@ func (repo *Repository) getTree(id SHA1) (*Tree, error) {
 	switch typ {
 	case "tag":
 		resolvedID := id
-		data, err := ioutil.ReadAll(io.LimitReader(rd, size))
+		data, err := io.ReadAll(io.LimitReader(rd, size))
 		if err != nil {
 			return nil, err
 		}

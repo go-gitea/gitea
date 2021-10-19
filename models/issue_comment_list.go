@@ -526,20 +526,20 @@ func (comments CommentList) loadAttributes(e db.Engine) (err error) {
 // LoadAttributes loads attributes of the comments, except for attachments and
 // comments
 func (comments CommentList) LoadAttributes() error {
-	return comments.loadAttributes(db.DefaultContext().Engine())
+	return comments.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments() error {
-	return comments.loadAttachments(db.DefaultContext().Engine())
+	return comments.loadAttachments(db.GetEngine(db.DefaultContext))
 }
 
 // LoadPosters loads posters
 func (comments CommentList) LoadPosters() error {
-	return comments.loadPosters(db.DefaultContext().Engine())
+	return comments.loadPosters(db.GetEngine(db.DefaultContext))
 }
 
 // LoadIssues loads issues of comments
 func (comments CommentList) LoadIssues() error {
-	return comments.loadIssues(db.DefaultContext().Engine())
+	return comments.loadIssues(db.GetEngine(db.DefaultContext))
 }

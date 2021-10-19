@@ -113,7 +113,9 @@ func TestMain(m *testing.M) {
 	}
 
 	err := db.InitFixtures(
-		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+		db.FixturesOptions{
+			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+		},
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)

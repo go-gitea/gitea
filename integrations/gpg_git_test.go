@@ -7,7 +7,6 @@ package integrations
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
@@ -28,7 +27,7 @@ func TestGPGGit(t *testing.T) {
 	username := "user2"
 
 	// OK Set a new GPG home
-	tmpDir, err := ioutil.TempDir("", "temp-gpg")
+	tmpDir, err := os.MkdirTemp("", "temp-gpg")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 

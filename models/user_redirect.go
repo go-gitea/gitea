@@ -25,7 +25,7 @@ func init() {
 func LookupUserRedirect(userName string) (int64, error) {
 	userName = strings.ToLower(userName)
 	redirect := &UserRedirect{LowerName: userName}
-	if has, err := db.DefaultContext().Engine().Get(redirect); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrUserRedirectNotExist{Name: userName}

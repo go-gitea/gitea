@@ -57,7 +57,7 @@ func (repo *Repository) generateRandomAvatar(e db.Engine) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return db.DefaultContext().Engine().
+	return db.GetEngine(db.DefaultContext).
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
@@ -77,7 +77,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
-	return repo.relAvatarLink(db.DefaultContext().Engine())
+	return repo.relAvatarLink(db.GetEngine(db.DefaultContext))
 }
 
 func (repo *Repository) relAvatarLink(e db.Engine) string {
@@ -101,7 +101,7 @@ func (repo *Repository) relAvatarLink(e db.Engine) string {
 
 // AvatarLink returns a link to the repository's avatar.
 func (repo *Repository) AvatarLink() string {
-	return repo.avatarLink(db.DefaultContext().Engine())
+	return repo.avatarLink(db.GetEngine(db.DefaultContext))
 }
 
 // avatarLink returns user avatar absolute link.
@@ -129,7 +129,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return nil
 	}
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -172,7 +172,7 @@ func (repo *Repository) DeleteAvatar() error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	sess := db.DefaultContext().NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

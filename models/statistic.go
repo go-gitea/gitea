@@ -4,7 +4,11 @@
 
 package models
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/modules/setting"
+)
 
 // Statistic contains the database statistics
 type Statistic struct {
@@ -15,28 +19,66 @@ type Statistic struct {
 		Comment, Oauth, Follow,
 		Mirror, Release, LoginSource, Webhook,
 		Milestone, Label, HookTask,
-		Team, UpdateTask, Attachment int64
+		Team, UpdateTask, Project,
+		ProjectBoard, Attachment int64
+		IssueByLabel      []IssueByLabelCount
+		IssueByRepository []IssueByRepositoryCount
 	}
+}
+
+// IssueByLabelCount contains the number of issue group by label
+type IssueByLabelCount struct {
+	Count int64
+	Label string
+}
+
+// IssueByRepositoryCount contains the number of issue group by repository
+type IssueByRepositoryCount struct {
+	Count      int64
+	OwnerName  string
+	Repository string
 }
 
 // GetStatistic returns the database statistics
 func GetStatistic() (stats Statistic) {
+	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = CountUsers()
 	stats.Counter.Org = CountOrganizations()
-	stats.Counter.PublicKey, _ = db.DefaultContext().Engine().Count(new(PublicKey))
+	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
 	stats.Counter.Repo = CountRepositories(true)
-	stats.Counter.Watch, _ = db.DefaultContext().Engine().Count(new(Watch))
-	stats.Counter.Star, _ = db.DefaultContext().Engine().Count(new(Star))
-	stats.Counter.Action, _ = db.DefaultContext().Engine().Count(new(Action))
-	stats.Counter.Access, _ = db.DefaultContext().Engine().Count(new(Access))
+	stats.Counter.Watch, _ = e.Count(new(Watch))
+	stats.Counter.Star, _ = e.Count(new(Star))
+	stats.Counter.Action, _ = e.Count(new(Action))
+	stats.Counter.Access, _ = e.Count(new(Access))
 
 	type IssueCount struct {
 		Count    int64
 		IsClosed bool
 	}
+
+	if setting.Metrics.EnabledIssueByLabel {
+		stats.Counter.IssueByLabel = []IssueByLabelCount{}
+
+		_ = e.Select("COUNT(*) AS count, l.name AS label").
+			Join("LEFT", "label l", "l.id=il.label_id").
+			Table("issue_label il").
+			GroupBy("l.name").
+			Find(&stats.Counter.IssueByLabel)
+	}
+
+	if setting.Metrics.EnabledIssueByRepository {
+		stats.Counter.IssueByRepository = []IssueByRepositoryCount{}
+
+		_ = e.Select("COUNT(*) AS count, r.owner_name, r.name AS repository").
+			Join("LEFT", "repository r", "r.id=i.repo_id").
+			Table("issue i").
+			GroupBy("r.owner_name, r.name").
+			Find(&stats.Counter.IssueByRepository)
+	}
+
 	issueCounts := []IssueCount{}
 
-	_ = db.DefaultContext().Engine().Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
+	_ = e.Select("COUNT(*) AS count, is_closed").Table("issue").GroupBy("is_closed").Find(&issueCounts)
 	for _, c := range issueCounts {
 		if c.IsClosed {
 			stats.Counter.IssueClosed = c.Count
@@ -47,17 +89,19 @@ func GetStatistic() (stats Statistic) {
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	stats.Counter.Comment, _ = db.DefaultContext().Engine().Count(new(Comment))
+	stats.Counter.Comment, _ = e.Count(new(Comment))
 	stats.Counter.Oauth = 0
-	stats.Counter.Follow, _ = db.DefaultContext().Engine().Count(new(Follow))
-	stats.Counter.Mirror, _ = db.DefaultContext().Engine().Count(new(Mirror))
-	stats.Counter.Release, _ = db.DefaultContext().Engine().Count(new(Release))
-	stats.Counter.LoginSource = CountLoginSources()
-	stats.Counter.Webhook, _ = db.DefaultContext().Engine().Count(new(Webhook))
-	stats.Counter.Milestone, _ = db.DefaultContext().Engine().Count(new(Milestone))
-	stats.Counter.Label, _ = db.DefaultContext().Engine().Count(new(Label))
-	stats.Counter.HookTask, _ = db.DefaultContext().Engine().Count(new(HookTask))
-	stats.Counter.Team, _ = db.DefaultContext().Engine().Count(new(Team))
-	stats.Counter.Attachment, _ = db.DefaultContext().Engine().Count(new(Attachment))
+	stats.Counter.Follow, _ = e.Count(new(Follow))
+	stats.Counter.Mirror, _ = e.Count(new(Mirror))
+	stats.Counter.Release, _ = e.Count(new(Release))
+	stats.Counter.LoginSource = login.CountSources()
+	stats.Counter.Webhook, _ = e.Count(new(Webhook))
+	stats.Counter.Milestone, _ = e.Count(new(Milestone))
+	stats.Counter.Label, _ = e.Count(new(Label))
+	stats.Counter.HookTask, _ = e.Count(new(HookTask))
+	stats.Counter.Team, _ = e.Count(new(Team))
+	stats.Counter.Attachment, _ = e.Count(new(Attachment))
+	stats.Counter.Project, _ = e.Count(new(Project))
+	stats.Counter.ProjectBoard, _ = e.Count(new(ProjectBoard))
 	return
 }

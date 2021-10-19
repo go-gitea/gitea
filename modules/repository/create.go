@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -55,7 +56,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 	var rollbackRepo *models.Repository
 
-	if err := db.WithTx(func(ctx *db.Context) error {
+	if err := db.WithTx(func(ctx context.Context) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
@@ -104,7 +105,11 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			}
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
+
+		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)

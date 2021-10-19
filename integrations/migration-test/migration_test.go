@@ -9,7 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -113,7 +113,7 @@ func readSQLFromFile(version string) (string, error) {
 	}
 	defer gr.Close()
 
-	bytes, err := ioutil.ReadAll(gr)
+	bytes, err := io.ReadAll(gr)
 	if err != nil {
 		return "", err
 	}

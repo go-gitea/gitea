@@ -1,6 +1,6 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
-		<a href="{{AppSubUrl}}/">
+		<a href="{{AppSubUrl}}/" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}" data-variation="tiny inverted">
 			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
@@ -11,7 +11,6 @@
 	{{if and .IsSigned .MustChangePassword}}
 		{{/* No links */}}
 	{{else if .IsSigned}}
-		<a class="item {{if .PageIsDashboard}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
 		{{if not .UnitIssuesGlobalDisabled}}
 		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
 		{{end}}
@@ -22,13 +21,10 @@
 		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.i18n.Tr "milestones"}}</a>{{end}}
 		{{end}}
 		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
-	{{else if .IsLandingPageHome}}
-		<a class="item {{if .PageIsHome}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "home"}}</a>
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
-	{{else if .IsLandingPageExplore}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "home"}}</a>
 	{{else if .IsLandingPageOrganizations}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "home"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "explore"}}</a>
+	{{else}}
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
 	{{end}}
 
 	{{template "custom/extra_links" .}}

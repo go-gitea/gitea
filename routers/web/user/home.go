@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -59,42 +61,6 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	return ctxUser
 }
 
-// retrieveFeeds loads feeds for the specified user
-func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
-	actions, err := models.GetFeeds(options)
-	if err != nil {
-		ctx.ServerError("GetFeeds", err)
-		return
-	}
-
-	userCache := map[int64]*models.User{options.RequestedUser.ID: options.RequestedUser}
-	if ctx.User != nil {
-		userCache[ctx.User.ID] = ctx.User
-	}
-	for _, act := range actions {
-		if act.ActUser != nil {
-			userCache[act.ActUserID] = act.ActUser
-		}
-	}
-
-	for _, act := range actions {
-		repoOwner, ok := userCache[act.Repo.OwnerID]
-		if !ok {
-			repoOwner, err = models.GetUserByID(act.Repo.OwnerID)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					continue
-				}
-				ctx.ServerError("GetUserByID", err)
-				return
-			}
-			userCache[repoOwner.ID] = repoOwner
-		}
-		act.Repo.Owner = repoOwner
-	}
-	ctx.Data["Feeds"] = actions
-}
-
 // Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
 	ctxUser := getDashboardContextUser(ctx)
@@ -105,7 +71,16 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+
+	var uid int64
+	if ctxUser != nil {
+		uid = ctxUser.ID
+	}
+
+	ctx.PageData["dashboardRepoList"] = map[string]interface{}{
+		"searchLimit": setting.UI.User.RepoPagingNum,
+		"uid":         uid,
+	}
 
 	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
@@ -150,7 +125,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, models.GetFeedsOptions{
+	ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
@@ -163,6 +138,7 @@ func Dashboard(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
@@ -846,7 +822,7 @@ func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType 
 
 // ShowSSHKeys output all the ssh keys of user by uid
 func ShowSSHKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListPublicKeys(uid, models.ListOptions{})
+	keys, err := models.ListPublicKeys(uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListPublicKeys", err)
 		return
@@ -862,7 +838,7 @@ func ShowSSHKeys(ctx *context.Context, uid int64) {
 
 // ShowGPGKeys output all the public GPG keys of user by uid
 func ShowGPGKeys(ctx *context.Context, uid int64) {
-	keys, err := models.ListGPGKeys(uid, models.ListOptions{})
+	keys, err := models.ListGPGKeys(uid, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("ListGPGKeys", err)
 		return

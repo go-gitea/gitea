@@ -204,7 +204,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
-	if err := m.Repo.UpdateSize(db.DefaultContext()); err != nil {
+	if err := m.Repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 

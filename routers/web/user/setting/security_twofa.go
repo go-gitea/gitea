@@ -13,7 +13,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -29,10 +29,10 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := models.GetTwoFactorByUID(ctx.User.ID)
+	t, err := login.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Flash.Error(ctx.Tr("setting.twofa_not_enrolled"))
+		if login.IsErrTwoFactorNotEnrolled(err) {
+			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		}
 		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
@@ -45,7 +45,7 @@ func RegenerateScratchTwoFactor(ctx *context.Context) {
 		return
 	}
 
-	if err = models.UpdateTwoFactor(t); err != nil {
+	if err = login.UpdateTwoFactor(t); err != nil {
 		ctx.ServerError("SettingsTwoFactor: Failed to UpdateTwoFactor", err)
 		return
 	}
@@ -59,18 +59,18 @@ func DisableTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := models.GetTwoFactorByUID(ctx.User.ID)
+	t, err := login.GetTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			ctx.Flash.Error(ctx.Tr("setting.twofa_not_enrolled"))
+		if login.IsErrTwoFactorNotEnrolled(err) {
+			ctx.Flash.Error(ctx.Tr("settings.twofa_not_enrolled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		}
 		ctx.ServerError("SettingsTwoFactor: Failed to GetTwoFactorByUID", err)
 		return
 	}
 
-	if err = models.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
+	if err = login.DeleteTwoFactorByID(t.ID, ctx.User.ID); err != nil {
+		if login.IsErrTwoFactorNotEnrolled(err) {
 			// There is a potential DB race here - we must have been disabled by another request in the intervening period
 			ctx.Flash.Success(ctx.Tr("settings.twofa_disabled"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -146,15 +146,15 @@ func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := models.GetTwoFactorByUID(ctx.User.ID)
+	t, err := login.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.User)
-		ctx.Flash.Error(ctx.Tr("setting.twofa_is_enrolled"))
+		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
-	if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+	if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 		ctx.ServerError("SettingsTwoFactor: GetTwoFactorByUID", err)
 		return
 	}
@@ -172,14 +172,14 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
 
-	t, err := models.GetTwoFactorByUID(ctx.User.ID)
+	t, err := login.GetTwoFactorByUID(ctx.User.ID)
 	if t != nil {
 		// already enrolled
-		ctx.Flash.Error(ctx.Tr("setting.twofa_is_enrolled"))
+		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
-	if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+	if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 		ctx.ServerError("SettingsTwoFactor: Failed to check if already enrolled with GetTwoFactorByUID", err)
 		return
 	}
@@ -209,7 +209,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		return
 	}
 
-	t = &models.TwoFactor{
+	t = &login.TwoFactor{
 		UID: ctx.User.ID,
 	}
 	err = t.SetSecret(secret)
@@ -238,7 +238,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 		log.Error("Unable to save changes to the session: %v", err)
 	}
 
-	if err = models.NewTwoFactor(t); err != nil {
+	if err = login.NewTwoFactor(t); err != nil {
 		// FIXME: We need to handle a unique constraint fail here it's entirely possible that another request has beaten us.
 		// If there is a unique constraint fail we should just tolerate the error
 		ctx.ServerError("SettingsTwoFactor: Failed to save two factor", err)

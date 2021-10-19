@@ -7,7 +7,6 @@ package graceful
 
 import (
 	"crypto/tls"
-	"io/ioutil"
 	"net"
 	"os"
 	"strings"
@@ -111,13 +110,13 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFuncti
 
 	config.Certificates = make([]tls.Certificate, 1)
 
-	certPEMBlock, err := ioutil.ReadFile(certFile)
+	certPEMBlock, err := os.ReadFile(certFile)
 	if err != nil {
 		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, srv.network, srv.address, err)
 		return err
 	}
 
-	keyPEMBlock, err := ioutil.ReadFile(keyFile)
+	keyPEMBlock, err := os.ReadFile(keyFile)
 	if err != nil {
 		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, srv.network, srv.address, err)
 		return err
@@ -229,7 +228,7 @@ func (wl *wrappedListener) Accept() (net.Conn, error) {
 
 	closed := int32(0)
 
-	c = wrappedConn{
+	c = &wrappedConn{
 		Conn:                 c,
 		server:               wl.server,
 		closed:               &closed,
@@ -264,7 +263,7 @@ type wrappedConn struct {
 	perWritePerKbTimeout time.Duration
 }
 
-func (w wrappedConn) Write(p []byte) (n int, err error) {
+func (w *wrappedConn) Write(p []byte) (n int, err error) {
 	if w.perWriteTimeout > 0 {
 		minTimeout := time.Duration(len(p)/1024) * w.perWritePerKbTimeout
 		minDeadline := time.Now().Add(minTimeout).Add(w.perWriteTimeout)
@@ -278,7 +277,7 @@ func (w wrappedConn) Write(p []byte) (n int, err error) {
 	return w.Conn.Write(p)
 }
 
-func (w wrappedConn) Close() error {
+func (w *wrappedConn) Close() error {
 	if atomic.CompareAndSwapInt32(w.closed, 0, 1) {
 		defer func() {
 			if err := recover(); err != nil {

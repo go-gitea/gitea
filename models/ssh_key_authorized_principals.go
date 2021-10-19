@@ -40,10 +40,10 @@ import (
 const authorizedPrincipalsFile = "authorized_principals"
 
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
-// Note: db.DefaultContext().Engine().Iterate does not get latest data after insert/delete, so we have to call this function
+// Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPrincipalKeys() error {
-	return rewriteAllPrincipalKeys(db.DefaultContext().Engine())
+	return rewriteAllPrincipalKeys(db.GetEngine(db.DefaultContext))
 }
 
 func rewriteAllPrincipalKeys(e db.Engine) error {
@@ -102,7 +102,7 @@ func rewriteAllPrincipalKeys(e db.Engine) error {
 
 // RegeneratePrincipalKeys regenerates the authorized_principals file
 func RegeneratePrincipalKeys(t io.StringWriter) error {
-	return regeneratePrincipalKeys(db.DefaultContext().Engine(), t)
+	return regeneratePrincipalKeys(db.GetEngine(db.DefaultContext), t)
 }
 
 func regeneratePrincipalKeys(e db.Engine, t io.StringWriter) error {

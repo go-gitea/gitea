@@ -18,7 +18,7 @@ import (
 
 func iteratePRs(repo *models.Repository, each func(*models.Repository, *models.PullRequest) error) error {
 	return db.Iterate(
-		db.DefaultContext(),
+		db.DefaultContext,
 		new(models.PullRequest),
 		builder.Eq{"base_repo_id": repo.ID},
 		func(idx int, bean interface{}) error {

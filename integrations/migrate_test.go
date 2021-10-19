@@ -5,7 +5,6 @@
 package integrations
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -25,14 +24,14 @@ func TestMigrateLocalPath(t *testing.T) {
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = true
 
-	lowercasePath, err := ioutil.TempDir("", "lowercase") // may not be lowercase because TempDir creates a random directory name which may be mixedcase
+	lowercasePath, err := os.MkdirTemp("", "lowercase") // may not be lowercase because MkdirTemp creates a random directory name which may be mixedcase
 	assert.NoError(t, err)
 	defer os.RemoveAll(lowercasePath)
 
 	err = migrations.IsMigrateURLAllowed(lowercasePath, adminUser)
 	assert.NoError(t, err, "case lowercase path")
 
-	mixedcasePath, err := ioutil.TempDir("", "mIxeDCaSe")
+	mixedcasePath, err := os.MkdirTemp("", "mIxeDCaSe")
 	assert.NoError(t, err)
 	defer os.RemoveAll(mixedcasePath)
 

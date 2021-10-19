@@ -56,7 +56,7 @@ func TestPullRequest_LoadHeadRepo(t *testing.T) {
 func TestPullRequestsNewest(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
-		ListOptions: ListOptions{
+		ListOptions: db.ListOptions{
 			Page: 1,
 		},
 		State:    "open",
@@ -75,7 +75,7 @@ func TestPullRequestsNewest(t *testing.T) {
 func TestPullRequestsOldest(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
-		ListOptions: ListOptions{
+		ListOptions: db.ListOptions{
 			Page: 1,
 		},
 		State:    "open",
@@ -132,6 +132,10 @@ func TestGetPullRequestByIndex(t *testing.T) {
 	assert.Equal(t, int64(2), pr.Index)
 
 	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
+	assert.Error(t, err)
+	assert.True(t, IsErrPullRequestNotExist(err))
+
+	_, err = GetPullRequestByIndex(1, 0)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }

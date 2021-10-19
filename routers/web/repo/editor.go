@@ -6,7 +6,7 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -127,7 +127,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
+		d, _ := io.ReadAll(dataRc)
 		if err := dataRc.Close(); err != nil {
 			log.Error("Error whilst closing blob data: %v", err)
 		}

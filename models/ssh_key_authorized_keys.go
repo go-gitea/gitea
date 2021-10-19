@@ -115,10 +115,10 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 }
 
 // RewriteAllPublicKeys removes any authorized key and rewrite all keys from database again.
-// Note: db.DefaultContext().Engine().Iterate does not get latest data after insert/delete, so we have to call this function
+// Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
-	return rewriteAllPublicKeys(db.DefaultContext().Engine())
+	return rewriteAllPublicKeys(db.GetEngine(db.DefaultContext))
 }
 
 func rewriteAllPublicKeys(e db.Engine) error {
@@ -179,7 +179,7 @@ func rewriteAllPublicKeys(e db.Engine) error {
 
 // RegeneratePublicKeys regenerates the authorized_keys file
 func RegeneratePublicKeys(t io.StringWriter) error {
-	return regeneratePublicKeys(db.DefaultContext().Engine(), t)
+	return regeneratePublicKeys(db.GetEngine(db.DefaultContext), t)
 }
 
 func regeneratePublicKeys(e db.Engine, t io.StringWriter) error {

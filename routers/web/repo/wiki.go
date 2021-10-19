@@ -8,7 +8,7 @@ package repo
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"path/filepath"
@@ -110,7 +110,7 @@ func wikiContentsByEntry(ctx *context.Context, entry *git.TreeEntry) []byte {
 		return nil
 	}
 	defer reader.Close()
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		ctx.ServerError("ReadAll", err)
 		return nil

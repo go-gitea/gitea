@@ -23,7 +23,7 @@ func TestAddTopic(t *testing.T) {
 	assert.Len(t, topics, totalNrOfTopics)
 
 	topics, total, err := FindTopics(&FindTopicOptions{
-		ListOptions: ListOptions{Page: 1, PageSize: 2},
+		ListOptions: db.ListOptions{Page: 1, PageSize: 2},
 	})
 	assert.NoError(t, err)
 	assert.Len(t, topics, 2)
