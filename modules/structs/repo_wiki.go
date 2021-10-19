@@ -33,7 +33,7 @@ type WikiPageMetaData struct {
 type CreateWikiPageOptions struct {
 	// page title. leave empty to keep unchanged
 	Title string `json:"title"`
-	// content must be UTF-8 encoded
+	// content must be base64 encoded
 	Content string `json:"content"`
 	// commit message summarizing the change
 	Message string `json:"message"`

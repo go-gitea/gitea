@@ -5,8 +5,8 @@
 package repo
 
 import (
+	"encoding/base64"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 
@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -62,6 +63,13 @@ func NewWikiPage(ctx *context.APIContext) {
 	if len(form.Message) == 0 {
 		form.Message = fmt.Sprintf("Add '%s'", form.Title)
 	}
+
+	content, err := base64.StdEncoding.DecodeString(form.Content)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "invalid base64 encoding of content", err)
+		return
+	}
+	form.Content = string(content)
 
 	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
@@ -128,6 +136,13 @@ func EditWikiPage(ctx *context.APIContext) {
 	if len(form.Message) == 0 {
 		form.Message = fmt.Sprintf("Update '%s'", newWikiName)
 	}
+
+	content, err := base64.StdEncoding.DecodeString(form.Content)
+	if err != nil {
+		ctx.Error(http.StatusBadRequest, "invalid base64 encoding of content", err)
+		return
+	}
+	form.Content = string(content)
 
 	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditWikiPage", err)
@@ -480,18 +495,16 @@ func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit, 
 }
 
 // wikiContentsByEntry returns the contents of the wiki page referenced by the
-// given tree entry. Writes to ctx if an error occurs.
-func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) []byte {
-	reader, err := entry.Blob().DataAsync()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Blob.Data", err)
-		return nil
+// given tree entry, encoded with base64. Writes to ctx if an error occurs.
+func wikiContentsByEntry(ctx *context.APIContext, entry *git.TreeEntry) string {
+	blob := entry.Blob()
+	if blob.Size() > setting.API.DefaultMaxBlobSize {
+		return ""
 	}
-	defer reader.Close()
-	content, err := io.ReadAll(reader)
+	content, err := blob.GetBlobContentBase64()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ReadAll", err)
-		return nil
+		ctx.Error(http.StatusInternalServerError, "GetBlobContentBase64", err)
+		return ""
 	}
 	return content
 }
@@ -509,5 +522,5 @@ func wikiContentsByName(ctx *context.APIContext, commit *git.Commit, wikiName st
 	} else if entry == nil {
 		return nil, nil, "", true
 	}
-	return wikiContentsByEntry(ctx, entry), entry, pageFilename, false
+	return []byte(wikiContentsByEntry(ctx, entry)), pageFilename
 }
