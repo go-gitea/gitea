@@ -46,11 +46,6 @@ func NewLoggerHandlerV2(level log.Level) func(next http.Handler) http.Handler {
 		}
 		reqRec.funcInfoMu.RUnlock()
 
-		var status int
-		if v, ok := reqRec.responseWriter.(giteaContext.ResponseWriter); ok {
-			status = v.Status()
-		}
-
 		logger := log.GetLogger("router")
 		req := reqRec.httpRequest
 		if trigger == LogRequestExecuting {
@@ -68,6 +63,10 @@ func NewLoggerHandlerV2(level log.Level) func(next http.Handler) http.Handler {
 					reqRec.panicError,
 				)
 			} else {
+				var status int
+				if v, ok := reqRec.responseWriter.(giteaContext.ResponseWriter); ok {
+					status = v.Status()
+				}
 				_ = logger.Log(0, lh.logLevel, "handler: %s:%d(%s) completed %v %s for %s, %v %v in %v",
 					funcFileShort, funcLine, funcNameShort,
 					log.ColoredMethod(req.Method), req.RequestURI, req.RemoteAddr,
