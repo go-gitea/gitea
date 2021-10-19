@@ -54,21 +54,21 @@ export default function initGlobalCopyToClipboardListener() {
       } else if (target.dataset.clipboardTarget) {
         text = document.querySelector(target.dataset.clipboardTarget)?.value;
       }
-
-      if (!text) {
-        target = target.parentElement;
-      } else {
+      if (text) {
+        e.preventDefault();
         try {
           await navigator.clipboard.writeText(text);
-          onSuccess(btn);
+          onSuccess(target);
         } catch {
           if (fallbackCopyToClipboard(text)) {
-            onSuccess(btn);
+            onSuccess(target);
           } else {
-            onError(btn);
+            onError(target);
           }
         }
+        break;
       }
+      target = target.parentElement;
     }
   });
 }
