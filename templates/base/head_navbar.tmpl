@@ -1,6 +1,6 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
-		<a href="{{AppSubUrl}}/" class="item poping up" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}" data-variation="tiny inverted">
+		<a href="{{AppSubUrl}}/" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}" data-variation="tiny inverted">
 			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">

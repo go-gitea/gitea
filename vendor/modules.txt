@@ -8,17 +8,17 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.14.0
 ## explicit
 code.gitea.io/sdk/gitea
-# gitea.com/go-chi/binding v0.0.0-20210301195521-1fe1c9a555e7
+# gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 ## explicit
 gitea.com/go-chi/binding
-# gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e
+# gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
 ## explicit
 gitea.com/go-chi/cache
 gitea.com/go-chi/cache/memcache
-# gitea.com/go-chi/captcha v0.0.0-20210110083842-e7696c336a1e
+# gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
 ## explicit
 gitea.com/go-chi/captcha
-# gitea.com/go-chi/session v0.0.0-20210913064732-2ac132b0fa07
+# gitea.com/go-chi/session v0.0.0-20211013065435-7d334f340c09
 ## explicit
 gitea.com/go-chi/session
 gitea.com/go-chi/session/couchbase
@@ -276,6 +276,9 @@ github.com/go-asn1-ber/asn1-ber
 ## explicit
 github.com/go-chi/chi
 github.com/go-chi/chi/middleware
+# github.com/go-chi/chi/v5 v5.0.4
+## explicit
+github.com/go-chi/chi/v5
 # github.com/go-chi/cors v1.2.0
 ## explicit
 github.com/go-chi/cors
@@ -466,6 +469,9 @@ github.com/google/uuid
 github.com/gorilla/context
 # github.com/gorilla/css v1.0.0
 github.com/gorilla/css/scanner
+# github.com/gorilla/feeds v1.1.1
+## explicit
+github.com/gorilla/feeds
 # github.com/gorilla/handlers v1.5.1
 github.com/gorilla/handlers
 # github.com/gorilla/mux v1.8.0

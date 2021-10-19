@@ -902,6 +902,9 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
+	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
+	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
+	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
 	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
@@ -909,6 +912,15 @@ func NewContext() {
 		if !match {
 			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
 		}
+	}
+
+	// check if we run as root
+	if os.Getuid() == 0 {
+		if !unsafeAllowRunAsRoot {
+			// Special thanks to VLC which inspired the wording of this messaging.
+			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
+		}
+		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
 	}
 
 	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)

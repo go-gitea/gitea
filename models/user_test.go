@@ -161,6 +161,18 @@ func TestSearchUsers(t *testing.T) {
 	// order by name asc default
 	testUserSuccess(&SearchUserOptions{Keyword: "user1", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
+
+	testUserSuccess(&SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsAdmin: util.OptionalBoolTrue},
+		[]int64{1})
+
+	testUserSuccess(&SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsRestricted: util.OptionalBoolTrue},
+		[]int64{29, 30})
+
+	testUserSuccess(&SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsProhibitLogin: util.OptionalBoolTrue},
+		[]int64{30})
+
+	testUserSuccess(&SearchUserOptions{ListOptions: db.ListOptions{Page: 1}, IsTwoFactorEnabled: util.OptionalBoolTrue},
+		[]int64{24})
 }
 
 func TestDeleteUser(t *testing.T) {

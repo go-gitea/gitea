@@ -16,7 +16,6 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	QueueLength     int
 	Name            string
 	From            string
 	FromName        string
@@ -54,7 +53,6 @@ func newMailService() {
 	}
 
 	MailService = &Mailer{
-		QueueLength:     sec.Key("SEND_BUFFER_LEN").MustInt(100),
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
 		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),

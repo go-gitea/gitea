@@ -327,6 +327,20 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 		return 0
 	}
+
+	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
+		projects, _, err := models.GetProjects(models.ProjectSearchOptions{
+			RepoID:   repo.ID,
+			Type:     models.ProjectTypeRepository,
+			IsClosed: util.OptionalBoolOf(isShowClosed),
+		})
+		if err != nil {
+			ctx.ServerError("GetProjects", err)
+			return
+		}
+		ctx.Data["Projects"] = projects
+	}
+
 	ctx.Data["IssueStats"] = issueStats
 	ctx.Data["SelLabelIDs"] = labelIDs
 	ctx.Data["SelectLabels"] = selectLabels
@@ -1529,6 +1543,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
 		}
+		ctx.Data["ShowMergeInstructions"] = true
 		if pull.ProtectedBranch != nil {
 			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
@@ -1540,6 +1555,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
+			ctx.Data["ShowMergeInstructions"] = pull.ProtectedBranch.CanUserPush(ctx.User.ID)
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {
