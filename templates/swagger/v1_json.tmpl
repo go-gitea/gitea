@@ -13949,15 +13949,17 @@
       "type": "object",
       "properties": {
         "content": {
-          "description": "content must be UTF-8 encoded",
+          "description": "content must be base64 encoded",
           "type": "string",
           "x-go-name": "Content"
         },
         "message": {
+          "description": "commit message summarizing the change",
           "type": "string",
           "x-go-name": "Message"
         },
         "title": {
+          "description": "page title. leave empty to keep unchanged",
           "type": "string",
           "x-go-name": "Title"
         }
@@ -17732,12 +17734,12 @@
           "type": "string",
           "x-go-name": "Footer"
         },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
         "last_commit": {
           "$ref": "#/definitions/WikiCommit"
-        },
-        "name": {
-          "type": "string",
-          "x-go-name": "Name"
         },
         "sidebar": {
           "type": "string",
@@ -17750,10 +17752,6 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
-        },
-        "updated": {
-          "type": "string",
-          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -17762,17 +17760,20 @@
       "description": "WikiPageMetaData wiki page meta information",
       "type": "object",
       "properties": {
-        "name": {
+        "html_url": {
           "type": "string",
-          "x-go-name": "Name"
+          "x-go-name": "HTMLURL"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/WikiCommit"
         },
         "suburl": {
           "type": "string",
           "x-go-name": "SubURL"
         },
-        "updated": {
+        "title": {
           "type": "string",
-          "x-go-name": "Updated"
+          "x-go-name": "Title"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
