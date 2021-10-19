@@ -962,10 +962,13 @@ a.ui.card:hover,
   }
 
   .form {
-    .fake {
-      display: none !important;
+    .autofill-dummy {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      z-index: -10000;
     }
-
     .sub.field {
       margin-left: 25px;
     }
