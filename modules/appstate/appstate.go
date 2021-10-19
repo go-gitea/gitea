@@ -14,3 +14,12 @@ type StateStore interface {
 type StateItem interface {
 	Name() string
 }
+
+// AppState contains the state items for the app
+var AppState StateStore
+
+// Init initialize AppState interface
+func Init() error {
+	AppState = &DBStore{}
+	return nil
+}

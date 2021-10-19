@@ -76,7 +76,7 @@ func InitGitServices() {
 
 func syncAppPathForGit(ctx context.Context) error {
 	runtimeState := new(appstate.RuntimeState)
-	if err := setting.AppState.Get(runtimeState); err != nil {
+	if err := appstate.AppState.Get(runtimeState); err != nil {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
@@ -89,7 +89,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInit(models.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
-		return setting.AppState.Set(runtimeState)
+		return appstate.AppState.Set(runtimeState)
 	}
 	return nil
 }
@@ -133,7 +133,7 @@ func GlobalInit(ctx context.Context) {
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
-
+	mustInit(appstate.Init)
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
