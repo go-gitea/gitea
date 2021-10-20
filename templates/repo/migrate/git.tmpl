@@ -3,6 +3,7 @@
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{.i18n.Tr "repo.migrate.migrate" .service.Title}}
@@ -21,7 +22,6 @@
 						<label for="auth_username">{{.i18n.Tr "username"}}</label>
 						<input id="auth_username" name="auth_username" value="{{.auth_username}}" {{if not .auth_username}}data-need-clear="true"{{end}}>
 					</div>
-					<input class="fake" type="password">
 					<div class="inline field {{if .Err_Auth}}error{{end}}">
 						<label for="auth_password">{{.i18n.Tr "password"}}</label>
 						<input id="auth_password" name="auth_password" type="password" value="{{.auth_password}}">

@@ -72,8 +72,14 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
 
+	var uid int64
+	if ctxUser != nil {
+		uid = ctxUser.ID
+	}
+
 	ctx.PageData["dashboardRepoList"] = map[string]interface{}{
 		"searchLimit": setting.UI.User.RepoPagingNum,
+		"uid":         uid,
 	}
 
 	if setting.Service.EnableUserHeatmap {
