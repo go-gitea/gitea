@@ -1,6 +1,6 @@
 import {initMarkupContent} from '../../markup/content.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initCompMarkupContentPreviewTab($form) {
   const $tabMenu = $form.find('.tabular.menu');
@@ -8,7 +8,7 @@ export function initCompMarkupContentPreviewTab($form) {
   $tabMenu.find(`.item[data-tab="${$tabMenu.data('preview')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       mode: 'comment',
       context: $this.data('context'),
       text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()

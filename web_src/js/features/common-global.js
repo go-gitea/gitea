@@ -4,7 +4,7 @@ import {initCompColorPicker} from './comp/ColorPicker.js';
 
 import 'jquery.are-you-sure';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -136,7 +136,7 @@ export async function initGlobalDropzone() {
     const $dropzone = $(el);
     await createDropzone(el, {
       url: $dropzone.data('upload-url'),
-      headers: {'X-Csrf-Token': csrf},
+      headers: {'X-Csrf-Token': csrfToken},
       maxFiles: $dropzone.data('max-file'),
       maxFilesize: $dropzone.data('max-size'),
       acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
@@ -159,7 +159,7 @@ export async function initGlobalDropzone() {
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: file.uuid,
-              _csrf: csrf,
+              _csrf: csrfToken,
             });
           }
         });
@@ -194,7 +194,7 @@ export function initGlobalLinkActions() {
         }
 
         const postData = {
-          _csrf: csrf,
+          _csrf: csrfToken,
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
@@ -232,7 +232,7 @@ export function initGlobalLinkActions() {
         }
 
         $.post($this.data('url'), {
-          _csrf: csrf,
+          _csrf: csrfToken,
           id: $this.data('id')
         }).done((data) => {
           window.location.href = data.redirect;
@@ -247,7 +247,7 @@ export function initGlobalLinkActions() {
     const $this = $(this);
     const redirect = $this.data('redirect');
     $.post($this.data('url'), {
-      _csrf: csrf
+      _csrf: csrfToken
     }).done((data) => {
       if (data.redirect) {
         window.location.href = data.redirect;
@@ -270,7 +270,7 @@ export function initGlobalLinkActions() {
   $('.undo-button').on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       id: $this.data('id')
     }).done((data) => {
       window.location.href = data.redirect;
@@ -298,7 +298,7 @@ export function initGlobalButtons() {
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
     $.post($this.data('request-url'), {
-      _csrf: csrf
+      _csrf: csrfToken
     }).done(() => {
       window.location.href = $this.data('done-url');
     });
