@@ -64,7 +64,7 @@ func (s *SSPI) Init() error {
 		Funcs:         templates.NewFuncMap(),
 		Asset:         templates.GetAsset,
 		AssetNames:    templates.GetAssetNames,
-		IsDevelopment: !setting.IsProd(),
+		IsDevelopment: !setting.IsProd,
 	})
 	return nil
 }
