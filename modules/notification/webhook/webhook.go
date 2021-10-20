@@ -51,7 +51,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 		err = webhook_services.PrepareWebhooks(issue.Repo, models.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		})
@@ -145,7 +145,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 		issue.PullRequest.Issue = issue
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		}
@@ -197,7 +197,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 					From: oldTitle,
 				},
 			},
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		})
@@ -232,7 +232,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *mode
 		// Merge pull request calls issue.changeStatus so we need to handle separately.
 		apiPullRequest := &api.PullRequestPayload{
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		}
@@ -301,7 +301,7 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mention
 	if err := webhook_services.PrepareWebhooks(pull.Issue.Repo, models.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(pull),
+		PullRequest: convert.ToAPIPullRequest(pull, nil),
 		Repository:  convert.ToRepo(pull.Issue.Repo, mode),
 		Sender:      convert.ToUser(pull.Issue.Poster, nil),
 	}); err != nil {
@@ -322,7 +322,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *mod
 					From: oldContent,
 				},
 			},
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		})
@@ -500,7 +500,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 		err = webhook_services.PrepareWebhooks(issue.Repo, models.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, models.AccessModeNone),
 			Sender:      convert.ToUser(doer, nil),
 		})
@@ -542,7 +542,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 		err = webhook_services.PrepareWebhooks(issue.Repo, models.HookEventPullRequestMilestone, &api.PullRequestPayload{
 			Action:      hookAction,
 			Index:       issue.Index,
-			PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 			Repository:  convert.ToRepo(issue.Repo, mode),
 			Sender:      convert.ToUser(doer, nil),
 		})
@@ -609,7 +609,7 @@ func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *mod
 	// Merge pull request calls issue.changeStatus so we need to handle separately.
 	apiPullRequest := &api.PullRequestPayload{
 		Index:       pr.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(pr),
+		PullRequest: convert.ToAPIPullRequest(pr, nil),
 		Repository:  convert.ToRepo(pr.Issue.Repo, mode),
 		Sender:      convert.ToUser(doer, nil),
 		Action:      api.HookIssueClosed,
@@ -642,7 +642,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *models.User,
 				From: oldBranch,
 			},
 		},
-		PullRequest: convert.ToAPIPullRequest(issue.PullRequest),
+		PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
 		Repository:  convert.ToRepo(issue.Repo, mode),
 		Sender:      convert.ToUser(doer, nil),
 	})
@@ -681,7 +681,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 	if err := webhook_services.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(pr),
+		PullRequest: convert.ToAPIPullRequest(pr, nil),
 		Repository:  convert.ToRepo(review.Issue.Repo, mode),
 		Sender:      convert.ToUser(review.Reviewer, nil),
 		Review: &api.ReviewPayload{
@@ -736,7 +736,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *models.User, pr *m
 	if err := webhook_services.PrepareWebhooks(pr.Issue.Repo, models.HookEventPullRequestSync, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
-		PullRequest: convert.ToAPIPullRequest(pr),
+		PullRequest: convert.ToAPIPullRequest(pr, nil),
 		Repository:  convert.ToRepo(pr.Issue.Repo, models.AccessModeNone),
 		Sender:      convert.ToUser(doer, nil),
 	}); err != nil {

@@ -19,8 +19,9 @@ import (
 
 // Source holds configuration for the PAM login source.
 type Source struct {
-	ServiceName string // pam service (e.g. system-auth)
-	EmailDomain string
+	ServiceName    string // pam service (e.g. system-auth)
+	EmailDomain    string
+	SkipLocalTwoFA bool `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
 	// reference to the loginSource
 	loginSource *login.Source

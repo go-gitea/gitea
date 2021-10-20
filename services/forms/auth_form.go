@@ -29,6 +29,7 @@ type AuthenticationForm struct {
 	AttributeSurname              string
 	AttributeMail                 string
 	AttributeSSHPublicKey         string
+	AttributeAvatar               string
 	AttributesInBind              bool
 	UsePagedSearch                bool
 	SearchPageSize                int

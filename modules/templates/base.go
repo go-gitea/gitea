@@ -91,7 +91,7 @@ func HTMLRenderer() *render.Render {
 		Funcs:                     NewFuncMap(),
 		Asset:                     GetAsset,
 		AssetNames:                GetAssetNames,
-		IsDevelopment:             !setting.IsProd(),
+		IsDevelopment:             !setting.IsProd,
 		DisableHTTPErrorRendering: true,
 	})
 }

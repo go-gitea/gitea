@@ -9,7 +9,7 @@ require (
 	github.com/couchbase/goutils v0.0.0-20201030094643-5e82bb967e67 // indirect
 	github.com/cupcake/rdb v0.0.0-20161107195141-43ba34106c76 // indirect
 	github.com/edsrzf/mmap-go v1.0.0 // indirect
-	github.com/go-chi/chi v1.5.1
+	github.com/go-chi/chi/v5 v5.0.4
 	github.com/go-redis/redis/v8 v8.4.0
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/lib/pq v1.2.0
