@@ -265,6 +265,7 @@ func InfoOAuth(ctx *context.Context) {
 	groups, err := getOAuthGroupsForUser(ctx.User)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
+		return
 	}
 	response.Groups = groups
 
