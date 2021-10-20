@@ -155,40 +155,38 @@ func UpdateContextHandlerPanicError(ctx context.Context, err interface{}) {
 }
 
 func (lh *logContextHandler) startSlowQueryDetector(threshold time.Duration) {
-	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
-		go func() {
-			// This go-routine checks all active requests every second.
-			// If a request has been running for a long time (eg: /user/events), we also print a log with "still-executing" message
-			// After the "still-executing" log is printed, the record will be removed from the map to prevent from duplicated logs in future
-			t := time.NewTicker(time.Second)
-			for {
-				select {
-				case <-baseCtx.Done():
-					return
-				case <-t.C:
-					now := time.Now()
-					var slows []*logRequestRecord
-					// find all slow requests with lock
-					lh.requestRecordMapMu.Lock()
-					for i, r := range lh.requestRecordMap {
-						d := now.Sub(r.startTime)
-						if d >= threshold {
-							slows = append(slows, r)
-							delete(lh.requestRecordMap, i)
-						}
+	go func(baseCtx context.Context) {
+		// This go-routine checks all active requests every second.
+		// If a request has been running for a long time (eg: /user/events), we also print a log with "still-executing" message
+		// After the "still-executing" log is printed, the record will be removed from the map to prevent from duplicated logs in future
+		t := time.NewTicker(time.Second)
+		for {
+			select {
+			case <-baseCtx.Done():
+				return
+			case <-t.C:
+				now := time.Now()
+				var slows []*logRequestRecord
+				// find all slow requests with lock
+				lh.requestRecordMapMu.Lock()
+				for i, r := range lh.requestRecordMap {
+					d := now.Sub(r.startTime)
+					if d >= threshold {
+						slows = append(slows, r)
+						delete(lh.requestRecordMap, i)
 					}
-					lh.requestRecordMapMu.Unlock()
+				}
+				lh.requestRecordMapMu.Unlock()
 
-					// print logs for slow requests
-					if len(slows) > 0 {
-						for _, reqRec := range slows {
-							lh.printLog(LogRequestExecuting, reqRec)
-						}
+				// print logs for slow requests
+				if len(slows) > 0 {
+					for _, reqRec := range slows {
+						lh.printLog(LogRequestExecuting, reqRec)
 					}
 				}
 			}
-		}()
-	})
+		}
+	}(graceful.GetManager().ShutdownContext())
 }
 
 func (lh *logContextHandler) handler(next http.Handler) http.Handler {
