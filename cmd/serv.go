@@ -80,7 +80,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
 	}
