@@ -24,18 +24,19 @@ export async function initLastCommitLoader() {
     }, (data) => {
       $('table#repo-files-table').replaceWith(data);
     });
-  } else {
-    $.post(lastCommitLoaderURL, {
-      _csrf: csrf,
-      'f': entries,
-    }, (data) => {
-      $(data).find('tr').each((_, row) => {
-        if (row.className === 'commit-list') {
-          $('table#repo-files-table .commit-list').replaceWith(row);
-        } else {
-          entryMap[$(row).attr('data-entryname')].replaceWith(row);
-        }
-      });
-    });
+    return;
   }
+
+  $.post(lastCommitLoaderURL, {
+    _csrf: csrf,
+    'f': entries,
+  }, (data) => {
+    $(data).find('tr').each((_, row) => {
+      if (row.className === 'commit-list') {
+        $('table#repo-files-table .commit-list').replaceWith(row);
+      } else {
+        entryMap[$(row).attr('data-entryname')].replaceWith(row);
+      }
+    });
+  });
 }
