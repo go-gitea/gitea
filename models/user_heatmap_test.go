@@ -7,6 +7,9 @@ package models
 import (
 	"fmt"
 	"testing"
+	"time"
+
+	"code.gitea.io/gitea/modules/timeutil"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
@@ -36,6 +39,10 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	}
 	// Prepare
 	assert.NoError(t, PrepareTestDatabase())
+
+	// Mock time
+	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer timeutil.Unset()
 
 	for i, tc := range testCases {
 		user := AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)

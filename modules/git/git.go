@@ -188,6 +188,12 @@ func Init(ctx context.Context) error {
 			return err
 		}
 	}
+	if setting.Git.DisableCoreProtectNTFS {
+		if err := checkAndSetConfig("core.protectntfs", "false", true); err != nil {
+			return err
+		}
+		GlobalCommandArgs = append(GlobalCommandArgs, "-c", "core.protectntfs=false")
+	}
 	return nil
 }
 
