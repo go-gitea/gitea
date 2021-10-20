@@ -278,7 +278,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Permissions checking:
-	if repoExist && (mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView) {
+	if repoExist &&
+		(mode > models.AccessModeRead ||
+			repo.IsPrivate ||
+			owner.Visibility.IsPrivate() ||
+			user.IsRestricted ||
+			setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
