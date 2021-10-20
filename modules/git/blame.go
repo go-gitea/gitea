@@ -28,8 +28,8 @@ type BlameReader struct {
 	output   io.ReadCloser
 	reader   *bufio.Reader
 	lastSha  *string
-	cancel   context.CancelFunc // Cancels the context that this reader runs in
-	finished context.CancelFunc // Tells the process manager to remove the associated process from the process table
+	cancel   context.CancelFunc   // Cancels the context that this reader runs in
+	finished process.FinishedFunc // Tells the process manager we're finished and it can remove the associated process from the process table
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
