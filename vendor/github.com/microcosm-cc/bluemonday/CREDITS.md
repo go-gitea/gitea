@@ -4,4 +4,5 @@
 1. Andrew Krasichkov @buglloc https://github.com/buglloc
 1. Mike Samuel mikesamuel@gmail.com
 1. Dmitri Shuralyov shurcooL@gmail.com
-1. https://github.com/opennota
+1. opennota https://github.com/opennota https://gitlab.com/opennota
+1. Tom Anthony https://www.tomanthony.co.uk/

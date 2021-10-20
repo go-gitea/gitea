@@ -32,6 +32,9 @@ func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 	var data = make([]byte, 1e4)
 	size, err := rd.Read(data)
 	if err != nil {
+		if err == io.EOF {
+			return CreateReader(bytes.NewReader([]byte{}), rune(',')), nil
+		}
 		return nil, err
 	}
 
