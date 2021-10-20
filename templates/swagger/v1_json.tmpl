@@ -13951,10 +13951,10 @@
         "content": {
           "description": "content must be base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "message": {
-          "description": "commit message summarizing the change",
+          "description": "optional commit message summarizing the change",
           "type": "string",
           "x-go-name": "Message"
         },
@@ -17727,8 +17727,9 @@
           "x-go-name": "CommitCount"
         },
         "content": {
+          "description": "Page content, base64 encoded",
           "type": "string",
-          "x-go-name": "Content"
+          "x-go-name": "ContentBase64"
         },
         "footer": {
           "type": "string",

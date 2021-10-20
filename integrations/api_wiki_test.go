@@ -52,7 +52,9 @@ func TestAPIGetWikiPage(t *testing.T) {
 				Message: "Add Home.md\n",
 			},
 		},
-		Content:     base64.RawStdEncoding.EncodeToString([]byte("# Home page\n\nThis is the home page!\n")),
+		ContentBase64: base64.RawStdEncoding.EncodeToString(
+			[]byte("# Home page\n\nThis is the home page!\n"),
+		),
 		CommitCount: 1,
 		Sidebar:     "",
 		Footer:      "",
@@ -184,9 +186,9 @@ func TestAPINewWikiPage(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new?token=%s", username, "repo1", token)
 
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateWikiPageOptions{
-			Title:   title,
-			Content: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
-			Message: "",
+			Title:         title,
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
+			Message:       "",
 		})
 		session.MakeRequest(t, req, http.StatusCreated)
 	}
@@ -201,9 +203,9 @@ func TestAPIEditWikiPage(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name?token=%s", username, "repo1", token)
 
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.CreateWikiPageOptions{
-		Title:   "edited title",
-		Content: base64.StdEncoding.EncodeToString([]byte("Edited wiki page content for API unit tests")),
-		Message: "",
+		Title:         "edited title",
+		ContentBase64: base64.StdEncoding.EncodeToString([]byte("Edited wiki page content for API unit tests")),
+		Message:       "",
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 }

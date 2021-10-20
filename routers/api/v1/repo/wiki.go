@@ -64,14 +64,14 @@ func NewWikiPage(ctx *context.APIContext) {
 		form.Message = fmt.Sprintf("Add '%s'", form.Title)
 	}
 
-	content, err := base64.StdEncoding.DecodeString(form.Content)
+	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "invalid base64 encoding of content", err)
 		return
 	}
-	form.Content = string(content)
+	form.ContentBase64 = string(content)
 
-	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.AddWikiPage(ctx.User, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
 		if models.IsErrWikiReservedName(err) {
 			ctx.Error(http.StatusBadRequest, "IsErrWikiReservedName", err)
 		} else if models.IsErrWikiAlreadyExist(err) {
@@ -137,14 +137,14 @@ func EditWikiPage(ctx *context.APIContext) {
 		form.Message = fmt.Sprintf("Update '%s'", newWikiName)
 	}
 
-	content, err := base64.StdEncoding.DecodeString(form.Content)
+	content, err := base64.StdEncoding.DecodeString(form.ContentBase64)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "invalid base64 encoding of content", err)
 		return
 	}
-	form.Content = string(content)
+	form.ContentBase64 = string(content)
 
-	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.Content, form.Message); err != nil {
+	if err := wiki_service.EditWikiPage(ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.ContentBase64, form.Message); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditWikiPage", err)
 		return
 	}
@@ -195,7 +195,7 @@ func getWikiPage(ctx *context.APIContext, title string) *api.WikiPage {
 
 	return &api.WikiPage{
 		WikiPageMetaData: convert.ToWikiPageMetaData(title, lastCommit, ctx.Repo.Repository),
-		Content:          content,
+		ContentBase64:    content,
 		CommitCount:      commitsCount,
 		Sidebar:          sidebarContent,
 		Footer:           footerContent,
