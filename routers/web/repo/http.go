@@ -482,8 +482,8 @@ func serviceRPC(h serviceHandler, service string) {
 	}
 
 	// ctx, cancel := gocontext.WithCancel(git.DefaultContext)
-	ctx, _, remove := process.GetManager().AddContext(git.DefaultContext, fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
-	defer remove()
+	ctx, _, finished := process.GetManager().AddContext(git.DefaultContext, fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
+	defer finished()
 
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)

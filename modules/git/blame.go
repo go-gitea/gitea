@@ -24,12 +24,12 @@ type BlamePart struct {
 
 // BlameReader returns part of file blame one by one
 type BlameReader struct {
-	cmd     *exec.Cmd
-	output  io.ReadCloser
-	reader  *bufio.Reader
-	lastSha *string
-	cancel  context.CancelFunc // Cancels the context that this reader runs in
-	remove  context.CancelFunc // Tells the process manager to remove the associated process from the process table
+	cmd      *exec.Cmd
+	output   io.ReadCloser
+	reader   *bufio.Reader
+	lastSha  *string
+	cancel   context.CancelFunc // Cancels the context that this reader runs in
+	finished context.CancelFunc // Tells the process manager to remove the associated process from the process table
 }
 
 var shaLineRegex = regexp.MustCompile("^([a-z0-9]{40})")
@@ -100,8 +100,8 @@ func (r *BlameReader) NextPart() (*BlamePart, error) {
 
 // Close BlameReader - don't run NextPart after invoking that
 func (r *BlameReader) Close() error {
-	defer r.remove() // Only remove the process from the process table when the underlying command is closed
-	r.cancel()       // However, first cancel our own context early
+	defer r.finished() // Only remove the process from the process table when the underlying command is closed
+	r.cancel()         // However, first cancel our own context early
 
 	_ = r.output.Close()
 
@@ -125,7 +125,7 @@ func CreateBlameReader(ctx context.Context, repoPath, commitID, file string) (*B
 
 func createBlameReader(ctx context.Context, dir string, command ...string) (*BlameReader, error) {
 	// Here we use the provided context - this should be tied to the request performing the blame so that it does not hang around.
-	ctx, cancel, remove := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
+	ctx, cancel, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("GetBlame [repo_path: %s]", dir))
 
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
@@ -133,12 +133,12 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		defer remove()
+		defer finished()
 		return nil, fmt.Errorf("StdoutPipe: %v", err)
 	}
 
 	if err = cmd.Start(); err != nil {
-		defer remove()
+		defer finished()
 		_ = stdout.Close()
 		return nil, fmt.Errorf("Start: %v", err)
 	}
@@ -146,10 +146,10 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 	reader := bufio.NewReader(stdout)
 
 	return &BlameReader{
-		cmd:    cmd,
-		output: stdout,
-		reader: reader,
-		cancel: cancel,
-		remove: remove,
+		cmd:      cmd,
+		output:   stdout,
+		reader:   reader,
+		cancel:   cancel,
+		finished: finished,
 	}, nil
 }

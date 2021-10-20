@@ -20,8 +20,8 @@ type DBIndexer struct {
 
 // Index repository status function
 func (db *DBIndexer) Index(id int64) error {
-	ctx, _, remove := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
-	defer remove()
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
+	defer finished()
 
 	repo, err := models.GetRepositoryByID(id)
 	if err != nil {

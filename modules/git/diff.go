@@ -56,8 +56,8 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 		fileArgs = append(fileArgs, "--", file)
 	}
 	// FIXME: graceful: These commands should have a timeout
-	ctx, _, remove := process.GetManager().AddContext(DefaultContext, fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repo.Path))
-	defer remove()
+	ctx, _, finished := process.GetManager().AddContext(DefaultContext, fmt.Sprintf("GetRawDiffForFile: [repo_path: %s]", repo.Path))
+	defer finished()
 
 	var cmd *exec.Cmd
 	switch diffType {

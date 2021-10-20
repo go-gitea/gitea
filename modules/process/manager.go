@@ -32,6 +32,10 @@ var (
 // IDType is a pid type
 type IDType string
 
+// FinishedFunc is a function that marks that the process is finished and can be removed from the process table
+// - it is simply an alias for context.CancelFunc and is only for documentary purpose
+type FinishedFunc = context.CancelFunc
+
 // Manager knows about all processes and counts PIDs.
 type Manager struct {
 	mutex sync.Mutex
@@ -53,44 +57,46 @@ func GetManager() *Manager {
 	return manager
 }
 
-// AddContext create a new context and add it as a process. The remove CancelFunc must always be called even if the context is Done()
+// AddContext create a new context and add it as a process. Once the process is finished, finished must be called in order that the process
+// can be removed from the process table. It should not be called until the process is finished but must always be called.
 //
 // cancel should be used to cancel the returned context, however it will not remove the process from the process table.
-// remove will cancel the returned context and remove it from the process table.
+// finished will cancel the returned context and remove it from the process table.
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
+func (pm *Manager) AddContext(parent context.Context, description string) (ctx context.Context, cancel context.CancelFunc, finished FinishedFunc) {
 	parentPID := GetParentPID(parent)
 
 	ctx, cancel = context.WithCancel(parent)
 
-	pid, remove := pm.Add(parentPID, description, cancel)
+	pid, finished := pm.Add(parentPID, description, cancel)
 
 	return &Context{
 		Context: ctx,
 		pid:     pid,
-	}, cancel, remove
+	}, cancel, finished
 }
 
-// AddContextTimeout create a new context and add it as a process. The remove CancelFunc must always be called even if the context is Done()
+// AddContextTimeout create a new context and add it as a process. Once the process is finished, finished must be called in order that the process
+// can be removed from the process table. It should not be called until the process is finsihed but must always be called.
 //
 // cancel should be used to cancel the returned context, however it will not remove the process from the process table.
-// remove will cancel the returned context and remove it from the process table.
+// finished will cancel the returned context and remove it from the process table.
 //
 // Most processes will not need to use the cancel function but there will be cases whereby you want to cancel the process but not immediately remove it from the
 // process table.
-func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel, remove context.CancelFunc) {
+func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Duration, description string) (ctx context.Context, cancel context.CancelFunc, finshed FinishedFunc) {
 	parentPID := GetParentPID(parent)
 
 	ctx, cancel = context.WithTimeout(parent, timeout)
 
-	pid, remove := pm.Add(parentPID, description, cancel)
+	pid, finshed := pm.Add(parentPID, description, cancel)
 
 	return &Context{
 		Context: ctx,
 		pid:     pid,
-	}, cancel, remove
+	}, cancel, finshed
 }
 
 // Add create a new process
@@ -237,8 +243,8 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	stdOut := new(bytes.Buffer)
 	stdErr := new(bytes.Buffer)
 
-	ctx, _, remove := pm.AddContextTimeout(DefaultContext, timeout, desc)
-	defer remove()
+	ctx, _, finished := pm.AddContextTimeout(DefaultContext, timeout, desc)
+	defer finished()
 
 	cmd := exec.CommandContext(ctx, cmdName, args...)
 	cmd.Dir = dir
