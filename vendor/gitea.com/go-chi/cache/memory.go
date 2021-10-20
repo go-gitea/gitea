@@ -116,8 +116,10 @@ func (c *MemoryCacher) IsExist(key string) bool {
 	c.lock.RLock()
 	defer c.lock.RUnlock()
 
-	_, ok := c.items[key]
-	return ok
+	if item, ok := c.items[key]; ok {
+		return !item.hasExpired()
+	}
+	return false
 }
 
 // Flush deletes all cached data.
