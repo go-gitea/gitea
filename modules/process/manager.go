@@ -100,7 +100,7 @@ func (pm *Manager) AddContextTimeout(parent context.Context, timeout time.Durati
 }
 
 // Add create a new process
-func (pm *Manager) Add(parentPID IDType, description string, cancel context.CancelFunc) (IDType, context.CancelFunc) {
+func (pm *Manager) Add(parentPID IDType, description string, cancel context.CancelFunc) (IDType, FinishedFunc) {
 	pm.mutex.Lock()
 	start, pid := pm.nextPID()
 
@@ -117,7 +117,7 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 		Cancel:      cancel,
 	}
 
-	remove := func() {
+	finished := func() {
 		cancel()
 		pm.remove(process)
 	}
@@ -128,7 +128,7 @@ func (pm *Manager) Add(parentPID IDType, description string, cancel context.Canc
 	pm.processes[pid] = process
 	pm.mutex.Unlock()
 
-	return pid, remove
+	return pid, finished
 }
 
 // nextPID will return the next available PID. pm.mutex should already be locked.

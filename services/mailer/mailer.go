@@ -248,7 +248,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 
 	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)
 
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout, desc)
+	ctx, _, finished := process.GetManager().AddContextTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout, desc)
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
@@ -260,7 +260,6 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 
 	if err = cmd.Start(); err != nil {
 		_ = pipe.Close()
-		cancel()
 		return err
 	}
 
