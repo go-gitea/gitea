@@ -49,7 +49,7 @@ function makeCollections({mentions, emoji}) {
 }
 
 export default async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
-  if (!window.config.Tribute || !elementOrNodeList) return;
+  if (!window.config.requireTribute || !elementOrNodeList) return;
   const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
   if (!nodes.length) return;
 

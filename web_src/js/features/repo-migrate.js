@@ -1,4 +1,4 @@
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoMigrationStatusChecker() {
   const migrating = $('#repo_migrating');
@@ -12,9 +12,9 @@ export function initRepoMigrationStatusChecker() {
     }
     $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/user/task/${task}`,
+      url: `${appSubUrl}/user/task/${task}`,
       data: {
-        _csrf: csrf,
+        _csrf: csrfToken,
       },
       complete(xhr) {
         if (xhr.status === 200 && xhr.responseJSON) {

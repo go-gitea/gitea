@@ -225,7 +225,7 @@ func (ctx *Context) NotFound(title string, err error) {
 func (ctx *Context) notFoundInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -261,7 +261,7 @@ func (ctx *Context) ServerError(title string, err error) {
 func (ctx *Context) serverErrorInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -645,7 +645,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"Link":          link,
-					"IsProd":        setting.IsProd(),
+					"RunModeIsProd": setting.IsProd,
 				},
 			}
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules

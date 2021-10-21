@@ -1,6 +1,6 @@
 import {stripTags} from '../utils.js';
 
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoTopicBar() {
   const mgrBtn = $('#manage_topic');
@@ -30,7 +30,7 @@ export function initRepoTopicBar() {
     const topics = $('input[name=topics]').val();
 
     $.post(saveBtn.data('link'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       topics
     }, (_data, _textStatus, xhr) => {
       if (xhr.responseJSON.status === 'ok') {
@@ -41,7 +41,7 @@ export function initRepoTopicBar() {
           const last = viewDiv.children('a').last();
           for (let i = 0; i < topicArray.length; i++) {
             const link = $('<a class="ui repo-topic large label topic"></a>');
-            link.attr('href', `${AppSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
+            link.attr('href', `${appSubUrl}/explore/repos?q=${encodeURIComponent(topicArray[i])}&topic=1`);
             link.text(topicArray[i]);
             link.insertBefore(last);
           }
@@ -90,7 +90,7 @@ export function initRepoTopicBar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${AppSubUrl}/api/v1/topics/search?q={query}`,
+      url: `${appSubUrl}/api/v1/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {

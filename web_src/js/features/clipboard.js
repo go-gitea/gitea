@@ -4,16 +4,18 @@
 function onSuccess(btn) {
   if (!btn.dataset.content) return;
   $(btn).popup('destroy');
+  const oldContent = btn.dataset.content;
   btn.dataset.content = btn.dataset.success;
   $(btn).popup('show');
-  btn.dataset.content = btn.dataset.original;
+  btn.dataset.content = oldContent;
 }
 function onError(btn) {
   if (!btn.dataset.content) return;
+  const oldContent = btn.dataset.content;
   $(btn).popup('destroy');
   btn.dataset.content = btn.dataset.error;
   $(btn).popup('show');
-  btn.dataset.content = btn.dataset.original;
+  btn.dataset.content = oldContent;
 }
 
 /**
