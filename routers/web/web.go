@@ -918,6 +918,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/{period}", repo.Activity)
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
 
+		m.Group("/actions", func() {
+			m.Get("", repo.Actions)
+		}, context.RepoRef(), repo.MustBeNotEmpty)
+
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
