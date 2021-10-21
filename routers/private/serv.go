@@ -279,7 +279,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Permissions checking:
-	if repoExist && (mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView) {
+	if repoExist &&
+		(mode > models.AccessModeRead ||
+			repo.IsPrivate ||
+			owner.Visibility.IsPrivate() ||
+			user.IsRestricted ||
+			setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
@@ -289,7 +294,7 @@ func ServCommand(ctx *context.PrivateContext) {
 				return
 			}
 		} else {
-			// Because of special ref "refs/for" .. , need delay write permission check
+			// Because of the special ref "refs/for" we will need to delay write permission check
 			if git.SupportProcReceive && unitType == models.UnitTypeCode {
 				mode = models.AccessModeRead
 			}

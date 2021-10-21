@@ -9,6 +9,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="action" value="update">
 				<div class="required field {{if .Err_RepoName}}error{{end}}">
@@ -104,6 +105,7 @@
 						<tr>
 							<td colspan="4">
 								<form class="ui form" method="post">
+									{{template "base/disable_form_autofill"}}
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror">
 									<div class="inline field {{if .Err_EnablePrune}}error{{end}}">
@@ -132,7 +134,6 @@
 												<label for="mirror_username">{{.i18n.Tr "username"}}</label>
 												<input id="mirror_username" name="mirror_username" value="{{$address.Username}}" {{if not .mirror_username}}data-need-clear="true"{{end}}>
 											</div>
-											<input class="fake" type="password">
 											<div class="inline field {{if .Err_Auth}}error{{end}}">
 												<label for="mirror_password">{{.i18n.Tr "password"}}</label>
 												<input id="mirror_password" name="mirror_password" type="password" placeholder="{{if $address.Password}}{{.i18n.Tr "repo.mirror_password_placeholder"}}{{else}}{{.i18n.Tr "repo.mirror_password_blank_placeholder"}}{{end}}" value="" {{if not .mirror_password}}data-need-clear="true"{{end}} autocomplete="off">
@@ -195,11 +196,12 @@
 							<tr>
 								<td colspan="4">
 									<form class="ui form" method="post">
+										{{template "base/disable_form_autofill"}}
 										{{.CsrfTokenHtml}}
 										<input type="hidden" name="action" value="push-mirror-add">
 										<div class="field {{if .Err_PushMirrorAddress}}error{{end}}">
 											<label for="push_mirror_address">{{.i18n.Tr "repo.settings.mirror_settings.push_mirror.remote_url"}}</label>
-											<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" autocomplete="off" required>
+											<input id="push_mirror_address" name="push_mirror_address" value="{{.push_mirror_address}}" required>
 											<p class="help">{{.i18n.Tr "repo.mirror_address_desc"}}</p>
 										</div>
 										<details class="ui optional field" {{if or .Err_PushMirrorAuth .push_mirror_username}}open{{end}}>
@@ -211,7 +213,6 @@
 													<label for="push_mirror_username">{{.i18n.Tr "username"}}</label>
 													<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
 												</div>
-												<input class="fake" type="password">
 												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 													<label for="push_mirror_password">{{.i18n.Tr "password"}}</label>
 													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">

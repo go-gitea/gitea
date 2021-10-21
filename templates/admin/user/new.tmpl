@@ -8,6 +8,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
@@ -61,7 +62,6 @@
 					<label for="email">{{.i18n.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.email}}" required>
 				</div>
-				<input class="fake" type="password">
 				<div class="required local field {{if .Err_Password}}error{{end}} {{if not (eq .login_type "0-0")}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password" value="{{.password}}" {{if eq .login_type "0-0"}}required{{end}}>

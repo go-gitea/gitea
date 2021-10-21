@@ -362,6 +362,7 @@ export function initDashboardRepoList() {
       return {
         searchLimit: dashboardRepoListData.searchLimit || 0,
         subUrl: AppSubUrl,
+        uid: dashboardRepoListData.uid || 0,
       };
     },
   });
