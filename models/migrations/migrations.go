@@ -352,6 +352,8 @@ var migrations = []Migration{
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 	// v199 -> v200
 	NewMigration("Add remote version table", addRemoteVersionTable),
+	// v200 -> v201
+	NewMigration("Add table app_state", addTableAppState),
 }
 
 // GetCurrentDBVersion returns the current db version
