@@ -15,26 +15,28 @@ type WikiCommit struct {
 // WikiPage a wiki page
 type WikiPage struct {
 	*WikiPageMetaData
-	Title       string      `json:"title"`
-	Content     string      `json:"content"`
-	CommitCount int64       `json:"commit_count"`
-	LastCommit  *WikiCommit `json:"last_commit"`
-	Sidebar     string      `json:"sidebar"`
-	Footer      string      `json:"footer"`
+	// Page content, base64 encoded
+	ContentBase64 string `json:"content"`
+	CommitCount   int64  `json:"commit_count"`
+	Sidebar       string `json:"sidebar"`
+	Footer        string `json:"footer"`
 }
 
 // WikiPageMetaData wiki page meta information
 type WikiPageMetaData struct {
-	Name    string `json:"name"`
-	SubURL  string `json:"suburl"`
-	Updated string `json:"updated"`
+	Title      string      `json:"title"`
+	HTMLURL    string      `json:"html_url"`
+	SubURL     string      `json:"suburl"`
+	LastCommit *WikiCommit `json:"last_commit"`
 }
 
 // CreateWikiPageOptions form for creating wiki
 type CreateWikiPageOptions struct {
+	// page title. leave empty to keep unchanged
 	Title string `json:"title"`
-	// content must be UTF-8 encoded
-	Content string `json:"content"`
+	// content must be base64 encoded
+	ContentBase64 string `json:"content"`
+	// optional commit message summarizing the change
 	Message string `json:"message"`
 }
 

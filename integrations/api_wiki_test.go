@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"testing"
@@ -29,33 +30,34 @@ func TestAPIGetWikiPage(t *testing.T) {
 
 	assert.Equal(t, &api.WikiPage{
 		WikiPageMetaData: &api.WikiPageMetaData{
-			Name:    "Home",
+			Title:   "Home",
+			HTMLURL: "http://localhost:3003/user2/repo1/wiki/Home",
 			SubURL:  "Home",
-			Updated: "2017-11-26T20:31:18-08:00",
+			LastCommit: &api.WikiCommit{
+				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
+				Author: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Ethan Koenig",
+						Email: "ethantkoenig@gmail.com",
+					},
+					Date: "2017-11-27T04:31:18Z",
+				},
+				Committer: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Ethan Koenig",
+						Email: "ethantkoenig@gmail.com",
+					},
+					Date: "2017-11-27T04:31:18Z",
+				},
+				Message: "Add Home.md\n",
+			},
 		},
-		Title:       "",
-		Content:     "# Home page\n\nThis is the home page!\n",
+		ContentBase64: base64.RawStdEncoding.EncodeToString(
+			[]byte("# Home page\n\nThis is the home page!\n"),
+		),
 		CommitCount: 1,
-		LastCommit: &api.WikiCommit{
-			ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
-			Author: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Ethan Koenig",
-					Email: "ethantkoenig@gmail.com",
-				},
-				Date: "2017-11-26T20:31:18-08:00",
-			},
-			Committer: &api.CommitUser{
-				Identity: api.Identity{
-					Name:  "Ethan Koenig",
-					Email: "ethantkoenig@gmail.com",
-				},
-				Date: "2017-11-26T20:31:18-08:00",
-			},
-			Message: "Add Home.md\n",
-		},
-		Sidebar: "",
-		Footer:  "",
+		Sidebar:     "",
+		Footer:      "",
 	}, page)
 }
 
@@ -75,24 +77,96 @@ func TestAPIListWikiPages(t *testing.T) {
 
 	dummymeta := []*api.WikiPageMetaData{
 		{
-			Name:    "Home",
+			Title:   "Home",
+			HTMLURL: "http://localhost:3003/user2/repo1/wiki/Home",
 			SubURL:  "Home",
-			Updated: "2017-11-26T20:31:18-08:00",
+			LastCommit: &api.WikiCommit{
+				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
+				Author: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Ethan Koenig",
+						Email: "ethantkoenig@gmail.com",
+					},
+					Date: "2017-11-27T04:31:18Z",
+				},
+				Committer: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Ethan Koenig",
+						Email: "ethantkoenig@gmail.com",
+					},
+					Date: "2017-11-27T04:31:18Z",
+				},
+				Message: "Add Home.md\n",
+			},
 		},
 		{
-			Name:    "Page With Image",
+			Title:   "Page With Image",
+			HTMLURL: "http://localhost:3003/user2/repo1/wiki/Page-With-Image",
 			SubURL:  "Page-With-Image",
-			Updated: "2019-01-24T20:41:55-05:00",
+			LastCommit: &api.WikiCommit{
+				ID: "0cf15c3f66ec8384480ed9c3cf87c9e97fbb0ec3",
+				Author: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Gabriel Silva Simões",
+						Email: "simoes.sgabriel@gmail.com",
+					},
+					Date: "2019-01-25T01:41:55Z",
+				},
+				Committer: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Gabriel Silva Simões",
+						Email: "simoes.sgabriel@gmail.com",
+					},
+					Date: "2019-01-25T01:41:55Z",
+				},
+				Message: "Add jpeg.jpg and page with image\n",
+			},
 		},
 		{
-			Name:    "Page With Spaced Name",
+			Title:   "Page With Spaced Name",
+			HTMLURL: "http://localhost:3003/user2/repo1/wiki/Page-With-Spaced-Name",
 			SubURL:  "Page-With-Spaced-Name",
-			Updated: "2019-01-24T20:39:51-05:00",
+			LastCommit: &api.WikiCommit{
+				ID: "c10d10b7e655b3dab1f53176db57c8219a5488d6",
+				Author: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Gabriel Silva Simões",
+						Email: "simoes.sgabriel@gmail.com",
+					},
+					Date: "2019-01-25T01:39:51Z",
+				},
+				Committer: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "Gabriel Silva Simões",
+						Email: "simoes.sgabriel@gmail.com",
+					},
+					Date: "2019-01-25T01:39:51Z",
+				},
+				Message: "Add page with spaced name\n",
+			},
 		},
 		{
-			Name:    "Unescaped File",
+			Title:   "Unescaped File",
+			HTMLURL: "http://localhost:3003/user2/repo1/wiki/Unescaped-File",
 			SubURL:  "Unescaped-File",
-			Updated: "2021-07-19T18:42:46+02:00",
+			LastCommit: &api.WikiCommit{
+				ID: "0dca5bd9b5d7ef937710e056f575e86c0184ba85",
+				Author: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "6543",
+						Email: "6543@obermui.de",
+					},
+					Date: "2021-07-19T16:42:46Z",
+				},
+				Committer: &api.CommitUser{
+					Identity: api.Identity{
+						Name:  "6543",
+						Email: "6543@obermui.de",
+					},
+					Date: "2021-07-19T16:42:46Z",
+				},
+				Message: "add unescaped file\n",
+			},
 		},
 	}
 
@@ -112,9 +186,9 @@ func TestAPINewWikiPage(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/new?token=%s", username, "repo1", token)
 
 		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateWikiPageOptions{
-			Title:   title,
-			Content: "Wiki page content for API unit tests",
-			Message: "",
+			Title:         title,
+			ContentBase64: base64.StdEncoding.EncodeToString([]byte("Wiki page content for API unit tests")),
+			Message:       "",
 		})
 		session.MakeRequest(t, req, http.StatusCreated)
 	}
@@ -129,9 +203,9 @@ func TestAPIEditWikiPage(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/wiki/page/Page-With-Spaced-Name?token=%s", username, "repo1", token)
 
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.CreateWikiPageOptions{
-		Title:   "edited title",
-		Content: "Edited wiki page content for API unit tests",
-		Message: "",
+		Title:         "edited title",
+		ContentBase64: base64.StdEncoding.EncodeToString([]byte("Edited wiki page content for API unit tests")),
+		Message:       "",
 	})
 	session.MakeRequest(t, req, http.StatusOK)
 }
@@ -158,14 +232,14 @@ func TestAPIListPageRevisions(t *testing.T) {
 						Name:  "Ethan Koenig",
 						Email: "ethantkoenig@gmail.com",
 					},
-					Date: "2017-11-26T20:31:18-08:00",
+					Date: "2017-11-27T04:31:18Z",
 				},
 				Committer: &api.CommitUser{
 					Identity: api.Identity{
 						Name:  "Ethan Koenig",
 						Email: "ethantkoenig@gmail.com",
 					},
-					Date: "2017-11-26T20:31:18-08:00",
+					Date: "2017-11-27T04:31:18Z",
 				},
 				Message: "Add Home.md\n",
 			},

@@ -800,13 +800,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, mustEnableIssues, reqToken())
 				m.Group("/wiki", func() {
 					m.Combo("/page/{pageName}").
-						Get(mustEnableWiki, repo.GetWikiPage).
-						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
-						Delete(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), repo.DeleteWikiPage)
-					m.Get("/revisions/{pageName}", mustEnableWiki, repo.ListPageRevisions)
-					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), mustEnableWiki, reqToken(), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
-					m.Get("/pages", mustEnableWiki, repo.ListWikiPages)
-				})
+						Get(repo.GetWikiPage).
+						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
+						Delete(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), repo.DeleteWikiPage)
+					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
+					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
+					m.Get("/pages", repo.ListWikiPages)
+				}, mustEnableWiki)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
