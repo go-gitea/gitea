@@ -1,6 +1,6 @@
 const {csrfToken} = window.config;
 
-export default async function initProject() {
+export default async function initRepoProject() {
   if (!$('.repository.projects').length) {
     return;
   }

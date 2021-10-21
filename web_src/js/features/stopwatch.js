@@ -3,7 +3,7 @@ const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.
 
 let updateTimeInterval = null; // holds setInterval id when active
 
-export async function initStopwatch() {
+export function initStopwatch() {
   if (!enableTimeTracking) {
     return;
   }
@@ -135,7 +135,7 @@ async function updateStopwatchData(data) {
     $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
     $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
     $('.stopwatch-time').text(prettyMilliseconds(seconds * 1000));
-    updateStopwatchTime(seconds);
+    await updateStopwatchTime(seconds);
     btnEl.removeClass('hidden');
   }
 
