@@ -76,12 +76,12 @@ func doAPICreateRepository(ctx APITestContext, empty bool, callback ...func(*tes
 
 func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
-		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), ctx.Token), editRepoOption)
+		req := NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/repos/%s/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame)), editRepoOption)
 		if ctx.ExpectedCode != 0 {
-			MakeRequest(t, req, ctx.ExpectedCode)
+			ctx.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := MakeRequest(t, req, http.StatusOK)
+		resp := ctx.MakeRequest(t, req, http.StatusOK)
 
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
@@ -103,24 +103,24 @@ func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessM
 		addCollaboratorOption := &api.AddCollaboratorOption{
 			Permission: &permission,
 		}
-		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s?token=%s", ctx.Username, ctx.Reponame, username, ctx.Token), addCollaboratorOption)
+		req := NewRequestWithJSON(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/collaborators/%s", ctx.Username, ctx.Reponame, username), addCollaboratorOption)
 		if ctx.ExpectedCode != 0 {
-			MakeRequest(t, req, ctx.ExpectedCode)
+			ctx.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		MakeRequest(t, req, http.StatusNoContent)
+		ctx.MakeRequest(t, req, http.StatusNoContent)
 	}
 }
 
 func doAPIForkRepository(ctx APITestContext, username string, callback ...func(*testing.T, api.Repository)) func(*testing.T) {
 	return func(t *testing.T) {
 		createForkOption := &api.CreateForkOption{}
-		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks?token=%s", username, ctx.Reponame, ctx.Token), createForkOption)
+		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/forks", username, ctx.Reponame), createForkOption)
 		if ctx.ExpectedCode != 0 {
-			MakeRequest(t, req, ctx.ExpectedCode)
+			ctx.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		resp := MakeRequest(t, req, http.StatusAccepted)
+		resp := ctx.MakeRequest(t, req, http.StatusAccepted)
 		var repository api.Repository
 		DecodeJSON(t, resp, &repository)
 		if len(callback) > 0 {
@@ -256,6 +256,41 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 		pr := api.PullRequest{}
 		err := decoder.Decode(&pr)
 		return pr, err
+	}
+}
+
+func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) (api.PullRequest, error) {
+	return func(t *testing.T) (api.PullRequest, error) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d", owner, repo, index)
+		req := NewRequest(t, http.MethodGet, urlStr)
+
+		expected := 200
+		if ctx.ExpectedCode != 0 {
+			expected = ctx.ExpectedCode
+		}
+		resp := ctx.MakeRequest(t, req, expected)
+
+		decoder := json.NewDecoder(resp.Body)
+		pr := api.PullRequest{}
+		err := decoder.Decode(&pr)
+		return pr, err
+	}
+}
+
+func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge",
+			owner, repo, index)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
+			Do:            string(models.MergeStyleManuallyMerged),
+			MergeCommitID: commitID,
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.MakeRequest(t, req, 200)
 	}
 }
 
