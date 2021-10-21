@@ -316,6 +316,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["EnableXORMLog"] = setting.EnableXORMLog
 	ctx.Data["LogSQL"] = setting.Database.LogSQL
+	ctx.Data["JSONLibrary"] = json.DefaultJSONHandlerType
 
 	ctx.HTML(http.StatusOK, tplConfig)
 }

@@ -39,6 +39,8 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `RUN_USER`: **git**: The user Gitea will run as. This should be a dedicated system
    (non-user) account. Setting this incorrectly will cause Gitea to not start.
 - `RUN_MODE`: **prod**: Application run mode, affects performance and debugging. Either "dev", "prod" or "test".
+- `JSON_LIBRARY`: **jsoniter**: JSON library to use. Either "std", "goccy", or "jsoniter". Will default to "jsoniter"
+
 
 ## Repository (`repository`)
 

@@ -34,7 +34,7 @@ type Interface interface {
 }
 
 // DefaultJSONHandlerType is the type of library used as the backend for the JSON library
-var DefaultJSONHandlerType = "goccy"
+var DefaultJSONHandlerType = "jsoniter"
 
 var (
 	// DefaultJSONHandler default json handler
@@ -52,6 +52,9 @@ func init() {
 // SelectDefaultJSONHandler selects the default JSON handler
 // Note: this function is not race safe and would need to be run before other uses
 func SelectDefaultJSONHandler(typ string) {
+	if typ == DefaultJSONHandlerType {
+		return
+	}
 	switch strings.ToLower(typ) {
 	case "std":
 		DefaultJSONHandler = StdJSON{}
@@ -60,8 +63,7 @@ func SelectDefaultJSONHandler(typ string) {
 		DefaultJSONHandler = GoCcyJSON{}
 		DefaultJSONHandlerType = "goccy"
 	case "jsoniter":
-		DefaultJSONHandler = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
-		DefaultJSONHandlerType = "jsoniter"
+		fallthrough
 	default:
 		DefaultJSONHandler = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
 		DefaultJSONHandlerType = "jsoniter"

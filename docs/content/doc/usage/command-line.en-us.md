@@ -32,6 +32,7 @@ All global options can be placed at the command level.
 - `--custom-path path`, `-C path`: Location of the Gitea custom folder. Optional. (default: `AppWorkPath`/custom or `$GITEA_CUSTOM`).
 - `--config path`, `-c path`: Gitea configuration file path. Optional. (default: `custom`/conf/app.ini).
 - `--work-path path`, `-w path`: Gitea `AppWorkPath`. Optional. (default: LOCATION_OF_GITEA_BINARY or `$GITEA_WORK_DIR`)
+- `--json-library`: JSON library to use. Optional. (default: `jsoniter`, but may be: `std`, `goccy` or `jsoniter`)
 
 NB: The defaults custom-path, config and work-path can also be
 changed at build time (if preferred).

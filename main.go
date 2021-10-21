@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/cmd"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -99,6 +100,11 @@ arguments - which can alternatively be run by running the subcommand web.`
 			Value: setting.AppWorkPath,
 			Usage: "Set the gitea working path",
 		},
+		cli.StringFlag{
+			Name:  "json-library",
+			Value: json.DefaultJSONHandlerType,
+			Usage: "Set the default json library type",
+		},
 	}
 
 	// Set the default to be equivalent to cmdWeb and add the default flags
@@ -130,10 +136,14 @@ func establishCustomPath(ctx *cli.Context) error {
 	var providedCustom string
 	var providedConf string
 	var providedWorkPath string
+	var defaultJSONHandler string
 
 	currentCtx := ctx
 	for {
-		if len(providedCustom) != 0 && len(providedConf) != 0 && len(providedWorkPath) != 0 {
+		if len(providedCustom) != 0 &&
+			len(providedConf) != 0 &&
+			len(providedWorkPath) != 0 &&
+			len(defaultJSONHandler) != 0 {
 			break
 		}
 		if currentCtx == nil {
@@ -148,9 +158,13 @@ func establishCustomPath(ctx *cli.Context) error {
 		if currentCtx.IsSet("work-path") && len(providedWorkPath) == 0 {
 			providedWorkPath = currentCtx.String("work-path")
 		}
+		if currentCtx.IsSet("json-library") && len(defaultJSONHandler) == 0 {
+			defaultJSONHandler = currentCtx.String("json-library")
+		}
 		currentCtx = currentCtx.Parent()
 
 	}
+	json.SelectDefaultJSONHandler(defaultJSONHandler)
 	setting.SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath)
 
 	setAppHelpTemplates()
