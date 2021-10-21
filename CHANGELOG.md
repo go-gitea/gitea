@@ -4,6 +4,23 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.15.5](https://github.com/go-gitea/gitea/releases/tag/v1.15.5) - 2021-10-21
+
+* SECURITY
+  * Upgrade Bluemonday to v1.0.16 (#17372) (#17374)
+  * Ensure correct SSH permissions check for private and restricted users (#17370) (#17373)
+* BUGFIXES
+  * Prevent NPE in CSV diff rendering when column removed (#17018) (#17377)
+  * Offer rsa-sha2-512 and rsa-sha2-256 algorithms in internal SSH (#17281) (#17376)
+  * Don't panic if we fail to parse U2FRegistration data (#17304) (#17371)
+  * Ensure popup text is aligned left (backport for 1.15) (#17343)
+  * Ensure that git daemon export ok is created for mirrors (#17243) (#17306)
+  * Disable core.protectNTFS (#17300) (#17302)
+  * Use pointer for wrappedConn methods (#17295) (#17296)
+  * AutoRegistration is supposed to be working with disabled registration (backport) (#17292)
+  * Handle duplicate keys on GPG key ring (#17242) (#17284)
+  * Fix SVG side by side comparison link (#17375) (#17391)
+
 ## [1.15.4](https://github.com/go-gitea/gitea/releases/tag/v1.15.4) - 2021-10-08
 * BUGFIXES
   * Raw file API: don't try to interpret 40char filenames as commit SHA (#17185) (#17272)
