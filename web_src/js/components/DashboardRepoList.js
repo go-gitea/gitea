@@ -1,7 +1,7 @@
 import Vue from 'vue';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
-const {AppSubUrl, AssetUrlPrefix, pageData} = window.config;
+const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
 function initVueComponents() {
   Vue.component('repo-search', {
@@ -95,7 +95,7 @@ function initVueComponents() {
         finalPage: 1,
         searchQuery,
         isLoading: false,
-        staticPrefix: AssetUrlPrefix,
+        staticPrefix: assetUrlPrefix,
         counts: {},
         repoTypes: {
           all: {
@@ -361,7 +361,8 @@ export function initDashboardRepoList() {
     data: () => {
       return {
         searchLimit: dashboardRepoListData.searchLimit || 0,
-        subUrl: AppSubUrl,
+        subUrl: appSubUrl,
+        uid: dashboardRepoListData.uid || 0,
       };
     },
   });

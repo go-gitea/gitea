@@ -1,7 +1,7 @@
 import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 let previewFileModes;
 
@@ -21,7 +21,7 @@ function initEditPreviewTab($form) {
       }
       context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
-        _csrf: csrf,
+        _csrf: csrfToken,
         mode,
         context,
         text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
@@ -40,7 +40,7 @@ function initEditDiffTab($form) {
   $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       context: $this.data('context'),
       content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
     }, (data) => {

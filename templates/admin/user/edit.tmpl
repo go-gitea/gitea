@@ -8,6 +8,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.i18n.Tr "username"}}</label>
@@ -67,7 +68,6 @@
 					<label for="email">{{.i18n.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
-				<input class="fake" type="password">
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
