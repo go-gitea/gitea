@@ -4,16 +4,45 @@
 function onSuccess(btn) {
   if (!btn.dataset.content) return;
   $(btn).popup('destroy');
+  const oldContent = btn.dataset.content;
   btn.dataset.content = btn.dataset.success;
   $(btn).popup('show');
-  btn.dataset.content = btn.dataset.original;
+  btn.dataset.content = oldContent;
 }
 function onError(btn) {
   if (!btn.dataset.content) return;
+  const oldContent = btn.dataset.content;
   $(btn).popup('destroy');
   btn.dataset.content = btn.dataset.error;
   $(btn).popup('show');
-  btn.dataset.content = btn.dataset.original;
+  btn.dataset.content = oldContent;
+}
+
+/**
+ * Fallback to use if navigator.clipboard doesn't exist.
+ * Achieved via creating a temporary textarea element, selecting the text, and using document.execCommand.
+ */
+function fallbackCopyToClipboard(text) {
+  if (!document.execCommand) return false;
+
+  const tempTextArea = document.createElement('textarea');
+  tempTextArea.value = text;
+
+  // avoid scrolling
+  tempTextArea.style.top = 0;
+  tempTextArea.style.left = 0;
+  tempTextArea.style.position = 'fixed';
+
+  document.body.appendChild(tempTextArea);
+
+  tempTextArea.select();
+
+  // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
+  const success = document.execCommand('copy');
+
+  document.body.removeChild(tempTextArea);
+
+  return success;
 }
 
 export default function initGlobalCopyToClipboardListener() {
@@ -33,7 +62,11 @@ export default function initGlobalCopyToClipboardListener() {
           await navigator.clipboard.writeText(text);
           onSuccess(target);
         } catch {
-          onError(target);
+          if (fallbackCopyToClipboard(text)) {
+            onSuccess(target);
+          } else {
+            onError(target);
+          }
         }
         break;
       }

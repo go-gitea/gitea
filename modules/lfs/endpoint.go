@@ -29,9 +29,7 @@ func endpointFromCloneURL(rawurl string) *url.URL {
 		return ep
 	}
 
-	if strings.HasSuffix(ep.Path, "/") {
-		ep.Path = ep.Path[:len(ep.Path)-1]
-	}
+	ep.Path = strings.TrimSuffix(ep.Path, "/")
 
 	if ep.Scheme == "file" {
 		return ep
