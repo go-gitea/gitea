@@ -27,7 +27,7 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 const commentMDEditors = {};
 
@@ -54,7 +54,7 @@ export function initRepoCommentForm() {
 
       if (editMode === 'true') {
         const form = $('#update_issueref_form');
-        $.post(form.attr('action'), {_csrf: csrf, ref: selectedValue}, () => window.location.reload());
+        $.post(form.attr('action'), {_csrf: csrfToken, ref: selectedValue}, () => window.location.reload());
       } else if (editMode === '') {
         $selectBranch.find('.ui .branch-name').text(selectedValue);
       }
@@ -370,7 +370,7 @@ export async function initRepository() {
           const fileUuidDict = {};
           dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
-            headers: {'X-Csrf-Token': csrf},
+            headers: {'X-Csrf-Token': csrfToken},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
             acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
@@ -396,7 +396,7 @@ export async function initRepository() {
                 if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
                   $.post($dropzone.data('remove-url'), {
                     file: file.uuid,
-                    _csrf: csrf,
+                    _csrf: csrfToken,
                   });
                 }
               });
@@ -458,7 +458,7 @@ export async function initRepository() {
             return $(this).val();
           }).get();
           $.post($editContentZone.data('update-url'), {
-            _csrf: csrf,
+            _csrf: csrfToken,
             content: $textarea.val(),
             context: $editContentZone.data('context'),
             files: $attachments,

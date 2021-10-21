@@ -1,7 +1,7 @@
-const {csrf, PageIsProjects} = window.config;
+const {csrfToken} = window.config;
 
 export default async function initProject() {
-  if (!PageIsProjects) {
+  if (!$('.repository.projects').length) {
     return;
   }
 
@@ -25,7 +25,7 @@ export default async function initProject() {
               url: $(column).data('url'),
               data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
               headers: {
-                'X-Csrf-Token': csrf,
+                'X-Csrf-Token': csrfToken,
                 'X-Remote': true,
               },
               contentType: 'application/json',
@@ -47,7 +47,7 @@ export default async function initProject() {
         onAdd: (e) => {
           $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
             headers: {
-              'X-Csrf-Token': csrf,
+              'X-Csrf-Token': csrfToken,
               'X-Remote': true,
             },
             contentType: 'application/json',
@@ -83,7 +83,7 @@ export default async function initProject() {
           url: $(this).data('url'),
           data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
           headers: {
-            'X-Csrf-Token': csrf,
+            'X-Csrf-Token': csrfToken,
             'X-Remote': true,
           },
           contentType: 'application/json',
@@ -107,7 +107,7 @@ export default async function initProject() {
       method: 'POST',
       url: $(this).data('url'),
       headers: {
-        'X-Csrf-Token': csrf,
+        'X-Csrf-Token': csrfToken,
         'X-Remote': true,
       },
       contentType: 'application/json',
@@ -123,7 +123,7 @@ export default async function initProject() {
       $.ajax({
         url: $(this).data('url'),
         headers: {
-          'X-Csrf-Token': csrf,
+          'X-Csrf-Token': csrfToken,
           'X-Remote': true,
         },
         contentType: 'application/json',
@@ -144,7 +144,7 @@ export default async function initProject() {
       url: $(this).data('url'),
       data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
       headers: {
-        'X-Csrf-Token': csrf,
+        'X-Csrf-Token': csrfToken,
         'X-Remote': true,
       },
       contentType: 'application/json',

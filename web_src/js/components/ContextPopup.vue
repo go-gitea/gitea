@@ -22,7 +22,7 @@
 <script>
 import {SvgIcon} from '../svg.js';
 
-const {AppSubUrl} = window.config;
+const {appSubUrl} = window.config;
 
 // NOTE: see models/issue_label.go for similar implementation
 const srgbToLinear = (color) => {
@@ -112,7 +112,7 @@ export default {
   methods: {
     load(data, callback) {
       this.loading = true;
-      $.get(`${AppSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`, (issue) => {
+      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`, (issue) => {
         this.issue = issue;
         this.loading = false;
         this.$nextTick(() => {

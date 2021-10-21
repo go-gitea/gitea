@@ -1,11 +1,11 @@
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 function getArchive($target, url, first) {
   $.ajax({
     url,
     type: 'POST',
     data: {
-      _csrf: csrf,
+      _csrf: csrfToken,
     },
     complete(xhr) {
       if (xhr.status === 200) {
