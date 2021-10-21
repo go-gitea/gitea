@@ -351,7 +351,7 @@ var migrations = []Migration{
 	// v198 -> v199
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 	// v199 -> v200
-	NewMigration("Add remote version table", addRemoteVersionTable),
+	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
 	// v200 -> v201
 	NewMigration("Add table app_state", addTableAppState),
 }
