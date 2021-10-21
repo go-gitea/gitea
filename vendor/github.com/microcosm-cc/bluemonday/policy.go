@@ -134,6 +134,19 @@ type Policy struct {
 	setOfElementsMatchingAllowedWithoutAttrs []*regexp.Regexp
 
 	setOfElementsToSkipContent map[string]struct{}
+
+	// Permits fundamentally unsafe elements.
+	//
+	// If false (default) then elements such as `style` and `script` will not be
+	// permitted even if declared in a policy. These elements when combined with
+	// untrusted input cannot be safely handled by bluemonday at this point in
+	// time.
+	//
+	// If true then `style` and `script` would be permitted by bluemonday if a
+	// policy declares them. However this is not recommended under any circumstance
+	// and can lead to XSS being rendered thus defeating the purpose of using a
+	// HTML sanitizer.
+	allowUnsafe bool
 }
 
 type attrPolicy struct {
@@ -711,6 +724,23 @@ func (p *Policy) AllowElementsContent(names ...string) *Policy {
 		delete(p.setOfElementsToSkipContent, strings.ToLower(element))
 	}
 
+	return p
+}
+
+// AllowUnsafe permits fundamentally unsafe elements.
+//
+// If false (default) then elements such as `style` and `script` will not be
+// permitted even if declared in a policy. These elements when combined with
+// untrusted input cannot be safely handled by bluemonday at this point in
+// time.
+//
+// If true then `style` and `script` would be permitted by bluemonday if a
+// policy declares them. However this is not recommended under any circumstance
+// and can lead to XSS being rendered thus defeating the purpose of using a
+// HTML sanitizer.
+func (p *Policy) AllowUnsafe(allowUnsafe bool) *Policy {
+	p.init()
+	p.allowUnsafe = allowUnsafe
 	return p
 }
 
