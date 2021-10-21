@@ -4,7 +4,7 @@ import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoIssueTimeTracking() {
   $(document).on('click', '.issue-add-time', () => {
@@ -58,7 +58,7 @@ function updateDeadline(deadlineString) {
       due_date: realDeadline,
     }),
     headers: {
-      'X-Csrf-Token': csrf,
+      'X-Csrf-Token': csrfToken,
       'X-Remote': true,
     },
     contentType: 'application/json',
@@ -91,9 +91,9 @@ export function initRepoIssueList() {
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
   const tp = $('#type').val();
-  let issueSearchUrl = `${AppSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
+  let issueSearchUrl = `${appSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${AppSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -157,7 +157,7 @@ export function initRepoIssueCommentDelete() {
     const $this = $(this);
     if (window.confirm($this.data('locale'))) {
       $.post($this.data('url'), {
-        _csrf: csrf,
+        _csrf: csrfToken,
       }).done(() => {
         const $conversationHolder = $this.closest('.conversation-holder');
         $(`#${$this.data('comment-id')}`).remove();
@@ -258,7 +258,7 @@ export function initRepoPullRequestUpdate() {
     const redirect = $this.data('redirect');
     $this.addClass('loading');
     $.post($this.data('do'), {
-      _csrf: csrf
+      _csrf: csrfToken
     }).done((data) => {
       if (data.redirect) {
         window.location.href = data.redirect;
@@ -291,7 +291,7 @@ export function initRepoIssueReferenceRepositorySearch() {
   $('.issue_reference_repository_search')
     .dropdown({
       apiSettings: {
-        url: `${AppSubUrl}/api/v1/repos/search?q={query}&limit=20`,
+        url: `${appSubUrl}/api/v1/repos/search?q={query}&limit=20`,
         onResponse(response) {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
@@ -306,7 +306,7 @@ export function initRepoIssueReferenceRepositorySearch() {
       },
       onChange(_value, _text, $choice) {
         const $form = $choice.closest('form');
-        $form.attr('action', `${AppSubUrl}/${_text}/issues/new`);
+        $form.attr('action', `${appSubUrl}/${_text}/issues/new`);
       },
       fullTextSearch: true
     });
@@ -338,7 +338,7 @@ export function updateIssuesMeta(url, action, issueIds, elementId) {
       type: 'POST',
       url,
       data: {
-        _csrf: csrf,
+        _csrf: csrfToken,
         action,
         issue_ids: issueIds,
         id: elementId,
@@ -556,7 +556,7 @@ export function initRepoIssueWipToggle() {
     e.preventDefault();
     const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
     await $.post(updateUrl, {
-      _csrf: csrf,
+      _csrf: csrfToken,
       title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
     });
     window.location.reload();
@@ -591,7 +591,7 @@ export function initRepoIssueTitleEdit() {
         return false;
       }
       $.post(update_url, {
-        _csrf: csrf,
+        _csrf: csrfToken,
         target_branch: targetBranch
       }).done((data) => {
         $branchTarget.text(data.base_branch);
@@ -606,7 +606,7 @@ export function initRepoIssueTitleEdit() {
       pullrequest_targetbranch_change(pullrequest_target_update_url);
     } else {
       $.post($(this).data('update-url'), {
-        _csrf: csrf,
+        _csrf: csrfToken,
         title: $editInput.val()
       }, (data) => {
         $editInput.val(data.title);

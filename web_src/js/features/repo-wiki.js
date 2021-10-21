@@ -1,7 +1,7 @@
 import {initMarkupContent} from '../markup/content.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initRepoWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
@@ -22,7 +22,7 @@ export function initRepoWikiForm() {
             sideBySideTimeout = null;
           }
           $.post($editArea.data('url'), {
-            _csrf: csrf,
+            _csrf: csrfToken,
             mode: 'gfm',
             context: $editArea.data('context'),
             text: plainText,

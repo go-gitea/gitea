@@ -1,6 +1,6 @@
 import {svg} from '../svg.js';
 
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 let i18nTextEdited;
 let i18nTextOptions;
@@ -37,7 +37,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
       if (optionItem === 'delete') {
         if (window.confirm(i18nTextDeleteFromHistoryConfirm)) {
           $.post(`${issueBaseUrl}/content-history/soft-delete?comment_id=${commentId}&history_id=${historyId}`, {
-            _csrf: csrf,
+            _csrf: csrfToken,
           }).done((resp) => {
             if (resp.ok) {
               $dialog.modal('hide');
@@ -59,7 +59,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
       $.ajax({
         url: `${issueBaseUrl}/content-history/detail?comment_id=${commentId}&history_id=${historyId}`,
         data: {
-          _csrf: csrf,
+          _csrf: csrfToken,
         },
       }).done((resp) => {
         $dialog.find('.content').html(resp.diffHtml);
@@ -110,12 +110,12 @@ export function initIssueContentHistory() {
   if (!issueIndex || !$itemIssue.length) return;
 
   const repoLink = $('#repolink').val();
-  const issueBaseUrl = `${AppSubUrl}/${repoLink}/issues/${issueIndex}`;
+  const issueBaseUrl = `${appSubUrl}/${repoLink}/issues/${issueIndex}`;
 
   $.ajax({
     url: `${issueBaseUrl}/content-history/overview`,
     data: {
-      _csrf: csrf,
+      _csrf: csrfToken,
     },
   }).done((resp) => {
     i18nTextEdited = resp.i18n.textEdited;

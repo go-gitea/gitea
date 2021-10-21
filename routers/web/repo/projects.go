@@ -205,7 +205,6 @@ func DeleteProject(ctx *context.Context) {
 // EditProject allows a project to be edited
 func EditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
-	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
@@ -233,7 +232,6 @@ func EditProject(ctx *context.Context) {
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
-	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 
@@ -335,8 +333,6 @@ func ViewProject(ctx *context.Context) {
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["Boards"] = boards
-	ctx.Data["PageIsProjects"] = true
-	ctx.Data["RequiresDraggable"] = true
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
