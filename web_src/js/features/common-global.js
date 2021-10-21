@@ -119,14 +119,19 @@ export function initGlobalCommon() {
     $($(this).data('target')).slideToggle(100);
   });
 
-  // make table <tr> element clickable like a link
-  $('tr[data-href]').on('click', function () {
-    window.location = $(this).data('href');
-  });
-
-  // make table <td> element clickable like a link
-  $('td[data-href]').click(function () {
-    window.location = $(this).data('href');
+  // make table <tr> and <td> elements clickable like a link
+  $('tr[data-href], td[data-href]').on('click', function (e) {
+    const href = $(this).data('href');
+    if (e.target.nodeName === 'A') {
+      // if a user clicks on <a>, then the <tr> or <td> should not act as a link.
+      return;
+    }
+    if (e.ctrlKey || e.metaKey) {
+      // ctrl+click or meta+click opens a new window in modern browsers
+      window.open(href);
+    } else {
+      window.location = href;
+    }
   });
 }
 
