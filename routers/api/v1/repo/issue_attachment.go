@@ -33,7 +33,7 @@ import (
 func GetIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueGetIssueAttachment
 	// ---
-	// summary: Get a issue attachment
+	// summary: Get an issue attachment
 	// produces:
 	// - application/json
 	// parameters:
@@ -66,7 +66,7 @@ func GetIssueAttachment(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	issueIndex := ctx.ParamsInt64(":index")
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.RepoID, issueIndex)
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
 		ctx.NotFoundOrServerError("GetIssueByID", models.IsErrIssueNotExist, err)
 		return
@@ -125,7 +125,7 @@ func ListIssueAttachments(ctx *context.APIContext) {
 func CreateIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/assets issue issueCreateIssueAttachment
 	// ---
-	// summary: Create a issue attachment
+	// summary: Create an issue attachment
 	// produces:
 	// - application/json
 	// consumes:
@@ -214,7 +214,7 @@ func CreateIssueAttachment(ctx *context.APIContext) {
 func EditIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation PATCH /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueEditIssueAttachment
 	// ---
-	// summary: Edit a issue attachment
+	// summary: Edit an issue attachment
 	// produces:
 	// - application/json
 	// consumes:
@@ -272,7 +272,7 @@ func EditIssueAttachment(ctx *context.APIContext) {
 func DeleteIssueAttachment(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/assets/{attachment_id} issue issueDeleteIssueAttachment
 	// ---
-	// summary: Delete a issue attachment
+	// summary: Delete an issue attachment
 	// produces:
 	// - application/json
 	// parameters:
