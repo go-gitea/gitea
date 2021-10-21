@@ -1,6 +1,6 @@
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
   $(document).on('click', 'button[name="is_review"]', (e) => {
@@ -45,7 +45,7 @@ export function initRepoDiffConversationForm() {
     const action = $(this).data('action');
     const url = $(this).data('update-url');
 
-    const data = await $.post(url, {_csrf: csrf, origin, action, comment_id});
+    const data = await $.post(url, {_csrf: csrfToken, origin, action, comment_id});
 
     if ($(this).closest('.conversation-holder').length) {
       const conversation = $(data);

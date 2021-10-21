@@ -1,10 +1,10 @@
 import prettyMilliseconds from 'pretty-ms';
-const {AppSubUrl, csrf, NotificationSettings, EnableTimetracking} = window.config;
+const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 
 let updateTimeInterval = null; // holds setInterval id when active
 
 export async function initStopwatch() {
-  if (!EnableTimetracking) {
+  if (!enableTimeTracking) {
     return;
   }
 
@@ -25,7 +25,7 @@ export async function initStopwatch() {
     $(this).parent().trigger('submit');
   });
 
-  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
     const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
     worker.addEventListener('error', (event) => {
@@ -36,7 +36,7 @@ export async function initStopwatch() {
     });
     worker.port.postMessage({
       type: 'start',
-      url: `${window.location.origin}${AppSubUrl}/user/events`,
+      url: `${window.location.origin}${appSubUrl}/user/events`,
     });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
@@ -55,7 +55,7 @@ export async function initStopwatch() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = AppSubUrl;
+        window.location.href = appSubUrl;
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
@@ -77,7 +77,7 @@ export async function initStopwatch() {
     return;
   }
 
-  if (NotificationSettings.MinTimeout <= 0) {
+  if (notificationSettings.MinTimeout <= 0) {
     return;
   }
 
@@ -87,7 +87,7 @@ export async function initStopwatch() {
     }, timeout);
   };
 
-  fn(NotificationSettings.MinTimeout);
+  fn(notificationSettings.MinTimeout);
 
   const currSeconds = $('.stopwatch-time').data('seconds');
   if (currSeconds) {
@@ -99,9 +99,9 @@ async function updateStopwatchWithCallback(callback, timeout) {
   const isSet = await updateStopwatch();
 
   if (!isSet) {
-    timeout = NotificationSettings.MinTimeout;
-  } else if (timeout < NotificationSettings.MaxTimeout) {
-    timeout += NotificationSettings.TimeoutStep;
+    timeout = notificationSettings.MinTimeout;
+  } else if (timeout < notificationSettings.MaxTimeout) {
+    timeout += notificationSettings.TimeoutStep;
   }
 
   callback(timeout);
@@ -110,8 +110,8 @@ async function updateStopwatchWithCallback(callback, timeout) {
 async function updateStopwatch() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${AppSubUrl}/api/v1/user/stopwatches`,
-    headers: {'X-Csrf-Token': csrf},
+    url: `${appSubUrl}/api/v1/user/stopwatches`,
+    headers: {'X-Csrf-Token': csrfToken},
   });
 
   if (updateTimeInterval) {
@@ -129,7 +129,7 @@ async function updateStopwatchData(data) {
     btnEl.addClass('hidden');
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;
-    const issueUrl = `${AppSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
+    const issueUrl = `${appSubUrl}/${repo_owner_name}/${repo_name}/issues/${issue_index}`;
     $('.stopwatch-link').attr('href', issueUrl);
     $('.stopwatch-commit').attr('action', `${issueUrl}/times/stopwatch/toggle`);
     $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
