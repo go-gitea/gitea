@@ -38,7 +38,7 @@ var DefaultJSONHandlerType = "jsoniter"
 
 var (
 	// DefaultJSONHandler default json handler
-	DefaultJSONHandler Interface = JSONiter{}
+	DefaultJSONHandler Interface = JSONiter{jsoniter.ConfigCompatibleWithStandardLibrary}
 
 	_ Interface = StdJSON{}
 	_ Interface = JSONiter{}
