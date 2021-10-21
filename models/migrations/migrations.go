@@ -354,6 +354,8 @@ var migrations = []Migration{
 	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
 	// v200 -> v201
 	NewMigration("Add table app_state", addTableAppState),
+	// v201 -> v202
+	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
 }
 
 // GetCurrentDBVersion returns the current db version
