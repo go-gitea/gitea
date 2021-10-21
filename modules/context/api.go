@@ -110,7 +110,6 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 // and the file and line of the caller.
 func (ctx *APIContext) InternalServerError(err error) {
 	ctx.Error(http.StatusInternalServerError, "InternalServerError", err)
-	return
 }
 
 // NotFoundOrServerError use error check function to determine if the error
