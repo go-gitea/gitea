@@ -1,4 +1,4 @@
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export async function initLastCommitLoader() {
   const entryMap = {};
@@ -18,7 +18,7 @@ export async function initLastCommitLoader() {
 
   if (entries.length > 200) {
     $.post(lastCommitLoaderURL, {
-      _csrf: csrf,
+      _csrf: csrfToken,
     }, (data) => {
       $('table#repo-files-table').replaceWith(data);
     });
@@ -26,7 +26,7 @@ export async function initLastCommitLoader() {
   }
 
   $.post(lastCommitLoaderURL, {
-    _csrf: csrf,
+    _csrf: csrfToken,
     'f': entries,
   }, (data) => {
     $(data).find('tr').each((_, row) => {
