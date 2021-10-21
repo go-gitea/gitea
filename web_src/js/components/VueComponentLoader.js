@@ -8,7 +8,7 @@ export function initVueEnv() {
   if (vueEnvInited) return;
   vueEnvInited = true;
 
-  const isProd = window.config.IsProd;
+  const isProd = window.config.runModeIsProd;
   Vue.config.productionTip = false;
   Vue.config.devtools = !isProd;
 }

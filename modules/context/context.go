@@ -645,7 +645,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"Link":          link,
-					"IsProd":        setting.IsProd,
+					"RunModeIsProd": setting.IsProd,
 				},
 			}
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
