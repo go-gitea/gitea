@@ -420,16 +420,12 @@ var (
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
 	RunMode       string
+	IsProd        bool
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
 	InternalToken string // internal access token
 )
-
-// IsProd if it's a production mode
-func IsProd() bool {
-	return strings.EqualFold(RunMode, "prod")
-}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -908,6 +904,7 @@ func NewContext() {
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
 	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)

@@ -73,7 +73,7 @@ func Middlewares() []func(http.Handler) http.Handler {
 					UpdateContextHandlerPanicError(req.Context(), err)
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 					log.Error("%v", combinedErr)
-					if setting.IsProd() {
+					if setting.IsProd {
 						http.Error(resp, http.StatusText(500), 500)
 					} else {
 						http.Error(resp, combinedErr, 500)

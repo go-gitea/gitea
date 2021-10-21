@@ -136,8 +136,8 @@ func NewTestEngine() (err error) {
 	}
 
 	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.IsProd()))
-	x.ShowSQL(!setting.IsProd())
+	x.SetLogger(NewXORMLogger(!setting.IsProd))
+	x.ShowSQL(!setting.IsProd)
 	return syncTables()
 }
 
