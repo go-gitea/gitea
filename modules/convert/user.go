@@ -6,7 +6,6 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -49,7 +48,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
-		FullName:    markup.Sanitize(user.FullName),
+		FullName:    user.FullName,
 		Email:       user.GetEmail(),
 		AvatarURL:   user.AvatarLink(),
 		Created:     user.CreatedUnix.AsTime(),
