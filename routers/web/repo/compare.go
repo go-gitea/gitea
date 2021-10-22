@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"path"
 	"path/filepath"
@@ -105,30 +106,36 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
 
-		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
+		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, io.Closer, error) {
 			blob, err := c.GetBlobByPath(diffFile.Name)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
-				return nil, errTooLarge
+				return nil, nil, errTooLarge
 			}
 
 			reader, err := blob.DataAsync()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			defer reader.Close()
 
-			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+			return csvReader, reader, err
 		}
 
-		baseReader, err := csvReaderFromCommit(baseCommit)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(baseCommit)
+		if baseBlobCloser != nil {
+			defer baseBlobCloser.Close()
+		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
-		headReader, err := csvReaderFromCommit(headCommit)
+		headReader, headBlobCloser, err := csvReaderFromCommit(headCommit)
+		if headBlobCloser != nil {
+			defer headBlobCloser.Close()
+		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
