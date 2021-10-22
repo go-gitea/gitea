@@ -31,7 +31,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 	assert.Equal(t, &api.WikiPage{
 		WikiPageMetaData: &api.WikiPageMetaData{
 			Title:   "Home",
-			HTMLURL: "http://localhost:3001/user2/repo1/wiki/Home",
+			HTMLURL: page.HTMLURL,
 			SubURL:  "Home",
 			LastCommit: &api.WikiCommit{
 				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
@@ -78,7 +78,7 @@ func TestAPIListWikiPages(t *testing.T) {
 	dummymeta := []*api.WikiPageMetaData{
 		{
 			Title:   "Home",
-			HTMLURL: "http://localhost:3001/user2/repo1/wiki/Home",
+			HTMLURL: meta[0].HTMLURL,
 			SubURL:  "Home",
 			LastCommit: &api.WikiCommit{
 				ID: "2c54faec6c45d31c1abfaecdab471eac6633738a",
@@ -101,7 +101,7 @@ func TestAPIListWikiPages(t *testing.T) {
 		},
 		{
 			Title:   "Page With Image",
-			HTMLURL: "http://localhost:3001/user2/repo1/wiki/Page-With-Image",
+			HTMLURL: meta[1].HTMLURL,
 			SubURL:  "Page-With-Image",
 			LastCommit: &api.WikiCommit{
 				ID: "0cf15c3f66ec8384480ed9c3cf87c9e97fbb0ec3",
@@ -124,7 +124,7 @@ func TestAPIListWikiPages(t *testing.T) {
 		},
 		{
 			Title:   "Page With Spaced Name",
-			HTMLURL: "http://localhost:3001/user2/repo1/wiki/Page-With-Spaced-Name",
+			HTMLURL: meta[2].HTMLURL,
 			SubURL:  "Page-With-Spaced-Name",
 			LastCommit: &api.WikiCommit{
 				ID: "c10d10b7e655b3dab1f53176db57c8219a5488d6",
@@ -147,7 +147,7 @@ func TestAPIListWikiPages(t *testing.T) {
 		},
 		{
 			Title:   "Unescaped File",
-			HTMLURL: "http://localhost:3001/user2/repo1/wiki/Unescaped-File",
+			HTMLURL: meta[3].HTMLURL,
 			SubURL:  "Unescaped-File",
 			LastCommit: &api.WikiCommit{
 				ID: "0dca5bd9b5d7ef937710e056f575e86c0184ba85",
