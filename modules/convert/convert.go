@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
@@ -127,6 +128,7 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 		DismissStaleApprovals:         bp.DismissStaleApprovals,
 		RequireSignedCommits:          bp.RequireSignedCommits,
 		ProtectedFilePatterns:         bp.ProtectedFilePatterns,
+		UnprotectedFilePatterns:       bp.UnprotectedFilePatterns,
 		Created:                       bp.CreatedUnix.AsTime(),
 		Updated:                       bp.UpdatedUnix.AsTime(),
 	}
@@ -191,6 +193,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 			CanEncryptComms:   k.CanEncryptComms,
 			CanEncryptStorage: k.CanEncryptStorage,
 			CanCertify:        k.CanSign,
+			Verified:          k.Verified,
 		}
 	}
 	emails := make([]*api.GPGKeyEmail, len(key.Emails))
@@ -210,6 +213,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 		CanEncryptComms:   key.CanEncryptComms,
 		CanEncryptStorage: key.CanEncryptStorage,
 		CanCertify:        key.CanSign,
+		Verified:          key.Verified,
 	}
 }
 
@@ -362,8 +366,8 @@ func ToTopicResponse(topic *models.Topic) *api.TopicResponse {
 	}
 }
 
-// ToOAuth2Application convert from models.OAuth2Application to api.OAuth2Application
-func ToOAuth2Application(app *models.OAuth2Application) *api.OAuth2Application {
+// ToOAuth2Application convert from login.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
 		ID:           app.ID,
 		Name:         app.Name,

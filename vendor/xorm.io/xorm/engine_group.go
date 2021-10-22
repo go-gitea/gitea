@@ -237,3 +237,31 @@ func (eg *EngineGroup) Slave() *Engine {
 func (eg *EngineGroup) Slaves() []*Engine {
 	return eg.slaves
 }
+
+// Query execcute a select SQL and return the result
+func (eg *EngineGroup) Query(sqlOrArgs ...interface{}) (resultsSlice []map[string][]byte, err error) {
+	sess := eg.NewSession()
+	sess.isAutoClose = true
+	return sess.Query(sqlOrArgs...)
+}
+
+// QueryInterface execcute a select SQL and return the result
+func (eg *EngineGroup) QueryInterface(sqlOrArgs ...interface{}) ([]map[string]interface{}, error) {
+	sess := eg.NewSession()
+	sess.isAutoClose = true
+	return sess.QueryInterface(sqlOrArgs...)
+}
+
+// QueryString execcute a select SQL and return the result
+func (eg *EngineGroup) QueryString(sqlOrArgs ...interface{}) ([]map[string]string, error) {
+	sess := eg.NewSession()
+	sess.isAutoClose = true
+	return sess.QueryString(sqlOrArgs...)
+}
+
+// Rows execcute a select SQL and return the result
+func (eg *EngineGroup) Rows(bean interface{}) (*Rows, error) {
+	sess := eg.NewSession()
+	sess.isAutoClose = true
+	return sess.Rows(bean)
+}

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -29,14 +30,14 @@ func int64SliceToCommaSeparated(a []int64) string {
 }
 
 func TestInitializeLabels(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
 	InitializeLabels(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-	models.AssertExistsAndLoadBean(t, &models.Label{
+	db.AssertExistsAndLoadBean(t, &models.Label{
 		RepoID: 2,
 		Name:   "enhancement",
 		Color:  "#84b6eb",
@@ -45,7 +46,7 @@ func TestInitializeLabels(t *testing.T) {
 }
 
 func TestRetrieveLabels(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	for _, testCase := range []struct {
 		RepoID           int64
 		Sort             string
@@ -72,7 +73,7 @@ func TestRetrieveLabels(t *testing.T) {
 }
 
 func TestNewLabel(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -82,7 +83,7 @@ func TestNewLabel(t *testing.T) {
 	})
 	NewLabel(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-	models.AssertExistsAndLoadBean(t, &models.Label{
+	db.AssertExistsAndLoadBean(t, &models.Label{
 		Name:  "newlabel",
 		Color: "#abcdef",
 	})
@@ -90,7 +91,7 @@ func TestNewLabel(t *testing.T) {
 }
 
 func TestUpdateLabel(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -101,7 +102,7 @@ func TestUpdateLabel(t *testing.T) {
 	})
 	UpdateLabel(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-	models.AssertExistsAndLoadBean(t, &models.Label{
+	db.AssertExistsAndLoadBean(t, &models.Label{
 		ID:    2,
 		Name:  "newnameforlabel",
 		Color: "#abcdef",
@@ -110,20 +111,20 @@ func TestUpdateLabel(t *testing.T) {
 }
 
 func TestDeleteLabel(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	ctx.Req.Form.Set("id", "2")
 	DeleteLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	models.AssertNotExistsBean(t, &models.Label{ID: 2})
-	models.AssertNotExistsBean(t, &models.IssueLabel{LabelID: 2})
+	db.AssertNotExistsBean(t, &models.Label{ID: 2})
+	db.AssertNotExistsBean(t, &models.IssueLabel{LabelID: 2})
 	assert.Equal(t, ctx.Tr("repo.issues.label_deletion_success"), ctx.Flash.SuccessMsg)
 }
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -131,8 +132,8 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 	ctx.Req.Form.Set("action", "clear")
 	UpdateIssueLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	models.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
-	models.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
+	db.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
+	db.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
 	models.CheckConsistencyFor(t, &models.Label{})
 }
 
@@ -148,7 +149,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		{"toggle", []int64{1, 3}, 1, false},
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
-		models.PrepareTestEnv(t)
+		db.PrepareTestEnv(t)
 		ctx := test.MockContext(t, "user2/repo1/issues/labels")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
@@ -158,7 +159,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		UpdateIssueLabel(ctx)
 		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 		for _, issueID := range testCase.IssueIDs {
-			models.AssertExistsIf(t, testCase.ExpectedAdd, &models.IssueLabel{
+			db.AssertExistsIf(t, testCase.ExpectedAdd, &models.IssueLabel{
 				IssueID: issueID,
 				LabelID: testCase.LabelID,
 			})

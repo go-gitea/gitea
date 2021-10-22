@@ -15,10 +15,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 const matrixPayloadSizeLimit = 1024 * 64
@@ -39,7 +39,6 @@ var messageTypeText = map[int]string{
 // GetMatrixHook returns Matrix metadata
 func GetMatrixHook(w *models.Webhook) *MatrixMeta {
 	s := &MatrixMeta{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetMatrixHook(%d): %v", w.ID, err)
 	}
@@ -76,12 +75,8 @@ type MatrixPayloadSafe struct {
 	Commits       []*api.PayloadCommit `json:"io.gitea.commits,omitempty"`
 }
 
-// SetSecret sets the Matrix secret
-func (m *MatrixPayloadUnsafe) SetSecret(_ string) {}
-
 // JSONPayload Marshals the MatrixPayloadUnsafe to json
 func (m *MatrixPayloadUnsafe) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -231,7 +226,6 @@ func GetMatrixPayload(p api.Payloader, event models.HookEventType, meta string) 
 	s := new(MatrixPayloadUnsafe)
 
 	matrix := &MatrixMeta{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(meta), &matrix); err != nil {
 		return s, errors.New("GetMatrixPayload meta json:" + err.Error())
 	}
@@ -263,9 +257,8 @@ func getMessageBody(htmlText string) string {
 
 // getMatrixHookRequest creates a new request which contains an Authorization header.
 // The access_token is removed from t.PayloadContent
-func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
+func getMatrixHookRequest(w *models.Webhook, t *models.HookTask) (*http.Request, error) {
 	payloadunsafe := MatrixPayloadUnsafe{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(t.PayloadContent), &payloadunsafe); err != nil {
 		log.Error("Matrix Hook delivery failed: %v", err)
 		return nil, err
@@ -288,9 +281,9 @@ func getMatrixHookRequest(t *models.HookTask) (*http.Request, error) {
 		return nil, fmt.Errorf("getMatrixHookRequest: unable to hash payload: %+v", err)
 	}
 
-	t.URL = fmt.Sprintf("%s/%s", t.URL, txnID)
+	url := fmt.Sprintf("%s/%s", w.URL, txnID)
 
-	req, err := http.NewRequest(t.HTTPMethod, t.URL, strings.NewReader(string(payload)))
+	req, err := http.NewRequest(w.HTTPMethod, url, strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
 	}

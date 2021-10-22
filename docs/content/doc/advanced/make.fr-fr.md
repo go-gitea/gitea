@@ -37,8 +37,8 @@ sudo yum install make
 
 Si vous utilisez Windows, vous pouvez télécharger une des versions suivantes de Make:
 
-- [Simple binaire](http://www.equation.com/servlet/equation.cmd?fa=make). Copiez le quelque part et mettez à jour `PATH`.
+- [Simple binaire](http://www.equation.com/servlet/equation.cmd?fa=make). Copiez-le quelque part et mettez à jour `PATH`.
   - [32-bits version](ftp://ftp.equation.com/make/32/make.exe)
   - [64-bits version](ftp://ftp.equation.com/make/64/make.exe)
-- [MinGW](http://www.mingw.org/) includes a build. The binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to your `PATH`.
-- [Chocolatey package](https://chocolatey.org/packages/make). Run `choco install make`
+- [MinGW](http://www.mingw.org/) inclut un _build_. Le fichier binaire est nommé `mingw32-make.exe` plutôt que `make.exe`. Ajoutez le dossier `bin` à votre `PATH`.
+- [Chocolatey package](https://chocolatey.org/packages/make). Exécutez `choco install make`.

@@ -10,12 +10,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAdminViewUsers(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users")
@@ -27,7 +28,7 @@ func TestAdminViewUsers(t *testing.T) {
 }
 
 func TestAdminViewUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users/1")
@@ -39,7 +40,7 @@ func TestAdminViewUser(t *testing.T) {
 }
 
 func TestAdminEditUser(t *testing.T) {
-	prepareTestEnv(t)
+	defer prepareTestEnv(t)()
 
 	testSuccessfullEdit(t, models.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
 }
@@ -60,7 +61,7 @@ func makeRequest(t *testing.T, formData models.User, headerCode int) {
 	})
 
 	session.MakeRequest(t, req, headerCode)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
 	assert.Equal(t, formData.Name, user.Name)
 	assert.Equal(t, formData.LoginName, user.LoginName)
 	assert.Equal(t, formData.Email, user.Email)

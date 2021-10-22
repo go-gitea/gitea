@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -21,8 +22,8 @@ import (
 func TestMirrorPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
@@ -59,7 +60,9 @@ func TestMirrorPull(t *testing.T) {
 
 	assert.NoError(t, release_service.CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.2",
 		Target:       "master",
 		Title:        "v0.2 is released",

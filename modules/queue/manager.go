@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var manager *Manager
@@ -110,7 +111,6 @@ func (m *Manager) Add(managed interface{},
 	configuration,
 	exemplar interface{}) int64 {
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
 		Type:          t,
@@ -170,7 +170,17 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			mqs := m.ManagedQueues()
+			nonEmptyQueues := []string{}
+			for _, mq := range mqs {
+				if !mq.IsEmpty() {
+					nonEmptyQueues = append(nonEmptyQueues, mq.Name)
+				}
+			}
+			if len(nonEmptyQueues) > 0 {
+				return fmt.Errorf("flush timeout with non-empty queues: %s", strings.Join(nonEmptyQueues, ", "))
+			}
+			return nil
 		default:
 		}
 		mqs := m.ManagedQueues()

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -108,8 +109,8 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 func BenchmarkAPICreateFileSmall(b *testing.B) {
 	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
 		b := t.(*testing.B)
-		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)             // owner of the repo1 & repo16
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
+		user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)             // owner of the repo1 & repo16
+		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
 
 		for n := 0; n < b.N; n++ {
 			treePath := fmt.Sprintf("update/file%d.txt", n)
@@ -123,8 +124,8 @@ func BenchmarkAPICreateFileMedium(b *testing.B) {
 
 	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
 		b := t.(*testing.B)
-		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)             // owner of the repo1 & repo16
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
+		user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)             // owner of the repo1 & repo16
+		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
 
 		b.ResetTimer()
 		for n := 0; n < b.N; n++ {
@@ -137,12 +138,12 @@ func BenchmarkAPICreateFileMedium(b *testing.B) {
 
 func TestAPICreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-		repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-		repo16 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+		user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
+		user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
+		user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
+		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
+		repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
+		repo16 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
 		fileID := 0
 
 		// Get user2's token

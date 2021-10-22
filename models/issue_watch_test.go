@@ -7,23 +7,24 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateOrUpdateIssueWatch(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	assert.NoError(t, CreateOrUpdateIssueWatch(3, 1, true))
-	iw := AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
+	iw := db.AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
 	assert.True(t, iw.IsWatching)
 
 	assert.NoError(t, CreateOrUpdateIssueWatch(1, 1, false))
-	iw = AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
+	iw = db.AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
 	assert.False(t, iw.IsWatching)
 }
 
 func TestGetIssueWatch(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	_, exists, err := GetIssueWatch(9, 1)
 	assert.True(t, exists)
@@ -40,24 +41,24 @@ func TestGetIssueWatch(t *testing.T) {
 }
 
 func TestGetIssueWatchers(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	iws, err := GetIssueWatchers(1, ListOptions{})
+	iws, err := GetIssueWatchers(1, db.ListOptions{})
 	assert.NoError(t, err)
 	// Watcher is inactive, thus 0
 	assert.Len(t, iws, 0)
 
-	iws, err = GetIssueWatchers(2, ListOptions{})
+	iws, err = GetIssueWatchers(2, db.ListOptions{})
 	assert.NoError(t, err)
 	// Watcher is explicit not watching
 	assert.Len(t, iws, 0)
 
-	iws, err = GetIssueWatchers(5, ListOptions{})
+	iws, err = GetIssueWatchers(5, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has no Watchers
 	assert.Len(t, iws, 0)
 
-	iws, err = GetIssueWatchers(7, ListOptions{})
+	iws, err = GetIssueWatchers(7, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has one watcher
 	assert.Len(t, iws, 1)

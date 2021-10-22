@@ -7,21 +7,55 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestAPITopicSearch(t *testing.T) {
+	defer prepareTestEnv(t)()
+	searchURL, _ := url.Parse("/api/v1/topics/search")
+	var topics struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}
+
+	query := url.Values{"page": []string{"1"}, "limit": []string{"4"}}
+
+	searchURL.RawQuery = query.Encode()
+	res := MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Len(t, topics.TopicNames, 4)
+	assert.EqualValues(t, "6", res.Header().Get("x-total-count"))
+
+	query.Add("q", "topic")
+	searchURL.RawQuery = query.Encode()
+	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Len(t, topics.TopicNames, 2)
+
+	query.Set("q", "database")
+	searchURL.RawQuery = query.Encode()
+	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	if assert.Len(t, topics.TopicNames, 1) {
+		assert.EqualValues(t, 2, topics.TopicNames[0].ID)
+		assert.EqualValues(t, "database", topics.TopicNames[0].Name)
+		assert.EqualValues(t, 1, topics.TopicNames[0].RepoCount)
+	}
+}
+
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
-	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
-	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
-	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
+	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
+	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
+	repo2 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)

@@ -7,7 +7,7 @@ package cmd
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -27,10 +27,11 @@ func runConvert(ctx *cli.Context) error {
 		return err
 	}
 
-	log.Trace("AppPath: %s", setting.AppPath)
-	log.Trace("AppWorkPath: %s", setting.AppWorkPath)
-	log.Trace("Custom path: %s", setting.CustomPath)
-	log.Trace("Log path: %s", setting.LogRootPath)
+	log.Info("AppPath: %s", setting.AppPath)
+	log.Info("AppWorkPath: %s", setting.AppWorkPath)
+	log.Info("Custom path: %s", setting.CustomPath)
+	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
 	if !setting.Database.UseMySQL {
@@ -38,7 +39,7 @@ func runConvert(ctx *cli.Context) error {
 		return nil
 	}
 
-	if err := models.ConvertUtf8ToUtf8mb4(); err != nil {
+	if err := db.ConvertUtf8ToUtf8mb4(); err != nil {
 		log.Fatal("Failed to convert database from utf8 to utf8mb4: %v", err)
 		return err
 	}

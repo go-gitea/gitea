@@ -12,11 +12,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 )
 
@@ -70,8 +72,42 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
+	showFeedType := ""
+	if strings.HasSuffix(uname, ".rss") {
+		showFeedType = "rss"
+		uname = strings.TrimSuffix(uname, ".rss")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
+		showFeedType = "rss"
+	}
+	if strings.HasSuffix(uname, ".atom") {
+		showFeedType = "atom"
+		uname = strings.TrimSuffix(uname, ".atom")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
+		showFeedType = "atom"
+	}
+
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
+		return
+	}
+
+	if ctxUser.IsOrganization() {
+		/*
+			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
+			// Show Org RSS feed
+			if len(showFeedType) != 0 {
+				rss.ShowUserFeed(ctx, ctxUser, showFeedType)
+				return
+			}
+		*/
+
+		org.Home(ctx)
+		return
+	}
+
+	// check view permissions
+	if !ctxUser.IsVisibleToUser(ctx.User) {
+		ctx.NotFound("user", fmt.Errorf(uname))
 		return
 	}
 
@@ -87,8 +123,9 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
-	if ctxUser.IsOrganization() {
-		org.Home(ctx)
+	// Show User RSS feed
+	if len(showFeedType) != 0 {
+		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 		return
 	}
 
@@ -117,6 +154,8 @@ func Profile(ctx *context.Context) {
 		content, err := markdown.RenderString(&markup.RenderContext{
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
+			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, ctxUser.Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -136,15 +175,15 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = models.HasOrgsVisible(orgs, ctx.User)
 
-	tab := ctx.Query("tab")
+	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	topicOnly := ctx.QueryBool("topic")
+	topicOnly := ctx.FormBool("topic")
 
 	var (
 		repos   []*models.Repository
@@ -153,8 +192,8 @@ func Profile(ctx *context.Context) {
 		orderBy models.SearchOrderBy
 	)
 
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -180,11 +219,11 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
-		items, err := ctxUser.GetFollowers(models.ListOptions{
+		items, err := ctxUser.GetFollowers(db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -196,7 +235,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowers
 	case "following":
-		items, err := ctxUser.GetFollowing(models.ListOptions{
+		items, err := ctxUser.GetFollowing(db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -208,12 +247,12 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
-			Date:            ctx.Query("date"),
+			Date:            ctx.FormString("date"),
 		})
 		if ctx.Written() {
 			return
@@ -221,7 +260,7 @@ func Profile(ctx *context.Context) {
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
@@ -252,7 +291,7 @@ func Profile(ctx *context.Context) {
 		}
 	case "watching":
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
@@ -273,7 +312,7 @@ func Profile(ctx *context.Context) {
 		total = int(count)
 	default:
 		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
 			},
@@ -325,5 +364,5 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.Query("redirect_to"), u.HomeLink())
+	ctx.RedirectToFirst(ctx.FormString("redirect_to"), u.HomeLink())
 }

@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
@@ -56,14 +57,14 @@ func Branches(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	limit := ctx.QueryInt("limit")
-	if limit <= 0 || limit > git.BranchesRangeSize {
-		limit = git.BranchesRangeSize
+	limit := ctx.FormInt("limit")
+	if limit <= 0 || limit > setting.Git.BranchesRangeSize {
+		limit = setting.Git.BranchesRangeSize
 	}
 
 	skip := (page - 1) * limit
@@ -73,7 +74,7 @@ func Branches(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Branches"] = branches
-	pager := context.NewPagination(int(branchesCount), git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -83,7 +84,7 @@ func Branches(ctx *context.Context) {
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
-	branchName := ctx.Query("name")
+	branchName := ctx.FormString("name")
 
 	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
@@ -111,8 +112,8 @@ func DeleteBranchPost(ctx *context.Context) {
 func RestoreBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 
-	branchID := ctx.QueryInt64("branch_id")
-	branchName := ctx.Query("name")
+	branchID := ctx.FormInt64("branch_id")
+	branchName := ctx.FormString("name")
 
 	deletedBranch, err := ctx.Repo.Repository.GetDeletedBranchByID(branchID)
 	if err != nil {
@@ -216,7 +217,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, totalNumOfBranches - 1
+	return branches, totalNumOfBranches
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,

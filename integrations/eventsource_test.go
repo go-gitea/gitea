@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/eventsource"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
@@ -49,9 +50,9 @@ func TestEventSourceManagerRun(t *testing.T) {
 		}
 	}
 
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	thread5 := models.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	thread5 := db.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)

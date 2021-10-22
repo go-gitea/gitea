@@ -6,12 +6,14 @@ package ssh
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -65,7 +67,11 @@ func sessionHandler(session ssh.Session) {
 
 	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
 	log.Trace("SSH: Arguments: %v", args)
-	cmd := exec.Command(setting.AppPath, args...)
+
+	ctx, cancel := context.WithCancel(session.Context())
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
@@ -77,16 +83,21 @@ func sessionHandler(session ssh.Session) {
 		log.Error("SSH: StdoutPipe: %v", err)
 		return
 	}
+	defer stdout.Close()
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		log.Error("SSH: StderrPipe: %v", err)
 		return
 	}
+	defer stderr.Close()
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Error("SSH: StdinPipe: %v", err)
 		return
 	}
+	defer stdin.Close()
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -105,6 +116,7 @@ func sessionHandler(session ssh.Session) {
 
 	go func() {
 		defer wg.Done()
+		defer stdout.Close()
 		if _, err := io.Copy(session, stdout); err != nil {
 			log.Error("Failed to write stdout to session. %s", err)
 		}
@@ -112,6 +124,7 @@ func sessionHandler(session ssh.Session) {
 
 	go func() {
 		defer wg.Done()
+		defer stderr.Close()
 		if _, err := io.Copy(session.Stderr(), stderr); err != nil {
 			log.Error("Failed to write stderr to session. %s", err)
 		}
@@ -239,6 +252,15 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	return true
 }
 
+// sshConnectionFailed logs a failed connection
+// -  this mainly exists to give a nice function name in logging
+func sshConnectionFailed(conn net.Conn, err error) {
+	// Log the underlying error with a specific message
+	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
+	// Log with the standard failed authentication from message for simpler fail2ban configuration
+	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
+}
+
 // Listen starts a SSH server listens on given port.
 func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
 	srv := ssh.Server{
@@ -252,6 +274,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 			config.Ciphers = ciphers
 			return config
 		},
+		ConnectionFailedCallback: sshConnectionFailed,
 		// We need to explicitly disable the PtyCallback so text displays
 		// properly.
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
@@ -293,8 +316,64 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		}
 	}
 
+	// Workaround slightly broken behaviour in x/crypto/ssh/handshake.go:458-463
+	//
+	// Fundamentally the issue here is that HostKeyAlgos make the incorrect assumption
+	// that the PublicKey().Type() matches the signature algorithm.
+	//
+	// Therefore we need to add duplicates for the RSA with different signing algorithms.
+	signers := make([]ssh.Signer, 0, len(srv.HostSigners))
+	for _, signer := range srv.HostSigners {
+		if signer.PublicKey().Type() == "ssh-rsa" {
+			signers = append(signers,
+				&wrapSigner{
+					Signer:    signer,
+					algorithm: gossh.SigAlgoRSASHA2512,
+				},
+				&wrapSigner{
+					Signer:    signer,
+					algorithm: gossh.SigAlgoRSASHA2256,
+				},
+			)
+		}
+		signers = append(signers, signer)
+	}
+	srv.HostSigners = signers
+
 	go listen(&srv)
 
+}
+
+// wrapSigner wraps a signer and overrides its public key type with the provided algorithm
+type wrapSigner struct {
+	ssh.Signer
+	algorithm string
+}
+
+// PublicKey returns an associated PublicKey instance.
+func (s *wrapSigner) PublicKey() gossh.PublicKey {
+	return &wrapPublicKey{
+		PublicKey: s.Signer.PublicKey(),
+		algorithm: s.algorithm,
+	}
+}
+
+// Sign returns raw signature for the given data. This method
+// will apply the hash specified for the keytype to the data using
+// the algorithm assigned for this key
+func (s *wrapSigner) Sign(rand io.Reader, data []byte) (*gossh.Signature, error) {
+	return s.Signer.(gossh.AlgorithmSigner).SignWithAlgorithm(rand, data, s.algorithm)
+}
+
+// wrapPublicKey wraps a PublicKey and overrides its type
+type wrapPublicKey struct {
+	gossh.PublicKey
+	algorithm string
+}
+
+// Type returns the algorithm
+func (k *wrapPublicKey) Type() string {
+	return k.algorithm
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.

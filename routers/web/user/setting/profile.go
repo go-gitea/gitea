@@ -8,13 +8,14 @@ package setting
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -23,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/unknwon/i18n"
@@ -38,6 +40,7 @@ const (
 func Profile(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsProfile"] = true
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.HTML(http.StatusOK, tplSettingsProfile)
 }
@@ -75,6 +78,14 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			return err
 		}
 	}
+
+	// update all agit flow pull request header
+	err := agit.UserNameChanged(user, newName)
+	if err != nil {
+		ctx.ServerError("agit.UserNameChanged", err)
+		return err
+	}
+
 	log.Trace("User name changed: %s -> %s", user.Name, newName)
 	return nil
 }
@@ -114,6 +125,7 @@ func ProfilePost(ctx *context.Context) {
 	}
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
+	ctx.User.Visibility = form.Visibility
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
@@ -156,9 +168,9 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 			return errors.New(ctx.Tr("settings.uploaded_avatar_is_too_big"))
 		}
 
-		data, err := ioutil.ReadAll(fr)
+		data, err := io.ReadAll(fr)
 		if err != nil {
-			return fmt.Errorf("ioutil.ReadAll: %v", err)
+			return fmt.Errorf("io.ReadAll: %v", err)
 		}
 
 		st := typesniffer.DetectContentType(data)
@@ -224,9 +236,9 @@ func Repos(ctx *context.Context) {
 	ctx.Data["allowAdopt"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowAdoptionOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 
-	opts := models.ListOptions{
+	opts := db.ListOptions{
 		PageSize: setting.UI.Admin.UserPagingNum,
-		Page:     ctx.QueryInt("page"),
+		Page:     ctx.FormInt("page"),
 	}
 
 	if opts.Page <= 0 {
@@ -273,7 +285,7 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		if err := ctxUser.GetRepositories(models.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
+		if err := ctxUser.GetRepositories(db.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return
 		}

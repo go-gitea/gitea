@@ -8,7 +8,8 @@
 		</h4>
 		<div class="ui attached segment">
 			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
-			<form class="ui form" action="{{AppSubUrl}}/user/settings/account" method="post">
+			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
@@ -72,7 +73,7 @@
 					<div class="item">
 						{{if not .IsPrimary}}
 							<div class="right floated content">
-								<button class="ui red tiny button delete-button" id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "settings.delete_email"}}
 								</button>
 							</div>
@@ -92,7 +93,7 @@
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
-									<input name="id" type="hidden" value="{{if .IsPrimary}}PRIMARY{{else}}{{.ID}}{{end}}">
+									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
 										<button disabled class="ui blue tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
 									{{else}}
@@ -178,14 +179,14 @@
 				{{ end }}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<input class="fake" type="password">
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{.i18n.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<div class="ui red button delete-button" id="delete-account" data-type="form" data-form="#delete-form">
+					<div class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
 						{{.i18n.Tr "settings.confirm_delete_account"}}
 					</div>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.i18n.Tr "auth.forgot_password"}}</a>

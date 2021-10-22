@@ -8,13 +8,12 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestESIndexAndSearch(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
 	u := os.Getenv("TEST_INDEXER_CODE_ES_URL")
 	if u == "" {

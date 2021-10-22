@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
 )
@@ -89,8 +90,8 @@ func EmailPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	// Make emailaddress primary.
-	if ctx.Query("_method") == "PRIMARY" {
-		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.QueryInt64("id")}); err != nil {
+	if ctx.FormString("_method") == "PRIMARY" {
+		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -100,42 +101,43 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 	// Send activation Email
-	if ctx.Query("_method") == "SENDACTIVATION" {
+	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
 		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
 			log.Error("Send activation: activation still pending")
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
 		}
-		if ctx.Query("id") == "PRIMARY" {
-			if ctx.User.IsActive {
-				log.Error("Send activation: email not set for activation")
-				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-				return
-			}
-			mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
-			address = ctx.User.Email
-		} else {
-			id := ctx.QueryInt64("id")
-			email, err := models.GetEmailAddressByID(ctx.User.ID, id)
-			if err != nil {
-				log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
-				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-				return
-			}
-			if email == nil {
-				log.Error("Send activation: EmailAddress not found; user:%d, id: %d", ctx.User.ID, id)
-				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-				return
-			}
-			if email.IsActivated {
-				log.Error("Send activation: email not set for activation")
-				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
-				return
-			}
-			mailer.SendActivateEmailMail(ctx.User, email)
-			address = email.Email
+
+		id := ctx.FormInt64("id")
+		email, err := models.GetEmailAddressByID(ctx.User.ID, id)
+		if err != nil {
+			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			return
 		}
+		if email == nil {
+			log.Warn("Send activation failed: EmailAddress[%d] not found for user: %-v", id, ctx.User)
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			return
+		}
+		if email.IsActivated {
+			log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.User)
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+			return
+		}
+		if email.IsPrimary {
+			if ctx.User.IsActive && !setting.Service.RegisterEmailConfirm {
+				log.Debug("Send activation failed: email %s is already activated for user: %-v", email.Email, ctx.User)
+				ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+				return
+			}
+			// Only fired when the primary email is inactive (Wrong state)
+			mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
+		} else {
+			mailer.SendActivateEmailMail(ctx.User, email)
+		}
+		address = email.Email
 
 		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
 			log.Error("Set cache(MailResendLimit) fail: %v", err)
@@ -145,8 +147,8 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 	// Set Email Notification Preference
-	if ctx.Query("_method") == "NOTIFICATION" {
-		preference := ctx.Query("preference")
+	if ctx.FormString("_method") == "NOTIFICATION" {
+		preference := ctx.FormString("preference")
 		if !(preference == models.EmailNotificationsEnabled ||
 			preference == models.EmailNotificationsOnMention ||
 			preference == models.EmailNotificationsDisabled) {
@@ -210,7 +212,7 @@ func EmailPost(ctx *context.Context) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
-	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.QueryInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
 	}
@@ -227,7 +229,7 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 
-	if _, err := models.UserSignIn(ctx.User.Name, ctx.Query("password")); err != nil {
+	if _, _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
 		if models.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 

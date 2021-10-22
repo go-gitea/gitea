@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
@@ -18,7 +19,7 @@ import (
 func TestArchivedIssues(t *testing.T) {
 	// Arrange
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 30)
@@ -51,7 +52,7 @@ func TestArchivedIssues(t *testing.T) {
 
 func TestIssues(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 
 	ctx := test.MockContext(t, "issues")
 	test.LoadUser(t, ctx, 2)
@@ -67,7 +68,7 @@ func TestIssues(t *testing.T) {
 
 func TestPulls(t *testing.T) {
 	setting.UI.IssuePagingNum = 20
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 
 	ctx := test.MockContext(t, "pulls")
 	test.LoadUser(t, ctx, 2)
@@ -80,7 +81,7 @@ func TestPulls(t *testing.T) {
 
 func TestMilestones(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 
 	ctx := test.MockContext(t, "milestones")
 	test.LoadUser(t, ctx, 2)
@@ -99,7 +100,7 @@ func TestMilestones(t *testing.T) {
 
 func TestMilestonesForSpecificRepo(t *testing.T) {
 	setting.UI.IssuePagingNum = 1
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, db.LoadFixtures())
 
 	ctx := test.MockContext(t, "milestones")
 	test.LoadUser(t, ctx, 2)

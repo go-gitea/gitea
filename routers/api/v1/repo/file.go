@@ -18,6 +18,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/repo"
 )
 
 // GetRawFile get a file by path on a repository
@@ -61,7 +62,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	commit := ctx.Repo.Commit
 
-	if ref := ctx.QueryTrim("ref"); len(ref) > 0 {
+	if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 		var err error
 		commit, err = ctx.Repo.GitRepo.GetCommit(ref)
 		if err != nil {
@@ -118,15 +119,17 @@ func GetArchive(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return
+	if ctx.Repo.GitRepo == nil {
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+		defer gitRepo.Close()
 	}
-	ctx.Repo.GitRepo = gitRepo
-	defer gitRepo.Close()
 
-	common.Download(ctx.Context)
+	repo.Download(ctx.Context)
 }
 
 // GetEditorconfig get editor config of a repository
@@ -548,7 +551,7 @@ func GetContents(ctx *context.APIContext) {
 	}
 
 	treePath := ctx.Params("*")
-	ref := ctx.QueryTrim("ref")
+	ref := ctx.FormTrim("ref")
 
 	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {

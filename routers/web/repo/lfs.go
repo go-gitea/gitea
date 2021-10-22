@@ -9,7 +9,6 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"path"
 	"strconv"
@@ -42,7 +41,7 @@ func LFSFiles(ctx *context.Context) {
 		ctx.NotFound("LFSFiles", nil)
 		return
 	}
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -74,7 +73,7 @@ func LFSLocks(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -195,7 +194,7 @@ func LFSLockFile(ctx *context.Context) {
 		ctx.NotFound("LFSLocks", nil)
 		return
 	}
-	originalPath := ctx.Query("path")
+	originalPath := ctx.FormString("path")
 	lockPath := originalPath
 	if len(lockPath) == 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.lfs_invalid_locking_path", originalPath))
@@ -300,7 +299,7 @@ func LFSFileGet(ctx *context.Context) {
 		buf := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := ioutil.ReadAll(buf)
+		fileContent, _ := io.ReadAll(buf)
 
 		var output bytes.Buffer
 		lines := strings.Split(string(fileContent), "\n")
@@ -366,13 +365,13 @@ func LFSFileFind(ctx *context.Context) {
 		ctx.NotFound("LFSFind", nil)
 		return
 	}
-	oid := ctx.Query("oid")
-	size := ctx.QueryInt64("size")
+	oid := ctx.FormString("oid")
+	size := ctx.FormInt64("size")
 	if len(oid) == 0 || size == 0 {
 		ctx.NotFound("LFSFind", nil)
 		return
 	}
-	sha := ctx.Query("sha")
+	sha := ctx.FormString("sha")
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	var hash git.SHA1
@@ -511,7 +510,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		ctx.NotFound("LFSAutoAssociate", nil)
 		return
 	}
-	oids := ctx.QueryStrings("oid")
+	oids := ctx.FormStrings("oid")
 	metas := make([]*models.LFSMetaObject, len(oids))
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')

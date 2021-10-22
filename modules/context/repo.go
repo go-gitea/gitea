@@ -8,7 +8,7 @@ package context
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/url"
 	"path"
 	"strings"
@@ -38,7 +38,7 @@ var IssueTemplateDirCandidates = []string{
 	".gitlab/issue_template",
 }
 
-// PullRequest contains informations to make a pull request
+// PullRequest contains information to make a pull request
 type PullRequest struct {
 	BaseRepo *models.Repository
 	Allowed  bool
@@ -346,7 +346,7 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 
 	// Check access.
 	if ctx.Repo.Permission.AccessMode == models.AccessModeNone {
-		if ctx.Query("go-get") == "1" {
+		if ctx.FormString("go-get") == "1" {
 			EarlyResponseForGoGetMeta(ctx)
 			return
 		}
@@ -415,7 +415,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		owner, err = models.GetUserByName(userName)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				if ctx.Query("go-get") == "1" {
+				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
@@ -437,7 +437,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 			if err == nil {
 				RedirectToRepo(ctx, redirectRepoID)
 			} else if models.IsErrRepoRedirectNotExist(err) {
-				if ctx.Query("go-get") == "1" {
+				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
@@ -547,7 +547,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags()
+	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -618,7 +618,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 
-	if ctx.Query("go-get") == "1" {
+	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
 		prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", "branch", ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
@@ -705,7 +705,28 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		ctx.Repo.TreePath = path
 		return ctx.Repo.Repository.DefaultBranch
 	case RepoRefBranch:
-		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+		ref := getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsBranchExist)
+		if len(ref) == 0 {
+			// maybe it's a renamed branch
+			return getRefNameFromPath(ctx, path, func(s string) bool {
+				b, exist, err := models.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				if err != nil {
+					log.Error("FindRenamedBranch", err)
+					return false
+				}
+
+				if !exist {
+					return false
+				}
+
+				ctx.Data["IsRenamedBranch"] = true
+				ctx.Data["RenamedBranchName"] = b.To
+
+				return true
+			})
+		}
+
+		return ref
 	case RepoRefTag:
 		return getRefNameFromPath(ctx, path, ctx.Repo.GitRepo.IsTagExist)
 	case RepoRefCommit:
@@ -784,6 +805,15 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		} else {
 			refName = getRefName(ctx, refType)
 			ctx.Repo.BranchName = refName
+			isRenamedBranch, has := ctx.Data["IsRenamedBranch"].(bool)
+			if isRenamedBranch && has {
+				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
+				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, renamedBranchName))
+				link := strings.Replace(ctx.Req.RequestURI, refName, renamedBranchName, 1)
+				ctx.Redirect(link)
+				return
+			}
+
 			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
 
@@ -915,7 +945,7 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 						_ = r.Close()
 					}
 				}()
-				data, err := ioutil.ReadAll(r)
+				data, err := io.ReadAll(r)
 				if err != nil {
 					log.Debug("ReadAll: %v", err)
 					continue

@@ -6,6 +6,7 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/util"
@@ -23,7 +24,7 @@ func NewIssue(repo *models.Repository, issue *models.Issue, labelIDs []int64, uu
 		}
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), issue.Poster, issue.Content)
+	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}

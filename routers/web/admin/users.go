@@ -12,11 +12,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -36,12 +39,33 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
+	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
+	statusFilterMap := map[string]string{}
+	for _, filterKey := range statusFilterKeys {
+		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
+	}
+
+	sortType := ctx.FormString("sort")
+	if sortType == "" {
+		sortType = explore.UserSearchDefaultSortType
+	}
+	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
+		"StatusFilterMap": statusFilterMap,
+		"SortType":        sortType,
+	}
+
 	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
-		Type: models.UserTypeIndividual,
-		ListOptions: models.ListOptions{
+		Actor: ctx.User,
+		Type:  models.UserTypeIndividual,
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
-		SearchByEmail: true,
+		SearchByEmail:      true,
+		IsActive:           util.OptionalBoolParse(statusFilterMap["is_active"]),
+		IsAdmin:            util.OptionalBoolParse(statusFilterMap["is_admin"]),
+		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
+		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
+		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
 	}, tplUsers)
 }
 
@@ -50,12 +74,14 @@ func NewUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	ctx.Data["login_type"] = "0-0"
 
-	sources, err := models.LoginSources()
+	sources, err := login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -70,10 +96,11 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.new_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
+	ctx.Data["DefaultUserVisibilityMode"] = setting.Service.DefaultUserVisibilityMode
 
-	sources, err := models.LoginSources()
+	sources, err := login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return
 	}
 	ctx.Data["Sources"] = sources
@@ -90,19 +117,19 @@ func NewUserPost(ctx *context.Context) {
 		Email:     form.Email,
 		Passwd:    form.Password,
 		IsActive:  true,
-		LoginType: models.LoginPlain,
+		LoginType: login.Plain,
 	}
 
 	if len(form.LoginType) > 0 {
 		fields := strings.Split(form.LoginType, "-")
 		if len(fields) == 2 {
 			lType, _ := strconv.ParseInt(fields[0], 10, 0)
-			u.LoginType = models.LoginType(lType)
+			u.LoginType = login.Type(lType)
 			u.LoginSource, _ = strconv.ParseInt(fields[1], 10, 64)
 			u.LoginName = form.LoginName
 		}
 	}
-	if u.LoginType == models.LoginNoType || u.LoginType == models.LoginPlain {
+	if u.LoginType == login.NoType || u.LoginType == login.Plain {
 		if len(form.Password) < setting.MinPasswordLength {
 			ctx.Data["Err_Password"] = true
 			ctx.RenderWithErr(ctx.Tr("auth.password_too_short", setting.MinPasswordLength), tplUserNew, &form)
@@ -126,7 +153,8 @@ func NewUserPost(ctx *context.Context) {
 		}
 		u.MustChangePassword = form.MustChangePassword
 	}
-	if err := models.CreateUser(u); err != nil {
+
+	if err := models.CreateUser(u, &models.CreateUserOverwriteOptions{Visibility: form.Visibility}); err != nil {
 		switch {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -171,26 +199,26 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	ctx.Data["User"] = u
 
 	if u.LoginSource > 0 {
-		ctx.Data["LoginSource"], err = models.GetLoginSourceByID(u.LoginSource)
+		ctx.Data["LoginSource"], err = login.GetSourceByID(u.LoginSource)
 		if err != nil {
-			ctx.ServerError("GetLoginSourceByID", err)
+			ctx.ServerError("login.GetSourceByID", err)
 			return nil
 		}
 	} else {
-		ctx.Data["LoginSource"] = &models.LoginSource{}
+		ctx.Data["LoginSource"] = &login.Source{}
 	}
 
-	sources, err := models.LoginSources()
+	sources, err := login.Sources()
 	if err != nil {
-		ctx.ServerError("LoginSources", err)
+		ctx.ServerError("login.Sources", err)
 		return nil
 	}
 	ctx.Data["Sources"] = sources
 
 	ctx.Data["TwoFactorEnabled"] = true
-	_, err = models.GetTwoFactorByUID(u.ID)
+	_, err = login.GetTwoFactorByUID(u.ID)
 	if err != nil {
-		if !models.IsErrTwoFactorNotEnrolled(err) {
+		if !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("IsErrTwoFactorNotEnrolled", err)
 			return nil
 		}
@@ -200,13 +228,14 @@ func prepareUserInfo(ctx *context.Context) *models.User {
 	return u
 }
 
-// EditUser show editting user page
+// EditUser show editing user page
 func EditUser(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 	ctx.Data["DisableRegularOrgCreation"] = setting.Admin.DisableRegularOrgCreation
 	ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+	ctx.Data["AllowedUserVisibilityModes"] = setting.Service.AllowedUserVisibilityModesSlice.ToVisibleTypeSlice()
 
 	prepareUserInfo(ctx)
 	if ctx.Written() {
@@ -216,7 +245,7 @@ func EditUser(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplUserEdit)
 }
 
-// EditUserPost response for editting user
+// EditUserPost response for editing user
 func EditUserPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AdminEditUserForm)
 	ctx.Data["Title"] = ctx.Tr("admin.users.edit_account")
@@ -241,7 +270,7 @@ func EditUserPost(ctx *context.Context) {
 
 		if u.LoginSource != loginSource {
 			u.LoginSource = loginSource
-			u.LoginType = models.LoginType(loginType)
+			u.LoginType = login.Type(loginType)
 		}
 	}
 
@@ -287,13 +316,13 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if form.Reset2FA {
-		tf, err := models.GetTwoFactorByUID(u.ID)
-		if err != nil && !models.IsErrTwoFactorNotEnrolled(err) {
+		tf, err := login.GetTwoFactorByUID(u.ID)
+		if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 			ctx.ServerError("GetTwoFactorByUID", err)
 			return
 		}
 
-		if err = models.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
+		if err = login.DeleteTwoFactorByID(tf.ID, u.ID); err != nil {
 			ctx.ServerError("DeleteTwoFactorByID", err)
 			return
 		}
@@ -311,6 +340,8 @@ func EditUserPost(ctx *context.Context) {
 	u.AllowGitHook = form.AllowGitHook
 	u.AllowImportLocal = form.AllowImportLocal
 	u.AllowCreateOrganization = form.AllowCreateOrganization
+
+	u.Visibility = form.Visibility
 
 	// skip self Prohibit Login
 	if ctx.User.ID == u.ID {

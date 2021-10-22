@@ -13,6 +13,14 @@ import (
 // BranchPrefix base dir of the branch information file store on git
 const BranchPrefix = "refs/heads/"
 
+// AGit Flow
+
+// PullRequestPrefix sepcial ref to create a pull request: refs/for/<targe-branch>/<topic-branch>
+// or refs/for/<targe-branch> -o topic='<topic-branch>'
+const PullRequestPrefix = "refs/for/"
+
+// TODO: /refs/for-review for suggest change interface
+
 // IsReferenceExist returns true if given reference exists in the repository.
 func IsReferenceExist(repoPath, name string) bool {
 	_, err := NewCommand("show-ref", "--verify", "--", name).RunInDir(repoPath)
@@ -155,4 +163,10 @@ func (repo *Repository) RemoveRemote(name string) error {
 // GetCommit returns the head commit of a branch
 func (branch *Branch) GetCommit() (*Commit, error) {
 	return branch.gitRepo.GetBranchCommit(branch.Name)
+}
+
+// RenameBranch rename a branch
+func (repo *Repository) RenameBranch(from, to string) error {
+	_, err := NewCommand("branch", "-m", from, to).RunInDir(repo.Path)
+	return err
 }

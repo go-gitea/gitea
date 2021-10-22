@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 // TaskStatus returns task's status
@@ -26,7 +26,6 @@ func TaskStatus(ctx *context.Context) {
 
 	if task.Message != "" && task.Message[0] == '{' {
 		// assume message is actually a translatable string
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		var translatableMessage models.TranslatableMessage
 		if err := json.Unmarshal([]byte(message), &translatableMessage); err != nil {
 			translatableMessage = models.TranslatableMessage{

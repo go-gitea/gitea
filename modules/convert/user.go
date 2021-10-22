@@ -6,7 +6,6 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -49,7 +48,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
-		FullName:    markup.Sanitize(user.FullName),
+		FullName:    user.FullName,
 		Email:       user.GetEmail(),
 		AvatarURL:   user.AvatarLink(),
 		Created:     user.CreatedUnix.AsTime(),
@@ -62,10 +61,14 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
 	}
+
+	result.Visibility = user.Visibility.String()
+
 	// hide primary email if API caller is anonymous or user keep email private
 	if signed && (!user.KeepEmailPrivate || authed) {
 		result.Email = user.Email
 	}
+
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
@@ -75,4 +78,19 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 		result.ProhibitLogin = user.ProhibitLogin
 	}
 	return result
+}
+
+// User2UserSettings return UserSettings based on a user
+func User2UserSettings(user *models.User) api.UserSettings {
+	return api.UserSettings{
+		FullName:      user.FullName,
+		Website:       user.Website,
+		Location:      user.Location,
+		Language:      user.Language,
+		Description:   user.Description,
+		Theme:         user.Theme,
+		HideEmail:     user.KeepEmailPrivate,
+		HideActivity:  user.KeepActivityPrivate,
+		DiffViewStyle: user.DiffViewStyle,
+	}
 }

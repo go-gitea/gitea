@@ -7,7 +7,7 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 
@@ -15,7 +15,7 @@ import (
 )
 
 func TestCleanUploadName(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 
 	var kases = map[string]string{
 		".git/refs/master":               "",
@@ -41,7 +41,7 @@ func TestCleanUploadName(t *testing.T) {
 }
 
 func TestGetUniquePatchBranchName(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -56,7 +56,7 @@ func TestGetUniquePatchBranchName(t *testing.T) {
 }
 
 func TestGetClosestParentWithFiles(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)

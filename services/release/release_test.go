@@ -11,20 +11,22 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/services/attachment"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestRelease_Create(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
@@ -33,7 +35,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1",
 		Target:       "master",
 		Title:        "v0.1 is released",
@@ -45,7 +49,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.1",
 		Target:       "65f1bf27bc3bf70f64657658635e66094edbcb4d",
 		Title:        "v0.1.1 is released",
@@ -57,7 +63,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.2",
 		Target:       "65f1bf2",
 		Title:        "v0.1.2 is released",
@@ -69,7 +77,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.3",
 		Target:       "65f1bf2",
 		Title:        "v0.1.3 is released",
@@ -81,7 +91,9 @@ func TestRelease_Create(t *testing.T) {
 
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.4",
 		Target:       "65f1bf2",
 		Title:        "v0.1.4 is released",
@@ -91,15 +103,18 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, []byte{}, strings.NewReader("testtest"))
+	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
 	var release = models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v0.1.5",
 		Target:       "65f1bf2",
 		Title:        "v0.1.5 is released",
@@ -112,10 +127,10 @@ func TestRelease_Create(t *testing.T) {
 }
 
 func TestRelease_Update(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
@@ -125,7 +140,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.1.1",
 		Target:       "master",
 		Title:        "v1.1.1 is released",
@@ -147,7 +164,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed draft
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.2.1",
 		Target:       "65f1bf2",
 		Title:        "v1.2.1 is draft",
@@ -169,7 +188,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test a changed pre-release
 	assert.NoError(t, CreateRelease(gitRepo, &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.3.1",
 		Target:       "65f1bf2",
 		Title:        "v1.3.1 is pre-released",
@@ -192,7 +213,9 @@ func TestRelease_Update(t *testing.T) {
 	// Test create release
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v1.1.2",
 		Target:       "master",
 		Title:        "v1.1.2 is released",
@@ -213,10 +236,11 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
-	attach, err := models.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&models.Attachment{
+		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
-	}, []byte{}, strings.NewReader("testtest"))
+	}, strings.NewReader("testtest"))
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))
@@ -245,10 +269,10 @@ func TestRelease_Update(t *testing.T) {
 }
 
 func TestRelease_createTag(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	gitRepo, err := git.OpenRepository(repoPath)
@@ -258,7 +282,9 @@ func TestRelease_createTag(t *testing.T) {
 	// Test a changed release
 	release := &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v2.1.1",
 		Target:       "master",
 		Title:        "v2.1.1 is released",
@@ -280,7 +306,9 @@ func TestRelease_createTag(t *testing.T) {
 	// Test a changed draft
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v2.2.1",
 		Target:       "65f1bf2",
 		Title:        "v2.2.1 is draft",
@@ -301,7 +329,9 @@ func TestRelease_createTag(t *testing.T) {
 	// Test a changed pre-release
 	release = &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  user.ID,
+		Publisher:    user,
 		TagName:      "v2.3.1",
 		Target:       "65f1bf2",
 		Title:        "v2.3.1 is pre-released",
@@ -322,9 +352,9 @@ func TestRelease_createTag(t *testing.T) {
 }
 
 func TestCreateNewTag(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	assert.NoError(t, db.PrepareTestDatabase())
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	assert.NoError(t, CreateNewTag(user, repo, "master", "v2.0",
 		"v2.0 is released \n\n BUGFIX: .... \n\n 123"))

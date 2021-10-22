@@ -5,18 +5,19 @@
 package private
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // UpdatePublicKeyInRepo update public key and if necessary deploy key updates
-func UpdatePublicKeyInRepo(keyID, repoID int64) error {
+func UpdatePublicKeyInRepo(ctx context.Context, keyID, repoID int64) error {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/ssh/%d/update/%d", keyID, repoID)
-	resp, err := newInternalRequest(reqURL, "POST").Response()
+	resp, err := newInternalRequest(ctx, reqURL, "POST").Response()
 	if err != nil {
 		return err
 	}
@@ -32,10 +33,10 @@ func UpdatePublicKeyInRepo(keyID, repoID int64) error {
 
 // AuthorizedPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
-func AuthorizedPublicKeyByContent(content string) (string, error) {
+func AuthorizedPublicKeyByContent(ctx context.Context, content string) (string, error) {
 	// Ask for running deliver hook and test pull request tasks.
 	reqURL := setting.LocalURL + "api/internal/ssh/authorized_keys"
-	req := newInternalRequest(reqURL, "POST")
+	req := newInternalRequest(ctx, reqURL, "POST")
 	req.Param("content", content)
 	resp, err := req.Response()
 	if err != nil {
@@ -48,7 +49,7 @@ func AuthorizedPublicKeyByContent(content string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("Failed to update public key: %s", decodeJSONError(resp).Err)
 	}
-	bs, err := ioutil.ReadAll(resp.Body)
+	bs, err := io.ReadAll(resp.Body)
 
 	return string(bs), err
 }
