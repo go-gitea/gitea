@@ -66,7 +66,7 @@ export function initNotificationCount() {
         return;
       }
       if (event.data.type === 'notification-count') {
-        const _ = receiveUpdateCount(event.data);
+        const _promise = receiveUpdateCount(event.data);
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {

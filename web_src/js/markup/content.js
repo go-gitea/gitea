@@ -3,7 +3,7 @@ import {initMarkupTasklist} from './tasklist.js';
 
 // code that runs for all markup content
 export function initMarkupContent() {
-  const _ = renderMermaid(document.querySelectorAll('code.language-mermaid'));
+  const _promise = renderMermaid(document.querySelectorAll('code.language-mermaid'));
 }
 
 // code that only runs for comments
