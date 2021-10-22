@@ -102,6 +102,106 @@ func ListIssueComments(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
+// ListIssueCommentsAndTimeline list all the comments and events of an issue
+func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/timeline issue issueGetCommentsAndTimeline
+	// ---
+	// summary: List all comments and events on an issue
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// - name: since
+	//   in: query
+	//   description: if provided, only comments updated since the specified time are returned.
+	//   type: string
+	//   format: date-time
+	// - name: before
+	//   in: query
+	//   description: if provided, only comments updated before the provided time are returned.
+	//   type: string
+	//   format: date-time
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/TimelineList"
+
+	before, since, err := utils.GetQueryBeforeSince(ctx)
+	if err != nil {
+		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+		return
+	}
+	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
+		return
+	}
+	issue.Repo = ctx.Repo.Repository
+
+	opts := &models.FindCommentsOptions{
+		IssueID: issue.ID,
+		Since:   since,
+		Before:  before,
+		Type:    models.CommentTypeUnknown,
+	}
+
+	comments, err := models.FindComments(opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "FindComments", err)
+		return
+	}
+
+	if err := models.CommentList(comments).LoadPosters(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
+		return
+	}
+
+	var apiComments []*api.TimelineComment
+	for i, comment := range comments {
+		if isXRefCommentAccessible(ctx.User, comment, issue.RepoID) {
+			comment.Issue = issue
+			apiComments = append(apiComments, convert.ToTimelineComment(comments[i], ctx.User))
+		}
+	}
+
+	ctx.SetTotalCountHeader(int64(len(apiComments)))
+	ctx.JSON(http.StatusOK, &apiComments)
+}
+
+func isXRefCommentAccessible(user *models.User, c *models.Comment, issueRepoID int64) bool {
+	// Remove comments that the user has no permissions to see
+	if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
+		var err error
+		// Set RefRepo for description in template
+		c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
+		if err != nil {
+			return false
+		}
+		perm, err := models.GetUserRepoPermission(c.RefRepo, user)
+		if err != nil {
+			return false
+		}
+		if !perm.CanReadIssuesOrPulls(c.RefIsPull) {
+			return false
+		}
+	}
+	return true
+}
+
 // ListRepoIssueComments returns all issue-comments for a repo
 func ListRepoIssueComments(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/issues/comments issue issueGetRepoComments

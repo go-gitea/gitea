@@ -6048,6 +6048,61 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/issues/{index}/timeline": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "issue"
+        ],
+        "summary": "List all comments and events on an issue",
+        "operationId": "issueGetCommentsAndTimeline",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the issue",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated since the specified time are returned.",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "format": "date-time",
+            "description": "if provided, only comments updated before the provided time are returned.",
+            "name": "before",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/TimelineList"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/issues/{index}/times": {
       "get": {
         "produces": [
@@ -16973,6 +17028,130 @@
       "format": "int64",
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
+    "TimelineComment": {
+      "description": "Comment represents a comment on a commit or issue",
+      "type": "object",
+      "properties": {
+        "assignee": {
+          "$ref": "#/definitions/User"
+        },
+        "assignee_team": {
+          "$ref": "#/definitions/Team"
+        },
+        "body": {
+          "type": "string",
+          "x-go-name": "Body"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "dependent_issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "issue_url": {
+          "type": "string",
+          "x-go-name": "IssueURL"
+        },
+        "label": {
+          "$ref": "#/definitions/Label"
+        },
+        "milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "new_ref": {
+          "type": "string",
+          "x-go-name": "NewRef"
+        },
+        "new_title": {
+          "type": "string",
+          "x-go-name": "NewTitle"
+        },
+        "old_milestone": {
+          "$ref": "#/definitions/Milestone"
+        },
+        "old_project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "OldProjectID"
+        },
+        "old_ref": {
+          "type": "string",
+          "x-go-name": "OldRef"
+        },
+        "old_title": {
+          "type": "string",
+          "x-go-name": "OldTitle"
+        },
+        "project_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ProjectID"
+        },
+        "pull_request_url": {
+          "type": "string",
+          "x-go-name": "PRURL"
+        },
+        "ref_action": {
+          "description": "action that was used to refernce issue/PR\n0 means the cross-reference is simply a comment\n1 means the cross-reference should close an issue if it is resolved\n2 means the cross-reference should reopen an issue if it is resolved\n3 means the cross-reference will no longer affect the source",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "RefAction"
+        },
+        "ref_comment": {
+          "$ref": "#/definitions/Comment"
+        },
+        "ref_commit_sha": {
+          "description": "commit SHA where issue/PR was referenced",
+          "type": "string",
+          "x-go-name": "RefCommitSHA"
+        },
+        "ref_issue": {
+          "$ref": "#/definitions/Issue"
+        },
+        "removed_assignee": {
+          "description": "whether the assignees were removed or added",
+          "type": "boolean",
+          "x-go-name": "RemovedAssignee"
+        },
+        "resolve_doer": {
+          "$ref": "#/definitions/User"
+        },
+        "review_id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ReviewID"
+        },
+        "time": {
+          "$ref": "#/definitions/TrackedTime"
+        },
+        "type": {
+          "description": "Type specifies the type of an event.\n0 Plain comment, can be associated with a commit (CommitID \u003e 0) and a line (LineNum \u003e 0)\n1 Reopen issue/pull request\n2 Close issue/pull request\n3 References.\n4 Reference from a commit (not part of a pull request)\n5 Reference from a comment\n6 Reference from a pull request\n7 Labels changed (if Body is \"1\", label was added, if not it was removed)\n8 Milestone changed\n9 Assignees changed\n10 Change Title\n11 Delete Branch\n12 Start a stopwatch for time tracking\n13 Stop a stopwatch for time tracking\n14 Add time manual for time tracking\n15 Cancel a stopwatch for time tracking\n16 Added a due date\n17 Modified the due date\n18 Removed a due date\n19 Dependency added\n20 Dependency removed\n21 Comment a line of code\n22 Reviews a pull request by giving general feedback\n23 Lock an issue, giving only collaborators access\n24 Unlocks a previously locked issue\n25 Change pull request's target branch\n26 Delete time manual for time tracking\n27 add or remove Request from one\n28 merge pull request\n29 push to PR head branch (information about the push is included in Body)\n30 Project changed\n31 Project board changed\n32 Dismiss Review",
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Type"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
+        },
+        "user": {
+          "$ref": "#/definitions/User"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "TopicName": {
       "description": "TopicName a list of repo topic names",
       "type": "object",
@@ -17997,6 +18176,15 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/Team"
+        }
+      }
+    },
+    "TimelineList": {
+      "description": "TimelineList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/TimelineComment"
         }
       }
     },

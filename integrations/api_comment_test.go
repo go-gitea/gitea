@@ -178,3 +178,22 @@ func TestAPIDeleteComment(t *testing.T) {
 
 	db.AssertNotExistsBean(t, &models.Comment{ID: comment.ID})
 }
+
+func TestAPIListIssueTimeline(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{}).(*models.Comment)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+
+	session := loginUser(t, repoOwner.Name)
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline",
+		repoOwner.Name, repo.Name, issue.Index)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	var comments []*api.TimelineComment
+	DecodeJSON(t, resp, &comments)
+	expectedCount := db.GetCount(t, &models.Comment{IssueID: issue.ID})
+	assert.EqualValues(t, expectedCount, len(comments))
+}
