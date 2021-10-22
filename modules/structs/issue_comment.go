@@ -107,7 +107,7 @@ type TimelineComment struct {
 	// commit SHA where issue/PR was referenced
 	RefCommitSHA string `json:"ref_commit_sha"`
 
-	ReviewID int64  `json:"review_id"`
+	ReviewID int64 `json:"review_id"`
 
 	Label *Label `json:"label"`
 
