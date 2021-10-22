@@ -6,9 +6,12 @@ package routers
 
 import (
 	"context"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -22,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -45,23 +49,49 @@ import (
 	"gitea.com/go-chi/session"
 )
 
-// NewServices init new services
-func NewServices() {
+func mustInit(fn func() error) {
+	err := fn()
+	if err != nil {
+		ptr := reflect.ValueOf(fn).Pointer()
+		fi := runtime.FuncForPC(ptr)
+		log.Fatal("%s failed: %v", fi.Name(), err)
+	}
+}
+
+func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
+	err := fn(ctx)
+	if err != nil {
+		ptr := reflect.ValueOf(fn).Pointer()
+		fi := runtime.FuncForPC(ptr)
+		log.Fatal("%s(ctx) failed: %v", fi.Name(), err)
+	}
+}
+
+// InitGitServices init new services for git, this is also called in `contrib/pr/checkout.go`
+func InitGitServices() {
 	setting.NewServices()
-	if err := storage.Init(); err != nil {
-		log.Fatal("storage init failed: %v", err)
+	mustInit(storage.Init)
+	mustInit(repository.NewContext)
+}
+
+func syncAppPathForGit(ctx context.Context) error {
+	runtimeState := new(appstate.RuntimeState)
+	if err := appstate.AppState.Get(runtimeState); err != nil {
+		return err
 	}
-	if err := repository.NewContext(); err != nil {
-		log.Fatal("repository init failed: %v", err)
+	if runtimeState.LastAppPath != setting.AppPath {
+		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
+
+		log.Info("re-sync repository hooks ...")
+		mustInitCtx(ctx, repo_module.SyncRepositoryHooks)
+
+		log.Info("re-write ssh public keys ...")
+		mustInit(models.RewriteAllPublicKeys)
+
+		runtimeState.LastAppPath = setting.AppPath
+		return appstate.AppState.Set(runtimeState)
 	}
-	mailer.NewContext()
-	if err := cache.NewContext(); err != nil {
-		log.Fatal("Unable to start cache service: %v", err)
-	}
-	notification.NewContext()
-	if err := archiver.Init(); err != nil {
-		log.Fatal("archiver init failed: %v", err)
-	}
+	return nil
 }
 
 // GlobalInit is for global configuration reload-able.
@@ -71,9 +101,7 @@ func GlobalInit(ctx context.Context) {
 		log.Fatal("Gitea is not installed")
 	}
 
-	if err := git.Init(ctx); err != nil {
-		log.Fatal("Git module init failed: %v", err)
-	}
+	mustInitCtx(ctx, git.Init)
 	log.Info(git.VersionInfo())
 
 	git.CheckLFSVersion()
@@ -87,7 +115,11 @@ func GlobalInit(ctx context.Context) {
 	// Setup i18n
 	translation.InitLocales()
 
-	NewServices()
+	InitGitServices()
+	mailer.NewContext()
+	mustInit(cache.NewContext)
+	notification.NewContext()
+	mustInit(archiver.Init)
 
 	highlight.NewContext()
 	external.RegisterRenderers()
@@ -98,15 +130,11 @@ func GlobalInit(ctx context.Context) {
 	} else if setting.Database.UseSQLite3 {
 		log.Fatal("SQLite3 is set in settings but NOT Supported")
 	}
-	if err := common.InitDBEngine(ctx); err == nil {
-		log.Info("ORM engine initialization successful!")
-	} else {
-		log.Fatal("ORM engine initialization failed: %v", err)
-	}
 
-	if err := oauth2.Init(); err != nil {
-		log.Fatal("Failed to initialize OAuth2 support: %v", err)
-	}
+	mustInitCtx(ctx, common.InitDBEngine)
+	log.Info("ORM engine initialization successful!")
+	mustInit(appstate.Init)
+	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
 
@@ -114,21 +142,16 @@ func GlobalInit(ctx context.Context) {
 	cron.NewContext()
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
-	if err := stats_indexer.Init(); err != nil {
-		log.Fatal("Failed to initialize repository stats indexer queue: %v", err)
-	}
+	mustInit(stats_indexer.Init)
+
 	mirror_service.InitSyncMirrors()
 	webhook.InitDeliverHooks()
-	if err := pull_service.Init(); err != nil {
-		log.Fatal("Failed to initialize test pull requests queue: %v", err)
-	}
-	if err := task.Init(); err != nil {
-		log.Fatal("Failed to initialize task scheduler: %v", err)
-	}
-	if err := repo_migrations.Init(); err != nil {
-		log.Fatal("Failed to initialize repository migrations: %v", err)
-	}
+	mustInit(pull_service.Init)
+	mustInit(task.Init)
+	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
+
+	mustInitCtx(ctx, syncAppPathForGit)
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
@@ -137,7 +160,6 @@ func GlobalInit(ctx context.Context) {
 		ssh.Unused()
 	}
 	auth.Init()
-
 	svg.Init()
 }
 
