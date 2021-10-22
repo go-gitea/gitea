@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -27,31 +28,37 @@ func ToComment(c *models.Comment) *api.Comment {
 func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineComment {
 	err := c.LoadMilestone()
 	if err != nil {
+		log.Error("LoadMilestone: %v", err)
 		return nil
 	}
 
 	err = c.LoadAssigneeUserAndTeam()
 	if err != nil {
+		log.Error("LoadAssigneeUserAndTeam: %v", err)
 		return nil
 	}
 
 	err = c.LoadResolveDoer()
 	if err != nil {
+		log.Error("LoadResolveDoer: %v", err)
 		return nil
 	}
 
 	err = c.LoadDepIssueDetails()
 	if err != nil {
+		log.Error("LoadDepIssueDetails: %v", err)
 		return nil
 	}
 
 	err = c.LoadTime()
 	if err != nil {
+		log.Error("LoadTime: %v", err)
 		return nil
 	}
 
 	err = c.LoadLabel()
 	if err != nil {
+		log.Error("LoadLabel: %v", err)
 		return nil
 	}
 
@@ -97,6 +104,7 @@ func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineCommen
 	if c.RefIssueID != 0 {
 		issue, err := models.GetIssueByID(c.RefIssueID)
 		if err != nil {
+			log.Error("GetIssueByID(%d): %v", c.RefIssueID, err)
 			return nil
 		}
 		comment.RefIssue = ToAPIIssue(issue)
@@ -105,10 +113,12 @@ func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineCommen
 	if c.RefCommentID != 0 {
 		com, err := models.GetCommentByID(c.RefCommentID)
 		if err != nil {
+			log.Error("GetCommentByID(%d): %v", c.RefCommentID, err)
 			return nil
 		}
 		err = com.LoadPoster()
 		if err != nil {
+			log.Error("LoadPoster: %v", err)
 			return nil
 		}
 		comment.RefComment = ToComment(com)
@@ -121,6 +131,7 @@ func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineCommen
 			var err error
 			org, err = models.GetUserByID(c.Label.OrgID)
 			if err != nil {
+				log.Error("GetCommentByID(%d): %v", c.Label.OrgID, err)
 				return nil
 			}
 		}
@@ -128,6 +139,7 @@ func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineCommen
 			var err error
 			repo, err = models.GetRepositoryByID(c.Label.RepoID)
 			if err != nil {
+				log.Error("GetRepositoryByID(%d): %v", c.Label.RepoID, err)
 				return nil
 			}
 		}
