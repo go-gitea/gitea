@@ -108,7 +108,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		// Setup key the user ssh key
 		withKeyFile(t, keyname, func(keyFile string) {
-			t.Run("CreateUserKey", doCreateUserKey(sshContext, "test-key", keyFile))
+			t.Run("CreateUserKey", doAPICreateUserKey(sshContext.CreateAPITestContext(t), "test-key", keyFile))
 
 			// Setup remote link
 			// TODO: get url from api
@@ -506,7 +506,7 @@ func doMergeFork(ctx, baseCtx TestContext, baseBranch, headBranch string) func(t
 		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
 
 		// Delete the head repository & make sure that doesn't break the PR page or change its diff
-		t.Run("DeleteHeadRepository", doDeleteRepository(ctx))
+		t.Run("DeleteHeadRepository", doAPIDeleteRepository(ctx.CreateAPITestContext(t)))
 		t.Run("EnsureCanSeePull", doEnsureCanSeePull(baseCtx, pr))
 		t.Run("EnsureDiffNoChange", doEnsureDiffNoChange(baseCtx, pr, diffHash, diffLength))
 	}

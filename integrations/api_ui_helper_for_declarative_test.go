@@ -7,7 +7,6 @@ package integrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
@@ -40,43 +39,6 @@ func (ctx TestContext) GitPath() string {
 
 func (ctx TestContext) CreateAPITestContext(t *testing.T) APITestContext {
 	return NewAPITestContext(t, ctx.Username, ctx.Reponame)
-}
-
-func doDeleteRepository(ctx TestContext) func(*testing.T) {
-	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s", ctx.Username, ctx.Reponame)
-		apiCtx := ctx.CreateAPITestContext(t)
-		req := NewRequest(t, "DELETE", urlStr)
-		if ctx.ExpectedCode != 0 {
-			apiCtx.MakeRequest(t, req, ctx.ExpectedCode)
-			return
-		}
-		apiCtx.MakeRequest(t, req, http.StatusNoContent)
-	}
-}
-
-func doCreateUserKey(ctx TestContext, keyname, keyFile string, callback ...func(*testing.T, api.PublicKey)) func(*testing.T) {
-	return func(t *testing.T) {
-		urlStr := "/api/v1/user/keys"
-
-		dataPubKey, err := ioutil.ReadFile(keyFile + ".pub")
-		assert.NoError(t, err)
-		req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateKeyOption{
-			Title: keyname,
-			Key:   string(dataPubKey),
-		})
-		apiCtx := ctx.CreateAPITestContext(t)
-		if ctx.ExpectedCode != 0 {
-			apiCtx.MakeRequest(t, req, ctx.ExpectedCode)
-			return
-		}
-		resp := apiCtx.MakeRequest(t, req, http.StatusCreated)
-		var publicKey api.PublicKey
-		DecodeJSON(t, resp, &publicKey)
-		if len(callback) > 0 {
-			callback[0](t, publicKey)
-		}
-	}
 }
 
 func doMergePullRequest(ctx TestContext, owner, repo string, index int64) func(*testing.T) {

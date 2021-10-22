@@ -277,23 +277,6 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 	}
 }
 
-func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
-	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge",
-			owner, repo, index)
-		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
-			Do:            string(models.MergeStyleManuallyMerged),
-			MergeCommitID: commitID,
-		})
-
-		if ctx.ExpectedCode != 0 {
-			ctx.MakeRequest(t, req, ctx.ExpectedCode)
-			return
-		}
-		ctx.MakeRequest(t, req, 200)
-	}
-}
-
 func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
@@ -333,18 +316,18 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 
 func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID string, index int64) func(*testing.T) {
 	return func(t *testing.T) {
-		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
-			owner, repo, index, ctx.Token)
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge",
+			owner, repo, index)
 		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
 			Do:            string(repo_model.MergeStyleManuallyMerged),
 			MergeCommitID: commitID,
 		})
 
 		if ctx.ExpectedCode != 0 {
-			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			ctx.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
-		ctx.Session.MakeRequest(t, req, http.StatusOK)
+		ctx.MakeRequest(t, req, http.StatusOK)
 	}
 }
 
