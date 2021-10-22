@@ -8,7 +8,8 @@ import (
 	"xorm.io/xorm"
 )
 
-func addRemoteVersionTableNoop(x *xorm.Engine) error {
-	// we used to use a table `remote_version` to store information for updater, now we use `AppState`, so this migration task is a no-op now.
+func dropTableRemoteVersion(x *xorm.Engine) error {
+	// drop the orphaned table introduced in `v199`, now the update checker also uses AppState, do not need this table
+	_ = x.DropTables("remote_version")
 	return nil
 }
