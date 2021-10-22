@@ -26,17 +26,7 @@ async function generate(svg, outputFile, {size, bg}) {
   if (outputFile.endsWith('.svg')) {
     const {data} = optimize(svg, {
       plugins: [
-        {
-          name: 'preset-default',
-          params: {
-            overrides: {
-              builtinPluginName: {
-                optionName: 'optionValue',
-              },
-              anotherBuiltinPlugin: false,
-            },
-          },
-        },
+        'preset-default',
         'removeDimensions',
         {
           name: 'addAttributesToSVGElement',
