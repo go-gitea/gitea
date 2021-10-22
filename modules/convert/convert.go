@@ -318,13 +318,13 @@ func ToTeams(teams []*models.Team) ([]*api.Team, error) {
 		apiTeams[i] = &api.Team{
 			ID:                      teams[i].ID,
 			Name:                    teams[i].Name,
+			Organization:            apiOrg,
 			Description:             teams[i].Description,
 			IncludesAllRepositories: teams[i].IncludesAllRepositories,
 			CanCreateOrgRepo:        teams[i].CanCreateOrgRepo,
 			Permission:              teams[i].Authorize.String(),
 			Units:                   teams[i].GetUnitNames(),
 		}
-		apiTeams[i].Organization = apiOrg
 	}
 	return apiTeams, nil
 }
