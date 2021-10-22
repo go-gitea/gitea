@@ -321,25 +321,21 @@ In case you already have a site, and you want Gitea to share the domain name, yo
 ```
 frontend http-in
     ...
-    acl acl_services hdr(host) -i services.example.com
     acl acl_gitea path_beg /gitea
-    use_backend gitea if acl_services acl_gitea
+    use_backend gitea if acl_gitea
     ...
 ```
 
-With that configuration http://services.example.com/gitea/ will redirect to your Gitea instance.
+With that configuration http://example.com/gitea/ will redirect to your Gitea instance.
 
 then for the backend section
 ```
 backend gitea
-    http-request redirect scheme https drop-query append-slash if { path -m str /gitea }
-    http-request replace-path /gitea(.*) \1
+    http-request replace-path /gitea\/?(.*) \/\1
     server localhost:3000 check
 ```
 
-The first element will automatically add a trailing slash at the end of your request to let work http://services.example.com/gitea and http://services.example.com/gitea/ the same.
+The added http-request will automatically add a trailing slash if needed and internally remove /gitea from the path to allow it to work correctly with Gitea by setting properly http://example.com/gitea as the root.
 
-The second will internally remove /gitea from the path to allow it to work correctly with Gitea.
-
-Then you **MUST** set something like `[server] ROOT_URL = http://services.example.com/git/` correctly in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.
 
