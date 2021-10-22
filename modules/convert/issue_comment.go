@@ -91,7 +91,7 @@ func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineCommen
 	}
 
 	if c.Time != nil {
-		comment.Time = ToTrackedTime(c.Time)
+		comment.TrackedTime = ToTrackedTime(c.Time)
 	}
 
 	if c.RefIssueID != 0 {

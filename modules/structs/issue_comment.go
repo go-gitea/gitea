@@ -90,7 +90,7 @@ type TimelineComment struct {
 	ProjectID    int64        `json:"project_id"`
 	OldMilestone *Milestone   `json:"old_milestone"`
 	Milestone    *Milestone   `json:"milestone"`
-	Time         *TrackedTime `json:"time"`
+	TrackedTime  *TrackedTime `json:"tracked_time"`
 	OldTitle     string       `json:"old_title"`
 	NewTitle     string       `json:"new_title"`
 	OldRef       string       `json:"old_ref"`
