@@ -1,4 +1,4 @@
-const {AppSubUrl, csrf, NotificationSettings} = window.config;
+const {appSubUrl, csrfToken, notificationSettings} = window.config;
 
 let notificationSequenceNumber = 0;
 
@@ -47,7 +47,7 @@ export async function initNotificationCount() {
     return;
   }
 
-  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
     const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
     worker.addEventListener('error', (event) => {
@@ -58,7 +58,7 @@ export async function initNotificationCount() {
     });
     worker.port.postMessage({
       type: 'start',
-      url: `${window.location.origin}${AppSubUrl}/user/events`,
+      url: `${window.location.origin}${appSubUrl}/user/events`,
     });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
@@ -77,7 +77,7 @@ export async function initNotificationCount() {
           type: 'close',
         });
         worker.port.close();
-        window.location.href = AppSubUrl;
+        window.location.href = appSubUrl;
       } else if (event.data.type === 'close') {
         worker.port.postMessage({
           type: 'close',
@@ -99,7 +99,7 @@ export async function initNotificationCount() {
     return;
   }
 
-  if (NotificationSettings.MinTimeout <= 0) {
+  if (notificationSettings.MinTimeout <= 0) {
     return;
   }
 
@@ -109,13 +109,13 @@ export async function initNotificationCount() {
     }, timeout);
   };
 
-  fn(NotificationSettings.MinTimeout, notificationCount.text());
+  fn(notificationSettings.MinTimeout, notificationCount.text());
 }
 
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
   const currentCount = $('.notification_count').text();
   if (lastCount !== currentCount) {
-    callback(NotificationSettings.MinTimeout, currentCount);
+    callback(notificationSettings.MinTimeout, currentCount);
     return;
   }
 
@@ -124,9 +124,9 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 
   if (lastCount !== newCount) {
     needsUpdate = true;
-    timeout = NotificationSettings.MinTimeout;
-  } else if (timeout < NotificationSettings.MaxTimeout) {
-    timeout += NotificationSettings.TimeoutStep;
+    timeout = notificationSettings.MinTimeout;
+  } else if (timeout < notificationSettings.MaxTimeout) {
+    timeout += notificationSettings.TimeoutStep;
   }
 
   callback(timeout, newCount);
@@ -140,7 +140,7 @@ async function updateNotificationTable() {
   if (notificationDiv.length > 0) {
     const data = await $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
+      url: `${appSubUrl}/notifications?${notificationDiv.data('params')}`,
       data: {
         'div-only': true,
         'sequence-number': ++notificationSequenceNumber,
@@ -156,9 +156,9 @@ async function updateNotificationTable() {
 async function updateNotificationCount() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${AppSubUrl}/api/v1/notifications/new`,
+    url: `${appSubUrl}/api/v1/notifications/new`,
     headers: {
-      'X-Csrf-Token': csrf,
+      'X-Csrf-Token': csrfToken,
     },
   });
 
@@ -183,7 +183,7 @@ async function updateNotification(url, status, page, q, notificationID) {
     type: 'POST',
     url,
     data: {
-      _csrf: csrf,
+      _csrf: csrfToken,
       notification_id: notificationID,
       status,
       page,
