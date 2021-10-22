@@ -174,7 +174,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	for i, comment := range comments {
 		if comment.Type != models.CommentTypeCode && isXRefCommentAccessible(ctx.User, comment, issue.RepoID) {
 			comment.Issue = issue
-			apiComments = append(apiComments, convert.ToTimelineComment(comments[i], ctx.User))
+			apiComments = append(apiComments, convert.ToTimelineComment(comment, ctx.User))
 		}
 	}
 
