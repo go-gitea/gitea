@@ -17029,7 +17029,7 @@
       "x-go-package": "code.gitea.io/gitea/modules/timeutil"
     },
     "TimelineComment": {
-      "description": "Comment represents a comment on a commit or issue",
+      "description": "TimelineComment represents a timeline comment (comment of any type) on a commit or issue",
       "type": "object",
       "properties": {
         "assignee": {
@@ -17103,7 +17103,7 @@
           "x-go-name": "PRURL"
         },
         "ref_action": {
-          "description": "action that was used to refernce issue/PR\n0 means the cross-reference is simply a comment\n1 means the cross-reference should close an issue if it is resolved\n2 means the cross-reference should reopen an issue if it is resolved\n3 means the cross-reference will no longer affect the source",
+          "description": "action that was used to reference issue/PR\n0 means the cross-reference is simply a comment\n1 means the cross-reference should close an issue if it is resolved\n2 means the cross-reference should reopen an issue if it is resolved\n3 means the cross-reference will no longer affect the source",
           "type": "integer",
           "format": "int64",
           "x-go-name": "RefAction"
