@@ -88,12 +88,13 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comm
 	if ctx.Repo.IsOwner() {
 		canSoftDelete = true
 	} else if ctx.Repo.CanWrite(models.UnitTypeIssues) {
-		canSoftDelete = ctx.User.ID == history.PosterID
 		if comment == nil {
-			canSoftDelete = canSoftDelete && (ctx.User.ID == issue.PosterID)
+			// the issue poster or the history poster can soft-delete
+			canSoftDelete = ctx.User.ID == issue.PosterID || ctx.User.ID == history.PosterID
 			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
 		} else {
-			canSoftDelete = canSoftDelete && (ctx.User.ID == comment.PosterID)
+			// the comment poster or the history poster can soft-delete
+			canSoftDelete = ctx.User.ID == comment.PosterID || ctx.User.ID == history.PosterID
 			canSoftDelete = canSoftDelete && (history.IssueID == issue.ID)
 			canSoftDelete = canSoftDelete && (history.CommentID == comment.ID)
 		}
