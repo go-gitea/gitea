@@ -62,7 +62,7 @@ type TimelineComment struct {
 	// 18 Removed a due date
 	// 19 Dependency added
 	// 20 Dependency removed
-	// 21 Comment a line of code
+	// 21 Comment a line of code, use review API to get more information
 	// 22 Reviews a pull request by giving general feedback
 	// 23 Lock an issue, giving only collaborators access
 	// 24 Unlocks a previously locked issue
@@ -107,7 +107,7 @@ type TimelineComment struct {
 	// commit SHA where issue/PR was referenced
 	RefCommitSHA string `json:"ref_commit_sha"`
 
-	ReviewID int64 `json:"review_id"`
+	ReviewID int64  `json:"review_id"`
 
 	Label *Label `json:"label"`
 
