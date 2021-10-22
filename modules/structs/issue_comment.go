@@ -62,8 +62,8 @@ type TimelineComment struct {
 	// 18 Removed a due date
 	// 19 Dependency added
 	// 20 Dependency removed
-	// 21 Comment a line of code, use review API to get more information
-	// 22 Reviews a pull request by giving general feedback
+	// 21 Not returned; use review API to get more information
+	// 22 Reviews a pull request by giving general feedback; use review API to get more information
 	// 23 Lock an issue, giving only collaborators access
 	// 24 Unlocks a previously locked issue
 	// 25 Change pull request's target branch
