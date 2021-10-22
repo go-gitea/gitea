@@ -57,3 +57,9 @@ export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
   }
   return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
 }
+
+export function parseIssueHref(href) {
+  const path = (href || '').replace(/[#?].*$/, '');
+  const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  return {owner, repo, type, index};
+}
