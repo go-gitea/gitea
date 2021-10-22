@@ -64,7 +64,7 @@ func testGit(t *testing.T, u *url.URL) {
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(apiForkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(apiForkedUserCtx, httpContext.Username, perm.AccessModeRead))
 
-		t.Run("ForkFromDifferentUser", doAPIForkRepository(apiForkedUserCtx, forkedUserCtx.Username))
+		t.Run("ForkFromDifferentUser", doAPIForkRepository(httpContext.CreateAPITestContext(t), forkedUserCtx.Username))
 
 		u.Path = httpContext.GitPath()
 		u.User = url.UserPassword(username, userPassword)
