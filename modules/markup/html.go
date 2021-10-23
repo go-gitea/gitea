@@ -92,7 +92,7 @@ func isLinkStr(link string) bool {
 func getIssueFullPattern() *regexp.Regexp {
 	if issueFullPattern == nil {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
+			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	}
 	return issueFullPattern
 }

@@ -265,6 +265,10 @@ func TestRender_FullIssueURLs(t *testing.T) {
 		`<a href="http://localhost:3000/person/repo/issues/4#issuecomment-1234" class="ref-issue">person/repo#4</a>`)
 	test("http://localhost:3000/gogits/gogs/issues/4",
 		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a>`)
+	test("http://localhost:3000/gogits/gogs/issues/4 test",
+		`<a href="http://localhost:3000/gogits/gogs/issues/4" class="ref-issue">#4</a> test`)
+	test("http://localhost:3000/gogits/gogs/issues/4?a=1&b=2#comment-123 test",
+		`<a href="http://localhost:3000/gogits/gogs/issues/4?a=1&amp;b=2#comment-123" class="ref-issue">#4</a> test`)
 }
 
 func TestRegExp_sha1CurrentPattern(t *testing.T) {
