@@ -29,7 +29,7 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 // CreateReaderAndGuessDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
 func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 	var data = make([]byte, 1e4)
-	size, err := util.FillBuffer(rd, data)
+	size, err := util.ReadAtMost(rd, data)
 	if err != nil {
 		return nil, err
 	}

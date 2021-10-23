@@ -272,7 +272,7 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
-	n, err := util.FillBuffer(dataRc, buf)
+	n, err := util.ReadAtMost(dataRc, buf)
 	if err != nil {
 		ctx.ServerError("Data", err)
 		return

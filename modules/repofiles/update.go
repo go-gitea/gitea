@@ -62,7 +62,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 	defer reader.Close()
 	buf := make([]byte, 1024)
-	n, err := util.FillBuffer(reader, buf)
+	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
 		// return default
 		return "UTF-8", false
@@ -85,7 +85,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 				}
 				defer dataRc.Close()
 				buf = make([]byte, 1024)
-				n, err = util.FillBuffer(dataRc, buf)
+				n, err = util.ReadAtMost(dataRc, buf)
 				if err != nil {
 					// return default
 					return "UTF-8", false

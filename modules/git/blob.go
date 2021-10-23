@@ -29,7 +29,7 @@ func (b *Blob) GetBlobContent() (string, error) {
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
-	n, _ := util.FillBuffer(dataRc, buf)
+	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 	return string(buf), nil
 }

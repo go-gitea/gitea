@@ -88,7 +88,7 @@ func DetectContentType(data []byte) SniffedType {
 // DetectContentTypeFromReader guesses the content type contained in the reader.
 func DetectContentTypeFromReader(r io.Reader) (SniffedType, error) {
 	buf := make([]byte, sniffLen)
-	n, err := util.FillBuffer(r, buf)
+	n, err := util.ReadAtMost(r, buf)
 	if err != nil {
 		return SniffedType{}, fmt.Errorf("DetectContentTypeFromReader io error: %w", err)
 	}

@@ -251,7 +251,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		defer dataRc.Close()
 
 		buf := make([]byte, 1024)
-		n, _ := util.FillBuffer(dataRc, buf)
+		n, _ := util.ReadAtMost(dataRc, buf)
 		buf = buf[:n]
 
 		st := typesniffer.DetectContentType(buf)
@@ -286,7 +286,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					defer dataRc.Close()
 
 					buf = make([]byte, 1024)
-					n, err = util.FillBuffer(dataRc, buf)
+					n, err = util.ReadAtMost(dataRc, buf)
 					if err != nil {
 						ctx.ServerError("Data", err)
 						return
@@ -378,7 +378,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
 	buf := make([]byte, 1024)
-	n, _ := util.FillBuffer(dataRc, buf)
+	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
@@ -410,7 +410,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				defer dataRc.Close()
 
 				buf = make([]byte, 1024)
-				n, err = util.FillBuffer(dataRc, buf)
+				n, err = util.ReadAtMost(dataRc, buf)
 				if err != nil {
 					ctx.ServerError("Data", err)
 					return

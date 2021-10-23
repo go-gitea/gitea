@@ -43,7 +43,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob) error {
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
-	n, err := util.FillBuffer(reader, buf)
+	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
 		return err
 	}
