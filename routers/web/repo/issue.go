@@ -1617,6 +1617,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
+	ctx.Data["HideIssueEvents"] = setting.UI.HideIssueEvents
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 	ctx.HTML(http.StatusOK, tplIssueView)
 }

@@ -131,7 +131,7 @@
 				{{end}}
 			</span>
 		</div>
-	{{else if eq .Type 3 5 6}}
+	{{else if and (eq .Type 3 5 6) (not $.HideIssueEvents)}}
 		{{ $refFrom:= "" }}
 		{{if ne .RefRepoID .Issue.RepoID}}
 			{{ $refFrom = $.i18n.Tr "repo.issues.ref_from" .RefRepo.FullName }}
@@ -161,7 +161,7 @@
 				<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle | Str2html}}</b> {{.RefIssueIdent | Str2html}}</a></span>
 			</div>
 		</div>
-	{{else if eq .Type 4}}
+	{{else if and (eq .Type 4) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-bookmark"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -176,7 +176,7 @@
 				<span class="text grey">{{.Content | Str2html}}</span>
 			</div>
 		</div>
-	{{else if eq .Type 7}}
+	{{else if and (eq .Type 7) (not $.HideIssueEvents)}}
 		{{if or .AddedLabels .RemovedLabels}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-tag"}}</span>
@@ -195,7 +195,7 @@
 				</span>
 			</div>
 		{{end}}
-	{{else if eq .Type 8}}
+	{{else if and (eq .Type 8) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-milestone"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -206,7 +206,7 @@
 				{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
 			</span>
 		</div>
-	{{else if eq .Type 9}}
+	{{else if and (eq .Type 9) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-person"}}</span>
 			{{if gt .AssigneeID 0}}
@@ -237,7 +237,7 @@
 				{{end}}
 			{{end}}
 		</div>
-	{{else if eq .Type 10}}
+	{{else if and (eq .Type 10) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-pencil"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -248,7 +248,7 @@
 				{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 11}}
+	{{else if and (eq .Type 11) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-git-branch"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -259,7 +259,7 @@
 				{{$.i18n.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 12}}
+	{{else if and (eq .Type 12) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -270,7 +270,7 @@
 				{{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 13}}
+	{{else if and (eq .Type 13) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -286,7 +286,7 @@
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
-	{{else if eq .Type 14}}
+	{{else if and (eq .Type 14) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -302,7 +302,7 @@
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
-	{{else if eq .Type 15}}
+	{{else if and (eq .Type 15) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -313,7 +313,7 @@
 				{{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 16}}
+	{{else if and (eq .Type 16) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -324,7 +324,7 @@
 				{{$.i18n.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 17}}
+	{{else if and (eq .Type 17) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -335,7 +335,7 @@
 				{{$.i18n.Tr "repo.issues.due_date_modified" (.Content | ParseDeadline) $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 18}}
+	{{else if and (eq .Type 18) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -346,7 +346,7 @@
 				{{$.i18n.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 19}}
+	{{else if and (eq .Type 19) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-package-dependents"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -371,7 +371,7 @@
 				</div>
 			{{end}}
 		</div>
-	{{else if eq .Type 20}}
+	{{else if and (eq .Type 20) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-package-dependents"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -624,7 +624,7 @@
 			</div>
 			{{end}}
 		</div>
-	{{else if eq .Type 23}}
+	{{else if and (eq .Type 23) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-lock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -642,7 +642,7 @@
 				</span>
 			{{ end }}
 		</div>
-	{{else if eq .Type 24}}
+	{{else if and (eq .Type 24) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-key"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -653,7 +653,7 @@
 				{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 25}}
+	{{else if and (eq .Type 25) (not $.HideIssueEvents)}}
 		<div class="timeline-item event">
 			<span class="badge">{{svg "octicon-git-branch"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -664,7 +664,7 @@
 				{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 			</span>
 		</div>
-	{{else if eq .Type 26}}
+	{{else if and (eq .Type 26) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-clock"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -679,7 +679,7 @@
 				<span class="text grey">{{.Content}}</span>
 			</div>
 		</div>
-	{{else if eq .Type 27}}
+	{{else if and (eq .Type 27) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-eye"}}</span>
 			<a href="{{.Poster.HomeLink}}">
@@ -706,7 +706,7 @@
 				{{end}}
 			</span>
 		</div>
-	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush)}}
+	{{else if and (eq .Type 29) (or (gt .CommitsNum 0) .IsForcePush) (not $.HideIssueEvents)}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-repo-push"}}</span>
 			<span class="text grey">
@@ -721,7 +721,7 @@
 		{{if not .IsForcePush}}
 			{{template "repo/commits_list_small" dict "comment" . "root" $}}
 		{{end}}
-	{{else if eq .Type 30}}
+	{{else if and (eq .Type 30) (not $.HideIssueEvents)}}
 		{{if not $.UnitProjectsGlobalDisabled}}
 		<div class="timeline-item event" id="{{.HashTag}}">
 			<span class="badge">{{svg "octicon-project"}}</span>
@@ -742,7 +742,7 @@
 			</span>
 		</div>
 		{{end}}
-	{{else if eq .Type 32}}
+	{{else if and (eq .Type 32) (not $.HideIssueEvents)}}
 		<div class="timeline-item-group">
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<a class="timeline-avatar"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
