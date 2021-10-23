@@ -47,6 +47,16 @@
 								<span class="{{$class}}">
 							{{end}}
 								<span class="shortsha">{{ShortSha .ID.String}}</span>
+								<span class="clipboard"
+									data-original="{{$.i18n.Tr "repo.commits.copy_sha_text"}}"
+									data-success="{{$.i18n.Tr "repo.commits.copy_sha_success"}}"
+									data-error="{{$.i18n.Tr "repo.commits.copy_sha_error"}}"
+									data-content="{{$.i18n.Tr "repo.commits.copy_sha_text"}}"
+									data-variation="inverted tiny"
+									data-clipboard-text="{{.ID}}"
+								>
+									{{svg "octicon-paste"}}
+								</span>
 								{{if .Signature}}
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
