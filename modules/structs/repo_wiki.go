@@ -16,7 +16,7 @@ type WikiCommit struct {
 type WikiPage struct {
 	*WikiPageMetaData
 	// Page content, base64 encoded
-	ContentBase64 string `json:"content"`
+	ContentBase64 string `json:"content_base64"`
 	CommitCount   int64  `json:"commit_count"`
 	Sidebar       string `json:"sidebar"`
 	Footer        string `json:"footer"`
@@ -35,7 +35,7 @@ type CreateWikiPageOptions struct {
 	// page title. leave empty to keep unchanged
 	Title string `json:"title"`
 	// content must be base64 encoded
-	ContentBase64 string `json:"content"`
+	ContentBase64 string `json:"content_base64"`
 	// optional commit message summarizing the change
 	Message string `json:"message"`
 }
