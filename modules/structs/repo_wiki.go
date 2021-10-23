@@ -26,7 +26,7 @@ type WikiPage struct {
 type WikiPageMetaData struct {
 	Title      string      `json:"title"`
 	HTMLURL    string      `json:"html_url"`
-	SubURL     string      `json:"suburl"`
+	SubURL     string      `json:"sub_url"`
 	LastCommit *WikiCommit `json:"last_commit"`
 }
 
