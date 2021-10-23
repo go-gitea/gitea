@@ -138,7 +138,8 @@ func GetContentHistoryDetail(ctx *context.Context) {
 
 	// compare the current history revision with the previous one
 	dmp := diffmatchpatch.New()
-	diff := dmp.DiffMain(prevHistoryContentText, history.ContentText, true)
+	// `checklines=false` makes better diff result
+	diff := dmp.DiffMain(prevHistoryContentText, history.ContentText, false)
 	diff = dmp.DiffCleanupEfficiency(diff)
 
 	// use chroma to render the diff html
