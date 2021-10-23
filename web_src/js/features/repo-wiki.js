@@ -116,6 +116,22 @@ export function initRepoWikiForm() {
         },
       ]
     });
+
+    $('#edit_form').on('submit', (e) => {
+      // The original edit area HTML element is hidden and replaced by the
+      // SimpleMDE editor, breaking HTML5 input validation if the text area is empty.
+      // This is a workaround for this upstream bug.
+      // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
+      const input = $editArea.val()
+      if (!input.length) {
+        $(simplemde.codemirror.getInputField()).attr('required', true);
+        document.querySelector('#edit_form').reportValidity();
+        e.preventDefault()
+      } else {
+        $(simplemde.codemirror.getInputField()).attr('required', false);
+      }
+    });
+
     $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
 
     setTimeout(() => {
