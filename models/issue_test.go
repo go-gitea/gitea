@@ -357,6 +357,7 @@ func testInsertIssue(t *testing.T, title, content string, expectIndex int64) *Is
 		issue := Issue{
 			RepoID:   repo.ID,
 			PosterID: user.ID,
+			Poster:   user,
 			Title:    title,
 			Content:  content,
 		}
