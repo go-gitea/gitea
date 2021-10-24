@@ -66,4 +66,7 @@ CMD ["/bin/s6-svscan", "/etc/s6"]
 COPY docker/root /
 COPY --from=build-env /go/src/code.gitea.io/gitea/gitea /app/gitea/gitea
 COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
+RUN chmod 755 /usr/bin/entrypoint
+RUN chmod 755 /app/gitea/gitea
+RUN chmod 755 /usr/local/bin/environment-to-ini
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
