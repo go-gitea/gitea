@@ -1320,11 +1320,12 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 }
 
 func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
-	return sess.And("(issue.id IN (SELECT issue_id FROM issue_watch WHERE (is_watching = ?) AND user_id = ?)) "+
-		"OR ((issue.id IN (SELECT issue_id FROM comment WHERE poster_id = ?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = ?)))) "+
-		"OR ((issue.id IN (SELECT id FROM issue WHERE poster_id = ?)) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = ?)))) "+
-		"OR (issue.repo_id IN (SELECT id FROM watch WHERE user_id = ? AND mode = ?) AND (NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE user_id = ? AND (is_watching = ?))))",
-		true, subscriberID, subscriberID, subscriberID, false, subscriberID, subscriberID, false, subscriberID, true, subscriberID, false)
+	return sess.And("NOT issue.id IN (SELECT issue_id FROM issue_watch WHERE is_watching = ? AND user_id = ?)", false, subscriberID).
+		And("(issue.id IN (SELECT issue_id FROM issue_watch WHERE is_watching = ? AND user_id = ?)) "+
+			"OR (issue.id IN (SELECT issue_id FROM comment WHERE poster_id = ?)) "+
+			"OR issue.poster_id = ? "+
+			"OR issue.repo_id IN (SELECT id FROM watch WHERE user_id = ? AND mode = ?)",
+			true, subscriberID, subscriberID, subscriberID, subscriberID, true)
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
