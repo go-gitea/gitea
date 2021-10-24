@@ -236,10 +236,23 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 	c.Data["IssueType"] = issueType
 
+	var labelIDs []int64
+	selectedLabels := c.FormString("labels")
+	c.Data["Labels"] = selectedLabels
+	if len(selectedLabels) > 0 && selectedLabels != "0" {
+		var err error
+		labelIDs, err = base.StringsToInt64s(strings.Split(selectedLabels, ","))
+		if err != nil {
+			c.ServerError("StringsToInt64s", err)
+			return
+		}
+	}
+
 	count, err := models.CountIssues(&models.IssuesOptions{
 		SubscriberID: c.User.ID,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
+		LabelIDs:     labelIDs,
 	})
 	if err != nil {
 		c.ServerError("CountIssues", err)
@@ -254,6 +267,7 @@ func NotificationSubscriptions(c *context.Context) {
 		SortType:     sortType,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
+		LabelIDs:     labelIDs,
 	})
 	if err != nil {
 		c.ServerError("Issues", err)
