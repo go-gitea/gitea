@@ -36,8 +36,8 @@ func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 	}
 
 	return CreateReader(
-		io.MultiReader(bytes.NewReader(data[:n]), rd),
-		guessDelimiter(data[:n]),
+		io.MultiReader(bytes.NewReader(data[:size]), rd),
+		guessDelimiter(data[:size]),
 	), nil
 }
 
