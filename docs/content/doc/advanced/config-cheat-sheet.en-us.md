@@ -189,7 +189,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **true**: Whether to enable a Service Worker to cache frontend assets.
-- `HIDE_ISSUE_EVENTS`: **false**: Whether to hide issue events (like added/removed labels, changed milestones/projects...).
+- `HIDDEN_ISSUE_EVENTS`: Issue comment types/events that should be hidden.
 
 ### UI - Admin (`ui.admin`)
 
