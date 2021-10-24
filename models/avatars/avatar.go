@@ -19,10 +19,10 @@ import (
 )
 
 // DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
-const DefaultAvatarPixelSize = 28
+const DefaultAvatarPixelSize = 128
 
 // AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
-const AvatarRenderedSizeFactor = 4
+const AvatarRenderedSizeFactor = 2
 
 // EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
 type EmailHash struct {
