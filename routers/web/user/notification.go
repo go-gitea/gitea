@@ -204,14 +204,8 @@ func NotificationSubscriptions(c *context.Context) {
 		page = 1
 	}
 
-	viewType := c.FormString("type")
 	sortType := c.FormString("sort")
-	types := []string{"all", "assigned", "created_by", "mentioned"}
-	if !util.IsStringInSlice(viewType, types, true) {
-		viewType = "all"
-	}
 	c.Data["SortType"] = sortType
-	c.Data["ViewType"] = viewType
 
 	state := c.FormString("state")
 	states := []string{"all", "open", "closed"}
@@ -229,21 +223,6 @@ func NotificationSubscriptions(c *context.Context) {
 		showClosed = util.OptionalBoolFalse
 	}
 
-	var (
-		assigneeID  int64
-		posterID    int64
-		mentionedID int64
-	)
-
-	switch viewType {
-	case "created_by":
-		posterID = c.User.ID
-	case "mentioned":
-		mentionedID = c.User.ID
-	case "assigned":
-		assigneeID = c.User.ID
-	}
-
 	var issueTypeBool util.OptionalBool
 	issueType := c.FormString("issueType")
 	switch issueType {
@@ -258,9 +237,6 @@ func NotificationSubscriptions(c *context.Context) {
 
 	count, err := models.CountIssues(&models.IssuesOptions{
 		SubscriberID: c.User.ID,
-		AssigneeID:   assigneeID,
-		MentionedID:  mentionedID,
-		PosterID:     posterID,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
 	})
@@ -274,9 +250,6 @@ func NotificationSubscriptions(c *context.Context) {
 			Page:     page,
 		},
 		SubscriberID: c.User.ID,
-		AssigneeID:   assigneeID,
-		MentionedID:  mentionedID,
-		PosterID:     posterID,
 		SortType:     sortType,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
