@@ -301,8 +301,6 @@ func NotificationSubscriptions(c *context.Context) {
 		c.Redirect(fmt.Sprintf("/notifications/subscriptions?page=%d", pager.Paginater.Current()))
 		return
 	}
-	//	pager.SetDefaultParams(c)
-	pager.AddParam(c, "type", "ViewType")
 	pager.AddParam(c, "sort", "SortType")
 	pager.AddParam(c, "state", "State")
 	c.Data["Page"] = pager
