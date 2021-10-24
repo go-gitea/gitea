@@ -12,7 +12,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
   if ($dialog.length) return;
 
   $dialog = $(`
-<div class="ui modal content-history-detail-dialog" style="min-height: 50%;">
+<div class="ui modal content-history-detail-dialog">
   <i class="close icon inside"></i>
   <div class="header">
     ${itemTitleHtml}
@@ -24,7 +24,7 @@ function showContentHistoryDetail(issueBaseUrl, commentId, historyId, itemTitleH
     </div>
   </div>
   <!-- ".modal .content" style was polluted in "_base.less": "&.modal > .content"  -->
-  <div class="scrolling content" style="text-align: left;">
+  <div class="scrolling content" style="text-align: left; min-height: 30vh;">
       <div class="ui loader active"></div>
   </div>
 </div>`);
