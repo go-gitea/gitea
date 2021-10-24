@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -259,6 +260,9 @@ func NotificationSubscriptions(c *context.Context) {
 		return
 	}
 	c.Data["Issues"] = issues
+
+	c.Data["IssueRefEndNames"], c.Data["IssueRefURLs"] =
+		issue_service.GetRefEndNamesAndURLs(issues, "")
 
 	commitStatus, err := pull_service.GetIssuesLastCommitStatus(issues)
 	if err != nil {
