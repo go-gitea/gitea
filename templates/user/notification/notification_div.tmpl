@@ -10,7 +10,7 @@
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
 				{{.i18n.Tr "notification.read"}}
 			</a>
-			<div class="right item">
+			<div class="right item p-1">
 				<a href="{{AppSubUrl}}/notifications/subscriptions">
 					<button class="ui mini button primary" title='{{$.i18n.Tr "notification.subscriptions"}}'>
 						{{svg "octicon-unmute"}}
