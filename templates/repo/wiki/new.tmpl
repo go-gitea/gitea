@@ -11,7 +11,7 @@
 				</div>
 			{{end}}
 		</div>
-		<form id="edit_form" class="ui form" action="{{.Link}}" method="post">
+		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
 				<input name="title" value="{{.title}}" autofocus required>
