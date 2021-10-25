@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/uuid"
 )
@@ -41,10 +42,8 @@ func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachmen
 // UploadAttachment upload new attachment into storage and update database
 func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName string, allowedTypes string) (*models.Attachment, error) {
 	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
+	n, _ := util.ReadAtMost(file, buf)
+	buf = buf[:n]
 
 	if err := upload.Verify(buf, fileName, allowedTypes); err != nil {
 		return nil, err
