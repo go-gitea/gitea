@@ -323,7 +323,7 @@ func Repos(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)
 }
 
-// Profile render user's profile page
+// Appearance render user's appearance settings
 func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
