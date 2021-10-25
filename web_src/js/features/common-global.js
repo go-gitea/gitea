@@ -283,13 +283,30 @@ export function initGlobalLinkActions() {
   });
 }
 
+function handlePanelButtonToggle($btn) {
+  const toggleButton = $btn.data('toggle-button');
+  if (!toggleButton) return;
+  $(toggleButton).show();
+  $btn.hide();
+}
+
 export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
-    $($(this).data('panel')).show();
+    if ($($(this).data('panel')).is(":visible")) {
+      $($(this).data('panel')).hide();
+    } else {
+      $($(this).data('panel')).show();
+    }
+    handlePanelButtonToggle($(this));
   });
 
   $('.hide-panel.button').on('click', function () {
-    $($(this).data('panel')).hide();
+    if ($($(this).data('panel')).is(":visible")) {
+      $($(this).data('panel')).hide();
+    } else {
+      $($(this).data('panel')).show();
+    }
+    handlePanelButtonToggle($(this));
   });
 
   $('.swap.button').on('click', function () {

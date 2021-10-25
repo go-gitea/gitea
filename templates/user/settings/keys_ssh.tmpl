@@ -2,13 +2,13 @@
 	{{.i18n.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
 		{{if not .DisableSSH }}
-			<div id="add-ssh-button" class="ui blue tiny show-panel swap button" data-show-button="#cancel-ssh-button" data-panel="#add-ssh-key-panel">
+			<div id="add-ssh-button" class="ui blue tiny show-panel button" data-toggle-button="#cancel-ssh-button" data-panel="#add-ssh-key-panel">
 				{{.i18n.Tr "settings.add_key"}}
 			</div>
 		{{else}}
 			<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
 		{{end}}
-		<button id="cancel-ssh-button" class="ui red tiny hide-panel swap button" data-show-button="#add-ssh-button" data-panel="#add-ssh-key-panel" style="display: none;">
+		<button id="cancel-ssh-button" class="ui red tiny hide-panel button" data-toggle-button="#add-ssh-button" data-panel="#add-ssh-key-panel" style="display: none;">
 			{{.i18n.Tr "cancel"}}
 		</button>
 	</div>
