@@ -292,6 +292,11 @@ export function initGlobalButtons() {
     $($(this).data('panel')).hide();
   });
 
+  $('.swap.button').on('click', function () {
+    $($(this).data('show-button')).show();
+    $(this).hide();
+  });
+
   $('.show-modal.button').on('click', function () {
     $($(this).data('modal')).modal('show');
     const colorPickers = $($(this).data('modal')).find('.color-picker');

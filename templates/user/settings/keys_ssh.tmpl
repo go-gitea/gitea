@@ -1,13 +1,20 @@
-<div {{if not .HasSSHError}}class="hide"{{end}} id="add-ssh-key-panel">
-	<h4 class="ui top attached header">
-		{{.i18n.Tr "settings.add_new_key"}}
-		<div class="ui right">
-			<button class="ui red tiny hide-panel button" data-panel="#add-ssh-key-panel">
-				{{.i18n.Tr "cancel"}}
-			</button>
-		</div>
-	</h4>
-	<div class="ui attached segment">
+<h4 class="ui top attached header">
+	{{.i18n.Tr "settings.manage_ssh_keys"}}
+	<div class="ui right">
+		{{if not .DisableSSH }}
+			<div id="add-ssh-button" class="ui blue tiny show-panel swap button" data-show-button="#cancel-ssh-button" data-panel="#add-ssh-key-panel">
+				{{.i18n.Tr "settings.add_key"}}
+			</div>
+		{{else}}
+			<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
+		{{end}}
+		<button id="cancel-ssh-button" class="ui red tiny hide-panel swap button" data-show-button="#add-ssh-button" data-panel="#add-ssh-key-panel" style="display: none;">
+			{{.i18n.Tr "cancel"}}
+		</button>
+	</div>
+</h4>
+<div class="ui attached segment">
+	<div class="{{if not .HasSSHError}}hide{{end}} mb-4" id="add-ssh-key-panel">
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
@@ -24,19 +31,7 @@
 			</button>
 		</form>
 	</div>
-</div>
-<h4 class="ui top attached header">
-	{{.i18n.Tr "settings.manage_ssh_keys"}}
-	<div class="ui right">
-	{{if not .DisableSSH }}
-		<div class="ui blue tiny show-panel button" data-panel="#add-ssh-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
-	{{else}}
-		<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
-	{{end}}
-	</div>
-</h4>
-<div class="ui attached segment">
-	<div class="ui key list">
+	<div class="ui key list mt-0">
 		<div class="item">
 			{{.i18n.Tr "settings.ssh_desc"}}
 		</div>
