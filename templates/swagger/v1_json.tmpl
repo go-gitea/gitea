@@ -9889,6 +9889,284 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/wiki/new": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a wiki page",
+        "operationId": "repoCreateWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateWikiPageOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WikiPage"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/page/{pageName}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a wiki page",
+        "operationId": "repoGetWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiPage"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a wiki page",
+        "operationId": "repoDeleteWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a wiki page",
+        "operationId": "repoEditWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateWikiPageOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiPage"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/pages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get all wiki pages",
+        "operationId": "repoGetWikiPages",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiPageList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/revisions/{pageName}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get revisions of a wiki page",
+        "operationId": "repoGetWikiPageRevisions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiCommitList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{template_owner}/{template_repo}/generate": {
       "post": {
         "consumes": [
@@ -13666,6 +13944,28 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateWikiPageOptions": {
+      "description": "CreateWikiPageOptions form for creating wiki",
+      "type": "object",
+      "properties": {
+        "content_base64": {
+          "description": "content must be base64 encoded",
+          "type": "string",
+          "x-go-name": "ContentBase64"
+        },
+        "message": {
+          "description": "optional commit message summarizing the change",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "title": {
+          "description": "page title. leave empty to keep unchanged",
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Cron": {
       "description": "Cron represents a Cron task",
       "type": "object",
@@ -17376,6 +17676,108 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiCommit": {
+      "description": "WikiCommit page commit/revision",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "commiter": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "ID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiCommitList": {
+      "description": "WikiCommitList commit/revision list",
+      "type": "object",
+      "properties": {
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WikiCommit"
+          },
+          "x-go-name": "WikiCommits"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiPage": {
+      "description": "WikiPage a wiki page",
+      "type": "object",
+      "properties": {
+        "commit_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CommitCount"
+        },
+        "content_base64": {
+          "description": "Page content, base64 encoded",
+          "type": "string",
+          "x-go-name": "ContentBase64"
+        },
+        "footer": {
+          "type": "string",
+          "x-go-name": "Footer"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/WikiCommit"
+        },
+        "sidebar": {
+          "type": "string",
+          "x-go-name": "Sidebar"
+        },
+        "sub_url": {
+          "type": "string",
+          "x-go-name": "SubURL"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiPageMetaData": {
+      "description": "WikiPageMetaData wiki page meta information",
+      "type": "object",
+      "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/WikiCommit"
+        },
+        "sub_url": {
+          "type": "string",
+          "x-go-name": "SubURL"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     }
   },
   "responses": {
@@ -18069,6 +18471,27 @@
         "$ref": "#/definitions/WatchInfo"
       }
     },
+    "WikiCommitList": {
+      "description": "WikiCommitList",
+      "schema": {
+        "$ref": "#/definitions/WikiCommitList"
+      }
+    },
+    "WikiPage": {
+      "description": "WikiPage",
+      "schema": {
+        "$ref": "#/definitions/WikiPage"
+      }
+    },
+    "WikiPageList": {
+      "description": "WikiPageList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/WikiPageMetaData"
+        }
+      }
+    },
     "conflict": {
       "description": "APIConflict is a conflict empty response"
     },
@@ -18117,7 +18540,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UserSettingsOptions"
+        "$ref": "#/definitions/CreateWikiPageOptions"
       }
     },
     "redirect": {
