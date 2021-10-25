@@ -29,26 +29,18 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 }
 
 // CreateReaderAndDetermineDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
+// Reads at most 10k bytes.
 func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) (*stdcsv.Reader, error) {
 	var data = make([]byte, 1e4)
-	size, err := rd.Read(data)
+	size, err := util.ReadAtMost(rd, data)
 	if err != nil {
-		if err == io.EOF {
-			return CreateReader(bytes.NewReader([]byte{}), rune(',')), nil
-		}
 		return nil, err
 	}
 
-	delimiter := determineDelimiter(ctx, data[:size])
-
-	var newInput io.Reader
-	if size < 1e4 {
-		newInput = bytes.NewReader(data[:size])
-	} else {
-		newInput = io.MultiReader(bytes.NewReader(data), rd)
-	}
-
-	return CreateReader(newInput, delimiter), nil
+	return CreateReader(
+		io.MultiReader(bytes.NewReader(data[:size]), rd),
+		determineDelimiter(ctx, data[:size]),
+	), nil
 }
 
 // determineDelimiter takes a RenderContext and if it isn't nil and the Filename has an extension that specifies the delimiter,
@@ -73,12 +65,9 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 }
 
 // guessDelimiter scores the input CSV data against delimiters, and returns the best match.
-// Reads at most 10k bytes & 10 lines.
 func guessDelimiter(data []byte) rune {
 	maxLines := 10
-	maxBytes := util.Min(len(data), 1e4)
-	text := string(data[:maxBytes])
-	text = quoteRegexp.ReplaceAllLiteralString(text, "")
+	text := quoteRegexp.ReplaceAllLiteralString(string(data), "")
 	lines := strings.SplitN(text, "\n", maxLines+1)
 	lines = lines[:util.Min(maxLines, len(lines))]
 

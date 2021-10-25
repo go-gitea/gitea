@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image/png"
 	"io"
+	"strings"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
@@ -91,9 +92,13 @@ func (u *User) AvatarLinkWithSize(size int) string {
 	return avatars.GenerateEmailAvatarFastLink(u.AvatarEmail, size)
 }
 
-// AvatarLink returns a avatar link with default size
+// AvatarLink returns the full avatar link with http host
 func (u *User) AvatarLink() string {
-	return u.AvatarLinkWithSize(0)
+	link := u.AvatarLinkWithSize(0)
+	if !strings.HasPrefix(link, "//") && !strings.Contains(link, "://") {
+		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
+	}
+	return link
 }
 
 // UploadAvatar saves custom avatar for user.
