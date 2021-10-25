@@ -9,9 +9,11 @@ import (
 	stdcsv "encoding/csv"
 	"errors"
 	"io"
+	"path/filepath"
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -26,8 +28,8 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 	return rd
 }
 
-// CreateReaderAndGuessDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
-func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
+// CreateReaderAndDetermineDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
+func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) (*stdcsv.Reader, error) {
 	var data = make([]byte, 1e4)
 	size, err := rd.Read(data)
 	if err != nil {
@@ -37,7 +39,7 @@ func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 		return nil, err
 	}
 
-	delimiter := guessDelimiter(data[:size])
+	delimiter := determineDelimiter(ctx, data[:size])
 
 	var newInput io.Reader
 	if size < 1e4 {
@@ -47,6 +49,27 @@ func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 	}
 
 	return CreateReader(newInput, delimiter), nil
+}
+
+// determineDelimiter takes a RenderContext and if it isn't nil and the Filename has an extension that specifies the delimiter,
+// it is used as the delimiter. Otherwise we call guessDelimiter with the data passed
+func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
+	extension := ".csv"
+	if ctx != nil {
+		extension = strings.ToLower(filepath.Ext(ctx.Filename))
+	}
+
+	var delimiter rune
+	switch extension {
+	case ".tsv":
+		delimiter = '\t'
+	case ".psv":
+		delimiter = '|'
+	default:
+		delimiter = guessDelimiter(data)
+	}
+
+	return delimiter
 }
 
 // guessDelimiter scores the input CSV data against delimiters, and returns the best match.

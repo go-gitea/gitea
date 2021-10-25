@@ -17,10 +17,10 @@ func TestCreateReader(t *testing.T) {
 	assert.Equal(t, ',', rd.Comma)
 }
 
-func TestCreateReaderAndGuessDelimiter(t *testing.T) {
+func TestCreateReaderAndDetermineDelimiter(t *testing.T) {
 	input := "a;b;c\n1;2;3\n4;5;6"
 
-	rd, err := CreateReaderAndGuessDelimiter(strings.NewReader(input))
+	rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(input))
 	assert.NoError(t, err)
 	assert.Equal(t, ';', rd.Comma)
 }
@@ -35,6 +35,7 @@ func TestGuessDelimiter(t *testing.T) {
 		"1,2,3;4,5,6;7,8,9\na;b;c":  ';',
 		"\"1,2,3,4\";\"a\nb\"\nc;d": ';',
 		"<br/>":                     ',',
+		"name\temail\tnote\nJohn Doe\tjohn@doe.com\tThis,note,had,a,lot,of,commas,to,test,delimters": '\t',
 	}
 
 	for k, v := range kases {
