@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/common"
 )
 
@@ -43,10 +44,8 @@ func uploadAttachment(ctx *context.Context, allowedTypes string) {
 	defer file.Close()
 
 	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
-	if n > 0 {
-		buf = buf[:n]
-	}
+	n, _ := util.ReadAtMost(file, buf)
+	buf = buf[:n]
 
 	err = upload.Verify(buf, header.Filename, allowedTypes)
 	if err != nil {

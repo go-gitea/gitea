@@ -31,11 +31,8 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 // Reads at most 10k bytes.
 func CreateReaderAndGuessDelimiter(rd io.Reader) (*stdcsv.Reader, error) {
 	var data = make([]byte, 1e4)
-	size, err := rd.Read(data)
+	size, err := util.ReadAtMost(rd, data)
 	if err != nil {
-		if err == io.EOF {
-			return CreateReader(bytes.NewReader([]byte{}), rune(',')), nil
-		}
 		return nil, err
 	}
 
