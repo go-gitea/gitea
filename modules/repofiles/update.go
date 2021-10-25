@@ -19,6 +19,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -61,7 +62,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 	defer reader.Close()
 	buf := make([]byte, 1024)
-	n, err := reader.Read(buf)
+	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
 		// return default
 		return "UTF-8", false
@@ -84,7 +85,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 				}
 				defer dataRc.Close()
 				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
+				n, err = util.ReadAtMost(dataRc, buf)
 				if err != nil {
 					// return default
 					return "UTF-8", false
