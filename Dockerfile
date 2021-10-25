@@ -69,4 +69,5 @@ COPY --from=build-env /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/
 RUN chmod 755 /usr/bin/entrypoint
 RUN chmod 755 /app/gitea/gitea
 RUN chmod 755 /usr/local/bin/environment-to-ini
+RUN chmod 755 /etc/s6/gitea/* /etc/s6/openssh/* /etc/s6/.s6-svscan/*
 RUN ln -s /app/gitea/gitea /usr/local/bin/gitea
