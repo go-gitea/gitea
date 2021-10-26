@@ -283,13 +283,6 @@ export function initGlobalLinkActions() {
   });
 }
 
-function handlePanelButtonToggle($btn) {
-  const toggleButton = $btn.data('toggle-button');
-  if (!toggleButton) return;
-  $(toggleButton).show();
-  $btn.hide();
-}
-
 export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
     $($(this).data('panel')).show();
