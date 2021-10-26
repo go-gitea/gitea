@@ -338,19 +338,19 @@ func UpdateUIThemePost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAppearance"] = true
 
 	if ctx.HasError() {
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
 	if !form.IsThemeExists() {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
 	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
-		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
 	}
 
