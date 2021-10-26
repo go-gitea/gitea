@@ -17,6 +17,7 @@ func TestCreateReader(t *testing.T) {
 	assert.Equal(t, ',', rd.Comma)
 }
 
+//nolint
 func TestCreateReaderAndGuessDelimiter(t *testing.T) {
 	var csvToRowsMap = map[string][][]string{
 		`a;b;c
@@ -43,7 +44,7 @@ y
 			{"v", "w", "x"},
 			{"y", "", ""},
 			{"", "", ""}},
-		`col1,col2,col3
+		` col1,col2,col3
  a, b, c
 d,e,f
  ,h, i
