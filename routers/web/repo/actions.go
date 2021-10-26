@@ -6,9 +6,7 @@ package repo
 
 import (
 	"net/http"
-	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 )
