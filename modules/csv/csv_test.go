@@ -19,6 +19,9 @@ func TestCreateReader(t *testing.T) {
 
 func TestCreateReaderAndGuessDelimiter(t *testing.T) {
 	var csvToRowsMap = map[string][][]string{
+		`a;b;c
+1;2;3
+4;5;6`: {{"a", "b", "c"}, {"1", "2", "3"}, {"4", "5", "6"}},
 		`col1	col2	col3
 a	b	c
 	e	f
