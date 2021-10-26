@@ -521,6 +521,13 @@ func mustEnableIssuesOrPulls(ctx *context.APIContext) {
 	}
 }
 
+func mustEnableWiki(ctx *context.APIContext) {
+	if !(ctx.Repo.CanRead(models.UnitTypeWiki)) {
+		ctx.NotFound()
+		return
+	}
+}
+
 func mustNotBeArchived(ctx *context.APIContext) {
 	if ctx.Repo.Repository.IsArchived {
 		ctx.NotFound()
@@ -791,6 +798,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
 				}, mustEnableIssues, reqToken())
+				m.Group("/wiki", func() {
+					m.Combo("/page/{pageName}").
+						Get(repo.GetWikiPage).
+						Patch(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
+						Delete(mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), repo.DeleteWikiPage)
+					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
+					m.Post("/new", mustNotBeArchived, reqRepoWriter(models.UnitTypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
+					m.Get("/pages", repo.ListWikiPages)
+				}, mustEnableWiki)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
