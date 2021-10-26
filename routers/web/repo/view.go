@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -250,7 +251,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		defer dataRc.Close()
 
 		buf := make([]byte, 1024)
-		n, _ := dataRc.Read(buf)
+		n, _ := util.ReadAtMost(dataRc, buf)
 		buf = buf[:n]
 
 		st := typesniffer.DetectContentType(buf)
@@ -285,7 +286,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					defer dataRc.Close()
 
 					buf = make([]byte, 1024)
-					n, err = dataRc.Read(buf)
+					n, err = util.ReadAtMost(dataRc, buf)
 					if err != nil {
 						ctx.ServerError("Data", err)
 						return
@@ -377,7 +378,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
 	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
+	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
@@ -409,10 +410,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				defer dataRc.Close()
 
 				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
-				// Error EOF don't mean there is an error, it just means we read to
-				// the end
-				if err != nil && err != io.EOF {
+				n, err = util.ReadAtMost(dataRc, buf)
+				if err != nil {
 					ctx.ServerError("Data", err)
 					return
 				}

@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -271,7 +272,7 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
-	n, err := dataRc.Read(buf)
+	n, err := util.ReadAtMost(dataRc, buf)
 	if err != nil {
 		ctx.ServerError("Data", err)
 		return
@@ -296,10 +297,10 @@ func LFSFileGet(ctx *context.Context) {
 			break
 		}
 
-		buf := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := io.ReadAll(buf)
+		fileContent, _ := io.ReadAll(rd)
 
 		var output bytes.Buffer
 		lines := strings.Split(string(fileContent), "\n")
