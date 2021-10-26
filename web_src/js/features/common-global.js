@@ -292,26 +292,11 @@ function handlePanelButtonToggle($btn) {
 
 export function initGlobalButtons() {
   $('.show-panel.button').on('click', function () {
-    if ($($(this).data('panel')).is(":visible")) {
-      $($(this).data('panel')).hide();
-    } else {
-      $($(this).data('panel')).show();
-    }
-    handlePanelButtonToggle($(this));
+    $($(this).data('panel')).show();
   });
 
   $('.hide-panel.button').on('click', function () {
-    if ($($(this).data('panel')).is(":visible")) {
-      $($(this).data('panel')).hide();
-    } else {
-      $($(this).data('panel')).show();
-    }
-    handlePanelButtonToggle($(this));
-  });
-
-  $('.swap.button').on('click', function () {
-    $($(this).data('show-button')).show();
-    $(this).hide();
+    $($(this).data('panel')).hide();
   });
 
   $('.show-modal.button').on('click', function () {

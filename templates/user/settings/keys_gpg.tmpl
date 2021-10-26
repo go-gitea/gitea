@@ -1,13 +1,11 @@
-<div {{if not .HasGPGError}}class="hide"{{end}} id="add-gpg-key-panel">
-	<h4 class="ui top attached header">
-		{{.i18n.Tr "settings.add_new_gpg_key"}}
-		<div class="ui right">
-			<button class="ui red tiny hide-panel button" data-panel="#add-gpg-key-panel">
-				{{.i18n.Tr "cancel"}}
-			</button>
-		</div>
-	</h4>
-	<div class="ui attached segment">
+<h4 class="ui top attached header">
+	{{.i18n.Tr "settings.manage_gpg_keys"}}
+	<div class="ui right">
+		<div class="ui blue tiny show-panel button" data-panel="#add-gpg-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
+	</div>
+</h4>
+<div class="ui attached segment">
+	<div class="{{if not .HasGPGError}}hide{{end}} mb-4" id="add-gpg-key-panel">
 		<form class="ui form{{if .HasGPGError}} error{{end}}" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
@@ -36,17 +34,12 @@
 			<button class="ui green button">
 				{{.i18n.Tr "settings.add_key"}}
 			</button>
+			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
+				{{.i18n.Tr "cancel"}}
+			</button>
 		</form>
 	</div>
-</div>
-<h4 class="ui top attached header">
-	{{.i18n.Tr "settings.manage_gpg_keys"}}
-	<div class="ui right">
-		<div class="ui blue tiny show-panel button" data-panel="#add-gpg-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
-	</div>
-</h4>
-<div class="ui attached segment">
-	<div class="ui key list">
+	<div class="ui key list mt-0">
 		<div class="item">
 			{{.i18n.Tr "settings.gpg_desc"}}
 		</div>
