@@ -455,11 +455,10 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-github/v37 v37.0.0
+# github.com/google/go-github/v39 v39.2.0
 ## explicit
-github.com/google/go-github/v37/github
+github.com/google/go-github/v39/github
 # github.com/google/go-querystring v1.1.0
-## explicit
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.2.0
 ## explicit
