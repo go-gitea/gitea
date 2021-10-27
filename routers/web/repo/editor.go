@@ -118,7 +118,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		ctx.Data["FileName"] = blob.Name()
 
 		buf := make([]byte, 1024)
-		n, _ := dataRc.Read(buf)
+		n, _ := util.ReadAtMost(dataRc, buf)
 		buf = buf[:n]
 
 		// Only some file types are editable online as text.
@@ -751,7 +751,7 @@ func UploadFileToServer(ctx *context.Context) {
 	defer file.Close()
 
 	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
+	n, _ := util.ReadAtMost(file, buf)
 	if n > 0 {
 		buf = buf[:n]
 	}

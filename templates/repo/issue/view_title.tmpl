@@ -32,28 +32,29 @@
 	{{if .Issue.IsPull}}
 		{{$headHref := .HeadTarget|Escape}}
 		{{if .HeadBranchHTMLURL}}
-			{{$headHref = printf "<a href=\"%s\">%s</a>" .HeadBranchHTMLURL $headHref}}
+			{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchHTMLURL | Escape) $headHref}}
 		{{end}}
+		{{$headHref = printf "%s <a class=\"poping up\" data-content=\"%s\" data-success=\"%s\" data-error=\"%s\" data-clipboard-text=\"%s\" data-variation=\"inverted tiny\">%s</a>" $headHref (.i18n.Tr "repo.copy_branch") (.i18n.Tr "repo.copy_branch_success") (.i18n.Tr "repo.copy_branch_error") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 		{{$baseHref := .BaseTarget|Escape}}
 		{{if .BaseBranchHTMLURL}}
-			{{$baseHref = printf "<a href=\"%s\">%s</a>" .BaseBranchHTMLURL $baseHref}}
+			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchHTMLURL | Escape) $baseHref}}
 		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
 			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
 			{{if .Issue.OriginalAuthor }}
 				{{.Issue.OriginalAuthor}}
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 			{{else}}
 				<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 			{{end}}
 		{{else}}
 			{{if .Issue.OriginalAuthor }}
-				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}</span>
 			{{else}}
 				<span id="pull-desc" class="pull-desc">
 					<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Str2html}}
+					{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
 				</span>
 			{{end}}
 			<span id="pull-desc-edit" style="display: none">

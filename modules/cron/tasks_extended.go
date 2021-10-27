@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/updatechecker"
 )
 
 func registerDeleteInactiveUsers() {
@@ -145,7 +146,7 @@ func registerUpdateGiteaChecker() {
 		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		updateCheckerConfig := config.(*UpdateCheckerConfig)
-		return models.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
+		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
 	})
 }
 

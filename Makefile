@@ -352,7 +352,7 @@ watch-backend: go-check
 	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
 		$(GO) install github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4; \
 	fi
-	air -c .air.conf
+	air -c .air.toml
 
 .PHONY: test
 test: test-frontend test-backend

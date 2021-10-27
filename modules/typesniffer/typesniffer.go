@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Use at most this many bytes to determine Content Type.
@@ -86,8 +88,8 @@ func DetectContentType(data []byte) SniffedType {
 // DetectContentTypeFromReader guesses the content type contained in the reader.
 func DetectContentTypeFromReader(r io.Reader) (SniffedType, error) {
 	buf := make([]byte, sniffLen)
-	n, err := r.Read(buf)
-	if err != nil && err != io.EOF {
+	n, err := util.ReadAtMost(r, buf)
+	if err != nil {
 		return SniffedType{}, fmt.Errorf("DetectContentTypeFromReader io error: %w", err)
 	}
 	buf = buf[:n]

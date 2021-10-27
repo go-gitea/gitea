@@ -119,7 +119,7 @@ func QueryIssueContentHistoryEditedCountMap(dbCtx context.Context, issueID int64
 		Table("issue_content_history").
 		Where(builder.Eq{"issue_id": issueID}).
 		GroupBy("comment_id").
-		Having("history_count > 1").
+		Having("count(1) > 1").
 		Find(&records)
 	if err != nil {
 		log.Error("can not query issue content history count map. err=%v", err)
