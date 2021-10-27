@@ -79,6 +79,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
@@ -597,6 +598,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		m.Get("/version", misc.Version)
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
+			m.Group("/activitypub", func() {
+				m.Group("/user/{username}", func() {
+					m.Get("", activitypub.Person)
+				})
+			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)

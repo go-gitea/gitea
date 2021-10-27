@@ -23,6 +23,29 @@
   },
   "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
+    "/activitypub/user/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "summary": "Returns the person",
+        "operationId": "information",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityPub"
+          }
+        }
+      }
+    },
     "/admin/cron": {
       "get": {
         "produces": [
@@ -12700,6 +12723,16 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ActivityPub": {
+      "type": "object",
+      "properties": {
+        "@context": {
+          "type": "string",
+          "x-go-name": "Context"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "AddCollaboratorOption": {
       "description": "AddCollaboratorOption options when adding a user as a collaborator of a repository",
       "type": "object",
@@ -18233,6 +18266,12 @@
         "items": {
           "$ref": "#/definitions/AccessToken"
         }
+      }
+    },
+    "ActivityPub": {
+      "description": "ActivityPub",
+      "schema": {
+        "$ref": "#/definitions/ActivityPub"
       }
     },
     "AnnotatedTag": {
