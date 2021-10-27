@@ -17,15 +17,14 @@ import (
 )
 
 func toTLSVersion(version string) uint16 {
-	version = strings.TrimSpace(strings.ToLower(version))
-	switch version {
-	case "tls10":
+	switch strings.TrimSpace(strings.ToLower(version)) {
+	case "tlsv1.0":
 		return tls.VersionTLS10
-	case "tls11":
+	case "tlsv1.1":
 		return tls.VersionTLS11
-	case "tls12":
+	case "tlsv1.2":
 		return tls.VersionTLS12
-	case "tls13":
+	case "tlsv1.3":
 		return tls.VersionTLS13
 	default:
 		log.Warn("Unknown tls version: %s", version)
@@ -36,9 +35,8 @@ func toTLSVersion(version string) uint16 {
 func toCurvePreferences(preferences []string) []tls.CurveID {
 	ids := make([]tls.CurveID, 0, len(preferences))
 	for _, pref := range preferences {
-		pref = strings.TrimSpace(strings.ToLower(pref))
 		var id tls.CurveID
-		switch pref {
+		switch strings.TrimSpace(strings.ToLower(pref)) {
 		case "x25519":
 			id = tls.X25519
 		case "p256":
@@ -60,9 +58,8 @@ func toCurvePreferences(preferences []string) []tls.CurveID {
 func toTLSCiphers(cipherStrings []string) []uint16 {
 	ciphers := make([]uint16, 0, len(cipherStrings))
 	for _, cipherString := range cipherStrings {
-		cipherString = strings.TrimSpace(strings.ToLower(cipherString))
 		var cipher uint16
-		switch cipherString {
+		switch strings.TrimSpace(strings.ToLower(cipherString)) {
 		case "rsa_with_rc4_128_sha":
 			cipher = tls.TLS_RSA_WITH_RC4_128_SHA
 		case "rsa_with_3des_ede_cbc_sha":
