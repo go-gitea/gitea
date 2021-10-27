@@ -22,7 +22,7 @@ func toTLSVersion(version string) uint16 {
 		return tls.VersionTLS10
 	case "tlsv1.1":
 		return tls.VersionTLS11
-	case "tlsv1.2":
+	case "tlsv1.2", "": // Set TLSv1.2 as our default
 		return tls.VersionTLS12
 	case "tlsv1.3":
 		return tls.VersionTLS13

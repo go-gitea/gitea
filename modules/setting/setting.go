@@ -622,8 +622,8 @@ func NewContext() {
 	}
 	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
-	SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").In("tls12", []string{"tls10", "tls11", "tls12", "tls13"})
-	SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").In("", []string{"tls10", "tls11", "tls12", "tls13"})
+	SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").MustString("")
+	SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").MustString("")
 	SSLCurvePreferences = sec.Key("SSL_CURVE_PREFERENCES").Strings(",")
 	SSLCipherSuites = sec.Key("SSL_CIPHER_SUITES").Strings(",")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
