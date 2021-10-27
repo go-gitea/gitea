@@ -238,30 +238,27 @@ func (ls *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 	return ldapGroupsToTeams
 }
 
-func (ls *Source) getMappedTeams(l *ldap.Conn, uid string) (map[string][]string, map[string][]string) {
-	teamsToAdd := map[string][]string{}
-	teamsToRemove := map[string][]string{}
+// getMappedMemberships : returns the organizations and teams to modify the users membership
+func (ls *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string][]string, map[string][]string) {
 	// get all LDAP group memberships for user
 	usersLdapGroups := ls.listLdapGroupMemberships(l, uid)
 	// unmarshall LDAP group team map from configs
 	ldapGroupsToTeams := ls.mapLdapGroupsToTeams()
-	// select all LDAP groups from settings
-	allLdapGroups := util.GetKeys(ldapGroupsToTeams).([]string)
-	// contains LDAP config groups, which the user is a member of
-	usersLdapGroupsToAdd := util.IntersectString(allLdapGroups, usersLdapGroups)
-	// contains LDAP config groups, which the user is not a member of
-	usersLdapGroupToRemove := util.DifferenceString(allLdapGroups, usersLdapGroups)
-	for _, groupToAdd := range usersLdapGroupsToAdd {
-		for k, v := range ldapGroupsToTeams[groupToAdd] {
-			teamsToAdd[k] = v
+	membershipsToAdd := map[string][]string{}
+	membershipsToRemove := map[string][]string{}
+	for group, memberships := range ldapGroupsToTeams {
+		isUserInGroup := util.IsStringInSlice(group, usersLdapGroups)
+		if isUserInGroup {
+			for org, teams := range memberships {
+				membershipsToAdd[org] = teams
+			}
+		} else if !isUserInGroup {
+			for org, teams := range memberships {
+				membershipsToRemove[org] = teams
+			}
 		}
 	}
-	for _, groupToRemove := range usersLdapGroupToRemove {
-		for k, v := range ldapGroupsToTeams[groupToRemove] {
-			teamsToRemove[k] = v
-		}
-	}
-	return teamsToAdd, teamsToRemove
+	return membershipsToAdd, membershipsToRemove
 }
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
@@ -451,7 +448,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	teamsToAdd := make(map[string][]string)
 	teamsToRemove := make(map[string][]string)
 	if ls.TeamGroupMapEnabled || ls.TeamGroupMapRemoval {
-		teamsToAdd, teamsToRemove = ls.getMappedTeams(l, uid)
+		teamsToAdd, teamsToRemove = ls.getMappedMemberships(l, uid)
 	}
 
 	return &SearchResult{
@@ -534,7 +531,7 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 			if ls.UserUID == "dn" || ls.UserUID == "DN" {
 				userAttributeListedInGroup = v.DN
 			}
-			teamsToAdd, teamsToRemove = ls.getMappedTeams(l, userAttributeListedInGroup)
+			teamsToAdd, teamsToRemove = ls.getMappedMemberships(l, userAttributeListedInGroup)
 		}
 		result[i] = &SearchResult{
 			Username:       v.GetAttributeValue(ls.AttributeUsername),
