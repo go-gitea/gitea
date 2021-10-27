@@ -22,7 +22,11 @@ var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
 func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 	rd := stdcsv.NewReader(input)
 	rd.Comma = delimiter
-	rd.TrimLeadingSpace = true
+	if delimiter != '\t' && delimiter != ' ' {
+		// TrimLeadingSpace can't be true when delimiter is a tab or a space as the value for a column might be empty,
+		// thus would change `\t\t` to just `\t` or `  ` (two spaces) to just ` ` (single space)
+		rd.TrimLeadingSpace = true
+	}
 	return rd
 }
 
