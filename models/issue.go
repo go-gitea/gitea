@@ -14,10 +14,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -415,18 +415,6 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 	return issue.hasLabel(db.GetEngine(db.DefaultContext), labelID)
 }
 
-// ReplyReference returns tokenized address to use for email reply headers
-func (issue *Issue) ReplyReference() string {
-	var path string
-	if issue.IsPull {
-		path = "pulls"
-	} else {
-		path = "issues"
-	}
-
-	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)
-}
-
 func (issue *Issue) addLabel(e db.Engine, label *Label, doer *User) error {
 	return newIssueLabel(e, issue, label, doer)
 }
@@ -816,8 +804,13 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issue.addCrossReferences(db.GetEngine(ctx), doer, true); err != nil {
-		return err
+	if err = issues.SaveIssueContentHistory(db.GetEngine(ctx), doer.ID, issue.ID, 0,
+		timeutil.TimeStampNow(), issue.Content, false); err != nil {
+		return fmt.Errorf("SaveIssueContentHistory: %v", err)
+	}
+
+	if err = issue.addCrossReferences(ctx.Engine(), doer, true); err != nil {
+		return fmt.Errorf("addCrossReferences: %v", err)
 	}
 
 	return committer.Commit()
@@ -856,7 +849,7 @@ func (issue *Issue) GetLastEventLabel() string {
 func (issue *Issue) GetLastComment() (*Comment, error) {
 	var c Comment
 	exist, err := db.GetEngine(db.DefaultContext).Where("type = ?", CommentTypeComment).
-		And("issue_id = ?", issue.ID).Desc("id").Get(&c)
+		And("issue_id = ?", issue.ID).Desc("created_unix").Get(&c)
 	if err != nil {
 		return nil, err
 	}
@@ -985,6 +978,12 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 	if err = opts.Issue.loadAttributes(e); err != nil {
 		return err
 	}
+
+	if err = issues.SaveIssueContentHistory(e, doer.ID, opts.Issue.ID, 0,
+		timeutil.TimeStampNow(), opts.Issue.Content, true); err != nil {
+		return err
+	}
+
 	return opts.Issue.addCrossReferences(e, doer, false)
 }
 
@@ -2144,6 +2143,12 @@ func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, orig
 
 func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []string, err error) {
 	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
+
+	// Delete content histories
+	if _, err = sess.In("issue_id", deleteCond).
+		Delete(&issues.ContentHistory{}); err != nil {
+		return
+	}
 
 	// Delete comments and attachments
 	if _, err = sess.In("issue_id", deleteCond).

@@ -91,7 +91,7 @@ func runPR() {
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 
-	routers.NewServices()
+	routers.InitGitServices()
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 

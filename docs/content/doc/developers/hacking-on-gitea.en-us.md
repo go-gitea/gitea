@@ -132,7 +132,14 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 To run and continuously rebuild when source files change:
 
 ```bash
+# for both frontend and backend
 make watch
+
+# or: watch frontend files (html/js/css) only
+make watch-frontend
+
+# or: watch backend files (go) only
+make watch-backend
 ```
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
@@ -167,7 +174,9 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-Either use the `watch-frontend` target mentioned above or just build once:
+Frontend development should follow [Guidelines for Frontend Development](./guidelines-frontend.md)
+
+To build with frontend resources, either use the `watch-frontend` target mentioned above or just build once:
 
 ```bash
 make build && ./gitea

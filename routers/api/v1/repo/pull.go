@@ -115,7 +115,7 @@ func ListPullRequests(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 			return
 		}
-		apiPrs[i] = convert.ToAPIPullRequest(prs[i])
+		apiPrs[i] = convert.ToAPIPullRequest(prs[i], ctx.User)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -171,7 +171,7 @@ func GetPullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr))
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr, ctx.User))
 }
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
@@ -417,7 +417,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr, ctx.User))
 }
 
 // EditPullRequest does what it says
@@ -564,6 +564,10 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if form.State != nil {
+		if pr.HasMerged {
+			ctx.Error(http.StatusPreconditionFailed, "MergedPRState", "cannot change state of this pull request, it was already merged")
+			return
+		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
 	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.User)
@@ -585,7 +589,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// change pull target branch
-	if len(form.Base) != 0 && form.Base != pr.BaseBranch {
+	if !pr.HasMerged && len(form.Base) != 0 && form.Base != pr.BaseBranch {
 		if !ctx.Repo.GitRepo.IsBranchExist(form.Base) {
 			ctx.Error(http.StatusNotFound, "NewBaseBranchNotExist", fmt.Errorf("new base '%s' not exist", form.Base))
 			return
@@ -620,7 +624,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr, ctx.User))
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
@@ -1012,7 +1016,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch, true)
+	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch, true, false)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)
@@ -1189,9 +1193,9 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	}
 	defer baseGitRepo.Close()
 	if pr.HasMerged {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true)
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)
 	} else {
-		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), true)
+		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName(), true, false)
 	}
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)

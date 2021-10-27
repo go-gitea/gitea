@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -63,7 +64,7 @@ func (s *SSPI) Init() error {
 		Funcs:         templates.NewFuncMap(),
 		Asset:         templates.GetAsset,
 		AssetNames:    templates.GetAssetNames,
-		IsDevelopment: !setting.IsProd(),
+		IsDevelopment: !setting.IsProd,
 	})
 	return nil
 }
@@ -193,7 +194,7 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*models.User, error) 
 		IsActive:                     cfg.AutoActivateUsers,
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
-		Avatar:                       models.DefaultAvatarLink(),
+		Avatar:                       avatars.DefaultAvatarLink(),
 		EmailNotificationsPreference: models.EmailNotificationsDisabled,
 	}
 	if err := models.CreateUser(user); err != nil {

@@ -318,7 +318,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	ctx.Data["HasMerged"] = true
 
 	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
-		pull.MergeBase, pull.GetGitRefName(), true)
+		pull.MergeBase, pull.GetGitRefName(), true, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -401,7 +401,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-			pull.MergeBase, pull.GetGitRefName(), true)
+			pull.MergeBase, pull.GetGitRefName(), true, false)
 		if err != nil {
 			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 				ctx.Data["IsPullRequestBroken"] = true
@@ -517,7 +517,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), true)
+		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), true, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -633,7 +633,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["AfterCommitID"] = endCommitID
 
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(gitRepo,
-		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
+		startCommitID, endCommitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)), false)
 	if err != nil {
@@ -1043,7 +1043,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if ci.HeadGitRepo != nil {
+		if ci != nil && ci.HeadGitRepo != nil {
 			ci.HeadGitRepo.Close()
 		}
 	}()
@@ -1322,29 +1322,16 @@ func DownloadPullPatch(ctx *context.Context) {
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
 func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.ServerError("GetIssueByIndex", err)
+			ctx.ServerError("GetPullRequestByIndex", err)
 		}
 		return
 	}
 
-	// Return not found if it's not a pull request
-	if !issue.IsPull {
-		ctx.NotFound("DownloadPullDiff",
-			fmt.Errorf("Issue is not a pull request"))
-		return
-	}
-
-	if err = issue.LoadPullRequest(); err != nil {
-		ctx.ServerError("LoadPullRequest", err)
-		return
-	}
-
-	pr := issue.PullRequest
 	binary := ctx.FormBool("binary")
 
 	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch, binary); err != nil {
