@@ -16,36 +16,35 @@ import (
 	"github.com/klauspost/cpuid/v2"
 )
 
+var tlsVersionStringMap = map[string]uint16{
+	"":        tls.VersionTLS12, // Default to tls.VersionTLS12
+	"tlsv1.0": tls.VersionTLS10,
+	"tlsv1.1": tls.VersionTLS11,
+	"tlsv1.2": tls.VersionTLS12,
+	"tlsv1.3": tls.VersionTLS13,
+}
+
 func toTLSVersion(version string) uint16 {
-	switch strings.TrimSpace(strings.ToLower(version)) {
-	case "tlsv1.0":
-		return tls.VersionTLS10
-	case "tlsv1.1":
-		return tls.VersionTLS11
-	case "tlsv1.2", "": // Set TLSv1.2 as our default
-		return tls.VersionTLS12
-	case "tlsv1.3":
-		return tls.VersionTLS13
-	default:
+	tlsVersion, ok := tlsVersionStringMap[strings.TrimSpace(strings.ToLower(version))]
+	if !ok {
 		log.Warn("Unknown tls version: %s", version)
 		return 0
 	}
+	return tlsVersion
+}
+
+var curveStringMap = map[string]tls.CurveID{
+	"x25519": tls.X25519,
+	"p256":   tls.CurveP256,
+	"p384":   tls.CurveP384,
+	"p521":   tls.CurveP521,
 }
 
 func toCurvePreferences(preferences []string) []tls.CurveID {
 	ids := make([]tls.CurveID, 0, len(preferences))
 	for _, pref := range preferences {
-		var id tls.CurveID
-		switch strings.TrimSpace(strings.ToLower(pref)) {
-		case "x25519":
-			id = tls.X25519
-		case "p256":
-			id = tls.CurveP256
-		case "p384":
-			id = tls.CurveP384
-		case "p521":
-			id = tls.CurveP521
-		default:
+		id, ok := curveStringMap[strings.TrimSpace(strings.ToLower(pref))]
+		if !ok {
 			log.Warn("Unknown curve: %s", pref)
 		}
 		if id != 0 {
@@ -55,66 +54,41 @@ func toCurvePreferences(preferences []string) []tls.CurveID {
 	return ids
 }
 
+var cipherStringMap = map[string]uint16{
+	"rsa_with_rc4_128_sha":                      tls.TLS_RSA_WITH_RC4_128_SHA,
+	"rsa_with_3des_ede_cbc_sha":                 tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA,
+	"rsa_with_aes_128_cbc_sha":                  tls.TLS_RSA_WITH_AES_128_CBC_SHA,
+	"rsa_with_aes_256_cbc_sha":                  tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+	"rsa_with_aes_128_cbc_sha256":               tls.TLS_RSA_WITH_AES_128_CBC_SHA256,
+	"rsa_with_aes_128_gcm_sha256":               tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
+	"rsa_with_aes_256_gcm_sha384":               tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+	"ecdhe_ecdsa_with_rc4_128_sha":              tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA,
+	"ecdhe_ecdsa_with_aes_128_cbc_sha":          tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+	"ecdhe_ecdsa_with_aes_256_cbc_sha":          tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+	"ecdhe_rsa_with_rc4_128_sha":                tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA,
+	"ecdhe_rsa_with_3des_ede_cbc_sha":           tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,
+	"ecdhe_rsa_with_aes_128_cbc_sha":            tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+	"ecdhe_rsa_with_aes_256_cbc_sha":            tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,
+	"ecdhe_ecdsa_with_aes_128_cbc_sha256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,
+	"ecdhe_rsa_with_aes_128_cbc_sha256":         tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+	"ecdhe_rsa_with_aes_128_gcm_sha256":         tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+	"ecdhe_ecdsa_with_aes_128_gcm_sha256":       tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+	"ecdhe_rsa_with_aes_256_gcm_sha384":         tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+	"ecdhe_ecdsa_with_aes_256_gcm_sha384":       tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+	"ecdhe_rsa_with_chacha20_poly1305_sha256":   tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256,
+	"ecdhe_ecdsa_with_chacha20_poly1305_sha256": tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+	"ecdhe_rsa_with_chacha20_poly1305":          tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305,
+	"ecdhe_ecdsa_with_chacha20_poly1305":        tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305,
+	"aes_128_gcm_sha256":                        tls.TLS_AES_128_GCM_SHA256,
+	"aes_256_gcm_sha384":                        tls.TLS_AES_256_GCM_SHA384,
+	"chacha20_poly1305_sha256":                  tls.TLS_CHACHA20_POLY1305_SHA256,
+}
+
 func toTLSCiphers(cipherStrings []string) []uint16 {
 	ciphers := make([]uint16, 0, len(cipherStrings))
 	for _, cipherString := range cipherStrings {
-		var cipher uint16
-		switch strings.TrimSpace(strings.ToLower(cipherString)) {
-		case "rsa_with_rc4_128_sha":
-			cipher = tls.TLS_RSA_WITH_RC4_128_SHA
-		case "rsa_with_3des_ede_cbc_sha":
-			cipher = tls.TLS_RSA_WITH_3DES_EDE_CBC_SHA
-		case "rsa_with_aes_128_cbc_sha":
-			cipher = tls.TLS_RSA_WITH_AES_128_CBC_SHA
-		case "rsa_with_aes_256_cbc_sha":
-			cipher = tls.TLS_RSA_WITH_AES_256_CBC_SHA
-		case "rsa_with_aes_128_cbc_sha256":
-			cipher = tls.TLS_RSA_WITH_AES_128_CBC_SHA256
-		case "rsa_with_aes_128_gcm_sha256":
-			cipher = tls.TLS_RSA_WITH_AES_128_GCM_SHA256
-		case "rsa_with_aes_256_gcm_sha384":
-			cipher = tls.TLS_RSA_WITH_AES_256_GCM_SHA384
-		case "ecdhe_ecdsa_with_rc4_128_sha":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_RC4_128_SHA
-		case "ecdhe_ecdsa_with_aes_128_cbc_sha":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
-		case "ecdhe_ecdsa_with_aes_256_cbc_sha":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
-		case "ecdhe_rsa_with_rc4_128_sha":
-			cipher = tls.TLS_ECDHE_RSA_WITH_RC4_128_SHA
-		case "ecdhe_rsa_with_3des_ede_cbc_sha":
-			cipher = tls.TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA
-		case "ecdhe_rsa_with_aes_128_cbc_sha":
-			cipher = tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA
-		case "ecdhe_rsa_with_aes_256_cbc_sha":
-			cipher = tls.TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
-		case "ecdhe_ecdsa_with_aes_128_cbc_sha256":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
-		case "ecdhe_rsa_with_aes_128_cbc_sha256":
-			cipher = tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
-		case "ecdhe_rsa_with_aes_128_gcm_sha256":
-			cipher = tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
-		case "ecdhe_ecdsa_with_aes_128_gcm_sha256":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
-		case "ecdhe_rsa_with_aes_256_gcm_sha384":
-			cipher = tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
-		case "ecdhe_ecdsa_with_aes_256_gcm_sha384":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
-		case "ecdhe_rsa_with_chacha20_poly1305_sha256":
-			cipher = tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
-		case "ecdhe_ecdsa_with_chacha20_poly1305_sha256":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
-		case "ecdhe_rsa_with_chacha20_poly1305":
-			cipher = tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
-		case "ecdhe_ecdsa_with_chacha20_poly1305":
-			cipher = tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-		case "aes_128_gcm_sha256":
-			cipher = tls.TLS_AES_128_GCM_SHA256
-		case "aes_256_gcm_sha384":
-			cipher = tls.TLS_AES_256_GCM_SHA384
-		case "chacha20_poly1305_sha256":
-			cipher = tls.TLS_CHACHA20_POLY1305_SHA256
-		default:
+		cipher, ok := cipherStringMap[strings.TrimSpace(strings.ToLower(cipherString))]
+		if !ok {
 			log.Warn("Unknown cipher: %s", cipherString)
 		}
 		if cipher != 0 {
@@ -128,7 +102,8 @@ func toTLSCiphers(cipherStrings []string) []uint16 {
 // defaultCiphers uses hardware support to check if AES is specifically
 // supported by the CPU.
 //
-// If it is AES ciphers will be preferred over ChaCha based ciphers
+// If AES is supported AES ciphers will be preferred over ChaCha based ciphers
+// (This code is directly inspired by the certmagic code.)
 func defaultCiphers() []uint16 {
 	if cpuid.CPU.Supports(cpuid.AESNI) {
 		return defaultCiphersAESfirst
