@@ -34,11 +34,9 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
 	cancel := func() {
-		_ = batchStdinReader.Close()
-		_ = batchStdinWriter.Close()
-		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
 		ctxCancel()
+		_ = batchStdoutReader.Close()
+		_ = batchStdinWriter.Close()
 		<-closed
 	}
 
@@ -75,11 +73,9 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 	ctx, ctxCancel := context.WithCancel(ctx)
 	closed := make(chan struct{})
 	cancel := func() {
-		_ = batchStdinReader.Close()
+		ctxCancel()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
-		_ = batchStdoutWriter.Close()
-		ctxCancel()
 		<-closed
 	}
 
