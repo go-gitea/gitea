@@ -47,20 +47,6 @@
 					<input id="location" name="location"  value="{{.SignedUser.Location}}">
 				</div>
 
-				<div class="field">
-					<label for="language">{{.i18n.Tr "settings.language"}}</label>
-					<div class="ui language selection dropdown" id="language">
-						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
-						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
-						<div class="menu">
-						{{range .AllLangs}}
-							<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
-						{{end}}
-						</div>
-					</div>
-				</div>
-
 				<div class="ui divider"></div>
 				<!-- private block -->
 
