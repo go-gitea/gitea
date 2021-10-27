@@ -7,7 +7,6 @@ package csv
 import (
 	"bytes"
 	stdcsv "encoding/csv"
-	"errors"
 	"io"
 	"path/filepath"
 	"regexp"
@@ -18,7 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-var quoteRegexp = regexp.MustCompile(`["'][\s\S]+?["']`)
+const maxLines = 10
+
+var quoteRegexp = regexp.MustCompile(`["'](?:[^"'\\]|\\.)*["']`)
 
 // CreateReader creates a csv.Reader with the given delimiter.
 func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
@@ -70,53 +71,39 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 
 // guessDelimiter scores the input CSV data against delimiters, and returns the best match.
 func guessDelimiter(data []byte) rune {
-	maxLines := 10
+	// Removes quoted values so we don't have columns with new lines in them
 	text := quoteRegexp.ReplaceAllLiteralString(string(data), "")
-	lines := strings.SplitN(text, "\n", maxLines+1)
-	lines = lines[:util.Min(maxLines, len(lines))]
 
-	delimiters := []rune{',', ';', '\t', '|', '@'}
-	bestDelim := delimiters[0]
-	bestScore := 0.0
+	// Make the text just be maxLines or less without cut-off lines
+	lines := strings.SplitN(text, "\n", maxLines+1) // Will contain at least one line, and if there are more than MaxLines, the last item holds the rest of the lines
+	if len(lines) > maxLines {
+		// If the length of lines is > maxLines we know we have the max number of lines, trim it to maxLines
+		lines = lines[:maxLines]
+	} else if len(lines) > 1 && len(strings.Join(lines, "\n")) > 1e4 {
+		// max # of lines of text was somehow > 10k, so probalby the last line was cut off. We remove it so it isn't used, but only if lines > 1
+		lines = lines[:len(lines)-1]
+	}
+
+	// Put our 1 to 10 lines back together as a string
+	text = strings.Join(lines, "\n")
+
+	delimiters := []rune{',', '\t', ';', '|', '@'}
+	validDelim := delimiters[0]
+	validDelimColCount := 0
 	for _, delim := range delimiters {
-		score := scoreDelimiter(lines, delim)
-		if score > bestScore {
-			bestScore = score
-			bestDelim = delim
+		csvReader := stdcsv.NewReader(strings.NewReader(text))
+		csvReader.Comma = delim
+		if rows, err := csvReader.ReadAll(); err == nil && len(rows) > 0 && len(rows[0]) > validDelimColCount {
+			validDelim = delim
+			validDelimColCount = len(rows[0])
 		}
 	}
-
-	return bestDelim
-}
-
-// scoreDelimiter uses a count & regularity metric to evaluate a delimiter against lines of CSV.
-func scoreDelimiter(lines []string, delim rune) float64 {
-	countTotal := 0
-	countLineMax := 0
-	linesNotEqual := 0
-
-	for _, line := range lines {
-		if len(line) == 0 {
-			continue
-		}
-
-		countLine := strings.Count(line, string(delim))
-		countTotal += countLine
-		if countLine != countLineMax {
-			if countLineMax != 0 {
-				linesNotEqual++
-			}
-			countLineMax = util.Max(countLine, countLineMax)
-		}
-	}
-
-	return float64(countTotal) * (1 - float64(linesNotEqual)/float64(len(lines)))
+	return validDelim
 }
 
 // FormatError converts csv errors into readable messages.
 func FormatError(err error, locale translation.Locale) (string, error) {
-	var perr *stdcsv.ParseError
-	if errors.As(err, &perr) {
+	if perr, ok := err.(*stdcsv.ParseError); ok {
 		if perr.Err == stdcsv.ErrFieldCount {
 			return locale.Tr("repo.error.csv.invalid_field_count", perr.Line), nil
 		}
