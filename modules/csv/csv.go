@@ -69,10 +69,16 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	return delimiter
 }
 
+// removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can realiably have each row on one line
+// (quoted strings often have new lines within the string)
+func removeQuotedString(text string) string {
+	return quoteRegexp.ReplaceAllLiteralString(text, "")
+}
+
 // guessDelimiter scores the input CSV data against delimiters, and returns the best match.
 func guessDelimiter(data []byte) rune {
 	// Removes quoted values so we don't have columns with new lines in them
-	text := quoteRegexp.ReplaceAllLiteralString(string(data), "")
+	text := removeQuotedString(string(data))
 
 	// Make the text just be maxLines or less without cut-off lines
 	lines := strings.SplitN(text, "\n", maxLines+1) // Will contain at least one line, and if there are more than MaxLines, the last item holds the rest of the lines

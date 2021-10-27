@@ -197,6 +197,71 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 	}
 }
 
+func TestRemoveQuotedString(t *testing.T) {
+	var cases = []struct {
+		text         string
+		expectedText string
+	}{
+		// case 0 - quoted text with escpaed quotes in 1st column
+		{
+			text: `col1,col2,col3
+"quoted ""text"" with
+new lines
+in first column",b,c`,
+			expectedText: `col1,col2,col3
+,b,c`,
+		},
+		// case 1 - quoted text with escpaed quotes in 2nd column
+		{
+			text: `col1,col2,col3
+a,"quoted ""text"" with
+new lines
+in second column",c`,
+			expectedText: `col1,col2,col3
+a,,c`,
+		},
+		// case 2 - quoted text with escpaed quotes in last column
+		{
+			text: `col1,col2,col3
+a,b,"quoted ""text"" with
+new lines
+in last column"`,
+			expectedText: `col1,col2,col3
+a,b,`,
+		},
+		// case 3 - csv with lots of quotes
+		{
+			text: `a,"b",c,d,"e
+e
+e",f
+a,bb,c,d,ee ,"f
+f"
+a,b,"c ""
+c",d,e,f`,
+			expectedText: `a,,c,d,,f
+a,bb,c,d,ee ,
+a,b,,d,e,f`,
+		},
+		// case 4 - csv with pipes and quotes
+		{
+			text: `Col1 | Col2 | Col3
+abc   | "Hello
+World"|123
+"de
+
+f" | 4.56 | 789`,
+			expectedText: `Col1 | Col2 | Col3
+abc   | |123
+ | 4.56 | 789`,
+		},
+	}
+
+	for n, c := range cases {
+		modifiedText := removeQuotedString(c.text)
+		assert.EqualValues(t, c.expectedText, modifiedText, "case %d: modified text should be equal", n)
+	}
+}
+
 func TestGuessDelimiter(t *testing.T) {
 	var cases = []struct {
 		csv               string
@@ -274,11 +339,20 @@ text,"	d`,
 "this has a literal "" in the text";"and an ; in the text"`,
 			expectedDelimiter: ';',
 		},
+		// case 11 - pipe delimited with quotes
+		{
+			csv: `Col1 | Col2 | Col3
+abc   | "Hello
+World"|123
+"de
+|
+f" | 4.56 | 789`,
+			expectedDelimiter: '|',
+		},
 	}
 
 	for n, c := range cases {
 		delimiter := guessDelimiter([]byte(c.csv))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
-
 }
