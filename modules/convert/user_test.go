@@ -21,6 +21,7 @@ func TestUser_ToUser(t *testing.T) {
 
 	apiUser := toUser(user1, true, true)
 	assert.True(t, apiUser.IsAdmin)
+	assert.Contains(t, apiUser.AvatarURL, "://")
 
 	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2, IsAdmin: false}).(*models.User)
 

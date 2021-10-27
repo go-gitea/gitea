@@ -804,7 +804,7 @@ func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issues.SaveIssueContentHistory(db.GetEngine(ctx), issue.PosterID, issue.ID, 0,
+	if err = issues.SaveIssueContentHistory(db.GetEngine(ctx), doer.ID, issue.ID, 0,
 		timeutil.TimeStampNow(), issue.Content, false); err != nil {
 		return fmt.Errorf("SaveIssueContentHistory: %v", err)
 	}
@@ -979,7 +979,7 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 		return err
 	}
 
-	if err = issues.SaveIssueContentHistory(e, opts.Issue.PosterID, opts.Issue.ID, 0,
+	if err = issues.SaveIssueContentHistory(e, doer.ID, opts.Issue.ID, 0,
 		timeutil.TimeStampNow(), opts.Issue.Content, true); err != nil {
 		return err
 	}
