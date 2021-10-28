@@ -82,6 +82,11 @@ func removeQuotedString(text string) string {
 // guessDelimiter takes up to maxLines of the CSV text, iterates through the possible delimiters, and sees if the CSV Reader reads it without throwing any errors.
 // If more than one delmiiter passes, the delimiter that results in the most columns is returned.
 func guessDelimiter(data []byte) rune {
+	delimiter := guessFromBeforeAfterQuotes(data)
+	if delimiter != 0 {
+		return delimiter
+	}
+
 	// Removes quoted values so we don't have columns with new lines in them
 	text := removeQuotedString(string(data))
 
@@ -123,4 +128,21 @@ func FormatError(err error, locale translation.Locale) (string, error) {
 	}
 
 	return "", err
+}
+
+// Looks for possible delimiters right before or after (with spaces after the former) double quotes with closing quotes
+var beforeAfterQuotes = regexp.MustCompile(`([,@\t;|]{0,1}) *(?:"[^"]*?")+([,@\t;|]{0,1})`)
+
+// guessFromBeforeAfterQuotes guesses the limiter by finding a double quote that has a valid delimiter before it and a closing quote,
+// or a double quote with a closing quote and a valid delimiter after it
+func guessFromBeforeAfterQuotes(data []byte) rune {
+	rs := beforeAfterQuotes.FindStringSubmatch(string(data))
+	if rs != nil {
+		if rs[1] != "" {
+			return rune(rs[1][0])
+		} else if rs[2] != "" {
+			return rune(rs[2][0])
+		}
+	}
+	return 0
 }

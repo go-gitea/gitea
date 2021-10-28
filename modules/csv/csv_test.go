@@ -319,8 +319,8 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimters`,
 		},
 		// case 9 - tab delimited with new lines in values, commas in values
 		{
-			csv: `1	"some,\"more
-\"
+			csv: `1	"some,""more
+""
 	quoted,
 text,"	a
 2	"some,
@@ -414,6 +414,98 @@ jkl`,
 
 	for n, c := range cases {
 		delimiter := guessDelimiter([]byte(c.csv))
+		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
+	}
+}
+
+func TestGuessFromBeforeAfterQuotes(t *testing.T) {
+	var cases = []struct {
+		csv               string
+		expectedDelimiter rune
+	}{
+		// case 0 - tab delimited with new lines in values, commas in values
+		{
+			csv: `1	"some,""more
+""
+	quoted,
+text,"	a
+2	"some,
+quoted,	
+	text,"	b
+3	"some,
+quoted,
+	text"	c
+4	"some,
+quoted,
+text,"	d`,
+			expectedDelimiter: '\t',
+		},
+		// case 1 - semicolon delmited with quotes and semicolon in value
+		{
+			csv: `col1;col2
+"this has a literal "" in the text";"and an ; in the text"`,
+			expectedDelimiter: ';',
+		},
+		// case 2 - pipe delimited with quotes
+		{
+			csv: `Col1 | Col2 | Col3
+abc   | "Hello
+World"|123
+"de
+|
+f" | 4.56 | 789`,
+			expectedDelimiter: '|',
+		},
+		// case 3 - a complicated quoted CSV that is semicolon delmiited
+		{
+			csv: `he; she
+"he said, ""hey!"""; "she said, ""hey back!"""
+but; "be"`,
+			expectedDelimiter: ';',
+		},
+		// case 4 - no delimiter should be found
+		{
+			csv:               `a,b`,
+			expectedDelimiter: 0,
+		},
+		// case 5 - no limiter should be found
+		{
+			csv: `col1
+"he said, ""here I am"""`,
+			expectedDelimiter: 0,
+		},
+		// case 6 - delimiter before double quoted string with space
+		{
+			csv: `col1|col2
+a| "he said, ""here I am"""`,
+			expectedDelimiter: '|',
+		},
+		// case 7 - delimiter before double quoted string without space
+		{
+			csv: `col1|col2
+a|"he said, ""here I am"""`,
+			expectedDelimiter: '|',
+		},
+		// case 8 - delimiter after double quoted string with space
+		{
+			csv: `col1, col2
+"abc\n
+
+", def`,
+			expectedDelimiter: ',',
+		},
+		// case 9 - delimiter after double quoted string without space
+		{
+			csv: `col1,col2
+"abc\n
+
+",def`,
+			expectedDelimiter: ',',
+		},
+	}
+
+	for n, c := range cases {
+		delimiter := guessFromBeforeAfterQuotes([]byte(c.csv))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
 	}
 }
