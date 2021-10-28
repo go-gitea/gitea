@@ -1,6 +1,19 @@
 .repository {
-  .commit-statuses .list > .item {
-    line-height: 2;
+  .popup.commit-statuses {
+    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
+    // otherwise some part of the popup will be hidden by viewport boundary
+    max-height: 45vh;
+    max-width: 60vw;
+    overflow: auto;
+    padding: 0;
+
+    .list {
+      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
+
+      > .item {
+        line-height: 2;
+      }
+    }
   }
 
   .repo-header {
