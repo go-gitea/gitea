@@ -96,7 +96,7 @@ func guessDelimiter(data []byte) rune {
 		lines = lines[:len(lines)-1]
 	}
 
-	// Put our 1 to 10 lines back together as a string
+	// Put lines back together as a string
 	text = strings.Join(lines, "\n")
 
 	delimiters := []rune{',', '\t', ';', '|', '@'}
