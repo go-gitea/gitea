@@ -128,11 +128,13 @@ func syncTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// NewTestEngine sets a new test xorm.Engine
-func NewTestEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+// NewInstallTestEngine creates a new xorm.Engine for testing during install
+//
+// This function will cause the basic database schema to be created
+func NewInstallTestEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	x, err = GetNewEngine()
 	if err != nil {
-		return fmt.Errorf("Connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	x.SetMapper(names.GonicMapper{})
@@ -145,6 +147,12 @@ func NewTestEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (e
 		return err
 	}
 
+	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
+	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
+	//
+	// Installation should only be being re-run if users want to recover an old database.
+	// However, we should think carefully about should we support re-install on an installed instance,
+	// as there may be other problems due to secret reinitialization.
 	if err = migrateFunc(x); err != nil {
 		return fmt.Errorf("migrate: %v", err)
 	}
@@ -192,10 +200,6 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 	}
 
 	if err = migrateFunc(x); err != nil {
-		// The only case to re-run the installation on an installed instance is: users may want to recover an old database.
-		// In such case, we should run the migrations first, 
-		// otherwise the table schemas may conflict in the normal startup migrations, because `syncTables` below already changed the schemas to the latest.
-		// However, we should think carefully about should we support re-install on an installed instance, it may bring other problems, eg: secrets will be lost.
 		return fmt.Errorf("migrate: %v", err)
 	}
 
