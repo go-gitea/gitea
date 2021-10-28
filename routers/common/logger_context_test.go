@@ -5,39 +5,41 @@
 package common
 
 import (
+	"fmt"
 	"testing"
 )
 
 func Test_shortenFilename(t *testing.T) {
 	tests := []struct {
-		name      string
-		filename  string
-		funcName  string
-		wantShort string
+		filename string
+		fallback string
+		expected string
 	}{
 		{
-			"code.gitea.io/routers/common/logger_context.go to common/logger_context.go",
 			"code.gitea.io/routers/common/logger_context.go",
-			"FUNC_NAME",
+			"NO_FALLBACK",
 			"common/logger_context.go",
 		},
 		{
-			"common/logger_context.go to shortenFilename()",
 			"common/logger_context.go",
-			"shortenFilename()",
-			"shortenFilename()",
+			"NO_FALLBACK",
+			"common/logger_context.go",
 		},
 		{
-			"logger_context.go to shortenFilename()",
 			"logger_context.go",
-			"shortenFilename()",
-			"shortenFilename()",
+			"NO_FALLBACK",
+			"logger_context.go",
+		},
+		{
+			"",
+			"USE_FALLBACK",
+			"USE_FALLBACK",
 		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if gotShort := shortenFilename(tt.filename, tt.funcName); gotShort != tt.wantShort {
-				t.Errorf("shortenFilename() = %v, want %v", gotShort, tt.wantShort)
+		t.Run(fmt.Sprintf("shortenFilename('%s')", tt.filename), func(t *testing.T) {
+			if gotShort := shortenFilename(tt.filename, tt.fallback); gotShort != tt.expected {
+				t.Errorf("shortenFilename('%s'), expect '%s', but get '%s'", tt.filename, tt.expected, gotShort)
 			}
 		})
 	}
@@ -49,23 +51,23 @@ func Test_trimAnonymousFunctionSuffix(t *testing.T) {
 		want string
 	}{
 		{
-			"notAnonymous()",
-			"notAnonymous()",
+			"notAnonymous",
+			"notAnonymous",
 		},
 		{
-			"anonymous.func1()",
+			"anonymous.func1",
 			"anonymous",
 		},
 		{
-			"notAnonymous.funca()",
-			"notAnonymous.funca()",
+			"notAnonymous.funca",
+			"notAnonymous.funca",
 		},
 		{
-			"anonymous.func100()",
+			"anonymous.func100",
 			"anonymous",
 		},
 		{
-			"anonymous.func100.func6()",
+			"anonymous.func100.func6",
 			"anonymous.func100",
 		},
 	}

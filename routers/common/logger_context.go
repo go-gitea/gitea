@@ -64,20 +64,21 @@ var funcInfoMap = map[uintptr]*logFuncInfo{}
 var funcInfoMapMu sync.RWMutex
 
 // shortenFilename generates a short source code filename from a full package path, eg: "code.gitea.io/routers/common/logger_context.go" => "common/logger_context.go"
-func shortenFilename(filename, fallback string) (short string) {
+func shortenFilename(filename, fallback string) string {
+	if filename == "" {
+		return fallback
+	}
 	if lastIndex := strings.LastIndexByte(filename, '/'); lastIndex >= 0 {
 		if secondLastIndex := strings.LastIndexByte(filename[:lastIndex], '/'); secondLastIndex >= 0 {
-			short = filename[secondLastIndex+1:] // This may be empty so we cannot return yet
+			return filename[secondLastIndex+1:]
 		}
 	}
-	if short == "" {
-		short = fallback
-	}
-	return
+	return filename
 }
 
 // trimAnonymousFunctionSuffix trims ".func[0-9]*" from the end of anonymous function names, we only want to see the main function names in logs
 func trimAnonymousFunctionSuffix(name string) string {
+	// if the name is an anonymous name, it should be like "{main-function}.func1", so the length can not be less than 7
 	if len(name) < 7 {
 		return name
 	}
@@ -88,12 +89,15 @@ func trimAnonymousFunctionSuffix(name string) string {
 	}
 
 	hasFuncSuffix := true
-	for i := funcSuffixIndex + 5; i < len(name)-2; i++ {
+
+	// len(".func") = 5
+	for i := funcSuffixIndex + 5; i < len(name); i++ {
 		if name[i] < '0' || name[i] > '9' {
 			hasFuncSuffix = false
 			break
 		}
 	}
+
 	if hasFuncSuffix {
 		return name[:funcSuffixIndex]
 	}
@@ -110,7 +114,7 @@ func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 		funcName: f.Name(),
 	}
 
-	// only keep last 2 names in path faling back to funcName if not
+	// only keep last 2 names in path, fall back to funcName if not
 	info.funcFileShort = shortenFilename(info.funcFile, info.funcName)
 
 	// remove package prefix. eg: "xxx.com/pkg1/pkg2.foo" => "pkg2.foo"
@@ -121,7 +125,7 @@ func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 		info.funcNameShort = info.funcName
 	}
 
-	// remove ".func[0-9]*()" suffix for anonymous func
+	// remove ".func[0-9]*" suffix for anonymous func
 	info.funcNameShort = trimAnonymousFunctionSuffix(info.funcNameShort)
 
 	return info
