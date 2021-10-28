@@ -71,7 +71,7 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 // quoteRegexp follows the RFC-4180 CSV standard for when double-quotes are used to enclose fields, then a double-quote appearing inside a
 // field must be escaped by preceding it with another double quote. https://www.ietf.org/rfc/rfc4180.txt
 // This finds all quoted strings that have escaped quotes.
-var quoteRegexp = regexp.MustCompile(`"(?:[^"\\]|\\.)*"`)
+var quoteRegexp = regexp.MustCompile(`"[^"]*"`)
 
 // removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can realiably have each row on one line
 // (quoted strings often have new lines within the string)
@@ -131,7 +131,7 @@ func FormatError(err error, locale translation.Locale) (string, error) {
 }
 
 // Looks for possible delimiters right before or after (with spaces after the former) double quotes with closing quotes
-var beforeAfterQuotes = regexp.MustCompile(`([,@\t;|]{0,1}) *(?:"[^"]*?")+([,@\t;|]{0,1})`)
+var beforeAfterQuotes = regexp.MustCompile(`([,@\t;|]{0,1}) *(?:"[^"]*")+([,@\t;|]{0,1})`)
 
 // guessFromBeforeAfterQuotes guesses the limiter by finding a double quote that has a valid delimiter before it and a closing quote,
 // or a double quote with a closing quote and a valid delimiter after it
