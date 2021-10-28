@@ -129,7 +129,7 @@ func syncTables() error {
 }
 
 // NewTestEngine sets a new test xorm.Engine
-func NewTestEngine() (err error) {
+func NewTestEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
 	x, err = GetNewEngine()
 	if err != nil {
 		return fmt.Errorf("Connect to database: %v", err)
@@ -138,6 +138,17 @@ func NewTestEngine() (err error) {
 	x.SetMapper(names.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.IsProd))
 	x.ShowSQL(!setting.IsProd)
+
+	x.SetDefaultContext(ctx)
+
+	if err = x.Ping(); err != nil {
+		return err
+	}
+
+	if err = migrateFunc(x); err != nil {
+		return fmt.Errorf("migrate: %v", err)
+	}
+
 	return syncTables()
 }
 
