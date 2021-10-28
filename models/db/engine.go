@@ -192,6 +192,10 @@ func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err e
 	}
 
 	if err = migrateFunc(x); err != nil {
+		// The only case to re-run the installation on an installed instance is: users may want to recover an old database.
+		// In such case, we should run the migrations first, 
+		// otherwise the table schemas may conflict in the normal startup migrations, because `syncTables` below already changed the schemas to the latest.
+		// However, we should think carefully about should we support re-install on an installed instance, it may bring other problems, eg: secrets will be lost.
 		return fmt.Errorf("migrate: %v", err)
 	}
 
