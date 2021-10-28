@@ -5,10 +5,12 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"testing"
 
+	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -109,4 +111,65 @@ func TestPrivateOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 	req = NewRequest(t, "GET", "/privated_org/private_repo_on_private_org")
 	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestOrgRestrictedUser(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	// privated_org is a private org who has id 23
+	orgName := "privated_org"
+
+	// public_repo_on_private_org is a public repo on privated_org
+	repoName := "public_repo_on_private_org"
+
+	// user29 is a restricted user who is not a member of the organization
+	restrictedUser := "user29"
+
+	// #17003 reports a bug whereby adding a restricted user to a read-only team doesn't work
+
+	// assert restrictedUser cannot see the org or the public repo
+	restrictedSession := loginUser(t, restrictedUser)
+	req := NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
+	restrictedSession.MakeRequest(t, req, http.StatusNotFound)
+
+	// Therefore create a read-only team
+	adminSession := loginUser(t, "user1")
+	token := getTokenForLoggedInUser(t, adminSession)
+
+	teamToCreate := &api.CreateTeamOption{
+		Name:                    "codereader",
+		Description:             "Code Reader",
+		IncludesAllRepositories: true,
+		Permission:              "read",
+		Units:                   []string{"repo.code"},
+	}
+
+	req = NewRequestWithJSON(t, "POST",
+		fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), teamToCreate)
+
+	var apiTeam api.Team
+
+	resp := adminSession.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, &apiTeam)
+	checkTeamResponse(t, &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+		teamToCreate.Permission, teamToCreate.Units)
+	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+		teamToCreate.Permission, teamToCreate.Units)
+	//teamID := apiTeam.ID
+
+	// Now we need to add the restricted user to the team
+	req = NewRequest(t, "PUT",
+		fmt.Sprintf("/api/v1/teams/%d/members/%s?token=%s", apiTeam.ID, restrictedUser, token))
+	_ = adminSession.MakeRequest(t, req, http.StatusNoContent)
+
+	// Now we need to check if the restrictedUser can access the repo
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s", orgName))
+	restrictedSession.MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequest(t, "GET", fmt.Sprintf("/%s/%s", orgName, repoName))
+	restrictedSession.MakeRequest(t, req, http.StatusOK)
+
 }

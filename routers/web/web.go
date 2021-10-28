@@ -317,6 +317,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/email", bindIgnErr(forms.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
 			m.Post("/delete", userSetting.DeleteAccount)
+		})
+		m.Group("/appearance", func() {
+			m.Get("", userSetting.Appearance)
+			m.Post("/language", bindIgnErr(forms.UpdateLanguageForm{}), userSetting.UpdateUserLang)
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), userSetting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
