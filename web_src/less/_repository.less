@@ -1,6 +1,19 @@
 .repository {
-  .commit-statuses .list > .item {
-    line-height: 2;
+  .popup.commit-statuses {
+    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
+    // otherwise some part of the popup will be hidden by viewport boundary
+    max-height: 45vh;
+    max-width: 60vw;
+    overflow: auto;
+    padding: 0;
+
+    .list {
+      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
+
+      > .item {
+        line-height: 2;
+      }
+    }
   }
 
   .repo-header {
@@ -824,6 +837,7 @@
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
+          vertical-align: middle;
         }
 
         &:first-child:not(.commit) {
@@ -2791,6 +2805,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-block !important;
+  line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
 tbody.commit-list {
