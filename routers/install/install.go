@@ -391,7 +391,7 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("security").Key("DISABLE_GIT_HOOKS").SetValue(fmt.Sprint(form.DisableGitHooks))
 	cfg.Section("security").Key("DISABLE_WEBHOOKS").SetValue(fmt.Sprint(form.DisableWebhooks))
 	cfg.Section("oauth2").Key("ENABLE").SetValue(fmt.Sprint(form.EnableOAuth2))
-	
+
 	if form.AttachmentMaxSize > 0 {
 		cfg.Section("attachment").Key("ENABLED").SetValue(fmt.Sprint(true))
 		cfg.Section("attachment").Key("MAX_SIZE").SetValue(fmt.Sprint(form.AttachmentMaxSize))
