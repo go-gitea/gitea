@@ -63,7 +63,7 @@ type logFuncInfo struct {
 var funcInfoMap = map[uintptr]*logFuncInfo{}
 var funcInfoMapMu sync.RWMutex
 
-// shortenFilename from code.gitea.io/routers/common/logger_context.go to common/logger_context.go
+// shortenFilename generates a short source code filename from a full package path, eg: "code.gitea.io/routers/common/logger_context.go" => "common/logger_context.go"
 func shortenFilename(filename, fallback string) (short string) {
 	if lastIndex := strings.LastIndexByte(filename, '/'); lastIndex >= 0 {
 		if secondLastIndex := strings.LastIndexByte(filename[:lastIndex], '/'); secondLastIndex >= 0 {
@@ -76,7 +76,7 @@ func shortenFilename(filename, fallback string) (short string) {
 	return
 }
 
-// trimAnonymousFunctionSuffix trims .func[0-9]*() from the end of function names
+// trimAnonymousFunctionSuffix trims ".func[0-9]*" from the end of anonymous function names, we only want to see the main function names in logs
 func trimAnonymousFunctionSuffix(name string) string {
 	if len(name) < 7 {
 		return name
@@ -100,7 +100,7 @@ func trimAnonymousFunctionSuffix(name string) string {
 	return name
 }
 
-// convertToLogFuncInfo take a runtime.Func and convert it to a logFuncInfo
+// convertToLogFuncInfo take a runtime.Func and convert it to a logFuncInfo, fill in shorten filename, etc
 func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 	file, line := f.FileLine(f.Entry())
 
@@ -114,9 +114,9 @@ func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 	info.funcFileShort = shortenFilename(info.funcFile, info.funcName)
 
 	// remove package prefix. eg: "xxx.com/pkg1/pkg2.foo" => "pkg2.foo"
-	p1 := strings.LastIndexByte(info.funcName, '/')
-	if p1 >= 0 {
-		info.funcNameShort = info.funcName[p1+1:]
+	pos := strings.LastIndexByte(info.funcName, '/')
+	if pos >= 0 {
+		info.funcNameShort = info.funcName[pos+1:]
 	} else {
 		info.funcNameShort = info.funcName
 	}
@@ -129,8 +129,8 @@ func convertToLogFuncInfo(f *runtime.Func) *logFuncInfo {
 
 var contextKeyLogRequestRecord interface{} = "logRequestRecord"
 
-//UpdateContextHandlerFuncInfo updates a context's func info by a real handler func `v`
-func UpdateContextHandlerFuncInfo(ctx context.Context, v interface{}, friendlyName ...string) {
+//UpdateContextHandlerFuncInfo updates a context's func info by a real handler func `fn`
+func UpdateContextHandlerFuncInfo(ctx context.Context, fn interface{}, friendlyName ...string) {
 	record, ok := ctx.Value(contextKeyLogRequestRecord).(*logRequestRecord)
 	if !ok {
 		return
@@ -140,7 +140,7 @@ func UpdateContextHandlerFuncInfo(ctx context.Context, v interface{}, friendlyNa
 
 	// ptr represents the memory position of the function passed in as v.
 	// This will be used as program counter in FuncForPC below
-	ptr := reflect.ValueOf(v).Pointer()
+	ptr := reflect.ValueOf(fn).Pointer()
 
 	// Attempt get pre-cached information for this function pointer
 	funcInfoMapMu.RLock()
@@ -260,7 +260,7 @@ func (lh *logContextHandler) handler(next http.Handler) http.Handler {
 			lh.printLog(LogRequestOver, record)
 
 			if localPanicErr != nil {
-				// the panic wasn't recovered before us so we should pass it up, and let the framework handle the panic error
+				// the panic wasn't recovered before us, so we should pass it up, and let the framework handle the panic error
 				panic(localPanicErr)
 			}
 		}()
