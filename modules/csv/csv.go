@@ -79,7 +79,7 @@ func removeQuotedString(text string) string {
 	return quoteRegexp.ReplaceAllLiteralString(text, "")
 }
 
-// guessDelimiter takes up to 10 lines of the CSV text, iterates through the possible delimiters, and sees if the CSV Reader reads it without throwing any errors.
+// guessDelimiter takes up to maxLines of the CSV text, iterates through the possible delimiters, and sees if the CSV Reader reads it without throwing any errors.
 // If more than one delmiiter passes, the delimiter that results in the most columns is returned.
 func guessDelimiter(data []byte) rune {
 	// Removes quoted values so we don't have columns with new lines in them
