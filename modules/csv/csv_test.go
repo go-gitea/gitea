@@ -6,6 +6,7 @@ package csv
 
 import (
 	"bytes"
+	"encoding/csv"
 	"strings"
 	"testing"
 
@@ -366,10 +367,100 @@ nri,p,,t,if,,y,ptlqq	a,i	w,ovli,um,w,f,re,k,sb,w,jy,zf	i,g,p,q,mii,nr,jm,cc	i,sz
 skxg,t,vay,d,wug,d,xg,sexc	rt	g,ag,mjq,fjnyji,iwa,m,ml,b,ua,b,qjxeoc	be,s,sh,n,jbzxs,g,n,i,h,y,r,be,mfo,u,p	cw,r,,u,zn,eg,r,yac,m,l,edkr,ha,x,g,b,c,tg,c	j,ye,u,ejd,maj,ea,bm,u,iy`,
 			expectedDelimiter: '\t',
 		},
+		// case 13 - a CSV with more than 10 lines and since we only use the first 10 lines, it should still get the delimiter as semicolon
+		{
+			csv: `col1;col2;col3
+1;1;1
+2;2;2
+3;3;3
+4;4;4
+5;5;5
+6;6;6
+7;7;7
+8;8;8
+9;9;9
+10;10;10
+11	11	11
+12|12|12`,
+			expectedDelimiter: ';',
+		},
+		// case 14 - a really long single line (over 10k) that will get truncated, but since it has commas and semicolons (but more semicolons) it will pick semicolon
+		{
+			csv:               strings.Repeat("a;b,c;", 1700),
+			expectedDelimiter: ';',
+		},
+		// case 15 - 2 lines that are well over 10k, but since the 2nd line is where this CSV will be truncated (10k sample), it will only use the first line, so semicolon will be picked
+		{
+			csv:               "col1@col2@col3\na@b@" + strings.Repeat("c", 6000) + "\nd,e," + strings.Repeat("f", 4000),
+			expectedDelimiter: '@',
+		},
+		// case 16 - has all delimters so should return comma
+		{
+			csv: `col1,col2;col3@col4|col5	col6
+a	b|c@d;e,f`,
+			expectedDelimiter: ',',
+		},
+		// case 16 - nothing works (bad csv) so returns comma by default
+		{
+			csv: `col1,col2
+a;b
+c@e
+f	g
+h|i
+jkl`,
+			expectedDelimiter: ',',
+		},
 	}
 
 	for n, c := range cases {
 		delimiter := guessDelimiter([]byte(c.csv))
 		assert.EqualValues(t, c.expectedDelimiter, delimiter, "case %d: delimiter should be equal, expected '%c' got '%c'", n, c.expectedDelimiter, delimiter)
+	}
+}
+
+type mockLocale struct{}
+
+func (l mockLocale) Language() string {
+	return "en"
+}
+
+func (l mockLocale) Tr(s string, _ ...interface{}) string {
+	return s
+}
+
+func TestFormatError(t *testing.T) {
+	var cases = []struct {
+		err             error
+		expectedMessage string
+		expectsError    bool
+	}{
+		{
+			err: &csv.ParseError{
+				Err: csv.ErrFieldCount,
+			},
+			expectedMessage: "repo.error.csv.invalid_field_count",
+			expectsError:    false,
+		},
+		{
+			err: &csv.ParseError{
+				Err: csv.ErrBareQuote,
+			},
+			expectedMessage: "repo.error.csv.unexpected",
+			expectsError:    false,
+		},
+		{
+			err:          bytes.ErrTooLarge,
+			expectsError: true,
+		},
+	}
+
+	for n, c := range cases {
+		message, err := FormatError(c.err, mockLocale{})
+		if c.expectsError {
+			assert.Error(t, err, "case %d: expected an error to be returned", n)
+		} else {
+			assert.NoError(t, err, "case %d: no error was expected, got error: %v", n, err)
+			assert.EqualValues(t, c.expectedMessage, message, "case %d: messages should be equal, expected '%s' got '%s'", n, c.expectedMessage, message)
+		}
 	}
 }
