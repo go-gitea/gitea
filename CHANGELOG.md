@@ -11,6 +11,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix CSV render error (#17406) (#17431)
   * Read expected buffer size (#17409) (#17430)
   * Ensure that restricted users can access repos for which they are members (#17460) (#17464)
+  * Make commit-statuses popup show correctly (#17447) (#17466)
 * TESTING
   * Add integration tests for private.NoServCommand and private.ServCommand (#17456) (#17463)
 
