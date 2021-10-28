@@ -18,6 +18,7 @@ import (
 )
 
 const maxLines = 10
+const guessSampleSize = 1e4 // 10k
 
 // CreateReader creates a csv.Reader with the given delimiter.
 func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
@@ -32,9 +33,9 @@ func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 }
 
 // CreateReaderAndDetermineDelimiter tries to guess the field delimiter from the content and creates a csv.Reader.
-// Reads at most 10k bytes.
+// Reads at most guessSampleSize bytes.
 func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) (*stdcsv.Reader, error) {
-	var data = make([]byte, 1e4)
+	var data = make([]byte, guessSampleSize)
 	size, err := util.ReadAtMost(rd, data)
 	if err != nil {
 		return nil, err
@@ -89,8 +90,9 @@ func guessDelimiter(data []byte) rune {
 	if len(lines) > maxLines {
 		// If the length of lines is > maxLines we know we have the max number of lines, trim it to maxLines
 		lines = lines[:maxLines]
-	} else if len(lines) > 1 && len(strings.Join(lines, "\n")) >= 1e4 {
-		// max # of lines of text was somehow >= 10k (really long lines), so probalby the last line was cut off. We remove it so it isn't used, but only if lines > 1
+	} else if len(lines) > 1 && len(data) >= guessSampleSize {
+		// Even with data >= guessSampleSize, we don't have maxLines + 1 (no extra lines, must have really long lines)
+		// thus the last line is probably have a truncated line. Drop the last line if len(lines) > 1
 		lines = lines[:len(lines)-1]
 	}
 
