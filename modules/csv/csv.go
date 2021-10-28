@@ -70,7 +70,7 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 // quoteRegexp follows the RFC-4180 CSV standard for when double-quotes are used to enclose fields, then a double-quote appearing inside a
 // field must be escaped by preceding it with another double quote. https://www.ietf.org/rfc/rfc4180.txt
 // This finds all quoted strings that have escaped quotes.
-var quoteRegexp = regexp.MustCompile(`["'](?:[^"'\\]|\\.)*["']`)
+var quoteRegexp = regexp.MustCompile(`"(?:[^"\\]|\\.)*"`)
 
 // removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can realiably have each row on one line
 // (quoted strings often have new lines within the string)
