@@ -153,6 +153,9 @@ func Install(ctx *context.Context) {
 	form.DefaultKeepEmailPrivate = setting.Service.DefaultKeepEmailPrivate
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
+	form.EnableRepoIndexer = setting.Indexer.RepoIndexerEnabled
+	form.DisableGitHooks = setting.DisableGitHooks
+	form.DisableWebhooks = setting.DisableWebhooks
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
@@ -378,6 +381,9 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").SetValue(fmt.Sprint(form.DefaultAllowCreateOrganization))
 	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
+	cfg.Section("indexer").Key("REPO_INDEXER_ENABLED").SetValue(fmt.Sprint(form.EnableRepoIndexer))
+	cfg.Section("security").Key("DISABLE_GIT_HOOKS").SetValue(fmt.Sprint(form.DisableGitHooks))
+	cfg.Section("security").Key("DISABLE_WEBHOOKS").SetValue(fmt.Sprint(form.DisableWebhooks))
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 

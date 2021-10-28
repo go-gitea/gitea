@@ -257,6 +257,24 @@
 							</div>
 						</div>
 						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.repo_indexer_popup"}}"><strong>{{.i18n.Tr "install.repo_indexer"}}</strong></label>
+								<input name="enable_repo_indexer" type="checkbox" {{if .enable_repo_indexer}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.git_hooks_popup"}}"><strong>{{.i18n.Tr "install.git_hooks"}}</strong></label>
+								<input name="disable_git_hooks" type="checkbox" {{if .disable_git_hooks}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.webhooks_popup"}}"><strong>{{.i18n.Tr "install.webhooks"}}</strong></label>
+								<input name="disable_webhooks" type="checkbox" {{if .disable_webhooks}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
 							<label for="no_reply_address">{{.i18n.Tr "install.no_reply_address"}}</label>
 							<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 							<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>
