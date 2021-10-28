@@ -19,8 +19,6 @@ import (
 
 const maxLines = 10
 
-var quoteRegexp = regexp.MustCompile(`["'](?:[^"'\\]|\\.)*["']`)
-
 // CreateReader creates a csv.Reader with the given delimiter.
 func CreateReader(input io.Reader, delimiter rune) *stdcsv.Reader {
 	rd := stdcsv.NewReader(input)
@@ -69,13 +67,19 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	return delimiter
 }
 
+// quoteRegexp follows the RFC-4180 CSV standard for when double-quotes are used to enclose fields, then a double-quote appearing inside a
+// field must be escaped by preceding it with another double quote. https://www.ietf.org/rfc/rfc4180.txt
+// This finds all quoted strings that have escaped quotes.
+var quoteRegexp = regexp.MustCompile(`["'](?:[^"'\\]|\\.)*["']`)
+
 // removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can realiably have each row on one line
 // (quoted strings often have new lines within the string)
 func removeQuotedString(text string) string {
 	return quoteRegexp.ReplaceAllLiteralString(text, "")
 }
 
-// guessDelimiter scores the input CSV data against delimiters, and returns the best match.
+// guessDelimiter takes up to 10 lines of the CSV text, iterates through the possible delimiters, and sees if the CSV Reader reads it without throwing any errors.
+// If more than one delmiiter passes, the delimiter that results in the most columns is returned.
 func guessDelimiter(data []byte) rune {
 	// Removes quoted values so we don't have columns with new lines in them
 	text := removeQuotedString(string(data))
