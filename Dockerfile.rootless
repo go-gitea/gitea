@@ -55,7 +55,7 @@ RUN chown git:git /var/lib/gitea /etc/gitea
 COPY docker/rootless /
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/gitea /usr/local/bin/gitea
 COPY --from=build-env --chown=root:root /go/src/code.gitea.io/gitea/environment-to-ini /usr/local/bin/environment-to-ini
-RUN chmod 755 /usr/local/bin/docker-entrypoint.sh /app/gitea/gitea /usr/local/bin/environment-to-ini /usr/local/bin/docker-setup.sh
+RUN chmod 755 /usr/local/bin/docker-entrypoint.sh /usr/local/bin/docker-setup.sh /usr/local/bin/gitea /usr/local/bin/environment-to-ini
 
 #git:git
 USER 1000:1000
