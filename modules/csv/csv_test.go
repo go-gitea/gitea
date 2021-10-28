@@ -350,7 +350,7 @@ f" | 4.56 | 789`,
 			expectedDelimiter: '|',
 		},
 		// case 12 - a tab delimited 6 column CSV, but the values are not quoted and have lots of commas.
-		// In the previous bestScore alogrithm, this would have picked comma as the delimiter, but now it should guess tab
+		// In the previous bestScore algorithm, this would have picked comma as the delimiter, but now it should guess tab
 		{
 			csv: `c1	c2	c3	c4	c5	c6
 v,k,x,v	ym,f,oa,qn,uqijh,n,s,wvygpo	uj,kt,j,w,i,fvv,tm,f,ddt,b,mwt,e,t,teq,rd,p,a	e,wfuae,t,h,q,im,ix,y	h,mrlu,l,dz,ff,zi,af,emh	,gov,bmfelvb,axp,f,u,i,cni,x,z,v,sh,w,jo,,m,h
