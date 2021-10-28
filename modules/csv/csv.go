@@ -89,8 +89,8 @@ func guessDelimiter(data []byte) rune {
 	if len(lines) > maxLines {
 		// If the length of lines is > maxLines we know we have the max number of lines, trim it to maxLines
 		lines = lines[:maxLines]
-	} else if len(lines) > 1 && len(strings.Join(lines, "\n")) > 1e4 {
-		// max # of lines of text was somehow > 10k, so probalby the last line was cut off. We remove it so it isn't used, but only if lines > 1
+	} else if len(lines) > 1 && len(strings.Join(lines, "\n")) >= 1e4 {
+		// max # of lines of text was somehow >= 10k (really long lines), so probalby the last line was cut off. We remove it so it isn't used, but only if lines > 1
 		lines = lines[:len(lines)-1]
 	}
 
