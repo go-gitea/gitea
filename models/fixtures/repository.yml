@@ -568,7 +568,7 @@
 -
   id: 40
   owner_id: 23
-  owner_name: limited_org
+  owner_name: privated_org
   lower_name: public_repo_on_private_org
   name: public_repo_on_private_org
   is_private: false
@@ -581,7 +581,7 @@
 -
   id: 41
   owner_id: 23
-  owner_name: limited_org
+  owner_name: privated_org
   lower_name: private_repo_on_private_org
   name: private_repo_on_private_org
   is_private: true
