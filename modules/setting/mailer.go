@@ -16,13 +16,15 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name            string
-	From            string
-	FromName        string
-	FromEmail       string
-	SendAsPlainText bool
-	MailerType      string
-	SubjectPrefix   string
+	Name                     string
+	From                     string
+	EnvelopeFrom             string
+	UseDifferentEnvelopeFrom bool
+	FromName                 string
+	FromEmail                string
+	SendAsPlainText          bool
+	MailerType               string
+	SubjectPrefix            string
 
 	// SMTP sender
 	Host              string
@@ -73,6 +75,8 @@ func newMailService() {
 		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
+	MailService.UseDifferentEnvelopeFrom = sec.Key("USE_DIFFERENT_ENVELOPE_FROM").MustBool()
+	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
 		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")

@@ -598,6 +598,8 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
   - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
+- `USE_DIFFERENT_ENVELOPE_FROM`: **false**: Set to **true** to use the value of `ENVELOPE_FROM` as the From address on the SMTP mail envelope.
+- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope if `USE_DIFFERENT_ENVELOPE_FROM` is set to true.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
    - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
