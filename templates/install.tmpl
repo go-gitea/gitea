@@ -275,6 +275,17 @@
 							</div>
 						</div>
 						<div class="inline field">
+							<div class="ui checkbox">
+								<label class="poping up" data-content="{{.i18n.Tr "install.enable_oauth2_popup"}}"><strong>{{.i18n.Tr "install.enable_oauth2"}}</strong></label>
+								<input name="enable_oauth2" type="checkbox" {{if .enable_oauth2}}checked{{end}}>
+							</div>
+						</div>
+						<div class="inline field">
+							<label for="attachment_max_size">{{.i18n.Tr "install.attachment_max_size"}}</label>
+							<input id="attachment_max_size" name="attachment_max_size" value="{{.attachment_max_size}}">
+							<span class="help">{{.i18n.Tr "install.attachment_max_size_help"}}</span>
+						</div>
+						<div class="inline field">
 							<label for="no_reply_address">{{.i18n.Tr "install.no_reply_address"}}</label>
 							<input id="_no_reply_address" name="no_reply_address" value="{{.no_reply_address}}">
 							<span class="help">{{.i18n.Tr "install.no_reply_address_helper"}}</span>

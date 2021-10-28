@@ -62,6 +62,8 @@ type InstallForm struct {
 	EnableRepoIndexer              bool
 	DisableGitHooks                bool
 	DisableWebhooks                bool
+	EnableOAuth2                   bool
+	AttachmentMaxSize              int64
 	NoReplyAddress                 string
 
 	PasswordAlgorithm string

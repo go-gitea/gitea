@@ -156,6 +156,12 @@ func Install(ctx *context.Context) {
 	form.EnableRepoIndexer = setting.Indexer.RepoIndexerEnabled
 	form.DisableGitHooks = setting.DisableGitHooks
 	form.DisableWebhooks = setting.DisableWebhooks
+	form.EnableOAuth2 = setting.OAuth2.Enable
+	if setting.Attachment.Enabled {
+		form.AttachmentMaxSize = setting.Attachment.MaxSize
+	} else {
+		form.AttachmentMaxSize = 0
+	}
 	form.NoReplyAddress = setting.Service.NoReplyAddress
 	form.PasswordAlgorithm = setting.PasswordHashAlgo
 
@@ -384,6 +390,14 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("indexer").Key("REPO_INDEXER_ENABLED").SetValue(fmt.Sprint(form.EnableRepoIndexer))
 	cfg.Section("security").Key("DISABLE_GIT_HOOKS").SetValue(fmt.Sprint(form.DisableGitHooks))
 	cfg.Section("security").Key("DISABLE_WEBHOOKS").SetValue(fmt.Sprint(form.DisableWebhooks))
+	cfg.Section("oauth2").Key("ENABLE").SetValue(fmt.Sprint(form.EnableOAuth2))
+	
+	if form.AttachmentMaxSize > 0 {
+		cfg.Section("attachment").Key("ENABLED").SetValue(fmt.Sprint(true))
+		cfg.Section("attachment").Key("MAX_SIZE").SetValue(fmt.Sprint(form.AttachmentMaxSize))
+	} else {
+		cfg.Section("attachment").Key("ENABLED").SetValue(fmt.Sprint(false))
+	}
 
 	cfg.Section("").Key("RUN_MODE").SetValue("prod")
 
