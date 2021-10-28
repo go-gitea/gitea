@@ -83,7 +83,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 		case models.ActionPullReviewDismissed:
 			title += ctx.Tr("action.review_dismissed", act.GetRepoLink(), act.GetIssueInfos()[0], act.ShortRepoPath(), act.GetIssueInfos()[1])
 		case models.ActionStarRepo:
-			title += ctx.Tr("action.stared_repo", act.GetRepoLink(), act.GetRepoPath())
+			title += ctx.Tr("action.starred_repo", act.GetRepoLink(), act.GetRepoPath())
 			link = &feeds.Link{Href: act.GetRepoLink()}
 		case models.ActionWatchRepo:
 			title += ctx.Tr("action.watched_repo", act.GetRepoLink(), act.GetRepoPath())
