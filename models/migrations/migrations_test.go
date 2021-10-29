@@ -86,7 +86,7 @@ func removeAllWithRetry(dir string) error {
 
 // SetEngine sets the xorm.Engine
 func SetEngine() (*xorm.Engine, error) {
-	x, err := db.GetNewEngine()
+	x, err := db.NewEngine()
 	if err != nil {
 		return x, fmt.Errorf("Failed to connect to database: %v", err)
 	}
