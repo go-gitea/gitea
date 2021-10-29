@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"github.com/go-fed/activity/pub"
 	"github.com/go-fed/activity/streams"
 	"github.com/go-fed/activity/streams/vocab"
 
@@ -22,8 +23,10 @@ import (
 func TestActivityPubPerson(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		setting.Federation.Enabled = true
+		setting.Database.LogSQL = true
 		defer func() {
 			setting.Federation.Enabled = false
+			setting.Database.LogSQL = false
 		}()
 
 		username := "user2"
@@ -41,11 +44,41 @@ func TestActivityPubPerson(t *testing.T) {
 		ctx := context.Background()
 		err := resolver.Resolve(ctx, m)
 		assert.Equal(t, err, nil)
-		assert.Equal(t, person.GetTypeName(), "Person")
-		assert.Equal(t, person.GetActivityStreamsName().Begin().GetXMLSchemaString(), username)
-		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s$", username), person.GetJSONLDId().GetIRI().String())
+		assert.Equal(t, "Person", person.GetTypeName())
+		assert.Equal(t, username, person.GetActivityStreamsName().Begin().GetXMLSchemaString())
+		keyId := person.GetJSONLDId().GetIRI().String()
+		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s$", username), keyId)
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/outbox$", username), person.GetActivityStreamsOutbox().GetIRI().String())
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/inbox$", username), person.GetActivityStreamsInbox().GetIRI().String())
+
+		pkp := person.GetW3IDSecurityV1PublicKey()
+		publicKeyId := keyId + "/#main-key"
+		var pkpFound vocab.W3IDSecurityV1PublicKey
+		for pkpIter := pkp.Begin(); pkpIter != pkp.End(); pkpIter = pkpIter.Next() {
+			if !pkpIter.IsW3IDSecurityV1PublicKey() {
+				continue
+			}
+			pkValue := pkpIter.Get()
+			var pkId *url.URL
+			pkId, err = pub.GetId(pkValue)
+			if err != nil {
+				return
+			}
+			assert.Equal(t, pkId.String(), publicKeyId)
+			if pkId.String() != publicKeyId {
+				continue
+			}
+			pkpFound = pkValue
+			break
+		}
+		assert.NotNil(t, pkpFound)
+
+		pkPemProp := pkpFound.GetW3IDSecurityV1PublicKeyPem()
+		assert.NotNil(t, pkPemProp)
+		assert.True(t, pkPemProp.IsXMLSchemaString())
+
+		pubKeyPem := pkPemProp.Get()
+		assert.Regexp(t, "^-----BEGIN PUBLIC KEY-----", pubKeyPem)
 	})
 }
 
