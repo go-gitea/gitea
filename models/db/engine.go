@@ -128,7 +128,7 @@ func syncTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// NewInstallTestEngine creates a new xorm.Engine for testing during install
+// InitInstallTestEngineWithMigration creates a new xorm.Engine for testing during install
 //
 // This function will cause the basic database schema to be created
 func InitInstallTestEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
