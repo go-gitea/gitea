@@ -194,6 +194,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
+	log.Info("AppURL: %s", setting.AppURL)
 
 	if setting.LFS.StartServer {
 		log.Info("LFS server enabled")

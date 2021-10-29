@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"net"
 	"strconv"
 	"strings"
 )
@@ -160,4 +161,14 @@ func RandomString(length int64) (string, error) {
 		bytes[i] = letters[num]
 	}
 	return string(bytes), nil
+}
+
+// IsIPPrivate for net.IP.IsPrivate. TODO: replace with `ip.IsPrivate()` if min go version is bumped to 1.17
+func IsIPPrivate(ip net.IP) bool {
+	if ip4 := ip.To4(); ip4 != nil {
+		return ip4[0] == 10 ||
+			(ip4[0] == 172 && ip4[1]&0xf0 == 16) ||
+			(ip4[0] == 192 && ip4[1] == 168)
+	}
+	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }

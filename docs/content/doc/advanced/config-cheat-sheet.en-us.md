@@ -581,6 +581,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
+- `ALLOWED_HOST_LIST`: **global**: Webhook can only call allowed hosts for security reasons. Comma separated list: `loopback`, `private`, `global`, or `all`, or CIDR list (1.2.3.0/8), or wildcard hosts (*.mydomain.com)
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
 - `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
