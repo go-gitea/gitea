@@ -51,16 +51,7 @@ func TestCombineLabelComments(t *testing.T) {
 					PosterID:    1,
 					Content:     "1",
 					CreatedUnix: 0,
-					AddedLabels: []*models.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					RemovedLabels: []*models.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
+					AddedLabels: []*models.Label{},
 					Label: &models.Label{
 						Name: "kind/bug",
 					},
