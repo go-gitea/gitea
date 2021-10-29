@@ -182,16 +182,20 @@ func TestAPIDeleteComment(t *testing.T) {
 func TestAPIListIssueTimeline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
+	// load comments that are not code comments
 	comment := db.AssertExistsAndLoadBean(t, &models.Comment{}, db.Cond("NOT type = ?", models.CommentTypeCode)).(*models.Comment)
 	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
 	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
+	// make request
 	session := loginUser(t, repoOwner.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/timeline",
 		repoOwner.Name, repo.Name, issue.Index)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
+	// check if lens of list returned by API and
+	// lists extracted directly from DB are the same 
 	var comments []*api.TimelineComment
 	DecodeJSON(t, resp, &comments)
 	expectedCount := db.GetCount(t, &models.Comment{IssueID: issue.ID})
