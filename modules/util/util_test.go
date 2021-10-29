@@ -156,3 +156,16 @@ func Test_RandomString(t *testing.T) {
 
 	assert.NotEqual(t, str3, str4)
 }
+
+func Test_OptionalBool(t *testing.T) {
+	assert.Equal(t, OptionalBoolNone, OptionalBoolParse(""))
+	assert.Equal(t, OptionalBoolNone, OptionalBoolParse("x"))
+
+	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("0"))
+	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("f"))
+	assert.Equal(t, OptionalBoolFalse, OptionalBoolParse("False"))
+
+	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("1"))
+	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("t"))
+	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("True"))
+}

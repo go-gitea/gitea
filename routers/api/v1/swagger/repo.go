@@ -344,3 +344,24 @@ type swaggerResponsePackageFileList struct {
 	// in:body
 	Body []api.PackageFile `json:"body"`
 }
+
+// WikiPageList
+// swagger:response WikiPageList
+type swaggerWikiPageList struct {
+	// in:body
+	Body []api.WikiPageMetaData `json:"body"`
+}
+
+// WikiPage
+// swagger:response WikiPage
+type swaggerWikiPage struct {
+	// in:body
+	Body api.WikiPage `json:"body"`
+}
+
+// WikiCommitList
+// swagger:response WikiCommitList
+type swaggerWikiCommitList struct {
+	// in:body
+	Body api.WikiCommitList `json:"body"`
+}

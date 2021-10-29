@@ -5,44 +5,29 @@
 package migrations
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
 )
 
-func addPackageTables(x *xorm.Engine) error {
-	type Package struct {
-		ID          int64 `xorm:"pk autoincr"`
-		RepoID      int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatorID   int64
-		Type        int `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Name        string
-		LowerName   string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Version     string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		MetadataRaw string `xorm:"TEXT"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
+func addTableIssueContentHistory(x *xorm.Engine) error {
+	type IssueContentHistory struct {
+		ID             int64 `xorm:"pk autoincr"`
+		PosterID       int64
+		IssueID        int64              `xorm:"INDEX"`
+		CommentID      int64              `xorm:"INDEX"`
+		EditedUnix     timeutil.TimeStamp `xorm:"INDEX"`
+		ContentText    string             `xorm:"LONGTEXT"`
+		IsFirstCreated bool
+		IsDeleted      bool
 	}
 
-	if err := x.Sync2(new(Package)); err != nil {
-		return err
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Sync2(new(IssueContentHistory)); err != nil {
+		return fmt.Errorf("Sync2: %v", err)
 	}
-
-	type PackageFile struct {
-		ID         int64 `xorm:"pk autoincr"`
-		PackageID  int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		Size       int64
-		Name       string
-		LowerName  string `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		HashMD5    string `xorm:"hash_md5"`
-		HashSHA1   string `xorm:"hash_sha1"`
-		HashSHA256 string `xorm:"hash_sha256"`
-		HashSHA512 string `xorm:"hash_sha512"`
-
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"updated"`
-	}
-
-	return x.Sync2(new(PackageFile))
+	return sess.Commit()
 }
