@@ -154,7 +154,6 @@ func Install(ctx *context.Context) {
 	form.DefaultAllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization
 	form.DefaultEnableTimetracking = setting.Service.DefaultEnableTimetracking
 	form.EnableRepoIndexer = setting.Indexer.RepoIndexerEnabled
-	form.DisableGitHooks = setting.DisableGitHooks
 	form.DisableWebhooks = setting.DisableWebhooks
 	form.EnableOAuth2 = setting.OAuth2.Enable
 	if setting.Attachment.Enabled {
@@ -388,7 +387,6 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("DEFAULT_ENABLE_TIMETRACKING").SetValue(fmt.Sprint(form.DefaultEnableTimetracking))
 	cfg.Section("service").Key("NO_REPLY_ADDRESS").SetValue(fmt.Sprint(form.NoReplyAddress))
 	cfg.Section("indexer").Key("REPO_INDEXER_ENABLED").SetValue(fmt.Sprint(form.EnableRepoIndexer))
-	cfg.Section("security").Key("DISABLE_GIT_HOOKS").SetValue(fmt.Sprint(form.DisableGitHooks))
 	cfg.Section("security").Key("DISABLE_WEBHOOKS").SetValue(fmt.Sprint(form.DisableWebhooks))
 	cfg.Section("oauth2").Key("ENABLE").SetValue(fmt.Sprint(form.EnableOAuth2))
 

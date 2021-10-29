@@ -60,7 +60,6 @@ type InstallForm struct {
 	DefaultAllowCreateOrganization bool
 	DefaultEnableTimetracking      bool
 	EnableRepoIndexer              bool
-	DisableGitHooks                bool
 	DisableWebhooks                bool
 	EnableOAuth2                   bool
 	AttachmentMaxSize              int64
