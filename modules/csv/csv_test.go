@@ -7,6 +7,7 @@ package csv
 import (
 	"bytes"
 	"encoding/csv"
+	"io"
 	"strings"
 	"testing"
 
@@ -95,6 +96,33 @@ j, ,
 		assert.NoError(t, err, "case %d: should not throw error: %v\n", n, err)
 		assert.EqualValues(t, c.expectedRows, rows, "case %d: rows should be equal", n)
 	}
+}
+
+type mockReader struct{}
+
+func (r *mockReader) Read(buf []byte) (int, error) {
+	return 0, io.ErrShortBuffer
+}
+
+func TestDetermineDelimiterShortBufferError(t *testing.T) {
+	rd, err := CreateReaderAndDetermineDelimiter(nil, &mockReader{})
+	assert.Error(t, err, "CreateReaderAndDetermineDelimiter() should throw an error")
+	assert.ErrorIs(t, err, io.ErrShortBuffer)
+	assert.Nil(t, rd, "CSV reader should be mnil")
+}
+
+func TestDetermineDelimiterReadAllError(t *testing.T) {
+	rd, err := CreateReaderAndDetermineDelimiter(nil, strings.NewReader(`col1,col2
+	a;b
+	c@e
+	f	g
+	h|i
+	jkl`))
+	assert.NoError(t, err, "CreateReaderAndDetermineDelimiter() shouldn't throw error")
+	assert.NotNil(t, rd, "CSV reader should not be mnil")
+	rows, err := rd.ReadAll()
+	assert.Error(t, err, "RaadAll() should throw error")
+	assert.Empty(t, rows, "rows should be empty")
 }
 
 func TestDetermineDelimiter(t *testing.T) {
