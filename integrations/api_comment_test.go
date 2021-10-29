@@ -195,7 +195,7 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// check if lens of list returned by API and
-	// lists extracted directly from DB are the same 
+	// lists extracted directly from DB are the same
 	var comments []*api.TimelineComment
 	DecodeJSON(t, resp, &comments)
 	expectedCount := db.GetCount(t, &models.Comment{IssueID: issue.ID})
