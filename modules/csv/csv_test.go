@@ -17,16 +17,57 @@ func TestCreateReader(t *testing.T) {
 	assert.Equal(t, ',', rd.Comma)
 }
 
+//nolint
 func TestCreateReaderAndGuessDelimiter(t *testing.T) {
-	input := "a;b;c\n1;2;3\n4;5;6"
+	var csvToRowsMap = map[string][][]string{
+		`a;b;c
+1;2;3
+4;5;6`: {{"a", "b", "c"}, {"1", "2", "3"}, {"4", "5", "6"}},
+		`col1	col2	col3
+a	b	c
+	e	f
+g	h	i
+j		l
+m	n	
+p	q	r
+		u
+v	w	x
+y		
+		`: {{"col1", "col2", "col3"},
+			{"a", "b", "c"},
+			{"", "e", "f"},
+			{"g", "h", "i"},
+			{"j", "", "l"},
+			{"m", "n", ""},
+			{"p", "q", "r"},
+			{"", "", "u"},
+			{"v", "w", "x"},
+			{"y", "", ""},
+			{"", "", ""}},
+		` col1,col2,col3
+ a, b, c
+d,e,f
+ ,h, i
+j, , 
+ , , `: {{"col1", "col2", "col3"},
+			{"a", "b", "c"},
+			{"d", "e", "f"},
+			{"", "h", "i"},
+			{"j", "", ""},
+			{"", "", ""}},
+	}
 
-	rd, err := CreateReaderAndGuessDelimiter(strings.NewReader(input))
-	assert.NoError(t, err)
-	assert.Equal(t, ';', rd.Comma)
+	for csv, expectedRows := range csvToRowsMap {
+		rd, err := CreateReaderAndGuessDelimiter(strings.NewReader(csv))
+		assert.NoError(t, err)
+		rows, err := rd.ReadAll()
+		assert.NoError(t, err)
+		assert.EqualValues(t, rows, expectedRows)
+	}
 }
 
 func TestGuessDelimiter(t *testing.T) {
-	var kases = map[string]rune{
+	var csvToDelimiterMap = map[string]rune{
 		"a":                         ',',
 		"1,2":                       ',',
 		"1;2":                       ';',
@@ -37,7 +78,7 @@ func TestGuessDelimiter(t *testing.T) {
 		"<br/>":                     ',',
 	}
 
-	for k, v := range kases {
-		assert.EqualValues(t, guessDelimiter([]byte(k)), v)
+	for csv, expectedDelimiter := range csvToDelimiterMap {
+		assert.EqualValues(t, guessDelimiter([]byte(csv)), expectedDelimiter)
 	}
 }
