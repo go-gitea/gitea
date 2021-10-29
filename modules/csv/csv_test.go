@@ -122,6 +122,7 @@ func TestDetermineDelimiterReadAllError(t *testing.T) {
 	assert.NotNil(t, rd, "CSV reader should not be mnil")
 	rows, err := rd.ReadAll()
 	assert.Error(t, err, "RaadAll() should throw error")
+	assert.ErrorIs(t, err, csv.ErrFieldCount)
 	assert.Empty(t, rows, "rows should be empty")
 }
 
