@@ -19,6 +19,8 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
@@ -61,6 +63,24 @@ func Settings(ctx *context.Context) {
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
+	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
+	if ctx.Repo.IsAdmin() {
+		if setting.Indexer.RepoIndexerEnabled {
+			status, err := ctx.Repo.Repository.GetIndexerStatus(models.RepoIndexerTypeCode)
+			if err != nil {
+				ctx.ServerError("repo.indexer_status", err)
+				return
+			}
+			ctx.Data["CodeIndexerStatus"] = status
+		}
+		status, err := ctx.Repo.Repository.GetIndexerStatus(models.RepoIndexerTypeStats)
+		if err != nil {
+			ctx.ServerError("repo.indexer_status", err)
+			return
+		}
+		ctx.Data["StatsIndexerStatus"] = status
+	}
 
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
@@ -502,6 +522,34 @@ func SettingsPost(ctx *context.Context) {
 		log.Trace("Repository admin settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
+		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
+
+	case "admin_index":
+		if !ctx.User.IsAdmin {
+			ctx.Error(http.StatusForbidden)
+			return
+		}
+
+		switch form.Index {
+		case "stats":
+			if err := stats.UpdateRepoIndexer(ctx.Repo.Repository); err != nil {
+				ctx.ServerError("UpdateStatsRepondexer", err)
+				return
+			}
+		case "code":
+			if !setting.Indexer.RepoIndexerEnabled {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+			code.UpdateRepoIndexer(ctx.Repo.Repository)
+		default:
+			ctx.NotFound("", nil)
+			return
+		}
+
+		log.Trace("Repository reindex for %s requested: %s/%s", form.Index, ctx.Repo.Owner.Name, repo.Name)
+
+		ctx.Flash.Success(ctx.Tr("repo.settings.reindex_requested"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	case "convert":

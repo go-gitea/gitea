@@ -162,6 +162,7 @@ type RepoSettingForm struct {
 
 	// Admin settings
 	EnableHealthCheck bool
+	Index             string
 }
 
 // Validate validates the fields
