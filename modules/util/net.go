@@ -10,16 +10,16 @@ import (
 	"strings"
 )
 
-//HostListBuiltinAll all hosts are matched
+// HostListBuiltinAll all hosts are matched
 const HostListBuiltinAll = "all"
 
-//HostListBuiltinExternal A valid non-private unicast IP, all hosts on public internet are matched
+// HostListBuiltinExternal A valid non-private unicast IP, all hosts on public internet are matched
 const HostListBuiltinExternal = "external"
 
-//HostListBuiltinPrivate RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
+// HostListBuiltinPrivate RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
 const HostListBuiltinPrivate = "private"
 
-//HostListBuiltinLoopback 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
+// HostListBuiltinLoopback 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
 const HostListBuiltinLoopback = "loopback"
 
 // IsIPPrivate for net.IP.IsPrivate. TODO: replace with `ip.IsPrivate()` if min go version is bumped to 1.17
