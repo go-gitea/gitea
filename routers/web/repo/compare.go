@@ -23,6 +23,7 @@ import (
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
@@ -106,7 +107,7 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
 
-		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, io.Closer, error) {
+		csvReaderFromCommit := func(ctx *markup.RenderContext, c *git.Commit) (*csv.Reader, io.Closer, error) {
 			blob, err := c.GetBlobByPath(diffFile.Name)
 			if err != nil {
 				return nil, nil, err
@@ -121,18 +122,18 @@ func setCsvCompareContext(ctx *context.Context) {
 				return nil, nil, err
 			}
 
-			csvReader, err := csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader))
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(baseCommit)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.OldName}, baseCommit)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
-		headReader, headBlobCloser, err := csvReaderFromCommit(headCommit)
+		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.Name}, headCommit)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
