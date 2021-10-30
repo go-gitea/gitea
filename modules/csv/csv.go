@@ -73,7 +73,7 @@ func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 // This finds all quoted strings that have escaped quotes.
 var quoteRegexp = regexp.MustCompile(`"[^"]*"`)
 
-// removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can realiably have each row on one line
+// removeQuotedStrings uses the quoteRegexp to remove all quoted strings so that we can reliably have each row on one line
 // (quoted strings often have new lines within the string)
 func removeQuotedString(text string) string {
 	return quoteRegexp.ReplaceAllLiteralString(text, "")
