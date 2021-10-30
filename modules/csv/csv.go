@@ -80,7 +80,7 @@ func removeQuotedString(text string) string {
 }
 
 // guessDelimiter takes up to maxLines of the CSV text, iterates through the possible delimiters, and sees if the CSV Reader reads it without throwing any errors.
-// If more than one delmiiter passes, the delimiter that results in the most columns is returned.
+// If more than one delimiter passes, the delimiter that results in the most columns is returned.
 func guessDelimiter(data []byte) rune {
 	delimiter := guessFromBeforeAfterQuotes(data)
 	if delimiter != 0 {
