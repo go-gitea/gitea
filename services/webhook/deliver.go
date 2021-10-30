@@ -16,7 +16,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -294,51 +293,6 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-func isWebhookRequestAllowed(allowedHostList []string, allowedHostIPNets []*net.IPNet, host string, ip net.IP) bool {
-	var allowed bool
-	ipStr := ip.String()
-loop:
-	for _, allowedHost := range allowedHostList {
-		switch allowedHost {
-		case "":
-			continue
-		case "all":
-			allowed = true
-			break loop
-		case "global":
-			if allowed = ip.IsGlobalUnicast() && !util.IsIPPrivate(ip); allowed {
-				break loop
-			}
-		case "private":
-			if allowed = util.IsIPPrivate(ip); allowed {
-				break loop
-			}
-		case "loopback":
-			if allowed = ip.IsLoopback(); allowed {
-				break loop
-			}
-		default:
-			if ok, _ := filepath.Match(allowedHost, host); ok {
-				allowed = true
-				break loop
-			}
-			if ok, _ := filepath.Match(allowedHost, ipStr); ok {
-				allowed = true
-				break loop
-			}
-		}
-	}
-	if !allowed {
-		for _, allowIPNet := range allowedHostIPNets {
-			if allowIPNet.Contains(ip) {
-				allowed = true
-				break
-			}
-		}
-	}
-	return allowed
-}
-
 // InitDeliverHooks starts the hooks delivery thread
 func InitDeliverHooks() {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
@@ -358,7 +312,7 @@ func InitDeliverHooks() {
 						if err != nil {
 							return fmt.Errorf("webhook can only call HTTP servers via TCP, deny '%s(%s:%s)', err=%v", req.Host, network, ipAddr, err)
 						}
-						if !isWebhookRequestAllowed(setting.Webhook.AllowedHostList, setting.Webhook.AllowedHostIPNets, req.Host, tcpAddr.IP) {
+						if !util.HostOrIPMatchesList(req.Host, tcpAddr.IP, setting.Webhook.AllowedHostList, setting.Webhook.AllowedHostIPNets) {
 							return fmt.Errorf("webhook can only call allowed HTTP servers (check your webhook.ALLOWED_HOST_LIST setting), deny '%s(%s)'", req.Host, ipAddr)
 						}
 						return nil

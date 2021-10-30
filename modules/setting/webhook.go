@@ -7,9 +7,9 @@ package setting
 import (
 	"net"
 	"net/url"
-	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -18,7 +18,7 @@ var (
 		QueueLength       int
 		DeliverTimeout    int
 		SkipTLSVerify     bool
-		AllowedHostList   []string // loopback,private,global, or all, or CIDR list, or wildcard hosts
+		AllowedHostList   []string
 		AllowedHostIPNets []*net.IPNet
 		Types             []string
 		PagingNum         int
@@ -35,29 +35,12 @@ var (
 	}
 )
 
-// ParseWebhookAllowedHostList parses the ALLOWED_HOST_LIST value
-func ParseWebhookAllowedHostList(allowedHostListStr string) (allowedHostList []string, allowedHostIPNets []*net.IPNet) {
-	for _, s := range strings.Split(allowedHostListStr, ",") {
-		s = strings.TrimSpace(s)
-		if s == "" {
-			continue
-		}
-		_, ipNet, err := net.ParseCIDR(s)
-		if err == nil {
-			allowedHostIPNets = append(allowedHostIPNets, ipNet)
-		} else {
-			allowedHostList = append(allowedHostList, s)
-		}
-	}
-	return
-}
-
 func newWebhookService() {
 	sec := Cfg.Section("webhook")
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.AllowedHostList, Webhook.AllowedHostIPNets = ParseWebhookAllowedHostList(sec.Key("ALLOWED_HOST_LIST").MustString("global"))
+	Webhook.AllowedHostList, Webhook.AllowedHostIPNets = util.ParseHostMatchList(sec.Key("ALLOWED_HOST_LIST").MustString(util.HostListBuiltinExternal))
 	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams", "feishu", "matrix", "wechatwork"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 	Webhook.ProxyURL = sec.Key("PROXY_URL").MustString("")
