@@ -90,7 +90,7 @@ func guessDelimiter(data []byte) rune {
 	// Removes quoted values so we don't have columns with new lines in them
 	text := removeQuotedString(string(data))
 
-	// Make the text just be maxLines or less without truncated lines
+	// Make the text just be maxLines or less, ignoring truncated lines
 	lines := strings.SplitN(text, "\n", maxLines+1) // Will contain at least one line, and if there are more than MaxLines, the last item holds the rest of the lines
 	if len(lines) > maxLines {
 		// If the length of lines is > maxLines we know we have the max number of lines, trim it to maxLines
