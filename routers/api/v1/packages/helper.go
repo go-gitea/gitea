@@ -25,7 +25,7 @@ func LogAndProcessError(ctx *context.APIContext, status int, obj interface{}, cb
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, message)
 
-		if setting.IsProd() && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd && !(ctx.User != nil && ctx.User.IsAdmin) {
 			message = ""
 		}
 	} else {
