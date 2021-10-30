@@ -16,15 +16,15 @@ import (
 // Mailer represents mail service.
 type Mailer struct {
 	// Mailer
-	Name                     string
-	From                     string
-	EnvelopeFrom             string
-	UseDifferentEnvelopeFrom bool
-	FromName                 string
-	FromEmail                string
-	SendAsPlainText          bool
-	MailerType               string
-	SubjectPrefix            string
+	Name                 string
+	From                 string
+	EnvelopeFrom         string
+	OverrideEnvelopeFrom bool `ini:"-"`
+	FromName             string
+	FromEmail            string
+	SendAsPlainText      bool
+	MailerType           string
+	SubjectPrefix        string
 
 	// SMTP sender
 	Host              string
@@ -75,7 +75,6 @@ func newMailService() {
 		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
-	MailService.UseDifferentEnvelopeFrom = sec.Key("USE_DIFFERENT_ENVELOPE_FROM").MustBool()
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
@@ -96,6 +95,21 @@ func newMailService() {
 	}
 	MailService.FromName = parsed.Name
 	MailService.FromEmail = parsed.Address
+
+	switch MailService.EnvelopeFrom {
+	case "":
+		MailService.OverrideEnvelopeFrom = false
+	case "<>":
+		MailService.EnvelopeFrom = ""
+		MailService.OverrideEnvelopeFrom = true
+	default:
+		parsed, err = mail.ParseAddress(MailService.EnvelopeFrom)
+		if err != nil {
+			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %v", MailService.EnvelopeFrom, err)
+		}
+		MailService.OverrideEnvelopeFrom = true
+		MailService.EnvelopeFrom = parsed.String()
+	}
 
 	if MailService.MailerType == "" {
 		MailService.MailerType = "smtp"

@@ -210,7 +210,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	if opts.UseDifferentEnvelopeFrom {
+	if opts.OverrideEnvelopeFrom {
 		if err = client.Mail(opts.EnvelopeFrom); err != nil {
 			return fmt.Errorf("Mail: %v", err)
 		}
@@ -249,7 +249,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var waitError error
 
 	envelopeFrom := from
-	if setting.MailService.UseDifferentEnvelopeFrom {
+	if setting.MailService.OverrideEnvelopeFrom {
 		envelopeFrom = setting.MailService.EnvelopeFrom
 	}
 
