@@ -183,8 +183,7 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// load comments that are not code comments
-	comment := db.AssertExistsAndLoadBean(t, &models.Comment{}, db.Cond("NOT type = ?", models.CommentTypeCode)).(*models.Comment)
-	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
 	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
