@@ -65,7 +65,7 @@ func initDBDisableConsole(disableConsole bool) error {
 	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
-	if err := db.SetEngine(); err != nil {
+	if err := db.InitEngine(); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}
 	return nil
