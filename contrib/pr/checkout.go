@@ -95,7 +95,7 @@ func runPR() {
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	db.NewEngine(context.Background(), func(_ *xorm.Engine) error {
+	db.InitEngineWithMigration(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	db.HasEngine = true

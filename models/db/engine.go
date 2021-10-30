@@ -95,8 +95,8 @@ func init() {
 	}
 }
 
-// GetNewEngine returns a new xorm engine from the configuration
-func GetNewEngine() (*xorm.Engine, error) {
+// NewEngine returns a new xorm engine from the configuration
+func NewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -128,11 +128,11 @@ func syncTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// NewInstallTestEngine creates a new xorm.Engine for testing during install
+// InitInstallEngineWithMigration creates a new xorm.Engine for testing during install
 //
 // This function will cause the basic database schema to be created
-func NewInstallTestEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
-	x, err = GetNewEngine()
+func InitInstallEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+	x, err = NewEngine()
 	if err != nil {
 		return fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -160,9 +160,9 @@ func NewInstallTestEngine(ctx context.Context, migrateFunc func(*xorm.Engine) er
 	return syncTables()
 }
 
-// SetEngine sets the xorm.Engine
-func SetEngine() (err error) {
-	x, err = GetNewEngine()
+// InitEngine sets the xorm.Engine
+func InitEngine() (err error) {
+	x, err = NewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -178,13 +178,13 @@ func SetEngine() (err error) {
 	return nil
 }
 
-// NewEngine initializes a new xorm.Engine
+// InitEngineWithMigration initializes a new xorm.Engine
 // This function must never call .Sync2() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
-func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
-	if err = SetEngine(); err != nil {
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+	if err = InitEngine(); err != nil {
 		return err
 	}
 
