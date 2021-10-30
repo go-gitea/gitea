@@ -136,13 +136,13 @@ var beforeAfterQuotes = regexp.MustCompile(`([,@\t;|]{0,1}) *(?:"[^"]*")+([,@\t;
 // guessFromBeforeAfterQuotes guesses the limiter by finding a double quote that has a valid delimiter before it and a closing quote,
 // or a double quote with a closing quote and a valid delimiter after it
 func guessFromBeforeAfterQuotes(data []byte) rune {
-	rs := beforeAfterQuotes.FindStringSubmatch(string(data))
+	rs := beforeAfterQuotes.FindStringSubmatch(string(data)) // returns first match, or nil if none
 	if rs != nil {
 		if rs[1] != "" {
-			return rune(rs[1][0])
+			return rune(rs[1][0]) // delimiter found left of quoted string
 		} else if rs[2] != "" {
-			return rune(rs[2][0])
+			return rune(rs[2][0]) // delimiter found right of quoted string
 		}
 	}
-	return 0
+	return 0 // no match found
 }
