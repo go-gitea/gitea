@@ -27,8 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/gobwas/glob"
 )
 
@@ -312,7 +310,7 @@ func InitDeliverHooks() {
 						if err != nil {
 							return fmt.Errorf("webhook can only call HTTP servers via TCP, deny '%s(%s:%s)', err=%v", req.Host, network, ipAddr, err)
 						}
-						if !util.HostOrIPMatchesList(req.Host, tcpAddr.IP, setting.Webhook.AllowedHostList, setting.Webhook.AllowedHostIPNets) {
+						if !setting.Webhook.AllowedHostList.MatchesHostOrIP(req.Host, tcpAddr.IP) {
 							return fmt.Errorf("webhook can only call allowed HTTP servers (check your webhook.ALLOWED_HOST_LIST setting), deny '%s(%s)'", req.Host, ipAddr)
 						}
 						return nil

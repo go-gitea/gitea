@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package util
+package hostmatcher
 
 import (
 	"net"
@@ -20,7 +20,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 
 	// for IPv6: "::1" is loopback, "fd00::/8" is private
 
-	ah, an := ParseHostMatchList("private, external, *.mydomain.com, 169.254.1.0/24")
+	hl := ParseHostMatchList("private, external, *.mydomain.com, 169.254.1.0/24")
 	cases := []tc{
 		{"", net.IPv4zero, false},
 		{"", net.IPv6zero, false},
@@ -42,10 +42,10 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"", net.ParseIP("169.254.2.2"), false},
 	}
 	for _, c := range cases {
-		assert.Equalf(t, c.expected, HostOrIPMatchesList(c.host, c.ip, ah, an), "case %s(%v)", c.host, c.ip)
+		assert.Equalf(t, c.expected, hl.MatchesHostOrIP(c.host, c.ip), "case %s(%v)", c.host, c.ip)
 	}
 
-	ah, an = ParseHostMatchList("loopback")
+	hl = ParseHostMatchList("loopback")
 	cases = []tc{
 		{"", net.IPv4zero, false},
 		{"", net.ParseIP("127.0.0.1"), true},
@@ -60,10 +60,10 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"mydomain.com", net.IPv4zero, false},
 	}
 	for _, c := range cases {
-		assert.Equalf(t, c.expected, HostOrIPMatchesList(c.host, c.ip, ah, an), "case %s(%v)", c.host, c.ip)
+		assert.Equalf(t, c.expected, hl.MatchesHostOrIP(c.host, c.ip), "case %s(%v)", c.host, c.ip)
 	}
 
-	ah, an = ParseHostMatchList("private")
+	hl = ParseHostMatchList("private")
 	cases = []tc{
 		{"", net.IPv4zero, false},
 		{"", net.ParseIP("127.0.0.1"), false},
@@ -78,10 +78,10 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"mydomain.com", net.IPv4zero, false},
 	}
 	for _, c := range cases {
-		assert.Equalf(t, c.expected, HostOrIPMatchesList(c.host, c.ip, ah, an), "case %s(%v)", c.host, c.ip)
+		assert.Equalf(t, c.expected, hl.MatchesHostOrIP(c.host, c.ip), "case %s(%v)", c.host, c.ip)
 	}
 
-	ah, an = ParseHostMatchList("external")
+	hl = ParseHostMatchList("external")
 	cases = []tc{
 		{"", net.IPv4zero, false},
 		{"", net.ParseIP("127.0.0.1"), false},
@@ -96,10 +96,10 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"mydomain.com", net.IPv4zero, false},
 	}
 	for _, c := range cases {
-		assert.Equalf(t, c.expected, HostOrIPMatchesList(c.host, c.ip, ah, an), "case %s(%v)", c.host, c.ip)
+		assert.Equalf(t, c.expected, hl.MatchesHostOrIP(c.host, c.ip), "case %s(%v)", c.host, c.ip)
 	}
 
-	ah, an = ParseHostMatchList("all")
+	hl = ParseHostMatchList("all")
 	cases = []tc{
 		{"", net.IPv4zero, true},
 		{"", net.ParseIP("127.0.0.1"), true},
@@ -114,6 +114,6 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		{"mydomain.com", net.IPv4zero, true},
 	}
 	for _, c := range cases {
-		assert.Equalf(t, c.expected, HostOrIPMatchesList(c.host, c.ip, ah, an), "case %s(%v)", c.host, c.ip)
+		assert.Equalf(t, c.expected, hl.MatchesHostOrIP(c.host, c.ip), "case %s(%v)", c.host, c.ip)
 	}
 }
