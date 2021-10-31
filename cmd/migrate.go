@@ -35,7 +35,7 @@ func runMigrate(ctx *cli.Context) error {
 	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
-	if err := db.NewEngine(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}
