@@ -99,7 +99,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 		assert.Equalf(t, c.expected, hl.MatchesHostOrIP(c.host, c.ip), "case %s(%v)", c.host, c.ip)
 	}
 
-	hl = ParseHostMatchList("all")
+	hl = ParseHostMatchList("*")
 	cases = []tc{
 		{"", net.IPv4zero, true},
 		{"", net.ParseIP("127.0.0.1"), true},

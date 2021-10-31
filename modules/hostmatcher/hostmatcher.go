@@ -12,14 +12,15 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-// HostMatchList is used to check if a host or ip is in a list
+// HostMatchList is used to check if a host or IP is in a list.
+// If you only need to do wildcard matching, consider to use modules/matchlist
 type HostMatchList struct {
 	hosts  []string
 	ipNets []*net.IPNet
 }
 
 // MatchBuiltinAll all hosts are matched
-const MatchBuiltinAll = "all"
+const MatchBuiltinAll = "*"
 
 // MatchBuiltinExternal A valid non-private unicast IP, all hosts on public internet are matched
 const MatchBuiltinExternal = "external"

@@ -586,7 +586,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
     - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
     - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
     - `external`: A valid non-private unicast IP, you can access all hosts on public internet. 
-    - `all`: All hosts are allowed.
+    - `*`: All hosts are allowed.
   - CIDR list: `1.2.3.0/8` for IPv4 and `2001:db8::/32` for IPv6
   - Wildcard hosts: `*.mydomain.com`, `192.168.100.*`
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
