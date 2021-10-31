@@ -18,26 +18,7 @@ type SessionsStore struct {
 
 // Get should return a cached session.
 func (st *SessionsStore) Get(r *http.Request, name string) (*sessions.Session, error) {
-	chiStore := chiSession.GetSession(r)
-
-	rawData := chiStore.Get(name)
-	if rawData == nil {
-		return st.New(r, name)
-	}
-
-	oldSession, ok := rawData.(*sessions.Session)
-	if !ok {
-		return nil, fmt.Errorf("unexpected object in session: %v at name: %s", rawData, name)
-	}
-
-	// Copy over the old data into the session
-	session := sessions.NewSession(st, name)
-	session.ID = oldSession.ID
-	session.IsNew = oldSession.IsNew
-	session.Options = oldSession.Options
-	session.Values = oldSession.Values
-
-	return session, nil
+	return st.getOrNew(r, name, false)
 }
 
 // New should create and return a new session.
@@ -45,6 +26,11 @@ func (st *SessionsStore) Get(r *http.Request, name string) (*sessions.Session, e
 // Note that New should never return a nil session, even in the case of
 // an error if using the Registry infrastructure to cache the session.
 func (st *SessionsStore) New(r *http.Request, name string) (*sessions.Session, error) {
+	return st.getOrNew(r, name, true)
+}
+
+// getOrNew gets the session from the chi-session if it exists. Override permits the overriding of an unexpected object.
+func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (*sessions.Session, error) {
 	chiStore := chiSession.GetSession(r)
 
 	session := sessions.NewSession(st, name)
@@ -60,6 +46,8 @@ func (st *SessionsStore) New(r *http.Request, name string) (*sessions.Session, e
 			session.Values = oldSession.Values
 
 			return session, nil
+		} else if !override {
+			return nil, fmt.Errorf("unexpected object in session: %v at name: %s", rawData, name)
 		}
 	}
 
