@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/log"
 	chiSession "gitea.com/go-chi/session"
 	"github.com/gorilla/sessions"
 )
@@ -47,7 +48,8 @@ func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (
 
 			return session, nil
 		} else if !override {
-			return nil, fmt.Errorf("unexpected object in session: %v at name: %s", rawData, name)
+			log.Error("Unexpected object in session at name: %s: %v", name, rawData)
+			return nil, fmt.Errorf("unexpected object in session at name: %s", name)
 		}
 	}
 
