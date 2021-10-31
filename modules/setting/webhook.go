@@ -14,15 +14,15 @@ import (
 var (
 	// Webhook settings
 	Webhook = struct {
-		QueueLength       int
-		DeliverTimeout    int
-		SkipTLSVerify     bool
-		AllowedHostList   *hostmatcher.HostMatchList
-		Types             []string
-		PagingNum         int
-		ProxyURL          string
-		ProxyURLFixed     *url.URL
-		ProxyHosts        []string
+		QueueLength     int
+		DeliverTimeout  int
+		SkipTLSVerify   bool
+		AllowedHostList *hostmatcher.HostMatchList
+		Types           []string
+		PagingNum       int
+		ProxyURL        string
+		ProxyURLFixed   *url.URL
+		ProxyHosts      []string
 	}{
 		QueueLength:    1000,
 		DeliverTimeout: 5,

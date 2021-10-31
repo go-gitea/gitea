@@ -14,7 +14,7 @@ import (
 
 // HostMatchList is used to check if a host or ip is in a list
 type HostMatchList struct {
-	hosts []string
+	hosts  []string
 	ipNets []*net.IPNet
 }
 
