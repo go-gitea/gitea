@@ -9,6 +9,8 @@ ENV GOPROXY ${GOPROXY:-direct}
 ARG GITEA_VERSION
 ARG TAGS="sqlite sqlite_unlock_notify"
 ENV TAGS "bindata timetzdata $TAGS"
+ENV LDFLAGS="$LDFLAGS -X \"code.gitea.io/gitea/modules/setting.CustomPath=/data/gitea\" \
+  -X \"code.gitea.io/gitea/modules/setting.AppWorkPath=/app/gitea\""
 ARG CGO_EXTRA_CFLAGS
 
 #Build deps
