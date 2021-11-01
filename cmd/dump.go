@@ -173,7 +173,7 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := db.SetEngine()
+	err := db.InitEngine()
 	if err != nil {
 		return err
 	}

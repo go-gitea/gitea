@@ -95,8 +95,8 @@ func init() {
 	}
 }
 
-// GetNewEngine returns a new xorm engine from the configuration
-func GetNewEngine() (*xorm.Engine, error) {
+// NewEngine returns a new xorm engine from the configuration
+func NewEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -128,22 +128,41 @@ func syncTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// NewTestEngine sets a new test xorm.Engine
-func NewTestEngine() (err error) {
-	x, err = GetNewEngine()
+// InitInstallEngineWithMigration creates a new xorm.Engine for testing during install
+//
+// This function will cause the basic database schema to be created
+func InitInstallEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+	x, err = NewEngine()
 	if err != nil {
-		return fmt.Errorf("Connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	x.SetMapper(names.GonicMapper{})
 	x.SetLogger(NewXORMLogger(!setting.IsProd))
 	x.ShowSQL(!setting.IsProd)
+
+	x.SetDefaultContext(ctx)
+
+	if err = x.Ping(); err != nil {
+		return err
+	}
+
+	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
+	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
+	//
+	// Installation should only be being re-run if users want to recover an old database.
+	// However, we should think carefully about should we support re-install on an installed instance,
+	// as there may be other problems due to secret reinitialization.
+	if err = migrateFunc(x); err != nil {
+		return fmt.Errorf("migrate: %v", err)
+	}
+
 	return syncTables()
 }
 
-// SetEngine sets the xorm.Engine
-func SetEngine() (err error) {
-	x, err = GetNewEngine()
+// InitEngine sets the xorm.Engine
+func InitEngine() (err error) {
+	x, err = NewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -159,13 +178,13 @@ func SetEngine() (err error) {
 	return nil
 }
 
-// NewEngine initializes a new xorm.Engine
+// InitEngineWithMigration initializes a new xorm.Engine
 // This function must never call .Sync2() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
-func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
-	if err = SetEngine(); err != nil {
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+	if err = InitEngine(); err != nil {
 		return err
 	}
 
