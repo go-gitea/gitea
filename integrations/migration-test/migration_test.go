@@ -260,7 +260,7 @@ func doMigrationTest(t *testing.T, version string) {
 	assert.NoError(t, err)
 	currentEngine.Close()
 
-	beans, _ := db.TablesToBeans()
+	beans, _ := db.NamesToTableBeans()
 
 	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x

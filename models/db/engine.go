@@ -205,8 +205,8 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	return nil
 }
 
-// TablesToBeans return a list of beans for tables or an error
-func TablesToBeans(names ...string) ([]interface{}, error) {
+// NamesToTableBeans return a list of beans for tables or an error
+func NamesToTableBeans(names ...string) ([]interface{}, error) {
 	var beans []interface{}
 	if len(names) == 0 {
 		beans = append(beans, tables...)
