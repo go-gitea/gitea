@@ -256,13 +256,13 @@ func doMigrationTest(t *testing.T, version string) {
 
 	setting.NewXORMLogService(false)
 
-	err := db.NewEngine(context.Background(), wrappedMigrate)
+	err := db.InitEngineWithMigration(context.Background(), wrappedMigrate)
 	assert.NoError(t, err)
 	currentEngine.Close()
 
 	beans, _ := db.NamesToBean()
 
-	err = db.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
 	})
@@ -270,7 +270,7 @@ func doMigrationTest(t *testing.T, version string) {
 	currentEngine.Close()
 
 	// We do this a second time to ensure that there is not a problem with retained indices
-	err = db.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	err = db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		currentEngine = x
 		return migrations.RecreateTables(beans...)(x)
 	})

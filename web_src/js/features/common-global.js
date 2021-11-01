@@ -288,8 +288,9 @@ export function initGlobalButtons() {
     $($(this).data('panel')).show();
   });
 
-  $('.hide-panel.button').on('click', function () {
+  $('.hide-panel.button').on('click', function (event) {
     $($(this).data('panel')).hide();
+    event.preventDefault();
   });
 
   $('.show-modal.button').on('click', function () {

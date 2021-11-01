@@ -32,6 +32,7 @@ import (
 
 const (
 	tplSettingsProfile      base.TplName = "user/settings/profile"
+	tplSettingsAppearance   base.TplName = "user/settings/appearance"
 	tplSettingsOrganization base.TplName = "user/settings/organization"
 	tplSettingsRepositories base.TplName = "user/settings/repos"
 )
@@ -115,14 +116,6 @@ func ProfilePost(ctx *context.Context) {
 	ctx.User.KeepEmailPrivate = form.KeepEmailPrivate
 	ctx.User.Website = form.Website
 	ctx.User.Location = form.Location
-	if len(form.Language) != 0 {
-		if !util.IsStringInSlice(form.Language, setting.Langs) {
-			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
-			ctx.Redirect(setting.AppSubURL + "/user/settings")
-			return
-		}
-		ctx.User.Language = form.Language
-	}
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
 	ctx.User.Visibility = form.Visibility
@@ -328,4 +321,69 @@ func Repos(ctx *context.Context) {
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)
+}
+
+// Appearance render user's appearance settings
+func Appearance(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAppearance"] = true
+
+	ctx.HTML(http.StatusOK, tplSettingsAppearance)
+}
+
+// UpdateUIThemePost is used to update users' specific theme
+func UpdateUIThemePost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateThemeForm)
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAppearance"] = true
+
+	if ctx.HasError() {
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+		return
+	}
+
+	if !form.IsThemeExists() {
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+		return
+	}
+
+	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+		return
+	}
+
+	log.Trace("Update user theme: %s", ctx.User.Name)
+	ctx.Flash.Success(ctx.Tr("settings.theme_update_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+}
+
+// UpdateUserLang update a user's language
+func UpdateUserLang(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateLanguageForm)
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAppearance"] = true
+
+	if len(form.Language) != 0 {
+		if !util.IsStringInSlice(form.Language, setting.Langs) {
+			ctx.Flash.Error(ctx.Tr("settings.update_language_not_found", form.Language))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+			return
+		}
+		ctx.User.Language = form.Language
+	}
+
+	if err := models.UpdateUserSetting(ctx.User); err != nil {
+		ctx.ServerError("UpdateUserSetting", err)
+		return
+	}
+
+	// Update the language to the one we just set
+	middleware.SetLocaleCookie(ctx.Resp, ctx.User.Language, 0)
+
+	log.Trace("User settings updated: %s", ctx.User.Name)
+	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_language_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+
 }

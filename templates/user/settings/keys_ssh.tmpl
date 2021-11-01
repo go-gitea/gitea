@@ -1,15 +1,37 @@
 <h4 class="ui top attached header">
 	{{.i18n.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
-	{{if not .DisableSSH }}
-		<div class="ui blue tiny show-panel button" data-panel="#add-ssh-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
-	{{else}}
-		<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
-	{{end}}
+		{{if not .DisableSSH }}
+			<div id="add-ssh-button" class="ui blue tiny show-panel button" data-panel="#add-ssh-key-panel">
+				{{.i18n.Tr "settings.add_key"}}
+			</div>
+		{{else}}
+			<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
+		{{end}}
 	</div>
 </h4>
 <div class="ui attached segment">
-	<div class="ui key list">
+	<div class="{{if not .HasSSHError}}hide{{end}} mb-4" id="add-ssh-key-panel">
+		<form class="ui form" action="{{.Link}}" method="post">
+			{{.CsrfTokenHtml}}
+			<div class="field {{if .Err_Title}}error{{end}}">
+				<label for="title">{{.i18n.Tr "settings.key_name"}}</label>
+				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
+			</div>
+			<div class="field {{if .Err_Content}}error{{end}}">
+				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
+				<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+			</div>
+			<input name="type" type="hidden" value="ssh">
+			<button class="ui green button">
+				{{.i18n.Tr "settings.add_key"}}
+			</button>
+			<button id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
+				{{.i18n.Tr "cancel"}}
+			</button>
+		</form>
+	</div>
+	<div class="ui key list mt-0">
 		<div class="item">
 			{{.i18n.Tr "settings.ssh_desc"}}
 		</div>
@@ -38,28 +60,6 @@
 </div>
 <br>
 <p>{{.i18n.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
-<div {{if not .HasSSHError}}class="hide"{{end}} id="add-ssh-key-panel">
-	<h4 class="ui top attached header">
-		{{.i18n.Tr "settings.add_new_key"}}
-	</h4>
-	<div class="ui attached segment">
-		<form class="ui form" action="{{.Link}}" method="post">
-			{{.CsrfTokenHtml}}
-			<div class="field {{if .Err_Title}}error{{end}}">
-				<label for="title">{{.i18n.Tr "settings.key_name"}}</label>
-				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
-			</div>
-			<div class="field {{if .Err_Content}}error{{end}}">
-				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
-			</div>
-			<input name="type" type="hidden" value="ssh">
-			<button class="ui green button">
-				{{.i18n.Tr "settings.add_key"}}
-			</button>
-		</form>
-	</div>
-</div>
 
 <div class="ui small basic delete modal" id="delete-ssh">
 	<div class="ui icon header">

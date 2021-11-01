@@ -581,6 +581,14 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
+- `ALLOWED_HOST_LIST`: **external**: Webhook can only call allowed hosts for security reasons. Comma separated list.
+  - Built-in networks:
+    - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
+    - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
+    - `external`: A valid non-private unicast IP, you can access all hosts on public internet. 
+    - `*`: All hosts are allowed.
+  - CIDR list: `1.2.3.0/8` for IPv4 and `2001:db8::/32` for IPv6
+  - Wildcard hosts: `*.mydomain.com`, `192.168.100.*`
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
 - `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
