@@ -285,8 +285,43 @@ services:
 
 To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
-# SSH Container Passthrough (not tested)
+# SSH Container Passthrough
 
-This should be possible by forcing `authorized_keys` generation via `gitea admin regenerate keys`.
+Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is to forward SSH commands from the host to the container. This setup is explained in the following.
 
-We should use directly [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) when it will be based on internal api.
+This guide assumes that you have created a user on the host called `git` with permission to run `docker exec`, and that the gitea container is called `gitea`. You will need to modify that user's shell to forward the commands to the `sh` executable inside the container, using `docker exec`.
+
+First, create the file `/usr/local/bin/gitea-shell` on the host, with the following contents:
+
+```bash
+#!/bin/sh
+/usr/bin/docker exec -i --env SSH_ORIGINAL_COMMAND="$SSH_ORIGINAL_COMMAND" gitea sh "$@"
+```
+
+Note that `gitea` in the docker command above is the name of the container. If you named yours differently, don't forget to change that.
+
+You should also make sure that you’ve set the permissions of the shell wrapper correctly:
+
+```bash
+sudo chmod +x /usr/local/bin/gitea-shell
+```
+
+Once the wrapper is in place, you can make it the shell for the `git` user:
+
+```bash
+sudo usermod -s /usr/local/bin/gitea-shell git
+```
+
+Now that all the SSH commands are forwarded to the container, you need to set up the SSH authentication on the host. This is done by leveraging the [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) to match the keys against those accepted by gitea. Add the following block to `/etc/ssh/sshd_config`, on the host:
+
+```bash
+Match User git
+  AuthorizedKeysCommandUser git
+  AuthorizedKeysCommand /usr/bin/docker exec -i gitea /usr/local/bin/gitea keys -c /etc/gitea/app.ini -e git -u %u -t %t -k %k
+```
+
+All that is left to do is restart the SSH server:
+
+```bash
+sudo systemctl restart sshd
+```
