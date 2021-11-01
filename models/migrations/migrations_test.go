@@ -84,9 +84,9 @@ func removeAllWithRetry(dir string) error {
 	return err
 }
 
-// SetEngine sets the xorm.Engine
-func SetEngine() (*xorm.Engine, error) {
-	x, err := db.GetNewEngine()
+// newEngine sets the xorm.Engine
+func newEngine() (*xorm.Engine, error) {
+	x, err := db.NewEngine()
 	if err != nil {
 		return x, fmt.Errorf("Failed to connect to database: %v", err)
 	}
@@ -212,7 +212,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		return nil, deferFn
 	}
 
-	x, err := SetEngine()
+	x, err := newEngine()
 	assert.NoError(t, err)
 	if x != nil {
 		oldDefer := deferFn
