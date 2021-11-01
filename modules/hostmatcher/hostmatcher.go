@@ -35,7 +35,7 @@ const MatchBuiltinLoopback = "loopback"
 func ParseHostMatchList(hostList string) *HostMatchList {
 	hl := &HostMatchList{}
 	for _, s := range strings.Split(hostList, ",") {
-		s = strings.TrimSpace(s)
+		s = strings.ToLower(strings.TrimSpace(s))
 		if s == "" {
 			continue
 		}
@@ -52,6 +52,7 @@ func ParseHostMatchList(hostList string) *HostMatchList {
 // MatchesHostOrIP checks if the host or IP matches an allow/deny(block) list
 func (hl *HostMatchList) MatchesHostOrIP(host string, ip net.IP) bool {
 	var matched bool
+	host = strings.ToLower(host)
 	ipStr := ip.String()
 loop:
 	for _, hostInList := range hl.hosts {

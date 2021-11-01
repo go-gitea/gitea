@@ -20,7 +20,7 @@ func TestHostOrIPMatchesList(t *testing.T) {
 
 	// for IPv6: "::1" is loopback, "fd00::/8" is private
 
-	hl := ParseHostMatchList("private, external, *.mydomain.com, 169.254.1.0/24")
+	hl := ParseHostMatchList("private, External, *.myDomain.com, 169.254.1.0/24")
 	cases := []tc{
 		{"", net.IPv4zero, false},
 		{"", net.IPv6zero, false},
