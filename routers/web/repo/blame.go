@@ -6,7 +6,6 @@ package repo
 
 import (
 	"fmt"
-	"html"
 	gotemplate "html/template"
 	"net/http"
 	"strings"
@@ -239,7 +238,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.PreviousSha = previousSha
 				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Repo.TreePath)
 				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
-				br.CommitMessage = html.EscapeString(commit.CommitMessage)
+				br.CommitMessage = commit.CommitMessage
 				br.CommitSince = commitSince
 			}
 

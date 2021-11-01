@@ -194,6 +194,10 @@ func listen(m http.Handler, handleRedirector bool) error {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
+	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.
+	// A user may fix the configuration mistake when he sees this log.
+	// And this is also very helpful to maintainers to provide help to users to resolve their configuration problems.
+	log.Info("AppURL(ROOT_URL): %s", setting.AppURL)
 
 	if setting.LFS.StartServer {
 		log.Info("LFS server enabled")
