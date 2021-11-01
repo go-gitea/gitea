@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -70,17 +69,17 @@ func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, re
 func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	switch tp {
 	case "issue":
-		return db.MaxBatchInsertSize(new(models.Issue))
+		return 50
 	case "comment":
-		return db.MaxBatchInsertSize(new(models.Comment))
+		return 50
 	case "milestone":
-		return db.MaxBatchInsertSize(new(models.Milestone))
+		return 100
 	case "label":
-		return db.MaxBatchInsertSize(new(models.Label))
+		return 100
 	case "release":
-		return db.MaxBatchInsertSize(new(models.Release))
+		return 50
 	case "pullrequest":
-		return db.MaxBatchInsertSize(new(models.PullRequest))
+		return 50
 	}
 	return 10
 }

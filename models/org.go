@@ -447,10 +447,7 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
-	schema, err := db.TableInfo(new(User))
-	if err != nil {
-		return nil, err
-	}
+	tableName := sess.Engine().TableName(new(User))
 
 	outputCols := []string{
 		"id",
@@ -464,7 +461,7 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 
 	groupByCols := &strings.Builder{}
 	for _, col := range outputCols {
-		fmt.Fprintf(groupByCols, "`%s`.%s,", schema.Name, col)
+		_, _ = fmt.Fprintf(groupByCols, "`%s`.%s,", tableName, col)
 	}
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]

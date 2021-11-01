@@ -5,14 +5,12 @@
 package login
 
 import (
-	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
-	"xorm.io/xorm/schemas"
 )
 
 type TestSource struct {
@@ -36,12 +34,9 @@ func (source *TestSource) ToDB() ([]byte, error) {
 func TestDumpLoginSource(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	loginSourceSchema, err := db.TableInfo(new(Source))
-	assert.NoError(t, err)
-
 	RegisterTypeConfig(OAuth2, new(TestSource))
 
-	CreateSource(&Source{
+	assert.NoError(t, CreateSource(&Source{
 		Type:     OAuth2,
 		Name:     "TestSource",
 		IsActive: false,
@@ -49,11 +44,15 @@ func TestDumpLoginSource(t *testing.T) {
 			Provider: "ConvertibleSourceName",
 			ClientID: "42",
 		},
-	})
+	}))
 
-	sb := new(strings.Builder)
-
-	db.DumpTables([]*schemas.Table{loginSourceSchema}, sb)
-
-	assert.Contains(t, sb.String(), `"Provider":"ConvertibleSourceName"`)
+	source := &Source{
+		Type: OAuth2,
+		Name: "TestSource",
+	}
+	_, err := db.GetEngine(db.DefaultContext).Get(source)
+	assert.NoError(t, err)
+	sourceCfg := source.Cfg.(*TestSource)
+	assert.Equal(t, "ConvertibleSourceName", sourceCfg.Provider)
+	assert.Equal(t, "42", sourceCfg.ClientID)
 }

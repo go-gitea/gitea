@@ -8,9 +8,7 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"io"
 	"reflect"
 	"strings"
 
@@ -18,15 +16,16 @@ import (
 
 	// Needed for the MySQL driver
 	_ "github.com/go-sql-driver/mysql"
-	"xorm.io/xorm"
-	"xorm.io/xorm/names"
-	"xorm.io/xorm/schemas"
 
 	// Needed for the Postgresql driver
 	_ "github.com/lib/pq"
 
 	// Needed for the MSSQL driver
 	_ "github.com/denisenkom/go-mssqldb"
+
+	"xorm.io/xorm"
+	"xorm.io/xorm/names"
+	"xorm.io/xorm/schemas"
 )
 
 var (
@@ -70,17 +69,7 @@ type Engine interface {
 	Cols(...string) *xorm.Session
 }
 
-// TableInfo returns table's information via an object
-func TableInfo(v interface{}) (*schemas.Table, error) {
-	return x.TableInfo(v)
-}
-
-// DumpTables dump tables information
-func DumpTables(tables []*schemas.Table, w io.Writer, tp ...schemas.DBType) error {
-	return x.DumpTables(tables, w, tp...)
-}
-
-// RegisterModel registers model, if initfunc provided, it will be invoked after data model sync
+// RegisterModel registers model, if initFunc provided, it will be invoked after data model sync
 func RegisterModel(bean interface{}, initFunc ...func() error) {
 	tables = append(tables, bean)
 	if len(initFuncs) > 0 && initFunc[0] != nil {
@@ -216,17 +205,16 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 	return nil
 }
 
-// NamesToBean return a list of beans or an error
-func NamesToBean(names ...string) ([]interface{}, error) {
-	beans := []interface{}{}
+// TablesToBeans return a list of beans for tables or an error
+func TablesToBeans(names ...string) ([]interface{}, error) {
+	var beans []interface{}
 	if len(names) == 0 {
 		beans = append(beans, tables...)
 		return beans, nil
 	}
-	// Need to map provided names to beans...
+	// Need to map provided names to beans ...
 	beanMap := make(map[string]interface{})
 	for _, bean := range tables {
-
 		beanMap[strings.ToLower(reflect.Indirect(reflect.ValueOf(bean)).Type().Name())] = bean
 		beanMap[strings.ToLower(x.TableName(bean))] = bean
 		beanMap[strings.ToLower(x.TableName(bean, true))] = bean
@@ -244,14 +232,6 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 		}
 	}
 	return beans, nil
-}
-
-// Ping tests if database is alive
-func Ping() error {
-	if x != nil {
-		return x.Ping()
-	}
-	return errors.New("database not configured")
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
@@ -279,43 +259,4 @@ func DumpDatabase(filePath, dbType string) error {
 		return x.DumpTablesToFile(tbs, filePath, schemas.DBType(dbType))
 	}
 	return x.DumpTablesToFile(tbs, filePath)
-}
-
-// MaxBatchInsertSize returns the table's max batch insert size
-func MaxBatchInsertSize(bean interface{}) int {
-	t, err := x.TableInfo(bean)
-	if err != nil {
-		return 50
-	}
-	return 999 / len(t.ColumnsSeq())
-}
-
-// Count returns records number according struct's fields as database query conditions
-func Count(bean interface{}) (int64, error) {
-	return x.Count(bean)
-}
-
-// IsTableNotEmpty returns true if table has at least one record
-func IsTableNotEmpty(tableName string) (bool, error) {
-	return x.Table(tableName).Exist()
-}
-
-// DeleteAllRecords will delete all the records of this table
-func DeleteAllRecords(tableName string) error {
-	_, err := x.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
-	return err
-}
-
-// GetMaxID will return max id of the table
-func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
-	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
-	return
-}
-
-// FindByMaxID filled results as the condition from database
-func FindByMaxID(maxID int64, limit int, results interface{}) error {
-	return x.Where("id <= ?", maxID).
-		OrderBy("id DESC").
-		Limit(limit).
-		Find(results)
 }

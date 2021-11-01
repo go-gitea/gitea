@@ -108,7 +108,7 @@ func runRecreateTable(ctx *cli.Context) error {
 		names = append(names, args.Get(i))
 	}
 
-	beans, err := db.NamesToBean(names...)
+	beans, err := db.TablesToBeans(names...)
 	if err != nil {
 		return err
 	}

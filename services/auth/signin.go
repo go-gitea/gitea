@@ -27,7 +27,7 @@ func UserSignIn(username, password string) (*models.User, *login.Source, error) 
 	if strings.Contains(username, "@") {
 		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
-		cnt, err := db.Count(user)
+		cnt, err := db.GetEngine(db.DefaultContext).Count(user)
 		if err != nil {
 			return nil, nil, err
 		}

@@ -286,22 +286,24 @@ func UpdateRepoIndexer(repo *models.Repository) {
 func populateRepoIndexer(ctx context.Context) {
 	log.Info("Populating the repo indexer with existing repositories")
 
-	exist, err := db.IsTableNotEmpty("repository")
+	engine := db.GetEngine(db.DefaultContext)
+	tableRepository := new(models.Repository)
+
+	exist, err := engine.Table(tableRepository).Exist()
 	if err != nil {
 		log.Fatal("System error: %v", err)
 	} else if !exist {
 		return
 	}
 
-	// if there is any existing repo indexer metadata in the DB, delete it
-	// since we are starting afresh. Also, xorm requires deletes to have a
-	// condition, and we want to delete everything, thus 1=1.
-	if err := db.DeleteAllRecords("repo_indexer_status"); err != nil {
+	// If there is any existing repo indexer metadata in the DB, delete it since we are starting afresh.
+	// Also, xorm requires DELETE to have a condition, and we want to delete everything, thus 1=1.
+	if _, err = engine.Table(tableRepository).Where("1=1").Delete(); err != nil {
 		log.Fatal("System error: %v", err)
 	}
 
 	var maxRepoID int64
-	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
+	if _, err = engine.Select("MAX(id)").Table(tableRepository).Get(&maxRepoID); err != nil {
 		log.Fatal("System error: %v", err)
 	}
 

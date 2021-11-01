@@ -40,7 +40,10 @@ func populateRepoIndexer() {
 
 	isShutdown := graceful.GetManager().IsShutdown()
 
-	exist, err := db.IsTableNotEmpty("repository")
+	engine := db.GetEngine(db.DefaultContext)
+	tableRepository := new(models.Repository)
+
+	exist, err := engine.Table(tableRepository).Exist()
 	if err != nil {
 		log.Fatal("System error: %v", err)
 	} else if !exist {
@@ -48,7 +51,7 @@ func populateRepoIndexer() {
 	}
 
 	var maxRepoID int64
-	if maxRepoID, err = db.GetMaxID("repository"); err != nil {
+	if _, err = engine.Select("MAX(id)").Table(tableRepository).Get(&maxRepoID); err != nil {
 		log.Fatal("System error: %v", err)
 	}
 
