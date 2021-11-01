@@ -291,7 +291,7 @@ Since SSH is running inside the container, SSH needs to be passed through from t
 
 This guide assumes that you have created a user on the host called `git` with permission to run `docker exec`, and that the gitea container is called `gitea`. You will need to modify that user's shell to forward the commands to the `sh` executable inside the container, using `docker exec`.
 
-First, create the file `/usr/local/bin/gitea-shell` with the following contents:
+First, create the file `/usr/local/bin/gitea-shell` on the host, with the following contents:
 
 ```bash
 #!/bin/sh
