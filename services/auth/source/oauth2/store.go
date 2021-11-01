@@ -5,6 +5,7 @@
 package oauth2
 
 import (
+	"encoding/gob"
 	"fmt"
 	"net/http"
 
@@ -15,6 +16,7 @@ import (
 
 // SessionsStore creates a gothic store from our session
 type SessionsStore struct {
+	maxLength int64
 }
 
 // Get should return a cached session.
@@ -35,7 +37,6 @@ func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (
 	chiStore := chiSession.GetSession(r)
 
 	session := sessions.NewSession(st, name)
-	session.ID = chiStore.ID()
 
 	rawData := chiStore.Get(name)
 	if rawData != nil {
@@ -53,6 +54,8 @@ func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (
 		}
 	}
 
+	session.ID = chiStore.ID() // Simply copy the session id from the chi store
+
 	return session, chiStore.Set(name, session)
 }
 
@@ -64,7 +67,25 @@ func (st *SessionsStore) Save(r *http.Request, w http.ResponseWriter, session *s
 		return err
 	}
 
+	if st.maxLength > 0 {
+		sizeWriter := &sizeWriter{}
+
+		_ = gob.NewEncoder(sizeWriter).Encode(session)
+		if sizeWriter.size > st.maxLength {
+			return fmt.Errorf("encode session: Data too long: %d > %d", sizeWriter.size, st.maxLength)
+		}
+	}
+
 	return chiStore.Release()
+}
+
+type sizeWriter struct {
+	size int64
+}
+
+func (s *sizeWriter) Write(data []byte) (int, error) {
+	s.size += int64(len(data))
+	return len(data), nil
 }
 
 var _ (sessions.Store) = &SessionsStore{}

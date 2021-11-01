@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/google/uuid"
 	"github.com/gorilla/sessions"
@@ -36,7 +37,9 @@ func Init() error {
 
 	gob.Register(&sessions.Session{})
 
-	gothic.Store = &SessionsStore{}
+	gothic.Store = &SessionsStore{
+		maxLength: int64(setting.OAuth2.MaxTokenLength),
+	}
 
 	gothic.SetState = func(req *http.Request) string {
 		return uuid.New().String()
