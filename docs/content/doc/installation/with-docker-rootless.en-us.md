@@ -289,7 +289,9 @@ To set required TOKEN and SECRET values, consider using gitea's built-in [genera
 
 Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is to forward SSH commands from the host to the container. This setup is explained in the following.
 
-This guide assumes that you have created a user on the host called `git`, and that the gitea container is called `gitea`. You will need to modify that user's shell to forward the commands to the `bash` executable inside the container. First, create the file `/usr/local/bin/gitea-shell` with the following contents:
+This guide assumes that you have created a user on the host called `git` with permission to run `docker exec`, and that the gitea container is called `gitea`. You will need to modify that user's shell to forward the commands to the `sh` executable inside the container, using `docker exec`.
+
+First, create the file `/usr/local/bin/gitea-shell` with the following contents:
 
 ```bash
 #!/bin/sh
