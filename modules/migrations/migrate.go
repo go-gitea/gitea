@@ -89,7 +89,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 			return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
 		}
 		for _, addr := range addrList {
-			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
+			if util.IsIPPrivate(addr) || !addr.IsGlobalUnicast() {
 				return &models.ErrInvalidCloneAddr{Host: u.Host, PrivateNet: addr.String(), IsPermissionDenied: true}
 			}
 		}
@@ -473,14 +473,4 @@ func Init() error {
 	}
 
 	return nil
-}
-
-// TODO: replace with `ip.IsPrivate()` if min go version is bumped to 1.17
-func isIPPrivate(ip net.IP) bool {
-	if ip4 := ip.To4(); ip4 != nil {
-		return ip4[0] == 10 ||
-			(ip4[0] == 172 && ip4[1]&0xf0 == 16) ||
-			(ip4[0] == 192 && ip4[1] == 168)
-	}
-	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }
