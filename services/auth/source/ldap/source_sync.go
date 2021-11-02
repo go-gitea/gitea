@@ -58,6 +58,8 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	})
 
 	userPos := 0
+	orgCache := make(map[string]*models.User)
+	teamCache := make(map[string]*models.Team)
 
 	for _, su := range sr {
 		select {
@@ -166,7 +168,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 		// Synchronize LDAP groups with organization and team memberships
 		if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
-			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove)
+			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove, orgCache, teamCache)
 		}
 	}
 

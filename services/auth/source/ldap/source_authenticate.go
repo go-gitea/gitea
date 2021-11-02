@@ -56,11 +56,13 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 	}
 
 	if user != nil {
+		if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
+			orgCache := make(map[string]*models.User)
+			teamCache := make(map[string]*models.Team)
+			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
+		}
 		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
 			return user, models.RewriteAllPublicKeys()
-		}
-		if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
-			source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove)
 		}
 		return user, nil
 	}
@@ -101,7 +103,9 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		_ = user.UploadAvatar(sr.Avatar)
 	}
 	if source.TeamGroupMapEnabled || source.TeamGroupMapRemoval {
-		source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove)
+		orgCache := make(map[string]*models.User)
+		teamCache := make(map[string]*models.Team)
+		source.SyncLdapGroupsToTeams(user, sr.LdapTeamAdd, sr.LdapTeamRemove, orgCache, teamCache)
 	}
 
 	return user, err
