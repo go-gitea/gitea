@@ -43,7 +43,7 @@ func convertTaskTypeToString(x *xorm.Engine) error {
 	}
 
 	for i, s := range hookTaskTypes {
-		if _, err := x.Exec("UPDATE hook_task set typ = ? where type=?", s, i); err != nil {
+		if _, err := x.Exec("UPDATE hook_task set typ = ? where `type`=?", s, i); err != nil {
 			return err
 		}
 	}
