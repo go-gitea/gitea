@@ -43,7 +43,7 @@
 			const artifactUrl = ghHostApiUrl + "/runner/host/_apis/pipelines/workflows/" + runid + "/artifacts"
 
 			const response = await fetch(artifactUrl);
-			const body: string = await response.text()
+			const body = await response.text()
 			return JSON.parse(body)
 		}
 
@@ -61,11 +61,10 @@
 				resourceUrl.searchParams.append('itemPath', artifactName)
 
 				const response = await fetch(resourceUrl.toString());
-				const body: string = await response.text()
+				const body = await response.text()
 				return JSON.parse(body)
 			}
 
-		let jobs = [];
 		function setJobs(f) {
 			jobs = f(jobs);
 		}
@@ -92,7 +91,7 @@
 				if(id === undefined) {
 						return;
 				}
-				var njobs : IJob[] | null;
+				var njobs;
 				var _id = Number.parseInt(id);
 				if(jobs.length === 0 || jobs.find(x => x.requestId === _id) == null) {
 						njobs = await (await (await fetch(ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/Message", { })).json())
@@ -160,7 +159,7 @@
                                         if(lines.status === 200) {
                                             var missingLines = await lines.json();
                                             missingLines.length = e.record.startLine - 1;
-                                            s.log.content = missingLines.reduce((prev: string, c : ILogline) => (prev.length > 0 ? prev + "<br/>" : "") + convert.toHtml(c.line), "") + s.log.content;
+                                            s.log.content = missingLines.reduce((prev, c ) => (prev.length > 0 ? prev + "<br/>" : "") + convert.toHtml(c.line), "") + s.log.content;
                                         } else {
                                             console.log("No logs to download..., currently fixes itself");
                                         }
@@ -168,7 +167,7 @@
                                 }
                             }
                             if (s.log.id === -1) {
-                                s.log.content = e.record.value.reduce((prev: string, c : string) => (prev.length > 0 ? prev + "<br/>" : "") + convert.toHtml(c), s.log.content);
+                                s.log.content = e.record.value.reduce((prev, c) => (prev.length > 0 ? prev + "<br/>" : "") + convert.toHtml(c), s.log.content);
                             }
                             return true;
                         }
