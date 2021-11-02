@@ -390,6 +390,7 @@ func NewFuncMap() []template.FuncMap {
 			html += "</span>"
 			return template.HTML(html)
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
