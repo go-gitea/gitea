@@ -379,6 +379,7 @@ func NewFuncMap() []template.FuncMap {
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
