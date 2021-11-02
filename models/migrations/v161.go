@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"context"
+
 	"xorm.io/xorm"
 )
 
@@ -40,6 +42,15 @@ func convertTaskTypeToString(x *xorm.Engine) error {
 	}
 	if err := x.Sync2(new(HookTask)); err != nil {
 		return err
+	}
+
+	// to keep the migration could be rerun
+	exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "hook_task", "type")
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return nil
 	}
 
 	for i, s := range hookTaskTypes {
