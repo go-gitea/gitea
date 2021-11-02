@@ -390,6 +390,7 @@ func NewFuncMap() []template.FuncMap {
 			html += "</span>"
 			return template.HTML(html)
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
@@ -510,6 +511,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return sum
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
