@@ -283,7 +283,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		(mode > models.AccessModeRead ||
 			repo.IsPrivate ||
 			owner.Visibility.IsPrivate() ||
-			user.IsRestricted ||
+			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
 			setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {

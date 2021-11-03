@@ -301,7 +301,7 @@ func DeleteOrphanedIssues() error {
 // CountOrphanedObjects count subjects with have no existing refobject anymore
 func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
-		Join("LEFT", refobject, joinCond).
+		Join("LEFT", "`"+refobject+"`", joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
 		Count("id")
 }

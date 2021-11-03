@@ -1,13 +1,13 @@
 import {htmlEscape} from 'escape-goat';
 
-const {AppSubUrl} = window.config;
+const {appSubUrl} = window.config;
 
 export function initSearchUserBox() {
   const $searchUserBox = $('#search-user-box');
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${AppSubUrl}/api/v1/users/search?q={query}`,
+      url: `${appSubUrl}/api/v1/users/search?q={query}`,
       onResponse(response) {
         const items = [];
         const searchQueryUppercase = $searchUserBox.find('input').val().toUpperCase();

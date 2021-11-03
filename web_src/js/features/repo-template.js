@@ -1,6 +1,6 @@
 import {htmlEscape} from 'escape-goat';
 
-const {AppSubUrl} = window.config;
+const {appSubUrl} = window.config;
 
 export function initRepoTemplateSearch() {
   const $repoTemplate = $('#repo_template');
@@ -22,7 +22,7 @@ export function initRepoTemplateSearch() {
     $('#repo_template_search')
       .dropdown({
         apiSettings: {
-          url: `${AppSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
+          url: `${appSubUrl}/api/v1/repos/search?q={query}&template=true&priority_owner_id=${$('#uid').val()}`,
           onResponse(response) {
             const filteredResponse = {success: true, results: []};
             filteredResponse.results.push({

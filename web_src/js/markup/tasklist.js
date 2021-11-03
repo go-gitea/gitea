@@ -47,7 +47,7 @@ export function initMarkupTasklist() {
 
           await $.post(updateUrl, {
             ignore_attachments: true,
-            _csrf: window.config.csrf,
+            _csrf: window.config.csrfToken,
             content: newContent,
             context
           });
