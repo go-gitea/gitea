@@ -141,6 +141,10 @@ func InitInstallEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.
 	x.SetLogger(NewXORMLogger(!setting.IsProd))
 	x.ShowSQL(!setting.IsProd)
 
+	DefaultContext = &Context{
+		Context: ctx,
+		e:       x,
+	}
 	x.SetDefaultContext(ctx)
 
 	if err = x.Ping(); err != nil {
@@ -161,7 +165,7 @@ func InitInstallEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.
 }
 
 // InitEngine sets the xorm.Engine
-func InitEngine() (err error) {
+func InitEngine(ctx context.Context) (err error) {
 	x, err = NewEngine()
 	if err != nil {
 		return fmt.Errorf("Failed to connect to database: %v", err)
@@ -175,6 +179,12 @@ func InitEngine() (err error) {
 	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
 	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
 	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+
+	DefaultContext = &Context{
+		Context: ctx,
+		e:       x,
+	}
+	x.SetDefaultContext(ctx)
 	return nil
 }
 
@@ -184,16 +194,9 @@ func InitEngine() (err error) {
 // that prevents the doctor from fixing anything in the database if the migration level
 // is different from the expected value.
 func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
-	if err = InitEngine(); err != nil {
+	if err = InitEngine(ctx); err != nil {
 		return err
 	}
-
-	DefaultContext = &Context{
-		Context: ctx,
-		e:       x,
-	}
-
-	x.SetDefaultContext(ctx)
 
 	if err = x.Ping(); err != nil {
 		return err

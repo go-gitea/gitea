@@ -5,6 +5,7 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -47,7 +48,7 @@ func initDBDisableConsole(disableConsole bool) error {
 	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
-	if err := db.InitEngine(); err != nil {
+	if err := db.InitEngine(context.Background()); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}
 	return nil
