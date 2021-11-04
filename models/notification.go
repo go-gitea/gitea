@@ -433,7 +433,13 @@ func (n *Notification) loadComment(e db.Engine) (err error) {
 	if n.Comment == nil && n.CommentID != 0 {
 		n.Comment, err = getCommentByID(e, n.CommentID)
 		if err != nil {
-			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
+			if IsErrCommentNotExist(err) {
+				return ErrCommentNotExist{
+					ID:      n.CommentID,
+					IssueID: n.IssueID,
+				}
+			}
+			return err
 		}
 	}
 	return nil
@@ -488,6 +494,9 @@ func (nl NotificationList) LoadAttributes() (err error) {
 	for i := 0; i < len(nl); i++ {
 		err = nl[i].LoadAttributes()
 		if err != nil {
+			if IsErrCommentNotExist(err) {
+				continue
+			}
 			return
 		}
 	}
