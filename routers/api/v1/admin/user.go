@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -203,7 +204,9 @@ func EditUser(ctx *context.APIContext) {
 	if form.FullName != nil {
 		u.FullName = *form.FullName
 	}
+	var emailChanged bool
 	if form.Email != nil {
+		emailChanged = !strings.EqualFold(u.Email, *form.Email)
 		u.Email = *form.Email
 		if len(u.Email) == 0 {
 			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
@@ -247,7 +250,7 @@ func EditUser(ctx *context.APIContext) {
 		u.IsRestricted = *form.Restricted
 	}
 
-	if err := user_model.UpdateUser(u); err != nil {
+	if err := user_model.UpdateUser(u, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) || user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
