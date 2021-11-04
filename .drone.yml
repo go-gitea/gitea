@@ -223,6 +223,7 @@ steps:
     user: gitea
     commands:
       - make unit-test-coverage test-check
+      - GITEA_UNIT_TESTS_DB_TYPE=mysql GITEA_UNIT_TESTS_DB_CONNSTR=root:@tcp(mysql)/gitea_test?charset-utf8mb4 make test-backend
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify

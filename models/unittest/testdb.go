@@ -5,10 +5,13 @@
 package unittest
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -19,7 +22,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
+	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/names"
+	"xorm.io/xorm/schemas"
 )
 
 // giteaRoot a path to the gitea root
@@ -57,7 +62,7 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		}
 	}
 
-	if err = CreateTestEngine(opts); err != nil {
+	if err = InitTestEngine(opts); err != nil {
 		fatalTestError("Error creating test engine: %v\n", err)
 	}
 
@@ -111,15 +116,92 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	os.Exit(exitStatus)
 }
 
+func createDB(driverName, connStr string) error {
+	driver := dialects.QueryDriver(driverName)
+	if driver == nil {
+		return fmt.Errorf("Unsupported driver name: %v", driver)
+	}
+	uri, err := driver.Parse(driverName, connStr)
+	if err != nil {
+		return err
+	}
+	dbType := uri.DBType
+	dbName := uri.DBName
+	dbSchema := uri.Schema
+
+	switch dbType {
+	case schemas.SQLITE: // ignore the creation
+	case schemas.MSSQL:
+		db, err := sql.Open(driverName, strings.Replace(connStr, dbName, "master", -1))
+		if err != nil {
+			return err
+		}
+		if _, err = db.Exec(fmt.Sprintf("If(db_id(N'%s') IS NULL) BEGIN CREATE DATABASE %s; END;", dbName, dbName)); err != nil {
+			return fmt.Errorf("db.Exec: %v", err)
+		}
+		db.Close()
+	case schemas.POSTGRES:
+		db, err := sql.Open(driverName, connStr)
+		if err != nil {
+			return err
+		}
+		rows, err := db.Query(fmt.Sprintf("SELECT 1 FROM pg_database WHERE datname = '%s'", dbName))
+		if err != nil {
+			return fmt.Errorf("db.Query: %v", err)
+		}
+		defer rows.Close()
+
+		if !rows.Next() {
+			if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE %s", dbName)); err != nil {
+				return fmt.Errorf("CREATE DATABASE: %v", err)
+			}
+		}
+		if dbSchema != "" {
+			if _, err = db.Exec("CREATE SCHEMA IF NOT EXISTS " + dbSchema); err != nil {
+				return fmt.Errorf("CREATE SCHEMA: %v", err)
+			}
+		}
+		db.Close()
+	case schemas.MYSQL:
+		db, err := sql.Open(driverName, strings.Replace(connStr, dbName, "mysql", -1))
+		if err != nil {
+			return err
+		}
+		if _, err = db.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s", dbName)); err != nil {
+			return fmt.Errorf("db.Exec: %v", err)
+		}
+		db.Close()
+	default:
+		return errors.New("Unsupported database for unit test")
+	}
+	return nil
+}
+
 // FixturesOptions fixtures needs to be loaded options
 type FixturesOptions struct {
 	Dir   string
 	Files []string
 }
 
-// CreateTestEngine creates a memory database and loads the fixture data from fixturesDir
-func CreateTestEngine(opts FixturesOptions) error {
-	x, err := xorm.NewEngine("sqlite3", "file::memory:?cache=shared&_txlock=immediate")
+// InitTestEngine creates a memory database and loads the fixture data from fixturesDir
+func InitTestEngine(opts FixturesOptions) error {
+	var dbType = "sqlite3"
+	var dbConnStr = "file::memory:?cache=shared&_txlock=immediate"
+
+	if os.Getenv("GITEA_UNIT_TESTS_DB_TYPE") != "" {
+		dbType = os.Getenv("GITEA_UNIT_TESTS_DB_TYPE")
+	}
+
+	if os.Getenv("GITEA_UNIT_TESTS_DB_CONNSTR") != "" {
+		dbConnStr = os.Getenv("GITEA_UNIT_TESTS_DB_CONNSTR")
+	}
+
+	if err := createDB(dbType, dbConnStr); err != nil {
+		return fmt.Errorf("createDB failed: %v", err)
+	}
+
+	var err error
+	x, err := xorm.NewEngine(dbType, dbConnStr)
 	if err != nil {
 		return err
 	}
