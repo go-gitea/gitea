@@ -20,13 +20,13 @@
 	{{if eq .ActionName "push"}}
 		<p>
 			{{if .Comment.IsForcePush}}
-				{{$oldCommitUrl := printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
+				{{$oldCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.OldCommit}}
 				{{$oldShortSha := ShortSha .Comment.OldCommit}}
-				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" $oldCommitUrl $oldShortSha}}
+				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (EscapePound $oldCommitUrl) (Escape $oldShortSha)}}
 
-				{{$newCommitUrl := printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}
+				{{$newCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.NewCommit}}
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
-				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" $newCommitUrl $newShortSha}}
+				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (EscapePound $newCommitUrl) (Escape $newShortSha)}}
 
 				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
@@ -72,7 +72,7 @@
 			<ul>
 			{{range .Comment.Commits}}
 				<li>
-					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
+					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}/commit/{{.ID}}">
 						{{ShortSha .ID.String}}
 					</a>  -  {{.Summary}}
 				</li>

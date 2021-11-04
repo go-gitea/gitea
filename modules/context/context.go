@@ -127,6 +127,7 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
+	// FIXME: Why not Fragment
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 }
 

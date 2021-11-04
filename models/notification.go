@@ -6,6 +6,7 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
@@ -468,7 +469,7 @@ func (n *Notification) HTMLURL() string {
 		}
 		return n.Issue.HTMLURL()
 	case NotificationSourceCommit:
-		return n.Repository.HTMLURL() + "/commit/" + n.CommitID
+		return n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 	case NotificationSourceRepository:
 		return n.Repository.HTMLURL()
 	}

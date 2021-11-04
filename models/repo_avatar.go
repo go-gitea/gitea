@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image/png"
 	"io"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -96,7 +97,7 @@ func (repo *Repository) relAvatarLink(e db.Engine) string {
 			return ""
 		}
 	}
-	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
+	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)
 }
 
 // AvatarLink returns a link to the repository's avatar.

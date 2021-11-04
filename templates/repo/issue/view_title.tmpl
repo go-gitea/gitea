@@ -91,9 +91,9 @@
 		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 		<span class="time-desc">
 			{{if .Issue.OriginalAuthor }}
-				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
 			{{else if gt .Issue.Poster.ID 0}}
-				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{else}}
 				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{end}}

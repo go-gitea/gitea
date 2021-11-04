@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -105,7 +106,7 @@ func MustAllowPulls(ctx *context.Context) {
 	// User can send pull request if owns a forked repository.
 	if ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID) {
 		ctx.Repo.PullRequest.Allowed = true
-		ctx.Repo.PullRequest.HeadInfo = ctx.User.Name + ":" + ctx.Repo.BranchName
+		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.User.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
 }
 
@@ -763,7 +764,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs [
 					for _, repoLabel := range repoLabels {
 						if strings.EqualFold(repoLabel.Name, metaLabel) {
 							repoLabel.IsChecked = true
-							labelIDs = append(labelIDs, fmt.Sprintf("%d", repoLabel.ID))
+							labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
 							break
 						}
 					}
@@ -982,6 +983,7 @@ func NewIssuePost(ctx *context.Context) {
 
 	issue := &models.Issue{
 		RepoID:      repo.ID,
+		Repo:        repo,
 		Title:       form.Title,
 		PosterID:    ctx.User.ID,
 		Poster:      ctx.User,
@@ -1008,9 +1010,9 @@ func NewIssuePost(ctx *context.Context) {
 
 	log.Trace("Issue created: %d/%d", repo.ID, issue.ID)
 	if ctx.FormString("redirect_after_creation") == "project" {
-		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + fmt.Sprint(form.ProjectID))
+		ctx.Redirect(ctx.Repo.RepoLink + "/projects/" + strconv.FormatInt(form.ProjectID, 10))
 	} else {
-		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
+		ctx.Redirect(issue.Link())
 	}
 }
 
@@ -1088,13 +1090,16 @@ func ViewIssue(ctx *context.Context) {
 		}
 		return
 	}
+	if issue.Repo == nil {
+		issue.Repo = ctx.Repo.Repository
+	}
 
 	// Make sure type and URL matches.
 	if ctx.Params(":type") == "issues" && issue.IsPull {
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index))
+		ctx.Redirect(issue.Link())
 		return
 	} else if ctx.Params(":type") == "pulls" && !issue.IsPull {
-		ctx.Redirect(ctx.Repo.RepoLink + "/issues/" + fmt.Sprint(issue.Index))
+		ctx.Redirect(issue.Link())
 		return
 	}
 
@@ -1487,7 +1492,7 @@ func ViewIssue(ctx *context.Context) {
 						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true
-						ctx.Data["DeleteBranchLink"] = ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(issue.Index) + "/cleanup"
+						ctx.Data["DeleteBranchLink"] = issue.Link() + "/cleanup"
 					}
 				}
 			}
@@ -1611,7 +1616,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["NumParticipants"] = len(participants)
 	ctx.Data["Issue"] = issue
 	ctx.Data["ReadOnly"] = false
-	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
+	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + url.QueryEscape(ctx.Data["Link"].(string))
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeProjects)
@@ -1760,7 +1765,7 @@ func UpdateIssueContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"),
+		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,
@@ -2192,7 +2197,7 @@ func UpdateCommentContent(ctx *context.Context) {
 	}
 
 	content, err := markdown.RenderString(&markup.RenderContext{
-		URLPrefix: ctx.FormString("context"),
+		URLPrefix: ctx.FormString("context"), // FIXME: <- IS THIS SAFE ?
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
 		Ctx:       ctx,

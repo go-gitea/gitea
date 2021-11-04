@@ -886,5 +886,5 @@ func Email2User(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(setting.AppSubURL + "/user/" + u.Name)
+	ctx.Redirect(u.HomeLink())
 }
