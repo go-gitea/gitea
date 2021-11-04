@@ -1435,13 +1435,11 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 	if err := user_model.CreateUser(u); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
-				var user *user_model.User
-				user = &user_model.User{Name: u.Name}
+				var user = &user_model.User{Name: u.Name}
 				hasUser, err := user_model.GetUser(user)
 				if !hasUser || err != nil {
-					user = &user_model.User{Email: u.Email}
-					hasUser, err = user_model.GetUser(user)
-					if !hasUser || err != nil {
+					user, err = user_model.GetUserByEmailAddress(db.DefaultContext, u.Email)
+					if err != nil {
 						ctx.ServerError("UserLinkAccount", err)
 						return
 					}

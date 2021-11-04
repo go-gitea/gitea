@@ -521,3 +521,10 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 
 	return committer.Commit()
 }
+
+// IsEmailAddressExist return if the email address is exist
+func IsEmailAddressExist(email string) (bool, error) {
+	return db.GetEngine(db.DefaultContext).
+		Where("active=?", true).
+		Exist(&EmailAddress{LowerEmail: strings.ToLower(email)})
+}
