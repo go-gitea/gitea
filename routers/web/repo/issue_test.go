@@ -51,16 +51,7 @@ func TestCombineLabelComments(t *testing.T) {
 					PosterID:    1,
 					Content:     "1",
 					CreatedUnix: 0,
-					AddedLabels: []*models.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
-					RemovedLabels: []*models.Label{
-						{
-							Name: "kind/bug",
-						},
-					},
+					AddedLabels: []*models.Label{},
 					Label: &models.Label{
 						Name: "kind/bug",
 					},
@@ -305,6 +296,66 @@ func TestCombineLabelComments(t *testing.T) {
 					},
 					Label: &models.Label{
 						Name: "kind/bug",
+					},
+					CreatedUnix: 0,
+				},
+			},
+		},
+		{
+			name: "kase 6",
+			beforeCombined: []*models.Comment{
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "1",
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					CreatedUnix: 0,
+				},
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "1",
+					Label: &models.Label{
+						Name: "reviewed/confirmed",
+					},
+					CreatedUnix: 0,
+				},
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "",
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					CreatedUnix: 0,
+				},
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "1",
+					Label: &models.Label{
+						Name: "kind/feature",
+					},
+					CreatedUnix: 0,
+				},
+			},
+			afterCombined: []*models.Comment{
+				{
+					Type:     models.CommentTypeLabel,
+					PosterID: 1,
+					Content:  "1",
+					Label: &models.Label{
+						Name: "kind/bug",
+					},
+					AddedLabels: []*models.Label{
+						{
+							Name: "reviewed/confirmed",
+						},
+						{
+							Name: "kind/feature",
+						},
 					},
 					CreatedUnix: 0,
 				},
