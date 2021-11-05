@@ -69,6 +69,14 @@ type Context struct {
 	Org  *Organization
 }
 
+func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
+	trArgs := make([]interface{}, len(args))
+	for i, arg := range args {
+		trArgs[i] = html.EscapeString(arg)
+	}
+	return ctx.Tr(msg, trArgs...)
+}
+
 // GetData returns the data
 func (ctx *Context) GetData() map[string]interface{} {
 	return ctx.Data
