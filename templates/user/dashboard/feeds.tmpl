@@ -15,7 +15,7 @@
 						{{if eq .GetOpType 1}}
 							{{$.i18n.Tr "action.create_repo" (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 2}}
-							{{$.i18n.Tr "action.rename_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
+							{{$.i18n.Tr "action.rename_repo" (.GetContent|Escape) (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 5}}
 							{{ $branchLink := .GetBranch | PathEscapeSegments | Escape}}
 							{{if .Content}}
