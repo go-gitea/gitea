@@ -1020,32 +1020,40 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	if err != nil {
 		return models.CommentTagNone, err
 	}
+
+	// By default the poster has no tags.
+	pCommentTag := models.CommentTagNone
+
+	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
+		// If the poster isn't a admin, enable the owner Tag.
 		if !poster.IsAdmin {
-			return models.CommentTagOwner, nil
-		}
+			pCommentTag = pCommentTag.EnableTag(models.CommentTagOwner)
+		} else {
 
-		ok, err := models.IsUserRealRepoAdmin(repo, poster)
-		if err != nil {
-			return models.CommentTagNone, err
+			// Otherwise check if poster is the real repo admin.
+			ok, err := models.IsUserRealRepoAdmin(repo, poster)
+			if err != nil {
+				return models.CommentTagNone, err
+			}
+			if ok {
+				pCommentTag = pCommentTag.EnableTag(models.CommentTagOwner)
+			}
 		}
-
-		if ok {
-			return models.CommentTagOwner, nil
-		}
-
-		if ok, err = repo.IsCollaborator(poster.ID); ok && err == nil {
-			return models.CommentTagWriter, nil
-		}
-
-		return models.CommentTagNone, err
 	}
 
-	if perm.CanWrite(models.UnitTypeCode) {
-		return models.CommentTagWriter, nil
+	// Is the poster can write code to the repo, enable Writer tag.
+	// Only enable this if the poster doesn't have the owner tag already.
+	if !pCommentTag.HasTag("Owner") && perm.CanWrite(models.UnitTypeCode) {
+		pCommentTag = pCommentTag.EnableTag(models.CommentTagWriter)
 	}
 
-	return models.CommentTagNone, nil
+	// If the poster is the actual poster of the issue, enable Poster tag.
+	if issue.IsPoster(poster.ID) {
+		pCommentTag = pCommentTag.EnableTag(models.CommentTagPoster)
+	}
+
+	return pCommentTag, nil
 }
 
 func getBranchData(ctx *context.Context, issue *models.Issue) {

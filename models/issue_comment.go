@@ -116,6 +116,32 @@ const (
 	CommentTagOwner
 )
 
+// EnableTag enable a specific tag on the CommentTag.
+func (ct CommentTag) EnableTag(tag CommentTag) CommentTag {
+	ct |= (1 << tag)
+	return ct
+}
+
+func stringToCommentTag(tag string) CommentTag {
+	switch tag {
+	case "Poster":
+		return CommentTagPoster
+	case "Writer":
+		return CommentTagWriter
+	case "Owner":
+		return CommentTagOwner
+	default:
+		return CommentTagNone
+	}
+}
+
+// HasTag returns if a certain tag is enabled on the CommentTag.
+func (ct CommentTag) HasTag(checkTag string) bool {
+	checkCommentTag := stringToCommentTag(checkTag)
+	bitValue := ct & (1 << checkCommentTag)
+	return (bitValue > 0)
+}
+
 // Comment represents a comment in commit and issue page.
 type Comment struct {
 	ID               int64       `xorm:"pk autoincr"`
