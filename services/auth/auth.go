@@ -33,6 +33,7 @@ import (
 var authMethods = []Method{
 	&OAuth2{},
 	&Basic{},
+	&HTTPSign{},
 	&Session{},
 }
 
