@@ -2577,9 +2577,33 @@ func combineLabelComments(issue *models.Issue) {
 		if cur.Label != nil { // now cur MUST be label comment
 			if prev.Type == models.CommentTypeLabel { // we can combine them only prev is a label comment
 				if cur.Content != "1" {
-					prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+					// remove labels from the AddedLabels list if the label that was removed is already
+					// in this list, and if it's not in this list, add the label to RemovedLabels
+					addedAndRemoved := false
+					for i, label := range prev.AddedLabels {
+						if cur.Label.ID == label.ID {
+							prev.AddedLabels = append(prev.AddedLabels[:i], prev.AddedLabels[i+1:]...)
+							addedAndRemoved = true
+							break
+						}
+					}
+					if !addedAndRemoved {
+						prev.RemovedLabels = append(prev.RemovedLabels, cur.Label)
+					}
 				} else {
-					prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+					// remove labels from the RemovedLabels list if the label that was added is already
+					// in this list, and if it's not in this list, add the label to AddedLabels
+					removedAndAdded := false
+					for i, label := range prev.RemovedLabels {
+						if cur.Label.ID == label.ID {
+							prev.RemovedLabels = append(prev.RemovedLabels[:i], prev.RemovedLabels[i+1:]...)
+							removedAndAdded = true
+							break
+						}
+					}
+					if !removedAndAdded {
+						prev.AddedLabels = append(prev.AddedLabels, cur.Label)
+					}
 				}
 				prev.CreatedUnix = cur.CreatedUnix
 				// remove the current comment since it has been combined to prev comment
