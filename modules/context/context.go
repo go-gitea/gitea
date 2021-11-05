@@ -69,6 +69,8 @@ type Context struct {
 	Org  *Organization
 }
 
+// TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
+// This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
 	trArgs := make([]interface{}, len(args))
 	for i, arg := range args {
