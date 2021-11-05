@@ -117,6 +117,27 @@ func (d *DiffLine) GetCommentSide() string {
 	return d.Comments[0].DiffSide()
 }
 
+// HasBIDI returns true if there is a BIDI rune in this line
+func (d *DiffLine) HasBIDI() bool {
+	return charset.ContainsBIDIRuneString(d.Content)
+}
+
+// LeftHasBIDI returns true if there is a BIDI rune in this line
+func (d *DiffLine) LeftHasBIDI() bool {
+	if d.LeftIdx > 0 {
+		return charset.ContainsBIDIRuneString(d.Content)
+	}
+	return false
+}
+
+// RightHasBIDI returns true if there is a BIDI rune in this line
+func (d *DiffLine) RightHasBIDI() bool {
+	if d.RightIdx > 0 {
+		return charset.ContainsBIDIRuneString(d.Content)
+	}
+	return false
+}
+
 // GetLineTypeMarker returns the line type marker
 func (d *DiffLine) GetLineTypeMarker() string {
 	if strings.IndexByte(" +-", d.Content[0]) > -1 {

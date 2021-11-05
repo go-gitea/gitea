@@ -23,6 +23,63 @@ import (
 // UTF8BOM is the utf-8 byte-order marker
 var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 
+// BIDIRunes are runes that are explicitly mentioned in CVE-2021-42574
+var BIDIRunes = "\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069"
+
+// ContainsBIDIRuneString checks some text for any bidi rune
+func ContainsBIDIRuneString(text string) bool {
+	return strings.ContainsAny(text, BIDIRunes)
+}
+
+// ContainsBIDIRuneBytes checks some text for any bidi rune
+func ContainsBIDIRuneBytes(text []byte) bool {
+	return bytes.ContainsAny(text, BIDIRunes)
+}
+
+// ContainsBIDIRuneReader checks some text for any bidi rune
+func ContainsBIDIRuneReader(text io.Reader) (bool, error) {
+	buf := make([]byte, 4096)
+	readStart := 0
+	var err error
+	var n int
+	for err == nil {
+		n, err = text.Read(buf[readStart:])
+		bs := buf[:n]
+		i := 0
+	inner:
+		for i < n {
+			r, size := utf8.DecodeRune(bs[i:])
+			if r == utf8.RuneError {
+				// need to decide what to do here... runes can be at most 4 bytes - so... i123n
+				if n-i > 3 {
+					// this is a real broken rune
+					return true, fmt.Errorf("text contains bad rune: %x", bs[i])
+				}
+
+				break inner
+			}
+			if strings.ContainsRune(BIDIRunes, r) {
+				return true, nil
+			}
+			i += size
+		}
+		if n > 0 {
+			readStart = 0
+		}
+		if i < n {
+			copy(buf, bs[i:n])
+			readStart = n - i
+		}
+	}
+	if readStart > 0 {
+		return true, fmt.Errorf("text contains bad rune: %x", buf[0])
+	}
+	if err == io.EOF {
+		return false, nil
+	}
+	return true, err
+}
+
 // ToUTF8WithFallbackReader detects the encoding of content and coverts to UTF-8 reader if possible
 func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 	var buf = make([]byte, 2048)

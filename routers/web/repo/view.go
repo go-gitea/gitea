@@ -332,11 +332,13 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					if err != nil {
 						log.Error("Render failed: %v then fallback", err)
 						bs, _ := io.ReadAll(rd)
+						ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneBytes(bs)
 						ctx.Data["FileContent"] = strings.ReplaceAll(
 							gotemplate.HTMLEscapeString(string(bs)), "\n", `<br>`,
 						)
 					} else {
 						ctx.Data["FileContent"] = result.String()
+						ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneString(result.String())
 					}
 				} else {
 					ctx.Data["IsRenderedHTML"] = true
@@ -344,6 +346,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					if err != nil {
 						log.Error("ReadAll failed: %v", err)
 					}
+					ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneBytes(buf)
 					ctx.Data["FileContent"] = strings.ReplaceAll(
 						gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 					)
@@ -490,9 +493,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 			ctx.Data["FileContent"] = result.String()
+			ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneString(result.String())
 		} else if readmeExist {
 			buf, _ := io.ReadAll(rd)
 			ctx.Data["IsRenderedHTML"] = true
+			ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneBytes(buf)
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(string(buf)), "\n", `<br>`,
 			)
@@ -501,6 +506,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
+			ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneBytes(buf)
 			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), buf)
 		}
 		if !isLFSFile {
@@ -550,6 +556,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 			ctx.Data["FileContent"] = result.String()
+			ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneString(result.String())
 		}
 	}
 

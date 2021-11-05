@@ -82,6 +82,12 @@ export function initGlobalCommon() {
   }
 
   // Semantic UI modules.
+  $('.message .close').on('click', function() {
+    $(this)
+      .closest('.message')
+      .hide();
+  });
+
   $('.dropdown:not(.custom)').dropdown({
     fullTextSearch: 'exact'
   });

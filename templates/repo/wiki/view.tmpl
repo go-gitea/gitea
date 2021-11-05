@@ -62,6 +62,15 @@
 		{{end}}
 		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
 			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markup">
+				{{if .HasBIDI}}
+					<div class="ui error message">
+						<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
+						<div class="header">
+							{{.i18n.Tr "repo.bidi_header"}}
+						</div>
+						{{.i18n.Tr "repo.bidi_description" | Str2html}}
+					</div>
+				{{end}}
 				{{.content | Str2html}}
 			</div>
 			{{if .sidebarPresent}}
@@ -70,6 +79,15 @@
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 					{{end}}
+					{{if .sidebarHasBIDI}}
+						<div class="ui error message">
+							<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
+							<div class="header">
+								{{.i18n.Tr "repo.bidi_header"}}
+							</div>
+							{{.i18n.Tr "repo.bidi_description" | Str2html}}
+						</div>
+					{{end}}
 					{{.sidebarContent | Str2html}}
 				</div>
 			</div>
@@ -77,9 +95,18 @@
 		</div>
 		{{if .footerPresent}}
 		<div class="ui segment">
-				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
-				{{end}}
+			{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+				<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+			{{end}}
+			{{if .footerHasBIDI}}
+				<div class="ui error message">
+					<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
+					<div class="header">
+						{{.i18n.Tr "repo.bidi_header"}}
+					</div>
+					{{.i18n.Tr "repo.bidi_description" | Str2html}}
+				</div>
+			{{end}}
 			{{.footerContent | Str2html}}
 		</div>
 		{{end}}
