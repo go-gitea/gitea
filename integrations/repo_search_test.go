@@ -44,7 +44,6 @@ func TestSearchRepo(t *testing.T) {
 	repo, err = models.GetRepositoryByOwnerAndName("user2", "glob")
 	assert.NoError(t, err)
 
-	executeIndexer(t, repo, code_indexer.DeleteRepoFromIndexer)
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
 
 	testSearch(t, "/user2/glob/search?q=loren&page=1", []string{"a.txt"})
