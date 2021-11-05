@@ -822,12 +822,10 @@ func updateUser(e db.Engine, u *User, emailChanged bool) error {
 			if _, err := e.Insert(&emailAddress); err != nil {
 				return err
 			}
-		} else {
-			if _, err := e.ID(emailAddress).Cols("is_primary").Update(&EmailAddress{
-				IsPrimary: true,
-			}); err != nil {
-				return err
-			}
+		} else if _, err := e.ID(emailAddress).Cols("is_primary").Update(&EmailAddress{
+			IsPrimary: true,
+		}); err != nil {
+			return err
 		}
 	}
 
