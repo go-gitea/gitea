@@ -59,7 +59,7 @@
 							{{ $index := index .GetIssueInfos 0}}
 							{{$.i18n.Tr "action.delete_branch" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 18}}
-							{{ $branchLink := .GetBranch | EscapePound}}
+							{{ $branchLink := .GetBranch | PathEscapeSegments}}
 							{{$.i18n.Tr "action.mirror_sync_push" (.GetRepoLink|Escape) $branchLink (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 19}}
 							{{$.i18n.Tr "action.mirror_sync_create" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}

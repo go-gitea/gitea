@@ -25,7 +25,7 @@
 						</td>
 						<td class="right aligned overflow-visible">
 							{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-								<div class="ui basic jump button icon poping up show-create-branch-modal" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-variation="tiny inverted" data-branch-from="{{EscapePound $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
+								<div class="ui basic jump button icon poping up show-create-branch-modal" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-variation="tiny inverted" data-branch-from="{{$.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
 									{{svg "octicon-git-branch"}}
 								</div>
 							{{end}}
