@@ -493,10 +493,7 @@ type NotificationList []*Notification
 func (nl NotificationList) LoadAttributes() (err error) {
 	for i := 0; i < len(nl); i++ {
 		err = nl[i].LoadAttributes()
-		if err != nil {
-			if IsErrCommentNotExist(err) {
-				continue
-			}
+		if err != nil && !IsErrCommentNotExist(err) {
 			return
 		}
 	}
