@@ -57,7 +57,8 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 
 	validpk, err := VerifyCert(req)
 	if err != nil {
-		log.Error("VerifyCert failed:  %v", err)
+		log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
+		log.Error("VerifyCert failed: %v", err)
 		return nil
 	}
 
