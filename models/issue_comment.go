@@ -117,8 +117,8 @@ const (
 )
 
 // EnableTag enable a specific tag on the CommentTag.
-func (ct CommentTag) EnableTag(tag CommentTag) CommentTag {
-	ct |= (1 << tag)
+func (ct CommentTag) EnableTag(withTag CommentTag) CommentTag {
+	ct |= (1 << withTag)
 	return ct
 }
 
@@ -136,8 +136,8 @@ func stringToCommentTag(tag string) CommentTag {
 }
 
 // HasTag returns if a certain tag is enabled on the CommentTag.
-func (ct CommentTag) HasTag(checkTag string) bool {
-	checkCommentTag := stringToCommentTag(checkTag)
+func (ct CommentTag) HasTag(compareTag string) bool {
+	checkCommentTag := stringToCommentTag(compareTag)
 	bitValue := ct & (1 << checkCommentTag)
 	return (bitValue > 0)
 }
