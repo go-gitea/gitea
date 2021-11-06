@@ -46,14 +46,18 @@ func doMirrorSync(ctx context.Context, req *SyncRequest) {
 }
 
 // Update checks and updates mirror repositories.
-func Update(ctx context.Context) error {
+func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	if !setting.Mirror.Enabled {
 		log.Warn("Mirror feature disabled, but cron job enabled: skip update")
 		return nil
 	}
 	log.Trace("Doing: Update")
 
-	handler := func(idx int, bean interface{}) error {
+	requested := 0
+
+	doneErr := fmt.Errorf("reached limit")
+
+	handler := func(idx int, bean interface{}, limit int) error {
 		var item SyncRequest
 		if m, ok := bean.(*models.Mirror); ok {
 			if m.Repo == nil {
@@ -78,19 +82,50 @@ func Update(ctx context.Context) error {
 			return nil
 		}
 
+		// Check we've not been cancelled
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("Aborted")
+			return fmt.Errorf("aborted")
 		default:
-			return mirrorQueue.Push(&item)
 		}
+
+		// Check if this request is already in the queue
+		has, err := mirrorQueue.Has(&item)
+		if err != nil {
+			return err
+		}
+		if has {
+			return nil
+		}
+
+		// Double check we've not been cancelled
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("aborted")
+		default:
+		}
+
+		// Push to the Queue
+		if err := mirrorQueue.Push(&item); err != nil {
+			return err
+		}
+
+		requested++
+		if limit > 0 && requested > limit {
+			return doneErr
+		}
+		return nil
 	}
 
-	if err := models.MirrorsIterate(handler); err != nil {
+	if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
+		return handler(idx, bean, pullLimit)
+	}); err != nil && err != doneErr {
 		log.Error("MirrorsIterate: %v", err)
 		return err
 	}
-	if err := models.PushMirrorsIterate(handler); err != nil {
+	if err := models.PushMirrorsIterate(func(idx int, bean interface{}) error {
+		return handler(idx, bean, pushLimit)
+	}); err != nil && err != doneErr {
 		log.Error("PushMirrorsIterate: %v", err)
 		return err
 	}

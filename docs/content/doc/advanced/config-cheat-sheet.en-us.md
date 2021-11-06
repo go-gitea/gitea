@@ -791,6 +791,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 - `SCHEDULE`: **@every 10m**: Cron syntax for scheduling update mirrors, e.g. `@every 3h`.
 - `NO_SUCCESS_NOTICE`: **true**: The cron task for update mirrors success report is not very useful - as it just means that the mirrors have been queued. Therefore this is turned off by default.
+- `PULL_LIMIT`: **50**: Limit the number of mirrors added to the queue to this number (set to -1 to add all).
+- `PUSH_LIMIT`: **50**: Limit the number of mirrors added to the queue to this number (set to -1 to add all).
 
 #### Cron - Repository Health Check (`cron.repo_health_check`)
 

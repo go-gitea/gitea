@@ -17,13 +17,24 @@ import (
 )
 
 func registerUpdateMirrorTask() {
-	RegisterTaskFatal("update_mirrors", &BaseConfig{
-		Enabled:         true,
-		RunAtStart:      false,
-		Schedule:        "@every 10m",
-		NoSuccessNotice: true,
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return mirror_service.Update(ctx)
+	type UpdateMirrorTaskConfig struct {
+		BaseConfig
+		PullLimit int
+		PushLimit int
+	}
+
+	RegisterTaskFatal("update_mirrors", &UpdateMirrorTaskConfig{
+		BaseConfig: BaseConfig{
+			Enabled:         true,
+			RunAtStart:      false,
+			Schedule:        "@every 10m",
+			NoSuccessNotice: true,
+		},
+		PullLimit: 50,
+		PushLimit: 50,
+	}, func(ctx context.Context, _ *models.User, cfg Config) error {
+		umtc := cfg.(*UpdateMirrorTaskConfig)
+		return mirror_service.Update(ctx, umtc.PullLimit, umtc.PushLimit)
 	})
 }
 
