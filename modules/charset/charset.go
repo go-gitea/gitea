@@ -18,6 +18,7 @@ import (
 	"github.com/gogs/chardet"
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/bidi"
 )
 
 // UTF8BOM is the utf-8 byte-order marker
@@ -26,22 +27,31 @@ var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 // BIDIRunes are runes that are explicitly mentioned in CVE-2021-42574
 var BIDIRunes = "\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069"
 
-// ContainsBIDIRuneString checks some text for any bidi rune
-func ContainsBIDIRuneString(text string) bool {
-	return strings.ContainsAny(text, BIDIRunes)
+// ContainsBIDIRuneString checks for potential bidi misuse with lines
+// containing bidi characters but no RTL characters
+func ContainsBIDIRuneString(text string) (bad, any bool) {
+	bad, any, _ = ContainsBIDIRuneReader(strings.NewReader(text))
+	return
 }
 
-// ContainsBIDIRuneBytes checks some text for any bidi rune
-func ContainsBIDIRuneBytes(text []byte) bool {
-	return bytes.ContainsAny(text, BIDIRunes)
+// ContainsBIDIRuneBytes checks for potential bidi misuse with lines
+// containing bidi characters but no RTL characters
+func ContainsBIDIRuneBytes(text []byte) (bad, any bool) {
+	bad, any, _ = ContainsBIDIRuneReader(bytes.NewReader(text))
+	return
 }
 
-// ContainsBIDIRuneReader checks some text for any bidi rune
-func ContainsBIDIRuneReader(text io.Reader) (bool, error) {
+// ContainsBIDIRuneReader checks for potential bidi misuse with lines
+// containing bidi characters but no RTL characters
+func ContainsBIDIRuneReader(text io.Reader) (bad, any bool, err error) {
 	buf := make([]byte, 4096)
 	readStart := 0
-	var err error
 	var n int
+	anyBIDI := false
+	lineHasBIDI := false
+	lineHasRTLScript := false
+	lineHasLTRScript := false
+
 	for err == nil {
 		n, err = text.Read(buf[readStart:])
 		bs := buf[:n]
@@ -50,16 +60,32 @@ func ContainsBIDIRuneReader(text io.Reader) (bool, error) {
 		for i < n {
 			r, size := utf8.DecodeRune(bs[i:])
 			if r == utf8.RuneError {
-				// need to decide what to do here... runes can be at most 4 bytes - so... i123n
+				// need to decide what to do here... runes can be at most 4 bytes - so...
 				if n-i > 3 {
 					// this is a real broken rune
-					return true, fmt.Errorf("text contains bad rune: %x", bs[i])
+					return true, true, fmt.Errorf("text contains bad rune: %x", bs[i])
 				}
-
 				break inner
 			}
-			if strings.ContainsRune(BIDIRunes, r) {
-				return true, nil
+			switch {
+			case r == '\n':
+				if lineHasBIDI && !lineHasRTLScript && lineHasLTRScript {
+					return true, true, nil
+				}
+				lineHasBIDI = false
+				lineHasRTLScript = false
+				lineHasLTRScript = false
+			case strings.ContainsRune(BIDIRunes, r):
+				lineHasBIDI = true
+				anyBIDI = true
+			default:
+				p, _ := bidi.Lookup(bs[i : i+size])
+				c := p.Class()
+				if c == bidi.R || c == bidi.AL {
+					lineHasRTLScript = true
+				} else if c == bidi.L {
+					lineHasLTRScript = true
+				}
 			}
 			i += size
 		}
@@ -72,12 +98,15 @@ func ContainsBIDIRuneReader(text io.Reader) (bool, error) {
 		}
 	}
 	if readStart > 0 {
-		return true, fmt.Errorf("text contains bad rune: %x", buf[0])
+		return true, true, fmt.Errorf("text contains bad rune: %x", buf[0])
 	}
 	if err == io.EOF {
-		return false, nil
+		if lineHasBIDI && !lineHasRTLScript && lineHasLTRScript {
+			return true, true, nil
+		}
+		return false, anyBIDI, nil
 	}
-	return true, err
+	return true, true, err
 }
 
 // ToUTF8WithFallbackReader detects the encoding of content and coverts to UTF-8 reader if possible

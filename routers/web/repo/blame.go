@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -35,6 +36,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
+	HasBIDI        bool
 }
 
 // RefBlame render blame page
@@ -249,6 +251,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			line = highlight.Code(fileName, line)
 
 			br.Code = gotemplate.HTML(line)
+			_, br.HasBIDI = charset.ContainsBIDIRuneString(line)
 			rows = append(rows, br)
 		}
 	}

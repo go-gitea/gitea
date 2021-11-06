@@ -277,30 +277,52 @@ func bytesMustStartWith(t *testing.T, expected []byte, value []byte) {
 var bidiTestCases = []struct {
 	name string
 	text string
-	want bool
+	bad  bool
+	any  bool
 }{
 	{
 		name: "Accented characters",
 		text: string([]byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba}),
-		want: false,
 	},
 	{
 		name: "Program",
 		text: "string([]byte{0xc3, 0xa1, 0xc3, 0xa9, 0xc3, 0xad, 0xc3, 0xb3, 0xc3, 0xba})",
-		want: false,
 	},
 	{
 		name: "CVE testcase",
 		text: "if access_level != \"user\u202E \u2066// Check if admin\u2069 \u2066\" {",
-		want: true,
+		bad:  true,
+		any:  true,
+	},
+	{
+		name: "Mixed testcase",
+		text: `Many computer programs fail to display bidirectional text correctly.
+For example, the Hebrew name Sarah (שרה) is spelled: sin (ש) (which appears rightmost),
+then resh (ר), and finally heh (ה) (which should appear leftmost).`,
+	},
+	{
+		name: "Mixed testcase",
+		text: `Many computer programs fail to display bidirectional text correctly.
+		For example, the Hebrew name Sarah ` + "\u2067" + `שרה` + "\u2066\n" +
+			`sin (ש) (which appears rightmost), then resh (ר), and finally heh (ה) (which should appear leftmost).`,
+		any: true,
+	},
+	{
+		name: "Mixed testcase with fail",
+		text: `Many computer programs fail to display bidirectional text correctly.
+		For example, the Hebrew name Sarah ` + "\u2067" + `שרה` + "\u2066\n" +
+			`sin (ש) (which appears rightmost), then resh (ר), and finally heh (ה) (which should appear leftmost).` +
+			"\nif access_level != \"user\u202E \u2066// Check if admin\u2069 \u2066\" {\n",
+		bad: true,
+		any: true,
 	},
 }
 
 func TestContainsBIDIRuneString(t *testing.T) {
 	for _, tt := range bidiTestCases {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainsBIDIRuneString(tt.text); got != tt.want {
-				t.Errorf("ContainsBIDIRuneString() = %v, want %v", got, tt.want)
+			if bad, any := ContainsBIDIRuneString(tt.text); bad != tt.bad || any != tt.any {
+				t.Errorf("ContainsBIDIRuneString() = %v, %v, want %v, %v", bad, any, tt.bad, tt.any)
 			}
 		})
 	}
@@ -309,8 +331,8 @@ func TestContainsBIDIRuneString(t *testing.T) {
 func TestContainsBIDIRuneBytes(t *testing.T) {
 	for _, tt := range bidiTestCases {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ContainsBIDIRuneBytes([]byte(tt.text)); got != tt.want {
-				t.Errorf("ContainsBIDIRuneBytes() = %v, want %v", got, tt.want)
+			if bad, any := ContainsBIDIRuneBytes([]byte(tt.text)); bad != tt.bad || any != tt.any {
+				t.Errorf("ContainsBIDIRuneBytes() = %v, %v, want %v, %v", bad, any, tt.bad, tt.any)
 			}
 		})
 	}
@@ -319,13 +341,13 @@ func TestContainsBIDIRuneBytes(t *testing.T) {
 func TestContainsBIDIRuneReader(t *testing.T) {
 	for _, tt := range bidiTestCases {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ContainsBIDIRuneReader(strings.NewReader(tt.text))
+			bad, any, err := ContainsBIDIRuneReader(strings.NewReader(tt.text))
 			if err != nil {
 				t.Errorf("ContainsBIDIRuneReader() error = %v", err)
 				return
 			}
-			if got != tt.want {
-				t.Errorf("ContainsBIDIRuneReader() = %v, want %v", got, tt.want)
+			if bad != tt.bad || any != tt.any {
+				t.Errorf("ContainsBIDIRuneReader() = %v, %v, want %v, %v", bad, any, tt.bad, tt.any)
 			}
 		})
 	}
@@ -335,13 +357,13 @@ func TestContainsBIDIRuneReader(t *testing.T) {
 		t.Run(tt.name+"-terminal-xc2", func(t *testing.T) {
 			bs := []byte(tt.text)
 			bs = append(bs, 0xc2)
-			got, err := ContainsBIDIRuneReader(bytes.NewReader(bs))
-			if !tt.want {
+			bad, _, err := ContainsBIDIRuneReader(bytes.NewReader(bs))
+			if !tt.bad {
 				if err == nil {
 					t.Errorf("ContainsBIDIRuneReader() should have errored")
 					return
 				}
-			} else if !got {
+			} else if !bad {
 				t.Errorf("ContainsBIDIRuneReader() should have returned true")
 				return
 			}
@@ -351,12 +373,12 @@ func TestContainsBIDIRuneReader(t *testing.T) {
 	for _, tt := range bidiTestCases {
 		t.Run(tt.name+"-prefix-xff", func(t *testing.T) {
 			bs := append([]byte{0xff}, []byte(tt.text)...)
-			got, err := ContainsBIDIRuneReader(bytes.NewReader(bs))
+			bad, _, err := ContainsBIDIRuneReader(bytes.NewReader(bs))
 			if err == nil {
 				t.Errorf("ContainsBIDIRuneReader() should have errored")
 				return
 			}
-			if !got {
+			if !bad {
 				t.Errorf("ContainsBIDIRuneReader() should have returned true")
 				return
 			}

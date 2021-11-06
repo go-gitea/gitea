@@ -53,7 +53,7 @@
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
 							<td rel="L{{$row.RowNumber}}" rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
-								<code class="code-inner pl-3">{{$row.Code}}</code>
+								{{if $row.HasBIDI}}<a class="ui button code-has-bidi" title="{{$.i18n.Tr "repo.diff.has_bidi"}}">&#xfe0f;&#x26a0;</a>{{end}}<code class="code-inner pl-3">{{$row.Code}}</code>
 							</td>
 						</tr>
 					{{end}}

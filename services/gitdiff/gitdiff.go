@@ -119,13 +119,14 @@ func (d *DiffLine) GetCommentSide() string {
 
 // HasBIDI returns true if there is a BIDI rune in this line
 func (d *DiffLine) HasBIDI() bool {
-	return charset.ContainsBIDIRuneString(d.Content)
+	_, any := charset.ContainsBIDIRuneString(d.Content)
+	return any
 }
 
 // LeftHasBIDI returns true if there is a BIDI rune in this line
 func (d *DiffLine) LeftHasBIDI() bool {
 	if d.LeftIdx > 0 {
-		return charset.ContainsBIDIRuneString(d.Content)
+		return d.HasBIDI()
 	}
 	return false
 }
@@ -133,7 +134,7 @@ func (d *DiffLine) LeftHasBIDI() bool {
 // RightHasBIDI returns true if there is a BIDI rune in this line
 func (d *DiffLine) RightHasBIDI() bool {
 	if d.RightIdx > 0 {
-		return charset.ContainsBIDIRuneString(d.Content)
+		return d.HasBIDI()
 	}
 	return false
 }

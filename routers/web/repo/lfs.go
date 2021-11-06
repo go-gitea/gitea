@@ -316,7 +316,7 @@ func LFSFileGet(ctx *context.Context) {
 			output.WriteString(fmt.Sprintf(`<li class="L%d" rel="L%d">%s</li>`, index+1, index+1, line))
 		}
 		ctx.Data["FileContent"] = gotemplate.HTML(output.String())
-		ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneString(output.String())
+		ctx.Data["BadBIDI"], ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneString(output.String())
 
 		output.Reset()
 		for i := 0; i < len(lines); i++ {
