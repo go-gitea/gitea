@@ -50,7 +50,9 @@ func ListStargazers(ctx *context.APIContext) {
 	}
 	users := make([]*api.User, len(stargazers))
 	for i, stargazer := range stargazers {
-		users[i] = convert.ToUser(stargazer, ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		users[i] = convert.ToUser(stargazer, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumStars))
 	ctx.JSON(http.StatusOK, users)
 }

@@ -96,7 +96,7 @@ See [#4286](https://github.com/go-gitea/gitea/issues/4286).
 
 ## Add Gitea to startup on Unix
 
-Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/master/contrib)
+Update the appropriate file from [gitea/contrib](https://github.com/go-gitea/gitea/tree/main/contrib)
 with the right environment variables.
 
 For distros with systemd:

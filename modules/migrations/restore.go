@@ -7,7 +7,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -53,16 +52,24 @@ func (r *RepositoryRestorer) SetContext(ctx context.Context) {
 	r.ctx = ctx
 }
 
-// GetRepoInfo returns a repository information
-func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+func (r *RepositoryRestorer) getRepoOptions() (map[string]string, error) {
 	p := filepath.Join(r.baseDir, "repo.yml")
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
 
 	var opts = make(map[string]string)
 	err = yaml.Unmarshal(bs, &opts)
+	if err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// GetRepoInfo returns a repository information
+func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
+	opts, err := r.getRepoOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +82,7 @@ func (r *RepositoryRestorer) GetRepoInfo() (*base.Repository, error) {
 		IsPrivate:     isPrivate,
 		Description:   opts["description"],
 		OriginalURL:   opts["original_url"],
-		CloneURL:      opts["clone_addr"],
+		CloneURL:      filepath.Join(r.baseDir, "git"),
 		DefaultBranch: opts["default_branch"],
 	}, nil
 }
@@ -88,7 +95,7 @@ func (r *RepositoryRestorer) GetTopics() ([]string, error) {
 		Topics []string `yaml:"topics"`
 	}{}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +119,7 @@ func (r *RepositoryRestorer) GetMilestones() ([]*base.Milestone, error) {
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +143,7 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +154,9 @@ func (r *RepositoryRestorer) GetReleases() ([]*base.Release, error) {
 	}
 	for _, rel := range releases {
 		for _, asset := range rel.Assets {
-			*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+			if asset.DownloadURL != nil {
+				*asset.DownloadURL = "file://" + filepath.Join(r.baseDir, *asset.DownloadURL)
+			}
 		}
 	}
 	return releases, nil
@@ -165,7 +174,7 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +198,7 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 		return nil, false, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, false, err
 	}
@@ -198,31 +207,34 @@ func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	if err != nil {
 		return nil, false, err
 	}
+	for _, issue := range issues {
+		issue.Context = base.BasicIssueContext(issue.Number)
+	}
 	return issues, true, nil
 }
 
 // GetComments returns comments according issueNumber
-func (r *RepositoryRestorer) GetComments(issueNumber int64) ([]*base.Comment, error) {
+func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	var comments = make([]*base.Comment, 0, 10)
-	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", issueNumber))
+	p := filepath.Join(r.commentDir(), fmt.Sprintf("%d.yml", opts.Context.ForeignID()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, false, nil
 		}
-		return nil, err
+		return nil, false, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	err = yaml.Unmarshal(bs, &comments)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
-	return comments, nil
+	return comments, false, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
@@ -237,7 +249,7 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 		return nil, false, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, false, err
 	}
@@ -248,14 +260,15 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 	}
 	for _, pr := range pulls {
 		pr.PatchURL = "file://" + filepath.Join(r.baseDir, pr.PatchURL)
+		pr.Context = base.BasicIssueContext(pr.Number)
 	}
 	return pulls, true, nil
 }
 
 // GetReviews returns pull requests review
-func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
+func (r *RepositoryRestorer) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	var reviews = make([]*base.Review, 0, 10)
-	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", pullRequestNumber))
+	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", context.ForeignID()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -264,7 +277,7 @@ func (r *RepositoryRestorer) GetReviews(pullRequestNumber int64) ([]*base.Review
 		return nil, err
 	}
 
-	bs, err := ioutil.ReadFile(p)
+	bs, err := os.ReadFile(p)
 	if err != nil {
 		return nil, err
 	}

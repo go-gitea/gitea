@@ -10,8 +10,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	"runtime"
+	"sync"
 
-	"github.com/klauspost/cpuid"
+	"github.com/klauspost/cpuid/v2"
 )
 
 // MD5 initialization constants
@@ -23,6 +24,9 @@ const (
 	init1 = 0xefcdab89
 	init2 = 0x98badcfe
 	init3 = 0x10325476
+
+	// Use scalar routine when below this many lanes
+	useScalarBelow = 3
 )
 
 // md5ServerUID - Does not start at 0 but next multiple of 16 so as to be able to
@@ -56,11 +60,15 @@ type md5Server struct {
 	maskRounds8b [8]maskRounds         // Pre-allocated static array for max 8 rounds (2nd AVX2 core)
 	allBufs      []byte                // Preallocated buffer.
 	buffers      chan []byte           // Preallocated buffers, sliced from allBufs.
+
+	i8       [2][8][]byte // avx2 temporary vars
+	d8a, d8b digest8
+	wg       sync.WaitGroup
 }
 
 // NewServer - Create new object for parallel processing handling
 func NewServer() Server {
-	if !cpuid.CPU.AVX2() {
+	if !cpuid.CPU.Supports(cpuid.AVX2) {
 		return &fallbackServer{}
 	}
 	md5srv := &md5Server{}
@@ -152,7 +160,7 @@ func (s *md5Server) process(newClients chan newClient) {
 
 					sum := sumResult{}
 					// Add end block to current digest.
-					blockGeneric(&dig, block.msg)
+					blockScalar(&dig.s, block.msg)
 
 					binary.LittleEndian.PutUint32(sum.digest[0:], dig.s[0])
 					binary.LittleEndian.PutUint32(sum.digest[4:], dig.s[1])
@@ -262,6 +270,88 @@ func (s *md5Server) Close() {
 
 // Invoke assembly and send results back
 func (s *md5Server) blocks(lanes []blockInput) {
+	if len(lanes) < useScalarBelow {
+		// Use scalar routine when below this many lanes
+		switch len(lanes) {
+		case 0:
+		case 1:
+			lane := lanes[0]
+			var d digest
+			a, ok := s.digests[lane.uid]
+			if ok {
+				d.s[0] = binary.LittleEndian.Uint32(a[0:4])
+				d.s[1] = binary.LittleEndian.Uint32(a[4:8])
+				d.s[2] = binary.LittleEndian.Uint32(a[8:12])
+				d.s[3] = binary.LittleEndian.Uint32(a[12:16])
+			} else {
+				d.s[0] = init0
+				d.s[1] = init1
+				d.s[2] = init2
+				d.s[3] = init3
+			}
+			if len(lane.msg) > 0 {
+				// Update...
+				blockScalar(&d.s, lane.msg)
+			}
+			dig := [Size]byte{}
+			binary.LittleEndian.PutUint32(dig[0:], d.s[0])
+			binary.LittleEndian.PutUint32(dig[4:], d.s[1])
+			binary.LittleEndian.PutUint32(dig[8:], d.s[2])
+			binary.LittleEndian.PutUint32(dig[12:], d.s[3])
+			s.digests[lane.uid] = dig
+
+			if lane.msg != nil {
+				s.buffers <- lane.msg
+			}
+			lanes[0] = blockInput{}
+
+		default:
+			s.wg.Add(len(lanes))
+			var results [useScalarBelow]digest
+			for i := range lanes {
+				lane := lanes[i]
+				go func(i int) {
+					var d digest
+					defer s.wg.Done()
+					a, ok := s.digests[lane.uid]
+					if ok {
+						d.s[0] = binary.LittleEndian.Uint32(a[0:4])
+						d.s[1] = binary.LittleEndian.Uint32(a[4:8])
+						d.s[2] = binary.LittleEndian.Uint32(a[8:12])
+						d.s[3] = binary.LittleEndian.Uint32(a[12:16])
+					} else {
+						d.s[0] = init0
+						d.s[1] = init1
+						d.s[2] = init2
+						d.s[3] = init3
+					}
+					if len(lane.msg) == 0 {
+						results[i] = d
+						return
+					}
+					// Update...
+					blockScalar(&d.s, lane.msg)
+					results[i] = d
+				}(i)
+			}
+			s.wg.Wait()
+			for i, lane := range lanes {
+				dig := [Size]byte{}
+				binary.LittleEndian.PutUint32(dig[0:], results[i].s[0])
+				binary.LittleEndian.PutUint32(dig[4:], results[i].s[1])
+				binary.LittleEndian.PutUint32(dig[8:], results[i].s[2])
+				binary.LittleEndian.PutUint32(dig[12:], results[i].s[3])
+				s.digests[lane.uid] = dig
+
+				if lane.msg != nil {
+					s.buffers <- lane.msg
+				}
+				lanes[i] = blockInput{}
+			}
+		}
+		return
+	}
+
 	inputs := [16][]byte{}
 	for i := range lanes {
 		inputs[i] = lanes[i].msg

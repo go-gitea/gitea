@@ -187,7 +187,7 @@ var migrations = []Migration{
 	// v122 -> v123
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 	// v123 -> v124
-	NewMigration("Add original informations for reactions", addReactionOriginals),
+	NewMigration("Add original information for reactions", addReactionOriginals),
 	// v124 -> v125
 	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
 	// v125 -> v126
@@ -284,6 +284,78 @@ var migrations = []Migration{
 	NewMigration("Add user redirect", addUserRedirect),
 	// v168 -> v169
 	NewMigration("Recreate user table to fix default values", recreateUserTableToFixDefaultValues),
+	// v169 -> v170
+	NewMigration("Update DeleteBranch comments to set the old_ref to the commit_sha", commentTypeDeleteBranchUseOldRef),
+	// v170 -> v171
+	NewMigration("Add Dismissed to Review table", addDismissedReviewColumn),
+	// v171 -> v172
+	NewMigration("Add Sorting to ProjectBoard table", addSortingColToProjectBoard),
+	// v172 -> v173
+	NewMigration("Add sessions table for go-chi/session", addSessionTable),
+	// v173 -> v174
+	NewMigration("Add time_id column to Comment", addTimeIDCommentColumn),
+	// v174 -> v175
+	NewMigration("Create repo transfer table", addRepoTransfer),
+	// v175 -> v176
+	NewMigration("Fix Postgres ID Sequences broken by recreate-table", fixPostgresIDSequences),
+	// v176 -> v177
+	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
+	// v177 -> v178
+	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+
+	// Gitea 1.14.0 ends at v178
+
+	// v178 -> v179
+	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	// v179 -> v180
+	NewMigration("Convert avatar url to text", convertAvatarURLToText),
+	// v180 -> v181
+	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
+	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
+	// v188 -> v189
+	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
+
+	// Gitea 1.15.0 ends at v189
+
+	// v189 -> v190
+	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
+	// v190 -> v191
+	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
+	// v191 -> v192
+	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", alterIssueAndCommentTextFieldsToLongText),
+	// v192 -> v193
+	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
+	// v193 -> v194
+	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
+	// v194 -> v195
+	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
+	// v195 -> v196
+	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
+	// v196 -> v197
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	// v197 -> v198
+	NewMigration("Add renamed_branch table", addRenamedBranchTable),
+	// v198 -> v199
+	NewMigration("Add issue content history table", addTableIssueContentHistory),
+	// v199 -> v200
+	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	// v200 -> v201
+	NewMigration("Add table app_state", addTableAppState),
+	// v201 -> v202
+	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -377,7 +449,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("do migrate: %v", err)
+			return fmt.Errorf("migration[%d]: %s failed: %v", v+int64(i), m.Description(), err)
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
@@ -547,12 +619,52 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 
+		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
+			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			return err
+		}
+
 		// SQLite and MySQL will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
 			return err
 		}
+
+		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
+			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
+			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
+			return err
+		}
 	case setting.Database.UsePostgreSQL:
+		var originalSequences []string
+		type sequenceData struct {
+			LastValue int  `xorm:"'last_value'"`
+			IsCalled  bool `xorm:"'is_called'"`
+		}
+		sequenceMap := map[string]sequenceData{}
+
+		schema := sess.Engine().Dialect().URI().Schema
+		sess.Engine().SetSchema("")
+		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&originalSequences); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+		sess.Engine().SetSchema(schema)
+
+		for _, sequence := range originalSequences {
+			sequenceData := sequenceData{}
+			if _, err := sess.Table(sequence).Cols("last_value", "is_called").Get(&sequenceData); err != nil {
+				log.Error("Unable to get last_value and is_called from %s. Error: %v", sequence, err)
+				return err
+			}
+			sequenceMap[sequence] = sequenceData
+
+		}
+
 		// CASCADE causes postgres to drop all the constraints on the old table
 		if _, err := sess.Exec(fmt.Sprintf("DROP TABLE `%s` CASCADE", tableName)); err != nil {
 			log.Error("Unable to drop old table %s. Error: %v", tableName, err)
@@ -566,7 +678,6 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 		}
 
 		var indices []string
-		schema := sess.Engine().Dialect().URI().Schema
 		sess.Engine().SetSchema("")
 		if err := sess.Table("pg_indexes").Cols("indexname").Where("tablename = ? ", tableName).Find(&indices); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
@@ -580,6 +691,43 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 				log.Error("Unable to rename %s to %s. Error: %v", index, newIndexName, err)
 				return err
 			}
+		}
+
+		var sequences []string
+		sess.Engine().SetSchema("")
+		if err := sess.Table("information_schema.sequences").Cols("sequence_name").Where("sequence_name LIKE 'tmp_recreate__' || ? || '_%' AND sequence_catalog = ?", tableName, setting.Database.Name).Find(&sequences); err != nil {
+			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+		sess.Engine().SetSchema(schema)
+
+		for _, sequence := range sequences {
+			newSequenceName := strings.Replace(sequence, "tmp_recreate__", "", 1)
+			if _, err := sess.Exec(fmt.Sprintf("ALTER SEQUENCE `%s` RENAME TO `%s`", sequence, newSequenceName)); err != nil {
+				log.Error("Unable to rename %s sequence to %s. Error: %v", sequence, newSequenceName, err)
+				return err
+			}
+			val, ok := sequenceMap[newSequenceName]
+			if newSequenceName == tableName+"_id_seq" {
+				if ok && val.LastValue != 0 {
+					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
+						log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
+						return err
+					}
+				} else {
+					// We're going to try to guess this
+					if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', COALESCE((SELECT MAX(id)+1 FROM `%s`), 1), false)", newSequenceName, tableName)); err != nil {
+						log.Error("Unable to reset %s. Error: %v", newSequenceName, err)
+						return err
+					}
+				}
+			} else if ok {
+				if _, err := sess.Exec(fmt.Sprintf("SELECT setval('%s', %d, %t)", newSequenceName, val.LastValue, val.IsCalled)); err != nil {
+					log.Error("Unable to reset %s to %d. Error: %v", newSequenceName, val, err)
+					return err
+				}
+			}
+
 		}
 
 	case setting.Database.UseMSSQL:
@@ -732,7 +880,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			}
 			cols += "`" + strings.ToLower(col) + "`"
 		}
-		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+		sql := fmt.Sprintf("SELECT Name FROM sys.default_constraints WHERE parent_object_id = OBJECT_ID('%[1]s') AND parent_column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
@@ -740,9 +888,21 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
 			}
 		}
+		sql = fmt.Sprintf("SELECT DISTINCT Name FROM sys.indexes INNER JOIN sys.index_columns ON indexes.index_id = index_columns.index_id AND indexes.object_id = index_columns.object_id WHERE indexes.object_id = OBJECT_ID('%[1]s') AND index_columns.column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+			tableName, strings.ReplaceAll(cols, "`", "'"))
+		constraints = make([]string, 0)
+		if err := sess.SQL(sql).Find(&constraints); err != nil {
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
+				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+			}
+		}
+
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}

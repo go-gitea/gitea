@@ -1,5 +1,5 @@
 //
-// Copyright 2019, Matej Velikonja
+// Copyright 2021, Matej Velikonja
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -83,7 +84,7 @@ func (s *ProjectClustersService) ListClusters(pid interface{}, options ...Reques
 	}
 	u := fmt.Sprintf("projects/%s/clusters", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -108,7 +109,7 @@ func (s *ProjectClustersService) GetCluster(pid interface{}, cluster int, option
 	}
 	u := fmt.Sprintf("projects/%s/clusters/%d", pathEscape(project), cluster)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,7 +157,7 @@ func (s *ProjectClustersService) AddCluster(pid interface{}, opt *AddClusterOpti
 	}
 	u := fmt.Sprintf("projects/%s/clusters/user", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -201,7 +202,7 @@ func (s *ProjectClustersService) EditCluster(pid interface{}, cluster int, opt *
 	}
 	u := fmt.Sprintf("projects/%s/clusters/%d", pathEscape(project), cluster)
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -226,7 +227,7 @@ func (s *ProjectClustersService) DeleteCluster(pid interface{}, cluster int, opt
 	}
 	u := fmt.Sprintf("projects/%s/clusters/%d", pathEscape(project), cluster)
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -23,8 +24,8 @@ echo Hello, World!
 func TestAPIListGitHooks(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -49,8 +50,8 @@ func TestAPIListGitHooks(t *testing.T) {
 func TestAPIListGitHooksNoHooks(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -70,8 +71,8 @@ func TestAPIListGitHooksNoHooks(t *testing.T) {
 func TestAPIListGitHooksNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -83,8 +84,8 @@ func TestAPIListGitHooksNoAccess(t *testing.T) {
 func TestAPIGetGitHook(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -101,8 +102,8 @@ func TestAPIGetGitHook(t *testing.T) {
 func TestAPIGetGitHookNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -114,8 +115,8 @@ func TestAPIGetGitHookNoAccess(t *testing.T) {
 func TestAPIEditGitHook(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -144,8 +145,8 @@ func TestAPIEditGitHook(t *testing.T) {
 func TestAPIEditGitHookNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -160,8 +161,8 @@ func TestAPIEditGitHookNoAccess(t *testing.T) {
 func TestAPIDeleteGitHook(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -183,8 +184,8 @@ func TestAPIDeleteGitHook(t *testing.T) {
 func TestAPIDeleteGitHookNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)

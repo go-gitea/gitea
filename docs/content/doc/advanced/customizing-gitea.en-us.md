@@ -35,14 +35,14 @@ Again `gitea help` will allow you review this variable and you can override it u
 `--config` option on the `gitea` binary.
 
 - [Quick Cheat Sheet](https://docs.gitea.io/en-us/config-cheat-sheet/)
-- [Complete List](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
+- [Complete List](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
 
 If the `CustomPath` folder can't be found despite checking `gitea help`, check the `GITEA_CUSTOM`
 environment variable; this can be used to override the default path to something else.
 `GITEA_CUSTOM` might, for example, be set by an init script. You can check whether the value
 is set under the "Configuration" tab on the site administration page.
 
-- [List of Environment Variables](https://docs.gitea.io/en-us/specific-variables/)
+- [List of Environment Variables](https://docs.gitea.io/en-us/environment-variables/)
 
 **Note:** Gitea must perform a full restart to see configuration changes.
 
@@ -56,24 +56,20 @@ To make Gitea serve custom public files (like pages and images), use the folder
 `$GITEA_CUSTOM/public/` as the webroot. Symbolic links will be followed.
 
 For example, a file `image.png` stored in `$GITEA_CUSTOM/public/`, can be accessed with
-the url `http://gitea.domain.tld/image.png`.
+the url `http://gitea.domain.tld/assets/image.png`.
 
-## Changing the default logo
+## Changing the logo
 
-To build a custom logo replace `assets/logo.svg` and run `make generate-images`. This will update
-these customizable logo files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
+`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
-- `public/img/logo.svg`
-- `public/img/logo.png`
-- `public/img/favicon.png`
-- `public/img/avatar_default.png`
-- `public/img/apple-touch-icon.png`
+- `public/img/logo.svg` - Used for favicon, site icon, app icon
+- `public/img/logo.png` - Used for Open Graph
+- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
+- `public/img/avatar_default.png` - Used as the default avatar image
+- `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
 
-## Changing the default avatar
-
-Either generate it via above method or place the png image at the following path:
-
-- `$GITEA_CUSTOM/public/img/avatar_default.png`
+In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
 ## Customizing Gitea pages and resources
 
@@ -87,14 +83,14 @@ directory at the top of this document).
 Every single page of Gitea can be changed. Dynamic content is generated using [go templates](https://golang.org/pkg/html/template/),
 which can be modified by placing replacements below the `$GITEA_CUSTOM/templates` directory.
 
-To obtain any embedded file (including templates), the [`gitea embedded` tool]({{< relref "doc/advanced/cmd-embedded.en-us.md" >}}) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/master/templates) directory of Gitea source (Note: the example link is from the `master` branch. Make sure to use templates compatible with the release you are using).
+To obtain any embedded file (including templates), the [`gitea embedded` tool]({{< relref "doc/advanced/cmd-embedded.en-us.md" >}}) can be used. Alternatively, they can be found in the [`templates`](https://github.com/go-gitea/gitea/tree/main/templates) directory of Gitea source (Note: the example link is from the `main` branch. Make sure to use templates compatible with the release you are using).
 
 Be aware that any statement contained inside `{{` and `}}` are Gitea's template syntax and
 shouldn't be touched without fully understanding these components.
 
 ### Customizing startpage / homepage
 
-Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/master/templates/home.tmpl) for your version of Gitea from `templates` to `$GITEA_CUSTOM/templates`.
+Copy [`home.tmpl`](https://github.com/go-gitea/gitea/blob/main/templates/home.tmpl) for your version of Gitea from `templates` to `$GITEA_CUSTOM/templates`.
 Edit as you wish.
 Dont forget to restart your gitea to apply the changes.
 
@@ -106,14 +102,14 @@ For instance, let's say you are in Germany and must add the famously legally-req
 just place it under your "$GITEA_CUSTOM/public/" directory (for instance `$GITEA_CUSTOM/public/impressum.html`) and put a link to it in either `$GITEA_CUSTOM/templates/custom/extra_links.tmpl` or `$GITEA_CUSTOM/templates/custom/extra_links_footer.tmpl`.
 
 To match the current style, the link should have the class name "item", and you can use `{{AppSubUrl}}` to get the base URL:
-`<a class="item" href="{{AppSubUrl}}/impressum.html">Impressum</a>`
+`<a class="item" href="{{AppSubUrl}}/assets/impressum.html">Impressum</a>`
 
 For more information, see [Adding Legal Pages](https://docs.gitea.io/en-us/adding-legal-pages).
 
 You can add new tabs in the same way, putting them in `extra_tabs.tmpl`.
 The exact HTML needed to match the style of other tabs is in the file
 `templates/repo/header.tmpl`
-([source in GitHub](https://github.com/go-gitea/gitea/blob/master/templates/repo/header.tmpl))
+([source in GitHub](https://github.com/go-gitea/gitea/blob/main/templates/repo/header.tmpl))
 
 ### Other additions to the page
 
@@ -142,7 +138,7 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 <script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
 <script>
   <!-- Replace call with address to your plantuml server-->
-  parsePlantumlCodeBlocks("http://www.plantuml..com/plantuml");
+  parsePlantumlCodeBlocks("http://www.plantuml.com/plantuml");
 </script>
 {{end}}
 ```
@@ -178,13 +174,13 @@ You can display STL file directly in Gitea by adding:
 
   if ($('.view-raw>a[href$=".stl" i]').length) {
     $("body").append(
-      '<link href="/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">'
+      '<link href="/assets/Madeleine.js/src/css/Madeleine.css" rel="stylesheet">'
     );
     Promise.all([
-      lS("/Madeleine.js/src/lib/stats.js"),
-      lS("/Madeleine.js/src/lib/detector.js"),
-      lS("/Madeleine.js/src/lib/three.min.js"),
-      lS("/Madeleine.js/src/Madeleine.js"),
+      lS("/assets/Madeleine.js/src/lib/stats.js"),
+      lS("/assets/Madeleine.js/src/lib/detector.js"),
+      lS("/assets/Madeleine.js/src/lib/three.min.js"),
+      lS("/assets/Madeleine.js/src/Madeleine.js"),
     ]).then(function () {
       $(".view-raw")
         .attr("id", "view-raw")
@@ -192,7 +188,7 @@ You can display STL file directly in Gitea by adding:
       new Madeleine({
         target: "view-raw",
         data: $('.view-raw>a[href$=".stl" i]').attr("href"),
-        path: "/Madeleine.js/src",
+        path: "/assets/Madeleine.js/src",
       });
       $('.view-raw>a[href$=".stl"]').remove();
     });
@@ -204,7 +200,7 @@ to the file `templates/custom/footer.tmpl`
 
 You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `$GITEA_CUSTOM/public/` folder.
 
-You should end-up with a folder structucture similar to:
+You should end-up with a folder structure similar to:
 
 ```
 $GITEA_CUSTOM/templates
@@ -258,7 +254,7 @@ Then restart gitea and open a STL file on your gitea instance.
 
 The `$GITEA_CUSTOM/templates/mail` folder allows changing the body of every mail of Gitea.
 Templates to override can be found in the
-[`templates/mail`](https://github.com/go-gitea/gitea/tree/master/templates/mail)
+[`templates/mail`](https://github.com/go-gitea/gitea/tree/main/templates/mail)
 directory of Gitea source.
 Override by making a copy of the file under `$GITEA_CUSTOM/templates/mail` using a
 full path structure matching source.
@@ -282,7 +278,7 @@ To add custom .gitignore, add a file with existing [.gitignore rules](https://gi
 
 ### Labels
 
-To add a custom label set, add a file that follows the [label format](https://github.com/go-gitea/gitea/blob/master/options/label/Default) to `$GITEA_CUSTOM/options/label`
+To add a custom label set, add a file that follows the [label format](https://github.com/go-gitea/gitea/blob/main/options/label/Default) to `$GITEA_CUSTOM/options/label`
 `#hex-color label name ; label description`
 
 ### Licenses
@@ -293,7 +289,7 @@ To add a custom license, add a file with the license text to `$GITEA_CUSTOM/opti
 
 Locales are managed via our [crowdin](https://crowdin.com/project/gitea).
 You can override a locale by placing an altered locale file in `$GITEA_CUSTOM/options/locale`.
-Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/master/options/locale) source folder and these should be used as examples for your changes.
+Gitea's default locale files can be found in the [`options/locale`](https://github.com/go-gitea/gitea/tree/main/options/locale) source folder and these should be used as examples for your changes.
 
 To add a completely new locale, as well as placing the file in the above location, you will need to add the new lang and name to the `[i18n]` section in your `app.ini`. Keep in mind that Gitea will use those settings as **overrides**, so if you want to keep the other languages as well you will need to copy/paste the default values and add your own to them.
 
@@ -325,8 +321,21 @@ A full list of supported emoji's is at [emoji list](https://gitea.com/gitea/gite
 
 ## Customizing the look of Gitea
 
-As of version 1.6.0 Gitea has built-in themes. The two built-in themes are, the default theme `gitea`, and a dark theme `arc-green`. To change the look of your Gitea install change the value of `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` to another one of the available options.
-As of version 1.8.0 Gitea also has per-user themes. The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini` (defaults to `gitea` and `arc-green`, light and dark respectively)
+The default built-in themes are `gitea` (light), `arc-green` (dark), and `auto` (chooses light or dark depending on operating system settings).
+The default theme can be changed via `DEFAULT_THEME` in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+
+Gitea also has support for user themes, which means every user can select which theme should be used.
+The list of themes a user can choose from can be configured with the `THEMES` value in the [ui](https://docs.gitea.io/en-us/config-cheat-sheet/#ui-ui) section of `app.ini`.
+
+To make a custom theme available to all users:
+
+1. Add a CSS file to `$GITEA_PUBLIC/public/css/theme-<theme-name>.css`.
+  The value of `$GITEA_PUBLIC` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
+2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
+
+Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).
+
+The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
 
 ## Customizing fonts
 

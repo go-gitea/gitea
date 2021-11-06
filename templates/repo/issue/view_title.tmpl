@@ -20,7 +20,7 @@
 		{{end}}
 	</div>
 	{{if .HasMerged}}
-		<div class="ui purple large label">{{svg "octicon-git-merge"}} {{.i18n.Tr "repo.pulls.merged"}}</div>
+		<div class="ui purple large label">{{svg "octicon-git-merge" 16}} {{if eq .Issue.PullRequest.Status 3}}{{.i18n.Tr "repo.pulls.manually_merged"}}{{else}}{{.i18n.Tr "repo.pulls.merged"}}{{end}}</div>
 	{{else if .Issue.IsClosed}}
 		<div class="ui red large label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{.i18n.Tr "repo.issues.closed_title"}}</div>
 	{{else if .Issue.IsPull}}
@@ -30,53 +30,62 @@
 	{{end}}
 
 	{{if .Issue.IsPull}}
+		{{$headHref := .HeadTarget|Escape}}
+		{{if .HeadBranchHTMLURL}}
+			{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchHTMLURL | Escape) $headHref}}
+		{{end}}
+		{{$headHref = printf "%s <a class=\"poping up\" data-content=\"%s\" data-success=\"%s\" data-error=\"%s\" data-clipboard-text=\"%s\" data-variation=\"inverted tiny\">%s</a>" $headHref (.i18n.Tr "repo.copy_branch") (.i18n.Tr "repo.copy_branch_success") (.i18n.Tr "repo.copy_branch_error") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+		{{$baseHref := .BaseTarget|Escape}}
+		{{if .BaseBranchHTMLURL}}
+			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchHTMLURL | Escape) $baseHref}}
+		{{end}}
 		{{if .Issue.PullRequest.HasMerged}}
 			{{ $mergedStr:= TimeSinceUnix .Issue.PullRequest.MergedUnix $.Lang }}
 			{{if .Issue.OriginalAuthor }}
 				{{.Issue.OriginalAuthor}}
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 			{{else}}
 				<a {{if gt .Issue.PullRequest.Merger.ID 0}}href="{{.Issue.PullRequest.Merger.HomeLink}}"{{end}}>{{.Issue.PullRequest.Merger.GetDisplayName}}</a>
-				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) $mergedStr | Str2html}}</span>
+				<span class="pull-desc">{{$.i18n.Tr "repo.pulls.merged_title_desc" .NumCommits $headHref $baseHref $mergedStr | Safe}}</span>
 			{{end}}
 		{{else}}
 			{{if .Issue.OriginalAuthor }}
-				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) | Str2html}}</span>
+				<span id="pull-desc" class="pull-desc">{{.Issue.OriginalAuthor}} {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}</span>
 			{{else}}
 				<span id="pull-desc" class="pull-desc">
-				 <a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-				 {{$.i18n.Tr "repo.pulls.title_desc" .NumCommits (.HeadTarget|Escape) (.BaseTarget|Escape) | Str2html}}
-					</span>
+					<a {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
+					{{$.i18n.Tr "repo.pulls.title_desc" .NumCommits $headHref $baseHref | Safe}}
+				</span>
 			{{end}}
 			<span id="pull-desc-edit" style="display: none">
-								<div class="ui floating filter dropdown">
-									<div class="ui basic small button">
-										<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
-									</div>
-								</div>
-								{{svg "octicon-arrow-right"}}
-								 <div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
-									<div class="ui basic small button">
-										<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
-										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									</div>
-									<div class="menu">
-										<div class="ui icon search input">
-											<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-											<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
-										</div>
-										<div class="scrolling menu" id="branch-select">
-											{{range .Branches}}
-												{{ $sameBase := ne $.BaseName $.HeadUserName }}
-												{{ $differentBranch := ne . $.HeadBranch }}
-												{{ if or $sameBase $differentBranch }}
-													<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}{{if $.HeadRepo}}/{{$.HeadRepo}}{{end}}:{{.}}</div>
-												{{ end }}
-											{{end}}
-										</div>
-									</div>
-								</div>
-					 </span>
+				<div class="ui floating filter dropdown">
+					<div class="ui basic small button">
+						<span class="text">{{.i18n.Tr "repo.pulls.compare_compare"}}: {{$.HeadTarget}}</span>
+					</div>
+				</div>
+				{{svg "octicon-arrow-right"}}
+				<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
+					<div class="ui basic small button">
+						<span class="text" id="pull-target-branch" data-basename="{{$.BaseName}}" data-branch="{{$.BaseBranch}}">{{.i18n.Tr "repo.pulls.compare_base"}}: {{$.BaseName}}:{{$.BaseBranch}}</span>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</div>
+					<div class="menu">
+						<div class="ui icon search input">
+							<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
+							<input name="search" placeholder="{{.i18n.Tr "repo.pulls.filter_branch"}}...">
+						</div>
+						<div class="scrolling menu" id="branch-select">
+							{{range .Branches}}
+								{{ $sameBase := ne $.BaseName $.HeadUserName }}
+								{{ $differentBranch := ne . $.HeadBranch }}
+								{{ if or $sameBase $differentBranch }}
+									<div class="item {{if eq $.BaseBranch .}}selected{{end}}" data-branch="{{.}}">{{$.BaseName}}{{if $.HeadRepo}}/{{$.HeadRepo}}{{end}}:{{.}}</div>
+								{{ end }}
+							{{end}}
+						</div>
+					</div>
+				</div>
+			</span>
 		{{end}}
 	{{else}}
 		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}

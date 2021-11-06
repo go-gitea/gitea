@@ -1,4 +1,6 @@
-const {AppSubUrl, csrf, NotificationSettings} = window.config;
+const {appSubUrl, csrfToken, notificationSettings} = window.config;
+
+let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
   $('#notification_table .button').on('click', async function () {
@@ -10,8 +12,10 @@ export function initNotificationsTable() {
       $(this).data('notification-id'),
     );
 
-    $('#notification_div').replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      $('#notification_div').replaceWith(data);
+      initNotificationsTable();
+    }
     await updateNotificationCount();
 
     return false;
@@ -43,18 +47,18 @@ export async function initNotificationCount() {
     return;
   }
 
-  if (NotificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
     const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
     worker.addEventListener('error', (event) => {
       console.error(event);
     });
-    worker.port.onmessageerror = () => {
+    worker.port.addEventListener('messageerror', () => {
       console.error('Unable to deserialize message');
-    };
+    });
     worker.port.postMessage({
       type: 'start',
-      url: `${window.location.origin}${AppSubUrl}/user/events`,
+      url: `${window.location.origin}${appSubUrl}/user/events`,
     });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
@@ -66,14 +70,19 @@ export async function initNotificationCount() {
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
-        if (event.data !== 'here') {
+        if (event.data.data !== 'here') {
           return;
         }
         worker.port.postMessage({
           type: 'close',
         });
         worker.port.close();
-        window.location.href = AppSubUrl;
+        window.location.href = appSubUrl;
+      } else if (event.data.type === 'close') {
+        worker.port.postMessage({
+          type: 'close',
+        });
+        worker.port.close();
       }
     });
     worker.port.addEventListener('error', (e) => {
@@ -90,7 +99,7 @@ export async function initNotificationCount() {
     return;
   }
 
-  if (NotificationSettings.MinTimeout <= 0) {
+  if (notificationSettings.MinTimeout <= 0) {
     return;
   }
 
@@ -100,13 +109,13 @@ export async function initNotificationCount() {
     }, timeout);
   };
 
-  fn(NotificationSettings.MinTimeout, notificationCount.text());
+  fn(notificationSettings.MinTimeout, notificationCount.text());
 }
 
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {
   const currentCount = $('.notification_count').text();
   if (lastCount !== currentCount) {
-    callback(NotificationSettings.MinTimeout, currentCount);
+    callback(notificationSettings.MinTimeout, currentCount);
     return;
   }
 
@@ -115,9 +124,9 @@ async function updateNotificationCountWithCallback(callback, timeout, lastCount)
 
   if (lastCount !== newCount) {
     needsUpdate = true;
-    timeout = NotificationSettings.MinTimeout;
-  } else if (timeout < NotificationSettings.MaxTimeout) {
-    timeout += NotificationSettings.TimeoutStep;
+    timeout = notificationSettings.MinTimeout;
+  } else if (timeout < notificationSettings.MaxTimeout) {
+    timeout += notificationSettings.TimeoutStep;
   }
 
   callback(timeout, newCount);
@@ -131,22 +140,25 @@ async function updateNotificationTable() {
   if (notificationDiv.length > 0) {
     const data = await $.ajax({
       type: 'GET',
-      url: `${AppSubUrl}/notifications?${notificationDiv.data('params')}`,
+      url: `${appSubUrl}/notifications?${notificationDiv.data('params')}`,
       data: {
         'div-only': true,
+        'sequence-number': ++notificationSequenceNumber,
       }
     });
-    notificationDiv.replaceWith(data);
-    initNotificationsTable();
+    if ($(data).data('sequence-number') === notificationSequenceNumber) {
+      notificationDiv.replaceWith(data);
+      initNotificationsTable();
+    }
   }
 }
 
 async function updateNotificationCount() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${AppSubUrl}/api/v1/notifications/new`,
+    url: `${appSubUrl}/api/v1/notifications/new`,
     headers: {
-      'X-Csrf-Token': csrf,
+      'X-Csrf-Token': csrfToken,
     },
   });
 
@@ -171,12 +183,13 @@ async function updateNotification(url, status, page, q, notificationID) {
     type: 'POST',
     url,
     data: {
-      _csrf: csrf,
+      _csrf: csrfToken,
       notification_id: notificationID,
       status,
       page,
       q,
       noredirect: true,
+      'sequence-number': ++notificationSequenceNumber,
     },
   });
 }

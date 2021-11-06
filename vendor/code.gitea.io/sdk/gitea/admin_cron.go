@@ -39,6 +39,9 @@ func (c *Client) RunCronTasks(task string) (*Response, error) {
 	if err := c.checkServerVersionGreaterThanOrEqual(version1_13_0); err != nil {
 		return nil, err
 	}
+	if err := escapeValidatePathSegments(&task); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("POST", fmt.Sprintf("/admin/cron/%s", task), jsonHeader, nil)
 	return resp, err
 }

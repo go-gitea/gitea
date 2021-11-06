@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -19,9 +20,9 @@ func TestAPIRepoTeams(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// publicOrgRepo = user3/repo21
-	publicOrgRepo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 32}).(*models.Repository)
+	publicOrgRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 32}).(*models.Repository)
 	// user4
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -33,12 +34,12 @@ func TestAPIRepoTeams(t *testing.T) {
 	DecodeJSON(t, res, &teams)
 	if assert.Len(t, teams, 2) {
 		assert.EqualValues(t, "Owners", teams[0].Name)
-		assert.EqualValues(t, false, teams[0].CanCreateOrgRepo)
+		assert.False(t, teams[0].CanCreateOrgRepo)
 		assert.EqualValues(t, []string{"repo.code", "repo.issues", "repo.pulls", "repo.releases", "repo.wiki", "repo.ext_wiki", "repo.ext_issues"}, teams[0].Units)
 		assert.EqualValues(t, "owner", teams[0].Permission)
 
 		assert.EqualValues(t, "test_team", teams[1].Name)
-		assert.EqualValues(t, false, teams[1].CanCreateOrgRepo)
+		assert.False(t, teams[1].CanCreateOrgRepo)
 		assert.EqualValues(t, []string{"repo.issues"}, teams[1].Units)
 		assert.EqualValues(t, "write", teams[1].Permission)
 	}
@@ -61,7 +62,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	res = session.MakeRequest(t, req, http.StatusForbidden)
 
 	// AddTeam with user2
-	user = models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user = db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session)
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)

@@ -22,6 +22,9 @@ import (
 	"net/http"
 	"time"
 
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web/middleware"
+
 	"github.com/unknwon/com"
 )
 
@@ -37,6 +40,8 @@ type CSRF interface {
 	GetCookiePath() string
 	// Return the flag value used for the csrf token.
 	GetCookieHTTPOnly() bool
+	// Return cookie domain
+	GetCookieDomain() string
 	// Return the token.
 	GetToken() string
 	// Validate by token.
@@ -91,6 +96,11 @@ func (c *csrf) GetCookiePath() string {
 // GetCookieHTTPOnly returns the flag value used for the csrf token.
 func (c *csrf) GetCookieHTTPOnly() bool {
 	return c.CookieHTTPOnly
+}
+
+// GetCookieDomain returns the flag value used for the csrf token.
+func (c *csrf) GetCookieDomain() string {
+	return c.CookieDomain
 }
 
 // GetToken returns the current token. This is typically used
@@ -227,10 +237,14 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 			if opt.CookieLifeTime == 0 {
 				expires = time.Now().AddDate(0, 0, 1)
 			}
-			ctx.SetCookie(opt.Cookie, x.Token, opt.CookieLifeTime, opt.CookiePath, opt.CookieDomain, opt.Secure, opt.CookieHTTPOnly, expires,
-				func(c *http.Cookie) {
-					c.SameSite = opt.SameSite
-				},
+			middleware.SetCookie(ctx.Resp, opt.Cookie, x.Token,
+				opt.CookieLifeTime,
+				opt.CookiePath,
+				opt.CookieDomain,
+				opt.Secure,
+				opt.CookieHTTPOnly,
+				expires,
+				middleware.SameSite(opt.SameSite),
 			)
 		}
 	}
@@ -248,18 +262,40 @@ func Csrfer(opt CsrfOptions, ctx *Context) CSRF {
 func Validate(ctx *Context, x CSRF) {
 	if token := ctx.Req.Header.Get(x.GetHeaderName()); len(token) > 0 {
 		if !x.ValidToken(token) {
-			ctx.SetCookie(x.GetCookieName(), "", -1, x.GetCookiePath())
-			x.Error(ctx.Resp)
+			// Delete the cookie
+			middleware.SetCookie(ctx.Resp, x.GetCookieName(), "",
+				-1,
+				x.GetCookiePath(),
+				x.GetCookieDomain()) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
+			if middleware.IsAPIPath(ctx.Req) {
+				x.Error(ctx.Resp)
+				return
+			}
+			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
+			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
 	}
 	if token := ctx.Req.FormValue(x.GetFormName()); len(token) > 0 {
 		if !x.ValidToken(token) {
-			ctx.SetCookie(x.GetCookieName(), "", -1, x.GetCookiePath())
-			x.Error(ctx.Resp)
+			// Delete the cookie
+			middleware.SetCookie(ctx.Resp, x.GetCookieName(), "",
+				-1,
+				x.GetCookiePath(),
+				x.GetCookieDomain()) // FIXME: Do we need to set the Secure, httpOnly and SameSite values too?
+			if middleware.IsAPIPath(ctx.Req) {
+				x.Error(ctx.Resp)
+				return
+			}
+			ctx.Flash.Error(ctx.Tr("error.invalid_csrf"))
+			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
 	}
-
-	http.Error(ctx.Resp, "Bad Request: no CSRF token present", http.StatusBadRequest)
+	if middleware.IsAPIPath(ctx.Req) {
+		http.Error(ctx.Resp, "Bad Request: no CSRF token present", http.StatusBadRequest)
+		return
+	}
+	ctx.Flash.Error(ctx.Tr("error.missing_csrf"))
+	ctx.Redirect(setting.AppSubURL + "/")
 }

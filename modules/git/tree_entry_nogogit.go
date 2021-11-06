@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -84,8 +85,10 @@ func (te *TreeEntry) IsExecutable() bool {
 // Blob returns the blob object the entry
 func (te *TreeEntry) Blob() *Blob {
 	return &Blob{
-		ID:       te.ID,
-		repoPath: te.ptree.repo.Path,
-		name:     te.Name(),
+		ID:      te.ID,
+		name:    te.Name(),
+		size:    te.size,
+		gotSize: te.sized,
+		repo:    te.ptree.repo,
 	}
 }

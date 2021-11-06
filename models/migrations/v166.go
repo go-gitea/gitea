@@ -106,10 +106,8 @@ func recalculateUserEmptyPWD(x *xorm.Engine) (err error) {
 	}
 
 	// delete salt and algo where password is empty
-	if _, err = sess.Where(builder.Eq{"passwd": ""}.And(builder.Neq{"salt": ""}.Or(builder.Neq{"passwd_hash_algo": ""}))).
-		Cols("salt", "passwd_hash_algo").Update(&User{}); err != nil {
-		return err
-	}
+	_, err = sess.Where(builder.Eq{"passwd": ""}.And(builder.Neq{"salt": ""}.Or(builder.Neq{"passwd_hash_algo": ""}))).
+		Cols("salt", "passwd_hash_algo").Update(&User{})
 
-	return sess.Commit()
+	return err
 }

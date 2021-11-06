@@ -5,10 +5,12 @@
 package integrations
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -18,8 +20,8 @@ import (
 
 func TestAPIGitTags(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -58,4 +60,27 @@ func TestAPIGitTags(t *testing.T) {
 	// Should NOT work for lightweight tags
 	badReq := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/git/tags/%s?token=%s", user.Name, repo.Name, commit.ID.String(), token)
 	session.MakeRequest(t, badReq, http.StatusBadRequest)
+}
+
+func TestAPIDeleteTagByName(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	session := loginUser(t, owner.LowerName)
+	token := getTokenForLoggedInUser(t, session)
+
+	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/tags/delete-tag?token=%s",
+		owner.Name, repo.Name, token)
+
+	req := NewRequestf(t, http.MethodDelete, urlStr)
+	_ = session.MakeRequest(t, req, http.StatusNoContent)
+
+	// Make sure that actual releases can't be deleted outright
+	createNewReleaseUsingAPI(t, session, token, owner, repo, "release-tag", "", "Release Tag", "test")
+	urlStr = fmt.Sprintf("/api/v1/repos/%s/%s/tags/release-tag?token=%s",
+		owner.Name, repo.Name, token)
+
+	req = NewRequestf(t, http.MethodDelete, urlStr)
+	_ = session.MakeRequest(t, req, http.StatusConflict)
 }

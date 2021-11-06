@@ -5,7 +5,9 @@
 package code
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -13,12 +15,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/analyze"
-	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
+	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/blevesearch/bleve/v2"
@@ -173,32 +176,50 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 	return indexer, created, err
 }
 
-func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addUpdate(batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
+	update fileUpdate, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
 	// Ignore vendored files in code search
-	if setting.Indexer.ExcludeVendored && enry.IsVendor(update.Filename) {
+	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
 	}
 
-	stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
-		RunInDir(repo.RepoPath())
-	if err != nil {
-		return err
+	size := update.Size
+
+	if !update.Sized {
+		stdout, err := git.NewCommand("cat-file", "-s", update.BlobSha).
+			RunInDir(repo.RepoPath())
+		if err != nil {
+			return err
+		}
+		if size, err = strconv.ParseInt(strings.TrimSpace(stdout), 10, 64); err != nil {
+			return fmt.Errorf("Misformatted git cat-file output: %v", err)
+		}
 	}
-	if size, err := strconv.Atoi(strings.TrimSpace(stdout)); err != nil {
-		return fmt.Errorf("Misformatted git cat-file output: %v", err)
-	} else if int64(size) > setting.Indexer.MaxIndexerFileSize {
+
+	if size > setting.Indexer.MaxIndexerFileSize {
 		return b.addDelete(update.Filename, repo, batch)
 	}
 
-	fileContents, err := git.NewCommand("cat-file", "blob", update.BlobSha).
-		RunInDirBytes(repo.RepoPath())
+	if _, err := batchWriter.Write([]byte(update.BlobSha + "\n")); err != nil {
+		return err
+	}
+
+	_, _, size, err := git.ReadBatchLine(batchReader)
 	if err != nil {
 		return err
-	} else if !base.IsTextFile(fileContents) {
+	}
+
+	fileContents, err := io.ReadAll(io.LimitReader(batchReader, size))
+	if err != nil {
+		return err
+	} else if !typesniffer.DetectContentType(fileContents).IsText() {
 		// FIXME: UTF-16 files will probably fail here
 		return nil
 	}
 
+	if _, err = batchReader.Discard(1); err != nil {
+		return err
+	}
 	id := filenameIndexerID(repo.ID, update.Filename)
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
@@ -209,7 +230,7 @@ func (b *BleveIndexer) addUpdate(commitSha string, update fileUpdate, repo *mode
 	})
 }
 
-func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch rupture.FlushingBatch) error {
+func (b *BleveIndexer) addDelete(filename string, repo *models.Repository, batch *gitea_bleve.FlushingBatch) error {
 	id := filenameIndexerID(repo.ID, filename)
 	return batch.Delete(id)
 }
@@ -247,11 +268,18 @@ func (b *BleveIndexer) Close() {
 
 // Index indexes the data
 func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
-	for _, update := range changes.Updates {
-		if err := b.addUpdate(sha, update, repo, batch); err != nil {
-			return err
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
+	if len(changes.Updates) > 0 {
+
+		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		defer cancel()
+
+		for _, update := range changes.Updates {
+			if err := b.addUpdate(batchWriter, batchReader, sha, update, repo, batch); err != nil {
+				return err
+			}
 		}
+		cancel()
 	}
 	for _, filename := range changes.RemovedFilenames {
 		if err := b.addDelete(filename, repo, batch); err != nil {
@@ -269,7 +297,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 	if err != nil {
 		return err
 	}
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, hit := range result.Hits {
 		if err = batch.Delete(hit.ID); err != nil {
 			return err

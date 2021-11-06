@@ -7,6 +7,10 @@ import (
 	"github.com/klauspost/compress/zstd/internal/xxhash"
 )
 
+const (
+	dictShardBits = 6
+)
+
 type fastBase struct {
 	// cur is the offset at the start of hist
 	cur int32
@@ -17,6 +21,7 @@ type fastBase struct {
 	tmp         [8]byte
 	blk         *blockEnc
 	lastDictID  uint32
+	lowMem      bool
 }
 
 // CRC returns the underlying CRC writer.
@@ -57,15 +62,10 @@ func (e *fastBase) addBlock(src []byte) int32 {
 	// check if we have space already
 	if len(e.hist)+len(src) > cap(e.hist) {
 		if cap(e.hist) == 0 {
-			l := e.maxMatchOff * 2
-			// Make it at least 1MB.
-			if l < 1<<20 {
-				l = 1 << 20
-			}
-			e.hist = make([]byte, 0, l)
+			e.ensureHist(len(src))
 		} else {
-			if cap(e.hist) < int(e.maxMatchOff*2) {
-				panic("unexpected buffer size")
+			if cap(e.hist) < int(e.maxMatchOff+maxCompressedBlockSize) {
+				panic(fmt.Errorf("unexpected buffer cap %d, want at least %d with window %d", cap(e.hist), e.maxMatchOff+maxCompressedBlockSize, e.maxMatchOff))
 			}
 			// Move down
 			offset := int32(len(e.hist)) - e.maxMatchOff
@@ -77,6 +77,28 @@ func (e *fastBase) addBlock(src []byte) int32 {
 	s := int32(len(e.hist))
 	e.hist = append(e.hist, src...)
 	return s
+}
+
+// ensureHist will ensure that history can keep at least this many bytes.
+func (e *fastBase) ensureHist(n int) {
+	if cap(e.hist) >= n {
+		return
+	}
+	l := e.maxMatchOff
+	if (e.lowMem && e.maxMatchOff > maxCompressedBlockSize) || e.maxMatchOff <= maxCompressedBlockSize {
+		l += maxCompressedBlockSize
+	} else {
+		l += e.maxMatchOff
+	}
+	// Make it at least 1MB.
+	if l < 1<<20 && !e.lowMem {
+		l = 1 << 20
+	}
+	// Make it at least the requested size.
+	if l < int32(n) {
+		l = int32(n)
+	}
+	e.hist = make([]byte, 0, l)
 }
 
 // useBlock will replace the block with the provided one,
@@ -117,7 +139,7 @@ func (e *fastBase) matchlen(s, t int32, src []byte) int32 {
 // Reset the encoding table.
 func (e *fastBase) resetBase(d *dict, singleBlock bool) {
 	if e.blk == nil {
-		e.blk = &blockEnc{}
+		e.blk = &blockEnc{lowMem: e.lowMem}
 		e.blk.init()
 	} else {
 		e.blk.reset(nil)
@@ -128,14 +150,15 @@ func (e *fastBase) resetBase(d *dict, singleBlock bool) {
 	} else {
 		e.crc.Reset()
 	}
-	if (!singleBlock || d.DictContentSize() > 0) && cap(e.hist) < int(e.maxMatchOff*2)+d.DictContentSize() {
-		l := e.maxMatchOff*2 + int32(d.DictContentSize())
-		// Make it at least 1MB.
-		if l < 1<<20 {
-			l = 1 << 20
+	if d != nil {
+		low := e.lowMem
+		if singleBlock {
+			e.lowMem = true
 		}
-		e.hist = make([]byte, 0, l)
+		e.ensureHist(d.DictContentSize() + maxCompressedBlockSize)
+		e.lowMem = low
 	}
+
 	// We offset current position so everything will be out of reach.
 	// If above reset line, history will be purged.
 	if e.cur < bufferReset {

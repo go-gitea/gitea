@@ -4,9 +4,11 @@
 		<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.OrgLink}}/settings">
 			{{.i18n.Tr "org.settings.options"}}
 		</a>
+		{{if not DisableWebhooks}}
 		<a class="{{if .PageIsSettingsHooks}}active{{end}} item" href="{{.OrgLink}}/settings/hooks">
 			{{.i18n.Tr "repo.settings.hooks"}}
 		</a>
+		{{end}}
 		<a class="{{if .PageIsOrgSettingsLabels}}active{{end}} item" href="{{.OrgLink}}/settings/labels">
 			{{.i18n.Tr "repo.labels"}}
 		</a>

@@ -8,24 +8,24 @@
 			{{range .Users}}
 				<div class="item">
 					{{avatar .}}
-				  <div class="content">
-					<span class="header">
-						<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
-						{{if .Visibility.IsPrivate}}
-							<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
-						{{end}}
-					</span>
-					<div class="description">
-						{{if .Location}}
-							{{svg "octicon-location"}} {{.Location}}
-						{{end}}
-						{{if and .Website}}
-							{{svg "octicon-link"}}
-							<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
-						{{end}}
-						{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+					<div class="content">
+						<span class="header">
+							<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
+							{{if .Visibility.IsPrivate}}
+								<span class="ui basic label">{{$.i18n.Tr "repo.desc.private"}}</span>
+							{{end}}
+						</span>
+						<div class="description">
+							{{if .Location}}
+								{{svg "octicon-location"}} {{.Location}}
+							{{end}}
+							{{if and .Website}}
+								{{svg "octicon-link"}}
+								<a href="{{.Website}}" rel="nofollow">{{.Website}}</a>
+							{{end}}
+							{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+						</div>
 					</div>
-				  </div>
 				</div>
 			{{else}}
 				<div>{{$.i18n.Tr "explore.org_no_results"}}</div>

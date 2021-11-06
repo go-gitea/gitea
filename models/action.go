@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -26,30 +27,32 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo         ActionType = iota + 1 // 1
-	ActionRenameRepo                               // 2
-	ActionStarRepo                                 // 3
-	ActionWatchRepo                                // 4
-	ActionCommitRepo                               // 5
-	ActionCreateIssue                              // 6
-	ActionCreatePullRequest                        // 7
-	ActionTransferRepo                             // 8
-	ActionPushTag                                  // 9
-	ActionCommentIssue                             // 10
-	ActionMergePullRequest                         // 11
-	ActionCloseIssue                               // 12
-	ActionReopenIssue                              // 13
-	ActionClosePullRequest                         // 14
-	ActionReopenPullRequest                        // 15
-	ActionDeleteTag                                // 16
-	ActionDeleteBranch                             // 17
-	ActionMirrorSyncPush                           // 18
-	ActionMirrorSyncCreate                         // 19
-	ActionMirrorSyncDelete                         // 20
-	ActionApprovePullRequest                       // 21
-	ActionRejectPullRequest                        // 22
-	ActionCommentPull                              // 23
-	ActionPublishRelease                           // 24
+	ActionCreateRepo                ActionType = iota + 1 // 1
+	ActionRenameRepo                                      // 2
+	ActionStarRepo                                        // 3
+	ActionWatchRepo                                       // 4
+	ActionCommitRepo                                      // 5
+	ActionCreateIssue                                     // 6
+	ActionCreatePullRequest                               // 7
+	ActionTransferRepo                                    // 8
+	ActionPushTag                                         // 9
+	ActionCommentIssue                                    // 10
+	ActionMergePullRequest                                // 11
+	ActionCloseIssue                                      // 12
+	ActionReopenIssue                                     // 13
+	ActionClosePullRequest                                // 14
+	ActionReopenPullRequest                               // 15
+	ActionDeleteTag                                       // 16
+	ActionDeleteBranch                                    // 17
+	ActionMirrorSyncPush                                  // 18
+	ActionMirrorSyncCreate                                // 19
+	ActionMirrorSyncDelete                                // 20
+	ActionApprovePullRequest                              // 21
+	ActionRejectPullRequest                               // 22
+	ActionCommentPull                                     // 23
+	ActionPublishRelease                                  // 24
+	ActionPullReviewDismissed                             // 25
+	ActionPullRequestReadyForReview                       // 26
 )
 
 // Action represents user operation type and other information to
@@ -70,6 +73,10 @@ type Action struct {
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+}
+
+func init() {
+	db.RegisterModel(new(Action))
 }
 
 // GetOpType gets the ActionType of this action.
@@ -185,7 +192,7 @@ func (a *Action) GetRepoLink() string {
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, error) {
+func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 	var err error
 	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
@@ -201,10 +208,10 @@ func GetRepositoryFromMatch(ownerName string, repoName string) (*Repository, err
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(x)
+	return a.getCommentLink(db.GetEngine(db.DefaultContext))
 }
 
-func (a *Action) getCommentLink(e Engine) string {
+func (a *Action) getCommentLink(e db.Engine) string {
 	if a == nil {
 		return "#"
 	}
@@ -217,7 +224,7 @@ func (a *Action) getCommentLink(e Engine) string {
 	if len(a.GetIssueInfos()) == 0 {
 		return "#"
 	}
-	//Return link to issue
+	// Return link to issue
 	issueIDString := a.GetIssueInfos()[0]
 	issueID, err := strconv.ParseInt(issueIDString, 10, 64)
 	if err != nil {
@@ -259,7 +266,7 @@ func (a *Action) GetCreate() time.Time {
 // GetIssueInfos returns a list of issues associated with
 // the action.
 func (a *Action) GetIssueInfos() []string {
-	return strings.SplitN(a.Content, "|", 2)
+	return strings.SplitN(a.Content, "|", 3)
 }
 
 // GetIssueTitle returns the title of first issue associated
@@ -288,12 +295,13 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User // the user we want activity for
-	RequestedTeam   *Team // the team we want activity for
-	Actor           *User // the user viewing the activity
-	IncludePrivate  bool  // include private actions
-	OnlyPerformedBy bool  // only actions performed by requested user
-	IncludeDeleted  bool  // include deleted actions
+	RequestedUser   *User  // the user we want activity for
+	RequestedTeam   *Team  // the team we want activity for
+	Actor           *User  // the user viewing the activity
+	IncludePrivate  bool   // include private actions
+	OnlyPerformedBy bool   // only actions performed by requested user
+	IncludeDeleted  bool   // include deleted actions
+	Date            string // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -309,7 +317,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := x.Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -320,7 +328,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	return actions, nil
 }
 
-func activityReadable(user *User, doer *User) bool {
+func activityReadable(user, doer *User) bool {
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID
@@ -379,5 +387,27 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		cond = cond.And(builder.Eq{"is_deleted": false})
 	}
 
+	if opts.Date != "" {
+		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
+		if err != nil {
+			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
+		} else {
+			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
+
+			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+		}
+	}
+
 	return cond, nil
+}
+
+// DeleteOldActions deletes all old actions from database.
+func DeleteOldActions(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	return
 }

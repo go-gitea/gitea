@@ -5,14 +5,18 @@ import (
 	"github.com/alecthomas/chroma/lexers/internal"
 )
 
-var MonkeyC = internal.Register(MustNewLexer(
+var MonkeyC = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "MonkeyC",
 		Aliases:   []string{"monkeyc"},
 		Filenames: []string{"*.mc"},
 		MimeTypes: []string{"text/x-monkeyc"},
 	},
-	Rules{
+	monkeyCRules,
+))
+
+func monkeyCRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+`, Text, nil},
 			{`\n`, Text, nil},
@@ -58,5 +62,5 @@ var MonkeyC = internal.Register(MustNewLexer(
 			{`[a-zA-Z_][\w_\.]*`, NameNamespace, nil},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

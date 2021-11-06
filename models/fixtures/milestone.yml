@@ -29,3 +29,11 @@
   content: content random
   is_closed: false
   num_issues: 0
+
+- 
+  id: 5
+  repo_id: 10
+  name: milestone of repo 10 
+  content: for testing with PRs
+  is_closed: false
+  num_issues: 0

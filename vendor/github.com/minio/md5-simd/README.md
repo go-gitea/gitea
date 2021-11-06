@@ -116,6 +116,8 @@ BenchmarkParallel/8MB-4       2182.48      17252.88     7.91x
 
 These measurements were performed on AWS EC2 instance of type `c5.xlarge` equipped with a Xeon Platinum 8124M CPU at 3.0 GHz.
 
+If only one or two inputs are available the scalar calculation method will be used for the 
+optimal speed in these cases.
 
 ## Operation
 

@@ -7,14 +7,18 @@ import (
 )
 
 // Markdown lexer.
-var Markdown = internal.Register(DelegatingLexer(h.HTML, MustNewLexer(
+var Markdown = internal.Register(DelegatingLexer(h.HTML, MustNewLazyLexer(
 	&Config{
 		Name:      "markdown",
 		Aliases:   []string{"md", "mkd"},
 		Filenames: []string{"*.md", "*.mkd", "*.markdown"},
 		MimeTypes: []string{"text/x-markdown"},
 	},
-	Rules{
+	markdownRules,
+)))
+
+func markdownRules() Rules {
+	return Rules{
 		"root": {
 			{`^(#[^#].+\n)`, ByGroups(GenericHeading), nil},
 			{`^(#{2,6}.+\n)`, ByGroups(GenericSubheading), nil},
@@ -23,7 +27,8 @@ var Markdown = internal.Register(DelegatingLexer(h.HTML, MustNewLexer(
 			{`^(\s*)([0-9]+\.)( .+\n)`, ByGroups(Text, Keyword, UsingSelf("inline")), nil},
 			{`^(\s*>\s)(.+\n)`, ByGroups(Keyword, GenericEmph), nil},
 			{"^(```\\n)([\\w\\W]*?)(^```$)", ByGroups(String, Text, String), nil},
-			{"^(```)(\\w+)(\\n)([\\w\\W]*?)(^```$)",
+			{
+				"^(```)(\\w+)(\\n)([\\w\\W]*?)(^```$)",
 				UsingByGroup(
 					internal.Get,
 					2, 4,
@@ -35,7 +40,7 @@ var Markdown = internal.Register(DelegatingLexer(h.HTML, MustNewLexer(
 		},
 		"inline": {
 			{`\\.`, Text, nil},
-			{`(\s)([*_][^*_]+[*_])(\W|\n)`, ByGroups(Text, GenericEmph, Text), nil},
+			{`(\s)(\*|_)((?:(?!\2).)*)(\2)((?=\W|\n))`, ByGroups(Text, GenericEmph, GenericEmph, GenericEmph, Text), nil},
 			{`(\s)((\*\*|__).*?)\3((?=\W|\n))`, ByGroups(Text, GenericStrong, GenericStrong, Text), nil},
 			{`(\s)(~~[^~]+~~)((?=\W|\n))`, ByGroups(Text, GenericDeleted, Text), nil},
 			{"`[^`]+`", LiteralStringBacktick, nil},
@@ -44,5 +49,5 @@ var Markdown = internal.Register(DelegatingLexer(h.HTML, MustNewLexer(
 			{`[^\\\s]+`, Other, nil},
 			{`.|\n`, Other, nil},
 		},
-	},
-)))
+	}
+}

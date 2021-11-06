@@ -6,14 +6,18 @@ import (
 )
 
 // Abnf lexer.
-var Abnf = internal.Register(MustNewLexer(
+var Abnf = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "ABNF",
 		Aliases:   []string{"abnf"},
 		Filenames: []string{"*.abnf"},
 		MimeTypes: []string{"text/x-abnf"},
 	},
-	Rules{
+	abnfRules,
+))
+
+func abnfRules() Rules {
+	return Rules{
 		"root": {
 			{`;.*$`, CommentSingle, nil},
 			{`(%[si])?"[^"]*"`, Literal, nil},
@@ -34,5 +38,5 @@ var Abnf = internal.Register(MustNewLexer(
 			{`\s+`, Text, nil},
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

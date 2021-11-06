@@ -141,8 +141,8 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 			return perm, err
 		}
 
-		// Prevent strangers from checking out public repo of private orginization
-		// Allow user if they are collaborator of a repo within a private orginization but not a member of the orginization itself
+		// Prevent strangers from checking out public repo of private organization
+		// Allow user if they are collaborator of a repo within a private organization but not a member of the organization itself
 		hasOrgVisible := true
 		// Not SignedUser
 		if user == nil {
@@ -380,7 +380,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 	}
 	totalPages := totalIssues / pageSize
 
-	var executeBody = func(page, pageSize int64) error {
+	executeBody := func(page, pageSize int64) error {
 		// Find latest review of each user in each pull request, and set official field if appropriate
 		reviews := []*Review{}
 

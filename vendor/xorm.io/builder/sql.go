@@ -59,6 +59,9 @@ func ToBoundSQL(cond interface{}) (string, error) {
 }
 
 func noSQLQuoteNeeded(a interface{}) bool {
+	if a == nil {
+		return false
+	}
 	switch a.(type) {
 	case int, int8, int16, int32, int64:
 		return true

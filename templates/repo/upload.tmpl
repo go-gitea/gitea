@@ -1,6 +1,5 @@
 <div
 	class="ui dropzone"
-	id="dropzone"
 	data-link-url="{{.UploadLinkUrl}}"
 	data-upload-url="{{.UploadUrl}}"
 	data-remove-url="{{.UploadRemoveUrl}}"
@@ -11,4 +10,6 @@
 	data-invalid-input-type="{{.i18n.Tr "dropzone.invalid_input_type"}}"
 	data-file-too-big="{{.i18n.Tr "dropzone.file_too_big"}}"
 	data-remove-file="{{.i18n.Tr "dropzone.remove_file"}}"
-></div>
+>
+	<div class="files"></div>
+</div>

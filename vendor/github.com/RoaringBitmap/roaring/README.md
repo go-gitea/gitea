@@ -1,4 +1,4 @@
-roaring [![Build Status](https://travis-ci.org/RoaringBitmap/roaring.png)](https://travis-ci.org/RoaringBitmap/roaring) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
+roaring [![Build Status](https://travis-ci.org/RoaringBitmap/roaring.png)](https://travis-ci.org/RoaringBitmap/roaring) [![GoDoc](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64?status.svg)](https://godoc.org/github.com/RoaringBitmap/roaring/roaring64) [![Go Report Card](https://goreportcard.com/badge/RoaringBitmap/roaring)](https://goreportcard.com/report/github.com/RoaringBitmap/roaring)
 [![Build Status](https://cloud.drone.io/api/badges/RoaringBitmap/roaring/status.svg)](https://cloud.drone.io/RoaringBitmap/roaring)
 ![Go-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-CI/badge.svg)
 ![Go-ARM-CI](https://github.com/RoaringBitmap/roaring/workflows/Go-ARM-CI/badge.svg)
@@ -84,7 +84,7 @@ When the bitset approach is applicable, it can be orders of
 magnitude faster than other possible implementation of a set (e.g., as a hash set)
 while using several times less memory.
 
-However, a bitset, even a compressed one is not always applicable. For example, if the
+However, a bitset, even a compressed one is not always applicable. For example, if
 you have 1000 random-looking integers, then a simple array might be the best representation.
 We refer to this case as the "sparse" scenario.
 
@@ -158,7 +158,7 @@ http://arxiv.org/abs/1402.6407 This paper used data from http://lemire.me/data/r
 Dependencies are fetched automatically by giving the `-t` flag to `go get`.
 
 they include
-  - github.com/willf/bitset
+  - github.com/bits-and-blooms/bitset
   - github.com/mschoch/smat
   - github.com/glycerine/go-unsnap-stream
   - github.com/philhofer/fwd
@@ -384,11 +384,13 @@ You can help us test further the library with fuzzy testing:
          go get github.com/dvyukov/go-fuzz/go-fuzz-build
          go test -tags=gofuzz -run=TestGenerateSmatCorpus
          go-fuzz-build github.com/RoaringBitmap/roaring
-         go-fuzz -bin=./roaring-fuzz.zip -workdir=workdir/ -timeout=200
+         go-fuzz -bin=./roaring-fuzz.zip -workdir=workdir/ -timeout=200 -func FuzzSmat
 
 Let it run, and if the # of crashers is > 0, check out the reports in
 the workdir where you should be able to find the panic goroutine stack
 traces.
+
+You may also replace `-func FuzzSmat`  by `-func FuzzSerializationBuffer` or `-func FuzzSerializationStream`.
 
 ### Alternative in Go
 

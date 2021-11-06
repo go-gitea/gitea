@@ -17,7 +17,7 @@ import (
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
+func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -39,6 +39,12 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	if err := pr.LoadHeadRepo(); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
+	}
+
+	perm, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
+	if err != nil {
+		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
+		perm.AccessMode = models.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -68,7 +74,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(pr.BaseRepo, models.AccessModeNone),
+			Repository: ToRepo(pr.BaseRepo, perm.AccessMode),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -95,9 +101,33 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 	}
 
-	if pr.HeadRepo != nil {
+	if pr.Flow == models.PullRequestFlowAGit {
+		gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
+			return nil
+		}
+		defer gitRepo.Close()
+
+		apiPullRequest.Head.Sha, err = gitRepo.GetRefCommitID(pr.GetGitRefName())
+		if err != nil {
+			log.Error("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+			return nil
+		}
+		apiPullRequest.Head.RepoID = pr.BaseRepoID
+		apiPullRequest.Head.Repository = apiPullRequest.Base.Repository
+		apiPullRequest.Head.Name = ""
+	}
+
+	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
+		perm, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+		if err != nil {
+			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
+			perm.AccessMode = models.AccessModeNone
+		}
+
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, models.AccessModeNone)
+		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, perm.AccessMode)
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
@@ -134,6 +164,24 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 		}
 	}
 
+	if len(apiPullRequest.Head.Sha) == 0 && len(apiPullRequest.Head.Ref) != 0 {
+		baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+		if err != nil {
+			log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+			return nil
+		}
+		defer baseGitRepo.Close()
+		refs, err := baseGitRepo.GetRefsFiltered(apiPullRequest.Head.Ref)
+		if err != nil {
+			log.Error("GetRefsFiltered[%s]: %v", apiPullRequest.Head.Ref, err)
+			return nil
+		} else if len(refs) == 0 {
+			log.Error("unable to resolve PR head ref")
+		} else {
+			apiPullRequest.Head.Sha = refs[0].Object.String()
+		}
+	}
+
 	if pr.Status != models.PullRequestStatusChecking {
 		mergeable := !(pr.Status == models.PullRequestStatusConflict || pr.Status == models.PullRequestStatusError) && !pr.IsWorkInProgress()
 		apiPullRequest.Mergeable = mergeable
@@ -141,7 +189,7 @@ func ToAPIPullRequest(pr *models.PullRequest) *api.PullRequest {
 	if pr.HasMerged {
 		apiPullRequest.Merged = pr.MergedUnix.AsTimePtr()
 		apiPullRequest.MergedCommitID = &pr.MergedCommitID
-		apiPullRequest.MergedBy = ToUser(pr.Merger, false, false)
+		apiPullRequest.MergedBy = ToUser(pr.Merger, nil)
 	}
 
 	return apiPullRequest

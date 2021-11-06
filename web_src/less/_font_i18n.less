@@ -1,0 +1,130 @@
+/* font i18n */
+:root {
+  /* customizable localized variables */
+  :lang(ja) {
+    --fonts-override: var(--fonts-default-override-ja);
+  }
+  :lang(zh-CN) {
+    --fonts-override: var(--fonts-default-override-zh-cn);
+  }
+  :lang(zh-TW) {
+    --fonts-override: var(--fonts-default-override-zh-tw);
+  }
+  :lang(zh-HK) {
+    --fonts-override: var(--fonts-default-override-zh-hk);
+  }
+  :lang(ko) {
+    --fonts-override: var(--fonts-default-override-ko);
+  }
+}
+
+[lang] {
+  font-family: var(--fonts-regular);
+}
+
+each(@fonts, {
+  @weights: .gen-weights-all(@value);
+  @locale: replace(@key, "@", "-");
+  .font-face-cjk(~"system-ui@{locale}", @weights[@light], 300);
+  .font-face-cjk(~"system-ui@{locale}", @weights[@regular], 400);
+  .font-face-cjk(~"system-ui@{locale}", @weights[@medium], 500);
+  .font-face-cjk(~"system-ui@{locale}", @weights[@bold], 700);
+  /* Safari on macOS/iOS */
+  @font-face {
+    font-family: ~"system-ui@{locale}";
+    src: local("HelveticaNeue");
+    unicode-range: U+A0;
+  }
+  /* Other browsers on macOS/iOS */
+  @supports not (-webkit-hyphens:none) {
+    @font-face {
+      font-family: ~"system-ui@{locale}";
+      src: local("HelveticaNeue");
+      unicode-range: U+20;
+    }
+  }
+  :root {
+    /* Special handling for Firefox on Windows/Linux */
+    @supports (-moz-appearance:none) {
+      --fonts-default-override@{locale}: ~"var(--fonts-proportional), system-ui@{locale}";
+    }
+    --fonts-default-override@{locale}: ~"system-ui@{locale}, var(--fonts-proportional)";
+  }
+});
+
+@fonts: {
+  @ja:
+    "HiraginoSans-:{W2,W4,W5,W6}", "HiraKakuProN-:{W3,W6}", "Hiragino Kaku Gothic ProN :{W3,W6}",
+    .shs("JP")[], .shs("J")[], .noto("JP")[], .shs("")[],
+    /* https://acetaminophen.hatenablog.com/entry/2016/02/15/225009 */
+    "Yu Gothic :{Regular,Medium,Bold}", "YuGothic :{Regular,Medium,Bold}",
+    "Droid Sans Japanese:{}", "Meiryo:{, Bold}", "MS PGothic:{}";
+  @zh-cn:
+    .pingfang("SC")[],
+    .shs("CN")[], .shs("SC")[], .noto("SC")[],
+    "HiraginoSansGB-:{W3,W6}", "Hiragino Sans GB :{W3,W6}",
+    "Microsoft YaHei:{ Light,, Bold}", "Heiti SC :{Light,Medium}", "SimHei:{}";
+  @zh-tw:
+    .pingfang("TC")[],
+    .shs("TW")[], .shs("TC")[], .noto("TC")[],
+    "HiraginoSansTC-:{W3,W6}", "Hiragino Sans TC :{W3,W6}",
+    "Microsoft JhengHei:{ Light,, Bold}", "Heiti TC :{Light,Medium}", "PMingLiU:{}";
+  @zh-hk:
+    .pingfang("HK")[],
+    .shs("HK")[], .shs("HC")[], .noto("HK")[], .shs("TC")[], .noto("TC")[],
+    "HiraginoSansTC-:{W3,W6}", "Hiragino Sans TC :{W3,W6}",
+    "Microsoft JhengHei:{ Light,, Bold}", "Heiti TC :{Light,Medium}", "PMingLiU_HKSCS:{}", "PMingLiU:{}";
+  @ko:
+    "AppleSDGothicNeo-:{Light,Regular,Medium,SemiBold}",
+    .shs("KR")[], .shs("K")[], .noto("KR")[],
+    "NanumBarunGothic:{ Light,, Bold}",
+    "Malgun Gothic:{ Semilight,, Bold}", "Nanum Gothic:{, Bold}", "Dotum:{}";
+}
+
+.noto(@suffix) { @value: "Noto Sans CJK @{suffix} ", "NotoSansCJK@{suffix}-"; }
+.shs(@suffix) { @value: replace("Source Han Sans @{suffix} ", "  ", " "), "SourceHanSans@{suffix}-"; }
+.pingfang(@suffix) { @value: "PingFang@{suffix}-:{Light,Regular,Medium,Semibold}"; }
+.font-face-cjk(@family, @src, @weight) {
+  @font-face {
+    font-family: @family;
+    src: @src;
+    font-weight: @weight;
+    unicode-range: ~"U+11??, U+2E80-4DBF, U+4E00-9FFF, U+A960-A97F, U+AC00-D7FF, U+F900-FAFF, U+FE00-FE6F, U+FF00-FFEF, U+1F2??, U+2????";
+  }
+}
+
+.gen-weights(@family) when (isstring(@family)) {
+  @family-str: replace(@family, ":\{.*\}$", "");
+  // apply standard style names if none is given
+  // should the font have no styles, use :{}, as in "SimHei:{}"
+  @weights-str: if(@family = @family-str, "Light,Regular,Medium,Bold", replace(@family, ".*:\{(.*)\}$", "$1"));
+  @lightest: replace(@weights-str, ",.*", "");
+  @boldest: replace(@weights-str, ".*,", "");
+  @2ndboldest: replace(@weights-str, "(?:.*,|)([^,]*),.*$", "$1");
+  @2ndlightest: if(@2ndboldest = @lightest, @lightest, replace(@weights-str, "^.*?,([^,]*).*", "$1"));
+
+  @light: local("@{family-str}@{lightest}");
+  @regular: local("@{family-str}@{2ndlightest}");
+  @medium: local("@{family-str}@{2ndboldest}");
+  @bold: local("@{family-str}@{boldest}");
+}
+.gen-weights(@family) when not (isstring(@family)) {
+  .gen-weights-all(@family);
+}
+.gen-weights(@family, @last) {
+  @this: .gen-weights(@family);
+
+  @light: @last[@light], @this[@light];
+  @regular: @last[@regular], @this[@regular];
+  @medium: @last[@medium], @this[@medium];
+  @bold: @last[@bold], @this[@bold];
+}
+.gen-weights-all(@family) when not (isstring(@family)) {
+  .gen-weights-all(@family, length(@family));
+}
+.gen-weights-all(@family, 1) when not (isstring(@family)) {
+  .gen-weights(extract(@family, 1));
+}
+.gen-weights-all(@family, @ctr) when not (isstring(@family)) and (@ctr > 1) and (@ctr <= length(@family)) {
+  .gen-weights(extract(@family, @ctr), .gen-weights-all(@family, @ctr - 1));
+}

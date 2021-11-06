@@ -9,7 +9,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -64,7 +63,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 	pr.Merger = doer
 	pr.MergerID = doer.ID
 
-	if _, err = pr.SetMerged(); err != nil {
+	if _, err := pr.SetMerged(); err != nil {
 		log.Error("setMerged [%d]: %v", pr.ID, err)
 	}
 
@@ -98,7 +97,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		if err = ref.Issue.LoadRepo(); err != nil {
 			return err
 		}
-		close := (ref.RefAction == references.XRefActionCloses)
+		close := ref.RefAction == references.XRefActionCloses
 		if close != ref.Issue.IsClosed {
 			if err = issue_service.ChangeStatus(ref.Issue, doer, close); err != nil {
 				return err
@@ -149,7 +148,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	}
 
 	sparseCheckoutListPath := filepath.Join(infoPath, "sparse-checkout")
-	if err := ioutil.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
+	if err := os.WriteFile(sparseCheckoutListPath, []byte(sparseCheckoutList), 0600); err != nil {
 		log.Error("Unable to write .git/info/sparse-checkout file in %s: %v", tmpBasePath, err)
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
@@ -253,6 +252,8 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		}
 	case models.MergeStyleRebase:
 		fallthrough
+	case models.MergeStyleRebaseUpdate:
+		fallthrough
 	case models.MergeStyleRebaseMerge:
 		// Checkout head branch
 		if err := git.NewCommand("checkout", "-b", stagingBranch, trackingBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
@@ -274,7 +275,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				}
 				for _, failingCommitPath := range failingCommitPaths {
 					if _, statErr := os.Stat(filepath.Join(failingCommitPath)); statErr == nil {
-						commitShaBytes, readErr := ioutil.ReadFile(filepath.Join(failingCommitPath))
+						commitShaBytes, readErr := os.ReadFile(filepath.Join(failingCommitPath))
 						if readErr != nil {
 							// Abandon this attempt to handle the error
 							log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -304,6 +305,11 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		}
 		outbuf.Reset()
 		errbuf.Reset()
+
+		// not need merge, just update by rebase. so skip
+		if mergeStyle == models.MergeStyleRebaseUpdate {
+			break
+		}
 
 		// Checkout base branch again
 		if err := git.NewCommand("checkout", baseBranch).RunInDirPipeline(tmpBasePath, &outbuf, &errbuf); err != nil {
@@ -410,8 +416,16 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		pr.ID,
 	)
 
+	var pushCmd *git.Command
+	if mergeStyle == models.MergeStyleRebaseUpdate {
+		// force push the rebase result to head brach
+		pushCmd = git.NewCommand("push", "-f", "head_repo", stagingBranch+":refs/heads/"+pr.HeadBranch)
+	} else {
+		pushCmd = git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch)
+	}
+
 	// Push back to upstream.
-	if err := git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch).RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
+	if err := pushCmd.RunInDirTimeoutEnvPipeline(env, -1, tmpBasePath, &outbuf, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "non-fast-forward") {
 			return "", &git.ErrPushOutOfDate{
 				StdOut: outbuf.String(),
@@ -613,5 +627,56 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 		}
 	}
 
+	return nil
+}
+
+// MergedManually mark pr as merged manually
+func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (err error) {
+	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	if err != nil {
+		return
+	}
+	prConfig := prUnit.PullRequestsConfig()
+
+	// Check if merge style is correct and allowed
+	if !prConfig.IsMergeStyleAllowed(models.MergeStyleManuallyMerged) {
+		return models.ErrInvalidMergeStyle{ID: pr.BaseRepo.ID, Style: models.MergeStyleManuallyMerged}
+	}
+
+	if len(commitID) < 40 {
+		return fmt.Errorf("Wrong commit ID")
+	}
+
+	commit, err := baseGitRepo.GetCommit(commitID)
+	if err != nil {
+		if git.IsErrNotExist(err) {
+			return fmt.Errorf("Wrong commit ID")
+		}
+		return
+	}
+
+	ok, err := baseGitRepo.IsCommitInBranch(commitID, pr.BaseBranch)
+	if err != nil {
+		return
+	}
+	if !ok {
+		return fmt.Errorf("Wrong commit ID")
+	}
+
+	pr.MergedCommitID = commitID
+	pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
+	pr.Status = models.PullRequestStatusManuallyMerged
+	pr.Merger = doer
+	pr.MergerID = doer.ID
+
+	merged := false
+	if merged, err = pr.SetMerged(); err != nil {
+		return
+	} else if !merged {
+		return fmt.Errorf("SetMerged failed")
+	}
+
+	notification.NotifyMergePullRequest(pr, doer)
+	log.Info("manuallyMerged[%d]: Marked as manually merged into %s/%s by commit id: %s", pr.ID, pr.BaseRepo.Name, pr.BaseBranch, commit.ID.String())
 	return nil
 }

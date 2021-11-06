@@ -6,14 +6,18 @@ import (
 )
 
 // Postscript lexer.
-var Postscript = internal.Register(MustNewLexer(
+var Postscript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "PostScript",
 		Aliases:   []string{"postscript", "postscr"},
 		Filenames: []string{"*.ps", "*.eps"},
 		MimeTypes: []string{"application/postscript"},
 	},
-	Rules{
+	postscriptRules,
+))
+
+func postscriptRules() Rules {
+	return Rules{
 		"root": {
 			{`^%!.+\n`, CommentPreproc, nil},
 			{`%%.*\n`, CommentSpecial, nil},
@@ -42,5 +46,5 @@ var Postscript = internal.Register(MustNewLexer(
 			{`[0-8]{3}|n|r|t|b|f|\\|\(|\)`, LiteralStringEscape, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

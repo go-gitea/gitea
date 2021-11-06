@@ -6,7 +6,7 @@ import (
 )
 
 // Actionscript lexer.
-var Actionscript = internal.Register(MustNewLexer(
+var Actionscript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:         "ActionScript",
 		Aliases:      []string{"as", "actionscript"},
@@ -15,7 +15,11 @@ var Actionscript = internal.Register(MustNewLexer(
 		NotMultiline: true,
 		DotAll:       true,
 	},
-	Rules{
+	actionscriptRules,
+))
+
+func actionscriptRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`//.*?\n`, CommentSingle, nil},
@@ -35,5 +39,5 @@ var Actionscript = internal.Register(MustNewLexer(
 			{`"(\\\\|\\"|[^"])*"`, LiteralStringDouble, nil},
 			{`'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
 		},
-	},
-))
+	}
+}

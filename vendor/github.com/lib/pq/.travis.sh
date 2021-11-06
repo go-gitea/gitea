@@ -1,17 +1,15 @@
 #!/bin/bash
 
-set -eu
+set -eux
 
 client_configure() {
 	sudo chmod 600 $PQSSLCERTTEST_PATH/postgresql.key
 }
 
 pgdg_repository() {
-	local sourcelist='sources.list.d/postgresql.list'
-
 	curl -sS 'https://www.postgresql.org/media/keys/ACCC4CF8.asc' | sudo apt-key add -
-	echo deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main $PGVERSION | sudo tee "/etc/apt/$sourcelist"
-	sudo apt-get -o Dir::Etc::sourcelist="$sourcelist" -o Dir::Etc::sourceparts='-' -o APT::Get::List-Cleanup='0' update
+ 	echo "deb http://apt.postgresql.org/pub/repos/apt/ `lsb_release -cs`-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+	sudo apt-get update
 }
 
 postgresql_configure() {
@@ -51,10 +49,10 @@ postgresql_configure() {
 }
 
 postgresql_install() {
-	xargs sudo apt-get -y -o Dpkg::Options::='--force-confdef' -o Dpkg::Options::='--force-confnew' install <<-packages
+	xargs sudo apt-get -y install <<-packages
 		postgresql-$PGVERSION
+		postgresql-client-$PGVERSION
 		postgresql-server-dev-$PGVERSION
-		postgresql-contrib-$PGVERSION
 	packages
 }
 

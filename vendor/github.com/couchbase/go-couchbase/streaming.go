@@ -6,7 +6,6 @@ import (
 	"github.com/couchbase/goutils/logging"
 	"io"
 	"io/ioutil"
-	"math/rand"
 	"net"
 	"net/http"
 	"time"
@@ -109,10 +108,7 @@ func (b *Bucket) UpdateBucket2(streamingFn StreamingFn) error {
 			return fmt.Errorf("No healthy nodes found")
 		}
 
-		startNode := rand.Intn(len(nodes))
-		node := nodes[(startNode)%len(nodes)]
-
-		streamUrl := fmt.Sprintf("http://%s/pools/default/bucketsStreaming/%s", node.Hostname, uriAdj(b.GetName()))
+		streamUrl := fmt.Sprintf("%s/pools/default/bucketsStreaming/%s", b.pool.client.BaseURL, uriAdj(b.GetName()))
 		logging.Infof(" Trying with %s", streamUrl)
 		req, err := http.NewRequest("GET", streamUrl, nil)
 		if err != nil {

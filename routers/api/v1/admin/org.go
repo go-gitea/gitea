@@ -6,7 +6,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -106,6 +105,7 @@ func GetAllOrgs(ctx *context.APIContext) {
 	listOptions := utils.GetListOptions(ctx)
 
 	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+		Actor:       ctx.User,
 		Type:        models.UserTypeOrganization,
 		OrderBy:     models.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
@@ -121,7 +121,6 @@ func GetAllOrgs(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, &orgs)
 }

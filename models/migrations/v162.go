@@ -19,18 +19,20 @@ func convertWebhookTaskTypeToString(x *xorm.Engine) error {
 		MSTEAMS
 		FEISHU
 		MATRIX
+		WECHATWORK
 	)
 
-	var hookTaskTypes = map[int]string{
-		GITEA:    "gitea",
-		GOGS:     "gogs",
-		SLACK:    "slack",
-		DISCORD:  "discord",
-		DINGTALK: "dingtalk",
-		TELEGRAM: "telegram",
-		MSTEAMS:  "msteams",
-		FEISHU:   "feishu",
-		MATRIX:   "matrix",
+	hookTaskTypes := map[int]string{
+		GITEA:      "gitea",
+		GOGS:       "gogs",
+		SLACK:      "slack",
+		DISCORD:    "discord",
+		DINGTALK:   "dingtalk",
+		TELEGRAM:   "telegram",
+		MSTEAMS:    "msteams",
+		FEISHU:     "feishu",
+		MATRIX:     "matrix",
+		WECHATWORK: "wechatwork",
 	}
 
 	type Webhook struct {

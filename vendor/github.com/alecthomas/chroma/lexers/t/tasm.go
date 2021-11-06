@@ -6,7 +6,7 @@ import (
 )
 
 // Tasm lexer.
-var Tasm = internal.Register(MustNewLexer(
+var Tasm = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "TASM",
 		Aliases:         []string{"tasm"},
@@ -14,7 +14,11 @@ var Tasm = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-tasm"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	tasmRules,
+))
+
+func tasmRules() Rules {
+	return Rules{
 		"root": {
 			{`^\s*%`, CommentPreproc, Push("preproc")},
 			Include("whitespace"),
@@ -57,5 +61,5 @@ var Tasm = internal.Register(MustNewLexer(
 			{`seg|wrt|strict`, OperatorWord, nil},
 			{`byte|[dq]?word`, KeywordType, nil},
 		},
-	},
-))
+	}
+}

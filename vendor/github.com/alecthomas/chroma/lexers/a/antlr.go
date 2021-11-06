@@ -6,14 +6,18 @@ import (
 )
 
 // ANTLR lexer.
-var ANTLR = internal.Register(MustNewLexer(
+var ANTLR = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "ANTLR",
 		Aliases:   []string{"antlr"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	antlrRules,
+))
+
+func antlrRules() Rules {
+	return Rules{
 		"whitespace": {
 			{`\s+`, TextWhitespace, nil},
 		},
@@ -97,5 +101,5 @@ var ANTLR = internal.Register(MustNewLexer(
 			{`(\$[a-zA-Z]+)(\.?)(text|value)?`, ByGroups(NameVariable, Punctuation, NameProperty), nil},
 			{`(\\\\|\\\]|\\\[|[^\[\]])+`, Other, nil},
 		},
-	},
-))
+	}
+}

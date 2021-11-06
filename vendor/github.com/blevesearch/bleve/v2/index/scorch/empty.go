@@ -14,7 +14,7 @@
 
 package scorch
 
-import segment "github.com/blevesearch/scorch_segment_api"
+import segment "github.com/blevesearch/scorch_segment_api/v2"
 
 type emptyPostingsIterator struct{}
 

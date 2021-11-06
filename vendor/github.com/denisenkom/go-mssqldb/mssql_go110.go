@@ -48,5 +48,5 @@ func (c *Connector) Driver() driver.Driver {
 }
 
 func (r *Result) LastInsertId() (int64, error) {
-	return -1, errors.New("LastInsertId is not supported. Please use the OUTPUT clause or add `select ID = convert(bigint, SCOPE_IDENTITY())` to the end of your query.")
+	return -1, errors.New("LastInsertId is not supported. Please use the OUTPUT clause or add `select ID = convert(bigint, SCOPE_IDENTITY())` to the end of your query")
 }

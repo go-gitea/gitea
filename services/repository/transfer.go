@@ -70,3 +70,52 @@ func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoNam
 
 	return nil
 }
+
+// StartRepositoryTransfer transfer a repo from one owner to a new one.
+// it make repository into pending transfer state, if doer can not create repo for new owner.
+func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repository, teams []*models.Team) error {
+	if err := models.TestRepositoryReadyForTransfer(repo.Status); err != nil {
+		return err
+	}
+
+	// Admin is always allowed to transfer || user transfer repo back to his account
+	if doer.IsAdmin || doer.ID == newOwner.ID {
+		return TransferOwnership(doer, newOwner, repo, teams)
+	}
+
+	// If new owner is an org and user can create repos he can transfer directly too
+	if newOwner.IsOrganization() {
+		allowed, err := models.CanCreateOrgRepo(newOwner.ID, doer.ID)
+		if err != nil {
+			return err
+		}
+		if allowed {
+			return TransferOwnership(doer, newOwner, repo, teams)
+		}
+	}
+
+	// In case the new owner would not have sufficient access to the repo, give access rights for read
+	hasAccess, err := models.HasAccess(newOwner.ID, repo)
+	if err != nil {
+		return err
+	}
+	if !hasAccess {
+		if err := repo.AddCollaborator(newOwner); err != nil {
+			return err
+		}
+		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, models.AccessModeRead); err != nil {
+			return err
+		}
+	}
+
+	// Make repo as pending for transfer
+	repo.Status = models.RepositoryPendingTransfer
+	if err := models.CreatePendingRepositoryTransfer(doer, newOwner, repo.ID, teams); err != nil {
+		return err
+	}
+
+	// notify users who are able to accept / reject transfer
+	notification.NotifyRepoPendingTransfer(doer, newOwner, repo)
+
+	return nil
+}

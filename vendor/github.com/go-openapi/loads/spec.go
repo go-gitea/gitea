@@ -28,7 +28,6 @@ import (
 func init() {
 	gob.Register(map[string]interface{}{})
 	gob.Register([]interface{}{})
-	// gob.Register(spec.Refable{})
 }
 
 // Document represents a swagger spec document
@@ -73,7 +72,9 @@ func Embedded(orig, flat json.RawMessage, options ...LoaderOption) (*Document, e
 // Spec loads a new spec document from a local or remote path
 func Spec(path string, options ...LoaderOption) (*Document, error) {
 
-	b, err := loaderFromOptions(options).Load(path)
+	ldr := loaderFromOptions(options)
+
+	b, err := ldr.Load(path)
 	if err != nil {
 		return nil, err
 	}
@@ -85,6 +86,7 @@ func Spec(path string, options ...LoaderOption) (*Document, error) {
 
 	if document != nil {
 		document.specFilePath = path
+		document.pathLoader = ldr
 	}
 
 	return document, err
@@ -152,6 +154,7 @@ func trimData(in json.RawMessage) (json.RawMessage, error) {
 
 // Expanded expands the ref fields in the spec document and returns a new spec document
 func (d *Document) Expanded(options ...*spec.ExpandOptions) (*Document, error) {
+
 	swspec := new(spec.Swagger)
 	if err := json.Unmarshal(d.raw, swspec); err != nil {
 		return nil, err
@@ -240,6 +243,7 @@ func (d *Document) ResetDefinitions() *Document {
 // Pristine creates a new pristine document instance based on the input data
 func (d *Document) Pristine() *Document {
 	dd, _ := Analyzed(d.Raw(), d.Version())
+	dd.pathLoader = d.pathLoader
 	return dd
 }
 

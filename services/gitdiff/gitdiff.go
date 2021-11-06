@@ -13,24 +13,29 @@ import (
 	"html"
 	"html/template"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
 	"sort"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
 
@@ -73,6 +78,7 @@ const (
 type DiffLine struct {
 	LeftIdx     int
 	RightIdx    int
+	Match       int
 	Type        DiffLineType
 	Content     string
 	Comments    []*models.Comment
@@ -182,6 +188,8 @@ var (
 	removedCodePrefix = []byte(`<span class="removed-code">`)
 	codeTagSuffix     = []byte(`</span>`)
 )
+
+var unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
 var trailingSpanRegex = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
 var entityRegex = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
 
@@ -196,9 +204,217 @@ func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
 	return false
 }
 
+func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
+
+	// Create a new array to store our fixed up blocks
+	fixedup := make([]diffmatchpatch.Diff, 0, len(diffs))
+
+	// semantically label some numbers
+	const insert, delete, equal = 0, 1, 2
+
+	// record the positions of the last type of each block in the fixedup blocks
+	last := []int{-1, -1, -1}
+	operation := []diffmatchpatch.Operation{diffmatchpatch.DiffInsert, diffmatchpatch.DiffDelete, diffmatchpatch.DiffEqual}
+
+	// create a writer for insert and deletes
+	toWrite := []strings.Builder{
+		{},
+		{},
+	}
+
+	// make some flags for insert and delete
+	unfinishedTag := []bool{false, false}
+	unfinishedEnt := []bool{false, false}
+
+	// store stores the provided text in the writer for the typ
+	store := func(text string, typ int) {
+		(&(toWrite[typ])).WriteString(text)
+	}
+
+	// hasStored returns true if there is stored content
+	hasStored := func(typ int) bool {
+		return (&toWrite[typ]).Len() > 0
+	}
+
+	// stored will return that content
+	stored := func(typ int) string {
+		return (&toWrite[typ]).String()
+	}
+
+	// empty will empty the stored content
+	empty := func(typ int) {
+		(&toWrite[typ]).Reset()
+	}
+
+	// pop will remove the stored content appending to a diff block for that typ
+	pop := func(typ int, fixedup []diffmatchpatch.Diff) []diffmatchpatch.Diff {
+		if hasStored(typ) {
+			if last[typ] > last[equal] {
+				fixedup[last[typ]].Text += stored(typ)
+			} else {
+				fixedup = append(fixedup, diffmatchpatch.Diff{
+					Type: operation[typ],
+					Text: stored(typ),
+				})
+			}
+			empty(typ)
+		}
+		return fixedup
+	}
+
+	// Now we walk the provided diffs and check the type of each block in turn
+	for _, diff := range diffs {
+
+		typ := delete // flag for handling insert or delete typs
+		switch diff.Type {
+		case diffmatchpatch.DiffEqual:
+			// First check if there is anything stored
+			if hasStored(insert) || hasStored(delete) {
+				// There are two reasons for storing content:
+				// 1. Unfinished Entity <- Could be more efficient here by not doing this if we're looking for a tag
+				if unfinishedEnt[insert] || unfinishedEnt[delete] {
+					// we look for a ';' to finish an entity
+					idx := strings.IndexRune(diff.Text, ';')
+					if idx >= 0 {
+						// if we find a ';' store the preceding content to both insert and delete
+						store(diff.Text[:idx+1], insert)
+						store(diff.Text[:idx+1], delete)
+
+						// and remove it from this block
+						diff.Text = diff.Text[idx+1:]
+
+						// reset the ent flags
+						unfinishedEnt[insert] = false
+						unfinishedEnt[delete] = false
+					} else {
+						// otherwise store it all on insert and delete
+						store(diff.Text, insert)
+						store(diff.Text, delete)
+						// and empty this block
+						diff.Text = ""
+					}
+				}
+				// 2. Unfinished Tag
+				if unfinishedTag[insert] || unfinishedTag[delete] {
+					// we look for a '>' to finish a tag
+					idx := strings.IndexRune(diff.Text, '>')
+					if idx >= 0 {
+						store(diff.Text[:idx+1], insert)
+						store(diff.Text[:idx+1], delete)
+						diff.Text = diff.Text[idx+1:]
+						unfinishedTag[insert] = false
+						unfinishedTag[delete] = false
+					} else {
+						store(diff.Text, insert)
+						store(diff.Text, delete)
+						diff.Text = ""
+					}
+				}
+
+				// If we've completed the required tag/entities
+				if !(unfinishedTag[insert] || unfinishedTag[delete] || unfinishedEnt[insert] || unfinishedEnt[delete]) {
+					// pop off the stack
+					fixedup = pop(insert, fixedup)
+					fixedup = pop(delete, fixedup)
+				}
+
+				// If that has left this diff block empty then shortcut
+				if len(diff.Text) == 0 {
+					continue
+				}
+			}
+
+			// check if this block ends in an unfinished tag?
+			idx := unfinishedtagRegex.FindStringIndex(diff.Text)
+			if idx != nil {
+				unfinishedTag[insert] = true
+				unfinishedTag[delete] = true
+			} else {
+				// otherwise does it end in an unfinished entity?
+				idx = entityRegex.FindStringIndex(diff.Text)
+				if idx != nil {
+					unfinishedEnt[insert] = true
+					unfinishedEnt[delete] = true
+				}
+			}
+
+			// If there is an unfinished component
+			if idx != nil {
+				// Store the fragment
+				store(diff.Text[idx[0]:], insert)
+				store(diff.Text[idx[0]:], delete)
+				// and remove it from this block
+				diff.Text = diff.Text[:idx[0]]
+			}
+
+			// If that hasn't left the block empty
+			if len(diff.Text) > 0 {
+				// store the position of the last equal block and store it in our diffs
+				last[equal] = len(fixedup)
+				fixedup = append(fixedup, diff)
+			}
+			continue
+		case diffmatchpatch.DiffInsert:
+			typ = insert
+			fallthrough
+		case diffmatchpatch.DiffDelete:
+			// First check if there is anything stored for this type
+			if hasStored(typ) {
+				// if there is prepend it to this block, empty the storage and reset our flags
+				diff.Text = stored(typ) + diff.Text
+				empty(typ)
+				unfinishedEnt[typ] = false
+				unfinishedTag[typ] = false
+			}
+
+			// check if this block ends in an unfinished tag
+			idx := unfinishedtagRegex.FindStringIndex(diff.Text)
+			if idx != nil {
+				unfinishedTag[typ] = true
+			} else {
+				// otherwise does it end in an unfinished entity
+				idx = entityRegex.FindStringIndex(diff.Text)
+				if idx != nil {
+					unfinishedEnt[typ] = true
+				}
+			}
+
+			// If there is an unfinished component
+			if idx != nil {
+				// Store the fragment
+				store(diff.Text[idx[0]:], typ)
+				// and remove it from this block
+				diff.Text = diff.Text[:idx[0]]
+			}
+
+			// If that hasn't left the block empty
+			if len(diff.Text) > 0 {
+				// if the last block of this type was after the last equal block
+				if last[typ] > last[equal] {
+					// store this blocks content on that block
+					fixedup[last[typ]].Text += diff.Text
+				} else {
+					// otherwise store the position of the last block of this type and store the block
+					last[typ] = len(fixedup)
+					fixedup = append(fixedup, diff)
+				}
+			}
+			continue
+		}
+	}
+
+	// pop off any remaining stored content
+	fixedup = pop(insert, fixedup)
+	fixedup = pop(delete, fixedup)
+
+	return fixedup
+}
+
 func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
 	match := ""
+
+	diffs = fixupBrokenSpans(diffs)
 
 	for _, diff := range diffs {
 		if shouldWriteInline(diff, lineType) {
@@ -363,20 +579,24 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 
 // DiffFile represents a file diff.
 type DiffFile struct {
-	Name               string
-	OldName            string
-	Index              int
-	Addition, Deletion int
-	Type               DiffFileType
-	IsCreated          bool
-	IsDeleted          bool
-	IsBin              bool
-	IsLFSFile          bool
-	IsRenamed          bool
-	IsSubmodule        bool
-	Sections           []*DiffSection
-	IsIncomplete       bool
-	IsProtected        bool
+	Name                    string
+	OldName                 string
+	Index                   int
+	Addition, Deletion      int
+	Type                    DiffFileType
+	IsCreated               bool
+	IsDeleted               bool
+	IsBin                   bool
+	IsLFSFile               bool
+	IsRenamed               bool
+	IsAmbiguous             bool
+	IsSubmodule             bool
+	Sections                []*DiffSection
+	IsIncomplete            bool
+	IsIncompleteLineTooLong bool
+	IsProtected             bool
+	IsGenerated             bool
+	IsVendored              bool
 }
 
 // GetType returns type of diff file.
@@ -433,6 +653,7 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 
 // Diff represents a difference between two git trees.
 type Diff struct {
+	Start, End                             string
 	NumFiles, TotalAddition, TotalDeletion int
 	Files                                  []*DiffFile
 	IsIncomplete                           bool
@@ -499,8 +720,11 @@ parsingLoop:
 
 		// TODO: Handle skipping first n files
 		if len(diff.Files) >= maxFiles {
+
+			lastFile := createDiffFile(diff, line)
+			diff.End = lastFile.Name
 			diff.IsIncomplete = true
-			_, err := io.Copy(ioutil.Discard, reader)
+			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
 				// By the definition of io.Copy this never returns io.EOF
 				return diff, fmt.Errorf("Copy: %v", err)
@@ -566,12 +790,32 @@ parsingLoop:
 				if strings.HasSuffix(line, " 160000\n") {
 					curFile.IsSubmodule = true
 				}
+			case strings.HasPrefix(line, "rename from "):
+				curFile.IsRenamed = true
+				curFile.Type = DiffFileRename
+				if curFile.IsAmbiguous {
+					curFile.OldName = line[len("rename from ") : len(line)-1]
+				}
+			case strings.HasPrefix(line, "rename to "):
+				curFile.IsRenamed = true
+				curFile.Type = DiffFileRename
+				if curFile.IsAmbiguous {
+					curFile.Name = line[len("rename to ") : len(line)-1]
+					curFile.IsAmbiguous = false
+				}
 			case strings.HasPrefix(line, "copy from "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
+				if curFile.IsAmbiguous {
+					curFile.OldName = line[len("copy from ") : len(line)-1]
+				}
 			case strings.HasPrefix(line, "copy to "):
 				curFile.IsRenamed = true
 				curFile.Type = DiffFileCopy
+				if curFile.IsAmbiguous {
+					curFile.Name = line[len("copy to ") : len(line)-1]
+					curFile.IsAmbiguous = false
+				}
 			case strings.HasPrefix(line, "new file"):
 				curFile.Type = DiffFileAdd
 				curFile.IsCreated = true
@@ -593,9 +837,35 @@ parsingLoop:
 			case strings.HasPrefix(line, "Binary"):
 				curFile.IsBin = true
 			case strings.HasPrefix(line, "--- "):
-				// Do nothing with this line
+				// Handle ambiguous filenames
+				if curFile.IsAmbiguous {
+					if len(line) > 6 && line[4] == 'a' {
+						curFile.OldName = line[6 : len(line)-1]
+						if line[len(line)-2] == '\t' {
+							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
+						}
+					} else {
+						curFile.OldName = ""
+					}
+				}
+				// Otherwise do nothing with this line
 			case strings.HasPrefix(line, "+++ "):
-				// Do nothing with this line
+				// Handle ambiguous filenames
+				if curFile.IsAmbiguous {
+					if len(line) > 6 && line[4] == 'b' {
+						curFile.Name = line[6 : len(line)-1]
+						if line[len(line)-2] == '\t' {
+							curFile.Name = curFile.Name[:len(curFile.Name)-1]
+						}
+						if curFile.OldName == "" {
+							curFile.OldName = curFile.Name
+						}
+					} else {
+						curFile.Name = curFile.OldName
+					}
+					curFile.IsAmbiguous = false
+				}
+				// Otherwise do nothing with this line, but now switch to parsing hunks
 				lineBytes, isFragment, err := parseHunks(curFile, maxLines, maxLineCharacters, input)
 				diff.TotalAddition += curFile.Addition
 				diff.TotalDeletion += curFile.Deletion
@@ -624,35 +894,46 @@ parsingLoop:
 
 	}
 
-	// FIXME: There are numerous issues with this:
+	// TODO: There are numerous issues with this:
 	// - we might want to consider detecting encoding while parsing but...
 	// - we're likely to fail to get the correct encoding here anyway as we won't have enough information
-	// - and this doesn't really account for changes in encoding
-	var buf bytes.Buffer
+	var diffLineTypeBuffers = make(map[DiffLineType]*bytes.Buffer, 3)
+	var diffLineTypeDecoders = make(map[DiffLineType]*encoding.Decoder, 3)
+	diffLineTypeBuffers[DiffLinePlain] = new(bytes.Buffer)
+	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
+	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
 	for _, f := range diff.Files {
-		buf.Reset()
+		for _, buffer := range diffLineTypeBuffers {
+			buffer.Reset()
+		}
 		for _, sec := range f.Sections {
 			for _, l := range sec.Lines {
 				if l.Type == DiffLineSection {
 					continue
 				}
-				buf.WriteString(l.Content[1:])
-				buf.WriteString("\n")
+				diffLineTypeBuffers[l.Type].WriteString(l.Content[1:])
+				diffLineTypeBuffers[l.Type].WriteString("\n")
 			}
 		}
-		charsetLabel, err := charset.DetectEncoding(buf.Bytes())
-		if charsetLabel != "UTF-8" && err == nil {
-			encoding, _ := stdcharset.Lookup(charsetLabel)
-			if encoding != nil {
-				d := encoding.NewDecoder()
-				for _, sec := range f.Sections {
-					for _, l := range sec.Lines {
-						if l.Type == DiffLineSection {
-							continue
-						}
-						if c, _, err := transform.String(d, l.Content[1:]); err == nil {
-							l.Content = l.Content[0:1] + c
-						}
+		for lineType, buffer := range diffLineTypeBuffers {
+			diffLineTypeDecoders[lineType] = nil
+			if buffer.Len() == 0 {
+				continue
+			}
+			charsetLabel, err := charset.DetectEncoding(buffer.Bytes())
+			if charsetLabel != "UTF-8" && err == nil {
+				encoding, _ := stdcharset.Lookup(charsetLabel)
+				if encoding != nil {
+					diffLineTypeDecoders[lineType] = encoding.NewDecoder()
+				}
+			}
+		}
+		for _, sec := range f.Sections {
+			for _, l := range sec.Lines {
+				decoder := diffLineTypeDecoders[l.Type]
+				if decoder != nil {
+					if c, _, err := transform.String(decoder, l.Content[1:]); err == nil {
+						l.Content = l.Content[0:1] + c
 					}
 				}
 			}
@@ -672,11 +953,13 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		curFileLFSPrefix  bool
 	)
 
+	lastLeftIdx := -1
 	leftLine, rightLine := 1, 1
 
 	for {
 		for isFragment {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteLineTooLong = true
 			_, isFragment, err = input.ReadLine()
 			if err != nil {
 				// Now by the definition of ReadLine this cannot be io.EOF
@@ -721,6 +1004,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 
 			// Create a new section to represent this hunk
 			curSection = &DiffSection{}
+			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
 			lineSectionInfo := getDiffLineSectionInfo(curFile.Name, line, leftLine-1, rightLine-1)
@@ -755,8 +1039,22 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				curFile.IsIncomplete = true
 				continue
 			}
-			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine}
+			diffLine := &DiffLine{Type: DiffLineAdd, RightIdx: rightLine, Match: -1}
 			rightLine++
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+				lastLeftIdx = -1
+			}
+			if lastLeftIdx > -1 {
+				diffLine.Match = lastLeftIdx
+				curSection.Lines[lastLeftIdx].Match = len(curSection.Lines)
+				lastLeftIdx++
+				if lastLeftIdx >= len(curSection.Lines) || curSection.Lines[lastLeftIdx].Type != DiffLineDel {
+					lastLeftIdx = -1
+				}
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case '-':
 			curFileLinesCount++
@@ -765,9 +1063,18 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				curFile.IsIncomplete = true
 				continue
 			}
-			diffLine := &DiffLine{Type: DiffLineDel, LeftIdx: leftLine}
+			diffLine := &DiffLine{Type: DiffLineDel, LeftIdx: leftLine, Match: -1}
 			if leftLine > 0 {
 				leftLine++
+			}
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+				lastLeftIdx = -1
+			}
+			if len(curSection.Lines) == 0 || curSection.Lines[len(curSection.Lines)-1].Type != DiffLineDel {
+				lastLeftIdx = len(curSection.Lines)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case ' ':
@@ -779,6 +1086,12 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			diffLine := &DiffLine{Type: DiffLinePlain, LeftIdx: leftLine, RightIdx: rightLine}
 			leftLine++
 			rightLine++
+			lastLeftIdx = -1
+			if curSection == nil {
+				// Create a new section to represent this hunk
+				curSection = &DiffSection{}
+				curFile.Sections = append(curFile.Sections, curSection)
+			}
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
@@ -789,6 +1102,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		line := string(lineBytes)
 		if isFragment {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteLineTooLong = true
 			for isFragment {
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
@@ -800,23 +1114,25 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		}
 		if len(line) > maxLineCharacters {
 			curFile.IsIncomplete = true
+			curFile.IsIncompleteLineTooLong = true
 			line = line[:maxLineCharacters]
 		}
 		curSection.Lines[len(curSection.Lines)-1].Content = line
 
 		// handle LFS
-		if line[1:] == models.LFSMetaFileIdentifier {
+		if line[1:] == lfs.MetaFileIdentifier {
 			curFileLFSPrefix = true
-		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], models.LFSMetaFileOidPrefix) {
-			oid := strings.TrimPrefix(line[1:], models.LFSMetaFileOidPrefix)
+		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], lfs.MetaFileOidPrefix) {
+			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
-				m := &models.LFSMetaObject{Oid: oid}
-				count, err := models.Count(m)
+				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
+				count, err := db.Count(m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
 					curFile.IsLFSFile = true
 					curSection.Lines = nil
+					lastLeftIdx = -1
 				}
 			}
 		}
@@ -846,13 +1162,33 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 
 	rd := strings.NewReader(line[len(cmdDiffHead):] + " ")
 	curFile.Type = DiffFileChange
-	curFile.OldName = readFileName(rd)
-	curFile.Name = readFileName(rd)
+	oldNameAmbiguity := false
+	newNameAmbiguity := false
+
+	curFile.OldName, oldNameAmbiguity = readFileName(rd)
+	curFile.Name, newNameAmbiguity = readFileName(rd)
+	if oldNameAmbiguity && newNameAmbiguity {
+		curFile.IsAmbiguous = true
+		// OK we should bet that the oldName and the newName are the same if they can be made to be same
+		// So we need to start again ...
+		if (len(line)-len(cmdDiffHead)-1)%2 == 0 {
+			// diff --git a/b b/b b/b b/b b/b b/b
+			//
+			midpoint := (len(line) + len(cmdDiffHead) - 1) / 2
+			new, old := line[len(cmdDiffHead):midpoint], line[midpoint+1:]
+			if len(new) > 2 && len(old) > 2 && new[2:] == old[2:] {
+				curFile.OldName = old[2:]
+				curFile.Name = old[2:]
+			}
+		}
+	}
+
 	curFile.IsRenamed = curFile.Name != curFile.OldName
 	return curFile
 }
 
-func readFileName(rd *strings.Reader) string {
+func readFileName(rd *strings.Reader) (string, bool) {
+	ambiguity := false
 	var name string
 	char, _ := rd.ReadByte()
 	_ = rd.UnreadByte()
@@ -862,61 +1198,76 @@ func readFileName(rd *strings.Reader) string {
 			name = name[1:]
 		}
 	} else {
+		// This technique is potentially ambiguous it may not be possible to uniquely identify the filenames from the diff line alone
+		ambiguity = true
 		fmt.Fscanf(rd, "%s ", &name)
+		char, _ := rd.ReadByte()
+		_ = rd.UnreadByte()
+		for !(char == 0 || char == '"' || char == 'b') {
+			var suffix string
+			fmt.Fscanf(rd, "%s ", &suffix)
+			name += " " + suffix
+			char, _ = rd.ReadByte()
+			_ = rd.UnreadByte()
+		}
 	}
-	return name[2:]
-}
-
-// GetDiffRange builds a Diff between two commits of a repository.
-// passing the empty string as beforeCommitID returns a diff from the
-// parent commit.
-func GetDiffRange(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID, maxLines, maxLineCharacters, maxFiles, "")
+	if len(name) < 2 {
+		log.Error("Unable to determine name from reader: %v", rd)
+		return "", true
+	}
+	return name[2:], ambiguity
 }
 
 // GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string) (*Diff, error) {
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
+func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(afterCommitID)
 	if err != nil {
 		return nil, err
 	}
 
-	// FIXME: graceful: These commands should likely have a timeout
-	ctx, cancel := context.WithCancel(git.DefaultContext)
+	ctx, cancel := context.WithTimeout(git.DefaultContext, time.Duration(setting.Git.Timeout.Default)*time.Second)
 	defer cancel()
-	var cmd *exec.Cmd
+
+	argsLength := 6
+	if len(whitespaceBehavior) > 0 {
+		argsLength++
+	}
+	if len(skipTo) > 0 {
+		argsLength++
+	}
+
+	diffArgs := make([]string, 0, argsLength)
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
 		// append empty tree ref
 		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 		beforeCommitID = actualBeforeCommitID
 	}
+	if skipTo != "" {
+		diffArgs = append(diffArgs, "--skip-to="+skipTo)
+	}
+	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
+
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
 
@@ -936,7 +1287,82 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
+	diff.Start = skipTo
+
+	var checker *git.CheckAttributeReader
+
+	if git.CheckGitVersionAtLeast("1.7.8") == nil {
+		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+			workdir, err := os.MkdirTemp("", "empty-work-dir")
+			if err != nil {
+				log.Error("Unable to create temporary directory: %v", err)
+				return nil, err
+			}
+			defer func() {
+				_ = util.RemoveAll(workdir)
+			}()
+
+			checker = &git.CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated"},
+				Repo:       gitRepo,
+				IndexFile:  indexFilename,
+				WorkTree:   workdir,
+			}
+			ctx, cancel := context.WithCancel(git.DefaultContext)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+			} else {
+				go func() {
+					err := checker.Run()
+					if err != nil && err != ctx.Err() {
+						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+					}
+					cancel()
+				}()
+			}
+			defer func() {
+				cancel()
+			}()
+		}
+	}
+
 	for _, diffFile := range diff.Files {
+
+		gotVendor := false
+		gotGenerated := false
+		if checker != nil {
+			attrs, err := checker.CheckPath(diffFile.Name)
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						diffFile.IsVendored = true
+						gotVendor = true
+					} else {
+						gotVendor = vendored == "false"
+					}
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						diffFile.IsGenerated = true
+						gotGenerated = true
+					} else {
+						gotGenerated = generated == "false"
+					}
+				}
+			} else {
+				log.Error("Unexpected error: %v", err)
+			}
+		}
+
+		if !gotVendor {
+			diffFile.IsVendored = analyze.IsVendor(diffFile.Name)
+		}
+		if !gotGenerated {
+			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
+		}
+
 		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
@@ -947,7 +1373,12 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 		return nil, fmt.Errorf("Wait: %v", err)
 	}
 
-	shortstatArgs := []string{beforeCommitID + "..." + afterCommitID}
+	separator := "..."
+	if directComparison {
+		separator = ".."
+	}
+
+	shortstatArgs := []string{beforeCommitID + separator + afterCommitID}
 	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
 		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
 	}
@@ -965,9 +1396,10 @@ func GetDiffRangeWithWhitespaceBehavior(repoPath, beforeCommitID, afterCommitID 
 	return diff, nil
 }
 
-// GetDiffCommit builds a Diff representing the given commitID.
-func GetDiffCommit(repoPath, commitID string, maxLines, maxLineCharacters, maxFiles int) (*Diff, error) {
-	return GetDiffRange(repoPath, "", commitID, maxLines, maxLineCharacters, maxFiles)
+// GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
+// The whitespaceBehavior is either an empty string or a git flag
+func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, skipTo, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior, directComparison)
 }
 
 // CommentAsDiff returns c.Patch as *Diff
@@ -975,6 +1407,7 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
 	if err != nil {
+		log.Error("Unable to parse patch: %v", err)
 		return nil, err
 	}
 	if len(diff.Files) == 0 {
@@ -989,9 +1422,28 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 
 // CommentMustAsDiff executes AsDiff and logs the error instead of returning
 func CommentMustAsDiff(c *models.Comment) *Diff {
+	if c == nil {
+		return nil
+	}
+	defer func() {
+		if err := recover(); err != nil {
+			log.Error("PANIC whilst retrieving diff for comment[%d] Error: %v\nStack: %s", c.ID, err, log.Stack(2))
+		}
+	}()
 	diff, err := CommentAsDiff(c)
 	if err != nil {
 		log.Warn("CommentMustAsDiff: %v", err)
 	}
 	return diff
+}
+
+// GetWhitespaceFlag returns git diff flag for treating whitespaces
+func GetWhitespaceFlag(whiteSpaceBehavior string) string {
+	whitespaceFlags := map[string]string{
+		"ignore-all":    "-w",
+		"ignore-change": "-b",
+		"ignore-eol":    "--ignore-space-at-eol",
+		"":              ""}
+
+	return whitespaceFlags[whiteSpaceBehavior]
 }

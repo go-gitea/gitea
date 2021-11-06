@@ -2,17 +2,23 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"io"
 	"strconv"
+	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
-// ParseTreeEntries parses the output of a `git ls-tree` command.
+// ParseTreeEntries parses the output of a `git ls-tree -l` command.
 func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 	return parseTreeEntries(data, nil)
 }
@@ -20,7 +26,7 @@ func ParseTreeEntries(data []byte) ([]*TreeEntry, error) {
 func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 	entries := make([]*TreeEntry, 0, 10)
 	for pos := 0; pos < len(data); {
-		// expect line to be of the form "<mode> <type> <sha>\t<filename>"
+		// expect line to be of the form "<mode> <type> <sha> <space-padded-size>\t<filename>"
 		entry := new(TreeEntry)
 		entry.ptree = ptree
 		if pos+6 > len(data) {
@@ -56,7 +62,16 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		entry.ID = id
 		pos += 41 // skip over sha and trailing space
 
-		end := pos + bytes.IndexByte(data[pos:], '\n')
+		end := pos + bytes.IndexByte(data[pos:], '\t')
+		if end < pos {
+			return nil, fmt.Errorf("Invalid ls-tree -l output: %s", string(data))
+		}
+		entry.size, _ = strconv.ParseInt(strings.TrimSpace(string(data[pos:end])), 10, 64)
+		entry.sized = true
+
+		pos = end + 1
+
+		end = pos + bytes.IndexByte(data[pos:], '\n')
 		if end < pos {
 			return nil, fmt.Errorf("Invalid ls-tree output: %s", string(data))
 		}
@@ -74,5 +89,51 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		pos = end + 1
 		entries = append(entries, entry)
 	}
+	return entries, nil
+}
+
+func catBatchParseTreeEntries(ptree *Tree, rd *bufio.Reader, sz int64) ([]*TreeEntry, error) {
+	fnameBuf := make([]byte, 4096)
+	modeBuf := make([]byte, 40)
+	shaBuf := make([]byte, 40)
+	entries := make([]*TreeEntry, 0, 10)
+
+loop:
+	for sz > 0 {
+		mode, fname, sha, count, err := ParseTreeLine(rd, modeBuf, fnameBuf, shaBuf)
+		if err != nil {
+			if err == io.EOF {
+				break loop
+			}
+			return nil, err
+		}
+		sz -= int64(count)
+		entry := new(TreeEntry)
+		entry.ptree = ptree
+
+		switch string(mode) {
+		case "100644":
+			entry.entryMode = EntryModeBlob
+		case "100755":
+			entry.entryMode = EntryModeExec
+		case "120000":
+			entry.entryMode = EntryModeSymlink
+		case "160000":
+			entry.entryMode = EntryModeCommit
+		case "40000":
+			entry.entryMode = EntryModeTree
+		default:
+			log.Debug("Unknown mode: %v", string(mode))
+			return nil, fmt.Errorf("unknown mode: %v", string(mode))
+		}
+
+		entry.ID = MustID(sha)
+		entry.name = string(fname)
+		entries = append(entries, entry)
+	}
+	if _, err := rd.Discard(1); err != nil {
+		return entries, err
+	}
+
 	return entries, nil
 }

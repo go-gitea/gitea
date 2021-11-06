@@ -6,14 +6,18 @@ import (
 )
 
 // Hexdump lexer.
-var Hexdump = internal.Register(MustNewLexer(
+var Hexdump = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Hexdump",
 		Aliases:   []string{"hexdump"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	hexdumpRules,
+))
+
+func hexdumpRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			Include("offset"),
@@ -63,5 +67,5 @@ var Hexdump = internal.Register(MustNewLexer(
 			{`\s`, Text, nil},
 			{`^\*`, Punctuation, nil},
 		},
-	},
-))
+	}
+}

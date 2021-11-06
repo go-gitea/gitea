@@ -58,13 +58,16 @@ func makeURLAbs(url *url.URL, request *http.Request) {
 // IsAuthorized takes an *http.Request and returns a pointer to a string containing the consumer key,
 // or nil if not authorized
 func (provider *Provider) IsAuthorized(request *http.Request) (*string, error) {
+	var userParams = map[string]string{}
 	var err error
-	var userParams map[string]string
 
 	// start with the body/query params
-	userParams, err = parseBody(request)
-	if err != nil {
+	if params_temp, err := parseBody(request); err != nil {
 		return nil, err
+	} else {
+		for k, v := range params_temp {
+			userParams[k] = v[0]
+		}
 	}
 
 	// if the oauth params are in the Authorization header, grab them, and

@@ -6,14 +6,18 @@ import (
 )
 
 // Terminfo lexer.
-var Terminfo = internal.Register(MustNewLexer(
+var Terminfo = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Terminfo",
 		Aliases:   []string{"terminfo"},
 		Filenames: []string{"terminfo", "terminfo.src"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	terminfoRules,
+))
+
+func terminfoRules() Rules {
+	return Rules{
 		"root": {
 			{`^#.*$`, Comment, nil},
 			{`^[^\s#,|]+`, NameTag, Push("names")},
@@ -38,5 +42,5 @@ var Terminfo = internal.Register(MustNewLexer(
 			{`[^\\,]+`, Literal, nil},
 			{`.`, Literal, nil},
 		},
-	},
-))
+	}
+}

@@ -63,3 +63,40 @@ func TestGetCommitWithBadCommitID(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrNotExist(err))
 }
+
+func TestIsCommitInBranch(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
+	bareRepo1, err := OpenRepository(bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
+	result, err := bareRepo1.IsCommitInBranch("2839944139e0de9737a044f78b0e4b40d989a9e3", "branch1")
+	assert.NoError(t, err)
+	assert.True(t, result)
+
+	result, err = bareRepo1.IsCommitInBranch("2839944139e0de9737a044f78b0e4b40d989a9e3", "branch2")
+	assert.NoError(t, err)
+	assert.False(t, result)
+}
+
+func TestRepository_CommitsBetweenIDs(t *testing.T) {
+	bareRepo1Path := filepath.Join(testReposDir, "repo4_commitsbetween")
+	bareRepo1, err := OpenRepository(bareRepo1Path)
+	assert.NoError(t, err)
+	defer bareRepo1.Close()
+
+	cases := []struct {
+		OldID           string
+		NewID           string
+		ExpectedCommits int
+	}{
+		{"fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", "78a445db1eac62fe15e624e1137965969addf344", 1}, //com1 -> com2
+		{"78a445db1eac62fe15e624e1137965969addf344", "fdc1b615bdcff0f0658b216df0c9209e5ecb7c78", 0}, //reset HEAD~, com2 -> com1
+		{"78a445db1eac62fe15e624e1137965969addf344", "a78e5638b66ccfe7e1b4689d3d5684e42c97d7ca", 1}, //com2 -> com2_new
+	}
+	for i, c := range cases {
+		commits, err := bareRepo1.CommitsBetweenIDs(c.NewID, c.OldID)
+		assert.NoError(t, err)
+		assert.Equal(t, c.ExpectedCommits, len(commits), "case %d", i)
+	}
+}

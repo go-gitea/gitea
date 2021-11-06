@@ -1,0 +1,32 @@
+.monaco-editor-container {
+  width: 100%;
+  min-height: 200px;
+  height: 90vh;
+}
+
+.edit.githook .monaco-editor-container {
+  border: 1px solid var(--color-secondary);
+  height: 70vh;
+}
+
+/* overwrite conflicting styles from fomantic */
+.monaco-editor-container .inputarea {
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  resize: none !important;
+  border: none !important;
+  color: transparent !important;
+  background-color: transparent !important;
+}
+
+/* these seem unthemeable */
+.monaco-scrollable-element > .scrollbar > .slider {
+  background: var(--color-primary) !important;
+}
+.monaco-scrollable-element > .scrollbar > .slider:hover {
+  background: var(--color-primary-dark-1) !important;
+}
+.monaco-scrollable-element > .scrollbar > .slider:active {
+  background: var(--color-primary-dark-2) !important;
+}

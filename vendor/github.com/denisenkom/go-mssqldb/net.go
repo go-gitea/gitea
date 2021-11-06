@@ -7,8 +7,8 @@ import (
 )
 
 type timeoutConn struct {
-	c             net.Conn
-	timeout       time.Duration
+	c       net.Conn
+	timeout time.Duration
 }
 
 func newTimeoutConn(conn net.Conn, timeout time.Duration) *timeoutConn {
@@ -51,21 +51,21 @@ func (c timeoutConn) RemoteAddr() net.Addr {
 }
 
 func (c timeoutConn) SetDeadline(t time.Time) error {
-	panic("Not implemented")
+	return c.c.SetDeadline(t)
 }
 
 func (c timeoutConn) SetReadDeadline(t time.Time) error {
-	panic("Not implemented")
+	return c.c.SetReadDeadline(t)
 }
 
 func (c timeoutConn) SetWriteDeadline(t time.Time) error {
-	panic("Not implemented")
+	return c.c.SetWriteDeadline(t)
 }
 
 // this connection is used during TLS Handshake
 // TDS protocol requires TLS handshake messages to be sent inside TDS packets
 type tlsHandshakeConn struct {
-	buf *tdsBuffer
+	buf           *tdsBuffer
 	packetPending bool
 	continueRead  bool
 }
@@ -75,7 +75,7 @@ func (c *tlsHandshakeConn) Read(b []byte) (n int, err error) {
 		c.packetPending = false
 		err = c.buf.FinishPacket()
 		if err != nil {
-			err = fmt.Errorf("Cannot send handshake packet: %s", err.Error())
+			err = fmt.Errorf("cannot send handshake packet: %s", err.Error())
 			return
 		}
 		c.continueRead = false
@@ -84,7 +84,7 @@ func (c *tlsHandshakeConn) Read(b []byte) (n int, err error) {
 		var packet packetType
 		packet, err = c.buf.BeginRead()
 		if err != nil {
-			err = fmt.Errorf("Cannot read handshake packet: %s", err.Error())
+			err = fmt.Errorf("cannot read handshake packet: %s", err.Error())
 			return
 		}
 		if packet != packPrelogin {
@@ -105,27 +105,27 @@ func (c *tlsHandshakeConn) Write(b []byte) (n int, err error) {
 }
 
 func (c *tlsHandshakeConn) Close() error {
-	panic("Not implemented")
+	return c.buf.transport.Close()
 }
 
 func (c *tlsHandshakeConn) LocalAddr() net.Addr {
-	panic("Not implemented")
+	return nil
 }
 
 func (c *tlsHandshakeConn) RemoteAddr() net.Addr {
-	panic("Not implemented")
+	return nil
 }
 
-func (c *tlsHandshakeConn) SetDeadline(t time.Time) error {
-	panic("Not implemented")
+func (c *tlsHandshakeConn) SetDeadline(_ time.Time) error {
+	return nil
 }
 
-func (c *tlsHandshakeConn) SetReadDeadline(t time.Time) error {
-	panic("Not implemented")
+func (c *tlsHandshakeConn) SetReadDeadline(_ time.Time) error {
+	return nil
 }
 
-func (c *tlsHandshakeConn) SetWriteDeadline(t time.Time) error {
-	panic("Not implemented")
+func (c *tlsHandshakeConn) SetWriteDeadline(_ time.Time) error {
+	return nil
 }
 
 // this connection just delegates all methods to it's wrapped connection
@@ -148,21 +148,21 @@ func (c passthroughConn) Close() error {
 }
 
 func (c passthroughConn) LocalAddr() net.Addr {
-	panic("Not implemented")
+	return c.c.LocalAddr()
 }
 
 func (c passthroughConn) RemoteAddr() net.Addr {
-	panic("Not implemented")
+	return c.c.RemoteAddr()
 }
 
 func (c passthroughConn) SetDeadline(t time.Time) error {
-	panic("Not implemented")
+	return c.c.SetDeadline(t)
 }
 
 func (c passthroughConn) SetReadDeadline(t time.Time) error {
-	panic("Not implemented")
+	return c.c.SetReadDeadline(t)
 }
 
 func (c passthroughConn) SetWriteDeadline(t time.Time) error {
-	panic("Not implemented")
+	return c.c.SetWriteDeadline(t)
 }

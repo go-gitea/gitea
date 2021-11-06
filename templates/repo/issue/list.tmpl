@@ -56,7 +56,7 @@
 						<div class="menu">
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&assignee={{$.AssigneeID}}">{{.i18n.Tr "repo.issues.filter_milestone_no_select"}}</a>
 							{{range .Milestones}}
-								<a class="{{if eq $.MilestoneID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&assignee={{$.AssigneeID}}">{{.Name}}</a>
+								<a class="{{if $.MilestoneID}}{{if eq $.MilestoneID .ID}}active selected{{end}}{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{.ID}}&assignee={{$.AssigneeID}}">{{.Name}}</a>
 							{{end}}
 						</div>
 					</div>
@@ -161,6 +161,24 @@
 							{{range .Milestones}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 									{{.Name}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+
+					<!-- Projects -->
+					<div class="ui {{if not .Projects}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.project_board"}}
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+						<div class="menu">
+							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
+							{{.i18n.Tr "repo.issues.new.no_projects"}}
+							</div>
+							{{range .Projects}}
+								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+									{{.Title}}
 								</div>
 							{{end}}
 						</div>

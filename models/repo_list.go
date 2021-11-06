@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -41,7 +43,7 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(e Engine) error {
+func (repos RepositoryList) loadAttributes(e db.Engine) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -88,13 +90,13 @@ func (repos RepositoryList) loadAttributes(e Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // MirrorRepositoryList contains the mirror repositories
 type MirrorRepositoryList []*Repository
 
-func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
+func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -128,12 +130,12 @@ func (repos MirrorRepositoryList) loadAttributes(e Engine) error {
 
 // LoadAttributes loads the attributes for the given MirrorRepositoryList
 func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(x)
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // SearchRepoOptions holds the search options
 type SearchRepoOptions struct {
-	ListOptions
+	db.ListOptions
 	Actor           *User
 	Keyword         string
 	OwnerID         int64
@@ -142,15 +144,16 @@ type SearchRepoOptions struct {
 	OrderBy         SearchOrderBy
 	Private         bool // Include private repositories in results
 	StarredByID     int64
+	WatchedByID     int64
 	AllPublic       bool // Include also all public repositories of users and public organisations
 	AllLimited      bool // Include also all public repositories of limited organisations
 	// None -> include public and private
 	// True -> include just private
-	// False -> incude just public
+	// False -> include just public
 	IsPrivate util.OptionalBool
 	// None -> include collaborative AND non-collaborative
 	// True -> include just collaborative
-	// False -> incude just non-collaborative
+	// False -> include just non-collaborative
 	Collaborate util.OptionalBool
 	// None -> include forks AND non-forks
 	// True -> include just forks
@@ -180,7 +183,7 @@ type SearchRepoOptions struct {
 	LowerNames []string
 }
 
-//SearchOrderBy is used to sort the result
+// SearchOrderBy is used to sort the result
 type SearchOrderBy string
 
 func (s SearchOrderBy) String() string {
@@ -207,7 +210,7 @@ const (
 
 // SearchRepositoryCondition creates a query condition according search repository options
 func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 
 	if opts.Private {
 		if opts.Actor != nil && !opts.Actor.IsAdmin && opts.Actor.ID != opts.OwnerID {
@@ -215,16 +218,14 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			cond = cond.And(accessibleRepositoryCondition(opts.Actor))
 		}
 	} else {
-		// Not looking at private organisations
+		// Not looking at private organisations and users
 		// We should be able to see all non-private repositories that
 		// isn't in a private or limited organisation.
 		cond = cond.And(
 			builder.Eq{"is_private": false},
 			builder.NotIn("owner_id", builder.Select("id").From("`user`").Where(
-				builder.And(
-					builder.Eq{"type": UserTypeOrganization},
-					builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
-				))))
+				builder.Or(builder.Eq{"visibility": structs.VisibleTypeLimited}, builder.Eq{"visibility": structs.VisibleTypePrivate}),
+			)))
 	}
 
 	if opts.IsPrivate != util.OptionalBoolNone {
@@ -240,9 +241,14 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		cond = cond.And(builder.In("id", builder.Select("repo_id").From("star").Where(builder.Eq{"uid": opts.StarredByID})))
 	}
 
+	// Restrict to watched repositories
+	if opts.WatchedByID > 0 {
+		cond = cond.And(builder.In("id", builder.Select("repo_id").From("watch").Where(builder.Eq{"user_id": opts.WatchedByID})))
+	}
+
 	// Restrict repositories to those the OwnerID owns or contributes to as per opts.Collaborate
 	if opts.OwnerID > 0 {
-		var accessCond = builder.NewCond()
+		accessCond := builder.NewCond()
 		if opts.Collaborate != util.OptionalBoolTrue {
 			accessCond = builder.Eq{"owner_id": opts.OwnerID}
 		}
@@ -301,7 +307,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 	if opts.Keyword != "" {
 		// separate keyword
-		var subQueryCond = builder.NewCond()
+		subQueryCond := builder.NewCond()
 		for _, v := range strings.Split(opts.Keyword, ",") {
 			if opts.TopicOnly {
 				subQueryCond = subQueryCond.Or(builder.Eq{"topic.name": strings.ToLower(v)})
@@ -314,9 +320,9 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(subQueryCond).
 			GroupBy("repo_topic.repo_id")
 
-		var keywordCond = builder.In("id", subQuery)
+		keywordCond := builder.In("id", subQuery)
 		if !opts.TopicOnly {
-			var likes = builder.NewCond()
+			likes := builder.NewCond()
 			for _, v := range strings.Split(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
 				if opts.IncludeDescription {
@@ -363,6 +369,35 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
+	sess, count, err := searchRepositoryByCondition(opts, cond)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer sess.Close()
+
+	defaultSize := 50
+	if opts.PageSize > 0 {
+		defaultSize = opts.PageSize
+	}
+	repos := make(RepositoryList, 0, defaultSize)
+	if err := sess.Find(&repos); err != nil {
+		return nil, 0, fmt.Errorf("Repo: %v", err)
+	}
+
+	if opts.PageSize <= 0 {
+		count = int64(len(repos))
+	}
+
+	if loadAttributes {
+		if err := repos.loadAttributes(sess); err != nil {
+			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
+		}
+	}
+
+	return repos, count, nil
+}
+
+func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*xorm.Session, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -375,38 +410,30 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
+	sess := db.NewSession(db.DefaultContext)
 
-	count, err := sess.
-		Where(cond).
-		Count(new(Repository))
-
-	if err != nil {
-		return nil, 0, fmt.Errorf("Count: %v", err)
+	var count int64
+	if opts.PageSize > 0 {
+		var err error
+		count, err = sess.
+			Where(cond).
+			Count(new(Repository))
+		if err != nil {
+			_ = sess.Close()
+			return nil, 0, fmt.Errorf("Count: %v", err)
+		}
 	}
 
-	repos := make(RepositoryList, 0, opts.PageSize)
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	if opts.PageSize > 0 {
 		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
-	if err = sess.Find(&repos); err != nil {
-		return nil, 0, fmt.Errorf("Repo: %v", err)
-	}
-
-	if loadAttributes {
-		if err = repos.loadAttributes(sess); err != nil {
-			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
-		}
-	}
-
-	return repos, count, nil
+	return sess, count, nil
 }
 
 // accessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func accessibleRepositoryCondition(user *User) builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 
 	if user == nil || !user.IsRestricted || user.ID <= 0 {
 		orgVisibilityLimit := []structs.VisibleType{structs.VisibleTypePrivate}
@@ -457,6 +484,33 @@ func SearchRepositoryByName(opts *SearchRepoOptions) (RepositoryList, int64, err
 	return SearchRepository(opts)
 }
 
+// SearchRepositoryIDs takes keyword and part of repository name to search,
+// it returns results in given range and number of total results.
+func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
+	opts.IncludeDescription = false
+
+	cond := SearchRepositoryCondition(opts)
+
+	sess, count, err := searchRepositoryByCondition(opts, cond)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer sess.Close()
+
+	defaultSize := 50
+	if opts.PageSize > 0 {
+		defaultSize = opts.PageSize
+	}
+
+	ids := make([]int64, 0, defaultSize)
+	err = sess.Select("id").Table("repository").Find(&ids)
+	if opts.PageSize <= 0 {
+		count = int64(len(ids))
+	}
+
+	return ids, count, err
+}
+
 // AccessibleRepoIDsQuery queries accessible repository ids. Usable as a subquery wherever repo ids need to be filtered.
 func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 	// NB: Please note this code needs to still work if user is nil
@@ -466,7 +520,7 @@ func AccessibleRepoIDsQuery(user *User) *builder.Builder {
 // FindUserAccessibleRepoIDs find all accessible repositories' ID by user's id
 func FindUserAccessibleRepoIDs(user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	if err := x.
+	if err := db.GetEngine(db.DefaultContext).
 		Table("repository").
 		Cols("id").
 		Where(accessibleRepositoryCondition(user)).

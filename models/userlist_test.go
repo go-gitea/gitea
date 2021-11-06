@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserListIsPublicMember(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
 		expected map[int64]bool
@@ -29,16 +30,16 @@ func TestUserListIsPublicMember(t *testing.T) {
 		})
 	}
 }
+
 func testUserListIsPublicMember(t *testing.T, orgID int64, expected map[int64]bool) {
 	org, err := GetUserByID(orgID)
 	assert.NoError(t, err)
 	assert.NoError(t, org.GetMembers())
 	assert.Equal(t, expected, org.MembersIsPublic)
-
 }
 
 func TestUserListIsUserOrgOwner(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
 		expected map[int64]bool
@@ -64,7 +65,7 @@ func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bo
 }
 
 func TestUserListIsTwoFaEnrolled(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 	tt := []struct {
 		orgid    int64
 		expected map[int64]bool

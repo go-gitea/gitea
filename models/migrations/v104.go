@@ -9,7 +9,6 @@ import (
 )
 
 func removeLabelUneededCols(x *xorm.Engine) error {
-
 	// Make sure the columns exist before dropping them
 	type Label struct {
 		QueryString string

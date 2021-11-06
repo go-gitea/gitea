@@ -19,8 +19,8 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	index "github.com/blevesearch/bleve_index_api"
-	segment "github.com/blevesearch/scorch_segment_api"
-	"github.com/couchbase/vellum"
+	segment "github.com/blevesearch/scorch_segment_api/v2"
+	"github.com/blevesearch/vellum"
 )
 
 // Dictionary is the zap representation of the term dictionary
@@ -106,7 +106,7 @@ func (d *Dictionary) Contains(key []byte) (bool, error) {
 
 // AutomatonIterator returns an iterator which only visits terms
 // having the the vellum automaton and start/end key range
-func (d *Dictionary) AutomatonIterator(a vellum.Automaton,
+func (d *Dictionary) AutomatonIterator(a segment.Automaton,
 	startKeyInclusive, endKeyExclusive []byte) segment.DictionaryIterator {
 	if d.fst != nil {
 		rv := &DictionaryIterator{

@@ -32,7 +32,7 @@ function makeCollections({mentions, emoji}) {
   if (emoji) {
     collections.push({
       values: window.config.tributeValues,
-      noMatchTemplate: () => null,
+      requireLeadingSpace: true,
       menuItemTemplate: (item) => {
         return `
           <div class="tribute-item">
@@ -49,7 +49,7 @@ function makeCollections({mentions, emoji}) {
 }
 
 export default async function attachTribute(elementOrNodeList, {mentions, emoji} = {}) {
-  if (!window.config.Tribute || !elementOrNodeList) return;
+  if (!window.config.requireTribute || !elementOrNodeList) return;
   const nodes = Array.from('length' in elementOrNodeList ? elementOrNodeList : [elementOrNodeList]);
   if (!nodes.length) return;
 
@@ -69,7 +69,7 @@ export default async function attachTribute(elementOrNodeList, {mentions, emoji}
     emoji: emoji || emojiNodes.length > 0,
   });
 
-  const tribute = new Tribute({collection: collections});
+  const tribute = new Tribute({collection: collections, noMatchTemplate: ''});
   for (const node of uniqueNodes) {
     tribute.attach(node);
   }

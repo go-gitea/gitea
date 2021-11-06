@@ -6,14 +6,18 @@ import (
 )
 
 // Fsharp lexer.
-var Fsharp = internal.Register(MustNewLexer(
+var Fsharp = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "FSharp",
 		Aliases:   []string{"fsharp"},
 		Filenames: []string{"*.fs", "*.fsi"},
 		MimeTypes: []string{"text/x-fsharp"},
 	},
-	Rules{
+	fsharpRules,
+))
+
+func fsharpRules() Rules {
+	return Rules{
 		"escape-sequence": {
 			{`\\[\\"\'ntbrafv]`, LiteralStringEscape, nil},
 			{`\\[0-9]{3}`, LiteralStringEscape, nil},
@@ -90,5 +94,5 @@ var Fsharp = internal.Register(MustNewLexer(
 			{`"""B?`, LiteralString, Pop(1)},
 			{`"`, LiteralString, nil},
 		},
-	},
-))
+	}
+}

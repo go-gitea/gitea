@@ -54,8 +54,8 @@ git clone https://github.com/go-gitea/gitea
 no longer necessary.)
 
 Decide which version of Gitea to build and install. Currently, there are
-multiple options to choose from. The `master` branch represents the current
-development version. To build with master, skip to the [build section](#build).
+multiple options to choose from. The `main` branch represents the current
+development version. To build with main, skip to the [build section](#build).
 
 To work with tagged releases, the following commands can be used:
 
@@ -89,7 +89,7 @@ To build from source, the following programs must be present on the system:
 - `node` {{< min-node-version >}} or higher with `npm`, see [here](https://nodejs.org/en/download/)
 - `make`, see <a href='{{< relref "doc/developers/hacking-on-gitea.en-us.md" >}}#installing-make'>here</a>
 
-Various [make tasks](https://github.com/go-gitea/gitea/blob/master/Makefile)
+Various [make tasks](https://github.com/go-gitea/gitea/blob/main/Makefile)
 are provided to keep the build process as simple as possible.
 
 Depending on requirements, the following build tags can be included.
@@ -186,3 +186,11 @@ CC=aarch64-unknown-linux-gnu-gcc GOOS=linux GOARCH=arm64 TAGS="bindata sqlite sq
 ```
 
 Replace `CC`, `GOOS`, and `GOARCH` as appropriate for your architecture target.
+
+You will sometimes need to build a static compiled image. To do this you will need to add:
+
+```
+LDFLAGS="-linkmode external -extldflags '-static' $LDFLAGS" TAGS="netgo osusergo $TAGS" make build
+```
+
+This can be combined with `CC`, `GOOS`, and `GOARCH` as above.

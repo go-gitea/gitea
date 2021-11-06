@@ -64,7 +64,7 @@ qa: fmtcheck test vet lint
 # Get the dependencies
 deps:
 	GOPATH=$(GOPATH) go get github.com/stretchr/testify
-	GOPATH=$(GOPATH) go get github.com/willf/bitset
+	GOPATH=$(GOPATH) go get github.com/bits-and-blooms/bitset
 	GOPATH=$(GOPATH) go get github.com/golang/lint/golint
 	GOPATH=$(GOPATH) go get github.com/mschoch/smat
 	GOPATH=$(GOPATH) go get github.com/dvyukov/go-fuzz/go-fuzz
@@ -96,10 +96,6 @@ clean:
 nuke:
 	rm -rf ./target
 	GOPATH=$(GOPATH) go clean -i ./...
-
-
-ser: 
-	go generate
 
 cover:
 	go test -coverprofile=coverage.out

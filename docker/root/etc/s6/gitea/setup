@@ -23,7 +23,7 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
         INSTALL_LOCK=true
     fi
 
-    # Substitude the environment variables in the template
+    # Substitute the environment variables in the template
     APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
     RUN_MODE=${RUN_MODE:-"prod"} \
     DOMAIN=${DOMAIN:-"localhost"} \
@@ -47,6 +47,9 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
 
     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
 fi
+
+# Replace app.ini settings with env variables in the form GITEA__SECTION_NAME__KEY_NAME
+environment-to-ini --config ${GITEA_CUSTOM}/conf/app.ini
 
 # only chown if current owner is not already the gitea ${USER}. No recursive check to save time
 if ! [[ $(ls -ld /data/gitea | awk '{print $3}') = ${USER} ]]; then chown -R ${USER}:git /data/gitea; fi

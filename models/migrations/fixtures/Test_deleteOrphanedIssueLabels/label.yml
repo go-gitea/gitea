@@ -1,0 +1,43 @@
+-
+  id: 1
+  repo_id: 1
+  org_id: 0
+  name: label1
+  color: '#abcdef'
+  num_issues: 2
+  num_closed_issues: 0
+
+-
+  id: 2
+  repo_id: 1
+  org_id: 0
+  name: label2
+  color: '#000000'
+  num_issues: 1
+  num_closed_issues: 1
+-
+  id: 3
+  repo_id: 0
+  org_id:  3
+  name: orglabel3
+  color: '#abcdef'
+  num_issues: 0
+  num_closed_issues: 0
+
+-
+  id: 4
+  repo_id: 0
+  org_id: 3
+  name: orglabel4
+  color: '#000000'
+  num_issues: 1
+  num_closed_issues: 0
+
+-
+  id: 5
+  repo_id: 10
+  org_id: 0
+  name: pull-test-label
+  color: '#000000'
+  num_issues: 0
+  num_closed_issues: 0

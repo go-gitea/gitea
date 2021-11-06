@@ -17,7 +17,7 @@ package zap
 import (
 	"bytes"
 
-	"github.com/couchbase/vellum"
+	"github.com/blevesearch/vellum"
 )
 
 // enumerator provides an ordered traversal of multiple vellum

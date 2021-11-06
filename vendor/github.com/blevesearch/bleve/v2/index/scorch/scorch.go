@@ -26,7 +26,7 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/blevesearch/bleve/v2/registry"
 	index "github.com/blevesearch/bleve_index_api"
-	segment "github.com/blevesearch/scorch_segment_api"
+	segment "github.com/blevesearch/scorch_segment_api/v2"
 	bolt "go.etcd.io/bbolt"
 )
 
@@ -199,11 +199,9 @@ func (s *Scorch) openBolt() error {
 		s.unsafeBatch = true
 	}
 
-	var rootBoltOpt *bolt.Options
+	var rootBoltOpt = *bolt.DefaultOptions
 	if s.readOnly {
-		rootBoltOpt = &bolt.Options{
-			ReadOnly: true,
-		}
+		rootBoltOpt.ReadOnly = true
 	} else {
 		if s.path != "" {
 			err := os.MkdirAll(s.path, 0700)
@@ -213,10 +211,19 @@ func (s *Scorch) openBolt() error {
 		}
 	}
 
+	if boltTimeoutStr, ok := s.config["bolt_timeout"].(string); ok {
+		var err error
+		boltTimeout, err := time.ParseDuration(boltTimeoutStr)
+		if err != nil {
+			return fmt.Errorf("invalid duration specified for bolt_timeout: %v", err)
+		}
+		rootBoltOpt.Timeout = boltTimeout
+	}
+
 	rootBoltPath := s.path + string(os.PathSeparator) + "root.bolt"
 	var err error
 	if s.path != "" {
-		s.rootBolt, err = bolt.Open(rootBoltPath, 0600, rootBoltOpt)
+		s.rootBolt, err = bolt.Open(rootBoltPath, 0600, &rootBoltOpt)
 		if err != nil {
 			return err
 		}

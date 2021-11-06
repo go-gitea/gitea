@@ -1,7 +1,7 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
-		<a href="{{AppSubUrl}}/">
-			<img class="ui mini image" with="30" height="30" src="{{StaticUrlPrefix}}/img/logo.svg">
+		<a href="{{AppSubUrl}}/" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}" data-variation="tiny inverted">
+			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
@@ -11,7 +11,6 @@
 	{{if and .IsSigned .MustChangePassword}}
 		{{/* No links */}}
 	{{else if .IsSigned}}
-		<a class="item {{if .PageIsDashboard}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "dashboard"}}</a>
 		{{if not .UnitIssuesGlobalDisabled}}
 		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
 		{{end}}
@@ -22,18 +21,15 @@
 		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.i18n.Tr "milestones"}}</a>{{end}}
 		{{end}}
 		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
-	{{else if .IsLandingPageHome}}
-		<a class="item {{if .PageIsHome}}active{{end}}" href="{{AppSubUrl}}/">{{.i18n.Tr "home"}}</a>
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
-	{{else if .IsLandingPageExplore}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "home"}}</a>
 	{{else if .IsLandingPageOrganizations}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "home"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "explore"}}</a>
+	{{else}}
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
 	{{end}}
 
 	{{template "custom/extra_links" .}}
 
-	{{/*
+	{{/* TODO
 		<div class="item">
 		<div class="ui icon input">
 		<input class="searchbox" type="text" placeholder="{{.i18n.Tr "search_project"}}">
@@ -100,7 +96,7 @@
 							class="ui button mini compact basic icon fitted poping up"
 							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right" data-variation="small inverted"
-						>{{svg "octicon-trashcan"}}</button>
+						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
@@ -157,10 +153,12 @@
 						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
-					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
-						{{svg "octicon-star"}}
-						{{.i18n.Tr "your_starred"}}
-					</a>
+					{{if not .DisableStars}}
+						<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+							{{svg "octicon-star"}}
+							{{.i18n.Tr "your_starred"}}
+						</a>
+					{{end}}
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
@@ -173,7 +171,7 @@
 						<div class="divider"></div>
 
 						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
-							<i class="icon settings"></i>
+							{{svg "octicon-server"}}
 							{{.i18n.Tr "admin_panel"}}<!-- Admin Panel -->
 						</a>
 					{{end}}
@@ -194,7 +192,7 @@
 					{{svg "octicon-person"}} {{.i18n.Tr "register"}}
 				</a>
 			{{end}}
-			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login?redirect_to={{.CurrentURL}}">
+			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
 				{{svg "octicon-sign-in"}} {{.i18n.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->

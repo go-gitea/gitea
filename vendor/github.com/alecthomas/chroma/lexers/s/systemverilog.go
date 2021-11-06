@@ -6,7 +6,7 @@ import (
 )
 
 // Systemverilog lexer.
-var Systemverilog = internal.Register(MustNewLexer(
+var Systemverilog = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "systemverilog",
 		Aliases:   []string{"systemverilog", "sv"},
@@ -14,7 +14,11 @@ var Systemverilog = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-systemverilog"},
 		EnsureNL:  true,
 	},
-	Rules{
+	systemvarilogRules,
+))
+
+func systemvarilogRules() Rules {
+	return Rules{
 		"root": {
 			{"^\\s*`define", CommentPreproc, Push("macro")},
 			{`^(\s*)(package)(\s+)`, ByGroups(Text, KeywordNamespace, Text), nil},
@@ -69,5 +73,5 @@ var Systemverilog = internal.Register(MustNewLexer(
 		"import": {
 			{`[\w:]+\*?`, NameNamespace, Pop(1)},
 		},
-	},
-))
+	}
+}

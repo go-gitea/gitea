@@ -1,6 +1,5 @@
 Copyright 1993 Francis Borceux
-You may freely use, modify, and/or distribute each of the files in this package
-without limitation.  The package consists of the following files:
+You may freely use, modify, and/or distribute each of the files in this package without limitation.  The package consists of the following files:
 
 README
 compatibility/OldDiagram
@@ -16,6 +15,5 @@ diagram/MultipleArrows
 user-guides/Diagram_Mode_d_Emploi
 user-guides/Diagram_Read_Me
 
-Of course no support is guaranteed, but the author will attempt to assist
-with problems.  Current email address:
+Of course no support is guaranteed, but the author will attempt to assist with problems.  Current email address:
 francis dot borceux at uclouvain dot be.

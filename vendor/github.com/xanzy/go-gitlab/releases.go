@@ -1,7 +1,24 @@
+//
+// Copyright 2021, Sander van Harmelen
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
 package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
@@ -20,9 +37,10 @@ type ReleasesService struct {
 type Release struct {
 	TagName         string     `json:"tag_name"`
 	Name            string     `json:"name"`
-	Description     string     `json:"description,omitempty"`
-	DescriptionHTML string     `json:"description_html,omitempty"`
-	CreatedAt       *time.Time `json:"created_at,omitempty"`
+	Description     string     `json:"description"`
+	DescriptionHTML string     `json:"description_html"`
+	CreatedAt       *time.Time `json:"created_at"`
+	ReleasedAt      *time.Time `json:"released_at"`
 	Author          struct {
 		ID        int    `json:"id"`
 		Name      string `json:"name"`
@@ -59,7 +77,7 @@ func (s *ReleasesService) ListReleases(pid interface{}, opt *ListReleasesOptions
 	}
 	u := fmt.Sprintf("projects/%s/releases", pathEscape(project))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,9 +100,9 @@ func (s *ReleasesService) GetRelease(pid interface{}, tagName string, options ..
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), tagName)
+	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), pathEscape(tagName))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,7 +158,7 @@ func (s *ReleasesService) CreateRelease(pid interface{}, opts *CreateReleaseOpti
 	}
 	u := fmt.Sprintf("projects/%s/releases", pathEscape(project))
 
-	req, err := s.client.NewRequest("POST", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -174,9 +192,9 @@ func (s *ReleasesService) UpdateRelease(pid interface{}, tagName string, opts *U
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), tagName)
+	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), pathEscape(tagName))
 
-	req, err := s.client.NewRequest("PUT", u, opts, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opts, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -199,9 +217,9 @@ func (s *ReleasesService) DeleteRelease(pid interface{}, tagName string, options
 	if err != nil {
 		return nil, nil, err
 	}
-	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), tagName)
+	u := fmt.Sprintf("projects/%s/releases/%s", pathEscape(project), pathEscape(tagName))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

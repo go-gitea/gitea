@@ -6,6 +6,7 @@ package context
 
 import (
 	"bytes"
+	"context"
 	"html/template"
 	"net/http"
 	"time"
@@ -22,6 +23,8 @@ type routerLoggerOptions struct {
 	Ctx            map[string]interface{}
 }
 
+var signedUserNameStringPointerKey interface{} = "signedUserNameStringPointerKey"
+
 // AccessLogger returns a middleware to log access logger
 func AccessLogger() func(http.Handler) http.Handler {
 	logger := log.GetLogger("access")
@@ -29,11 +32,10 @@ func AccessLogger() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			start := time.Now()
-			next.ServeHTTP(w, req)
 			identity := "-"
-			if val := SignedUserName(req); val != "" {
-				identity = val
-			}
+			r := req.WithContext(context.WithValue(req.Context(), signedUserNameStringPointerKey, &identity))
+
+			next.ServeHTTP(w, r)
 			rw := w.(ResponseWriter)
 
 			buf := bytes.NewBuffer([]byte{})

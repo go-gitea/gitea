@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<title>{{.Subject}}</title>
+</head>
+
+{{$url := printf "<a href='%[1]s'>%[2]s</a>" .Link .Repo}}
+<body>
+	<p>{{.Subject}}.
+		{{.i18n.Tr "mail.repo.transfer.body" $url | Str2html}}
+	<p>
+		---
+		<br>
+		<a href="{{.Link}}">{{.i18n.Tr "mail.view_it_on" AppName}}</a>.
+	</p>
+</body>
+</html>

@@ -6,14 +6,18 @@ import (
 )
 
 // Standard ML lexer.
-var StandardML = internal.Register(MustNewLexer(
+var StandardML = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Standard ML",
 		Aliases:   []string{"sml"},
 		Filenames: []string{"*.sml", "*.sig", "*.fun"},
 		MimeTypes: []string{"text/x-standardml", "application/x-standardml"},
 	},
-	Rules{
+	standardMLRules,
+))
+
+func standardMLRules() Rules {
+	return Rules{
 		"whitespace": {
 			{`\s+`, Text, nil},
 			{`\(\*`, CommentMultiline, Push("comment")},
@@ -196,5 +200,5 @@ var StandardML = internal.Register(MustNewLexer(
 			{`\*\)`, CommentMultiline, Pop(1)},
 			{`[(*)]`, CommentMultiline, nil},
 		},
-	},
-))
+	}
+}

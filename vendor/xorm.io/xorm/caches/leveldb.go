@@ -19,6 +19,7 @@ type LevelDBStore struct {
 
 var _ CacheStore = &LevelDBStore{}
 
+// NewLevelDBStore creates a leveldb store
 func NewLevelDBStore(dbfile string) (*LevelDBStore, error) {
 	db := &LevelDBStore{}
 	h, err := leveldb.OpenFile(dbfile, nil)
@@ -29,6 +30,7 @@ func NewLevelDBStore(dbfile string) (*LevelDBStore, error) {
 	return db, nil
 }
 
+// Put implements CacheStore
 func (s *LevelDBStore) Put(key string, value interface{}) error {
 	val, err := Encode(value)
 	if err != nil {
@@ -50,6 +52,7 @@ func (s *LevelDBStore) Put(key string, value interface{}) error {
 	return err
 }
 
+// Get implements CacheStore
 func (s *LevelDBStore) Get(key string) (interface{}, error) {
 	data, err := s.store.Get([]byte(key), nil)
 	if err != nil {
@@ -75,6 +78,7 @@ func (s *LevelDBStore) Get(key string) (interface{}, error) {
 	return s.v, err
 }
 
+// Del implements CacheStore
 func (s *LevelDBStore) Del(key string) error {
 	err := s.store.Delete([]byte(key), nil)
 	if err != nil {
@@ -89,6 +93,7 @@ func (s *LevelDBStore) Del(key string) error {
 	return err
 }
 
+// Close implements CacheStore
 func (s *LevelDBStore) Close() {
 	s.store.Close()
 }

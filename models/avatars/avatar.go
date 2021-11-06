@@ -1,0 +1,180 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package avatars
+
+import (
+	"context"
+	"net/url"
+	"path"
+	"strconv"
+	"strings"
+
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+)
+
+// DefaultAvatarPixelSize is the default size in pixels of a rendered avatar
+const DefaultAvatarPixelSize = 28
+
+// AvatarRenderedSizeFactor is the factor by which the default size is increased for finer rendering
+const AvatarRenderedSizeFactor = 4
+
+// EmailHash represents a pre-generated hash map (mainly used by LibravatarURL, it queries email server's DNS records)
+type EmailHash struct {
+	Hash  string `xorm:"pk varchar(32)"`
+	Email string `xorm:"UNIQUE NOT NULL"`
+}
+
+func init() {
+	db.RegisterModel(new(EmailHash))
+}
+
+// DefaultAvatarLink the default avatar link
+func DefaultAvatarLink() string {
+	u, err := url.Parse(setting.AppSubURL)
+	if err != nil {
+		log.Error("GetUserByEmail: %v", err)
+		return ""
+	}
+
+	u.Path = path.Join(u.Path, "/assets/img/avatar_default.png")
+	return u.String()
+}
+
+// HashEmail hashes email address to MD5 string. https://en.gravatar.com/site/implement/hash/
+func HashEmail(email string) string {
+	return base.EncodeMD5(strings.ToLower(strings.TrimSpace(email)))
+}
+
+// GetEmailForHash converts a provided md5sum to the email
+func GetEmailForHash(md5Sum string) (string, error) {
+	return cache.GetString("Avatar:"+md5Sum, func() (string, error) {
+		emailHash := EmailHash{
+			Hash: strings.ToLower(strings.TrimSpace(md5Sum)),
+		}
+
+		_, err := db.GetEngine(db.DefaultContext).Get(&emailHash)
+		return emailHash.Email, err
+	})
+}
+
+// LibravatarURL returns the URL for the given email. Slow due to the DNS lookup.
+// This function should only be called if a federated avatar service is enabled.
+func LibravatarURL(email string) (*url.URL, error) {
+	urlStr, err := setting.LibravatarService.FromEmail(email)
+	if err != nil {
+		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
+		return nil, err
+	}
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		log.Error("Failed to parse libravatar url(%s): error %v", urlStr, err)
+		return nil, err
+	}
+	return u, nil
+}
+
+// saveEmailHash returns an avatar link for a provided email,
+// the email and hash are saved into database, which will be used by GetEmailForHash later
+func saveEmailHash(email string) string {
+	lowerEmail := strings.ToLower(strings.TrimSpace(email))
+	emailHash := HashEmail(lowerEmail)
+	_, _ = cache.GetString("Avatar:"+emailHash, func() (string, error) {
+		emailHash := &EmailHash{
+			Email: lowerEmail,
+			Hash:  emailHash,
+		}
+		// OK we're going to open a session just because I think that that might hide away any problems with postgres reporting errors
+		if err := db.WithTx(func(ctx context.Context) error {
+			has, err := db.GetEngine(ctx).Where("email = ? AND hash = ?", emailHash.Email, emailHash.Hash).Get(new(EmailHash))
+			if has || err != nil {
+				// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
+				return nil
+			}
+			_, _ = db.GetEngine(ctx).Insert(emailHash)
+			return nil
+		}); err != nil {
+			// Seriously we don't care about any DB problems just return the lowerEmail - we expect the transaction to fail most of the time
+			return lowerEmail, nil
+		}
+		return lowerEmail, nil
+	})
+	return emailHash
+}
+
+// GenerateUserAvatarFastLink returns a fast link (302) to the user's avatar: "/user/avatar/${User.Name}/${size}"
+func GenerateUserAvatarFastLink(userName string, size int) string {
+	if size < 0 {
+		size = 0
+	}
+	return setting.AppSubURL + "/user/avatar/" + userName + "/" + strconv.Itoa(size)
+}
+
+// GenerateUserAvatarImageLink returns a link for `User.Avatar` image file: "/avatars/${User.Avatar}"
+func GenerateUserAvatarImageLink(userAvatar string, size int) string {
+	if size > 0 {
+		return setting.AppSubURL + "/avatars/" + userAvatar + "?size=" + strconv.Itoa(size)
+	}
+	return setting.AppSubURL + "/avatars/" + userAvatar
+}
+
+// generateRecognizedAvatarURL generate a recognized avatar (Gravatar/Libravatar) URL, it modifies the URL so the parameter is passed by a copy
+func generateRecognizedAvatarURL(u url.URL, size int) string {
+	urlQuery := u.Query()
+	urlQuery.Set("d", "identicon")
+	if size > 0 {
+		urlQuery.Set("s", strconv.Itoa(size))
+	}
+	u.RawQuery = urlQuery.Encode()
+	return u.String()
+}
+
+// generateEmailAvatarLink returns a email avatar link.
+// if final is true, it may use a slow path (eg: query DNS).
+// if final is false, it always uses a fast path.
+func generateEmailAvatarLink(email string, size int, final bool) string {
+	email = strings.TrimSpace(email)
+	if email == "" {
+		return DefaultAvatarLink()
+	}
+
+	var err error
+	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+		emailHash := saveEmailHash(email)
+		if final {
+			// for final link, we can spend more time on slow external query
+			var avatarURL *url.URL
+			if avatarURL, err = LibravatarURL(email); err != nil {
+				return DefaultAvatarLink()
+			}
+			return generateRecognizedAvatarURL(*avatarURL, size)
+		}
+		// for non-final link, we should return fast (use a 302 redirection link)
+		urlStr := setting.AppSubURL + "/avatar/" + emailHash
+		if size > 0 {
+			urlStr += "?size=" + strconv.Itoa(size)
+		}
+		return urlStr
+	} else if !setting.DisableGravatar {
+		// copy GravatarSourceURL, because we will modify its Path.
+		avatarURLCopy := *setting.GravatarSourceURL
+		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
+		return generateRecognizedAvatarURL(avatarURLCopy, size)
+	}
+	return DefaultAvatarLink()
+}
+
+//GenerateEmailAvatarFastLink returns a avatar link (fast, the link may be a delegated one: "/avatar/${hash}")
+func GenerateEmailAvatarFastLink(email string, size int) string {
+	return generateEmailAvatarLink(email, size, false)
+}
+
+//GenerateEmailAvatarFinalLink returns a avatar final link (maybe slow)
+func GenerateEmailAvatarFinalLink(email string, size int) string {
+	return generateEmailAvatarLink(email, size, true)
+}

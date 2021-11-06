@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -25,33 +26,50 @@ type TrackedTime struct {
 	Issue   *Issue `json:"issue"`
 }
 
-// GetUserTrackedTimes list tracked times of a user
-func (c *Client) GetUserTrackedTimes(owner, repo, user string) ([]*TrackedTime, *Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
-		return nil, nil, err
-	}
-	times := make([]*TrackedTime, 0, 10)
-	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/times/%s", owner, repo, user), nil, nil, &times)
-	return times, resp, err
+// ListTrackedTimesOptions options for listing repository's tracked times
+type ListTrackedTimesOptions struct {
+	ListOptions
+	Since  time.Time
+	Before time.Time
+	// User filter is only used by ListRepoTrackedTimes !!!
+	User string
 }
 
-// GetRepoTrackedTimes list tracked times of a repository
-func (c *Client) GetRepoTrackedTimes(owner, repo string) ([]*TrackedTime, *Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+// QueryEncode turns options into querystring argument
+func (opt *ListTrackedTimesOptions) QueryEncode() string {
+	query := opt.getURLQuery()
+
+	if !opt.Since.IsZero() {
+		query.Add("since", opt.Since.Format(time.RFC3339))
+	}
+	if !opt.Before.IsZero() {
+		query.Add("before", opt.Before.Format(time.RFC3339))
+	}
+
+	if len(opt.User) != 0 {
+		query.Add("user", opt.User)
+	}
+
+	return query.Encode()
+}
+
+// ListRepoTrackedTimes list tracked times of a repository
+func (c *Client) ListRepoTrackedTimes(owner, repo string, opt ListTrackedTimesOptions) ([]*TrackedTime, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, nil, err
 	}
-	times := make([]*TrackedTime, 0, 10)
-	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/times", owner, repo), nil, nil, &times)
+	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/times", owner, repo))
+	opt.setDefaults()
+	link.RawQuery = opt.QueryEncode()
+	times := make([]*TrackedTime, 0, opt.PageSize)
+	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &times)
 	return times, resp, err
 }
 
 // GetMyTrackedTimes list tracked times of the current user
 func (c *Client) GetMyTrackedTimes() ([]*TrackedTime, *Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
-		return nil, nil, err
-	}
 	times := make([]*TrackedTime, 0, 10)
-	resp, err := c.getParsedResponse("GET", "/user/times", nil, nil, &times)
+	resp, err := c.getParsedResponse("GET", "/user/times", jsonHeader, nil, &times)
 	return times, resp, err
 }
 
@@ -75,7 +93,7 @@ func (opt AddTimeOption) Validate() error {
 
 // AddTime adds time to issue with the given index
 func (c *Client) AddTime(owner, repo string, index int64, opt AddTimeOption) (*TrackedTime, *Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, nil, err
 	}
 	if err := opt.Validate(); err != nil {
@@ -92,36 +110,33 @@ func (c *Client) AddTime(owner, repo string, index int64, opt AddTimeOption) (*T
 	return t, resp, err
 }
 
-// ListTrackedTimesOptions options for listing repository's tracked times
-type ListTrackedTimesOptions struct {
-	ListOptions
-}
-
-// ListTrackedTimes list tracked times of a single issue for a given repository
-func (c *Client) ListTrackedTimes(owner, repo string, index int64, opt ListTrackedTimesOptions) ([]*TrackedTime, *Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+// ListIssueTrackedTimes list tracked times of a single issue for a given repository
+func (c *Client) ListIssueTrackedTimes(owner, repo string, index int64, opt ListTrackedTimesOptions) ([]*TrackedTime, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, nil, err
 	}
+	link, _ := url.Parse(fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index))
 	opt.setDefaults()
+	link.RawQuery = opt.QueryEncode()
 	times := make([]*TrackedTime, 0, opt.PageSize)
-	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d/times?%s", owner, repo, index, opt.getURLQuery().Encode()), nil, nil, &times)
+	resp, err := c.getParsedResponse("GET", link.String(), jsonHeader, nil, &times)
 	return times, resp, err
 }
 
 // ResetIssueTime reset tracked time of a single issue for a given repository
 func (c *Client) ResetIssueTime(owner, repo string, index int64) (*Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, err
 	}
-	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index), nil, nil)
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times", owner, repo, index), jsonHeader, nil)
 	return resp, err
 }
 
 // DeleteTime delete a specific tracked time by id of a single issue for a given repository
 func (c *Client) DeleteTime(owner, repo string, index, timeID int64) (*Response, error) {
-	if err := c.checkServerVersionGreaterThanOrEqual(version1_11_0); err != nil {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
 		return nil, err
 	}
-	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times/%d", owner, repo, index, timeID), nil, nil)
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/times/%d", owner, repo, index, timeID), jsonHeader, nil)
 	return resp, err
 }

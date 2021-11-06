@@ -301,9 +301,6 @@ func (x1 *Bitmap) AndAny(bitmaps ...*Bitmap) {
 					tmpBitmap = newBitmapContainer()
 				}
 				tmpBitmap.resetTo(keyContainers[0])
-				for _, c := range keyContainers[1:] {
-					tmpBitmap.ior(c)
-				}
 				ored = tmpBitmap
 			} else {
 				if tmpArray == nil {
@@ -311,15 +308,15 @@ func (x1 *Bitmap) AndAny(bitmaps ...*Bitmap) {
 				}
 				tmpArray.realloc(maxPossibleOr)
 				tmpArray.resetTo(keyContainers[0])
-				for _, c := range keyContainers[1:] {
-					tmpArray.ior(c)
-				}
 				ored = tmpArray
+			}
+			for _, c := range keyContainers[1:] {
+				ored = ored.ior(c)
 			}
 		}
 
 		result := x1.highlowcontainer.getWritableContainerAtIndex(basePos).iand(ored)
-		if result.getCardinality() > 0 {
+		if !result.isEmpty() {
 			x1.highlowcontainer.replaceKeyAndContainerAtIndex(intersections, baseKey, result, false)
 			intersections++
 		}

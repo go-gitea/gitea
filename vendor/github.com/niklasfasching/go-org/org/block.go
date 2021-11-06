@@ -54,7 +54,7 @@ func isRawTextBlock(name string) bool { return name == "SRC" || name == "EXAMPLE
 
 func (d *Document) parseBlock(i int, parentStop stopFn) (int, Node) {
 	t, start := d.tokens[i], i
-	name, parameters := t.content, strings.Fields(t.matches[3])
+	name, parameters := t.content, splitParameters(t.matches[3])
 	trim := trimIndentUpTo(d.tokens[i].lvl)
 	stop := func(d *Document, i int) bool {
 		return i >= len(d.tokens) || (d.tokens[i].kind == "endBlock" && d.tokens[i].content == name)
@@ -119,6 +119,19 @@ func trimIndentUpTo(max int) func(string) string {
 		}
 		return line[i:]
 	}
+}
+
+func splitParameters(s string) []string {
+	parameters, parts := []string{}, strings.Split(s, " :")
+	lang, rest := strings.TrimSpace(parts[0]), parts[1:]
+	if lang != "" {
+		parameters = append(parameters, lang)
+	}
+	for _, p := range rest {
+		kv := strings.SplitN(p+" ", " ", 2)
+		parameters = append(parameters, ":"+kv[0], strings.TrimSpace(kv[1]))
+	}
+	return parameters
 }
 
 func (b Block) ParameterMap() map[string]string {

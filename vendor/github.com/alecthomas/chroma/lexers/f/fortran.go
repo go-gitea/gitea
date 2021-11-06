@@ -6,7 +6,7 @@ import (
 )
 
 // Fortran lexer.
-var Fortran = internal.Register(MustNewLexer(
+var Fortran = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Fortran",
 		Aliases:         []string{"fortran"},
@@ -14,7 +14,11 @@ var Fortran = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-fortran"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	fortranRules,
+))
+
+func fortranRules() Rules {
+	return Rules{
 		"root": {
 			{`^#.*\n`, CommentPreproc, nil},
 			{`!.*\n`, Comment, nil},
@@ -43,5 +47,5 @@ var Fortran = internal.Register(MustNewLexer(
 			{`[+-]?\d*\.\d+([ed][-+]?\d+)?(_[a-z]\w+)?`, LiteralNumberFloat, nil},
 			{`[+-]?\d+\.\d*([ed][-+]?\d+)?(_[a-z]\w+)?`, LiteralNumberFloat, nil},
 		},
-	},
-))
+	}
+}

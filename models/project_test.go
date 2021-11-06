@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ import (
 func TestIsProjectTypeValid(t *testing.T) {
 	const UnknownType ProjectType = 15
 
-	var cases = []struct {
+	cases := []struct {
 		typ   ProjectType
 		valid bool
 	}{
@@ -31,7 +32,7 @@ func TestIsProjectTypeValid(t *testing.T) {
 }
 
 func TestGetProjects(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	projects, _, err := GetProjects(ProjectSearchOptions{RepoID: 1})
 	assert.NoError(t, err)
@@ -47,7 +48,7 @@ func TestGetProjects(t *testing.T) {
 }
 
 func TestProject(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
 
 	project := &Project{
 		Type:        ProjectTypeRepository,

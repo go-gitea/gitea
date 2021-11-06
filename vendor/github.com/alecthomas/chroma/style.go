@@ -265,11 +265,11 @@ func (s *Style) Get(ttype TokenType) StyleEntry {
 
 func (s *Style) get(ttype TokenType) StyleEntry {
 	out := s.entries[ttype]
-	if out.IsZero() && s.synthesisable(ttype) {
-		out = s.synthesise(ttype)
-	}
 	if out.IsZero() && s.parent != nil {
 		return s.parent.get(ttype)
+	}
+	if out.IsZero() && s.synthesisable(ttype) {
+		out = s.synthesise(ttype)
 	}
 	return out
 }
@@ -287,8 +287,10 @@ func (s *Style) synthesise(ttype TokenType) StyleEntry {
 	// If we don't have line numbers, use the text colour but 20% brighter/darker
 	case LineNumbers, LineNumbersTable:
 		return text
+
+	default:
+		return StyleEntry{}
 	}
-	return StyleEntry{}
 }
 
 func (s *Style) synthesisable(ttype TokenType) bool {

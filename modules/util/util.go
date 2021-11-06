@@ -6,7 +6,10 @@ package util
 
 import (
 	"bytes"
+	"crypto/rand"
 	"errors"
+	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -15,7 +18,7 @@ type OptionalBool byte
 
 const (
 	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone = iota
+	OptionalBoolNone OptionalBool = iota
 	// OptionalBoolTrue a "true" boolean value
 	OptionalBoolTrue
 	// OptionalBoolFalse a "false" boolean value
@@ -43,6 +46,15 @@ func OptionalBoolOf(b bool) OptionalBool {
 		return OptionalBoolTrue
 	}
 	return OptionalBoolFalse
+}
+
+// OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool
+func OptionalBoolParse(s string) OptionalBool {
+	b, e := strconv.ParseBool(s)
+	if e != nil {
+		return OptionalBoolNone
+	}
+	return OptionalBoolOf(b)
 }
 
 // Max max of two ints
@@ -123,4 +135,29 @@ func MergeInto(dict map[string]interface{}, values ...interface{}) (map[string]i
 	}
 
 	return dict, nil
+}
+
+// RandomInt returns a random integer between 0 and limit, inclusive
+func RandomInt(limit int64) (int64, error) {
+	int, err := rand.Int(rand.Reader, big.NewInt(limit))
+	if err != nil {
+		return 0, err
+	}
+	return int.Int64(), nil
+}
+
+const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// RandomString generates a random alphanumerical string
+func RandomString(length int64) (string, error) {
+	bytes := make([]byte, length)
+	limit := int64(len(letters))
+	for i := range bytes {
+		num, err := RandomInt(limit)
+		if err != nil {
+			return "", err
+		}
+		bytes[i] = letters[num]
+	}
+	return string(bytes), nil
 }

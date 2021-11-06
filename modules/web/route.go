@@ -5,6 +5,7 @@
 package web
 
 import (
+	goctx "context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -14,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 )
 
 // Wrap converts all kinds of routes to standard library one
@@ -27,8 +28,10 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 		switch t := handler.(type) {
 		case http.HandlerFunc, func(http.ResponseWriter, *http.Request),
 			func(ctx *context.Context),
+			func(ctx *context.Context) goctx.CancelFunc,
 			func(*context.APIContext),
 			func(*context.PrivateContext),
+			func(*context.PrivateContext) goctx.CancelFunc,
 			func(http.Handler) http.Handler:
 		default:
 			panic(fmt.Sprintf("Unsupported handler type: %#v", t))
@@ -46,6 +49,24 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			case func(http.ResponseWriter, *http.Request):
 				t(resp, req)
 				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
+					return
+				}
+			case func(ctx *context.Context) goctx.CancelFunc:
+				ctx := context.GetContext(req)
+				cancel := t(ctx)
+				if cancel != nil {
+					defer cancel()
+				}
+				if ctx.Written() {
+					return
+				}
+			case func(*context.PrivateContext) goctx.CancelFunc:
+				ctx := context.GetPrivateContext(req)
+				cancel := t(ctx)
+				if cancel != nil {
+					defer cancel()
+				}
+				if ctx.Written() {
 					return
 				}
 			case func(ctx *context.Context):
@@ -68,10 +89,11 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				}
 			case func(http.Handler) http.Handler:
 				var next = http.HandlerFunc(func(http.ResponseWriter, *http.Request) {})
-				t(next).ServeHTTP(resp, req)
-				if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
-					return
+				if len(handlers) > i+1 {
+					next = Wrap(handlers[i+1:]...)
 				}
+				t(next).ServeHTTP(resp, req)
+				return
 			default:
 				panic(fmt.Sprintf("Unsupported handler type: %#v", t))
 			}
@@ -85,6 +107,23 @@ func Middle(f func(ctx *context.Context)) func(netx http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx := context.GetContext(req)
 			f(ctx)
+			if ctx.Written() {
+				return
+			}
+			next.ServeHTTP(ctx.Resp, ctx.Req)
+		})
+	}
+}
+
+// MiddleCancel wrap a context function as a chi middleware
+func MiddleCancel(f func(ctx *context.Context) goctx.CancelFunc) func(netx http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			ctx := context.GetContext(req)
+			cancel := f(ctx)
+			if cancel != nil {
+				defer cancel()
+			}
 			if ctx.Written() {
 				return
 			}
@@ -162,6 +201,8 @@ func (r *Route) Use(middlewares ...interface{}) {
 				r.R.Use(t)
 			case func(*context.Context):
 				r.R.Use(Middle(t))
+			case func(*context.Context) goctx.CancelFunc:
+				r.R.Use(MiddleCancel(t))
 			case func(*context.APIContext):
 				r.R.Use(MiddleAPI(t))
 			default:
@@ -236,6 +277,26 @@ func (r *Route) getMiddlewares(h []interface{}) []interface{} {
 func (r *Route) Get(pattern string, h ...interface{}) {
 	var middlewares = r.getMiddlewares(h)
 	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// Options delegate options method
+func (r *Route) Options(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// GetOptions delegate get and options method
+func (r *Route) GetOptions(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Get(r.getPattern(pattern), Wrap(middlewares...))
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
+}
+
+// PostOptions delegate post and options method
+func (r *Route) PostOptions(pattern string, h ...interface{}) {
+	var middlewares = r.getMiddlewares(h)
+	r.R.Post(r.getPattern(pattern), Wrap(middlewares...))
+	r.R.Options(r.getPattern(pattern), Wrap(middlewares...))
 }
 
 // Head delegate head method

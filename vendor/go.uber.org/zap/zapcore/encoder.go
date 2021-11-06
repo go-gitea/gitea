@@ -21,6 +21,7 @@
 package zapcore
 
 import (
+	"encoding/json"
 	"time"
 
 	"go.uber.org/zap/buffer"
@@ -151,6 +152,14 @@ func RFC3339NanoTimeEncoder(t time.Time, enc PrimitiveArrayEncoder) {
 	encodeTimeLayout(t, time.RFC3339Nano, enc)
 }
 
+// TimeEncoderOfLayout returns TimeEncoder which serializes a time.Time using
+// given layout.
+func TimeEncoderOfLayout(layout string) TimeEncoder {
+	return func(t time.Time, enc PrimitiveArrayEncoder) {
+		encodeTimeLayout(t, layout, enc)
+	}
+}
+
 // UnmarshalText unmarshals text to a TimeEncoder.
 // "rfc3339nano" and "RFC3339Nano" are unmarshaled to RFC3339NanoTimeEncoder.
 // "rfc3339" and "RFC3339" are unmarshaled to RFC3339TimeEncoder.
@@ -174,6 +183,35 @@ func (e *TimeEncoder) UnmarshalText(text []byte) error {
 		*e = EpochTimeEncoder
 	}
 	return nil
+}
+
+// UnmarshalYAML unmarshals YAML to a TimeEncoder.
+// If value is an object with a "layout" field, it will be unmarshaled to  TimeEncoder with given layout.
+//     timeEncoder:
+//       layout: 06/01/02 03:04pm
+// If value is string, it uses UnmarshalText.
+//     timeEncoder: iso8601
+func (e *TimeEncoder) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var o struct {
+		Layout string `json:"layout" yaml:"layout"`
+	}
+	if err := unmarshal(&o); err == nil {
+		*e = TimeEncoderOfLayout(o.Layout)
+		return nil
+	}
+
+	var s string
+	if err := unmarshal(&s); err != nil {
+		return err
+	}
+	return e.UnmarshalText([]byte(s))
+}
+
+// UnmarshalJSON unmarshals JSON to a TimeEncoder as same way UnmarshalYAML does.
+func (e *TimeEncoder) UnmarshalJSON(data []byte) error {
+	return e.UnmarshalYAML(func(v interface{}) error {
+		return json.Unmarshal(data, v)
+	})
 }
 
 // A DurationEncoder serializes a time.Duration to a primitive type.
@@ -279,6 +317,7 @@ type EncoderConfig struct {
 	TimeKey       string `json:"timeKey" yaml:"timeKey"`
 	NameKey       string `json:"nameKey" yaml:"nameKey"`
 	CallerKey     string `json:"callerKey" yaml:"callerKey"`
+	FunctionKey   string `json:"functionKey" yaml:"functionKey"`
 	StacktraceKey string `json:"stacktraceKey" yaml:"stacktraceKey"`
 	LineEnding    string `json:"lineEnding" yaml:"lineEnding"`
 	// Configure the primitive representations of common complex types. For
@@ -291,6 +330,9 @@ type EncoderConfig struct {
 	// Unlike the other primitive type encoders, EncodeName is optional. The
 	// zero value falls back to FullNameEncoder.
 	EncodeName NameEncoder `json:"nameEncoder" yaml:"nameEncoder"`
+	// Configures the field separator used by the console encoder. Defaults
+	// to tab.
+	ConsoleSeparator string `json:"consoleSeparator" yaml:"consoleSeparator"`
 }
 
 // ObjectEncoder is a strongly-typed, encoding-agnostic interface for adding a

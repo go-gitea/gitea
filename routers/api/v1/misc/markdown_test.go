@@ -5,7 +5,7 @@
 package misc
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -172,7 +172,7 @@ func TestAPI_RenderRaw(t *testing.T) {
 	ctx := wrap(m)
 
 	for i := 0; i < len(simpleCases); i += 2 {
-		ctx.Req.Body = ioutil.NopCloser(strings.NewReader(simpleCases[i]))
+		ctx.Req.Body = io.NopCloser(strings.NewReader(simpleCases[i]))
 		MarkdownRaw(ctx)
 		assert.Equal(t, simpleCases[i+1], resp.Body.String())
 		resp.Body.Reset()

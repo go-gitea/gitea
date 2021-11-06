@@ -9,7 +9,6 @@ import (
 )
 
 func addTeamIncludesAllRepositories(x *xorm.Engine) error {
-
 	type Team struct {
 		ID                      int64 `xorm:"pk autoincr"`
 		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`

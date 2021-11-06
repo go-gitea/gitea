@@ -7,14 +7,13 @@ package models
 import (
 	"errors"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// ErrOpenIDNotExist openid is not known
-	ErrOpenIDNotExist = errors.New("OpenID is unknown")
-)
+// ErrOpenIDNotExist openid is not known
+var ErrOpenIDNotExist = errors.New("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
 type UserOpenID struct {
@@ -24,10 +23,14 @@ type UserOpenID struct {
 	Show bool   `xorm:"DEFAULT false"`
 }
 
+func init() {
+	db.RegisterModel(new(UserOpenID))
+}
+
 // GetUserOpenIDs returns all openid addresses that belongs to given user.
 func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	openids := make([]*UserOpenID, 0, 5)
-	if err := x.
+	if err := db.GetEngine(db.DefaultContext).
 		Where("uid=?", uid).
 		Asc("id").
 		Find(&openids); err != nil {
@@ -37,7 +40,8 @@ func GetUserOpenIDs(uid int64) ([]*UserOpenID, error) {
 	return openids, nil
 }
 
-func isOpenIDUsed(e Engine, uri string) (bool, error) {
+// isOpenIDUsed returns true if the openid has been used.
+func isOpenIDUsed(e db.Engine, uri string) (bool, error) {
 	if len(uri) == 0 {
 		return true, nil
 	}
@@ -45,13 +49,8 @@ func isOpenIDUsed(e Engine, uri string) (bool, error) {
 	return e.Get(&UserOpenID{URI: uri})
 }
 
-// IsOpenIDUsed returns true if the openid has been used.
-func IsOpenIDUsed(openid string) (bool, error) {
-	return isOpenIDUsed(x, openid)
-}
-
 // NOTE: make sure openid.URI is normalized already
-func addUserOpenID(e Engine, openid *UserOpenID) error {
+func addUserOpenID(e db.Engine, openid *UserOpenID) error {
 	used, err := isOpenIDUsed(e, openid.URI)
 	if err != nil {
 		return err
@@ -65,20 +64,20 @@ func addUserOpenID(e Engine, openid *UserOpenID) error {
 
 // AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.
 func AddUserOpenID(openid *UserOpenID) error {
-	return addUserOpenID(x, openid)
+	return addUserOpenID(db.GetEngine(db.DefaultContext), openid)
 }
 
 // DeleteUserOpenID deletes an openid address of given user.
 func DeleteUserOpenID(openid *UserOpenID) (err error) {
 	var deleted int64
 	// ask to check UID
-	var address = UserOpenID{
+	address := UserOpenID{
 		UID: openid.UID,
 	}
 	if openid.ID > 0 {
-		deleted, err = x.ID(openid.ID).Delete(&address)
+		deleted, err = db.GetEngine(db.DefaultContext).ID(openid.ID).Delete(&address)
 	} else {
-		deleted, err = x.
+		deleted, err = db.GetEngine(db.DefaultContext).
 			Where("openid=?", openid.URI).
 			Delete(&address)
 	}
@@ -93,7 +92,7 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 
 // ToggleUserOpenIDVisibility toggles visibility of an openid address of given user.
 func ToggleUserOpenIDVisibility(id int64) (err error) {
-	_, err = x.Exec("update `user_open_id` set `show` = not `show` where `id` = ?", id)
+	_, err = db.GetEngine(db.DefaultContext).Exec("update `user_open_id` set `show` = not `show` where `id` = ?", id)
 	return err
 }
 
@@ -112,7 +111,7 @@ func GetUserByOpenID(uri string) (*User, error) {
 
 	// Otherwise, check in openid table
 	oid := &UserOpenID{}
-	has, err := x.Where("uri=?", uri).Get(oid)
+	has, err := db.GetEngine(db.DefaultContext).Where("uri=?", uri).Get(oid)
 	if err != nil {
 		return nil, err
 	}

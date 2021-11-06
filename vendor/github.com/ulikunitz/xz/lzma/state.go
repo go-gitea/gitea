@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -51,12 +51,6 @@ func (s *state) Reset() {
 	s.lenCodec.init()
 	s.repLenCodec.init()
 	s.distCodec.init()
-}
-
-// initState initializes the state.
-func initState(s *state, p Properties) {
-	*s = state{Properties: p}
-	s.Reset()
 }
 
 // newState creates a new state from the give Properties.

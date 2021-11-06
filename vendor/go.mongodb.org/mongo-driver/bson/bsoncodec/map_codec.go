@@ -178,6 +178,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 	if err != nil {
 		return err
 	}
+	eTypeDecoder, _ := decoder.(typeDecoder)
 
 	if eType == tEmpty {
 		dc.Ancestor = val.Type()
@@ -199,8 +200,7 @@ func (mc *MapCodec) DecodeValue(dc DecodeContext, vr bsonrw.ValueReader, val ref
 			return err
 		}
 
-		elem := reflect.New(eType).Elem()
-		err = decoder.DecodeValue(dc, vr, elem)
+		elem, err := decodeTypeOrValueWithInfo(decoder, eTypeDecoder, dc, vr, eType, true)
 		if err != nil {
 			return newDecodeError(key, err)
 		}

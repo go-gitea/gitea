@@ -6,14 +6,18 @@ import (
 )
 
 // Handlebars lexer.
-var Handlebars = internal.Register(MustNewLexer(
+var Handlebars = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Handlebars",
-		Aliases:   []string{"handlebars"},
-		Filenames: []string{"*.handlebars"},
+		Aliases:   []string{"handlebars", "hbs"},
+		Filenames: []string{"*.handlebars", "*.hbs"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	handlebarsRules,
+))
+
+func handlebarsRules() Rules {
+	return Rules{
 		"root": {
 			{`[^{]+`, Other, nil},
 			{`\{\{!.*\}\}`, Comment, nil},
@@ -52,5 +56,5 @@ var Handlebars = internal.Register(MustNewLexer(
 			{`:?'(\\\\|\\'|[^'])*'`, LiteralStringSingle, nil},
 			{`[0-9](\.[0-9]*)?(eE[+-][0-9])?[flFLdD]?|0[xX][0-9a-fA-F]+[Ll]?`, LiteralNumber, nil},
 		},
-	},
-))
+	}
+}

@@ -12,8 +12,8 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/storage"
 
+	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/go-git/go-billy/v5"
-	"golang.org/x/crypto/openpgp"
 )
 
 // Commit stores the current contents of the index in a new commit along with
@@ -230,5 +230,9 @@ func (h *buildTreeHelper) copyTreeToStorageRecursive(parent string, t *object.Tr
 		return plumbing.ZeroHash, err
 	}
 
+	hash := o.Hash()
+	if h.s.HasEncodedObject(hash) == nil {
+		return hash, nil
+	}
 	return h.s.SetEncodedObject(o)
 }

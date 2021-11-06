@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/updatechecker"
 )
 
 func registerDeleteInactiveUsers() {
@@ -33,7 +34,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return models.DeleteRepositoryArchives(ctx)
+		return repo_module.DeleteRepositoryArchives(ctx)
 	})
 }
 
@@ -117,6 +118,38 @@ func registerRemoveRandomAvatars() {
 	})
 }
 
+func registerDeleteOldActions() {
+	RegisterTaskFatal("delete_old_actions", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		OlderThan: 365 * 24 * time.Hour,
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		olderThanConfig := config.(*OlderThanConfig)
+		return models.DeleteOldActions(olderThanConfig.OlderThan)
+	})
+}
+
+func registerUpdateGiteaChecker() {
+	type UpdateCheckerConfig struct {
+		BaseConfig
+		HTTPEndpoint string
+	}
+	RegisterTaskFatal("update_checker", &UpdateCheckerConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		updateCheckerConfig := config.(*UpdateCheckerConfig)
+		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -127,4 +160,6 @@ func initExtendedTasks() {
 	registerReinitMissingRepositories()
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
+	registerDeleteOldActions()
+	registerUpdateGiteaChecker()
 }

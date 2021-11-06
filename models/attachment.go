@@ -5,16 +5,15 @@
 package models
 
 import (
-	"bytes"
+	"context"
 	"fmt"
-	"io"
 	"path"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
 
-	gouuid "github.com/google/uuid"
 	"xorm.io/xorm"
 )
 
@@ -22,8 +21,9 @@ import (
 type Attachment struct {
 	ID            int64  `xorm:"pk autoincr"`
 	UUID          string `xorm:"uuid UNIQUE"`
-	IssueID       int64  `xorm:"INDEX"`
-	ReleaseID     int64  `xorm:"INDEX"`
+	RepoID        int64  `xorm:"INDEX"`           // this should not be zero
+	IssueID       int64  `xorm:"INDEX"`           // maybe zero when creating
+	ReleaseID     int64  `xorm:"INDEX"`           // maybe zero when creating
 	UploaderID    int64  `xorm:"INDEX DEFAULT 0"` // Notice: will be zero before this column added
 	CommentID     int64
 	Name          string
@@ -32,10 +32,14 @@ type Attachment struct {
 	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 }
 
+func init() {
+	db.RegisterModel(new(Attachment))
+}
+
 // IncreaseDownloadCount is update download count + 1
 func (a *Attachment) IncreaseDownloadCount() error {
 	// Update download count.
-	if _, err := x.Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
+	if _, err := db.GetEngine(db.DefaultContext).Exec("UPDATE `attachment` SET download_count=download_count+1 WHERE id=?", a.ID); err != nil {
 		return fmt.Errorf("increase attachment count: %v", err)
 	}
 
@@ -81,29 +85,12 @@ func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
 	return nil, -1, nil
 }
 
-// NewAttachment creates a new attachment object.
-func NewAttachment(attach *Attachment, buf []byte, file io.Reader) (_ *Attachment, err error) {
-	attach.UUID = gouuid.New().String()
-
-	size, err := storage.Attachments.Save(attach.RelativePath(), io.MultiReader(bytes.NewReader(buf), file))
-	if err != nil {
-		return nil, fmt.Errorf("Create: %v", err)
-	}
-	attach.Size = size
-
-	if _, err := x.Insert(attach); err != nil {
-		return nil, err
-	}
-
-	return attach, nil
-}
-
 // GetAttachmentByID returns attachment by given id
 func GetAttachmentByID(id int64) (*Attachment, error) {
-	return getAttachmentByID(x, id)
+	return getAttachmentByID(db.GetEngine(db.DefaultContext), id)
 }
 
-func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
+func getAttachmentByID(e db.Engine, id int64) (*Attachment, error) {
 	attach := &Attachment{}
 	if has, err := e.ID(id).Get(attach); err != nil {
 		return nil, err
@@ -113,7 +100,7 @@ func getAttachmentByID(e Engine, id int64) (*Attachment, error) {
 	return attach, nil
 }
 
-func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
+func getAttachmentByUUID(e db.Engine, uuid string) (*Attachment, error) {
 	attach := &Attachment{}
 	has, err := e.Where("uuid=?", uuid).Get(attach)
 	if err != nil {
@@ -125,11 +112,11 @@ func getAttachmentByUUID(e Engine, uuid string) (*Attachment, error) {
 }
 
 // GetAttachmentsByUUIDs returns attachment by given UUID list.
-func GetAttachmentsByUUIDs(uuids []string) ([]*Attachment, error) {
-	return getAttachmentsByUUIDs(x, uuids)
+func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, error) {
+	return getAttachmentsByUUIDs(db.GetEngine(ctx), uuids)
 }
 
-func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
+func getAttachmentsByUUIDs(e db.Engine, uuids []string) ([]*Attachment, error) {
 	if len(uuids) == 0 {
 		return []*Attachment{}, nil
 	}
@@ -141,36 +128,41 @@ func getAttachmentsByUUIDs(e Engine, uuids []string) ([]*Attachment, error) {
 
 // GetAttachmentByUUID returns attachment by given UUID.
 func GetAttachmentByUUID(uuid string) (*Attachment, error) {
-	return getAttachmentByUUID(x, uuid)
+	return getAttachmentByUUID(db.GetEngine(db.DefaultContext), uuid)
+}
+
+// ExistAttachmentsByUUID returns true if attachment is exist by given UUID
+func ExistAttachmentsByUUID(uuid string) (bool, error) {
+	return db.GetEngine(db.DefaultContext).Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
 // GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
 func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
-	return getAttachmentByReleaseIDFileName(x, releaseID, fileName)
+	return getAttachmentByReleaseIDFileName(db.GetEngine(db.DefaultContext), releaseID, fileName)
 }
 
-func getAttachmentsByIssueID(e Engine, issueID int64) ([]*Attachment, error) {
+func getAttachmentsByIssueID(e db.Engine, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, e.Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
-	return getAttachmentsByIssueID(x, issueID)
+	return getAttachmentsByIssueID(db.GetEngine(db.DefaultContext), issueID)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
-	return getAttachmentsByCommentID(x, commentID)
+	return getAttachmentsByCommentID(db.GetEngine(db.DefaultContext), commentID)
 }
 
-func getAttachmentsByCommentID(e Engine, commentID int64) ([]*Attachment, error) {
+func getAttachmentsByCommentID(e db.Engine, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, e.Where("comment_id=?", commentID).Find(&attachments)
 }
 
 // getAttachmentByReleaseIDFileName return a file based on the the following infos:
-func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string) (*Attachment, error) {
+func getAttachmentByReleaseIDFileName(e db.Engine, releaseID int64, fileName string) (*Attachment, error) {
 	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
 	has, err := e.Get(attach)
 	if err != nil {
@@ -183,22 +175,22 @@ func getAttachmentByReleaseIDFileName(e Engine, releaseID int64, fileName string
 
 // DeleteAttachment deletes the given attachment and optionally the associated file.
 func DeleteAttachment(a *Attachment, remove bool) error {
-	_, err := DeleteAttachments([]*Attachment{a}, remove)
+	_, err := DeleteAttachments(db.DefaultContext, []*Attachment{a}, remove)
 	return err
 }
 
 // DeleteAttachments deletes the given attachments and optionally the associated files.
-func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
+func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bool) (int, error) {
 	if len(attachments) == 0 {
 		return 0, nil
 	}
 
-	var ids = make([]int64, 0, len(attachments))
+	ids := make([]int64, 0, len(attachments))
 	for _, a := range attachments {
 		ids = append(ids, a.ID)
 	}
 
-	cnt, err := x.In("id", ids).NoAutoCondition().Delete(attachments[0])
+	cnt, err := db.GetEngine(ctx).In("id", ids).NoAutoCondition().Delete(attachments[0])
 	if err != nil {
 		return 0, err
 	}
@@ -216,31 +208,38 @@ func DeleteAttachments(attachments []*Attachment, remove bool) (int, error) {
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
 func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
 	attachments, err := GetAttachmentsByIssueID(issueID)
-
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(attachments, remove)
+	return DeleteAttachments(db.DefaultContext, attachments, remove)
 }
 
 // DeleteAttachmentsByComment deletes all attachments associated with the given comment.
 func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 	attachments, err := GetAttachmentsByCommentID(commentID)
-
 	if err != nil {
 		return 0, err
 	}
 
-	return DeleteAttachments(attachments, remove)
+	return DeleteAttachments(db.DefaultContext, attachments, remove)
 }
 
 // UpdateAttachment updates the given attachment in database
 func UpdateAttachment(atta *Attachment) error {
-	return updateAttachment(x, atta)
+	return updateAttachment(db.GetEngine(db.DefaultContext), atta)
 }
 
-func updateAttachment(e Engine, atta *Attachment) error {
+// UpdateAttachmentByUUID Updates attachment via uuid
+func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...string) error {
+	if attach.UUID == "" {
+		return fmt.Errorf("attachment uuid should be not blank")
+	}
+	_, err := db.GetEngine(ctx).Where("uuid=?", attach.UUID).Cols(cols...).Update(attach)
+	return err
+}
+
+func updateAttachment(e db.Engine, atta *Attachment) error {
 	var sess *xorm.Session
 	if atta.ID != 0 && atta.UUID == "" {
 		sess = e.ID(atta.ID)
@@ -254,7 +253,7 @@ func updateAttachment(e Engine, atta *Attachment) error {
 
 // DeleteAttachmentsByRelease deletes all attachments associated with the given release.
 func DeleteAttachmentsByRelease(releaseID int64) error {
-	_, err := x.Where("release_id = ?", releaseID).Delete(&Attachment{})
+	_, err := db.GetEngine(db.DefaultContext).Where("release_id = ?", releaseID).Delete(&Attachment{})
 	return err
 }
 
@@ -263,8 +262,8 @@ func IterateAttachment(f func(attach *Attachment) error) error {
 	var start int
 	const batchSize = 100
 	for {
-		var attachments = make([]*Attachment, 0, batchSize)
-		if err := x.Limit(batchSize, start).Find(&attachments); err != nil {
+		attachments := make([]*Attachment, 0, batchSize)
+		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&attachments); err != nil {
 			return err
 		}
 		if len(attachments) == 0 {
@@ -278,4 +277,17 @@ func IterateAttachment(f func(attach *Attachment) error) error {
 			}
 		}
 	}
+}
+
+// CountOrphanedAttachments returns the number of bad attachments
+func CountOrphanedAttachments() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+		Count(new(Attachment))
+}
+
+// DeleteOrphanedAttachments delete all bad attachments
+func DeleteOrphanedAttachments() error {
+	_, err := db.GetEngine(db.DefaultContext).Where("(issue_id > 0 and issue_id not in (select id from issue)) or (release_id > 0 and release_id not in (select id from `release`))").
+		Delete(new(Attachment))
+	return err
 }

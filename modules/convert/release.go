@@ -29,7 +29,7 @@ func ToRelease(r *models.Release) *api.Release {
 		IsPrerelease: r.IsPrerelease,
 		CreatedAt:    r.CreatedUnix.AsTime(),
 		PublishedAt:  r.CreatedUnix.AsTime(),
-		Publisher:    ToUser(r.Publisher, false, false),
+		Publisher:    ToUser(r.Publisher, nil),
 		Attachments:  assets,
 	}
 }

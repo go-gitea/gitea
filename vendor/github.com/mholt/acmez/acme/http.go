@@ -117,7 +117,7 @@ func (c *Client) httpPostJWS(ctx context.Context, privateKey crypto.Signer,
 		break
 	}
 
-	return resp, fmt.Errorf("request to %s failed after %d attempts: %v",
+	return resp, fmt.Errorf("request to %s failed after %d attempts: %w",
 		endpoint, attempts, err)
 }
 

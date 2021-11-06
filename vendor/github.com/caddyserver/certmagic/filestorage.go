@@ -147,7 +147,7 @@ func (fs *FileStorage) Lock(ctx context.Context, key string) error {
 			err2 := json.NewDecoder(f).Decode(&meta)
 			f.Close()
 			if err2 != nil {
-				return err2
+				return fmt.Errorf("decoding lockfile contents: %w", err2)
 			}
 		}
 
@@ -306,7 +306,15 @@ func updateLockfileFreshness(filename string) (bool, error) {
 
 	// write updated timestamp
 	meta.Updated = time.Now()
-	return false, json.NewEncoder(f).Encode(meta)
+	if err = json.NewEncoder(f).Encode(meta); err != nil {
+		return false, err
+	}
+
+	// sync to device; we suspect that sometimes file systems
+	// (particularly AWS EFS) don't do this on their own,
+	// leaving the file empty when we close it; see
+	// https://github.com/caddyserver/caddy/issues/3954
+	return false, f.Sync()
 }
 
 // atomicallyCreateFile atomically creates the file
@@ -325,8 +333,11 @@ func atomicallyCreateFile(filename string, writeLockInfo bool) error {
 			Created: now,
 			Updated: now,
 		}
-		err := json.NewEncoder(f).Encode(meta)
-		if err != nil {
+		if err := json.NewEncoder(f).Encode(meta); err != nil {
+			return err
+		}
+		// see https://github.com/caddyserver/caddy/issues/3954
+		if err := f.Sync(); err != nil {
 			return err
 		}
 	}

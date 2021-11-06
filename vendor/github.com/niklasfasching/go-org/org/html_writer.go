@@ -55,6 +55,7 @@ var listItemStatuses = map[string]string{
 }
 
 var cleanHeadlineTitleForHTMLAnchorRegexp = regexp.MustCompile(`</?a[^>]*>`) // nested a tags are not valid HTML
+var tocHeadlineMaxLvlRegexp = regexp.MustCompile(`headlines\s+(\d+)`)
 
 func NewHTMLWriter() *HTMLWriter {
 	defaultConfig := New()
@@ -100,7 +101,10 @@ func (w *HTMLWriter) Before(d *Document) {
 		}
 		w.WriteString(fmt.Sprintf(`<h1 class="title">%s</h1>`+"\n", title))
 	}
-	w.WriteOutline(d)
+	if w.document.GetOption("toc") != "nil" {
+		maxLvl, _ := strconv.Atoi(w.document.GetOption("toc"))
+		w.WriteOutline(d, maxLvl)
+	}
 }
 
 func (w *HTMLWriter) After(d *Document) {
@@ -168,6 +172,11 @@ func (w *HTMLWriter) WriteDrawer(d Drawer) {
 func (w *HTMLWriter) WriteKeyword(k Keyword) {
 	if k.Key == "HTML" {
 		w.WriteString(k.Value + "\n")
+	} else if k.Key == "TOC" {
+		if m := tocHeadlineMaxLvlRegexp.FindStringSubmatch(k.Value); m != nil {
+			maxLvl, _ := strconv.Atoi(m[1])
+			w.WriteOutline(w.document, maxLvl)
+		}
 	}
 }
 
@@ -207,9 +216,8 @@ func (w *HTMLWriter) WriteFootnotes(d *Document) {
 	w.WriteString("</div>\n</div>\n")
 }
 
-func (w *HTMLWriter) WriteOutline(d *Document) {
-	if w.document.GetOption("toc") != "nil" && len(d.Outline.Children) != 0 {
-		maxLvl, _ := strconv.Atoi(w.document.GetOption("toc"))
+func (w *HTMLWriter) WriteOutline(d *Document, maxLvl int) {
+	if len(d.Outline.Children) != 0 {
 		w.WriteString("<nav>\n<ul>\n")
 		for _, section := range d.Outline.Children {
 			w.writeSection(section, maxLvl)

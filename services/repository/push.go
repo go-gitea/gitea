@@ -5,11 +5,12 @@
 package repository
 
 import (
-	"container/list"
+	"errors"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -36,9 +37,9 @@ func handle(data ...queue.Data) {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{}).(queue.Queue)
+	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{})
 	if pushQueue == nil {
-		return fmt.Errorf("Unable to create push_update Queue")
+		return errors.New("unable to create push_update Queue")
 	}
 
 	go graceful.GetManager().RunWithShutdownFns(pushQueue.Run)
@@ -83,7 +84,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -95,7 +96,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsNewRef() && opts.IsDelRef() {
 			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
 		}
-		var commits = &repo_module.PushCommits{}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
@@ -148,7 +148,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				refName := opts.RefName()
 
 				// Push new branch.
-				var l *list.List
+				var l []*git.Commit
 				if opts.IsNewRef() {
 					if repo.IsEmpty { // Change default branch and empty status only if pushed ref is non-empty branch.
 						repo.DefaultBranch = refName
@@ -192,23 +192,25 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
-				commits = repo_module.ListToPushCommits(l)
+				commits := repo_module.GitToPushCommits(l)
+				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
+
+				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
+					log.Error("updateIssuesCommit: %v", err)
+				}
+
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
-				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
-					log.Error("updateIssuesCommit: %v", err)
-				}
-
 				if err = models.RemoveDeletedBranch(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
 				// Cache for big repository
-				if err := repo_module.CacheRef(repo, gitRepo, opts.RefFullName); err != nil {
+				if err := repo_module.CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {

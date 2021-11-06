@@ -201,7 +201,7 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 					continue
 				}
 			}
-			close := (ref.Action == references.XRefActionCloses)
+			close := ref.Action == references.XRefActionCloses
 			if close && len(ref.TimeLog) > 0 {
 				if err := issueAddTime(refIssue, doer, c.Timestamp, ref.TimeLog); err != nil {
 					return err

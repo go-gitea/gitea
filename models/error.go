@@ -72,8 +72,7 @@ func (err ErrNameCharsNotAllowed) Error() string {
 }
 
 // ErrSSHDisabled represents an "SSH disabled" error.
-type ErrSSHDisabled struct {
-}
+type ErrSSHDisabled struct{}
 
 // IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
 func IsErrSSHDisabled(err error) bool {
@@ -223,6 +222,36 @@ func (err ErrEmailInvalid) Error() string {
 	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
 }
 
+// ErrEmailAddressNotExist email address not exist
+type ErrEmailAddressNotExist struct {
+	Email string
+}
+
+// IsErrEmailAddressNotExist checks if an error is an ErrEmailAddressNotExist
+func IsErrEmailAddressNotExist(err error) bool {
+	_, ok := err.(ErrEmailAddressNotExist)
+	return ok
+}
+
+func (err ErrEmailAddressNotExist) Error() string {
+	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
+}
+
+// ErrPrimaryEmailCannotDelete primary email address cannot be deleted
+type ErrPrimaryEmailCannotDelete struct {
+	Email string
+}
+
+// IsErrPrimaryEmailCannotDelete checks if an error is an ErrPrimaryEmailCannotDelete
+func IsErrPrimaryEmailCannotDelete(err error) bool {
+	_, ok := err.(ErrPrimaryEmailCannotDelete)
+	return ok
+}
+
+func (err ErrPrimaryEmailCannotDelete) Error() string {
+	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
+}
+
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
 type ErrOpenIDAlreadyUsed struct {
 	OpenID string
@@ -269,8 +298,7 @@ func (err ErrUserHasOrgs) Error() string {
 }
 
 // ErrUserNotAllowedCreateOrg represents a "UserNotAllowedCreateOrg" kind of error.
-type ErrUserNotAllowedCreateOrg struct {
-}
+type ErrUserNotAllowedCreateOrg struct{}
 
 // IsErrUserNotAllowedCreateOrg checks if an error is an ErrUserNotAllowedCreateOrg.
 func IsErrUserNotAllowedCreateOrg(err error) bool {
@@ -423,6 +451,7 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
 type ErrGPGNoEmailFound struct {
 	FailedEmails []string
+	ID           string
 }
 
 // IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
@@ -433,6 +462,22 @@ func IsErrGPGNoEmailFound(err error) bool {
 
 func (err ErrGPGNoEmailFound) Error() string {
 	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
+}
+
+// ErrGPGInvalidTokenSignature represents a "ErrGPGInvalidTokenSignature" kind of error.
+type ErrGPGInvalidTokenSignature struct {
+	Wrapped error
+	ID      string
+}
+
+// IsErrGPGInvalidTokenSignature checks if an error is a ErrGPGInvalidTokenSignature.
+func IsErrGPGInvalidTokenSignature(err error) bool {
+	_, ok := err.(ErrGPGInvalidTokenSignature)
+	return ok
+}
+
+func (err ErrGPGInvalidTokenSignature) Error() string {
+	return "the provided signature does not sign the token with the provided key"
 }
 
 // ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.
@@ -603,8 +648,7 @@ func (err ErrAccessTokenNotExist) Error() string {
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
-type ErrAccessTokenEmpty struct {
-}
+type ErrAccessTokenEmpty struct{}
 
 // IsErrAccessTokenEmpty checks if an error is a ErrAccessTokenEmpty.
 func IsErrAccessTokenEmpty(err error) bool {
@@ -757,6 +801,40 @@ func (err ErrRepoNotExist) Error() string {
 		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
+// ErrNoPendingRepoTransfer is an error type for repositories without a pending
+// transfer request
+type ErrNoPendingRepoTransfer struct {
+	RepoID int64
+}
+
+func (e ErrNoPendingRepoTransfer) Error() string {
+	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", e.RepoID)
+}
+
+// IsErrNoPendingTransfer is an error type when a repository has no pending
+// transfers
+func IsErrNoPendingTransfer(err error) bool {
+	_, ok := err.(ErrNoPendingRepoTransfer)
+	return ok
+}
+
+// ErrRepoTransferInProgress represents the state of a repository that has an
+// ongoing transfer
+type ErrRepoTransferInProgress struct {
+	Uname string
+	Name  string
+}
+
+// IsErrRepoTransferInProgress checks if an error is a ErrRepoTransferInProgress.
+func IsErrRepoTransferInProgress(err error) bool {
+	_, ok := err.(ErrRepoTransferInProgress)
+	return ok
+}
+
+func (err ErrRepoTransferInProgress) Error() string {
+	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
 type ErrRepoAlreadyExist struct {
 	Uname string
@@ -824,20 +902,43 @@ func (err ErrRepoRedirectNotExist) Error() string {
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
 type ErrInvalidCloneAddr struct {
+	Host               string
 	IsURLError         bool
 	IsInvalidPath      bool
+	IsProtocolInvalid  bool
 	IsPermissionDenied bool
+	LocalPath          bool
+	NotResolvedIP      bool
+	PrivateNet         string
 }
 
 // IsErrInvalidCloneAddr checks if an error is a ErrInvalidCloneAddr.
 func IsErrInvalidCloneAddr(err error) bool {
-	_, ok := err.(ErrInvalidCloneAddr)
+	_, ok := err.(*ErrInvalidCloneAddr)
 	return ok
 }
 
-func (err ErrInvalidCloneAddr) Error() string {
-	return fmt.Sprintf("invalid clone address [is_url_error: %v, is_invalid_path: %v, is_permission_denied: %v]",
-		err.IsURLError, err.IsInvalidPath, err.IsPermissionDenied)
+func (err *ErrInvalidCloneAddr) Error() string {
+	if err.NotResolvedIP {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: unknown hostname", err.Host)
+	}
+	if len(err.PrivateNet) != 0 {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the host resolve to a private ip address '%s'", err.Host, err.PrivateNet)
+	}
+	if err.IsInvalidPath {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided path is invalid", err.Host)
+	}
+	if err.IsProtocolInvalid {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url protocol is not allowed", err.Host)
+	}
+	if err.IsPermissionDenied {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed.", err.Host)
+	}
+	if err.IsURLError {
+		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided url is invalid", err.Host)
+	}
+
+	return fmt.Sprintf("migration/cloning from '%s' is not allowed", err.Host)
 }
 
 // ErrUpdateTaskNotExist represents a "UpdateTaskNotExist" kind of error.
@@ -899,6 +1000,21 @@ func IsErrInvalidTagName(err error) bool {
 
 func (err ErrInvalidTagName) Error() string {
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
+}
+
+// ErrProtectedTagName represents a "ProtectedTagName" kind of error.
+type ErrProtectedTagName struct {
+	TagName string
+}
+
+// IsErrProtectedTagName checks if an error is a ErrProtectedTagName.
+func IsErrProtectedTagName(err error) bool {
+	_, ok := err.(ErrProtectedTagName)
+	return ok
+}
+
+func (err ErrProtectedTagName) Error() string {
+	return fmt.Sprintf("release tag name is protected [tag_name: %s]", err.TagName)
 }
 
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
@@ -1015,7 +1131,7 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 }
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
-	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
 // ErrWontSign explains the first reason why a commit would not be signed
@@ -1031,29 +1147,6 @@ func (e *ErrWontSign) Error() string {
 // IsErrWontSign checks if an error is a ErrWontSign
 func IsErrWontSign(err error) bool {
 	_, ok := err.(*ErrWontSign)
-	return ok
-}
-
-// ErrMigrationNotAllowed explains why a migration from an url is not allowed
-type ErrMigrationNotAllowed struct {
-	Host          string
-	NotResolvedIP bool
-	PrivateNet    string
-}
-
-func (e *ErrMigrationNotAllowed) Error() string {
-	if e.NotResolvedIP {
-		return fmt.Sprintf("migrate from '%s' is not allowed: unknown hostname", e.Host)
-	}
-	if len(e.PrivateNet) != 0 {
-		return fmt.Sprintf("migrate from '%s' is not allowed: the host resolve to a private ip address '%s'", e.Host, e.PrivateNet)
-	}
-	return fmt.Sprintf("migrate from '%s is not allowed'", e.Host)
-}
-
-// IsErrMigrationNotAllowed checks if an error is a ErrMigrationNotAllowed
-func IsErrMigrationNotAllowed(err error) bool {
-	_, ok := err.(*ErrMigrationNotAllowed)
 	return ok
 }
 
@@ -1213,7 +1306,7 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 }
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
-	return "a SHA or commmit ID must be proved when updating a file"
+	return "a SHA or commit ID must be proved when updating a file"
 }
 
 //  __      __      ___.   .__                   __
@@ -1743,58 +1836,6 @@ func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
-// .____                 .__           _________
-// |    |    ____   ____ |__| ____    /   _____/ ____  __ _________   ____  ____
-// |    |   /  _ \ / ___\|  |/    \   \_____  \ /  _ \|  |  \_  __ \_/ ___\/ __ \
-// |    |__(  <_> ) /_/  >  |   |  \  /        (  <_> )  |  /|  | \/\  \__\  ___/
-// |_______ \____/\___  /|__|___|  / /_______  /\____/|____/ |__|    \___  >___  >
-//         \/    /_____/         \/          \/                          \/    \/
-
-// ErrLoginSourceNotExist represents a "LoginSourceNotExist" kind of error.
-type ErrLoginSourceNotExist struct {
-	ID int64
-}
-
-// IsErrLoginSourceNotExist checks if an error is a ErrLoginSourceNotExist.
-func IsErrLoginSourceNotExist(err error) bool {
-	_, ok := err.(ErrLoginSourceNotExist)
-	return ok
-}
-
-func (err ErrLoginSourceNotExist) Error() string {
-	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
-}
-
-// ErrLoginSourceAlreadyExist represents a "LoginSourceAlreadyExist" kind of error.
-type ErrLoginSourceAlreadyExist struct {
-	Name string
-}
-
-// IsErrLoginSourceAlreadyExist checks if an error is a ErrLoginSourceAlreadyExist.
-func IsErrLoginSourceAlreadyExist(err error) bool {
-	_, ok := err.(ErrLoginSourceAlreadyExist)
-	return ok
-}
-
-func (err ErrLoginSourceAlreadyExist) Error() string {
-	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
-}
-
-// ErrLoginSourceInUse represents a "LoginSourceInUse" kind of error.
-type ErrLoginSourceInUse struct {
-	ID int64
-}
-
-// IsErrLoginSourceInUse checks if an error is a ErrLoginSourceInUse.
-func IsErrLoginSourceInUse(err error) bool {
-	_, ok := err.(ErrLoginSourceInUse)
-	return ok
-}
-
-func (err ErrLoginSourceInUse) Error() string {
-	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
-}
-
 // ___________
 // \__    ___/___ _____    _____
 //   |    |_/ __ \\__  \  /     \
@@ -1833,25 +1874,6 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
-}
-
-//
-// Two-factor authentication
-//
-
-// ErrTwoFactorNotEnrolled indicates that a user is not enrolled in two-factor authentication.
-type ErrTwoFactorNotEnrolled struct {
-	UID int64
-}
-
-// IsErrTwoFactorNotEnrolled checks if an error is a ErrTwoFactorNotEnrolled.
-func IsErrTwoFactorNotEnrolled(err error) bool {
-	_, ok := err.(ErrTwoFactorNotEnrolled)
-	return ok
-}
-
-func (err ErrTwoFactorNotEnrolled) Error() string {
-	return fmt.Sprintf("user not enrolled in 2FA [uid: %d]", err.UID)
 }
 
 //  ____ ___        .__                    .___
@@ -1916,28 +1938,6 @@ func IsErrExternalLoginUserNotExist(err error) bool {
 
 func (err ErrExternalLoginUserNotExist) Error() string {
 	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
-}
-
-// ____ ________________________________              .__          __                 __  .__
-// |    |   \_____  \_   _____/\______   \ ____   ____ |__| _______/  |_____________ _/  |_|__| ____   ____
-// |    |   //  ____/|    __)   |       _// __ \ / ___\|  |/  ___/\   __\_  __ \__  \\   __\  |/  _ \ /    \
-// |    |  //       \|     \    |    |   \  ___// /_/  >  |\___ \  |  |  |  | \// __ \|  | |  (  <_> )   |  \
-// |______/ \_______ \___  /    |____|_  /\___  >___  /|__/____  > |__|  |__|  (____  /__| |__|\____/|___|  /
-// \/   \/            \/     \/_____/         \/                   \/                    \/
-
-// ErrU2FRegistrationNotExist represents a "ErrU2FRegistrationNotExist" kind of error.
-type ErrU2FRegistrationNotExist struct {
-	ID int64
-}
-
-func (err ErrU2FRegistrationNotExist) Error() string {
-	return fmt.Sprintf("U2F registration does not exist [id: %d]", err.ID)
-}
-
-// IsErrU2FRegistrationNotExist checks if an error is a ErrU2FRegistrationNotExist.
-func IsErrU2FRegistrationNotExist(err error) bool {
-	_, ok := err.(ErrU2FRegistrationNotExist)
-	return ok
 }
 
 // .___                            ________                                   .___                   .__
@@ -2065,43 +2065,4 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
-}
-
-//  ________      _____          __  .__
-//  \_____  \    /  _  \  __ ___/  |_|  |__
-//   /   |   \  /  /_\  \|  |  \   __\  |  \
-//  /    |    \/    |    \  |  /|  | |   Y  \
-//  \_______  /\____|__  /____/ |__| |___|  /
-//          \/         \/                 \/
-
-// ErrOAuthClientIDInvalid will be thrown if client id cannot be found
-type ErrOAuthClientIDInvalid struct {
-	ClientID string
-}
-
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
-func IsErrOauthClientIDInvalid(err error) bool {
-	_, ok := err.(ErrOAuthClientIDInvalid)
-	return ok
-}
-
-// Error returns the error message
-func (err ErrOAuthClientIDInvalid) Error() string {
-	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
-}
-
-// ErrOAuthApplicationNotFound will be thrown if id cannot be found
-type ErrOAuthApplicationNotFound struct {
-	ID int64
-}
-
-// IsErrOAuthApplicationNotFound checks if an error is a ErrReviewNotExist.
-func IsErrOAuthApplicationNotFound(err error) bool {
-	_, ok := err.(ErrOAuthApplicationNotFound)
-	return ok
-}
-
-// Error returns the error message
-func (err ErrOAuthApplicationNotFound) Error() string {
-	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
 }

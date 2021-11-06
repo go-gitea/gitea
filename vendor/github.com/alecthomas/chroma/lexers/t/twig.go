@@ -6,7 +6,7 @@ import (
 )
 
 // Twig lexer.
-var Twig = internal.Register(MustNewLexer(
+var Twig = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Twig",
 		Aliases:   []string{"twig"},
@@ -14,7 +14,11 @@ var Twig = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/x-twig"},
 		DotAll:    true,
 	},
-	Rules{
+	twigRules,
+))
+
+func twigRules() Rules {
+	return Rules{
 		"root": {
 			{`[^{]+`, Other, nil},
 			{`\{\{`, CommentPreproc, Push("var")},
@@ -50,5 +54,5 @@ var Twig = internal.Register(MustNewLexer(
 			Include("varnames"),
 			{`.`, Punctuation, nil},
 		},
-	},
-))
+	}
+}

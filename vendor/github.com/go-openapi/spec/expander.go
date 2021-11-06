@@ -20,29 +20,46 @@ import (
 )
 
 // ExpandOptions provides options for the spec expander.
+//
+// RelativeBase is the path to the root document. This can be a remote URL or a path to a local file.
+//
+// If left empty, the root document is assumed to be located in the current working directory:
+// all relative $ref's will be resolved from there.
+//
+// PathLoader injects a document loading method. By default, this resolves to the function provided by the SpecLoader package variable.
+//
 type ExpandOptions struct {
-	RelativeBase    string
-	SkipSchemas     bool
-	ContinueOnError bool
-	PathLoader      func(string) (json.RawMessage, error) `json:"-"`
+	RelativeBase        string                                // the path to the root document to expand. This is a file, not a directory
+	SkipSchemas         bool                                  // do not expand schemas, just paths, parameters and responses
+	ContinueOnError     bool                                  // continue expanding even after and error is found
+	PathLoader          func(string) (json.RawMessage, error) `json:"-"` // the document loading method that takes a path as input and yields a json document
+	AbsoluteCircularRef bool                                  // circular $ref remaining after expansion remain absolute URLs
+}
 
-	AbsoluteCircularRef bool
+func optionsOrDefault(opts *ExpandOptions) *ExpandOptions {
+	if opts != nil {
+		clone := *opts // shallow clone to avoid internal changes to be propagated to the caller
+		if clone.RelativeBase != "" {
+			clone.RelativeBase = normalizeBase(clone.RelativeBase)
+		}
+		// if the relative base is empty, let the schema loader choose a pseudo root document
+		return &clone
+	}
+	return &ExpandOptions{}
 }
 
 // ExpandSpec expands the references in a swagger spec
 func ExpandSpec(spec *Swagger, options *ExpandOptions) error {
+	options = optionsOrDefault(options)
 	resolver := defaultSchemaLoader(spec, options, nil, nil)
 
-	// getting the base path of the spec to adjust all subsequent reference resolutions
-	specBasePath := ""
-	if options != nil && options.RelativeBase != "" {
-		specBasePath, _ = absPath(options.RelativeBase)
-	}
+	specBasePath := options.RelativeBase
 
-	if options == nil || !options.SkipSchemas {
+	if !options.SkipSchemas {
 		for key, definition := range spec.Definitions {
 			parentRefs := make([]string, 0, 10)
 			parentRefs = append(parentRefs, fmt.Sprintf("#/definitions/%s", key))
+
 			def, err := expandSchema(definition, parentRefs, resolver, specBasePath)
 			if resolver.shouldStopOnError(err) {
 				return err
@@ -94,8 +111,7 @@ func baseForRoot(root interface{}, cache ResolutionCache) string {
 	}
 
 	// cache the root document to resolve $ref's
-	base, _ := absPath(rootBase)
-	normalizedBase := normalizeAbsPath(base)
+	normalizedBase := normalizeBase(rootBase)
 	cache.Set(normalizedBase, root)
 
 	return normalizedBase
@@ -135,15 +151,12 @@ func ExpandSchemaWithBasePath(schema *Schema, cache ResolutionCache, opts *Expan
 
 	cache = cacheOrDefault(cache)
 
-	var basePath string
-	if opts.RelativeBase != "" {
-		basePath, _ = absPath(opts.RelativeBase)
-	}
+	opts = optionsOrDefault(opts)
 
 	resolver := defaultSchemaLoader(nil, opts, cache, nil)
 
 	parentRefs := make([]string, 0, 10)
-	s, err := expandSchema(*schema, parentRefs, resolver, basePath)
+	s, err := expandSchema(*schema, parentRefs, resolver, opts.RelativeBase)
 	if err != nil {
 		return err
 	}
@@ -183,7 +196,7 @@ func expandItems(target Schema, parentRefs []string, resolver *schemaLoader, bas
 
 func expandSchema(target Schema, parentRefs []string, resolver *schemaLoader, basePath string) (*Schema, error) {
 	if target.Ref.String() == "" && target.Ref.IsRoot() {
-		newRef := normalizeFileRef(&target.Ref, basePath)
+		newRef := normalizeRef(&target.Ref, basePath)
 		target.Ref = *newRef
 		return &target, nil
 	}
@@ -315,7 +328,7 @@ func expandSchemaRef(target Schema, parentRefs []string, resolver *schemaLoader,
 	// Ref also changes the resolution scope of children expandSchema
 
 	// here the resolution scope is changed because a $ref was encountered
-	normalizedRef := normalizeFileRef(&target.Ref, basePath)
+	normalizedRef := normalizeRef(&target.Ref, basePath)
 	normalizedBasePath := normalizedRef.RemoteURI()
 
 	if resolver.isCircular(normalizedRef, basePath, parentRefs...) {
@@ -325,7 +338,7 @@ func expandSchemaRef(target Schema, parentRefs []string, resolver *schemaLoader,
 		debugLog("short circuit circular ref: basePath: %s, normalizedPath: %s, normalized ref: %s",
 			basePath, normalizedBasePath, normalizedRef.String())
 		if !resolver.options.AbsoluteCircularRef {
-			target.Ref = *denormalizeFileRef(normalizedRef, normalizedBasePath, resolver.context.basePath)
+			target.Ref = denormalizeRef(normalizedRef, resolver.context.basePath, resolver.context.rootID)
 		} else {
 			target.Ref = *normalizedRef
 		}
@@ -434,9 +447,7 @@ func expandOperation(op *Operation, resolver *schemaLoader, basePath string) err
 func ExpandResponseWithRoot(response *Response, root interface{}, cache ResolutionCache) error {
 	cache = cacheOrDefault(cache)
 	opts := &ExpandOptions{
-		RelativeBase:    baseForRoot(root, cache),
-		SkipSchemas:     false,
-		ContinueOnError: false,
+		RelativeBase: baseForRoot(root, cache),
 	}
 	resolver := defaultSchemaLoader(root, opts, cache, nil)
 
@@ -447,13 +458,9 @@ func ExpandResponseWithRoot(response *Response, root interface{}, cache Resoluti
 //
 // All refs inside response will be resolved relative to basePath
 func ExpandResponse(response *Response, basePath string) error {
-	var specBasePath string
-	if basePath != "" {
-		specBasePath, _ = absPath(basePath)
-	}
-	opts := &ExpandOptions{
-		RelativeBase: specBasePath,
-	}
+	opts := optionsOrDefault(&ExpandOptions{
+		RelativeBase: basePath,
+	})
 	resolver := defaultSchemaLoader(nil, opts, nil, nil)
 
 	return expandParameterOrResponse(response, resolver, opts.RelativeBase)
@@ -465,10 +472,9 @@ func ExpandResponse(response *Response, basePath string) error {
 // (use ExpandParameter to resolve external references).
 func ExpandParameterWithRoot(parameter *Parameter, root interface{}, cache ResolutionCache) error {
 	cache = cacheOrDefault(cache)
+
 	opts := &ExpandOptions{
-		RelativeBase:    baseForRoot(root, cache),
-		SkipSchemas:     false,
-		ContinueOnError: false,
+		RelativeBase: baseForRoot(root, cache),
 	}
 	resolver := defaultSchemaLoader(root, opts, cache, nil)
 
@@ -479,13 +485,9 @@ func ExpandParameterWithRoot(parameter *Parameter, root interface{}, cache Resol
 // This is the exported version of expandParameter
 // all refs inside parameter will be resolved relative to basePath
 func ExpandParameter(parameter *Parameter, basePath string) error {
-	var specBasePath string
-	if basePath != "" {
-		specBasePath, _ = absPath(basePath)
-	}
-	opts := &ExpandOptions{
-		RelativeBase: specBasePath,
-	}
+	opts := optionsOrDefault(&ExpandOptions{
+		RelativeBase: basePath,
+	})
 	resolver := defaultSchemaLoader(nil, opts, nil, nil)
 
 	return expandParameterOrResponse(parameter, resolver, opts.RelativeBase)
@@ -548,7 +550,7 @@ func expandParameterOrResponse(input interface{}, resolver *schemaLoader, basePa
 	}
 
 	if sch.Ref.String() != "" {
-		rebasedRef, ern := NewRef(normalizePaths(sch.Ref.String(), basePath))
+		rebasedRef, ern := NewRef(normalizeURI(sch.Ref.String(), basePath))
 		if ern != nil {
 			return ern
 		}
@@ -557,16 +559,17 @@ func expandParameterOrResponse(input interface{}, resolver *schemaLoader, basePa
 		case resolver.isCircular(&rebasedRef, basePath, parentRefs...):
 			// this is a circular $ref: stop expansion
 			if !resolver.options.AbsoluteCircularRef {
-				sch.Ref = *denormalizeFileRef(&rebasedRef, basePath, resolver.context.basePath)
+				sch.Ref = denormalizeRef(&rebasedRef, resolver.context.basePath, resolver.context.rootID)
 			} else {
 				sch.Ref = rebasedRef
 			}
 		case !resolver.options.SkipSchemas:
 			// schema expanded to a $ref in another root
 			sch.Ref = rebasedRef
+			debugLog("rebased to: %s", sch.Ref.String())
 		default:
 			// skip schema expansion but rebase $ref to schema
-			sch.Ref = *denormalizeFileRef(&rebasedRef, basePath, resolver.context.basePath)
+			sch.Ref = denormalizeRef(&rebasedRef, resolver.context.basePath, resolver.context.rootID)
 		}
 	}
 

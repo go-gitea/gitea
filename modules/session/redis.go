@@ -21,10 +21,11 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/session"
-	"github.com/go-redis/redis/v7"
+	"github.com/go-redis/redis/v8"
 )
 
 // RedisStore represents a redis session store implementation.
@@ -90,7 +91,7 @@ func (s *RedisStore) Release() error {
 		return err
 	}
 
-	return s.c.Set(s.prefix+s.sid, string(data), s.duration).Err()
+	return s.c.Set(graceful.GetManager().HammerContext(), s.prefix+s.sid, string(data), s.duration).Err()
 }
 
 // Flush deletes all session data.
@@ -127,20 +128,20 @@ func (p *RedisProvider) Init(maxlifetime int64, configs string) (err error) {
 	}
 
 	p.c = nosql.GetManager().GetRedisClient(uri.String())
-	return p.c.Ping().Err()
+	return p.c.Ping(graceful.GetManager().ShutdownContext()).Err()
 }
 
 // Read returns raw session store by session ID.
 func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 	psid := p.prefix + sid
 	if !p.Exist(sid) {
-		if err := p.c.Set(psid, "", p.duration).Err(); err != nil {
+		if err := p.c.Set(graceful.GetManager().HammerContext(), psid, "", p.duration).Err(); err != nil {
 			return nil, err
 		}
 	}
 
 	var kv map[interface{}]interface{}
-	kvs, err := p.c.Get(psid).Result()
+	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), psid).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -158,13 +159,13 @@ func (p *RedisProvider) Read(sid string) (session.RawStore, error) {
 
 // Exist returns true if session with given ID exists.
 func (p *RedisProvider) Exist(sid string) bool {
-	v, err := p.c.Exists(p.prefix + sid).Result()
+	v, err := p.c.Exists(graceful.GetManager().HammerContext(), p.prefix+sid).Result()
 	return err == nil && v == 1
 }
 
 // Destroy deletes a session by session ID.
 func (p *RedisProvider) Destroy(sid string) error {
-	return p.c.Del(p.prefix + sid).Err()
+	return p.c.Del(graceful.GetManager().HammerContext(), p.prefix+sid).Err()
 }
 
 // Regenerate regenerates a session store from old session ID to new one.
@@ -176,17 +177,17 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 		return nil, fmt.Errorf("new sid '%s' already exists", sid)
 	} else if !p.Exist(oldsid) {
 		// Make a fake old session.
-		if err = p.c.Set(poldsid, "", p.duration).Err(); err != nil {
+		if err = p.c.Set(graceful.GetManager().HammerContext(), poldsid, "", p.duration).Err(); err != nil {
 			return nil, err
 		}
 	}
 
-	if err = p.c.Rename(poldsid, psid).Err(); err != nil {
+	if err = p.c.Rename(graceful.GetManager().HammerContext(), poldsid, psid).Err(); err != nil {
 		return nil, err
 	}
 
 	var kv map[interface{}]interface{}
-	kvs, err := p.c.Get(psid).Result()
+	kvs, err := p.c.Get(graceful.GetManager().HammerContext(), psid).Result()
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +206,11 @@ func (p *RedisProvider) Regenerate(oldsid, sid string) (_ session.RawStore, err 
 
 // Count counts and returns number of sessions.
 func (p *RedisProvider) Count() int {
-	return int(p.c.DBSize().Val())
+	size, err := p.c.DBSize(graceful.GetManager().HammerContext()).Result()
+	if err != nil {
+		return 0
+	}
+	return int(size)
 }
 
 // GC calls GC to clean expired sessions.

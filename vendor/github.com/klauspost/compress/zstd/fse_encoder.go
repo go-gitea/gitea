@@ -97,7 +97,7 @@ func (s *fseEncoder) prepare() (*fseEncoder, error) {
 func (s *fseEncoder) allocCtable() {
 	tableSize := 1 << s.actualTableLog
 	// get tableSymbol that is big enough.
-	if cap(s.ct.tableSymbol) < int(tableSize) {
+	if cap(s.ct.tableSymbol) < tableSize {
 		s.ct.tableSymbol = make([]byte, tableSize)
 	}
 	s.ct.tableSymbol = s.ct.tableSymbol[:tableSize]
@@ -202,13 +202,13 @@ func (s *fseEncoder) buildCTable() error {
 			case 0:
 			case -1, 1:
 				symbolTT[i].deltaNbBits = tl
-				symbolTT[i].deltaFindState = int16(total - 1)
+				symbolTT[i].deltaFindState = total - 1
 				total++
 			default:
 				maxBitsOut := uint32(tableLog) - highBit(uint32(v-1))
 				minStatePlus := uint32(v) << maxBitsOut
 				symbolTT[i].deltaNbBits = (maxBitsOut << 16) - minStatePlus
-				symbolTT[i].deltaFindState = int16(total - v)
+				symbolTT[i].deltaFindState = total - v
 				total += v
 			}
 		}
@@ -229,7 +229,7 @@ func (s *fseEncoder) setRLE(val byte) {
 		deltaFindState: 0,
 		deltaNbBits:    0,
 	}
-	if debug {
+	if debugEncoder {
 		println("setRLE: val", val, "symbolTT", s.ct.symbolTT[val])
 	}
 	s.rleVal = val
@@ -353,8 +353,8 @@ func (s *fseEncoder) normalizeCount2(length int) error {
 		distributed  uint32
 		total        = uint32(length)
 		tableLog     = s.actualTableLog
-		lowThreshold = uint32(total >> tableLog)
-		lowOne       = uint32((total * 3) >> (tableLog + 1))
+		lowThreshold = total >> tableLog
+		lowOne       = (total * 3) >> (tableLog + 1)
 	)
 	for i, cnt := range s.count[:s.symbolLen] {
 		if cnt == 0 {
@@ -379,7 +379,7 @@ func (s *fseEncoder) normalizeCount2(length int) error {
 
 	if (total / toDistribute) > lowOne {
 		// risk of rounding to zero
-		lowOne = uint32((total * 3) / (toDistribute * 2))
+		lowOne = (total * 3) / (toDistribute * 2)
 		for i, cnt := range s.count[:s.symbolLen] {
 			if (s.norm[i] == notYetAssigned) && (cnt <= lowOne) {
 				s.norm[i] = 1
@@ -708,7 +708,6 @@ func (c *cState) init(bw *bitWriter, ct *cTable, first symbolTransform) {
 	im := int32((nbBitsOut << 16) - first.deltaNbBits)
 	lu := (im >> nbBitsOut) + int32(first.deltaFindState)
 	c.state = c.stateTable[lu]
-	return
 }
 
 // encode the output symbol provided and write it to the bitstream.

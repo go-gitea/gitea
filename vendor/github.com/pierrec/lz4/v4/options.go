@@ -2,10 +2,11 @@ package lz4
 
 import (
 	"fmt"
-	"github.com/pierrec/lz4/v4/internal/lz4block"
-	"github.com/pierrec/lz4/v4/internal/lz4errors"
 	"reflect"
 	"runtime"
+
+	"github.com/pierrec/lz4/v4/internal/lz4block"
+	"github.com/pierrec/lz4/v4/internal/lz4errors"
 )
 
 //go:generate go run golang.org/x/tools/cmd/stringer -type=BlockSize,CompressionLevel -output options_gen.go

@@ -4,6 +4,8 @@
 
 package models
 
+import "code.gitea.io/gitea/models/db"
+
 // CommentList defines a list of comments
 type CommentList []*Comment
 
@@ -17,16 +19,16 @@ func (comments CommentList) getPosterIDs() []int64 {
 	return keysInt64(posterIDs)
 }
 
-func (comments CommentList) loadPosters(e Engine) error {
+func (comments CommentList) loadPosters(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
 	posterIDs := comments.getPosterIDs()
 	posterMaps := make(map[int64]*User, len(posterIDs))
-	var left = len(posterIDs)
+	left := len(posterIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -53,7 +55,7 @@ func (comments CommentList) loadPosters(e Engine) error {
 }
 
 func (comments CommentList) getCommentIDs() []int64 {
-	var ids = make([]int64, 0, len(comments))
+	ids := make([]int64, 0, len(comments))
 	for _, comment := range comments {
 		ids = append(ids, comment.ID)
 	}
@@ -61,7 +63,7 @@ func (comments CommentList) getCommentIDs() []int64 {
 }
 
 func (comments CommentList) getLabelIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if _, ok := ids[comment.LabelID]; !ok {
 			ids[comment.LabelID] = struct{}{}
@@ -70,16 +72,16 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadLabels(e Engine) error {
+func (comments CommentList) loadLabels(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	var labelIDs = comments.getLabelIDs()
-	var commentLabels = make(map[int64]*Label, len(labelIDs))
-	var left = len(labelIDs)
+	labelIDs := comments.getLabelIDs()
+	commentLabels := make(map[int64]*Label, len(labelIDs))
+	left := len(labelIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -111,7 +113,7 @@ func (comments CommentList) loadLabels(e Engine) error {
 }
 
 func (comments CommentList) getMilestoneIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if _, ok := ids[comment.MilestoneID]; !ok {
 			ids[comment.MilestoneID] = struct{}{}
@@ -120,7 +122,7 @@ func (comments CommentList) getMilestoneIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadMilestones(e Engine) error {
+func (comments CommentList) loadMilestones(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -131,9 +133,9 @@ func (comments CommentList) loadMilestones(e Engine) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	var left = len(milestoneIDs)
+	left := len(milestoneIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -154,7 +156,7 @@ func (comments CommentList) loadMilestones(e Engine) error {
 }
 
 func (comments CommentList) getOldMilestoneIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if _, ok := ids[comment.OldMilestoneID]; !ok {
 			ids[comment.OldMilestoneID] = struct{}{}
@@ -163,7 +165,7 @@ func (comments CommentList) getOldMilestoneIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadOldMilestones(e Engine) error {
+func (comments CommentList) loadOldMilestones(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -174,9 +176,9 @@ func (comments CommentList) loadOldMilestones(e Engine) error {
 	}
 
 	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
-	var left = len(milestoneIDs)
+	left := len(milestoneIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -197,7 +199,7 @@ func (comments CommentList) loadOldMilestones(e Engine) error {
 }
 
 func (comments CommentList) getAssigneeIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if _, ok := ids[comment.AssigneeID]; !ok {
 			ids[comment.AssigneeID] = struct{}{}
@@ -206,16 +208,16 @@ func (comments CommentList) getAssigneeIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadAssignees(e Engine) error {
+func (comments CommentList) loadAssignees(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	var assigneeIDs = comments.getAssigneeIDs()
-	var assignees = make(map[int64]*User, len(assigneeIDs))
-	var left = len(assigneeIDs)
+	assigneeIDs := comments.getAssigneeIDs()
+	assignees := make(map[int64]*User, len(assigneeIDs))
+	left := len(assigneeIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -250,7 +252,7 @@ func (comments CommentList) loadAssignees(e Engine) error {
 
 // getIssueIDs returns all the issue ids on this comment list which issue hasn't been loaded
 func (comments CommentList) getIssueIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if comment.Issue != nil {
 			continue
@@ -264,7 +266,7 @@ func (comments CommentList) getIssueIDs() []int64 {
 
 // Issues returns all the issues of comments
 func (comments CommentList) Issues() IssueList {
-	var issues = make(map[int64]*Issue, len(comments))
+	issues := make(map[int64]*Issue, len(comments))
 	for _, comment := range comments {
 		if comment.Issue != nil {
 			if _, ok := issues[comment.Issue.ID]; !ok {
@@ -273,23 +275,23 @@ func (comments CommentList) Issues() IssueList {
 		}
 	}
 
-	var issueList = make([]*Issue, 0, len(issues))
+	issueList := make([]*Issue, 0, len(issues))
 	for _, issue := range issues {
 		issueList = append(issueList, issue)
 	}
 	return issueList
 }
 
-func (comments CommentList) loadIssues(e Engine) error {
+func (comments CommentList) loadIssues(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	var issueIDs = comments.getIssueIDs()
-	var issues = make(map[int64]*Issue, len(issueIDs))
-	var left = len(issueIDs)
+	issueIDs := comments.getIssueIDs()
+	issues := make(map[int64]*Issue, len(issueIDs))
+	left := len(issueIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -325,7 +327,7 @@ func (comments CommentList) loadIssues(e Engine) error {
 }
 
 func (comments CommentList) getDependentIssueIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if comment.DependentIssue != nil {
 			continue
@@ -337,16 +339,16 @@ func (comments CommentList) getDependentIssueIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadDependentIssues(e Engine) error {
+func (comments CommentList) loadDependentIssues(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	var issueIDs = comments.getDependentIssueIDs()
-	var issues = make(map[int64]*Issue, len(issueIDs))
-	var left = len(issueIDs)
+	issueIDs := comments.getDependentIssueIDs()
+	issues := make(map[int64]*Issue, len(issueIDs))
+	left := len(issueIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -386,16 +388,16 @@ func (comments CommentList) loadDependentIssues(e Engine) error {
 	return nil
 }
 
-func (comments CommentList) loadAttachments(e Engine) (err error) {
+func (comments CommentList) loadAttachments(e db.Engine) (err error) {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	var attachments = make(map[int64][]*Attachment, len(comments))
-	var commentsIDs = comments.getCommentIDs()
-	var left = len(commentsIDs)
+	attachments := make(map[int64][]*Attachment, len(comments))
+	commentsIDs := comments.getCommentIDs()
+	left := len(commentsIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -429,7 +431,7 @@ func (comments CommentList) loadAttachments(e Engine) (err error) {
 }
 
 func (comments CommentList) getReviewIDs() []int64 {
-	var ids = make(map[int64]struct{}, len(comments))
+	ids := make(map[int64]struct{}, len(comments))
 	for _, comment := range comments {
 		if _, ok := ids[comment.ReviewID]; !ok {
 			ids[comment.ReviewID] = struct{}{}
@@ -438,16 +440,16 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (comments CommentList) loadReviews(e Engine) error {
+func (comments CommentList) loadReviews(e db.Engine) error {
 	if len(comments) == 0 {
 		return nil
 	}
 
-	var reviewIDs = comments.getReviewIDs()
-	var reviews = make(map[int64]*Review, len(reviewIDs))
-	var left = len(reviewIDs)
+	reviewIDs := comments.getReviewIDs()
+	reviews := make(map[int64]*Review, len(reviewIDs))
+	left := len(reviewIDs)
 	for left > 0 {
-		var limit = defaultMaxInSize
+		limit := defaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -481,7 +483,7 @@ func (comments CommentList) loadReviews(e Engine) error {
 }
 
 // loadAttributes loads all attributes
-func (comments CommentList) loadAttributes(e Engine) (err error) {
+func (comments CommentList) loadAttributes(e db.Engine) (err error) {
 	if err = comments.loadPosters(e); err != nil {
 		return
 	}
@@ -524,20 +526,20 @@ func (comments CommentList) loadAttributes(e Engine) (err error) {
 // LoadAttributes loads attributes of the comments, except for attachments and
 // comments
 func (comments CommentList) LoadAttributes() error {
-	return comments.loadAttributes(x)
+	return comments.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments() error {
-	return comments.loadAttachments(x)
+	return comments.loadAttachments(db.GetEngine(db.DefaultContext))
 }
 
 // LoadPosters loads posters
 func (comments CommentList) LoadPosters() error {
-	return comments.loadPosters(x)
+	return comments.loadPosters(db.GetEngine(db.DefaultContext))
 }
 
 // LoadIssues loads issues of comments
 func (comments CommentList) LoadIssues() error {
-	return comments.loadIssues(x)
+	return comments.loadIssues(db.GetEngine(db.DefaultContext))
 }

@@ -6,7 +6,7 @@ import (
 )
 
 // Ada lexer.
-var Ada = internal.Register(MustNewLexer(
+var Ada = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Ada",
 		Aliases:         []string{"ada", "ada95", "ada2005"},
@@ -14,7 +14,11 @@ var Ada = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-ada"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	adaRules,
+))
+
+func adaRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+`, Text, nil},
 			{`--.*?\n`, CommentSingle, nil},
@@ -110,5 +114,5 @@ var Ada = internal.Register(MustNewLexer(
 			{`\)`, Punctuation, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

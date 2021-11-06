@@ -2,6 +2,7 @@ input,
 textarea,
 .ui.input > input,
 .ui.form input:not([type]),
+.ui.form select,
 .ui.form textarea,
 .ui.form input[type="date"],
 .ui.form input[type="datetime-local"],
@@ -27,6 +28,7 @@ input:hover,
 textarea:hover,
 .ui.input input:hover,
 .ui.form input:not([type]):hover,
+.ui.form select:hover,
 .ui.form textarea:hover,
 .ui.form input[type="date"]:hover,
 .ui.form input[type="datetime-local"]:hover,
@@ -54,6 +56,7 @@ input:focus,
 textarea:focus,
 .ui.input input:focus,
 .ui.form input:not([type]):focus,
+.ui.form select:focus,
 .ui.form textarea:focus,
 .ui.form input[type="date"]:focus,
 .ui.form input[type="datetime-local"]:focus,
@@ -122,6 +125,11 @@ textarea:focus,
 .ui.toggle.checkbox input:checked ~ label::before,
 .ui.toggle.checkbox input:focus:checked ~ label::before {
   background: var(--color-primary) !important;
+}
+
+/* match <select> padding to <input> */
+.ui.form select {
+  padding: .67857143em 1em;
 }
 
 .form {

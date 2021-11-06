@@ -7,6 +7,8 @@ package git
 import (
 	"crypto/sha256"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // Cache represents a caching interface
@@ -24,6 +26,9 @@ func (c *LastCommitCache) getCacheKey(repoPath, ref, entryPath string) string {
 
 // Put put the last commit id with commit and entry path
 func (c *LastCommitCache) Put(ref, entryPath, commitID string) error {
-	log("LastCommitCache save: [%s:%s:%s]", ref, entryPath, commitID)
-	return c.cache.Put(c.getCacheKey(c.repoPath, ref, entryPath), commitID, c.ttl)
+	if c == nil || c.cache == nil {
+		return nil
+	}
+	log.Debug("LastCommitCache save: [%s:%s:%s]", ref, entryPath, commitID)
+	return c.cache.Put(c.getCacheKey(c.repoPath, ref, entryPath), commitID, c.ttl())
 }

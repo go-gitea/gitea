@@ -5,11 +5,11 @@
 package misc
 
 import (
-	"io/ioutil"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -55,7 +55,6 @@ func Markdown(ctx *context.APIContext) {
 	case "comment":
 		fallthrough
 	case "gfm":
-		md := []byte(form.Text)
 		urlPrefix := form.Context
 		meta := map[string]string{}
 		if !strings.HasPrefix(setting.AppSubURL+"/", urlPrefix) {
@@ -77,22 +76,19 @@ func Markdown(ctx *context.APIContext) {
 		if form.Mode == "gfm" {
 			meta["mode"] = "document"
 		}
-		if form.Wiki {
-			_, err := ctx.Write([]byte(markdown.RenderWiki(md, urlPrefix, meta)))
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
-		} else {
-			_, err := ctx.Write(markdown.Render(md, urlPrefix, meta))
-			if err != nil {
-				ctx.InternalServerError(err)
-				return
-			}
+
+		if err := markdown.Render(&markup.RenderContext{
+			URLPrefix: urlPrefix,
+			Metas:     meta,
+			IsWiki:    form.Wiki,
+		}, strings.NewReader(form.Text), ctx.Resp); err != nil {
+			ctx.InternalServerError(err)
+			return
 		}
 	default:
-		_, err := ctx.Write(markdown.RenderRaw([]byte(form.Text), "", false))
-		if err != nil {
+		if err := markdown.RenderRaw(&markup.RenderContext{
+			URLPrefix: form.Context,
+		}, strings.NewReader(form.Text), ctx.Resp); err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
@@ -120,14 +116,8 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//     "$ref": "#/responses/MarkdownRender"
 	//   "422":
 	//     "$ref": "#/responses/validationError"
-
-	body, err := ioutil.ReadAll(ctx.Req.Body)
-	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "", err)
-		return
-	}
-	_, err = ctx.Write(markdown.RenderRaw(body, "", false))
-	if err != nil {
+	defer ctx.Req.Body.Close()
+	if err := markdown.RenderRaw(&markup.RenderContext{}, ctx.Req.Body, ctx.Resp); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

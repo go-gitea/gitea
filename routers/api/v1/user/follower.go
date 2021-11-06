@@ -18,7 +18,7 @@ import (
 func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, ctx.User != nil && ctx.User.IsAdmin)
+		apiUsers[i] = convert.ToUser(users[i], ctx.User)
 	}
 	ctx.JSON(http.StatusOK, &apiUsers)
 }
@@ -29,6 +29,8 @@ func listUserFollowers(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(int64(u.NumFollowers))
 	responseAPIUsers(ctx, users)
 }
 
@@ -93,6 +95,8 @@ func listUserFollowing(ctx *context.APIContext, u *models.User) {
 		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(int64(u.NumFollowing))
 	responseAPIUsers(ctx, users)
 }
 

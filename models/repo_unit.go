@@ -5,9 +5,11 @@
 package models
 
 import (
-	"encoding/json"
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -23,13 +25,16 @@ type RepoUnit struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
 
-// UnitConfig describes common unit config
-type UnitConfig struct {
+func init() {
+	db.RegisterModel(new(RepoUnit))
 }
+
+// UnitConfig describes common unit config
+type UnitConfig struct{}
 
 // FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a UnitConfig to a serialized format.
@@ -44,7 +49,7 @@ type ExternalWikiConfig struct {
 
 // FromDB fills up a ExternalWikiConfig from serialized format.
 func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a ExternalWikiConfig to a serialized format.
@@ -61,7 +66,7 @@ type ExternalTrackerConfig struct {
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
 func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a ExternalTrackerConfig to a serialized format.
@@ -78,7 +83,7 @@ type IssuesConfig struct {
 
 // FromDB fills up a IssuesConfig from serialized format.
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a IssuesConfig to a serialized format.
@@ -88,16 +93,20 @@ func (cfg *IssuesConfig) ToDB() ([]byte, error) {
 
 // PullRequestsConfig describes pull requests config
 type PullRequestsConfig struct {
-	IgnoreWhitespaceConflicts bool
-	AllowMerge                bool
-	AllowRebase               bool
-	AllowRebaseMerge          bool
-	AllowSquash               bool
+	IgnoreWhitespaceConflicts     bool
+	AllowMerge                    bool
+	AllowRebase                   bool
+	AllowRebaseMerge              bool
+	AllowSquash                   bool
+	AllowManualMerge              bool
+	AutodetectManualMerge         bool
+	DefaultDeleteBranchAfterMerge bool
+	DefaultMergeStyle             MergeStyle
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
-	return json.Unmarshal(bs, &cfg)
+	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a PullRequestsConfig to a serialized format.
@@ -110,7 +119,17 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 	return mergeStyle == MergeStyleMerge && cfg.AllowMerge ||
 		mergeStyle == MergeStyleRebase && cfg.AllowRebase ||
 		mergeStyle == MergeStyleRebaseMerge && cfg.AllowRebaseMerge ||
-		mergeStyle == MergeStyleSquash && cfg.AllowSquash
+		mergeStyle == MergeStyleSquash && cfg.AllowSquash ||
+		mergeStyle == MergeStyleManuallyMerged && cfg.AllowManualMerge
+}
+
+// GetDefaultMergeStyle returns the default merge style for this pull request
+func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
+	if len(cfg.DefaultMergeStyle) != 0 {
+		return cfg.DefaultMergeStyle
+	}
+
+	return MergeStyleMerge
 }
 
 // AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig
@@ -135,7 +154,7 @@ func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch UnitType(Cell2Int64(val)) {
+		switch UnitType(login.Cell2Int64(val)) {
 		case UnitTypeCode, UnitTypeReleases, UnitTypeWiki, UnitTypeProjects:
 			r.Config = new(UnitConfig)
 		case UnitTypeExternalWiki:
@@ -187,7 +206,7 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
 
-func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
+func getUnitsByRepoID(e db.Engine, repoID int64) (units []*RepoUnit, err error) {
 	var tmpUnits []*RepoUnit
 	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
 		return nil, err
@@ -200,4 +219,10 @@ func getUnitsByRepoID(e Engine, repoID int64) (units []*RepoUnit, err error) {
 	}
 
 	return units, nil
+}
+
+// UpdateRepoUnit updates the provided repo unit
+func UpdateRepoUnit(unit *RepoUnit) error {
+	_, err := db.GetEngine(db.DefaultContext).ID(unit.ID).Update(unit)
+	return err
 }

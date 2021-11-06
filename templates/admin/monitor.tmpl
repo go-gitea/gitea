@@ -86,7 +86,7 @@
 							<td>{{.Description}}</td>
 							<td>{{DateFmtLong .Start}}</td>
 							<td>{{TimeSince .Start $.Lang}}</td>
-							<td><a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Description}}">{{svg "octicon-trashcan" 16 "text-red"}}</a></td>
+							<td><a class="delete-button" href="" data-url="{{$.Link}}/cancel/{{.PID}}" data-id="{{.PID}}" data-name="{{.Description}}">{{svg "octicon-trash" 16 "text-red"}}</a></td>
 						</tr>
 					{{end}}
 				</tbody>

@@ -2,6 +2,7 @@ package spec
 
 import "errors"
 
+// Error codes
 var (
 	// ErrUnknownTypeForReference indicates that a resolved reference was found in an unsupported container type
 	ErrUnknownTypeForReference = errors.New("unknown type for the resolved reference")

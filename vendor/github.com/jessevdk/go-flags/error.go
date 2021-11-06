@@ -97,6 +97,10 @@ func (e ErrorType) String() string {
 	return "unrecognized error type"
 }
 
+func (e ErrorType) Error() string {
+	return e.String()
+}
+
 // Error represents a parser error. The error returned from Parse is of this
 // type. The error contains both a Type and Message.
 type Error struct {

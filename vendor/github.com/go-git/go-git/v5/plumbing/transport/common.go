@@ -58,6 +58,11 @@ type Session interface {
 	// If the repository does not exist, returns ErrRepositoryNotFound.
 	// If the repository exists, but is empty, returns ErrEmptyRemoteRepository.
 	AdvertisedReferences() (*packp.AdvRefs, error)
+	// AdvertisedReferencesContext retrieves the advertised references for a
+	// repository.
+	// If the repository does not exist, returns ErrRepositoryNotFound.
+	// If the repository exists, but is empty, returns ErrEmptyRemoteRepository.
+	AdvertisedReferencesContext(context.Context) (*packp.AdvRefs, error)
 	io.Closer
 }
 
@@ -107,6 +112,10 @@ type Endpoint struct {
 	Port int
 	// Path is the repository path.
 	Path string
+	// InsecureSkipTLS skips ssl verify if protocal is https
+	InsecureSkipTLS bool
+	// CaBundle specify additional ca bundle with system cert pool
+	CaBundle []byte
 }
 
 var defaultPorts = map[string]int{

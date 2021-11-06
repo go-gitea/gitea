@@ -22,11 +22,13 @@ The environment variables should be of the form:
 
 	GITEA__SECTION_NAME__KEY_NAME
 
+Note, SECTION_NAME in the notation above is case-insensitive.
+
 Environment variables are usually restricted to a reduced character
 set "0-9A-Z_" - in order to allow the setting of sections with
 characters outside of that set, they should be escaped as following:
-"_0X2E_" for ".". The entire section and key names can be escaped as
-a UTF8 byte string if necessary. E.g. to configure:
+"_0X2E_" for "." and "_0X2D_" for "-". The entire section and key names 
+can be escaped as a UTF8 byte string if necessary. E.g. to configure:
 
 	"""
 	...
@@ -40,27 +42,6 @@ You would set the environment variables: "GITEA__LOG_0x2E_CONSOLE__COLORIZE=fals
 and "GITEA__LOG_0x2E_CONSOLE__STDERR=false". Other examples can be found
 on the configuration cheat sheet.
 
-To plug this command in to the docker, you simply compile the provided go file using:
+To build locally, run:
 
-	go build environment-to-ini.go
-
-And copy the resulting `environment-to-ini` command to /app/gitea in the docker.
-
-Apply the below patch to /etc/s6/gitea.setup to wire this in.
-
-If you find this useful please comment on #7287
-
-
-diff --git a/docker/root/etc/s6/gitea/setup b/docker/root/etc/s6/gitea/setup
-index f87ce9115..565bfcba9 100755
---- a/docker/root/etc/s6/gitea/setup
-+++ b/docker/root/etc/s6/gitea/setup
-@@ -44,6 +44,8 @@ if [ ! -f ${GITEA_CUSTOM}/conf/app.ini ]; then
-     SECRET_KEY=${SECRET_KEY:-""} \
-     envsubst < /etc/templates/app.ini > ${GITEA_CUSTOM}/conf/app.ini
-
-+    /app/gitea/environment-to-ini -c ${GITEA_CUSTOM}/conf/app.ini
-+
-     chown ${USER}:git ${GITEA_CUSTOM}/conf/app.ini
- fi
-
+	go build contrib/environment-to-ini/environment-to-ini.go

@@ -9,13 +9,17 @@ package md5simd
 import (
 	"fmt"
 	"math"
-	"sync"
 	"unsafe"
 
-	"github.com/klauspost/cpuid"
+	"github.com/klauspost/cpuid/v2"
 )
 
 var hasAVX512 bool
+
+func init() {
+	// VANDNPD requires AVX512DQ. Technically it could be VPTERNLOGQ which is AVX512F.
+	hasAVX512 = cpuid.CPU.Supports(cpuid.AVX512F, cpuid.AVX512DQ)
+}
 
 //go:noescape
 func block8(state *uint32, base uintptr, bufs *int32, cache *byte, n int)
@@ -82,45 +86,52 @@ var avx512md5consts = func(c []uint32) []uint32 {
 	return inf
 }(md5consts[:])
 
-func init() {
-	hasAVX512 = cpuid.CPU.AVX512F()
-}
-
 // Interface function to assembly code
 func (s *md5Server) blockMd5_x16(d *digest16, input [16][]byte, half bool) {
 	if hasAVX512 {
 		blockMd5_avx512(d, input, s.allBufs, &s.maskRounds16)
-	} else {
-		d8a, d8b := digest8{}, digest8{}
-		for i := range d8a.v0 {
-			j := i + 8
-			d8a.v0[i], d8a.v1[i], d8a.v2[i], d8a.v3[i] = d.v0[i], d.v1[i], d.v2[i], d.v3[i]
-			if !half {
-				d8b.v0[i], d8b.v1[i], d8b.v2[i], d8b.v3[i] = d.v0[j], d.v1[j], d.v2[j], d.v3[j]
-			}
-		}
+		return
+	}
 
-		i8 := [2][8][]byte{}
-		for i := range i8[0] {
-			i8[0][i], i8[1][i] = input[i], input[8+i]
-		}
-		if half {
-			blockMd5_avx2(&d8a, i8[0], s.allBufs, &s.maskRounds8a)
-		} else {
-			wg := sync.WaitGroup{}
-			wg.Add(2)
-			go func() { blockMd5_avx2(&d8a, i8[0], s.allBufs, &s.maskRounds8a); wg.Done() }()
-			go func() { blockMd5_avx2(&d8b, i8[1], s.allBufs, &s.maskRounds8b); wg.Done() }()
-			wg.Wait()
-		}
+	// Preparing data using copy is slower since copies aren't inlined.
 
-		for i := range d8a.v0 {
-			j := i + 8
-			d.v0[i], d.v1[i], d.v2[i], d.v3[i] = d8a.v0[i], d8a.v1[i], d8a.v2[i], d8a.v3[i]
-			if !half {
-				d.v0[j], d.v1[j], d.v2[j], d.v3[j] = d8b.v0[i], d8b.v1[i], d8b.v2[i], d8b.v3[i]
-			}
+	// Calculate on this goroutine
+	if half {
+		for i := range s.i8[0][:] {
+			s.i8[0][i] = input[i]
 		}
+		for i := range s.d8a.v0[:] {
+			s.d8a.v0[i], s.d8a.v1[i], s.d8a.v2[i], s.d8a.v3[i] = d.v0[i], d.v1[i], d.v2[i], d.v3[i]
+		}
+		blockMd5_avx2(&s.d8a, s.i8[0], s.allBufs, &s.maskRounds8a)
+		for i := range s.d8a.v0[:] {
+			d.v0[i], d.v1[i], d.v2[i], d.v3[i] = s.d8a.v0[i], s.d8a.v1[i], s.d8a.v2[i], s.d8a.v3[i]
+		}
+		return
+	}
+
+	for i := range s.i8[0][:] {
+		s.i8[0][i], s.i8[1][i] = input[i], input[8+i]
+	}
+
+	for i := range s.d8a.v0[:] {
+		j := (i + 8) & 15
+		s.d8a.v0[i], s.d8a.v1[i], s.d8a.v2[i], s.d8a.v3[i] = d.v0[i], d.v1[i], d.v2[i], d.v3[i]
+		s.d8b.v0[i], s.d8b.v1[i], s.d8b.v2[i], s.d8b.v3[i] = d.v0[j], d.v1[j], d.v2[j], d.v3[j]
+	}
+
+	// Benchmarks appears to be slightly faster when spinning up 2 goroutines instead
+	// of using the current for one of the blocks.
+	s.wg.Add(2)
+	go func() { blockMd5_avx2(&s.d8a, s.i8[0], s.allBufs, &s.maskRounds8a); s.wg.Done() }()
+	go func() { blockMd5_avx2(&s.d8b, s.i8[1], s.allBufs, &s.maskRounds8b); s.wg.Done() }()
+	s.wg.Wait()
+	for i := range s.d8a.v0[:] {
+		d.v0[i], d.v1[i], d.v2[i], d.v3[i] = s.d8a.v0[i], s.d8a.v1[i], s.d8a.v2[i], s.d8a.v3[i]
+	}
+	for i := range s.d8b.v0[:] {
+		j := (i + 8) & 15
+		d.v0[j], d.v1[j], d.v2[j], d.v3[j] = s.d8b.v0[i], s.d8b.v1[i], s.d8b.v2[i], s.d8b.v3[i]
 	}
 }
 

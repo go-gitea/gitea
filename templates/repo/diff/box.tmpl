@@ -2,11 +2,7 @@
 	<div class="diff-detail-box diff-box sticky">
 		<div>
 			<div class="ui right">
-				{{if .PageIsPullFiles}}
-					{{template "repo/diff/whitespace_dropdown" .}}
-				{{else}}
-					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-				{{end}}
+				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
@@ -22,11 +18,7 @@
 				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
 			<div class="diff-detail-actions df ac">
-				{{if .PageIsPullFiles}}
-					{{template "repo/diff/whitespace_dropdown" .}}
-				{{else}}
-					<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
-				{{end}}
+				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					{{template "repo/diff/new_review" .}}
@@ -37,10 +29,12 @@
 			{{range .Diff.Files}}
 				<li>
 					<div class="bold df ac pull-right">
-						{{if not .IsBin}}
-							{{template "repo/diff/stats" dict "file" . "root" $}}
+						{{if .IsBin}}
+							<span class="ml-1 mr-3">
+								{{$.i18n.Tr "repo.diff.bin"}}
+							</span>
 						{{else}}
-							<span>{{$.i18n.Tr "repo.diff.bin"}}</span>
+							{{template "repo/diff/stats" dict "file" . "root" $}}
 						{{end}}
 					</div>
 					<!-- todo finish all file status, now modify, add, delete and rename -->
@@ -48,58 +42,55 @@
 					<a class="file mono" href="#diff-{{.Index}}">{{.Name}}</a>
 				</li>
 			{{end}}
+			{{if .Diff.IsIncomplete}}
+				<li id="diff-too-many-files-stats" class="pt-2">
+					<span class="file df ac sb">{{$.i18n.Tr "repo.diff.too_many_files"}}
+						<a class="ui basic tiny button" id="diff-show-more-files-stats" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.i18n.Tr "repo.diff.show_more"}}</a>
+					</span>
+				</li>
+			{{end}}
 		</ol>
-		{{range $i, $file := .Diff.Files}}
-			{{if $file.IsIncomplete}}
-				<div class="diff-file-box diff-box file-content">
-					<h4 class="ui top attached normal header rounded">
-						<a role="button" class="fold-file muted mr-2">
-							{{svg "octicon-chevron-down" 18}}
-						</a>
-						<div class="bold ui left df ac">
-							{{if not $file.IsRenamed}}
-								{{template "repo/diff/stats" dict "file" . "root" $}}
-							{{end}}
-						</div>
-						<span class="file mono">{{$file.Name}}</span>
-						<div class="diff-file-header-actions df ac">
-							<div class="text grey">{{$.i18n.Tr "repo.diff.file_suppressed"}}</div>
-							{{if $file.IsProtected}}
-								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
-							{{end}}
-							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
-								{{if $file.IsDeleted}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-								{{else}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
-								{{end}}
-							{{end}}
-						</div>
-					</h4>
-				</div>
-			{{else}}
-				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}}" id="diff-{{.Index}}">
-					<h4 class="diff-file-header ui top attached normal header df ac sb">
+		<div id="diff-file-boxes">
+			{{range $i, $file := .Diff.Files}}
+				{{$blobBase := call $.GetBlobByPathForCommit $.BaseCommit $file.OldName}}
+				{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
+				{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
+				{{$isCsv := (call $.IsCsvFile $file)}}
+				{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
+				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{.Index}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.IsGenerated}}data-folded="true"{{end}}>
+					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
-							{{$isImage := false}}
-							{{if $file.IsDeleted}}
-								{{$isImage = (call $.IsImageFileInBase $file.Name)}}
-							{{else}}
-								{{$isImage = (call $.IsImageFileInHead $file.Name)}}
-							{{end}}
 							<a role="button" class="fold-file muted mr-2">
-								{{svg "octicon-chevron-down" 18}}
+								{{if $file.IsGenerated}}
+									{{svg "octicon-chevron-right" 18}}
+								{{else}}
+									{{svg "octicon-chevron-down" 18}}
+								{{end}}
 							</a>
 							<div class="bold df ac">
 								{{if $file.IsBin}}
-									{{$.i18n.Tr "repo.diff.bin"}}
-								{{else if not $file.IsRenamed}}
+									<span class="ml-1 mr-3">
+										{{$.i18n.Tr "repo.diff.bin"}}
+									</span>
+								{{else}}
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
 							<span class="file mono">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+							{{if $file.IsGenerated}}
+								<span class="ui label ml-3">{{$.i18n.Tr "repo.diff.generated"}}</span>
+							{{end}}
+							{{if $file.IsVendored}}
+								<span class="ui label ml-3">{{$.i18n.Tr "repo.diff.vendored"}}</span>
+							{{end}}
 						</div>
 						<div class="diff-file-header-actions df ac">
+							{{if $showFileViewToggle}}
+								<div class="ui compact icon buttons">
+									<span class="ui tiny basic button poping up file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_source"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-code"}}</span>
+									<span class="ui tiny basic button poping up file-view-toggle active" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-file"}}</span>
+								</div>
+							{{end}}
 							{{if $file.IsProtected}}
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
@@ -113,35 +104,53 @@
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment">
-						{{if ne $file.Type 4}}
-							<div class="file-body file-code has-context-menu{{if not $isImage}} code-diff{{end}}{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $isImage}} py-4{{end}}">
-								<table class="chroma{{if $isImage}} w-100{{end}}">
-									<tbody>
-										{{if $isImage}}
-											{{template "repo/diff/image_diff" dict "file" . "root" $}}
+						<div id="diff-source-{{$i}}" class="file-body file-code code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
+							{{if or $file.IsIncomplete $file.IsBin}}
+								<div class="diff-file-body binary" style="padding: 5px 10px;">
+									{{if $file.IsIncomplete}}
+										{{if $file.IsIncompleteLineTooLong}}
+											{{$.i18n.Tr "repo.diff.file_suppressed_line_too_long"}}
 										{{else}}
-											{{if $.IsSplitStyle}}
-												{{template "repo/diff/section_split" dict "file" . "root" $}}
-											{{else}}
-												{{template "repo/diff/section_unified" dict "file" . "root" $}}
-											{{end}}
+											{{$.i18n.Tr "repo.diff.file_suppressed"}}
 										{{end}}
-									</tbody>
+									{{else}}
+										{{$.i18n.Tr "repo.diff.bin_not_shown"}}
+									{{end}}
+								</div>
+							{{else}}
+								<table class="chroma">
+									{{if $.IsSplitStyle}}
+										{{template "repo/diff/section_split" dict "file" . "root" $}}
+									{{else}}
+										{{template "repo/diff/section_unified" dict "file" . "root" $}}
+									{{end}}
+								</table>
+							{{end}}
+						</div>
+						{{if $showFileViewToggle}}
+							<div id="diff-rendered-{{$i}}" class="file-body file-code {{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
+								<table class="chroma w-100">
+									{{if $isImage}}
+										{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
+									{{else}}
+										{{template "repo/diff/csv_diff" dict "file" . "root" $}}
+									{{end}}
 								</table>
 							</div>
 						{{end}}
 					</div>
 				</div>
 			{{end}}
-		{{end}}
 
-		{{if .Diff.IsIncomplete}}
-			<div class="diff-file-box diff-box file-content">
-				<h4 class="ui top attached normal header">
-					{{$.i18n.Tr "repo.diff.too_many_files"}}
-				</h4>
-			</div>
-		{{end}}
+			{{if .Diff.IsIncomplete}}
+				<div class="diff-file-box diff-box file-content mt-3" id="diff-incomplete">
+					<h4 class="ui top attached normal header df ac sb">
+						{{$.i18n.Tr "repo.diff.too_many_files"}}
+						<a class="ui basic tiny button" id="diff-show-more-files" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.i18n.Tr "repo.diff.show_more"}}</a>
+					</h4>
+				</div>
+			{{end}}
+		</div>
 
 		{{if not $.Repository.IsArchived}}
 			<div class="hide" id="edit-content-form">
@@ -153,7 +162,7 @@
 					<div class="ui bottom attached active write tab segment">
 						<textarea class="review-textarea" tabindex="1" name="content"></textarea>
 					</div>
-					<div class="ui bottom attached tab preview segment markdown">
+					<div class="ui bottom attached tab preview segment markup">
 					{{$.i18n.Tr "loading"}}
 					</div>
 					<div class="text right edit buttons">
@@ -165,33 +174,5 @@
 		{{end}}
 
 		{{template "repo/issue/view_content/reference_issue_dialog" .}}
-
-		{{if .IsSplitStyle}}
-			<script>
-				document.addEventListener('DOMContentLoaded', () => {
-					$('tr.add-code').each(function() {
-						let prev = $(this).prev();
-						if (prev.is('.del-code') && prev.children().eq(5).text().trim() === '') {
-							while (prev.prev().is('.del-code') && prev.prev().children().eq(5).text().trim() === '') {
-								prev = prev.prev();
-							}
-							prev.children().eq(3).attr('data-line-num', $(this).children().eq(3).attr('data-line-num'));
-							prev.children().eq(3).html($(this).children().eq(3).html());
-							prev.children().eq(4).html($(this).children().eq(4).html());
-							prev.children().eq(5).html($(this).children().eq(5).html());
-
-							prev.children().eq(0).addClass('del-code');
-							prev.children().eq(1).addClass('del-code');
-							prev.children().eq(2).addClass('del-code');
-							prev.children().eq(3).addClass('add-code');
-							prev.children().eq(4).addClass('add-code');
-							prev.children().eq(5).addClass('add-code');
-
-							$(this).remove();
-						}
-					});
-				});
-			</script>
-		{{end}}
 	</div>
 {{end}}

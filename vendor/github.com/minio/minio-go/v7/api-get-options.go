@@ -28,7 +28,7 @@ import (
 //AdvancedGetOptions for internal use by MinIO server - not intended for client use.
 type AdvancedGetOptions struct {
 	ReplicationDeleteMarker bool
-	ReplicationProxyRequest bool
+	ReplicationProxyRequest string
 }
 
 // GetObjectOptions are used to specify additional headers or options
@@ -56,8 +56,8 @@ func (o GetObjectOptions) Header() http.Header {
 	}
 	// this header is set for active-active replication scenario where GET/HEAD
 	// to site A is proxy'd to site B if object/version missing on site A.
-	if o.Internal.ReplicationProxyRequest {
-		headers.Set(minIOBucketReplicationProxyRequest, "true")
+	if o.Internal.ReplicationProxyRequest != "" {
+		headers.Set(minIOBucketReplicationProxyRequest, o.Internal.ReplicationProxyRequest)
 	}
 	return headers
 }

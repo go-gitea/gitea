@@ -5,12 +5,14 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -46,7 +48,7 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 		IsEmpty:                         !opts.AutoInit,
 	}
 
-	if err := models.WithTx(func(ctx models.DBContext) error {
+	if err := db.WithTx(func(ctx context.Context) error {
 		repoPath := models.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
@@ -65,6 +67,9 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 		}
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
+		}
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
 		// Initialize Issue Labels if selected
@@ -120,7 +125,7 @@ func DeleteUnadoptedRepository(doer, u *models.User, repoName string) error {
 }
 
 // ListUnadoptedRepositories lists all the unadopted repositories that match the provided query
-func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string, int, error) {
+func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, int, error) {
 	globUser, _ := glob.Compile("*")
 	globRepo, _ := glob.Compile("*")
 
@@ -129,12 +134,12 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 		var err error
 		globUser, err = glob.Compile(qsplit[0])
 		if err != nil {
-			log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[0], err)
+			log.Info("Invalid glob expression '%s' (skipped): %v", qsplit[0], err)
 		}
 		if len(qsplit) > 1 {
 			globRepo, err = glob.Compile(qsplit[1])
 			if err != nil {
-				log.Info("Invalid glob expresion '%s' (skipped): %v", qsplit[1], err)
+				log.Info("Invalid glob expression '%s' (skipped): %v", qsplit[1], err)
 			}
 		}
 	}
@@ -163,10 +168,13 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 
 			// Clean up old repoNamesToCheck
 			if len(repoNamesToCheck) > 0 {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: models.ListOptions{
-					Page:     1,
-					PageSize: opts.PageSize,
-				}, LowerNames: repoNamesToCheck})
+				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+					Actor:   ctxUser,
+					Private: true,
+					ListOptions: db.ListOptions{
+						Page:     1,
+						PageSize: opts.PageSize,
+					}, LowerNames: repoNamesToCheck})
 				if err != nil {
 					return err
 				}
@@ -217,10 +225,13 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 		if count < end {
 			repoNamesToCheck = append(repoNamesToCheck, name)
 			if len(repoNamesToCheck) >= opts.PageSize {
-				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: models.ListOptions{
-					Page:     1,
-					PageSize: opts.PageSize,
-				}, LowerNames: repoNamesToCheck})
+				repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+					Actor:   ctxUser,
+					Private: true,
+					ListOptions: db.ListOptions{
+						Page:     1,
+						PageSize: opts.PageSize,
+					}, LowerNames: repoNamesToCheck})
 				if err != nil {
 					return err
 				}
@@ -228,7 +239,7 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 					found := false
 				repoLoop:
 					for i, repo := range repos {
-						if repo.Name == name {
+						if repo.LowerName == name {
 							found = true
 							repos = append(repos[:i], repos[i+1:]...)
 							break repoLoop
@@ -252,10 +263,13 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 	}
 
 	if len(repoNamesToCheck) > 0 {
-		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: models.ListOptions{
-			Page:     1,
-			PageSize: opts.PageSize,
-		}, LowerNames: repoNamesToCheck})
+		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+			Actor:   ctxUser,
+			Private: true,
+			ListOptions: db.ListOptions{
+				Page:     1,
+				PageSize: opts.PageSize,
+			}, LowerNames: repoNamesToCheck})
 		if err != nil {
 			return nil, 0, err
 		}

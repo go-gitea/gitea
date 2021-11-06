@@ -160,6 +160,12 @@ func (f *defaultFormats) MapStructureHookFunc() mapstructure.DecodeHookFunc {
 					return Base64(data.(string)), nil
 				case "password":
 					return Password(data.(string)), nil
+				case "ulid":
+					ulid, err := ParseULID(data.(string))
+					if err != nil {
+						return nil, err
+					}
+					return ulid, nil
 				default:
 					return nil, errors.InvalidTypeName(v.Name)
 				}

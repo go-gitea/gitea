@@ -47,13 +47,13 @@ func DeleteUnadoptedRepository(doer, owner *models.User, name string) error {
 }
 
 // ForkRepository forks a repository
-func ForkRepository(doer, u *models.User, oldRepo *models.Repository, name, desc string) (*models.Repository, error) {
-	repo, err := repo_module.ForkRepository(doer, u, oldRepo, name, desc)
+func ForkRepository(doer, u *models.User, opts models.ForkRepoOptions) (*models.Repository, error) {
+	repo, err := repo_module.ForkRepository(doer, u, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	notification.NotifyForkRepository(doer, oldRepo, repo)
+	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }

@@ -6,14 +6,18 @@ import (
 )
 
 // Zig lexer.
-var Zig = internal.Register(MustNewLexer(
+var Zig = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Zig",
 		Aliases:   []string{"zig"},
 		Filenames: []string{"*.zig"},
 		MimeTypes: []string{"text/zig"},
 	},
-	Rules{
+	zigRules,
+))
+
+func zigRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, TextWhitespace, nil},
 			{`\s+`, TextWhitespace, nil},
@@ -50,5 +54,5 @@ var Zig = internal.Register(MustNewLexer(
 			{`[^\\"\n]+`, LiteralString, nil},
 			{`"`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

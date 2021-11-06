@@ -83,6 +83,16 @@ func ssl(o values) (func(net.Conn) (net.Conn, error), error) {
 // in the user's home directory. The configured files must exist and have
 // the correct permissions.
 func sslClientCertificates(tlsConf *tls.Config, o values) error {
+	sslinline := o["sslinline"]
+	if sslinline == "true" {
+		cert, err := tls.X509KeyPair([]byte(o["sslcert"]), []byte(o["sslkey"]))
+		if err != nil {
+			return err
+		}
+		tlsConf.Certificates = []tls.Certificate{cert}
+		return nil
+	}
+
 	// user.Current() might fail when cross-compiling. We have to ignore the
 	// error and continue without home directory defaults, since we wouldn't
 	// know from where to load them.
@@ -137,9 +147,17 @@ func sslCertificateAuthority(tlsConf *tls.Config, o values) error {
 	if sslrootcert := o["sslrootcert"]; len(sslrootcert) > 0 {
 		tlsConf.RootCAs = x509.NewCertPool()
 
-		cert, err := ioutil.ReadFile(sslrootcert)
-		if err != nil {
-			return err
+		sslinline := o["sslinline"]
+
+		var cert []byte
+		if sslinline == "true" {
+			cert = []byte(sslrootcert)
+		} else {
+			var err error
+			cert, err = ioutil.ReadFile(sslrootcert)
+			if err != nil {
+				return err
+			}
 		}
 
 		if !tlsConf.RootCAs.AppendCertsFromPEM(cert) {

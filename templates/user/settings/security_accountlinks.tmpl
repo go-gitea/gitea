@@ -10,13 +10,13 @@
 		{{range $loginSource, $provider := .AccountLinks}}
 			<div class="item">
 				<div class="right floated content">
-						<button class="ui red tiny button delete-button" id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+						<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
 							{{$.i18n.Tr "settings.delete_key"}}
 						</button>
 				</div>
 					<div class="content">
 						<strong>{{$provider}}</strong>
-						{{if $loginSource.IsActived}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
+						{{if $loginSource.IsActive}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
 					</div>
 			</div>
 		{{end}}
@@ -26,7 +26,7 @@
 
 <div class="ui small basic delete modal" id="delete-account-link">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.remove_account_link"}}
 	</div>
 	<div class="content">

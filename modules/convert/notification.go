@@ -27,33 +27,52 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 	//handle Subject
 	switch n.Source {
 	case models.NotificationSourceIssue:
-		result.Subject = &api.NotificationSubject{Type: "Issue"}
+		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectIssue}
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL()
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
+				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
 			}
 		}
 	case models.NotificationSourcePullRequest:
-		result.Subject = &api.NotificationSubject{Type: "Pull"}
+		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectPull}
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL()
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
+				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
+			}
+
+			pr, _ := n.Issue.GetPullRequest()
+			if pr != nil && pr.HasMerged {
+				result.Subject.State = "merged"
 			}
 		}
 	case models.NotificationSourceCommit:
+		url := n.Repository.HTMLURL() + "/commit/" + n.CommitID
 		result.Subject = &api.NotificationSubject{
-			Type:  "Commit",
-			Title: n.CommitID,
+			Type:    api.NotifySubjectCommit,
+			Title:   n.CommitID,
+			URL:     url,
+			HTMLURL: url,
 		}
-		//unused until now
+	case models.NotificationSourceRepository:
+		result.Subject = &api.NotificationSubject{
+			Type:  api.NotifySubjectRepository,
+			Title: n.Repository.FullName(),
+			// FIXME: this is a relative URL, rather useless and inconsistent, but keeping for backwards compat
+			URL:     n.Repository.Link(),
+			HTMLURL: n.Repository.HTMLURL(),
+		}
 	}
 
 	return result

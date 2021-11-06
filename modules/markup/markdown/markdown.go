@@ -6,7 +6,8 @@
 package markdown
 
 import (
-	"bytes"
+	"fmt"
+	"io"
 	"strings"
 	"sync"
 
@@ -18,7 +19,7 @@ import (
 
 	chromahtml "github.com/alecthomas/chroma/formatters/html"
 	"github.com/yuin/goldmark"
-	"github.com/yuin/goldmark-highlighting"
+	highlighting "github.com/yuin/goldmark-highlighting"
 	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -34,20 +35,60 @@ var urlPrefixKey = parser.NewContextKey()
 var isWikiKey = parser.NewContextKey()
 var renderMetasKey = parser.NewContextKey()
 
-// NewGiteaParseContext creates a parser.Context with the gitea context set
-func NewGiteaParseContext(urlPrefix string, metas map[string]string, isWiki bool) parser.Context {
+type closesWithError interface {
+	io.WriteCloser
+	CloseWithError(err error) error
+}
+
+type limitWriter struct {
+	w     closesWithError
+	sum   int64
+	limit int64
+}
+
+// Write implements the standard Write interface:
+func (l *limitWriter) Write(data []byte) (int, error) {
+	leftToWrite := l.limit - l.sum
+	if leftToWrite < int64(len(data)) {
+		n, err := l.w.Write(data[:leftToWrite])
+		l.sum += int64(n)
+		if err != nil {
+			return n, err
+		}
+		_ = l.w.Close()
+		return n, fmt.Errorf("Rendered content too large - truncating render")
+	}
+	n, err := l.w.Write(data)
+	l.sum += int64(n)
+	return n, err
+}
+
+// Close closes the writer
+func (l *limitWriter) Close() error {
+	return l.w.Close()
+}
+
+// CloseWithError closes the writer
+func (l *limitWriter) CloseWithError(err error) error {
+	return l.w.CloseWithError(err)
+}
+
+// newParserContext creates a parser.Context with the render context set
+func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc := parser.NewContext(parser.WithIDs(newPrefixedIDs()))
-	pc.Set(urlPrefixKey, urlPrefix)
-	pc.Set(isWikiKey, isWiki)
-	pc.Set(renderMetasKey, metas)
+	pc.Set(urlPrefixKey, ctx.URLPrefix)
+	pc.Set(isWikiKey, ctx.IsWiki)
+	pc.Set(renderMetasKey, ctx.Metas)
 	return pc
 }
 
-// render renders Markdown to HTML without handling special links.
-func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown bool) []byte {
+// actualRender renders Markdown to HTML without handling special links.
+func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	once.Do(func() {
 		converter = goldmark.New(
-			goldmark.WithExtensions(extension.Table,
+			goldmark.WithExtensions(
+				extension.NewTable(
+					extension.WithTableCellAlignMethod(extension.TableCellAlignAttribute)),
 				extension.Strikethrough,
 				extension.TaskList,
 				extension.DefinitionList,
@@ -119,12 +160,69 @@ func render(body []byte, urlPrefix string, metas map[string]string, wikiMarkdown
 
 	})
 
-	pc := NewGiteaParseContext(urlPrefix, metas, wikiMarkdown)
-	var buf bytes.Buffer
-	if err := converter.Convert(giteautil.NormalizeEOL(body), &buf, parser.WithContext(pc)); err != nil {
-		log.Error("Unable to render: %v", err)
+	rd, wr := io.Pipe()
+	defer func() {
+		_ = rd.Close()
+		_ = wr.Close()
+	}()
+
+	lw := &limitWriter{
+		w:     wr,
+		limit: setting.UI.MaxDisplayFileSize * 3,
 	}
-	return markup.SanitizeReader(&buf).Bytes()
+
+	// FIXME: should we include a timeout that closes the pipe to abort the renderer and sanitizer if it takes too long?
+	go func() {
+		defer func() {
+			err := recover()
+			if err == nil {
+				return
+			}
+
+			log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
+			if log.IsDebug() {
+				log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			}
+			_ = lw.CloseWithError(fmt.Errorf("%v", err))
+		}()
+
+		// FIXME: Don't read all to memory, but goldmark doesn't support
+		pc := newParserContext(ctx)
+		buf, err := io.ReadAll(input)
+		if err != nil {
+			log.Error("Unable to ReadAll: %v", err)
+			return
+		}
+		if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
+			log.Error("Unable to render: %v", err)
+			_ = lw.CloseWithError(err)
+			return
+		}
+		_ = lw.Close()
+	}()
+	buf := markup.SanitizeReader(rd, "")
+	_, err := io.Copy(output, buf)
+	return err
+}
+
+func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	defer func() {
+		err := recover()
+		if err == nil {
+			return
+		}
+
+		log.Warn("Unable to render markdown due to panic in goldmark - will return sanitized raw bytes")
+		if log.IsDebug() {
+			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+		}
+		ret := markup.SanitizeReader(input, "")
+		_, err = io.Copy(output, ret)
+		if err != nil {
+			log.Error("SanitizeReader failed: %v", err)
+		}
+	}()
+	return actualRender(ctx, input, output)
 }
 
 var (
@@ -133,45 +231,64 @@ var (
 )
 
 func init() {
-	markup.RegisterParser(Parser{})
+	markup.RegisterRenderer(Renderer{})
 }
 
-// Parser implements markup.Parser
-type Parser struct{}
+// Renderer implements markup.Renderer
+type Renderer struct{}
 
-// Name implements markup.Parser
-func (Parser) Name() string {
+// Name implements markup.Renderer
+func (Renderer) Name() string {
 	return MarkupName
 }
 
-// Extensions implements markup.Parser
-func (Parser) Extensions() []string {
+// NeedPostProcess implements markup.Renderer
+func (Renderer) NeedPostProcess() bool { return true }
+
+// Extensions implements markup.Renderer
+func (Renderer) Extensions() []string {
 	return setting.Markdown.FileExtensions
 }
 
-// Render implements markup.Parser
-func (Parser) Render(rawBytes []byte, urlPrefix string, metas map[string]string, isWiki bool) []byte {
-	return render(rawBytes, urlPrefix, metas, isWiki)
+// SanitizerRules implements markup.Renderer
+func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
+	return []setting.MarkupSanitizerRule{}
+}
+
+// Render implements markup.Renderer
+func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	return render(ctx, input, output)
 }
 
 // Render renders Markdown to HTML with all specific handling stuff.
-func Render(rawBytes []byte, urlPrefix string, metas map[string]string) []byte {
-	return markup.Render("a.md", rawBytes, urlPrefix, metas)
+func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	if ctx.Filename == "" {
+		ctx.Filename = "a.md"
+	}
+	return markup.Render(ctx, input, output)
+}
+
+// RenderString renders Markdown string to HTML with all specific handling stuff and return string
+func RenderString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	if err := Render(ctx, strings.NewReader(content), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // RenderRaw renders Markdown to HTML without handling special links.
-func RenderRaw(body []byte, urlPrefix string, wikiMarkdown bool) []byte {
-	return render(body, urlPrefix, map[string]string{}, wikiMarkdown)
+func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
+	return render(ctx, input, output)
 }
 
-// RenderString renders Markdown to HTML with special links and returns string type.
-func RenderString(raw, urlPrefix string, metas map[string]string) string {
-	return markup.RenderString("a.md", raw, urlPrefix, metas)
-}
-
-// RenderWiki renders markdown wiki page to HTML and return HTML string
-func RenderWiki(rawBytes []byte, urlPrefix string, metas map[string]string) string {
-	return markup.RenderWiki("a.md", rawBytes, urlPrefix, metas)
+// RenderRawString renders Markdown to HTML without handling special links and return string
+func RenderRawString(ctx *markup.RenderContext, content string) (string, error) {
+	var buf strings.Builder
+	if err := RenderRaw(ctx, strings.NewReader(content), &buf); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 // IsMarkdownFile reports whether name looks like a Markdown file

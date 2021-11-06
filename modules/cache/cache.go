@@ -58,7 +58,7 @@ func GetString(key string, getFunc func() (string, error)) (string, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return "", err
 		}
@@ -86,7 +86,7 @@ func GetInt(key string, getFunc func() (int, error)) (int, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return 0, err
 		}
@@ -118,7 +118,7 @@ func GetInt64(key string, getFunc func() (int64, error)) (int64, error) {
 		if value, err = getFunc(); err != nil {
 			return value, err
 		}
-		err = conn.Put(key, value, int64(setting.CacheService.TTL.Seconds()))
+		err = conn.Put(key, value, setting.CacheService.TTLSeconds())
 		if err != nil {
 			return 0, err
 		}

@@ -125,8 +125,8 @@ func (s SecurityScheme) MarshalJSON() ([]byte, error) {
 		err error
 	)
 
-	if s.Type == oauth2 {
-		// when oauth2, empty AuthorizationURL is added as empty string
+	if s.Type == oauth2 && (s.Flow == "implicit" || s.Flow == "accessCode") {
+		// when oauth2 for implicit or accessCode flows, empty AuthorizationURL is added as empty string
 		b1, err = json.Marshal(s.SecuritySchemeProps)
 	} else {
 		// when not oauth2, empty AuthorizationURL should be omitted

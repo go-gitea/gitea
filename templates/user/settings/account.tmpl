@@ -8,7 +8,8 @@
 		</h4>
 		<div class="ui attached segment">
 			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
-			<form class="ui form" action="{{AppSubUrl}}/user/settings/account" method="post">
+			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
@@ -72,7 +73,7 @@
 					<div class="item">
 						{{if not .IsPrimary}}
 							<div class="right floated content">
-								<button class="ui red tiny button delete-button" id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
+								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "settings.delete_email"}}
 								</button>
 							</div>
@@ -92,7 +93,7 @@
 								<form action="{{AppSubUrl}}/user/settings/account/email" method="post">
 									{{$.CsrfTokenHtml}}
 									<input name="_method" type="hidden" value="SENDACTIVATION">
-									<input name="id" type="hidden" value="{{if .IsPrimary}}PRIMARY{{else}}{{.ID}}{{end}}">
+									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
 										<button disabled class="ui blue tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
 									{{else}}
@@ -129,44 +130,6 @@
 			</form>
 		</div>
 
-		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.manage_themes"}}
-		</h4>
-		<div class="ui attached segment">
-			<div class="ui email list">
-				<div class="item">
-					{{.i18n.Tr "settings.theme_desc"}}
-				</div>
-
-			<form class="ui form" action="{{.Link}}/theme" method="post">
-				{{.CsrfTokenHtml}}
-					<div class="field">
-						<label for="ui">{{.i18n.Tr "settings.ui"}}</label>
-						<div class="ui selection dropdown" id="ui">
-							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="text">
-								{{range $i,$a := .AllThemes}}
-									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
-								{{end}}
-							</div>
-
-							<div class="menu">
-							{{range $i,$a := .AllThemes}}
-								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
-									{{$a}}
-								</div>
-							{{end}}
-							</div>
-						</div>
-					</div>
-
-				<div class="field">
-					<button class="ui green button">{{$.i18n.Tr "settings.update_theme"}}</button>
-				</div>
-			</form>
-			</div>
-		</div>
 		<h4 class="ui top attached error header">
 			{{.i18n.Tr "settings.delete_account"}}
 		</h4>
@@ -178,14 +141,14 @@
 				{{ end }}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
-				<input class="fake" type="password">
 				<div class="required field {{if .Err_Password}}error{{end}}">
 					<label for="password-confirmation">{{.i18n.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
-					<div class="ui red button delete-button" id="delete-account" data-type="form" data-form="#delete-form">
+					<div class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
 						{{.i18n.Tr "settings.confirm_delete_account"}}
 					</div>
 					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.i18n.Tr "auth.forgot_password"}}</a>
@@ -197,7 +160,7 @@
 
 <div class="ui small basic delete modal" id="delete-email">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.email_deletion"}}
 	</div>
 	<div class="content">
@@ -208,7 +171,7 @@
 
 <div class="ui small basic delete modal" id="delete-account">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">

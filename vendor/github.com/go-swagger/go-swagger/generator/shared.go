@@ -40,13 +40,14 @@ import (
 
 const (
 	// default generation targets structure
-	defaultModelsTarget     = "models"
-	defaultServerTarget     = "restapi"
-	defaultClientTarget     = "client"
-	defaultOperationsTarget = "operations"
-	defaultClientName       = "rest"
-	defaultServerName       = "swagger"
-	defaultScheme           = "http"
+	defaultModelsTarget         = "models"
+	defaultServerTarget         = "restapi"
+	defaultClientTarget         = "client"
+	defaultOperationsTarget     = "operations"
+	defaultClientName           = "rest"
+	defaultServerName           = "swagger"
+	defaultScheme               = "http"
+	defaultImplementationTarget = "implementation"
 )
 
 func init() {
@@ -62,7 +63,7 @@ func init() {
 func DefaultSectionOpts(gen *GenOpts) {
 	sec := gen.Sections
 	if len(sec.Models) == 0 {
-		sec.Models = []TemplateOpts{
+		opts := []TemplateOpts{
 			{
 				Name:     "definition",
 				Source:   "asset:model",
@@ -70,11 +71,20 @@ func DefaultSectionOpts(gen *GenOpts) {
 				FileName: "{{ (snakize (pascalize .Name)) }}.go",
 			},
 		}
+		if gen.IncludeCLi {
+			opts = append(opts, TemplateOpts{
+				Name:     "clidefinitionhook",
+				Source:   "asset:cliModelcli",
+				Target:   "{{ joinFilePath .Target (toPackagePath .CliPackage) }}",
+				FileName: "{{ (snakize (pascalize .Name)) }}_model.go",
+			})
+		}
+		sec.Models = opts
 	}
 
 	if len(sec.Operations) == 0 {
 		if gen.IsClient {
-			sec.Operations = []TemplateOpts{
+			opts := []TemplateOpts{
 				{
 					Name:     "parameters",
 					Source:   "asset:clientParameter",
@@ -88,6 +98,15 @@ func DefaultSectionOpts(gen *GenOpts) {
 					FileName: "{{ (snakize (pascalize .Name)) }}_responses.go",
 				},
 			}
+			if gen.IncludeCLi {
+				opts = append(opts, TemplateOpts{
+					Name:     "clioperation",
+					Source:   "asset:cliOperation",
+					Target:   "{{ joinFilePath .Target (toPackagePath .CliPackage) }}",
+					FileName: "{{ (snakize (pascalize .Name)) }}_operation.go",
+				})
+			}
+			sec.Operations = opts
 		} else {
 			ops := []TemplateOpts{}
 			if gen.IncludeParameters {
@@ -143,7 +162,7 @@ func DefaultSectionOpts(gen *GenOpts) {
 
 	if len(sec.Application) == 0 {
 		if gen.IsClient {
-			sec.Application = []TemplateOpts{
+			opts := []TemplateOpts{
 				{
 					Name:     "facade",
 					Source:   "asset:clientFacade",
@@ -151,15 +170,23 @@ func DefaultSectionOpts(gen *GenOpts) {
 					FileName: "{{ snakize .Name }}Client.go",
 				},
 			}
+			if gen.IncludeCLi {
+				// include a commandline tool app
+				opts = append(opts, []TemplateOpts{{
+					Name:     "commandline",
+					Source:   "asset:cliCli",
+					Target:   "{{ joinFilePath .Target (toPackagePath .CliPackage) }}",
+					FileName: "cli.go",
+				}, {
+					Name:     "climain",
+					Source:   "asset:cliMain",
+					Target:   "{{ joinFilePath .Target \"cmd\" (toPackagePath .CliPackage) }}",
+					FileName: "main.go",
+				}}...)
+			}
+			sec.Application = opts
 		} else {
-			sec.Application = []TemplateOpts{
-				{
-					Name:       "configure",
-					Source:     "asset:serverConfigureapi",
-					Target:     "{{ joinFilePath .Target (toPackagePath .ServerPackage) }}",
-					FileName:   "configure_{{ (snakize (pascalize .Name)) }}.go",
-					SkipExists: !gen.RegenerateConfigureAPI,
-				},
+			opts := []TemplateOpts{
 				{
 					Name:     "main",
 					Source:   "asset:serverMain",
@@ -191,6 +218,25 @@ func DefaultSectionOpts(gen *GenOpts) {
 					FileName: "doc.go",
 				},
 			}
+			if gen.ImplementationPackage != "" {
+				// Use auto configure template
+				opts = append(opts, TemplateOpts{
+					Name:     "autoconfigure",
+					Source:   "asset:serverAutoconfigureapi",
+					Target:   "{{ joinFilePath .Target (toPackagePath .ServerPackage) }}",
+					FileName: "auto_configure_{{ (snakize (pascalize .Name)) }}.go",
+				})
+
+			} else {
+				opts = append(opts, TemplateOpts{
+					Name:       "configure",
+					Source:     "asset:serverConfigureapi",
+					Target:     "{{ joinFilePath .Target (toPackagePath .ServerPackage) }}",
+					FileName:   "configure_{{ (snakize (pascalize .Name)) }}.go",
+					SkipExists: !gen.RegenerateConfigureAPI,
+				})
+			}
+			sec.Application = opts
 		}
 	}
 	gen.Sections = sec
@@ -248,6 +294,7 @@ type GenOpts struct {
 	IncludeURLBuilder          bool
 	IncludeMain                bool
 	IncludeSupport             bool
+	IncludeCLi                 bool
 	ExcludeSpec                bool
 	DumpData                   bool
 	ValidateSpec               bool
@@ -263,9 +310,11 @@ type GenOpts struct {
 	ModelPackage           string
 	ServerPackage          string
 	ClientPackage          string
+	CliPackage             string
+	ImplementationPackage  string
 	Principal              string
-	PrincipalCustomIface   bool // user-provided interface for Principal (non-nullable)
-	Target                 string
+	PrincipalCustomIface   bool   // user-provided interface for Principal (non-nullable)
+	Target                 string // dir location where generated code is written to
 	Sections               SectionOpts
 	LanguageOpts           *LanguageOpts
 	TypeMapping            map[string]string
@@ -488,16 +537,17 @@ func (g *GenOpts) location(t *TemplateOpts, data interface{}) (string, string, e
 	}
 
 	d := struct {
-		Name, Package, APIPackage, ServerPackage, ClientPackage, ModelPackage, MainPackage, Target string
-		Tags                                                                                       []string
-		UseTags                                                                                    bool
-		Context                                                                                    interface{}
+		Name, Package, APIPackage, ServerPackage, ClientPackage, CliPackage, ModelPackage, MainPackage, Target string
+		Tags                                                                                                   []string
+		UseTags                                                                                                bool
+		Context                                                                                                interface{}
 	}{
 		Name:          name,
 		Package:       pkg,
 		APIPackage:    g.APIPackage,
 		ServerPackage: g.ServerPackage,
 		ClientPackage: g.ClientPackage,
+		CliPackage:    g.CliPackage,
 		ModelPackage:  g.ModelPackage,
 		MainPackage:   g.MainPackage,
 		Target:        g.Target,

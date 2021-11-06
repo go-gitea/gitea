@@ -6,14 +6,18 @@ import (
 )
 
 // Llvm lexer.
-var Llvm = internal.Register(MustNewLexer(
+var Llvm = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "LLVM",
 		Aliases:   []string{"llvm"},
 		Filenames: []string{"*.ll"},
 		MimeTypes: []string{"text/x-llvm"},
 	},
-	Rules{
+	llvmRules,
+))
+
+func llvmRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			{`([-a-zA-Z$._][\w\-$.]*|"[^"]*?")\s*:`, NameLabel, nil},
@@ -39,5 +43,5 @@ var Llvm = internal.Register(MustNewLexer(
 			{Words(``, ``, `void`, `half`, `float`, `double`, `x86_fp80`, `fp128`, `ppc_fp128`, `label`, `metadata`, `token`), KeywordType, nil},
 			{`i[1-9]\d*`, Keyword, nil},
 		},
-	},
-))
+	}
+}

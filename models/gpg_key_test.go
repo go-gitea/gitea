@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -47,7 +48,7 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG public armored rsa key", key)
-	//TODO verify value of key
+	// TODO verify value of key
 }
 
 func TestCheckArmoredbrainpoolP256r1GPGKeyString(t *testing.T) {
@@ -68,7 +69,7 @@ OyjLLnFQiVmq7kEA/0z0CQe3ZQiQIq5zrs7Nh1XRkFAo8GlU/SGC9XFFi722
 
 	key, err := checkArmoredGPGKeyString(testGPGArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG public armored brainpoolP256r1 key", key)
-	//TODO verify value of key
+	// TODO verify value of key
 }
 
 func TestExtractSignature(t *testing.T) {
@@ -103,6 +104,9 @@ MkM/fdpyc2hY7Dl/+qFmN5MG5yGmMpQcX+RNNR222ibNC1D3wg==
 =i9b7
 -----END PGP PUBLIC KEY BLOCK-----`
 	keys, err := checkArmoredGPGKeyString(testGPGArmor)
+	if !assert.NotEmpty(t, keys) {
+		return
+	}
 	ekey := keys[0]
 	assert.NoError(t, err, "Could not parse a valid GPG armored key", ekey)
 
@@ -167,19 +171,19 @@ committer Antoine GIRARD <sapk@sapk.fr> 1489013107 +0100
 
 Unknown GPG key with good email
 `
-	//Reading Sign
+	// Reading Sign
 	goodSig, err := extractSignature(testGoodSigArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testGoodSigArmor)
 	badSig, err := extractSignature(testBadSigArmor)
 	assert.NoError(t, err, "Could not parse a valid GPG armored signature", testBadSigArmor)
 
-	//Generating hash of commit
+	// Generating hash of commit
 	goodHash, err := populateHash(goodSig.Hash, []byte(testGoodPayload))
 	assert.NoError(t, err, "Could not generate a valid hash of payload", testGoodPayload)
 	badHash, err := populateHash(badSig.Hash, []byte(testBadPayload))
 	assert.NoError(t, err, "Could not generate a valid hash of payload", testBadPayload)
 
-	//Verify
+	// Verify
 	err = verifySign(goodSig, goodHash, key)
 	assert.NoError(t, err, "Could not validate a good signature")
 	err = verifySign(badSig, badHash, key)
@@ -189,6 +193,10 @@ Unknown GPG key with good email
 }
 
 func TestCheckGPGUserEmail(t *testing.T) {
+	assert.NoError(t, db.PrepareTestDatabase())
+
+	_ = db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+
 	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
 
@@ -220,11 +228,13 @@ Q0KHb+QcycSgbDx0ZAvdIacuKvBBcbxrsmFUI4LR+oIup0G9gUc0roPvr014jYQL
 =zHo9
 -----END PGP PUBLIC KEY BLOCK-----`
 
-	keys, err := AddGPGKey(1, testEmailWithUpperCaseLetters)
+	keys, err := AddGPGKey(1, testEmailWithUpperCaseLetters, "", "")
 	assert.NoError(t, err)
-	key := keys[0]
-	if assert.Len(t, key.Emails, 1) {
-		assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+	if assert.NotEmpty(t, keys) {
+		key := keys[0]
+		if assert.Len(t, key.Emails, 1) {
+			assert.Equal(t, "user1@example.com", key.Emails[0].Email)
+		}
 	}
 }
 
@@ -374,7 +384,9 @@ epiDVQ==
 `
 	keys, err := checkArmoredGPGKeyString(testIssue6599)
 	assert.NoError(t, err)
-	ekey := keys[0]
-	expire := getExpiryTime(ekey)
-	assert.Equal(t, time.Unix(1586105389, 0), expire)
+	if assert.NotEmpty(t, keys) {
+		ekey := keys[0]
+		expire := getExpiryTime(ekey)
+		assert.Equal(t, time.Unix(1586105389, 0), expire)
+	}
 }

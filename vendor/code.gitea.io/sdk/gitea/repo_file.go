@@ -9,6 +9,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"strings"
 )
 
 // FileOptions options for all file APIs
@@ -23,6 +25,8 @@ type FileOptions struct {
 	Author    Identity          `json:"author"`
 	Committer Identity          `json:"committer"`
 	Dates     CommitDateOptions `json:"dates"`
+	// Add a Signed-off-by trailer by the committer at the end of the commit log message.
+	Signoff bool `json:"signoff"`
 }
 
 // CreateFileOptions options for creating files
@@ -113,17 +117,53 @@ type FileDeleteResponse struct {
 }
 
 // GetFile downloads a file of repository, ref can be branch/tag/commit.
-// e.g.: ref -> master, tree -> macaron.go(no leading slash)
-func (c *Client) GetFile(user, repo, ref, tree string) ([]byte, *Response, error) {
-	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/raw/%s/%s", user, repo, ref, tree), nil, nil)
+// e.g.: ref -> master, filepath -> README.md (no leading slash)
+func (c *Client) GetFile(owner, repo, ref, filepath string) ([]byte, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+	filepath = pathEscapeSegments(filepath)
+	if c.checkServerVersionGreaterThanOrEqual(version1_14_0) != nil {
+		ref = pathEscapeSegments(ref)
+		return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/raw/%s/%s", owner, repo, ref, filepath), nil, nil)
+	}
+	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/raw/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), nil, nil)
 }
 
-// GetContents get the metadata and contents (if a file) of an entry in a repository, or a list of entries if a dir
+// GetContents get the metadata and contents of a file in a repository
 // ref is optional
 func (c *Client) GetContents(owner, repo, ref, filepath string) (*ContentsResponse, *Response, error) {
+	data, resp, err := c.getDirOrFileContents(owner, repo, ref, filepath)
+	if err != nil {
+		return nil, resp, err
+	}
 	cr := new(ContentsResponse)
-	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, filepath, ref), jsonHeader, nil, cr)
+	if json.Unmarshal(data, &cr) != nil {
+		return nil, resp, fmt.Errorf("expect file, got directory")
+	}
 	return cr, resp, err
+}
+
+// ListContents gets a list of entries in a dir
+// ref is optional
+func (c *Client) ListContents(owner, repo, ref, filepath string) ([]*ContentsResponse, *Response, error) {
+	data, resp, err := c.getDirOrFileContents(owner, repo, ref, filepath)
+	if err != nil {
+		return nil, resp, err
+	}
+	crl := make([]*ContentsResponse, 0)
+	if json.Unmarshal(data, &crl) != nil {
+		return nil, resp, fmt.Errorf("expect directory, got file")
+	}
+	return crl, resp, err
+}
+
+func (c *Client) getDirOrFileContents(owner, repo, ref, filepath string) ([]byte, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+	filepath = pathEscapeSegments(strings.TrimPrefix(filepath, "/"))
+	return c.getResponse("GET", fmt.Sprintf("/repos/%s/%s/contents/%s?ref=%s", owner, repo, filepath, url.QueryEscape(ref)), jsonHeader, nil)
 }
 
 // CreateFile create a file in a repository
@@ -132,6 +172,10 @@ func (c *Client) CreateFile(owner, repo, filepath string, opt CreateFileOptions)
 	if opt.BranchName, err = c.setDefaultBranchForOldVersions(owner, repo, opt.BranchName); err != nil {
 		return nil, nil, err
 	}
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+	filepath = pathEscapeSegments(filepath)
 
 	body, err := json.Marshal(&opt)
 	if err != nil {
@@ -149,6 +193,11 @@ func (c *Client) UpdateFile(owner, repo, filepath string, opt UpdateFileOptions)
 		return nil, nil, err
 	}
 
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
+	filepath = pathEscapeSegments(filepath)
+
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err
@@ -164,6 +213,10 @@ func (c *Client) DeleteFile(owner, repo, filepath string, opt DeleteFileOptions)
 	if opt.BranchName, err = c.setDefaultBranchForOldVersions(owner, repo, opt.BranchName); err != nil {
 		return nil, err
 	}
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
+	filepath = pathEscapeSegments(filepath)
 
 	body, err := json.Marshal(&opt)
 	if err != nil {

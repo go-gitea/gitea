@@ -6,13 +6,17 @@
 package models
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -42,7 +46,11 @@ type Release struct {
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
-func (r *Release) loadAttributes(e Engine) error {
+func init() {
+	db.RegisterModel(new(Release))
+}
+
+func (r *Release) loadAttributes(e db.Engine) error {
 	var err error
 	if r.Repo == nil {
 		r.Repo, err = GetRepositoryByID(r.RepoID)
@@ -65,7 +73,7 @@ func (r *Release) loadAttributes(e Engine) error {
 
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(x)
+	return r.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -95,39 +103,42 @@ func IsReleaseExist(repoID int64, tagName string) (bool, error) {
 		return false, nil
 	}
 
-	return x.Get(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
+	return db.GetEngine(db.DefaultContext).Get(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
 }
 
 // InsertRelease inserts a release
 func InsertRelease(rel *Release) error {
-	_, err := x.Insert(rel)
+	_, err := db.GetEngine(db.DefaultContext).Insert(rel)
 	return err
 }
 
 // InsertReleasesContext insert releases
-func InsertReleasesContext(ctx DBContext, rels []*Release) error {
-	_, err := ctx.e.Insert(rels)
+func InsertReleasesContext(ctx context.Context, rels []*Release) error {
+	_, err := db.GetEngine(ctx).Insert(rels)
 	return err
 }
 
 // UpdateRelease updates all columns of a release
-func UpdateRelease(ctx DBContext, rel *Release) error {
-	_, err := ctx.e.ID(rel.ID).AllCols().Update(rel)
+func UpdateRelease(ctx context.Context, rel *Release) error {
+	_, err := db.GetEngine(ctx).ID(rel.ID).AllCols().Update(rel)
 	return err
 }
 
 // AddReleaseAttachments adds a release attachments
-func AddReleaseAttachments(releaseID int64, attachmentUUIDs []string) (err error) {
+func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := GetAttachmentsByUUIDs(attachmentUUIDs)
+	attachments, err := getAttachmentsByUUIDs(db.GetEngine(ctx), attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
 
 	for i := range attachments {
+		if attachments[i].ReleaseID != 0 {
+			return errors.New("release permission denied")
+		}
 		attachments[i].ReleaseID = releaseID
 		// No assign value could be 0, so ignore AllCols().
-		if _, err = x.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+		if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -145,14 +156,14 @@ func GetRelease(repoID int64, tagName string) (*Release, error) {
 	}
 
 	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	_, err = x.Get(rel)
+	_, err = db.GetEngine(db.DefaultContext).Get(rel)
 	return rel, err
 }
 
 // GetReleaseByID returns release with given ID.
 func GetReleaseByID(id int64) (*Release, error) {
 	rel := new(Release)
-	has, err := x.
+	has, err := db.GetEngine(db.DefaultContext).
 		ID(id).
 		Get(rel)
 	if err != nil {
@@ -166,14 +177,16 @@ func GetReleaseByID(id int64) (*Release, error) {
 
 // FindReleasesOptions describes the conditions to Find releases
 type FindReleasesOptions struct {
-	ListOptions
+	db.ListOptions
 	IncludeDrafts bool
 	IncludeTags   bool
+	IsPreRelease  util.OptionalBool
+	IsDraft       util.OptionalBool
 	TagNames      []string
 }
 
 func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
-	var cond = builder.NewCond()
+	cond := builder.NewCond()
 	cond = cond.And(builder.Eq{"repo_id": repoID})
 
 	if !opts.IncludeDrafts {
@@ -185,21 +198,32 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	if len(opts.TagNames) > 0 {
 		cond = cond.And(builder.In("tag_name", opts.TagNames))
 	}
+	if !opts.IsPreRelease.IsNone() {
+		cond = cond.And(builder.Eq{"is_prerelease": opts.IsPreRelease.IsTrue()})
+	}
+	if !opts.IsDraft.IsNone() {
+		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
+	}
 	return cond
 }
 
 // GetReleasesByRepoID returns a list of releases of repository.
 func GetReleasesByRepoID(repoID int64, opts FindReleasesOptions) ([]*Release, error) {
-	sess := x.
+	sess := db.GetEngine(db.DefaultContext).
 		Desc("created_unix", "id").
 		Where(opts.toConds(repoID))
 
 	if opts.PageSize != 0 {
-		sess = opts.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 	}
 
 	rels := make([]*Release, 0, opts.PageSize)
 	return rels, sess.Find(&rels)
+}
+
+// CountReleasesByRepoID returns a number of releases matching FindReleaseOptions and RepoID.
+func CountReleasesByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(new(Release))
 }
 
 // GetLatestReleaseByRepoID returns the latest release for a repository
@@ -211,7 +235,7 @@ func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
 		And(builder.Eq{"is_tag": false})
 
 	rel := new(Release)
-	has, err := x.
+	has, err := db.GetEngine(db.DefaultContext).
 		Desc("created_unix", "id").
 		Where(cond).
 		Get(rel)
@@ -225,8 +249,8 @@ func GetLatestReleaseByRepoID(repoID int64) (*Release, error) {
 }
 
 // GetReleasesByRepoIDAndNames returns a list of releases of repository according repoID and tagNames.
-func GetReleasesByRepoIDAndNames(ctx DBContext, repoID int64, tagNames []string) (rels []*Release, err error) {
-	err = ctx.e.
+func GetReleasesByRepoIDAndNames(ctx context.Context, repoID int64, tagNames []string) (rels []*Release, err error) {
+	err = db.GetEngine(ctx).
 		In("tag_name", tagNames).
 		Desc("created_unix").
 		Find(&rels, Release{RepoID: repoID})
@@ -235,7 +259,7 @@ func GetReleasesByRepoIDAndNames(ctx DBContext, repoID int64, tagNames []string)
 
 // GetReleaseCountByRepoID returns the count of releases of repository
 func GetReleaseCountByRepoID(repoID int64, opts FindReleasesOptions) (int64, error) {
-	return x.Where(opts.toConds(repoID)).Count(&Release{})
+	return db.GetEngine(db.DefaultContext).Where(opts.toConds(repoID)).Count(&Release{})
 }
 
 type releaseMetaSearch struct {
@@ -246,20 +270,22 @@ type releaseMetaSearch struct {
 func (s releaseMetaSearch) Len() int {
 	return len(s.ID)
 }
+
 func (s releaseMetaSearch) Swap(i, j int) {
 	s.ID[i], s.ID[j] = s.ID[j], s.ID[i]
 	s.Rel[i], s.Rel[j] = s.Rel[j], s.Rel[i]
 }
+
 func (s releaseMetaSearch) Less(i, j int) bool {
 	return s.ID[i] < s.ID[j]
 }
 
 // GetReleaseAttachments retrieves the attachments for releases
 func GetReleaseAttachments(rels ...*Release) (err error) {
-	return getReleaseAttachments(x, rels...)
+	return getReleaseAttachments(db.GetEngine(db.DefaultContext), rels...)
 }
 
-func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
+func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}
@@ -269,7 +295,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 	//    then merge join them
 
 	// Sort
-	var sortedRels = releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
+	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
 	var attachments []*Attachment
 	for index, element := range rels {
 		element.Attachments = []*Attachment{}
@@ -280,7 +306,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 
 	// Select attachments
 	err = e.
-		Asc("release_id").
+		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, Attachment{})
 	if err != nil {
@@ -288,7 +314,7 @@ func getReleaseAttachments(e Engine, rels ...*Release) (err error) {
 	}
 
 	// merge join
-	var currentIndex = 0
+	currentIndex := 0
 	for _, attachment := range attachments {
 		for sortedRels.ID[currentIndex] < attachment.ReleaseID {
 			currentIndex++
@@ -327,13 +353,13 @@ func SortReleases(rels []*Release) {
 
 // DeleteReleaseByID deletes a release from database by given ID.
 func DeleteReleaseByID(id int64) error {
-	_, err := x.ID(id).Delete(new(Release))
+	_, err := db.GetEngine(db.DefaultContext).ID(id).Delete(new(Release))
 	return err
 }
 
 // UpdateReleasesMigrationsByType updates all migrated repositories' releases from gitServiceType to replace originalAuthorID to posterID
 func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table("release").
+	_, err := db.GetEngine(db.DefaultContext).Table("release").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
 		Update(map[string]interface{}{

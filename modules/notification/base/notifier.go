@@ -39,6 +39,7 @@ type Notifier interface {
 	NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User)
 	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
 	NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment)
+	NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment)
 
 	NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 		issue *models.Issue, comment *models.Comment, mentions []*models.User)
@@ -56,4 +57,6 @@ type Notifier interface {
 	NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
 	NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
 	NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
+
+	NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository)
 }

@@ -10,15 +10,18 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIPullReview(t *testing.T) {
 	defer prepareTestEnv(t)()
-	pullIssue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	pullIssue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes())
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
 
 	// test ListPullReviews
 	session := loginUser(t, "user2")
@@ -37,15 +40,15 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 8, reviews[3].ID)
 	assert.EqualValues(t, "APPROVED", reviews[3].State)
 	assert.EqualValues(t, 0, reviews[3].CodeCommentsCount)
-	assert.EqualValues(t, true, reviews[3].Stale)
-	assert.EqualValues(t, false, reviews[3].Official)
+	assert.True(t, reviews[3].Stale)
+	assert.False(t, reviews[3].Official)
 
 	assert.EqualValues(t, 10, reviews[5].ID)
 	assert.EqualValues(t, "REQUEST_CHANGES", reviews[5].State)
 	assert.EqualValues(t, 1, reviews[5].CodeCommentsCount)
 	assert.EqualValues(t, -1, reviews[5].Reviewer.ID) // ghost user
-	assert.EqualValues(t, false, reviews[5].Stale)
-	assert.EqualValues(t, true, reviews[5].Official)
+	assert.False(t, reviews[5].Stale)
+	assert.True(t, reviews[5].Official)
 
 	// test GetPullReview
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, reviews[3].ID, token)
@@ -60,13 +63,13 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, *reviews[5], review)
 
 	// test GetPullReviewComments
-	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 7}).(*models.Comment)
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{ID: 7}).(*models.Comment)
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, 10, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var reviewComments []*api.PullReviewComment
 	DecodeJSON(t, resp, &reviewComments)
 	assert.Len(t, reviewComments, 1)
-	assert.EqualValues(t, "Ghost", reviewComments[0].Reviewer.UserName)
+	assert.EqualValues(t, "Ghost", reviewComments[0].Poster.UserName)
 	assert.EqualValues(t, "a review from a deleted user", reviewComments[0].Body)
 	assert.EqualValues(t, comment.ID, reviewComments[0].ID)
 	assert.EqualValues(t, comment.UpdatedUnix, reviewComments[0].Updated.Unix())
@@ -111,6 +114,22 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, "APPROVED", review.State)
 	assert.EqualValues(t, 3, review.CodeCommentsCount)
 
+	// test dismiss review
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/dismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token), &api.DismissPullReviewOptions{
+		Message: "test",
+	})
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, 6, review.ID)
+	assert.True(t, review.Dismissed)
+
+	// test dismiss review
+	req = NewRequest(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews/%d/undismissals?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &review)
+	assert.EqualValues(t, 6, review.ID)
+	assert.False(t, review.Dismissed)
+
 	// test DeletePullReview
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
 		Body:  "just a comment",
@@ -123,11 +142,63 @@ func TestAPIPullReview(t *testing.T) {
 	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
 	resp = session.MakeRequest(t, req, http.StatusNoContent)
 
+	// test CreatePullReview Comment without body but with comments
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+		// Body:  "",
+		Event: "COMMENT",
+		Comments: []api.CreatePullReviewComment{{
+			Path:       "README.md",
+			Body:       "first new line",
+			OldLineNum: 0,
+			NewLineNum: 1,
+		}, {
+			Path:       "README.md",
+			Body:       "first old line",
+			OldLineNum: 1,
+			NewLineNum: 0,
+		},
+		},
+	})
+	var commentReview api.PullReview
+
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &commentReview)
+	assert.EqualValues(t, "COMMENT", commentReview.State)
+	assert.EqualValues(t, 2, commentReview.CodeCommentsCount)
+	assert.EqualValues(t, "", commentReview.Body)
+	assert.EqualValues(t, false, commentReview.Dismissed)
+
+	// test CreatePullReview Comment with body but without comments
+	commentBody := "This is a body of the comment."
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+		Body:     commentBody,
+		Event:    "COMMENT",
+		Comments: []api.CreatePullReviewComment{},
+	})
+
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &commentReview)
+	assert.EqualValues(t, "COMMENT", commentReview.State)
+	assert.EqualValues(t, 0, commentReview.CodeCommentsCount)
+	assert.EqualValues(t, commentBody, commentReview.Body)
+	assert.EqualValues(t, false, commentReview.Dismissed)
+
+	// test CreatePullReview Comment without body and no comments
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
+		Body:     "",
+		Event:    "COMMENT",
+		Comments: []api.CreatePullReviewComment{},
+	})
+	resp = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	errMap := make(map[string]interface{})
+	json.Unmarshal(resp.Body.Bytes(), &errMap)
+	assert.EqualValues(t, "review event COMMENT requires a body or a comment", errMap["message"].(string))
+
 	// test get review requests
 	// to make it simple, use same api with get review
-	pullIssue12 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	pullIssue12 := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
 	assert.NoError(t, pullIssue12.LoadAttributes())
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
 
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -135,23 +206,23 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, 11, reviews[0].ID)
 	assert.EqualValues(t, "REQUEST_REVIEW", reviews[0].State)
 	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
-	assert.EqualValues(t, false, reviews[0].Stale)
-	assert.EqualValues(t, true, reviews[0].Official)
+	assert.False(t, reviews[0].Stale)
+	assert.True(t, reviews[0].Official)
 	assert.EqualValues(t, "test_team", reviews[0].ReviewerTeam.Name)
 
 	assert.EqualValues(t, 12, reviews[1].ID)
 	assert.EqualValues(t, "REQUEST_REVIEW", reviews[1].State)
 	assert.EqualValues(t, 0, reviews[0].CodeCommentsCount)
-	assert.EqualValues(t, false, reviews[1].Stale)
-	assert.EqualValues(t, true, reviews[1].Official)
+	assert.False(t, reviews[1].Stale)
+	assert.True(t, reviews[1].Official)
 	assert.EqualValues(t, 1, reviews[1].Reviewer.ID)
 }
 
 func TestAPIPullReviewRequest(t *testing.T) {
 	defer prepareTestEnv(t)()
-	pullIssue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	pullIssue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes())
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
 
 	// Test add Review Request
 	session := loginUser(t, "user2")
@@ -194,9 +265,9 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test team review request
-	pullIssue12 := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	pullIssue12 := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
 	assert.NoError(t, pullIssue12.LoadAttributes())
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
 
 	// Test add Team Review Request
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{

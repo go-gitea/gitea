@@ -106,7 +106,7 @@ func (e *Encoder) Reset(w io.Writer) {
 		s.encoder = e.o.encoder()
 	}
 	if s.writing == nil {
-		s.writing = &blockEnc{}
+		s.writing = &blockEnc{lowMem: e.o.lowMem}
 		s.writing.init()
 	}
 	s.writing.initNewEncode()
@@ -176,6 +176,12 @@ func (e *Encoder) nextBlock(final bool) error {
 	}
 	if !s.headerWritten {
 		// If we have a single block encode, do a sync compression.
+		if final && len(s.filling) == 0 && !e.o.fullZero {
+			s.headerWritten = true
+			s.fullFrameWritten = true
+			s.eofWritten = true
+			return nil
+		}
 		if final && len(s.filling) > 0 {
 			s.current = e.EncodeAll(s.filling, s.current[:0])
 			var n2 int
@@ -239,7 +245,7 @@ func (e *Encoder) nextBlock(final bool) error {
 	s.filling, s.current, s.previous = s.previous[:0], s.filling, s.current
 	s.wg.Add(1)
 	go func(src []byte) {
-		if debug {
+		if debugEncoder {
 			println("Adding block,", len(src), "bytes, final:", final)
 		}
 		defer func() {
@@ -284,7 +290,7 @@ func (e *Encoder) nextBlock(final bool) error {
 			}
 			switch err {
 			case errIncompressible:
-				if debug {
+				if debugEncoder {
 					println("Storing incompressible block as raw")
 				}
 				blk.encodeRaw(src)
@@ -307,7 +313,7 @@ func (e *Encoder) nextBlock(final bool) error {
 //
 // The Copy function uses ReaderFrom if available.
 func (e *Encoder) ReadFrom(r io.Reader) (n int64, err error) {
-	if debug {
+	if debugEncoder {
 		println("Using ReadFrom")
 	}
 
@@ -330,20 +336,20 @@ func (e *Encoder) ReadFrom(r io.Reader) (n int64, err error) {
 		switch err {
 		case io.EOF:
 			e.state.filling = e.state.filling[:len(e.state.filling)-len(src)]
-			if debug {
+			if debugEncoder {
 				println("ReadFrom: got EOF final block:", len(e.state.filling))
 			}
 			return n, nil
+		case nil:
 		default:
-			if debug {
+			if debugEncoder {
 				println("ReadFrom: got error:", err)
 			}
 			e.state.err = err
 			return n, err
-		case nil:
 		}
 		if len(src) > 0 {
-			if debug {
+			if debugEncoder {
 				println("ReadFrom: got space left in source:", len(src))
 			}
 			continue
@@ -471,7 +477,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 	}
 
 	// If less than 1MB, allocate a buffer up front.
-	if len(dst) == 0 && cap(dst) == 0 && len(src) < 1<<20 {
+	if len(dst) == 0 && cap(dst) == 0 && len(src) < 1<<20 && !e.o.lowMem {
 		dst = make([]byte, 0, len(src))
 	}
 	dst, err := fh.appendTo(dst)
@@ -506,7 +512,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 
 		switch err {
 		case errIncompressible:
-			if debug {
+			if debugEncoder {
 				println("Storing incompressible block as raw")
 			}
 			dst = blk.encodeRawTo(dst, src)
@@ -542,7 +548,7 @@ func (e *Encoder) EncodeAll(src, dst []byte) []byte {
 
 			switch err {
 			case errIncompressible:
-				if debug {
+				if debugEncoder {
 					println("Storing incompressible block as raw")
 				}
 				dst = blk.encodeRawTo(dst, todo)

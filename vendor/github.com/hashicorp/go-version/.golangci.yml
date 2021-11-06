@@ -1,0 +1,40 @@
+linters:
+  enable:
+    - gosimple
+    - deadcode
+    - typecheck
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - structcheck
+    - varcheck
+    - golint
+    - dupl
+    - gocyclo
+    - gofmt
+    - misspell
+    - gocritic
+  enable-all: false
+  disable-all: true
+  fast: false
+
+run:
+  timeout: 3m
+
+linters-settings:
+  gocritic:
+    disabled-checks:
+      - ifElseChain
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
+        - unparam
+        - staticcheck

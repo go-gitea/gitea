@@ -6,14 +6,18 @@ import (
 )
 
 // Sparql lexer.
-var Sparql = internal.Register(MustNewLexer(
+var Sparql = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "SPARQL",
 		Aliases:   []string{"sparql"},
 		Filenames: []string{"*.rq", "*.sparql"},
 		MimeTypes: []string{"application/sparql-query"},
 	},
-	Rules{
+	sparqlRules,
+))
+
+func sparqlRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`((?i)select|construct|describe|ask|where|filter|group\s+by|minus|distinct|reduced|from\s+named|from|order\s+by|desc|asc|limit|offset|bindings|load|clear|drop|create|add|move|copy|insert\s+data|delete\s+data|delete\s+where|delete|insert|using\s+named|using|graph|default|named|all|optional|service|silent|bind|union|not\s+in|in|as|having|to|prefix|base)\b`, Keyword, nil},
@@ -65,5 +69,5 @@ var Sparql = internal.Register(MustNewLexer(
 			{`\^\^`, Operator, Pop(2)},
 			Default(Pop(2)),
 		},
-	},
-))
+	}
+}

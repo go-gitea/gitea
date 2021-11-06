@@ -1,5 +1,5 @@
 //
-// Copyright 2017, Sander van Harmelen
+// Copyright 2021, Sander van Harmelen
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 )
 
 // NamespacesService handles communication with the namespace related methods
@@ -57,7 +58,7 @@ type ListNamespacesOptions struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/namespaces.html#list-namespaces
 func (s *NamespacesService) ListNamespaces(opt *ListNamespacesOptions, options ...RequestOptionFunc) ([]*Namespace, *Response, error) {
-	req, err := s.client.NewRequest("GET", "namespaces", opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, "namespaces", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -82,7 +83,7 @@ func (s *NamespacesService) SearchNamespace(query string, options ...RequestOpti
 	}
 	q.Search = query
 
-	req, err := s.client.NewRequest("GET", "namespaces", &q, options)
+	req, err := s.client.NewRequest(http.MethodGet, "namespaces", &q, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -107,7 +108,7 @@ func (s *NamespacesService) GetNamespace(id interface{}, options ...RequestOptio
 	}
 	u := fmt.Sprintf("namespaces/%s", namespace)
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}

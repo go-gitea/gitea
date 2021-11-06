@@ -304,7 +304,7 @@ var Sender gomail.Sender
 // NewContext start mail queue service
 func NewContext() {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
-	// before but swithed install lock off), this function will be called again
+	// before but switched install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
 		return
@@ -337,13 +337,16 @@ func NewContext() {
 
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
-	go func() {
-		_ = mailQueue.Push(msg)
-	}()
+	SendAsyncs([]*Message{msg})
 }
 
 // SendAsyncs send mails asynchronously
 func SendAsyncs(msgs []*Message) {
+	if setting.MailService == nil {
+		log.Error("Mailer: SendAsyncs is being invoked but mail service hasn't been initialized")
+		return
+	}
+
 	go func() {
 		for _, msg := range msgs {
 			_ = mailQueue.Push(msg)

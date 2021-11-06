@@ -69,9 +69,6 @@ func winAPI(dllName, funcName string) func(...uintptr) (uintptr, uintptr, error)
 	return func(a ...uintptr) (uintptr, uintptr, error) { return proc.Call(a...) }
 }
 
-// Available returns true if Pageant is running
-func Available() bool { return pageantWindow() != 0 }
-
 // Query sends message msg to Pageant and returns response or error.
 // 'msg' is raw agent request with length prefix
 // Response is raw agent response with length prefix

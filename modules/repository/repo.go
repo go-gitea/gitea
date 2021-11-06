@@ -7,12 +7,16 @@ package repository
 import (
 	"context"
 	"fmt"
+	"io"
+	"net/url"
 	"path"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
@@ -92,6 +96,21 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
+	if repo.OwnerID == u.ID {
+		repo.Owner = u
+	}
+
+	if err = repo.CheckDaemonExportOK(ctx); err != nil {
+		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
+	}
+
+	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
+		RunInDir(repoPath); err != nil {
+		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
+	}
+
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
@@ -120,9 +139,16 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 				log.Error("Failed to synchronize tags to releases for repository: %v", err)
 			}
 		}
+
+		if opts.LFS {
+			ep := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep, setting.Migrations.SkipTLSVerify); err != nil {
+				log.Error("Failed to store missing LFS objects for repository: %v", err)
+			}
+		}
 	}
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -132,6 +158,10 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 			Interval:       setting.Mirror.DefaultInterval,
 			EnablePrune:    true,
 			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+			LFS:            opts.LFS,
+		}
+		if opts.LFS {
+			mirrorModel.LFSEndpoint = opts.LFSEndpoint
 		}
 
 		if opts.MirrorInterval != "" {
@@ -209,7 +239,11 @@ func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) error {
 	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true, ListOptions: models.ListOptions{PageSize: 50}}
+	opts := models.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		ListOptions:   db.ListOptions{PageSize: 50},
+	}
 	for page := 1; ; page++ {
 		opts.Page = page
 		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
@@ -236,7 +270,7 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags()
+	tags, err := gitRepo.GetTags(0, 0)
 	if err != nil {
 		return fmt.Errorf("GetTags: %v", err)
 	}
@@ -299,4 +333,103 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 	}
 
 	return models.SaveOrUpdateTag(repo, &rel)
+}
+
+// StoreMissingLfsObjectsInRepository downloads missing LFS objects
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL, skipTLSVerify bool) error {
+	client := lfs.NewClient(endpoint, skipTLSVerify)
+	contentStore := lfs.NewContentStore()
+
+	pointerChan := make(chan lfs.PointerBlob)
+	errChan := make(chan error, 1)
+	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
+
+	downloadObjects := func(pointers []lfs.Pointer) error {
+		err := client.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+			if objectError != nil {
+				return objectError
+			}
+
+			defer content.Close()
+
+			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			if err != nil {
+				log.Error("Error creating LFS meta object %v: %v", p, err)
+				return err
+			}
+
+			if err := contentStore.Put(p, content); err != nil {
+				log.Error("Error storing content for LFS meta object %v: %v", p, err)
+				if _, err2 := repo.RemoveLFSMetaObjectByOid(p.Oid); err2 != nil {
+					log.Error("Error removing LFS meta object %v: %v", p, err2)
+				}
+				return err
+			}
+			return nil
+		})
+		if err != nil {
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+			}
+		}
+		return err
+	}
+
+	var batch []lfs.Pointer
+	for pointerBlob := range pointerChan {
+		meta, err := repo.GetLFSMetaObjectByOid(pointerBlob.Oid)
+		if err != nil && err != models.ErrLFSObjectNotExist {
+			log.Error("Error querying LFS meta object %v: %v", pointerBlob.Pointer, err)
+			return err
+		}
+		if meta != nil {
+			log.Trace("Skipping unknown LFS meta object %v", pointerBlob.Pointer)
+			continue
+		}
+
+		log.Trace("LFS object %v not present in repository %s", pointerBlob.Pointer, repo.FullName())
+
+		exist, err := contentStore.Exists(pointerBlob.Pointer)
+		if err != nil {
+			log.Error("Error checking if LFS object %v exists: %v", pointerBlob.Pointer, err)
+			return err
+		}
+
+		if exist {
+			log.Trace("LFS object %v already present; creating meta object", pointerBlob.Pointer)
+			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			if err != nil {
+				log.Error("Error creating LFS meta object %v: %v", pointerBlob.Pointer, err)
+				return err
+			}
+		} else {
+			if setting.LFS.MaxFileSize > 0 && pointerBlob.Size > setting.LFS.MaxFileSize {
+				log.Info("LFS object %v download denied because of LFS_MAX_FILE_SIZE=%d < size %d", pointerBlob.Pointer, setting.LFS.MaxFileSize, pointerBlob.Size)
+				continue
+			}
+
+			batch = append(batch, pointerBlob.Pointer)
+			if len(batch) >= client.BatchSize() {
+				if err := downloadObjects(batch); err != nil {
+					return err
+				}
+				batch = nil
+			}
+		}
+	}
+	if len(batch) > 0 {
+		if err := downloadObjects(batch); err != nil {
+			return err
+		}
+	}
+
+	err, has := <-errChan
+	if has {
+		log.Error("Error enumerating LFS objects for repository: %v", err)
+		return err
+	}
+
+	return nil
 }

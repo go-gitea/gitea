@@ -6,7 +6,7 @@ import (
 )
 
 // D lexer. https://dlang.org/spec/lex.html
-var D = internal.Register(MustNewLexer(
+var D = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "D",
 		Aliases:   []string{"d"},
@@ -14,7 +14,11 @@ var D = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-d"},
 		EnsureNL:  true,
 	},
-	Rules{
+	dRules,
+))
+
+func dRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+`, Text, nil},
 
@@ -65,5 +69,5 @@ var D = internal.Register(MustNewLexer(
 		"import": {
 			{`[\w.]+\*?`, NameNamespace, Pop(1)},
 		},
-	},
-))
+	}
+}

@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"reflect"
 )
 
@@ -27,12 +28,15 @@ type ListAccessTokensOptions struct {
 
 // ListAccessTokens lists all the access tokens of user
 func (c *Client) ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, *Response, error) {
-	if len(c.username) == 0 {
+	c.mutex.RLock()
+	username := c.username
+	c.mutex.RUnlock()
+	if len(username) == 0 {
 		return nil, nil, fmt.Errorf("\"username\" not set: only BasicAuth allowed")
 	}
 	opts.setDefaults()
 	tokens := make([]*AccessToken, 0, opts.PageSize)
-	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/tokens?%s", c.username, opts.getURLQuery().Encode()), jsonHeader, nil, &tokens)
+	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/users/%s/tokens?%s", url.PathEscape(username), opts.getURLQuery().Encode()), jsonHeader, nil, &tokens)
 	return tokens, resp, err
 }
 
@@ -43,7 +47,10 @@ type CreateAccessTokenOption struct {
 
 // CreateAccessToken create one access token with options
 func (c *Client) CreateAccessToken(opt CreateAccessTokenOption) (*AccessToken, *Response, error) {
-	if len(c.username) == 0 {
+	c.mutex.RLock()
+	username := c.username
+	c.mutex.RUnlock()
+	if len(username) == 0 {
 		return nil, nil, fmt.Errorf("\"username\" not set: only BasicAuth allowed")
 	}
 	body, err := json.Marshal(&opt)
@@ -51,13 +58,16 @@ func (c *Client) CreateAccessToken(opt CreateAccessTokenOption) (*AccessToken, *
 		return nil, nil, err
 	}
 	t := new(AccessToken)
-	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/users/%s/tokens", c.username), jsonHeader, bytes.NewReader(body), t)
+	resp, err := c.getParsedResponse("POST", fmt.Sprintf("/users/%s/tokens", url.PathEscape(username)), jsonHeader, bytes.NewReader(body), t)
 	return t, resp, err
 }
 
 // DeleteAccessToken delete token, identified by ID and if not available by name
 func (c *Client) DeleteAccessToken(value interface{}) (*Response, error) {
-	if len(c.username) == 0 {
+	c.mutex.RLock()
+	username := c.username
+	c.mutex.RUnlock()
+	if len(username) == 0 {
 		return nil, fmt.Errorf("\"username\" not set: only BasicAuth allowed")
 	}
 
@@ -75,6 +85,6 @@ func (c *Client) DeleteAccessToken(value interface{}) (*Response, error) {
 		return nil, fmt.Errorf("only string and int64 supported")
 	}
 
-	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/users/%s/tokens/%s", c.username, token), jsonHeader, nil)
+	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/users/%s/tokens/%s", url.PathEscape(username), url.PathEscape(token)), jsonHeader, nil)
 	return resp, err
 }

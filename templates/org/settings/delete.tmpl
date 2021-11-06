@@ -15,10 +15,9 @@
 					</div>
 					<form class="ui form ignore-dirty" id="delete-form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}
-						<input class="fake" type="password">
-						<div class="inline required field {{if .Err_Password}}error{{end}}">
-							<label for="password">{{.i18n.Tr "password"}}</label>
-							<input id="password" name="password" type="password" autocomplete="off" autofocus required>
+						<div class="inline required field {{if .Err_OrgName}}error{{end}}">
+							<label for="org_name">{{.i18n.Tr "org.org_name_holder"}}</label>
+							<input id="org_name" name="org_name" value="" autocomplete="off" autofocus required>
 						</div>
 						<div class="ui red button delete-button" data-type="form" data-form="#delete-form">
 							{{.i18n.Tr "org.settings.confirm_delete_account"}}
@@ -32,7 +31,7 @@
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
-		{{svg "octicon-trashcan"}}
+		{{svg "octicon-trash"}}
 		{{.i18n.Tr "org.settings.delete_org_title"}}
 	</div>
 	<div class="content">

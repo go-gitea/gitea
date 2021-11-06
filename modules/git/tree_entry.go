@@ -34,12 +34,19 @@ func (te *TreeEntry) FollowLink() (*TreeEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	closed := false
+	defer func() {
+		if !closed {
+			_ = r.Close()
+		}
+	}()
 	buf := make([]byte, te.Size())
 	_, err = io.ReadFull(r, buf)
 	if err != nil {
 		return nil, err
 	}
+	_ = r.Close()
+	closed = true
 
 	lnk := string(buf)
 	t := te.ptree

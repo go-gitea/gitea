@@ -85,6 +85,12 @@ If certain clone options aren't showing up (HTTP/S or SSH), the following option
 `DISABLE_SSH`: if set to true, there will be no SSH link  
 `SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users
 
+## File upload fails with: 413 Request Entity Too Large
+
+This error occurs when the reverse proxy limits the file upload size.
+
+See the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}}) for a solution with nginx.
+
 ## Custom Templates not loading or working incorrectly
 
 Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
@@ -120,13 +126,14 @@ For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api
 
 There are multiple things you can combine to prevent spammers.
 
-1. By only whitelisting certain domains with OpenID (see below)
-2. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
-3. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
+1. By whitelisting or blocklisting certain email domains
+2. By only whitelisting certain domains with OpenID (see below)
+3. Setting `ENABLE_CAPTCHA` to `true` in your `app.ini` and properly configuring `RECAPTCHA_SECRET` and `RECAPTCHA_SITEKEY`
+4. Settings `DISABLE_REGISTRATION` to `true` and creating new users via the [CLI]({{< relref "doc/usage/command-line.en-us.md" >}}), [API]({{< relref "doc/developers/api-usage.en-us.md" >}}), or Gitea's Admin UI
 
-### Only allow certain email domains
+### Only allow/block certain email domains
 
-You can configure `EMAIL_DOMAIN_WHITELIST` in your app.ini under `[service]`
+You can configure `EMAIL_DOMAIN_WHITELIST` or `EMAIL_DOMAIN_BLOCKLIST` in your app.ini under `[service]`
 
 ### Only allow/block certain OpenID providers
 
@@ -141,7 +148,7 @@ The current way to achieve this is to create/modify a user with a max repo creat
 
 Restricted users are limited to a subset of the content based on their organization/team memberships and collaborations, ignoring the public flag on organizations/repos etc.\_\_
 
-Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browseable by all co-workers).
+Example use case: A company runs a Gitea instance that requires login. Most repos are public (accessible/browsable by all co-workers).
 
 At some point, a customer or third party needs access to a specific repo and only that repo. Making such a customer account restricted and granting any needed access using team membership(s) and/or collaboration(s) is a simple way to achieve that without the need to make everything private.
 
@@ -151,7 +158,7 @@ Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor an
 
 ## How to add/use custom themes
 
-Gitea supports two official themes right now, `gitea` and `arc-green` (`light` and `dark` respectively)  
+Gitea supports three official themes right now, `gitea` (light), `arc-green` (dark), and `auto` (automatically switches between the previous two depending on operating system settings).
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
 As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
@@ -323,7 +330,13 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
-you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
+you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.  
+If you are using MySQL 5, another possible fix is
+```mysql
+SET GLOBAL innodb_file_format=Barracuda;
+SET GLOBAL innodb_file_per_table=1;
+SET GLOBAL innodb_large_prefix=1;
+```
 
 ## Why Are Emoji Broken On MySQL
 

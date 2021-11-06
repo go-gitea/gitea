@@ -1,4 +1,4 @@
-// +build linux aix
+// +build linux aix zos
 // +build !appengine
 
 package isatty

@@ -7,17 +7,19 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 )
 
-//UserList is a list of user.
+// UserList is a list of user.
 // This type provide valuable methods to retrieve information for a group of users efficiently.
 type UserList []*User
 
 func (users UserList) getUserIDs() []int64 {
 	userIDs := make([]int64, len(users))
 	for _, user := range users {
-		userIDs = append(userIDs, user.ID) //Considering that user id are unique in the list
+		userIDs = append(userIDs, user.ID) // Considering that user id are unique in the list
 	}
 	return userIDs
 }
@@ -26,9 +28,9 @@ func (users UserList) getUserIDs() []int64 {
 func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
-		results[user.ID] = false //Set default to false
+		results[user.ID] = false // Set default to false
 	}
-	ownerMaps, err := users.loadOrganizationOwners(x, orgID)
+	ownerMaps, err := users.loadOrganizationOwners(db.GetEngine(db.DefaultContext), orgID)
 	if err == nil {
 		for _, owner := range ownerMaps {
 			results[owner.UID] = true
@@ -37,7 +39,7 @@ func (users UserList) IsUserOrgOwner(orgID int64) map[int64]bool {
 	return results
 }
 
-func (users UserList) loadOrganizationOwners(e Engine, orgID int64) (map[int64]*TeamUser, error) {
+func (users UserList) loadOrganizationOwners(e db.Engine, orgID int64) (map[int64]*TeamUser, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
@@ -66,9 +68,9 @@ func (users UserList) loadOrganizationOwners(e Engine, orgID int64) (map[int64]*
 func (users UserList) GetTwoFaStatus() map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
-		results[user.ID] = false //Set default to false
+		results[user.ID] = false // Set default to false
 	}
-	tokenMaps, err := users.loadTwoFactorStatus(x)
+	tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext))
 	if err == nil {
 		for _, token := range tokenMaps {
 			results[token.UID] = true
@@ -78,13 +80,13 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	return results
 }
 
-func (users UserList) loadTwoFactorStatus(e Engine) (map[int64]*TwoFactor, error) {
+func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*login.TwoFactor, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
 
 	userIDs := users.getUserIDs()
-	tokenMaps := make(map[int64]*TwoFactor, len(userIDs))
+	tokenMaps := make(map[int64]*login.TwoFactor, len(userIDs))
 	err := e.
 		In("uid", userIDs).
 		Find(&tokenMaps)

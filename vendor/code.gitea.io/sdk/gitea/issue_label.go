@@ -29,6 +29,9 @@ type ListLabelsOptions struct {
 
 // ListRepoLabels list labels of one repository
 func (c *Client) ListRepoLabels(owner, repo string, opt ListLabelsOptions) ([]*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	opt.setDefaults()
 	labels := make([]*Label, 0, opt.PageSize)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/labels?%s", owner, repo, opt.getURLQuery().Encode()), nil, nil, &labels)
@@ -37,6 +40,9 @@ func (c *Client) ListRepoLabels(owner, repo string, opt ListLabelsOptions) ([]*L
 
 // GetRepoLabel get one label of repository by repo it
 func (c *Client) GetRepoLabel(owner, repo string, id int64) (*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	label := new(Label)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), nil, nil, label)
 	return label, resp, err
@@ -67,6 +73,9 @@ func (opt CreateLabelOption) Validate() error {
 
 // CreateLabel create one label of repository
 func (c *Client) CreateLabel(owner, repo string, opt CreateLabelOption) (*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -114,6 +123,9 @@ func (opt EditLabelOption) Validate() error {
 
 // EditLabel modify one label with options
 func (c *Client) EditLabel(owner, repo string, id int64, opt EditLabelOption) (*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	if err := opt.Validate(); err != nil {
 		return nil, nil, err
 	}
@@ -128,12 +140,18 @@ func (c *Client) EditLabel(owner, repo string, id int64, opt EditLabelOption) (*
 
 // DeleteLabel delete one label of repository by id
 func (c *Client) DeleteLabel(owner, repo string, id int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/labels/%d", owner, repo, id), nil, nil)
 	return resp, err
 }
 
 // GetIssueLabels get labels of one issue via issue id
 func (c *Client) GetIssueLabels(owner, repo string, index int64, opts ListLabelsOptions) ([]*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	labels := make([]*Label, 0, 5)
 	resp, err := c.getParsedResponse("GET", fmt.Sprintf("/repos/%s/%s/issues/%d/labels?%s", owner, repo, index, opts.getURLQuery().Encode()), nil, nil, &labels)
 	return labels, resp, err
@@ -147,6 +165,9 @@ type IssueLabelsOption struct {
 
 // AddIssueLabels add one or more labels to one issue
 func (c *Client) AddIssueLabels(owner, repo string, index int64, opt IssueLabelsOption) ([]*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err
@@ -158,6 +179,9 @@ func (c *Client) AddIssueLabels(owner, repo string, index int64, opt IssueLabels
 
 // ReplaceIssueLabels replace old labels of issue with new labels
 func (c *Client) ReplaceIssueLabels(owner, repo string, index int64, opt IssueLabelsOption) ([]*Label, *Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, nil, err
+	}
 	body, err := json.Marshal(&opt)
 	if err != nil {
 		return nil, nil, err
@@ -170,12 +194,18 @@ func (c *Client) ReplaceIssueLabels(owner, repo string, index int64, opt IssueLa
 // DeleteIssueLabel delete one label of one issue by issue id and label id
 // TODO: maybe we need delete by label name and issue id
 func (c *Client) DeleteIssueLabel(owner, repo string, index, label int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/labels/%d", owner, repo, index, label), nil, nil)
 	return resp, err
 }
 
 // ClearIssueLabels delete all the labels of one issue.
 func (c *Client) ClearIssueLabels(owner, repo string, index int64) (*Response, error) {
+	if err := escapeValidatePathSegments(&owner, &repo); err != nil {
+		return nil, err
+	}
 	_, resp, err := c.getResponse("DELETE", fmt.Sprintf("/repos/%s/%s/issues/%d/labels", owner, repo, index), nil, nil)
 	return resp, err
 }

@@ -1,5 +1,5 @@
 //
-// Copyright 2018, Patrick Webster
+// Copyright 2021, Patrick Webster
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package gitlab
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 )
 
@@ -35,11 +36,12 @@ type GroupVariablesService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html
 type GroupVariable struct {
-	Key          string            `json:"key"`
-	Value        string            `json:"value"`
-	VariableType VariableTypeValue `json:"variable_type"`
-	Protected    bool              `json:"protected"`
-	Masked       bool              `json:"masked"`
+	Key              string            `json:"key"`
+	Value            string            `json:"value"`
+	VariableType     VariableTypeValue `json:"variable_type"`
+	Protected        bool              `json:"protected"`
+	Masked           bool              `json:"masked"`
+	EnvironmentScope string            `json:"environment_scope"`
 }
 
 func (v GroupVariable) String() string {
@@ -64,7 +66,7 @@ func (s *GroupVariablesService) ListVariables(gid interface{}, opt *ListGroupVar
 	}
 	u := fmt.Sprintf("groups/%s/variables", pathEscape(group))
 
-	req, err := s.client.NewRequest("GET", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -89,7 +91,7 @@ func (s *GroupVariablesService) GetVariable(gid interface{}, key string, options
 	}
 	u := fmt.Sprintf("groups/%s/variables/%s", pathEscape(group), url.PathEscape(key))
 
-	req, err := s.client.NewRequest("GET", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,11 +111,12 @@ func (s *GroupVariablesService) GetVariable(gid interface{}, key string, options
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#create-variable
 type CreateGroupVariableOptions struct {
-	Key          *string            `url:"key,omitempty" json:"key,omitempty"`
-	Value        *string            `url:"value,omitempty" json:"value,omitempty"`
-	VariableType *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
-	Protected    *bool              `url:"protected,omitempty" json:"protected,omitempty"`
-	Masked       *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Key              *string            `url:"key,omitempty" json:"key,omitempty"`
+	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
+	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
+	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 }
 
 // CreateVariable creates a new group variable.
@@ -127,7 +130,7 @@ func (s *GroupVariablesService) CreateVariable(gid interface{}, opt *CreateGroup
 	}
 	u := fmt.Sprintf("groups/%s/variables", pathEscape(group))
 
-	req, err := s.client.NewRequest("POST", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -147,10 +150,11 @@ func (s *GroupVariablesService) CreateVariable(gid interface{}, opt *CreateGroup
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#update-variable
 type UpdateGroupVariableOptions struct {
-	Value        *string            `url:"value,omitempty" json:"value,omitempty"`
-	VariableType *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
-	Protected    *bool              `url:"protected,omitempty" json:"protected,omitempty"`
-	Masked       *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
+	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
+	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 }
 
 // UpdateVariable updates the position of an existing
@@ -165,7 +169,7 @@ func (s *GroupVariablesService) UpdateVariable(gid interface{}, key string, opt 
 	}
 	u := fmt.Sprintf("groups/%s/variables/%s", pathEscape(group), url.PathEscape(key))
 
-	req, err := s.client.NewRequest("PUT", u, opt, options)
+	req, err := s.client.NewRequest(http.MethodPut, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -190,7 +194,7 @@ func (s *GroupVariablesService) RemoveVariable(gid interface{}, key string, opti
 	}
 	u := fmt.Sprintf("groups/%s/variables/%s", pathEscape(group), url.PathEscape(key))
 
-	req, err := s.client.NewRequest("DELETE", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {
 		return nil, err
 	}

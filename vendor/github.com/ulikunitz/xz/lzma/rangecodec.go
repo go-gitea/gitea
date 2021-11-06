@@ -1,4 +1,4 @@
-// Copyright 2014-2019 Ulrich Kunitz. All rights reserved.
+// Copyright 2014-2021 Ulrich Kunitz. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -129,32 +129,6 @@ type rangeDecoder struct {
 	br     io.ByteReader
 	nrange uint32
 	code   uint32
-}
-
-// init initializes the range decoder, by reading from the byte reader.
-func (d *rangeDecoder) init() error {
-	d.nrange = 0xffffffff
-	d.code = 0
-
-	b, err := d.br.ReadByte()
-	if err != nil {
-		return err
-	}
-	if b != 0 {
-		return errors.New("newRangeDecoder: first byte not zero")
-	}
-
-	for i := 0; i < 4; i++ {
-		if err = d.updateCode(); err != nil {
-			return err
-		}
-	}
-
-	if d.code >= d.nrange {
-		return errors.New("newRangeDecoder: d.code >= d.nrange")
-	}
-
-	return nil
 }
 
 // newRangeDecoder initializes a range decoder. It reads five bytes from the

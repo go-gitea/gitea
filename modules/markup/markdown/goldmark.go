@@ -76,6 +76,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					header.ID = util.BytesToReadOnlyString(id.([]byte))
 				}
 				toc = append(toc, header)
+			} else {
+				for _, attr := range v.Attributes() {
+					if _, ok := attr.Value.([]byte); !ok {
+						v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
+					}
+				}
 			}
 		case *ast.Image:
 			// Images need two things:
@@ -92,7 +98,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				}
 				prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-				lnk := string(link)
+				lnk := strings.TrimLeft(string(link), "/")
+
 				lnk = giteautil.URLJoin(prefix, lnk)
 				link = []byte(lnk)
 			}
@@ -101,11 +108,38 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			parent := n.Parent()
 			// Create a link around image only if parent is not already a link
 			if _, ok := parent.(*ast.Link); !ok && parent != nil {
+				next := n.NextSibling()
+
+				// Create a link wrapper
 				wrap := ast.NewLink()
 				wrap.Destination = link
 				wrap.Title = v.Title
+				wrap.SetAttributeString("target", []byte("_blank"))
+
+				// Duplicate the current image node
+				image := ast.NewImage(ast.NewLink())
+				image.Destination = link
+				image.Title = v.Title
+				for _, attr := range v.Attributes() {
+					image.SetAttribute(attr.Name, attr.Value)
+				}
+				for child := v.FirstChild(); child != nil; {
+					next := child.NextSibling()
+					image.AppendChild(image, child)
+					child = next
+				}
+
+				// Append our duplicate image to the wrapper link
+				wrap.AppendChild(wrap, image)
+
+				// Wire in the next sibling
+				wrap.SetNextSibling(next)
+
+				// Replace the current node with the wrapper link
 				parent.ReplaceChild(parent, n, wrap)
-				wrap.AppendChild(wrap, n)
+
+				// But most importantly ensure the next sibling is still on the old image too
+				v.SetNextSibling(next)
 			}
 		case *ast.Link:
 			// Links need their href to munged to be a real value
@@ -351,18 +385,19 @@ func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byt
 		} else {
 			_, _ = w.WriteString("<li>")
 		}
-		end := ">"
-		if r.XHTML {
-			end = " />"
+		_, _ = w.WriteString(`<input type="checkbox" disabled=""`)
+		segments := node.FirstChild().Lines()
+		if segments.Len() > 0 {
+			segment := segments.At(0)
+			_, _ = w.WriteString(fmt.Sprintf(` data-source-position="%d"`, segment.Start))
 		}
-		var err error
 		if n.IsChecked {
-			_, err = w.WriteString(`<input type="checkbox" disabled="" checked=""` + end)
-		} else {
-			_, err = w.WriteString(`<input type="checkbox" disabled=""` + end)
+			_, _ = w.WriteString(` checked=""`)
 		}
-		if err != nil {
-			return ast.WalkStop, err
+		if r.XHTML {
+			_, _ = w.WriteString(` />`)
+		} else {
+			_ = w.WriteByte('>')
 		}
 		fc := n.FirstChild()
 		if fc != nil {
