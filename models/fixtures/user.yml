@@ -553,7 +553,7 @@
   type: 0 # individual
   salt: ZogKvWdyEx
   is_admin: false
-  is_restricted: true
+  is_restricted: false
   avatar: avatar32
   avatar_email: user30@example.com
   num_repos: 0
