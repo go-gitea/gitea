@@ -536,7 +536,7 @@ func (repo *Repository) GetDeletedBranches() ([]*DeletedBranch, error) {
 // GetDeletedBranchByID get a deleted branch by its ID
 func (repo *Repository) GetDeletedBranchByID(id int64) (*DeletedBranch, error) {
 	deletedBranch := &DeletedBranch{}
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(deletedBranch)
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repo.ID).And("id = ?", id).Get(deletedBranch)
 	if err != nil {
 		return nil, err
 	}
