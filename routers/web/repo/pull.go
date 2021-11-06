@@ -744,7 +744,7 @@ func UpdatePullRequest(ctx *context.Context) {
 	// ToDo: add check if maintainers are allowed to change branch ... (need migration & co)
 	if (!allowedUpdateByMerge && !rebase) || (rebase && !allowedUpdateByRebase) {
 		ctx.Flash.Error(ctx.Tr("repo.pulls.update_not_allowed"))
-		ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + url.PathEscape(fmt.Sprint(issue.Index)))
+		ctx.Redirect(issue.Link())
 		return
 	}
 

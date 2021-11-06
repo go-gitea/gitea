@@ -67,7 +67,6 @@ func runHTTPRedirector() {
 		if len(r.URL.RawQuery) > 0 {
 			target += "?" + r.URL.RawQuery
 		}
-		// FIXME: Why aren't we adding the Fragment?
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 

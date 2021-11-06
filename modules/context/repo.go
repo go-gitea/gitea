@@ -328,7 +328,6 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	// FIXME: why not Fragment
 	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
 }
 
