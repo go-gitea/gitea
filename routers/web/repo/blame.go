@@ -36,7 +36,6 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
-	HasBIDI        bool
 }
 
 // RefBlame render blame page
@@ -250,8 +249,8 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, line)
 
+			_, line = charset.EscapeControlString(line)
 			br.Code = gotemplate.HTML(line)
-			_, br.HasBIDI = charset.ContainsBIDIRuneString(line)
 			rows = append(rows, br)
 		}
 	}

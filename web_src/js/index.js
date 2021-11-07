@@ -20,7 +20,7 @@ import {initNotificationCount, initNotificationsTable} from './features/notifica
 import {initLastCommitLoader} from './features/lastcommitloader.js';
 import {initIssueContentHistory} from './features/issue-content-history.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {initDiffShowMore, initShowBidi} from './features/diff.js';
+import {initDiffShowMore, initShowEscapeCharacters} from './features/diff.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
@@ -135,7 +135,7 @@ $(document).ready(async () => {
   initRepoReleaseEditor();
   initRepoRelease();
   initDiffShowMore();
-  initShowBidi();
+  initShowEscapeCharacters();
   initIssueContentHistory();
   initAdminUserListSearchForm();
   initGlobalCopyToClipboardListener();

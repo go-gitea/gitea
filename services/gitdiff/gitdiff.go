@@ -117,28 +117,6 @@ func (d *DiffLine) GetCommentSide() string {
 	return d.Comments[0].DiffSide()
 }
 
-// HasBIDI returns true if there is a BIDI rune in this line
-func (d *DiffLine) HasBIDI() bool {
-	_, any := charset.ContainsBIDIRuneString(d.Content)
-	return any
-}
-
-// LeftHasBIDI returns true if there is a BIDI rune in this line
-func (d *DiffLine) LeftHasBIDI() bool {
-	if d.LeftIdx > 0 {
-		return d.HasBIDI()
-	}
-	return false
-}
-
-// RightHasBIDI returns true if there is a BIDI rune in this line
-func (d *DiffLine) RightHasBIDI() bool {
-	if d.RightIdx > 0 {
-		return d.HasBIDI()
-	}
-	return false
-}
-
 // GetLineTypeMarker returns the line type marker
 func (d *DiffLine) GetLineTypeMarker() string {
 	if strings.IndexByte(" +-", d.Content[0]) > -1 {
@@ -193,6 +171,7 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 // escape a line's content or return <br> needed for copy/paste purposes
 func getLineContent(content string) string {
 	if len(content) > 0 {
+		_, content = charset.EscapeControlString(content)
 		return html.EscapeString(content)
 	}
 	return "<br>"
@@ -504,7 +483,8 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			buf.Write(codeTagSuffix)
 		}
 	}
-	return template.HTML(buf.Bytes())
+	_, content := charset.EscapeControlString(buf.String())
+	return template.HTML(content)
 }
 
 // GetLine gets a specific line by type (add or del) and file line number
@@ -575,22 +555,26 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			return template.HTML(escaped)
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			return template.HTML(escaped)
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			return template.HTML(escaped)
 		}
-		return template.HTML(highlight.Code(diffSection.FileName, diffLine.Content))
+		_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content))
+		return template.HTML(escaped)
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
@@ -955,6 +939,7 @@ parsingLoop:
 				decoder := diffLineTypeDecoders[l.Type]
 				if decoder != nil {
 					if c, _, err := transform.String(decoder, l.Content[1:]); err == nil {
+
 						l.Content = l.Content[0:1] + c
 					}
 				}

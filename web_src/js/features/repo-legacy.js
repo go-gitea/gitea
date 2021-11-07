@@ -546,6 +546,35 @@ export async function initRepository() {
 
   initRepoSettingBranches();
   initRepoCommonLanguageStats();
+  initEscapeButton();
+}
+
+function initEscapeButton() {
+  $('a.escape-button').on('click', (e) => {
+    e.preventDefault();
+    $('.file-view').addClass('escaped');
+    $('a.escape-button').hide();
+    $('a.unescape-button').show();
+  });
+  $('a.unescape-button').on('click', (e) => {
+    e.preventDefault();
+    $('.file-view').removeClass('escaped');
+    $('a.escape-button').show();
+    $('a.unescape-button').hide();
+  });
+
+  $('a.escape-diff-button').on('click', (e) => {
+    e.preventDefault();
+    $(e.target).parent().parent().parent().find('.file-code').addClass('escaped');
+    $(e.target).hide();
+    $(e.target).parent().find('a.unescape-diff-button').show();
+  });
+  $('a.unescape-diff-button').on('click', (e) => {
+    e.preventDefault();
+    $(e.target).parent().parent().parent().find('.file-code').removeClass('escaped');
+    $(e.target).hide();
+    $(e.target).parent().find('a.escape-diff-button').show();
+  });
 }
 
 function initRepoIssueQuoteReply() {

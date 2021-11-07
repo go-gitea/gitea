@@ -45,6 +45,10 @@
 					</div>
 				</div>
 				<div class="eight wide right aligned column">
+					{{if .EscapeStatus.Escaped}}
+						<a class="ui small button unescape-button hide">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui small button escape-button">{{.i18n.Tr "repo.escape_control_characters"}}</a>
+					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
 							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}/_edit">{{.i18n.Tr "repo.wiki.edit_page_button"}}</a>
@@ -62,16 +66,24 @@
 		{{end}}
 		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
 			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markup">
-				{{if .BadBIDI}}
+				{{if .EscapeStatus.BadBIDI}}
 					<div class="ui error message">
 						<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
 						<div class="header">
-							{{.i18n.Tr "repo.bidi_header"}}
+							{{.i18n.Tr "repo.bidi_bad_header"}}
 						</div>
-						{{.i18n.Tr "repo.bidi_description" | Str2html}}
+						{{.i18n.Tr "repo.bidi_bad_description" | Str2html}}
+					</div>
+				{{else if .EscapeStatus.Escaped}}
+					<div class="ui warning message">
+						<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
+						<div class="header">
+							{{.i18n.Tr "repo.unicode_header"}}
+						</div>
+						{{.i18n.Tr "repo.unicode_description" | Str2html}}
 					</div>
 				{{end}}
-				{{.content | Str2html}}
+				{{.content | Safe}}
 			</div>
 			{{if .sidebarPresent}}
 			<div class="column" style="padding-top: 0;">
@@ -79,16 +91,22 @@
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 					{{end}}
-					{{if .sidebarBadBIDI}}
+					{{if .sidebarEscapeStatus.BadBIDI}}
 						<div class="ui error message">
 							<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
 							<div class="header">
-								{{.i18n.Tr "repo.bidi_header"}}
+								{{.i18n.Tr "repo.bidi_bad_header"}}
 							</div>
-							{{.i18n.Tr "repo.bidi_description" | Str2html}}
+						</div>
+					{{else if .sidebarEscapeStatus.Escaped}}
+						<div class="ui warning message">
+							<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
+							<div class="header">
+								{{.i18n.Tr "repo.unicode_header"}}
+							</div>
 						</div>
 					{{end}}
-					{{.sidebarContent | Str2html}}
+					{{.sidebarContent | Safe}}
 				</div>
 			</div>
 			{{end}}
@@ -98,16 +116,22 @@
 			{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 				<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 			{{end}}
-			{{if .footerBadBIDI}}
+			{{if .footerEscapeStatus.BadBIDI}}
 				<div class="ui error message">
 					<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
 					<div class="header">
-						{{.i18n.Tr "repo.bidi_header"}}
+						{{.i18n.Tr "repo.bidi_bad_header"}}
 					</div>
-					{{.i18n.Tr "repo.bidi_description" | Str2html}}
+				</div>
+			{{else if .footerEscapeStatus.Escaped}}
+				<div class="ui warning message">
+					<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
+					<div class="header">
+						{{.i18n.Tr "repo.unicode_header"}}
+					</div>
 				</div>
 			{{end}}
-			{{.footerContent | Str2html}}
+			{{.footerContent | Safe}}
 		</div>
 		{{end}}
 	</div>

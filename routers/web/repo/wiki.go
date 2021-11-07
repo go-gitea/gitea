@@ -232,8 +232,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.ServerError("Render", err)
 		return nil, nil
 	}
-	ctx.Data["content"] = buf.String()
-	ctx.Data["BadBIDI"], ctx.Data["HasBIDI"] = charset.ContainsBIDIRuneString(buf.String())
+
+	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
@@ -244,8 +244,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["sidebarPresent"] = sidebarContent != nil
-	ctx.Data["sidebarContent"] = buf.String()
-	ctx.Data["sidebarBadBIDI"], ctx.Data["sidebarHasBIDI"] = charset.ContainsBIDIRuneString(buf.String())
+	ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 
 	buf.Reset()
 	if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
@@ -256,8 +255,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 	ctx.Data["footerPresent"] = footerContent != nil
-	ctx.Data["footerContent"] = buf.String()
-	ctx.Data["footerBadBIDI"], ctx.Data["footerHasBIDI"] = charset.ContainsBIDIRuneString(buf.String())
+	ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
