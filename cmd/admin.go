@@ -339,7 +339,10 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	if !pwd.IsComplexEnough(c.String("password")) {
@@ -393,7 +396,10 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -456,7 +462,10 @@ func runCreateUser(c *cli.Context) error {
 }
 
 func runListUsers(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -493,7 +502,10 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("You must provide the id, username or email of a user to delete")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -525,7 +537,10 @@ func runDeleteUser(c *cli.Context) error {
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -591,14 +606,20 @@ func getReleaseCount(id int64) (int64, error) {
 }
 
 func runRegenerateHooks(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	return models.RewriteAllPublicKeys()
@@ -628,7 +649,10 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 }
 
 func runAddOauth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -645,7 +669,10 @@ func runUpdateOauth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -712,7 +739,10 @@ func runUpdateOauth(c *cli.Context) error {
 }
 
 func runListAuth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -748,7 +778,10 @@ func runDeleteAuth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 

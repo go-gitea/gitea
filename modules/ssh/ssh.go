@@ -17,6 +17,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -264,7 +265,7 @@ func sshConnectionFailed(conn net.Conn, err error) {
 // Listen starts a SSH server listens on given port.
 func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
 	srv := ssh.Server{
-		Addr:             fmt.Sprintf("%s:%d", host, port),
+		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
 		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
