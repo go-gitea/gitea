@@ -1,4 +1,4 @@
-const {appSubUrl, csrfToken} = window.config;
+const {csrfToken} = window.config;
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
