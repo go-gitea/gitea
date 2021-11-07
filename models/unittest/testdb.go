@@ -132,7 +132,7 @@ func createDB(driverName, connStr string) error {
 	switch dbType {
 	case schemas.SQLITE: // ignore the creation
 	case schemas.MSSQL:
-		db, err := sql.Open(driverName, strings.Replace(connStr, dbName, "master", -1))
+		db, err := sql.Open(driverName, strings.ReplaceAll(connStr, dbName, "master"))
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func createDB(driverName, connStr string) error {
 		}
 		db.Close()
 	case schemas.MYSQL:
-		db, err := sql.Open(driverName, strings.Replace(connStr, dbName, "mysql", -1))
+		db, err := sql.Open(driverName, strings.ReplaceAll(connStr, dbName, "mysql"))
 		if err != nil {
 			return err
 		}
