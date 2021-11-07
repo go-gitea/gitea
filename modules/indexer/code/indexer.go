@@ -75,16 +75,18 @@ func filenameOfIndexerID(indexerID string) string {
 
 // IndexerData represents data stored in the code indexer
 type IndexerData struct {
-	RepoID   int64
-	IsDelete bool
+	RepoID int64
 }
 
 var (
-	indexerQueue queue.Queue
+	indexerQueue queue.UniqueQueue
 )
 
 func index(indexer Indexer, repoID int64) error {
 	repo, err := models.GetRepositoryByID(repoID)
+	if models.IsErrRepoNotExist(err) {
+		return indexer.Delete(repoID)
+	}
 	if err != nil {
 		return err
 	}
@@ -146,22 +148,16 @@ func Init() {
 					log.Error("Unable to process provided datum: %v - not possible to cast to IndexerData", datum)
 					continue
 				}
-				log.Trace("IndexerData Process: %v %t", indexerData.RepoID, indexerData.IsDelete)
+				log.Trace("IndexerData Process Repo: %d", indexerData.RepoID)
 
-				if indexerData.IsDelete {
-					if err := indexer.Delete(indexerData.RepoID); err != nil {
-						log.Error("indexer.Delete: %v", err)
-					}
-				} else {
-					if err := index(indexer, indexerData.RepoID); err != nil {
-						log.Error("index: %v", err)
-						continue
-					}
+				if err := index(indexer, indexerData.RepoID); err != nil {
+					log.Error("index: %v", err)
+					continue
 				}
 			}
 		}
 
-		indexerQueue = queue.CreateQueue("code_indexer", handler, &IndexerData{})
+		indexerQueue = queue.CreateUniqueQueue("code_indexer", handler, &IndexerData{})
 		if indexerQueue == nil {
 			log.Fatal("Unable to create codes indexer queue")
 		}
@@ -262,14 +258,6 @@ func Init() {
 				log.Fatal("Repository Indexer Initialization Timed-Out after: %v", timeout)
 			}
 		}()
-	}
-}
-
-// DeleteRepoFromIndexer remove all of a repository's entries from the indexer
-func DeleteRepoFromIndexer(repo *models.Repository) {
-	indexData := &IndexerData{RepoID: repo.ID, IsDelete: true}
-	if err := indexerQueue.Push(indexData); err != nil {
-		log.Error("Delete repo index data %v failed: %v", indexData, err)
 	}
 }
 
