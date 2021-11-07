@@ -56,16 +56,15 @@ func confirm() (bool, error) {
 	}
 }
 
-func initDB() error {
-	return initDBDisableConsole(false)
+func initDB(ctx context.Context) error {
+	return initDBDisableConsole(ctx, false)
 }
 
-func initDBDisableConsole(disableConsole bool) error {
+func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
 	setting.NewContext()
 	setting.InitDBConfig()
-
 	setting.NewXORMLogService(disableConsole)
-	if err := db.InitEngine(); err != nil {
+	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}
 	return nil
