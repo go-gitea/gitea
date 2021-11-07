@@ -111,3 +111,6 @@ issues:
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+    - path: models/unit/unit.go
+      linters:
+        - typecheck

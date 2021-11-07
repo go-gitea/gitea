@@ -23,6 +23,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -128,7 +129,7 @@ func loadRepoConfig() {
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	loadRepoConfig()
-	loadUnitConfig()
+	unit.LoadUnitConfig()
 
 	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
@@ -353,11 +354,11 @@ func (repo *Repository) getUnits(e db.Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(user *User, unitType UnitType) bool {
+func (repo *Repository) CheckUnitUser(user *User, unitType unit.UnitType) bool {
 	return repo.checkUnitUser(db.GetEngine(db.DefaultContext), user, unitType)
 }
 
-func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType UnitType) bool {
+func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType unit.UnitType) bool {
 	if user.IsAdmin {
 		return true
 	}
@@ -371,7 +372,7 @@ func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType UnitType
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp UnitType) bool {
+func (repo *Repository) UnitEnabled(tp unit.UnitType) bool {
 	if err := repo.getUnits(db.GetEngine(db.DefaultContext)); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
@@ -385,7 +386,7 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 
 // ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
 type ErrUnitTypeNotExist struct {
-	UT UnitType
+	UT unit.UnitType
 }
 
 // IsErrUnitTypeNotExist checks if an error is a ErrUnitNotExist.
@@ -399,28 +400,28 @@ func (err ErrUnitTypeNotExist) Error() string {
 }
 
 // MustGetUnit always returns a RepoUnit object
-func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
+func (repo *Repository) MustGetUnit(tp unit.UnitType) *RepoUnit {
 	ru, err := repo.GetUnit(tp)
 	if err == nil {
 		return ru
 	}
 
-	if tp == UnitTypeExternalWiki {
+	if tp == unit.UnitTypeExternalWiki {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalWikiConfig),
 		}
-	} else if tp == UnitTypeExternalTracker {
+	} else if tp == unit.UnitTypeExternalTracker {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
-	} else if tp == UnitTypePullRequests {
+	} else if tp == unit.UnitTypePullRequests {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
-	} else if tp == UnitTypeIssues {
+	} else if tp == unit.UnitTypeIssues {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(IssuesConfig),
@@ -433,11 +434,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 }
 
 // GetUnit returns a RepoUnit object
-func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
+func (repo *Repository) GetUnit(tp unit.UnitType) (*RepoUnit, error) {
 	return repo.getUnit(db.GetEngine(db.DefaultContext), tp)
 }
 
-func (repo *Repository) getUnit(e db.Engine, tp UnitType) (*RepoUnit, error) {
+func (repo *Repository) getUnit(e db.Engine, tp unit.UnitType) (*RepoUnit, error) {
 	if err := repo.getUnits(e); err != nil {
 		return nil, err
 	}
@@ -484,7 +485,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"mode":     "comment",
 		}
 
-		unit, err := repo.GetUnit(UnitTypeExternalTracker)
+		unit, err := repo.GetUnit(unit.UnitTypeExternalTracker)
 		if err == nil {
 			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
@@ -802,7 +803,7 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.UnitEnabled(UnitTypePullRequests)
+	return repo.CanEnablePulls() && repo.UnitEnabled(unit.UnitTypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -1076,9 +1077,9 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 	}
 
 	// insert units for repo
-	units := make([]RepoUnit, 0, len(DefaultRepoUnits))
-	for _, tp := range DefaultRepoUnits {
-		if tp == UnitTypeIssues {
+	units := make([]RepoUnit, 0, len(unit.DefaultRepoUnits))
+	for _, tp := range unit.DefaultRepoUnits {
+		if tp == unit.UnitTypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -1088,7 +1089,7 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 					EnableDependencies:               setting.Service.DefaultEnableDependencies,
 				},
 			})
-		} else if tp == UnitTypePullRequests {
+		} else if tp == unit.UnitTypePullRequests {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -1406,7 +1407,7 @@ func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 }
 
 // UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []UnitType) (err error) {
+func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.UnitType) (err error) {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {

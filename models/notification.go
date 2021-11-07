@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -262,10 +263,10 @@ func createOrUpdateIssueNotifications(e db.Engine, issueID, commentID, notificat
 
 			return err
 		}
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypePullRequests) {
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.UnitTypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.UnitTypeIssues) {
 			continue
 		}
 

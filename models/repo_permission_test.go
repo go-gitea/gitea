@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -165,8 +166,8 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
 	}
-	assert.True(t, perm.CanWrite(UnitTypeIssues))
-	assert.False(t, perm.CanWrite(UnitTypeCode))
+	assert.True(t, perm.CanWrite(unit.UnitTypeIssues))
+	assert.False(t, perm.CanWrite(unit.UnitTypeCode))
 
 	// admin
 	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
@@ -235,17 +236,17 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	tester := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, tester)
 	assert.NoError(t, err)
-	assert.True(t, perm.CanWrite(UnitTypeIssues))
-	assert.False(t, perm.CanWrite(UnitTypeCode))
-	assert.False(t, perm.CanRead(UnitTypeCode))
+	assert.True(t, perm.CanWrite(unit.UnitTypeIssues))
+	assert.False(t, perm.CanWrite(unit.UnitTypeCode))
+	assert.False(t, perm.CanRead(unit.UnitTypeCode))
 
 	// org member team reviewer
 	reviewer := db.AssertExistsAndLoadBean(t, &User{ID: 20}).(*User)
 	perm, err = GetUserRepoPermission(repo, reviewer)
 	assert.NoError(t, err)
-	assert.False(t, perm.CanRead(UnitTypeIssues))
-	assert.False(t, perm.CanWrite(UnitTypeCode))
-	assert.True(t, perm.CanRead(UnitTypeCode))
+	assert.False(t, perm.CanRead(unit.UnitTypeIssues))
+	assert.False(t, perm.CanWrite(unit.UnitTypeCode))
+	assert.True(t, perm.CanRead(unit.UnitTypeCode))
 
 	// admin
 	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)

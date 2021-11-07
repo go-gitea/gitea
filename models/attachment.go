@@ -10,6 +10,7 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -62,25 +63,25 @@ func (a *Attachment) DownloadURL() string {
 }
 
 // LinkedRepository returns the linked repo if any
-func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
+func (a *Attachment) LinkedRepository() (*Repository, unit.UnitType, error) {
 	if a.IssueID != 0 {
 		iss, err := GetIssueByID(a.IssueID)
 		if err != nil {
-			return nil, UnitTypeIssues, err
+			return nil, unit.UnitTypeIssues, err
 		}
 		repo, err := GetRepositoryByID(iss.RepoID)
-		unitType := UnitTypeIssues
+		unitType := unit.UnitTypeIssues
 		if iss.IsPull {
-			unitType = UnitTypePullRequests
+			unitType = unit.UnitTypePullRequests
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
 		rel, err := GetReleaseByID(a.ReleaseID)
 		if err != nil {
-			return nil, UnitTypeReleases, err
+			return nil, unit.UnitTypeReleases, err
 		}
 		repo, err := GetRepositoryByID(rel.RepoID)
-		return repo, UnitTypeReleases, err
+		return repo, unit.UnitTypeReleases, err
 	}
 	return nil, -1, nil
 }

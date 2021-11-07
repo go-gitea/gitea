@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package unit
 
 import (
 	"fmt"
@@ -100,7 +100,8 @@ var (
 	DisabledRepoUnits = []UnitType{}
 )
 
-func loadUnitConfig() {
+// LoadUnitConfig load units from settings
+func LoadUnitConfig() {
 	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
 	// Default repo units set if setting is not empty
 	if len(setDefaultRepoUnits) > 0 {

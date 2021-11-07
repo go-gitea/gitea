@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -107,11 +108,11 @@ func TestLinkedRepository(t *testing.T) {
 		name             string
 		attachID         int64
 		expectedRepo     *Repository
-		expectedUnitType UnitType
+		expectedUnitType unit.UnitType
 	}{
-		{"LinkedIssue", 1, &Repository{ID: 1}, UnitTypeIssues},
-		{"LinkedComment", 3, &Repository{ID: 1}, UnitTypePullRequests},
-		{"LinkedRelease", 9, &Repository{ID: 1}, UnitTypeReleases},
+		{"LinkedIssue", 1, &Repository{ID: 1}, unit.UnitTypeIssues},
+		{"LinkedComment", 3, &Repository{ID: 1}, unit.UnitTypePullRequests},
+		{"LinkedRelease", 9, &Repository{ID: 1}, unit.UnitTypeReleases},
 		{"Notlinked", 10, nil, -1},
 	}
 	for _, tc := range testCases {

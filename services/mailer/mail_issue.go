@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -114,9 +115,9 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 }
 
 func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
-	checkUnit := models.UnitTypeIssues
+	checkUnit := unit.UnitTypeIssues
 	if ctx.Issue.IsPull {
-		checkUnit = models.UnitTypePullRequests
+		checkUnit = unit.UnitTypePullRequests
 	}
 
 	langMap := make(map[string][]*models.User)

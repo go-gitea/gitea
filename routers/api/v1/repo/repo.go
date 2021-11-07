@@ -12,6 +12,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -735,10 +737,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 	repo := ctx.Repo.Repository
 
 	var units []models.RepoUnit
-	var deleteUnitTypes []models.UnitType
+	var deleteUnitTypes []unit_model.UnitType
 
 	if opts.HasIssues != nil {
-		if *opts.HasIssues && opts.ExternalTracker != nil && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+		if *opts.HasIssues && opts.ExternalTracker != nil && !unit_model.UnitTypeExternalTracker.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalTracker.ExternalTrackerURL) {
 				err := fmt.Errorf("External tracker URL not valid")
@@ -753,15 +755,15 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeExternalTracker,
+				Type:   unit_model.UnitTypeExternalTracker,
 				Config: &models.ExternalTrackerConfig{
 					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
 					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
 					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
-		} else if *opts.HasIssues && opts.ExternalTracker == nil && !models.UnitTypeIssues.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeIssues)
+		} else if *opts.HasIssues && opts.ExternalTracker == nil && !unit_model.UnitTypeIssues.UnitGlobalDisabled() {
 			// Default to built-in tracker
 			var config *models.IssuesConfig
 
@@ -771,7 +773,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowOnlyContributorsToTrackTime: opts.InternalTracker.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               opts.InternalTracker.EnableIssueDependencies,
 				}
-			} else if unit, err := repo.GetUnit(models.UnitTypeIssues); err != nil {
+			} else if unit, err := repo.GetUnit(unit_model.UnitTypeIssues); err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
 				config = &models.IssuesConfig{
 					EnableTimetracker:                true,
@@ -784,22 +786,22 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeIssues,
+				Type:   unit_model.UnitTypeIssues,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeExternalTracker)
 		} else if !*opts.HasIssues {
-			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			if !unit.UnitTypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeExternalTracker)
 			}
-			if !models.UnitTypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+			if !unit.UnitTypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeIssues)
 			}
 		}
 	}
 
 	if opts.HasWiki != nil {
-		if *opts.HasWiki && opts.ExternalWiki != nil && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+		if *opts.HasWiki && opts.ExternalWiki != nil && !unit_model.UnitTypeExternalWiki.UnitGlobalDisabled() {
 			// Check that values are valid
 			if !validation.IsValidExternalURL(opts.ExternalWiki.ExternalWikiURL) {
 				err := fmt.Errorf("External wiki URL not valid")
@@ -809,36 +811,36 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeExternalWiki,
+				Type:   unit_model.UnitTypeExternalWiki,
 				Config: &models.ExternalWikiConfig{
 					ExternalWikiURL: opts.ExternalWiki.ExternalWikiURL,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
-		} else if *opts.HasWiki && opts.ExternalWiki == nil && !models.UnitTypeWiki.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeWiki)
+		} else if *opts.HasWiki && opts.ExternalWiki == nil && !unit_model.UnitTypeWiki.UnitGlobalDisabled() {
 			config := &models.UnitConfig{}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeWiki,
+				Type:   unit_model.UnitTypeWiki,
 				Config: config,
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeExternalWiki)
 		} else if !*opts.HasWiki {
-			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			if !unit_model.UnitTypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeExternalWiki)
 			}
-			if !models.UnitTypeWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+			if !unit_model.UnitTypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.UnitTypeWiki)
 			}
 		}
 	}
 
 	if opts.HasPullRequests != nil {
-		if *opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+		if *opts.HasPullRequests && !unit_model.UnitTypePullRequests.UnitGlobalDisabled() {
 			// We do allow setting individual PR settings through the API, so
 			// we get the config settings and then set them
 			// if those settings were provided in the opts.
-			unit, err := repo.GetUnit(models.UnitTypePullRequests)
+			unit, err := repo.GetUnit(unit_model.UnitTypePullRequests)
 			var config *models.PullRequestsConfig
 			if err != nil {
 				// Unit type doesn't exist so we make a new config file with default values
@@ -887,22 +889,22 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypePullRequests,
+				Type:   unit_model.UnitTypePullRequests,
 				Config: config,
 			})
-		} else if !*opts.HasPullRequests && !models.UnitTypePullRequests.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		} else if !*opts.HasPullRequests && !unit.UnitTypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypePullRequests)
 		}
 	}
 
-	if opts.HasProjects != nil && !models.UnitTypeProjects.UnitGlobalDisabled() {
+	if opts.HasProjects != nil && !unit.UnitTypeProjects.UnitGlobalDisabled() {
 		if *opts.HasProjects {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeProjects,
+				Type:   unit.UnitTypeProjects,
 			})
 		} else {
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeProjects)
 		}
 	}
 

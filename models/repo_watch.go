@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -245,9 +246,9 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				permCode[i] = perm.CanRead(UnitTypeCode)
-				permIssue[i] = perm.CanRead(UnitTypeIssues)
-				permPR[i] = perm.CanRead(UnitTypePullRequests)
+				permCode[i] = perm.CanRead(unit.UnitTypeCode)
+				permIssue[i] = perm.CanRead(unit.UnitTypeIssues)
+				permPR[i] = perm.CanRead(unit.UnitTypePullRequests)
 			}
 		}
 

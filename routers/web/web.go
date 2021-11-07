@@ -10,7 +10,7 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -486,18 +486,18 @@ func RegisterRoutes(m *web.Route) {
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
-	reqRepoCodeWriter := context.RequireRepoWriter(models.UnitTypeCode)
-	reqRepoCodeReader := context.RequireRepoReader(models.UnitTypeCode)
-	reqRepoReleaseWriter := context.RequireRepoWriter(models.UnitTypeReleases)
-	reqRepoReleaseReader := context.RequireRepoReader(models.UnitTypeReleases)
-	reqRepoWikiWriter := context.RequireRepoWriter(models.UnitTypeWiki)
-	reqRepoIssueWriter := context.RequireRepoWriter(models.UnitTypeIssues)
-	reqRepoIssueReader := context.RequireRepoReader(models.UnitTypeIssues)
-	reqRepoPullsReader := context.RequireRepoReader(models.UnitTypePullRequests)
-	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
-	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
-	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
-	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
+	reqRepoCodeWriter := context.RequireRepoWriter(unit.UnitTypeCode)
+	reqRepoCodeReader := context.RequireRepoReader(unit.UnitTypeCode)
+	reqRepoReleaseWriter := context.RequireRepoWriter(unit.UnitTypeReleases)
+	reqRepoReleaseReader := context.RequireRepoReader(unit.UnitTypeReleases)
+	reqRepoWikiWriter := context.RequireRepoWriter(unit.UnitTypeWiki)
+	reqRepoIssueWriter := context.RequireRepoWriter(unit.UnitTypeIssues)
+	reqRepoIssueReader := context.RequireRepoReader(unit.UnitTypeIssues)
+	reqRepoPullsReader := context.RequireRepoReader(unit.UnitTypePullRequests)
+	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.UnitTypeIssues, unit.UnitTypePullRequests)
+	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.UnitTypeIssues, unit.UnitTypePullRequests)
+	reqRepoProjectsReader := context.RequireRepoReader(unit.UnitTypeProjects)
+	reqRepoProjectsWriter := context.RequireRepoWriter(unit.UnitTypeProjects)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -920,12 +920,12 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/{period}", repo.Activity)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.UnitTypePullRequests, unit.UnitTypeIssues, unit.UnitTypeReleases))
 
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.UnitTypeCode))
 
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
