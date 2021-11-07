@@ -13,7 +13,7 @@ import (
 )
 
 // UnitType is Unit's Type
-type UnitType int // nolint: golint
+type UnitType int // nolint
 
 // Enumerate all the unit types
 const (
