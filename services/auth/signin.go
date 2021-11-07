@@ -7,7 +7,6 @@ package auth
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -25,7 +24,7 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 	var user *user_model.User
 	if strings.Contains(username, "@") {
 		// check same email
-		exist, err := models.IsEmailAddressExist(strings.TrimSpace(username))
+		exist, err := user_model.IsEmailAddressExist(strings.TrimSpace(username))
 		if err != nil {
 			return nil, nil, err
 		}

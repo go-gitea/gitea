@@ -1068,29 +1068,13 @@ func GetUserByEmail(email string) (*User, error) {
 
 // GetUserByEmailContext returns the user object by given e-mail if exists with db context
 func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
-	if len(email) == 0 {
-		return nil, ErrUserNotExist{0, email, 0}
-	}
-
-	email = strings.ToLower(email)
-	// First try to find the user by primary email
-	user := &User{Email: email}
-	has, err := db.GetEngine(ctx).Get(user)
-	if err != nil {
-		return nil, err
-	}
-	if has {
+	user, err := GetUserByEmailAddress(ctx, email)
+	if err == nil {
 		return user, nil
 	}
 
-	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
-	has, err = db.GetEngine(ctx).Get(emailAddress)
-	if err != nil {
+	if !IsErrUserNotExist(err) || len(email) == 0 {
 		return nil, err
-	}
-	if has {
-		return GetUserByIDCtx(ctx, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
@@ -1106,6 +1090,26 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 		}
 	}
 
+	return nil, ErrUserNotExist{0, email, 0}
+}
+
+// GetUserByEmailAddress get user from table email_address via email
+func GetUserByEmailAddress(ctx context.Context, email string) (*User, error) {
+	if len(email) == 0 {
+		return nil, ErrUserNotExist{0, email, 0}
+	}
+
+	email = strings.ToLower(email)
+
+	// Otherwise, check in alternative list for activated email addresses
+	emailAddress := &EmailAddress{Email: email}
+	has, err := db.GetEngine(ctx).Where("is_activated=?", true).Get(emailAddress)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return GetUserByIDCtx(ctx, emailAddress.UID)
+	}
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
