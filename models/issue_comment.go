@@ -116,9 +116,9 @@ const (
 	CommentTagOwner
 )
 
-// EnableTag enable a specific tag on the CommentTag.
-func (ct CommentTag) EnableTag(withTag CommentTag) CommentTag {
-	ct |= (1 << withTag)
+// WithTag enable a specific tag on the CommentTag.
+func (ct CommentTag) WithTag(tag CommentTag) CommentTag {
+	ct |= (1 << tag)
 	return ct
 }
 

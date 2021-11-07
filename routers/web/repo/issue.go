@@ -1028,7 +1028,7 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	if perm.IsOwner() {
 		// If the poster isn't a admin, enable the owner Tag.
 		if !poster.IsAdmin {
-			pCommentTag = pCommentTag.EnableTag(models.CommentTagOwner)
+			pCommentTag = pCommentTag.WithTag(models.CommentTagOwner)
 		} else {
 
 			// Otherwise check if poster is the real repo admin.
@@ -1037,7 +1037,7 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 				return models.CommentTagNone, err
 			}
 			if ok {
-				pCommentTag = pCommentTag.EnableTag(models.CommentTagOwner)
+				pCommentTag = pCommentTag.WithTag(models.CommentTagOwner)
 			}
 		}
 	}
@@ -1045,12 +1045,12 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	// Is the poster can write code to the repo, enable Writer tag.
 	// Only enable this if the poster doesn't have the owner tag already.
 	if !pCommentTag.HasTag("Owner") && perm.CanWrite(models.UnitTypeCode) {
-		pCommentTag = pCommentTag.EnableTag(models.CommentTagWriter)
+		pCommentTag = pCommentTag.WithTag(models.CommentTagWriter)
 	}
 
 	// If the poster is the actual poster of the issue, enable Poster tag.
 	if issue.IsPoster(poster.ID) {
-		pCommentTag = pCommentTag.EnableTag(models.CommentTagPoster)
+		pCommentTag = pCommentTag.WithTag(models.CommentTagPoster)
 	}
 
 	return pCommentTag, nil
