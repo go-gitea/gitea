@@ -19,15 +19,15 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/util/filebuffer"
 	package_router "code.gitea.io/gitea/routers/api/v1/packages"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 const (
@@ -68,23 +68,23 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
 	packageName := params.GroupID + "-" + params.ArtifactID
-	pkgs, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeMaven, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypeMaven, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(pkgs) == 0 {
+	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, packages.ErrPackageNotExist)
 		return
 	}
 
-	mavenPackages, err := intializePackages(pkgs)
+	pds, err := packages.GetPackageDescriptors(pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	xmlMetadata, err := xml.Marshal(createMetadataResponse(mavenPackages))
+	xmlMetadata, err := xml.Marshal(createMetadataResponse(pds))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -118,9 +118,13 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 func servePackageFile(ctx *context.APIContext, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	p, err := packages.GetPackageByNameAndVersion(ctx.Repo.Repository.ID, packages.TypeMaven, packageName, params.Version)
-	if err == packages.ErrPackageNotExist {
-		apiError(ctx, http.StatusNotFound, err)
+	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Repo.Repository.ID, packages.TypeMaven, packageName, params.Version)
+	if err != nil {
+		if err == packages.ErrPackageNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
 		return
 	}
 
@@ -131,37 +135,49 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		filename = filename[:len(filename)-len(ext)]
 	}
 
-	pf, err := p.GetFileByName(filename)
+	pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, filename)
 	if err != nil {
 		if err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
-			return
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
 		}
-		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	if isChecksumExtension(ext) {
+		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+
 		var hash string
 		switch ext {
 		case extensionMD5:
-			hash = pf.HashMD5
+			hash = pb.HashMD5
 		case extensionSHA1:
-			hash = pf.HashSHA1
+			hash = pb.HashSHA1
 		case extensionSHA256:
-			hash = pf.HashSHA256
+			hash = pb.HashSHA256
 		case extensionSHA512:
-			hash = pf.HashSHA512
+			hash = pb.HashSHA512
 		}
 		ctx.PlainText(http.StatusOK, []byte(hash))
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(p.ID, pf.ID)
+	s, err := packages_module.NewContentStore().Get(pf.BlobID)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 	}
 	defer s.Close()
+
+	if pf.IsLead {
+		if err := packages.IncrementDownloadCounter(pv.ID); err != nil {
+			log.Error("Error incrementing download counter: %v", err)
+		}
+	}
 
 	ctx.ServeStream(s, pf.Name)
 }
@@ -184,40 +200,48 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	p, err := package_service.CreatePackage(
-		ctx.User,
-		ctx.Repo.Repository,
-		packages.TypeMaven,
-		packageName,
-		params.Version,
-		&maven_module.Metadata{
-			GroupID:    params.GroupID,
-			ArtifactID: params.ArtifactID,
-		},
-		true,
-	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	buf, err := filebuffer.CreateFromReader(ctx.Req.Body, 32*1024*1024)
+	buf, err := packages_module.CreateHashedBufferFromReader(ctx.Req.Body, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
 
+	pvci := &packages_service.PackageCreationInfo{
+		PackageInfo: packages_service.PackageInfo{
+			Repository:  ctx.Repo.Repository,
+			PackageType: packages.TypeMaven,
+			Name:        packageName,
+			Version:     params.Version,
+		},
+		SemverCompatible: false,
+		Creator:          ctx.User,
+	}
+
 	ext := filepath.Ext(params.Filename)
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pf, err := p.GetFileByName(params.Filename[:len(params.Filename)-len(ext)])
+		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Repository.ID, pvci.PackageType, pvci.Name, pvci.Version)
+		if err != nil {
+			if err == packages.ErrPackageNotExist {
+				apiError(ctx, http.StatusNotFound, err)
+				return
+			}
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pv.ID, params.Filename[:len(params.Filename)-len(ext)])
 		if err != nil {
 			if err == packages.ErrPackageFileNotExist {
 				apiError(ctx, http.StatusNotFound, err)
 				return
 			}
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+		if err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
@@ -228,10 +252,10 @@ func UploadPackageFile(ctx *context.APIContext) {
 			return
 		}
 
-		if (ext == extensionMD5 && pf.HashMD5 != string(hash)) ||
-			(ext == extensionSHA1 && pf.HashSHA1 != string(hash)) ||
-			(ext == extensionSHA256 && pf.HashSHA256 != string(hash)) ||
-			(ext == extensionSHA512 && pf.HashSHA512 != string(hash)) {
+		if (ext == extensionMD5 && pb.HashMD5 != string(hash)) ||
+			(ext == extensionSHA1 && pb.HashSHA1 != string(hash)) ||
+			(ext == extensionSHA256 && pb.HashSHA256 != string(hash)) ||
+			(ext == extensionSHA512 && pb.HashSHA512 != string(hash)) {
 			apiError(ctx, http.StatusBadRequest, "hash mismatch")
 			return
 		}
@@ -240,31 +264,52 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
+	pfi := &packages_service.PackageFileInfo{
+		Filename: params.Filename,
+		Data:     buf,
+		IsLead:   false,
+	}
+
 	// If it's the package pom file extract the metadata
 	if ext == ".pom" {
-		metadata, err := maven_module.ParsePackageMetaData(buf)
+		pfi.IsLead = true
+
+		var err error
+		pvci.Metadata, err = maven_module.ParsePackageMetaData(buf)
 		if err != nil {
 			log.Error("Error parsing package metadata: %v", err)
 		}
-		if metadata != nil {
-			raw, err := json.Marshal(metadata)
-			if err != nil {
+
+		if pvci.Metadata != nil {
+			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Repository.ID, pvci.PackageType, pvci.Name, pvci.Version)
+			if err != nil && err != packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
-			p.MetadataRaw = string(raw)
-			if err := packages.UpdatePackage(p); err != nil {
-				apiError(ctx, http.StatusInternalServerError, err)
-				return
+			if pv != nil {
+				raw, err := json.Marshal(pvci.Metadata)
+				if err != nil {
+					apiError(ctx, http.StatusInternalServerError, err)
+					return
+				}
+				pv.MetadataJSON = string(raw)
+				if err := packages.UpdateVersion(pv); err != nil {
+					apiError(ctx, http.StatusInternalServerError, err)
+					return
+				}
 			}
 		}
+
 		if _, err := buf.Seek(0, io.SeekStart); err != nil {
 			apiError(ctx, http.StatusInternalServerError, err)
 			return
 		}
 	}
 
-	_, err = package_service.AddFileToPackage(p, params.Filename, buf.Size(), buf)
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		pvci,
+		pfi,
+	)
 	if err != nil {
 		if err == packages.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)

@@ -61,6 +61,6 @@ type Notifier interface {
 
 	NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository)
 
-	NotifyPackageCreate(repo *models.Repository, p *packages.Package)
-	NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package)
+	NotifyPackageCreate(doer *models.User, pd *packages.PackageDescriptor)
+	NotifyPackageDelete(doer *models.User, pd *packages.PackageDescriptor)
 }

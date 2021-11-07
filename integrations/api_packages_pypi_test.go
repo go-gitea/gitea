@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/packages/pypi"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -64,17 +65,26 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.whl"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypePyPI)
 		assert.NoError(t, err)
-		assert.Len(t, ps, 1)
-		assert.Equal(t, packageName, ps[0].Name)
-		assert.Equal(t, packageVersion, ps[0].Version)
+		assert.Len(t, pvs, 1)
 
-		pfs, err := ps[0].GetFiles()
+		pd, err := packages.GetPackageDescriptor(pvs[0])
+		assert.NoError(t, err)
+		assert.NotNil(t, pd.SemVer)
+		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
+		assert.Equal(t, packageName, pd.Package.Name)
+		assert.Equal(t, packageVersion, pd.Version.Version)
+
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
-		assert.Equal(t, int64(4), pfs[0].Size)
+		assert.True(t, pfs[0].IsLead)
+
+		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(4), pb.Size)
 	})
 
 	t.Run("UploadAddFile", func(t *testing.T) {
@@ -83,21 +93,29 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.tar.gz"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypePyPI)
 		assert.NoError(t, err)
-		assert.Len(t, ps, 1)
-		assert.Equal(t, packageName, ps[0].Name)
-		assert.Equal(t, packageVersion, ps[0].Version)
+		assert.Len(t, pvs, 1)
 
-		pf, err := ps[0].GetFileByName(filename)
+		pd, err := packages.GetPackageDescriptor(pvs[0])
 		assert.NoError(t, err)
-		assert.NotNil(t, pf)
-		assert.Equal(t, filename, pf.Name)
-		assert.Equal(t, int64(4), pf.Size)
+		assert.NotNil(t, pd.SemVer)
+		assert.IsType(t, &pypi.Metadata{}, pd.Metadata)
+		assert.Equal(t, packageName, pd.Package.Name)
+		assert.Equal(t, packageVersion, pd.Version.Version)
 
-		pfs, err := ps[0].GetFiles()
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 2)
+
+		pf, err := packages.GetFileForVersionByName(db.DefaultContext, pvs[0].ID, filename)
+		assert.NoError(t, err)
+		assert.Equal(t, filename, pf.Name)
+		assert.True(t, pf.IsLead)
+
+		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(4), pb.Size)
 	})
 
 	t.Run("UploadHashMismatch", func(t *testing.T) {
@@ -127,6 +145,11 @@ func TestPackagePyPI(t *testing.T) {
 
 		downloadFile("test.whl")
 		downloadFile("test.tar.gz")
+
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypePyPI)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+		assert.Equal(t, int64(2), pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {

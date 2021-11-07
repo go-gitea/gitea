@@ -6,7 +6,11 @@ package maven
 
 import (
 	"encoding/xml"
+	"sort"
 	"strings"
+
+	packages_models "code.gitea.io/gitea/models/packages"
+	maven_module "code.gitea.io/gitea/modules/packages/maven"
 )
 
 // MetadataResponse https://maven.apache.org/ref/3.2.5/maven-repository-metadata/repository-metadata.html
@@ -19,29 +23,34 @@ type MetadataResponse struct {
 	Version    []string `xml:"versioning>versions>version"`
 }
 
-func createMetadataResponse(packages []*Package) *MetadataResponse {
-	sortedPackages := sortPackagesByCreationASC(packages)
+func createMetadataResponse(pds []*packages_models.PackageDescriptor) *MetadataResponse {
+	sort.Slice(pds, func(i, j int) bool {
+		// Maven and Gradle order packages by their creation timestamp and not by their version string
+		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
+	})
 
-	var release *Package
+	var release *packages_models.PackageDescriptor
 
-	versions := make([]string, 0, len(sortedPackages))
-	for _, p := range sortedPackages {
-		if !strings.HasSuffix(p.Version, "-SNAPSHOT") {
-			release = p
+	versions := make([]string, 0, len(pds))
+	for _, pd := range pds {
+		if !strings.HasSuffix(pd.Version.Version, "-SNAPSHOT") {
+			release = pd
 		}
-		versions = append(versions, p.Version)
+		versions = append(versions, pd.Version.Version)
 	}
 
-	latest := sortedPackages[len(sortedPackages)-1]
+	latest := pds[len(pds)-1]
+
+	metadata := latest.Metadata.(*maven_module.Metadata)
 
 	resp := &MetadataResponse{
-		GroupID:    latest.Metadata.GroupID,
-		ArtifactID: latest.Metadata.ArtifactID,
-		Latest:     latest.Version,
+		GroupID:    metadata.GroupID,
+		ArtifactID: metadata.ArtifactID,
+		Latest:     latest.Version.Version,
 		Version:    versions,
 	}
 	if release != nil {
-		resp.Release = release.Version
+		resp.Release = release.Version.Version
 	}
 	return resp
 }

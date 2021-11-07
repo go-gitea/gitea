@@ -11,11 +11,11 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	package_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
 	package_router "code.gitea.io/gitea/routers/api/v1/packages"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
@@ -34,17 +34,17 @@ func PackageMetadata(ctx *context.APIContext) {
 		return
 	}
 
-	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypeNpm, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypeNpm, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(packages) == 0 {
+	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
-	npmPackages, err := intializePackages(packages)
+	pds, err := packages.GetPackageDescriptors(pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -52,7 +52,7 @@ func PackageMetadata(ctx *context.APIContext) {
 
 	resp := createPackageMetadataResponse(
 		setting.AppURL+"api/v1/repos/"+ctx.Repo.Repository.FullName()+"/packages/npm",
-		npmPackages,
+		pds,
 	)
 
 	ctx.JSON(http.StatusOK, resp)
@@ -68,7 +68,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNpm, packageName, packageVersion, filename)
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNpm, packageName, packageVersion, filename)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -90,28 +90,35 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
-	p, err := package_service.CreatePackage(
-		ctx.User,
-		ctx.Repo.Repository,
-		packages.TypeNpm,
-		npmPackage.Name,
-		npmPackage.Version,
-		npmPackage.Metadata,
-		false,
-	)
+	buf, err := package_module.CreateHashedBufferFromReader(bytes.NewReader(npmPackage.Data), 32*1024*1024)
 	if err != nil {
-		if err == packages.ErrDuplicatePackage {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
+	defer buf.Close()
 
-	_, err = package_service.AddFileToPackage(p, npmPackage.Filename, int64(len(npmPackage.Data)), bytes.NewReader(npmPackage.Data))
+	_, _, err = packages_service.CreatePackageAndAddFile(
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Repository:  ctx.Repo.Repository,
+				PackageType: packages.TypeNpm,
+				Name:        npmPackage.Name,
+				Version:     npmPackage.Version,
+			},
+			SemverCompatible: true,
+			Creator:          ctx.User,
+			Metadata:         npmPackage.Metadata,
+		},
+		&packages_service.PackageFileInfo{
+			Filename: npmPackage.Filename,
+			Data:     buf,
+			IsLead:   true,
+		},
+	)
 	if err != nil {
-		if err := packages.DeletePackageByID(p.ID); err != nil {
-			log.Error("Error deleting package by id: %v", err)
+		if err == packages.ErrDuplicatePackageVersion {
+			apiError(ctx, http.StatusBadRequest, err)
+			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

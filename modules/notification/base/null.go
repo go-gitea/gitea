@@ -173,9 +173,9 @@ func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo
 }
 
 // NotifyPackageCreate places a place holder function
-func (*NullNotifier) NotifyPackageCreate(repo *models.Repository, p *packages.Package) {
+func (*NullNotifier) NotifyPackageCreate(doer *models.User, pd *packages.PackageDescriptor) {
 }
 
 // NotifyPackageDelete places a place holder function
-func (*NullNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package) {
+func (*NullNotifier) NotifyPackageDelete(doer *models.User, pd *packages.PackageDescriptor) {
 }

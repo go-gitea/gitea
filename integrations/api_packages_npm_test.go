@@ -67,17 +67,26 @@ func TestPackageNpm(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNpm)
 		assert.NoError(t, err)
-		assert.Len(t, ps, 1)
-		assert.Equal(t, packageName, ps[0].Name)
-		assert.Equal(t, packageVersion, ps[0].Version)
+		assert.Len(t, pvs, 1)
 
-		pfs, err := ps[0].GetFiles()
+		pd, err := packages.GetPackageDescriptor(pvs[0])
+		assert.NoError(t, err)
+		assert.NotNil(t, pd.SemVer)
+		assert.IsType(t, &npm.Metadata{}, pd.Metadata)
+		assert.Equal(t, packageName, pd.Package.Name)
+		assert.Equal(t, packageVersion, pd.Version.Version)
+
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
-		assert.Equal(t, int64(192), pfs[0].Size)
+		assert.True(t, pfs[0].IsLead)
+
+		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(192), pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -97,6 +106,11 @@ func TestPackageNpm(t *testing.T) {
 
 		b, _ := base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, resp.Body.Bytes())
+
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNpm)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+		assert.Equal(t, int64(1), pvs[0].DownloadCount)
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {

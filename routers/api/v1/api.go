@@ -1019,7 +1019,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						m.Group("", func() {
 							m.Put("/", reqRepoWriter(models.UnitTypePackages), nuget.UploadPackage)
 							m.Put("/symbolpackage", nuget.UploadSymbolPackage)
-							m.Delete("/package/{id}/{version}", reqRepoWriter(models.UnitTypePackages), nuget.DeletePackage)
+							m.Delete("/{id}/{version}", reqRepoWriter(models.UnitTypePackages), nuget.DeletePackage)
 						}, reqBasicAuth(), reqRepoWriter(models.UnitTypePackages))
 					})
 					m.Group("/npm", func() {

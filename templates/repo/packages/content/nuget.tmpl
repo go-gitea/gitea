@@ -1,14 +1,14 @@
-{{if eq .Package.Type 1}}
+{{if eq .PackageDescriptor.Package.Type "nuget"}}
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
 				<label for="registry-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.nuget.registry"}}</label>
-				<input id="registry-input" type="text" readonly="readonly" value="dotnet nuget add source --name Gitea --username your_username --password your_token {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/nuget/index.json">
+				<input id="registry-input" type="text" readonly="readonly" value="dotnet nuget add source --name Gitea --username your_username --password your_token {{AppUrl}}api/v1/repos/{{.PackageDescriptor.Repository.FullName}}/packages/nuget/index.json">
 			</div>
 			<div class="field">
 				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.nuget.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="dotnet add package --source Gitea --version {{.Package.Version}} {{.Package.Name}}">
+				<input id="installation-input" type="text" readonly="readonly" value="dotnet add package --source Gitea --version {{.PackageDescriptor.Version.Version}} {{.PackageDescriptor.Package.Name}}">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "repo.packages.nuget.documentation" | Safe}}</label>
@@ -16,19 +16,19 @@
 		</div>
 	</div>
 
-	{{if or .Metadata.Description .Metadata.ReleaseNotes}}
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.ReleaseNotes}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
 		<div class="ui attached segment">
-			{{if .Metadata.Description}}{{.Metadata.Description}}{{end}}
-			{{if .Metadata.ReleaseNotes}}{{Str2html .Metadata.ReleaseNotes}}{{end}}
+			{{if .PackageDescriptor.Metadata.Description}}{{.PackageDescriptor.Metadata.Description}}{{end}}
+			{{if .PackageDescriptor.Metadata.ReleaseNotes}}{{Str2html .PackageDescriptor.Metadata.ReleaseNotes}}{{end}}
 		</div>
 	{{end}}
 
-	{{if .Metadata.Dependencies}}
+	{{if .PackageDescriptor.Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{range $framework, $dependencies := .Metadata.Dependencies}}
+				{{range $framework, $dependencies := .PackageDescriptor.Metadata.Dependencies}}
 					<div class="item">
 						<div class="content">
 							<div class="header"><strong>{{$framework}}</strong></div>

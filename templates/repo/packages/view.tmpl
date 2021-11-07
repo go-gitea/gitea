@@ -6,10 +6,10 @@
 			<div class="ui stackable grid">
 				<div class="sixteen wide column title">
 					<div class="issue-title">
-						<h1>{{.Package.Name}} ({{.Package.Version}})</h1>
+						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 					</div>
-					{{ $timeStr := TimeSinceUnix .Package.CreatedUnix $.Lang }}
-					<div>{{.i18n.Tr "repo.packages.published_by" $timeStr .Package.Creator.HomeLink (.Package.Creator.GetDisplayName | Escape) | Safe}} {{svg .Package.Type.SVGName}} {{.Package.Type.String}}</div>
+					{{ $timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.Lang }}
+					<div>{{.i18n.Tr "repo.packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}} {{svg .PackageDescriptor.Package.Type.SVGName}} {{.PackageDescriptor.Package.Type.Name}}</div>
 					<div class="ui divider"></div>
 				</div>
 				<div class="twelve wide column">
@@ -24,9 +24,8 @@
 					<div class="ui segment metas">
 						<span class="text"><strong>{{.i18n.Tr "repo.packages.details"}}</strong></span>
 						<div class="ui relaxed list">
-							<div class="item">
-								{{svg "octicon-calendar" 16 "mr-3"}} {{.Package.CreatedUnix.FormatDate}}
-							</div>
+							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{.PackageDescriptor.Version.CreatedUnix.FormatDate}}</div>
+							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 							{{template "repo/packages/metadata/generic" .}}
 							{{template "repo/packages/metadata/nuget" .}}
 							{{template "repo/packages/metadata/npm" .}}
@@ -35,12 +34,12 @@
 							{{template "repo/packages/metadata/rubygems" .}}
 						</div>
 						<div class="ui divider"></div>
-						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}} ({{len .Files}})</strong></span>
+						<span class="text"><strong>{{.i18n.Tr "repo.packages.assets"}} ({{len .PackageDescriptor.Files}})</strong></span>
 						<div class="ui relaxed list">
-						{{range .Files}}
+						{{range .PackageDescriptor.Files}}
 							<div class="item">
-								<a href="{{$.Link}}/files/{{.LowerName}}">{{.Name}}</a>
-								<span class="text small file-size">{{FileSize .Size}}</span>
+								<a href="{{$.Link}}/files/{{.File.LowerName}}">{{.File.Name}}</a>
+								<span class="text small file-size">{{FileSize .Blob.Size}}</span>
 							</div>
 						{{end}}
 						</div>
@@ -50,7 +49,7 @@
 							<div class="ui relaxed list">
 							{{range .OtherVersions}}
 								<div class="item">
-									<a href="{{$.RepoLink}}/packages/{{.ID}}">{{.Version}}</a>
+									<a href="{{$.RepoLink}}/packages/{{.ID}}">{{.Name}}</a>
 									<span class="text small">{{$.i18n.Tr "repo.packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
 								</div>
 							{{end}}
@@ -67,7 +66,7 @@
 								</div>
 								<div class="content">
 									<div class="ui warning message text left">
-										{{.i18n.Tr "repo.packages.delete.notice" .Package.Name .Package.Version}}
+										{{.i18n.Tr "repo.packages.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
 									</div>
 									<form class="ui form" action="{{.Link}}" method="post">
 										{{.CsrfTokenHtml}}

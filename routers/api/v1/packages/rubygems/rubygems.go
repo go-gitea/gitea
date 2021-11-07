@@ -14,11 +14,11 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/log"
+	//"code.gitea.io/gitea/modules/log"
+	package_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
-	"code.gitea.io/gitea/modules/util/filebuffer"
 	package_router "code.gitea.io/gitea/routers/api/v1/packages"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
@@ -29,7 +29,7 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 
 // EnumeratePackages serves the package list
 func EnumeratePackages(ctx *context.APIContext) {
-	packages, err := packages.GetPackagesByRepositoryAndType(ctx.Repo.Repository.ID, packages.TypeRubyGems)
+	packages, err := packages.GetVersionsByPackageType(ctx.Repo.Repository.ID, packages.TypeRubyGems)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -40,7 +40,7 @@ func EnumeratePackages(ctx *context.APIContext) {
 
 // EnumeratePackagesLatest serves the list of the lastest version of every package
 func EnumeratePackagesLatest(ctx *context.APIContext) {
-	packages, _, err := packages.GetLatestPackagesGrouped(&packages.PackageSearchOptions{
+	pvs, _, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
 		RepoID: ctx.Repo.Repository.ID,
 		Type:   "rubygems",
 	})
@@ -49,30 +49,30 @@ func EnumeratePackagesLatest(ctx *context.APIContext) {
 		return
 	}
 
-	enumeratePackages(ctx, "latest_specs.4.8", packages)
+	enumeratePackages(ctx, "latest_specs.4.8", pvs)
 }
 
 // EnumeratePackagesPreRelease is not supported and serves an empty list
 func EnumeratePackagesPreRelease(ctx *context.APIContext) {
-	enumeratePackages(ctx, "prerelease_specs.4.8", []*packages.Package{})
+	enumeratePackages(ctx, "prerelease_specs.4.8", []*packages.PackageVersion{})
 }
 
-func enumeratePackages(ctx *context.APIContext, filename string, packages []*packages.Package) {
-	rubygemsPackages, err := intializePackages(packages)
+func enumeratePackages(ctx *context.APIContext, filename string, pvs []*packages.PackageVersion) {
+	pds, err := packages.GetPackageDescriptors(pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	specs := make([]interface{}, 0, len(rubygemsPackages))
-	for _, p := range rubygemsPackages {
+	specs := make([]interface{}, 0, len(pds))
+	for _, p := range pds {
 		specs = append(specs, []interface{}{
-			p.Name,
+			p.Package.Name,
 			&rubygems_module.RubyUserMarshal{
 				Name:  "Gem::Version",
-				Value: []string{p.Version},
+				Value: []string{p.Version.Version},
 			},
-			p.Metadata.Platform,
+			p.Metadata.(*rubygems_module.Metadata).Platform,
 		})
 	}
 
@@ -93,22 +93,22 @@ func ServePackageSpecification(ctx *context.APIContext) {
 	filename := ctx.Params("filename")
 
 	if !strings.HasSuffix(filename, ".gemspec.rz") {
-		apiError(ctx, http.StatusBadRequest, nil)
+		apiError(ctx, http.StatusNotImplemented, nil)
 		return
 	}
 
-	packages, err := packages.GetPackagesByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
+	pvs, err := packages.GetVersionsByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	if len(packages) != 1 {
+	if len(pvs) != 1 {
 		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
 
-	p, err := intializePackage(packages[0])
+	pd, err := packages.GetPackageDescriptor(pvs[0])
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -119,7 +119,36 @@ func ServePackageSpecification(ctx *context.APIContext) {
 	zw := zlib.NewWriter(ctx.Resp)
 	defer zw.Close()
 
-	spec := p.AsSpecification()
+	metadata := pd.Metadata.(*rubygems_module.Metadata)
+
+	// create a Ruby Gem::Specification object
+	spec := &rubygems_module.RubyUserDef{
+		Name: "Gem::Specification",
+		Value: []interface{}{
+			"3.2.3", // @rubygems_version
+			4,       // @specification_version,
+			pd.Package.Name,
+			&rubygems_module.RubyUserMarshal{
+				Name:  "Gem::Version",
+				Value: []string{pd.Version.Version},
+			},
+			nil,               // date
+			metadata.Summary,  // @summary
+			nil,               // @required_ruby_version
+			nil,               // @required_rubygems_version
+			metadata.Platform, // @original_platform
+			[]interface{}{},   // @dependencies
+			nil,               // rubyforge_project
+			"",                // @email
+			metadata.Authors,
+			metadata.Description,
+			metadata.ProjectURL,
+			true,              // has_rdoc
+			metadata.Platform, // @new_platform
+			nil,
+			metadata.Licenses,
+		},
+	}
 
 	if err := rubygems_module.NewMarshalEncoder(zw).Encode(spec); err != nil {
 		ctx.ServerError("Download file failed", err)
@@ -130,18 +159,18 @@ func ServePackageSpecification(ctx *context.APIContext) {
 func DownloadPackageFile(ctx *context.APIContext) {
 	filename := ctx.Params("filename")
 
-	pkgs, err := packages.GetPackagesByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename)
+	pvs, err := packages.GetVersionsByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
-	if len(pkgs) != 1 {
+	if len(pvs) != 1 {
 		apiError(ctx, http.StatusNotFound, nil)
 		return
 	}
 
-	s, pf, err := package_service.GetPackageFileStream(pkgs[0], filename)
+	s, pf, err := packages_service.GetPackageFileStream(pvs[0], filename)
 	if err != nil {
 		if err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -166,14 +195,14 @@ func UploadPackageFile(ctx *context.APIContext) {
 		defer upload.Close()
 	}
 
-	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
+	buf, err := package_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
 
-	meta, err := rubygems_module.ParsePackageMetaData(buf)
+	rp, err := rubygems_module.ParsePackageMetaData(buf)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -183,34 +212,35 @@ func UploadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	p, err := package_service.CreatePackage(
-		ctx.User,
-		ctx.Repo.Repository,
-		packages.TypeRubyGems,
-		meta.Name,
-		meta.Version,
-		meta,
-		false,
-	)
-	if err != nil {
-		if err == packages.ErrDuplicatePackage {
-			apiError(ctx, http.StatusBadRequest, err)
-			return
-		}
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
+	var filename string
+	if rp.Metadata.Platform == "" || rp.Metadata.Platform == "ruby" {
+		filename = strings.ToLower(fmt.Sprintf("%s-%s.gem", rp.Name, rp.Version))
+	} else {
+		filename = strings.ToLower(fmt.Sprintf("%s-%s-%s.gem", rp.Name, rp.Version, rp.Metadata.Platform))
 	}
 
-	var filename string
-	if len(meta.Platform) == 0 || meta.Platform == "ruby" {
-		filename = strings.ToLower(fmt.Sprintf("%s-%s.gem", meta.Name, meta.Version))
-	} else {
-		filename = strings.ToLower(fmt.Sprintf("%s-%s-%s.gem", meta.Name, meta.Version, meta.Platform))
-	}
-	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
+	_, _, err = packages_service.CreatePackageAndAddFile(
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Repository:  ctx.Repo.Repository,
+				PackageType: packages.TypeRubyGems,
+				Name:        rp.Name,
+				Version:     rp.Version,
+			},
+			SemverCompatible: true,
+			Creator:          ctx.User,
+			Metadata:         rp.Metadata,
+		},
+		&packages_service.PackageFileInfo{
+			Filename: filename,
+			Data:     buf,
+			IsLead:   true,
+		},
+	)
 	if err != nil {
-		if err := packages.DeletePackageByID(p.ID); err != nil {
-			log.Error("Error deleting package by id: %v", err)
+		if err == packages.ErrDuplicatePackageVersion {
+			apiError(ctx, http.StatusBadRequest, err)
+			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -221,10 +251,23 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 // DeletePackage deletes a package
 func DeletePackage(ctx *context.APIContext) {
+	// Go populates the form only for POST, PUT and PATCH requests
+	if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 	packageName := ctx.FormString("gem_name")
 	packageVersion := ctx.FormString("version")
 
-	err := package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeRubyGems, packageName, packageVersion)
+	err := packages_service.DeletePackageVersionByNameAndVersion(
+		ctx.User,
+		&packages_service.PackageInfo{
+			Repository:  ctx.Repo.Repository,
+			PackageType: packages.TypeRubyGems,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)

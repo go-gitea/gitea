@@ -73,24 +73,24 @@ func TestParsePackageMetaData(t *testing.T) {
 	t.Run("MissingNuspecFile", func(t *testing.T) {
 		data := createArchive("dummy.txt", "")
 
-		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, m)
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, np)
 		assert.ErrorIs(t, err, ErrMissingNuspecFile)
 	})
 
 	t.Run("MissingNuspecFileInRoot", func(t *testing.T) {
 		data := createArchive("sub/package.nuspec", "")
 
-		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, m)
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, np)
 		assert.ErrorIs(t, err, ErrMissingNuspecFile)
 	})
 
 	t.Run("InvalidNuspecFile", func(t *testing.T) {
 		data := createArchive("package.nuspec", "")
 
-		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, m)
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, np)
 		assert.Error(t, err)
 	})
 
@@ -100,8 +100,8 @@ func TestParsePackageMetaData(t *testing.T) {
 		  <metadata></metadata>
 		</package>`)
 
-		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, m)
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, np)
 		assert.ErrorIs(t, err, ErrNuspecInvalidID)
 	})
 
@@ -113,51 +113,51 @@ func TestParsePackageMetaData(t *testing.T) {
 		  </metadata>
 		</package>`)
 
-		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
-		assert.Nil(t, m)
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		assert.Nil(t, np)
 		assert.ErrorIs(t, err, ErrNuspecInvalidVersion)
 	})
 
 	t.Run("Valid", func(t *testing.T) {
 		data := createArchive("package.nuspec", nuspecContent)
 
-		m, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
+		np, err := ParsePackageMetaData(bytes.NewReader(data), int64(len(data)))
 		assert.NoError(t, err)
-		assert.NotNil(t, m)
+		assert.NotNil(t, np)
 	})
 }
 
 func TestParseNuspecMetaData(t *testing.T) {
 	t.Run("Dependency Package", func(t *testing.T) {
-		m, err := ParseNuspecMetaData(strings.NewReader(nuspecContent))
+		np, err := ParseNuspecMetaData(strings.NewReader(nuspecContent))
 		assert.NoError(t, err)
-		assert.NotNil(t, m)
-		assert.Equal(t, DependencyPackage, m.PackageType)
+		assert.NotNil(t, np)
+		assert.Equal(t, DependencyPackage, np.PackageType)
 
-		assert.Equal(t, id, m.ID)
-		assert.Equal(t, semver, m.Version)
-		assert.Equal(t, authors, m.Authors)
-		assert.Equal(t, projectURL, m.ProjectURL)
-		assert.Equal(t, description, m.Description)
-		assert.Equal(t, releaseNotes, m.ReleaseNotes)
-		assert.Equal(t, repositoryURL, m.RepositoryURL)
-		assert.Len(t, m.Dependencies, 1)
-		assert.Contains(t, m.Dependencies, targetFramework)
-		deps := m.Dependencies[targetFramework]
+		assert.Equal(t, id, np.ID)
+		assert.Equal(t, semver, np.Version)
+		assert.Equal(t, authors, np.Metadata.Authors)
+		assert.Equal(t, projectURL, np.Metadata.ProjectURL)
+		assert.Equal(t, description, np.Metadata.Description)
+		assert.Equal(t, releaseNotes, np.Metadata.ReleaseNotes)
+		assert.Equal(t, repositoryURL, np.Metadata.RepositoryURL)
+		assert.Len(t, np.Metadata.Dependencies, 1)
+		assert.Contains(t, np.Metadata.Dependencies, targetFramework)
+		deps := np.Metadata.Dependencies[targetFramework]
 		assert.Len(t, deps, 1)
 		assert.Equal(t, dependencyID, deps[0].ID)
 		assert.Equal(t, dependencyVersion, deps[0].Version)
 	})
 
 	t.Run("Symbols Package", func(t *testing.T) {
-		m, err := ParseNuspecMetaData(strings.NewReader(symbolsNuspecContent))
+		np, err := ParseNuspecMetaData(strings.NewReader(symbolsNuspecContent))
 		assert.NoError(t, err)
-		assert.NotNil(t, m)
-		assert.Equal(t, SymbolsPackage, m.PackageType)
+		assert.NotNil(t, np)
+		assert.Equal(t, SymbolsPackage, np.PackageType)
 
-		assert.Equal(t, id, m.ID)
-		assert.Equal(t, semver, m.Version)
-		assert.Equal(t, description, m.Description)
-		assert.Empty(t, m.Dependencies)
+		assert.Equal(t, id, np.ID)
+		assert.Equal(t, semver, np.Version)
+		assert.Equal(t, description, np.Metadata.Description)
+		assert.Empty(t, np.Metadata.Dependencies)
 	})
 }

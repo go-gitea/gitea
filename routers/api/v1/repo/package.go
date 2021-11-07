@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -61,24 +62,26 @@ func ListPackages(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	packages, count, err := packages.GetPackages(&packages.PackageSearchOptions{
+	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
 		RepoID:    repo.ID,
 		Type:      packageType,
 		Query:     query,
 		Paginator: &listOptions,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetPackages", err)
+		ctx.Error(http.StatusInternalServerError, "SearchVersions", err)
 		return
 	}
 
-	apiPackages := make([]*api.Package, 0, len(packages))
-	for _, p := range packages {
-		if err := p.LoadCreator(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "LoadCreator", err)
-			return
-		}
-		apiPackages = append(apiPackages, convert.ToPackage(p))
+	pds, err := packages.GetPackageDescriptors(pvs)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptors", err)
+		return
+	}
+
+	apiPackages := make([]*api.Package, 0, len(pds))
+	for _, pd := range pds {
+		apiPackages = append(apiPackages, convert.ToPackage(pd))
 	}
 
 	ctx.SetLinkHeader(int(count), listOptions.PageSize)
@@ -116,17 +119,23 @@ func GetPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	p, err := packages.GetPackageByID(ctx.ParamsInt64(":id"))
+	pv, err := packages.GetVersionByID(db.DefaultContext, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPackageByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetVersionByID", err)
 		}
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.ToPackage(p))
+	pd, err := packages.GetPackageDescriptor(pv)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptor", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToPackage(pd))
 }
 
 // DeletePackage delete a package from a repository
@@ -157,12 +166,12 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := package_service.DeletePackageByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
+	err := package_service.DeleteVersionByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "DeletePackageByID", err)
+			ctx.Error(http.StatusInternalServerError, "DeleteVersionByID", err)
 		}
 		return
 	}
@@ -199,25 +208,30 @@ func ListPackageFiles(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	p, err := packages.GetPackageByID(ctx.ParamsInt64(":id"))
+	pv, err := packages.GetVersionByID(db.DefaultContext, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetPackageByID", err)
+			ctx.Error(http.StatusInternalServerError, "GetVersionByID", err)
 		}
 		return
 	}
 
-	files, err := p.GetFiles()
+	pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pv.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFiles", err)
+		ctx.Error(http.StatusInternalServerError, "GetFilesByVersionID", err)
 		return
 	}
 
-	apiPackageFiles := make([]*api.PackageFile, 0, len(files))
-	for _, pf := range files {
-		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pf))
+	apiPackageFiles := make([]*api.PackageFile, 0, len(pfs))
+	for _, pf := range pfs {
+		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetBlobByID", err)
+			return
+		}
+		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pf, pb))
 	}
 
 	ctx.JSON(http.StatusOK, apiPackageFiles)

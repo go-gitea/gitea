@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/packages/rubygems"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -123,17 +124,26 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
 		uploadFile(t, http.StatusCreated)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
-		assert.Len(t, ps, 1)
-		assert.Equal(t, packageName, ps[0].Name)
-		assert.Equal(t, packageVersion, ps[0].Version)
+		assert.Len(t, pvs, 1)
 
-		pfs, err := ps[0].GetFiles()
+		pd, err := packages.GetPackageDescriptor(pvs[0])
+		assert.NoError(t, err)
+		assert.NotNil(t, pd.SemVer)
+		assert.IsType(t, &rubygems.Metadata{}, pd.Metadata)
+		assert.Equal(t, packageName, pd.Package.Name)
+		assert.Equal(t, packageVersion, pd.Version.Version)
+
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, packageFilename, pfs[0].Name)
-		assert.Equal(t, int64(4608), pfs[0].Size)
+		assert.True(t, pfs[0].IsLead)
+
+		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(4608), pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -150,6 +160,11 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, gemContent, resp.Body.Bytes())
+
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+		assert.Equal(t, int64(1), pvs[0].DownloadCount)
 	})
 
 	t.Run("DownloadGemspec", func(t *testing.T) {
@@ -164,6 +179,11 @@ EBJqJQjWFZZaVJyZnxfN5qnEZahnoGcKkjTwVBJyB6lUKEhMzk5MTwULGngqcRaVJlWCONEMBp5K
 DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKInFhGSUlBsZW+PtgZepn5+iDxECRzDUDGcfh6hoA4
 gAAAAP//MS06Gw==`)
 		assert.Equal(t, b, resp.Body.Bytes())
+
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+		assert.Equal(t, int64(1), pvs[0].DownloadCount)
 	})
 
 	t.Run("EnumeratePackages", func(t *testing.T) {
@@ -199,8 +219,8 @@ gAAAAP//MS06Gw==`)
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
-		assert.Empty(t, ps)
+		assert.Empty(t, pvs)
 	})
 }

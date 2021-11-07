@@ -820,28 +820,24 @@ func (m *webhookNotifier) NotifySyncDeleteRef(pusher *models.User, repo *models.
 	m.NotifyDeleteRef(pusher, repo, refType, refFullName)
 }
 
-func (m *webhookNotifier) NotifyPackageCreate(repo *models.Repository, p *packages.Package) {
-	if err := p.LoadCreator(); err != nil {
-		log.Error("LoadCreator: %v", err)
-	}
-
-	notifyPackage(p.Creator, repo, p, api.HookPackageCreated)
+func (m *webhookNotifier) NotifyPackageCreate(doer *models.User, pd *packages.PackageDescriptor) {
+	notifyPackage(doer, pd, api.HookPackageCreated)
 }
 
-func (m *webhookNotifier) NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package) {
-	notifyPackage(doer, repo, p, api.HookPackageDeleted)
+func (m *webhookNotifier) NotifyPackageDelete(doer *models.User, pd *packages.PackageDescriptor) {
+	notifyPackage(doer, pd, api.HookPackageDeleted)
 }
 
-func notifyPackage(sender *models.User, repo *models.Repository, p *packages.Package, action api.HookPackageAction) {
-	org := repo.MustOwner()
+func notifyPackage(sender *models.User, pd *packages.PackageDescriptor, action api.HookPackageAction) {
+	org := pd.Repository.MustOwner()
 	if !org.IsOrganization() {
 		org = nil
 	}
 
-	if err := webhook_services.PrepareWebhooks(repo, models.HookEventPackage, &api.PackagePayload{
+	if err := webhook_services.PrepareWebhooks(pd.Repository, models.HookEventPackage, &api.PackagePayload{
 		Action:       action,
-		Repository:   convert.ToRepo(repo, models.AccessModeNone),
-		Package:      convert.ToPackage(p),
+		Repository:   convert.ToRepo(pd.Repository, models.AccessModeNone),
+		Package:      convert.ToPackage(pd),
 		Organization: convert.ToUser(org, nil),
 		Sender:       convert.ToUser(sender, nil),
 	}); err != nil {

@@ -17,8 +17,6 @@ type Package struct {
 	Version string `json:"version"`
 	// swagger:strfmt date-time
 	CreatedAt time.Time `json:"created_at"`
-	// swagger:strfmt date-time
-	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // PackageFile represents a package file
@@ -30,8 +28,4 @@ type PackageFile struct {
 	HashSHA1   string `json:"sha1"`
 	HashSHA256 string `json:"sha256"`
 	HashSHA512 string `json:"sha512"`
-	// swagger:strfmt date-time
-	CreatedAt time.Time `json:"created_at"`
-	// swagger:strfmt date-time
-	UpdatedAt time.Time `json:"updated_at"`
 }

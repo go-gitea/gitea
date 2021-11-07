@@ -5,8 +5,8 @@
 package packages
 
 import (
-	"fmt"
 	"io"
+	"strconv"
 
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -22,22 +22,18 @@ func NewContentStore() *ContentStore {
 	return contentStore
 }
 
-// Get get the package file content
-func (s *ContentStore) Get(packageID, packageFileID int64) (storage.Object, error) {
-	return s.store.Open(toRelativePath(packageID, packageFileID))
+// Get gets a package blob
+func (s *ContentStore) Get(packageBlobID int64) (storage.Object, error) {
+	return s.store.Open(strconv.FormatInt(packageBlobID, 10))
 }
 
-// Save stores the package file content
-func (s *ContentStore) Save(packageID, packageFileID int64, r io.Reader, size int64) error {
-	_, err := s.store.Save(toRelativePath(packageID, packageFileID), r, size)
+// Save stores a package blob
+func (s *ContentStore) Save(packageBlobID int64, r io.Reader, size int64) error {
+	_, err := s.store.Save(strconv.FormatInt(packageBlobID, 10), r, size)
 	return err
 }
 
-// Delete deletes the package file content
-func (s *ContentStore) Delete(packageID, packageFileID int64) error {
-	return s.store.Delete(toRelativePath(packageID, packageFileID))
-}
-
-func toRelativePath(packageID, packageFileID int64) string {
-	return fmt.Sprintf("%d/%d", packageID, packageFileID)
+// Delete deletes a package blob
+func (s *ContentStore) Delete(packageBlobID int64) error {
+	return s.store.Delete(strconv.FormatInt(packageBlobID, 10))
 }

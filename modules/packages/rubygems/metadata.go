@@ -28,10 +28,15 @@ var (
 
 var versionMatcher = regexp.MustCompile(`\A[0-9]+(?:\.[0-9a-zA-Z]+)*(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\z`)
 
+// Package represents a RubyGems package
+type Package struct {
+	Name     string
+	Version  string
+	Metadata *Metadata
+}
+
 // Metadata represents the metadata of a RubyGems package
 type Metadata struct {
-	Name                    string               `json:"-"`
-	Version                 string               `json:"-"`
 	Platform                string               `json:"platform"`
 	Description             string               `json:"description"`
 	Summary                 string               `json:"summary"`
@@ -138,7 +143,7 @@ func (r requirement) AsVersionRequirement() []VersionRequirement {
 }
 
 // ParsePackageMetaData parses the metadata of a Gem package file
-func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
+func ParsePackageMetaData(r io.Reader) (*Package, error) {
 	archive := tar.NewReader(r)
 	for {
 		hdr, err := archive.Next()
@@ -157,7 +162,7 @@ func ParsePackageMetaData(r io.Reader) (*Metadata, error) {
 	return nil, ErrMissingMetadataFile
 }
 
-func parseMetadataFile(r io.Reader) (*Metadata, error) {
+func parseMetadataFile(r io.Reader) (*Package, error) {
 	zr, err := gzip.NewReader(r)
 	if err != nil {
 		return nil, err
@@ -185,8 +190,6 @@ func parseMetadataFile(r io.Reader) (*Metadata, error) {
 	}
 
 	m := &Metadata{
-		Name:                    spec.Name,
-		Version:                 spec.Version.Version,
 		Platform:                spec.Platform,
 		Description:             spec.Description,
 		Summary:                 spec.Summary,
@@ -211,5 +214,9 @@ func parseMetadataFile(r io.Reader) (*Metadata, error) {
 		}
 	}
 
-	return m, nil
+	return &Package{
+		Name:     spec.Name,
+		Version:  spec.Version.Version,
+		Metadata: m,
+	}, nil
 }

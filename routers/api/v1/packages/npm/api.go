@@ -9,53 +9,61 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"sort"
 
+	packages_models "code.gitea.io/gitea/models/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 )
 
-func createPackageMetadataResponse(registryURL string, packages []*Package) *npm_module.PackageMetadata {
-	sortedPackages := sortPackagesByVersionASC(packages)
+func createPackageMetadataResponse(registryURL string, pds []*packages_models.PackageDescriptor) *npm_module.PackageMetadata {
+	sort.Slice(pds, func(i, j int) bool {
+		return pds[i].SemVer.LessThan(pds[j].SemVer)
+	})
 
 	versions := make(map[string]*npm_module.PackageMetadataVersion)
-	for _, p := range sortedPackages {
-		versions[p.SemVer.String()] = createPackageMetadataVersion(registryURL, p)
+	for _, pd := range pds {
+		versions[pd.SemVer.String()] = createPackageMetadataVersion(registryURL, pd)
 	}
 
-	latest := sortedPackages[len(sortedPackages)-1]
+	latest := pds[len(pds)-1]
 
 	distTags := make(map[string]string)
-	distTags["latest"] = latest.Version
+	distTags["latest"] = latest.Version.Version
+
+	metadata := latest.Metadata.(*npm_module.Metadata)
 
 	return &npm_module.PackageMetadata{
 		ID:          latest.Package.Name,
 		Name:        latest.Package.Name,
 		DistTags:    distTags,
-		Description: latest.Metadata.Description,
-		Readme:      latest.Metadata.Readme,
-		Homepage:    latest.Metadata.ProjectURL,
-		Author:      npm_module.User{Name: latest.Metadata.Author},
-		License:     latest.Metadata.License,
+		Description: metadata.Description,
+		Readme:      metadata.Readme,
+		Homepage:    metadata.ProjectURL,
+		Author:      npm_module.User{Name: metadata.Author},
+		License:     metadata.License,
 		Versions:    versions,
 	}
 }
 
-func createPackageMetadataVersion(registryURL string, p *Package) *npm_module.PackageMetadataVersion {
-	hashBytes, _ := hex.DecodeString(p.PackageFile.HashSHA512)
+func createPackageMetadataVersion(registryURL string, pd *packages_models.PackageDescriptor) *npm_module.PackageMetadataVersion {
+	hashBytes, _ := hex.DecodeString(pd.Files[0].Blob.HashSHA512)
+
+	metadata := pd.Metadata.(*npm_module.Metadata)
 
 	return &npm_module.PackageMetadataVersion{
-		ID:           fmt.Sprintf("%s@%s", p.Package.Name, p.Package.Version),
-		Name:         p.Package.Name,
-		Version:      p.Package.Version,
-		Description:  p.Metadata.Description,
-		Author:       npm_module.User{Name: p.Metadata.Author},
-		Homepage:     p.Metadata.ProjectURL,
-		License:      p.Metadata.License,
-		Dependencies: p.Metadata.Dependencies,
-		Readme:       p.Metadata.Readme,
+		ID:           fmt.Sprintf("%s@%s", pd.Package.Name, pd.Version.Version),
+		Name:         pd.Package.Name,
+		Version:      pd.Version.Version,
+		Description:  metadata.Description,
+		Author:       npm_module.User{Name: metadata.Author},
+		Homepage:     metadata.ProjectURL,
+		License:      metadata.License,
+		Dependencies: metadata.Dependencies,
+		Readme:       metadata.Readme,
 		Dist: npm_module.PackageDistribution{
-			Shasum:    p.PackageFile.HashSHA1,
+			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
-			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(p.Package.Name), p.Package.Version, p.PackageFile.LowerName),
+			Tarball:   fmt.Sprintf("%s/%s/-/%s/%s", registryURL, url.QueryEscape(pd.Package.Name), pd.Version.Version, pd.Files[0].File.LowerName),
 		},
 	}
 }

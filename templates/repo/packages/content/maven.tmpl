@@ -1,4 +1,4 @@
-{{if eq .Package.Type 3}}
+{{if eq .PackageDescriptor.Package.Type "maven"}}
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
@@ -26,9 +26,9 @@
 			<div class="field">
 				<label for="pom-input">{{svg "octicon-code"}} {{.i18n.Tr "repo.packages.maven.install" | Safe}}</label>
 				<textarea id="pom-input" readonly="readonly" rows="5"><dependency>
-	<groupId>{{.Metadata.GroupID}}</groupId>
-	<artifactId>{{.Metadata.ArtifactID}}</artifactId>
-	<version>{{.Package.Version}}</version>
+	<groupId>{{.PackageDescriptor.Metadata.GroupID}}</groupId>
+	<artifactId>{{.PackageDescriptor.Metadata.ArtifactID}}</artifactId>
+	<version>{{.PackageDescriptor.Version.Version}}</version>
 </dependency></textarea>
 			</div>
 			<div class="field">
@@ -37,7 +37,7 @@
 			</div>
 			<div class="field">
 				<label for="command-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.maven.download"}}</label>
-				<input id="command-input" type="text" readonly="readonly" value="mvn dependency:get -DremoteRepositories={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/maven -Dartifact={{.Metadata.GroupID}}:{{.Metadata.ArtifactID}}:{{.Package.Version}}">
+				<input id="command-input" type="text" readonly="readonly" value="mvn dependency:get -DremoteRepositories={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/maven -Dartifact={{.PackageDescriptor.Metadata.GroupID}}:{{.PackageDescriptor.Metadata.ArtifactID}}:{{.PackageDescriptor.Version.Version}}">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "repo.packages.maven.documentation" | Safe}}</label>
@@ -45,18 +45,18 @@
 		</div>
 	</div>
 
-	{{if .Metadata.Description}}
+	{{if .PackageDescriptor.Metadata.Description}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
 		<div class="ui attached segment">
-			{{.Metadata.Description}}
+			{{.PackageDescriptor.Metadata.Description}}
 		</div>
 	{{end}}
 
-	{{if .Metadata.Dependencies}}
+	{{if .PackageDescriptor.Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{range .Metadata.Dependencies}}
+				{{range .PackageDescriptor.Metadata.Dependencies}}
 					<div class="item">
 						<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
 						<div class="content">

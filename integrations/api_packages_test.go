@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/packages"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -40,17 +41,17 @@ func TestPackageAPI(t *testing.T) {
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/packages?token=%s", user.Name, repository.Name, token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
-		var packages []*api.Package
-		DecodeJSON(t, resp, &packages)
+		var apiPackages []*api.Package
+		DecodeJSON(t, resp, &apiPackages)
 
-		assert.Len(t, packages, 1)
-		assert.Equal(t, "Generic", packages[0].Type)
-		assert.Equal(t, packageName, packages[0].Name)
-		assert.Equal(t, packageVersion, packages[0].Version)
-		assert.NotNil(t, packages[0].Creator)
-		assert.Equal(t, user.Name, packages[0].Creator.UserName)
+		assert.Len(t, apiPackages, 1)
+		assert.Equal(t, string(packages.TypeGeneric), apiPackages[0].Type)
+		assert.Equal(t, packageName, apiPackages[0].Name)
+		assert.Equal(t, packageVersion, apiPackages[0].Version)
+		assert.NotNil(t, apiPackages[0].Creator)
+		assert.Equal(t, user.Name, apiPackages[0].Creator.UserName)
 
-		packageID = packages[0].ID
+		packageID = apiPackages[0].ID
 	})
 
 	t.Run("GetPackage", func(t *testing.T) {
@@ -65,7 +66,7 @@ func TestPackageAPI(t *testing.T) {
 		var p *api.Package
 		DecodeJSON(t, resp, &p)
 
-		assert.Equal(t, "Generic", p.Type)
+		assert.Equal(t, string(packages.TypeGeneric), p.Type)
 		assert.Equal(t, packageName, p.Name)
 		assert.Equal(t, packageVersion, p.Version)
 		assert.NotNil(t, p.Creator)

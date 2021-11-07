@@ -300,15 +300,15 @@ func NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Reposit
 }
 
 // NotifyPackageCreate notifies creation of a package to notifiers
-func NotifyPackageCreate(repo *models.Repository, p *packages.Package) {
+func NotifyPackageCreate(doer *models.User, pd *packages.PackageDescriptor) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPackageCreate(repo, p)
+		notifier.NotifyPackageCreate(doer, pd)
 	}
 }
 
 // NotifyPackageDelete notifies deletion of a package to notifiers
-func NotifyPackageDelete(doer *models.User, repo *models.Repository, p *packages.Package) {
+func NotifyPackageDelete(doer *models.User, pd *packages.PackageDescriptor) {
 	for _, notifier := range notifiers {
-		notifier.NotifyPackageDelete(doer, repo, p)
+		notifier.NotifyPackageDelete(doer, pd)
 	}
 }

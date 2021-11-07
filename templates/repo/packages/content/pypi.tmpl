@@ -1,31 +1,31 @@
-{{if eq .Package.Type 4}}
+{{if eq .PackageDescriptor.Package.Type "pypi"}}
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
 				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.pypi.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="pip install --extra-index-url {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/pypi/simple {{.Package.Name}}">
+				<input id="installation-input" type="text" readonly="readonly" value="pip install --extra-index-url {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/pypi/simple {{.PackageDescriptor.Package.Name}}">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "repo.packages.pypi.documentation" | Safe}}</label>
 			</div>
 		</div>
 	</div>
-	{{if or .Metadata.Description .Metadata.LongDescription .Metadata.Summary}}
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.LongDescription .PackageDescriptor.Metadata.Summary}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
 		<div class="ui attached segment">
-			<p>{{if .Metadata.Summary}}{{.Metadata.Summary}}{{end}}</p>
-			{{if .Metadata.LongDescription}}
-				{{RenderMarkdownToHtml .Metadata.LongDescription}}
-			{{else if .Metadata.Description}}
-				{{RenderMarkdownToHtml .Metadata.Description}}
+			<p>{{if .PackageDescriptor.Metadata.Summary}}{{.PackageDescriptor.Metadata.Summary}}{{end}}</p>
+			{{if .PackageDescriptor.Metadata.LongDescription}}
+				{{RenderMarkdownToHtml .PackageDescriptor.Metadata.LongDescription}}
+			{{else if .PackageDescriptor.Metadata.Description}}
+				{{RenderMarkdownToHtml .PackageDescriptor.Metadata.Description}}
 			{{end}}
 		</div>
 	{{end}}
-	{{if .Metadata.RequiresPython}}
+	{{if .PackageDescriptor.Metadata.RequiresPython}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.requirements"}}</h4>
 		<div class="ui attached segment">
-			{{.i18n.Tr "repo.packages.pypi.requires"}}: {{.Metadata.RequiresPython}}
+			{{.i18n.Tr "repo.packages.pypi.requires"}}: {{.PackageDescriptor.Metadata.RequiresPython}}
 		</div>
 	{{end}}
 {{end}}

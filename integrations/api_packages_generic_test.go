@@ -37,17 +37,26 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusCreated)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
-		assert.Len(t, ps, 1)
-		assert.Equal(t, packageName, ps[0].Name)
-		assert.Equal(t, packageVersion, ps[0].Version)
+		assert.Len(t, pvs, 1)
 
-		pfs, err := ps[0].GetFiles()
+		pd, err := packages.GetPackageDescriptor(pvs[0])
+		assert.NoError(t, err)
+		assert.NotNil(t, pd.SemVer)
+		assert.Nil(t, pd.Metadata)
+		assert.Equal(t, packageName, pd.Package.Name)
+		assert.Equal(t, packageVersion, pd.Version.Version)
+
+		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 1)
 		assert.Equal(t, filename, pfs[0].Name)
-		assert.Equal(t, int64(len(content)), pfs[0].Size)
+		assert.True(t, pfs[0].IsLead)
+
+		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
+		assert.NoError(t, err)
+		assert.Equal(t, int64(len(content)), pb.Size)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
@@ -64,6 +73,11 @@ func TestPackageGeneric(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
+
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeGeneric)
+		assert.NoError(t, err)
+		assert.Len(t, pvs, 1)
+		assert.Equal(t, int64(1), pvs[0].DownloadCount)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
@@ -72,9 +86,9 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequest(t, "DELETE", url)
 		MakeRequest(t, req, http.StatusOK)
 
-		ps, err := packages.GetPackagesByRepositoryAndType(repository.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
-		assert.Empty(t, ps)
+		assert.Empty(t, pvs)
 	})
 
 	t.Run("DownloadNotExists", func(t *testing.T) {

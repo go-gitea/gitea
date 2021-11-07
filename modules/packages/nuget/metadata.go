@@ -43,11 +43,16 @@ var idmatch = regexp.MustCompile(`\A\w+(?:[.-]\w+)*\z`)
 
 const maxNuspecFileSize = 3 * 1024 * 1024
 
+// Package represents a Nuget package
+type Package struct {
+	PackageType PackageType
+	ID          string
+	Version     string
+	Metadata    *Metadata
+}
+
 // Metadata represents the metadata of a Nuget package
 type Metadata struct {
-	PackageType   PackageType             `json:"-"`
-	ID            string                  `json:"-"`
-	Version       string                  `json:"-"`
 	Description   string                  `json:"description"`
 	ReleaseNotes  string                  `json:"release_notes"`
 	Authors       string                  `json:"authors"`
@@ -93,7 +98,7 @@ type nuspecPackage struct {
 }
 
 // ParsePackageMetaData parses the metadata of a Nuget package file
-func ParsePackageMetaData(r io.ReaderAt, size int64) (*Metadata, error) {
+func ParsePackageMetaData(r io.ReaderAt, size int64) (*Package, error) {
 	archive, err := zip.NewReader(r, size)
 	if err != nil {
 		return nil, err
@@ -120,7 +125,7 @@ func ParsePackageMetaData(r io.ReaderAt, size int64) (*Metadata, error) {
 }
 
 // ParseNuspecMetaData parses a Nuspec file to retrieve the metadata of a Nuget package
-func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
+func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 	var p nuspecPackage
 	if err := xml.NewDecoder(r).Decode(&p); err != nil {
 		return nil, err
@@ -148,9 +153,6 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 	}
 
 	m := &Metadata{
-		PackageType:   packageType,
-		ID:            p.Metadata.ID,
-		Version:       v.String(),
 		Description:   p.Metadata.Description,
 		ReleaseNotes:  p.Metadata.ReleaseNotes,
 		Authors:       p.Metadata.Authors,
@@ -158,6 +160,7 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 		RepositoryURL: p.Metadata.Repository.URL,
 		Dependencies:  make(map[string][]Dependency),
 	}
+
 	for _, group := range p.Metadata.Dependencies.Group {
 		deps := make([]Dependency, 0, len(group.Dependency))
 		for _, dep := range group.Dependency {
@@ -173,5 +176,10 @@ func ParseNuspecMetaData(r io.Reader) (*Metadata, error) {
 			m.Dependencies[group.TargetFramework] = deps
 		}
 	}
-	return m, nil
+	return &Package{
+		PackageType: packageType,
+		ID:          p.Metadata.ID,
+		Version:     v.String(),
+		Metadata:    m,
+	}, nil
 }

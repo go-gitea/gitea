@@ -5,7 +5,6 @@
 package pypi
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,12 +13,13 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
+	package_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	package_router "code.gitea.io/gitea/routers/api/v1/packages"
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 // https://www.python.org/dev/peps/pep-0503/#normalized-names
@@ -39,25 +39,25 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 func PackageMetadata(ctx *context.APIContext) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 
-	packages, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, packages.TypePyPI, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypePyPI, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if len(packages) == 0 {
+	if len(pvs) == 0 {
 		apiError(ctx, http.StatusNotFound, err)
 		return
 	}
 
-	pypiPackages, err := intializePackages(packages)
+	pds, err := packages.GetPackageDescriptors(pvs)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
 	ctx.Data["RegistryURL"] = setting.AppURL + "api/v1/repos/" + ctx.Repo.Repository.FullName() + "/packages/pypi"
-	ctx.Data["Package"] = pypiPackages[0]
-	ctx.Data["Packages"] = pypiPackages
+	ctx.Data["PackageDescriptor"] = pds[0]
+	ctx.Data["PackageDescriptors"] = pds
 	ctx.Render = templates.HTMLRenderer()
 	ctx.HTML(http.StatusOK, "api/packages/pypi/simple")
 }
@@ -68,7 +68,7 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypePyPI, packageName, packageVersion, filename)
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypePyPI, packageName, packageVersion, filename)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -91,17 +91,21 @@ func UploadPackageFile(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	h256 := sha256.New()
-	if _, err := io.Copy(h256, file); err != nil {
+	buf, err := package_module.CreateHashedBufferFromReader(file, 32*1024*1024)
+	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), fmt.Sprintf("%x", h256.Sum(nil))) {
+	defer buf.Close()
+
+	_, _, hashSHA256, _ := buf.Sums()
+
+	if !strings.EqualFold(ctx.Req.FormValue("sha256_digest"), fmt.Sprintf("%x", hashSHA256)) {
 		apiError(ctx, http.StatusBadRequest, "hash mismatch")
 		return
 	}
 
-	if _, err := file.Seek(0, io.SeekStart); err != nil {
+	if _, err := buf.Seek(0, io.SeekStart); err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
@@ -118,31 +122,32 @@ func UploadPackageFile(ctx *context.APIContext) {
 		projectURL = ""
 	}
 
-	metadata := &pypi_module.Metadata{
-		Author:          ctx.Req.FormValue("author"),
-		Description:     ctx.Req.FormValue("description"),
-		LongDescription: ctx.Req.FormValue("long_description"),
-		Summary:         ctx.Req.FormValue("summary"),
-		ProjectURL:      projectURL,
-		License:         ctx.Req.FormValue("license"),
-		RequiresPython:  ctx.Req.FormValue("requires_python"),
-	}
-
-	p, err := package_service.CreatePackage(
-		ctx.User,
-		ctx.Repo.Repository,
-		packages.TypePyPI,
-		packageName,
-		packageVersion,
-		metadata,
-		true,
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
+		&packages_service.PackageCreationInfo{
+			PackageInfo: packages_service.PackageInfo{
+				Repository:  ctx.Repo.Repository,
+				PackageType: packages.TypePyPI,
+				Name:        packageName,
+				Version:     packageVersion,
+			},
+			SemverCompatible: true,
+			Creator:          ctx.User,
+			Metadata: &pypi_module.Metadata{
+				Author:          ctx.Req.FormValue("author"),
+				Description:     ctx.Req.FormValue("description"),
+				LongDescription: ctx.Req.FormValue("long_description"),
+				Summary:         ctx.Req.FormValue("summary"),
+				ProjectURL:      projectURL,
+				License:         ctx.Req.FormValue("license"),
+				RequiresPython:  ctx.Req.FormValue("requires_python"),
+			},
+		},
+		&packages_service.PackageFileInfo{
+			Filename: fileHeader.Filename,
+			Data:     buf,
+			IsLead:   true,
+		},
 	)
-	if err != nil {
-		apiError(ctx, http.StatusInternalServerError, err)
-		return
-	}
-
-	_, err = package_service.AddFileToPackage(p, fileHeader.Filename, fileHeader.Size, file)
 	if err != nil {
 		if err == packages.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)

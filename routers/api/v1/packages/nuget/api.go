@@ -7,7 +7,11 @@ package nuget
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"time"
+
+	packages_models "code.gitea.io/gitea/models/packages"
+	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 
 	"github.com/hashicorp/go-version"
 )
@@ -91,51 +95,57 @@ type PackageDependency struct {
 	Range string `json:"range"`
 }
 
-func createRegistrationIndexResponse(l *linkBuilder, packages []*Package) *RegistrationIndexResponse {
-	sortedPackages := sortPackagesByVersionASC(packages)
+func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_models.PackageDescriptor) *RegistrationIndexResponse {
+	sort.Slice(pds, func(i, j int) bool {
+		return pds[i].SemVer.LessThan(pds[j].SemVer)
+	})
 
-	items := make([]*RegistrationIndexPageItem, 0, len(packages))
-	for _, p := range sortedPackages {
+	items := make([]*RegistrationIndexPageItem, 0, len(pds))
+	for _, p := range pds {
 		items = append(items, createRegistrationIndexPageItem(l, p))
 	}
 
 	return &RegistrationIndexResponse{
-		RegistrationIndexURL: l.GetRegistrationIndexURL(packages[0].Name),
+		RegistrationIndexURL: l.GetRegistrationIndexURL(pds[0].Package.Name),
 		Type:                 []string{"catalog:CatalogRoot", "PackageRegistration", "catalog:Permalink"},
 		Count:                1,
 		Pages: []*RegistrationIndexPage{
 			{
-				RegistrationPageURL: l.GetRegistrationIndexURL(packages[0].Name),
-				Count:               len(packages),
-				Lower:               normalizeVersion(packages[0].SemVer),
-				Upper:               normalizeVersion(packages[len(packages)-1].SemVer),
+				RegistrationPageURL: l.GetRegistrationIndexURL(pds[0].Package.Name),
+				Count:               len(pds),
+				Lower:               normalizeVersion(pds[0].SemVer),
+				Upper:               normalizeVersion(pds[len(pds)-1].SemVer),
 				Items:               items,
 			},
 		},
 	}
 }
 
-func createRegistrationIndexPageItem(l *linkBuilder, p *Package) *RegistrationIndexPageItem {
+func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_models.PackageDescriptor) *RegistrationIndexPageItem {
+	metadata := pd.Metadata.(*nuget_module.Metadata)
+
 	return &RegistrationIndexPageItem{
-		RegistrationLeafURL: l.GetRegistrationLeafURL(p.Name, p.Version),
-		PackageContentURL:   l.GetPackageDownloadURL(p.Name, p.Version),
+		RegistrationLeafURL: l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
+		PackageContentURL:   l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
 		CatalogEntry: &CatalogEntry{
-			CatalogLeafURL:    l.GetRegistrationLeafURL(p.Name, p.Version),
-			PackageContentURL: l.GetPackageDownloadURL(p.Name, p.Version),
-			ID:                p.Name,
-			Version:           p.Version,
-			Description:       p.Metadata.Description,
-			ReleaseNotes:      p.Metadata.ReleaseNotes,
-			Authors:           p.Metadata.Authors,
-			ProjectURL:        p.Metadata.ProjectURL,
-			DependencyGroups:  createDependencyGroups(p),
+			CatalogLeafURL:    l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
+			PackageContentURL: l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
+			ID:                pd.Package.Name,
+			Version:           pd.Version.Version,
+			Description:       metadata.Description,
+			ReleaseNotes:      metadata.ReleaseNotes,
+			Authors:           metadata.Authors,
+			ProjectURL:        metadata.ProjectURL,
+			DependencyGroups:  createDependencyGroups(pd),
 		},
 	}
 }
 
-func createDependencyGroups(p *Package) []*PackageDependencyGroup {
-	dependencyGroups := make([]*PackageDependencyGroup, 0, len(p.Metadata.Dependencies))
-	for k, v := range p.Metadata.Dependencies {
+func createDependencyGroups(pd *packages_models.PackageDescriptor) []*PackageDependencyGroup {
+	metadata := pd.Metadata.(*nuget_module.Metadata)
+
+	dependencyGroups := make([]*PackageDependencyGroup, 0, len(metadata.Dependencies))
+	for k, v := range metadata.Dependencies {
 		dependencies := make([]*PackageDependency, 0, len(v))
 		for _, dep := range v {
 			dependencies = append(dependencies, &PackageDependency{
@@ -162,14 +172,14 @@ type RegistrationLeafResponse struct {
 	RegistrationIndexURL string    `json:"registration"`
 }
 
-func createRegistrationLeafResponse(l *linkBuilder, p *Package) *RegistrationLeafResponse {
+func createRegistrationLeafResponse(l *linkBuilder, pd *packages_models.PackageDescriptor) *RegistrationLeafResponse {
 	return &RegistrationLeafResponse{
 		Type:                 []string{"Package", "http://schema.nuget.org/catalog#Permalink"},
 		Listed:               true,
-		Published:            time.Unix(int64(p.CreatedUnix), 0),
-		RegistrationLeafURL:  l.GetRegistrationLeafURL(p.Name, p.Version),
-		PackageContentURL:    l.GetPackageDownloadURL(p.Name, p.Version),
-		RegistrationIndexURL: l.GetRegistrationIndexURL(p.Name),
+		Published:            time.Unix(int64(pd.Version.CreatedUnix), 0),
+		RegistrationLeafURL:  l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
+		PackageContentURL:    l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
+		RegistrationIndexURL: l.GetRegistrationIndexURL(pd.Package.Name),
 	}
 }
 
@@ -178,10 +188,10 @@ type PackageVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
-func createPackageVersionsResponse(packages []*Package) *PackageVersionsResponse {
-	versions := make([]string, 0, len(packages))
-	for _, p := range packages {
-		versions = append(versions, normalizeVersion(p.SemVer))
+func createPackageVersionsResponse(pds []*packages_models.PackageDescriptor) *PackageVersionsResponse {
+	versions := make([]string, 0, len(pds))
+	for _, pd := range pds {
+		versions = append(versions, normalizeVersion(pd.SemVer))
 	}
 
 	return &PackageVersionsResponse{
@@ -213,20 +223,20 @@ type SearchResultVersion struct {
 	Downloads           int64  `json:"downloads"`
 }
 
-func createSearchResultResponse(l *linkBuilder, totalHits int64, packages []*Package) *SearchResultResponse {
-	data := make([]*SearchResult, 0, len(packages))
+func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages_models.PackageDescriptor) *SearchResultResponse {
+	data := make([]*SearchResult, 0, len(pds))
 
-	if len(packages) > 0 {
-		groupID := packages[0].Name
-		group := make([]*Package, 0, 10)
+	if len(pds) > 0 {
+		groupID := pds[0].Package.Name
+		group := make([]*packages_models.PackageDescriptor, 0, 10)
 
-		for i := 0; i < len(packages); i++ {
-			if groupID != packages[i].Name {
+		for i := 0; i < len(pds); i++ {
+			if groupID != pds[i].Package.Name {
 				data = append(data, createSearchResult(l, group))
-				groupID = packages[i].Name
+				groupID = pds[i].Package.Name
 				group = group[:0]
 			}
-			group = append(group, packages[i])
+			group = append(group, pds[i])
 		}
 		data = append(data, createSearchResult(l, group))
 	}
@@ -237,28 +247,30 @@ func createSearchResultResponse(l *linkBuilder, totalHits int64, packages []*Pac
 	}
 }
 
-func createSearchResult(l *linkBuilder, packages []*Package) *SearchResult {
-	latest := packages[0]
-	versions := make([]*SearchResultVersion, 0, len(packages))
-	for _, p := range packages {
-		if latest.SemVer.LessThan(p.SemVer) {
-			latest = p
+func createSearchResult(l *linkBuilder, pds []*packages_models.PackageDescriptor) *SearchResult {
+	latest := pds[0]
+	versions := make([]*SearchResultVersion, 0, len(pds))
+	for _, pd := range pds {
+		if latest.SemVer.LessThan(pd.SemVer) {
+			latest = pd
 		}
 
 		versions = append(versions, &SearchResultVersion{
-			RegistrationLeafURL: l.GetRegistrationLeafURL(p.Name, p.Version),
-			Version:             p.Version,
+			RegistrationLeafURL: l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
+			Version:             pd.Version.Version,
 		})
 	}
 
+	metadata := latest.Metadata.(*nuget_module.Metadata)
+
 	return &SearchResult{
-		ID:                   latest.Name,
-		Version:              latest.Version,
+		ID:                   latest.Package.Name,
+		Version:              latest.Version.Version,
 		Versions:             versions,
-		Description:          latest.Metadata.Description,
-		Authors:              latest.Metadata.Authors,
-		ProjectURL:           latest.Metadata.ProjectURL,
-		RegistrationIndexURL: l.GetRegistrationIndexURL(latest.Name),
+		Description:          metadata.Description,
+		Authors:              metadata.Authors,
+		ProjectURL:           metadata.ProjectURL,
+		RegistrationIndexURL: l.GetRegistrationIndexURL(latest.Package.Name),
 	}
 }
 

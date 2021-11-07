@@ -1,18 +1,18 @@
-{{if eq .Package.Type 2}}
+{{if eq .PackageDescriptor.Package.Type "npm"}}
 	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
 				<label for="registry-input">{{svg "octicon-code"}} {{.i18n.Tr "repo.packages.npm.registry" | Safe}}</label>
-				<input id="registry-input" type="text" readonly="readonly" value="{{.Metadata.Scope}}:registry={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/npm">
+				<input id="registry-input" type="text" readonly="readonly" value="{{.PackageDescriptor.Metadata.Scope}}:registry={{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/npm">
 			</div>
 			<div class="field">
 				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.npm.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.Package.Name}}@{{.Package.Version}}">
+				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.PackageDescriptor.Package.Name}}@{{.PackageDescriptor.Version.Version}}">
 			</div>
 			<div class="field">
 				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.npm.install2"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="&quot;{{.Package.Name}}&quot;: &quot;{{.Package.Version}}&quot;">
+				<input id="installation-input" type="text" readonly="readonly" value="&quot;{{.PackageDescriptor.Package.Name}}&quot;: &quot;{{.PackageDescriptor.Version.Version}}&quot;">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "repo.packages.npm.documentation" | Safe}}</label>
@@ -20,35 +20,35 @@
 		</div>
 	</div>
 
-	{{if or .Metadata.Description .Metadata.Readme}}
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.Readme}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
 		<div class="ui attached segment">
-			{{if .Metadata.Readme}}
+			{{if .PackageDescriptor.Metadata.Readme}}
 			<div class="markup markdown">
-				{{RenderMarkdownToHtml .Metadata.Readme}}
+				{{RenderMarkdownToHtml .PackageDescriptor.Metadata.Readme}}
 			</div>
-			{{else if .Metadata.Description}}
-				{{.Metadata.Description}}
+			{{else if .PackageDescriptor.Metadata.Description}}
+				{{.PackageDescriptor.Metadata.Description}}
 			{{end}}
 		</div>
 	{{end}}
 
-	{{if or .Metadata.Dependencies .Metadata.DevelopmentDependencies .Metadata.PeerDependencies .Metadata.OptionalDependencies}}
+	{{if or .PackageDescriptor.Metadata.Dependencies .PackageDescriptor.Metadata.DevelopmentDependencies .PackageDescriptor.Metadata.PeerDependencies .PackageDescriptor.Metadata.OptionalDependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .Metadata.Dependencies "title" (.i18n.Tr "repo.packages.npm.dependencies")}}
-				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .Metadata.DevelopmentDependencies "title" (.i18n.Tr "repo.packages.npm.dependencies.development")}}
-				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .Metadata.PeerDependencies "title" (.i18n.Tr "repo.packages.npm.dependencies.peer")}}
-				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .Metadata.OptionalDependencies "title" (.i18n.Tr "repo.packages.npm.dependencies.optional")}}
+				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.Dependencies "title" (.i18n.Tr "repo.packages.npm.dependencies")}}
+				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (.i18n.Tr "repo.packages.npm.dependencies.development")}}
+				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.PeerDependencies "title" (.i18n.Tr "repo.packages.npm.dependencies.peer")}}
+				{{template "repo/packages/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.OptionalDependencies "title" (.i18n.Tr "repo.packages.npm.dependencies.optional")}}
 			</div>
 		</div>
 	{{end}}
 
-	{{if or .Metadata.Keywords}}
+	{{if or .PackageDescriptor.Metadata.Keywords}}
 		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.keywords"}}</h4>
 		<div class="ui attached segment">
-			{{range .Metadata.Keywords}}
+			{{range .PackageDescriptor.Metadata.Keywords}}
 				{{.}}
 			{{end}}
 		</div>

@@ -12,8 +12,8 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util/filebuffer"
-
+	package_module "code.gitea.io/gitea/modules/packages"
+	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	package_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/hashicorp/go-version"
@@ -22,21 +22,27 @@ import (
 var packageNameRegex = regexp.MustCompile(`\A[A-Za-z0-9\.\_\-\+]+\z`)
 var filenameRegex = packageNameRegex
 
+func apiError(ctx *context.APIContext, status int, obj interface{}) {
+	package_router.LogAndProcessError(ctx, status, obj, func(message string) {
+		ctx.PlainText(status, []byte(message))
+	})
+}
+
 // DownloadPackageFile serves the specific generic package.
 func DownloadPackageFile(ctx *context.APIContext) {
 	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeGeneric, packageName, packageVersion, filename)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer s.Close()
@@ -49,53 +55,50 @@ func DownloadPackageFile(ctx *context.APIContext) {
 func UploadPackage(ctx *context.APIContext) {
 	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	upload, close, err := ctx.UploadStream()
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	if close {
 		defer upload.Close()
 	}
 
-	buf, err := filebuffer.CreateFromReader(upload, 32*1024*1024)
+	buf, err := package_module.CreateHashedBufferFromReader(upload, 32*1024*1024)
 	if err != nil {
-		log.Error("Error creating file buffer: %v", err)
-		ctx.Error(http.StatusInternalServerError, "", "")
+		log.Error("Error creating hashed buffer: %v", err)
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 	defer buf.Close()
 
-	p, err := package_service.CreatePackage(
-		ctx.User,
-		ctx.Repo.Repository,
-		packages.TypeGeneric,
-		packageName,
-		packageVersion,
-		nil,
-		false,
+	_, _, err = package_service.CreatePackageAndAddFile(
+		&package_service.PackageCreationInfo{
+			PackageInfo: package_service.PackageInfo{
+				Repository:  ctx.Repo.Repository,
+				PackageType: packages.TypeGeneric,
+				Name:        packageName,
+				Version:     packageVersion,
+			},
+			SemverCompatible: true,
+			Creator:          ctx.User,
+		},
+		&package_service.PackageFileInfo{
+			Filename: filename,
+			Data:     buf,
+			IsLead:   true,
+		},
 	)
 	if err != nil {
-		if err == packages.ErrDuplicatePackage {
-			ctx.Error(http.StatusBadRequest, "", err)
+		if err == packages.ErrDuplicatePackageVersion {
+			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
-		log.Error("Error creating package: %v", err)
-		ctx.Error(http.StatusInternalServerError, "", "")
-		return
-	}
-
-	_, err = package_service.AddFileToPackage(p, filename, buf.Size(), buf)
-	if err != nil {
-		log.Error("Error adding file to package: %v", err)
-		if err := packages.DeletePackageByID(p.ID); err != nil {
-			log.Error("Error deleting package by id: %v", err)
-		}
-		ctx.Error(http.StatusInternalServerError, "", "")
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
 
@@ -106,20 +109,27 @@ func UploadPackage(ctx *context.APIContext) {
 func DeletePackage(ctx *context.APIContext) {
 	packageName, packageVersion, _, err := sanitizeParameters(ctx)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "", err)
+		apiError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
-	err = package_service.DeletePackageByNameAndVersion(ctx.User, ctx.Repo.Repository, packages.TypeGeneric, packageName, packageVersion)
+	err = package_service.DeletePackageVersionByNameAndVersion(
+		ctx.User,
+		&package_service.PackageInfo{
+			Repository:  ctx.Repo.Repository,
+			PackageType: packages.TypeGeneric,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
-			ctx.Error(http.StatusNotFound, "", err)
+			apiError(ctx, http.StatusNotFound, err)
 			return
 		}
-		ctx.Error(http.StatusInternalServerError, "", "")
+		apiError(ctx, http.StatusInternalServerError, err)
 		return
 	}
-	ctx.PlainText(http.StatusOK, nil)
 }
 
 func sanitizeParameters(ctx *context.APIContext) (string, string, string, error) {

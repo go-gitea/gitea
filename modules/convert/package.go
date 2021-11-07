@@ -9,34 +9,27 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToPackage convert a packages.Package to api.Package
-func ToPackage(p *packages.Package) *api.Package {
-	if err := p.LoadCreator(); err != nil {
-		return &api.Package{}
-	}
-
+// ToPackage convert a packages.PackageDescriptor to api.Package
+func ToPackage(pd *packages.PackageDescriptor) *api.Package {
 	return &api.Package{
-		ID:        p.ID,
-		Creator:   ToUser(p.Creator, nil),
-		Type:      p.Type.String(),
-		Name:      p.Name,
-		Version:   p.Version,
-		CreatedAt: p.CreatedUnix.AsTime(),
-		UpdatedAt: p.CreatedUnix.AsTime(),
+		ID:        pd.Version.ID,
+		Creator:   ToUser(pd.Creator, nil),
+		Type:      string(pd.Package.Type),
+		Name:      pd.Package.Name,
+		Version:   pd.Version.Version,
+		CreatedAt: pd.Version.CreatedUnix.AsTime(),
 	}
 }
 
 // ToPackageFile converts packages.PackageFile to api.PackageFile
-func ToPackageFile(pf *packages.PackageFile) *api.PackageFile {
+func ToPackageFile(pf *packages.PackageFile, pb *packages.PackageBlob) *api.PackageFile {
 	return &api.PackageFile{
 		ID:         pf.ID,
-		Size:       pf.Size,
+		Size:       pb.Size,
 		Name:       pf.Name,
-		HashMD5:    pf.HashMD5,
-		HashSHA1:   pf.HashSHA1,
-		HashSHA256: pf.HashSHA256,
-		HashSHA512: pf.HashSHA512,
-		CreatedAt:  pf.CreatedUnix.AsTime(),
-		UpdatedAt:  pf.UpdatedUnix.AsTime(),
+		HashMD5:    pb.HashMD5,
+		HashSHA1:   pb.HashSHA1,
+		HashSHA256: pb.HashSHA256,
+		HashSHA512: pb.HashSHA512,
 	}
 }

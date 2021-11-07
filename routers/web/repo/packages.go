@@ -13,15 +13,9 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/packages/maven"
-	"code.gitea.io/gitea/modules/packages/npm"
-	"code.gitea.io/gitea/modules/packages/nuget"
-	"code.gitea.io/gitea/modules/packages/pypi"
-	"code.gitea.io/gitea/modules/packages/rubygems"
 	"code.gitea.io/gitea/modules/setting"
 
-	package_service "code.gitea.io/gitea/services/packages"
+	packages_service "code.gitea.io/gitea/services/packages"
 )
 
 const (
@@ -50,7 +44,7 @@ func Packages(ctx *context.Context) {
 
 	repo := ctx.Repo.Repository
 
-	pkgs, count, err := packages.GetLatestPackagesGrouped(&packages.PackageSearchOptions{
+	pvs, count, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
 		RepoID: repo.ID,
 		Query:  query,
 		Type:   packageType,
@@ -60,15 +54,14 @@ func Packages(ctx *context.Context) {
 		},
 	})
 	if err != nil {
-		ctx.ServerError("GetLatestPackagesGrouped", err)
+		ctx.ServerError("SearchLatestVersions", err)
 		return
 	}
 
-	for _, p := range pkgs {
-		if err := p.LoadCreator(); err != nil {
-			ctx.ServerError("LoadCreator", err)
-			return
-		}
+	pds, err := packages.GetPackageDescriptors(pvs)
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptors", err)
+		return
 	}
 
 	hasPackages, err := packages.HasRepositoryPackages(repo.ID)
@@ -78,7 +71,7 @@ func Packages(ctx *context.Context) {
 	}
 
 	ctx.Data["HasPackages"] = hasPackages
-	ctx.Data["Packages"] = pkgs
+	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
 
@@ -92,59 +85,32 @@ func Packages(ctx *context.Context) {
 
 // ViewPackage displays a single package
 func ViewPackage(ctx *context.Context) {
-	p, err := packages.GetPackageByID(ctx.ParamsInt64(":id"))
+	pv, err := packages.GetVersionByID(db.DefaultContext, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			ctx.NotFound("", nil)
 		} else {
-			ctx.ServerError("GetPackageByID", err)
+			ctx.ServerError("GetVersionByID", err)
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	pd, err := packages.GetPackageDescriptor(pv)
+	if err != nil {
+		ctx.ServerError("GetPackageDescriptor", err)
+		return
+	}
+	if pd.Repository.ID != ctx.Repo.Repository.ID {
 		ctx.NotFound("", nil)
 		return
 	}
-	if err := p.LoadCreator(); err != nil {
-		ctx.ServerError("LoadCreator", err)
-		return
-	}
 
-	ctx.Data["Title"] = p.Name
+	ctx.Data["Title"] = pd.Package.Name
 	ctx.Data["IsPackagesPage"] = true
-	ctx.Data["Package"] = p
+	ctx.Data["PackageDescriptor"] = pd
 
-	var metadata interface{}
-	switch p.Type {
-	case packages.TypeNuGet:
-		metadata = &nuget.Metadata{}
-	case packages.TypeNpm:
-		metadata = &npm.Metadata{}
-	case packages.TypeMaven:
-		metadata = &maven.Metadata{}
-	case packages.TypePyPI:
-		metadata = &pypi.Metadata{}
-	case packages.TypeRubyGems:
-		metadata = &rubygems.Metadata{}
-	}
-	if metadata != nil {
-		if err := json.Unmarshal([]byte(p.MetadataRaw), &metadata); err != nil {
-			ctx.ServerError("Unmarshal", err)
-			return
-		}
-	}
-	ctx.Data["Metadata"] = metadata
-
-	files, err := p.GetFiles()
+	otherVersions, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, pd.Package.Type, pd.Package.LowerName)
 	if err != nil {
-		ctx.ServerError("GetFiles", err)
-		return
-	}
-	ctx.Data["Files"] = files
-
-	otherVersions, err := packages.GetPackagesByName(ctx.Repo.Repository.ID, p.Type, p.LowerName)
-	if err != nil {
-		ctx.ServerError("GetPackagesByName", err)
+		ctx.ServerError("GetVersionsByPackageName", err)
 		return
 	}
 	sort.Slice(otherVersions, func(i, j int) bool {
@@ -161,7 +127,7 @@ func ViewPackage(ctx *context.Context) {
 
 // DeletePackagePost deletes a package
 func DeletePackagePost(ctx *context.Context) {
-	err := package_service.DeletePackageByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
+	err := packages_service.DeleteVersionByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -173,13 +139,13 @@ func DeletePackagePost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	s, pf, err := package_service.GetFileStreamByPackageID(ctx.Repo.Repository, ctx.ParamsInt64(":id"), ctx.Params(":filename"))
+	s, pf, err := packages_service.GetFileStreamByPackageVersionID(ctx.Repo.Repository, ctx.ParamsInt64(":id"), ctx.Params(":filename"))
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.NotFound("", err)
 			return
 		}
-		ctx.ServerError("GetFileStreamByPackageID", err)
+		ctx.ServerError("GetFileStreamByPackageVersionID", err)
 		return
 	}
 	defer s.Close()
