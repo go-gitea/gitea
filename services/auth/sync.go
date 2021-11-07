@@ -7,7 +7,7 @@ package auth
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -29,7 +29,7 @@ func SyncExternalUsers(ctx context.Context, updateExisting bool) error {
 		select {
 		case <-ctx.Done():
 			log.Warn("SyncExternalUsers: Cancelled before update of %s", s.Name)
-			return models.ErrCancelledf("Before update of %s", s.Name)
+			return db.ErrCancelledf("Before update of %s", s.Name)
 		default:
 		}
 

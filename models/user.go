@@ -1356,7 +1356,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 	for _, u := range users {
 		select {
 		case <-ctx.Done():
-			return ErrCancelledf("Before delete inactive user %s", u.Name)
+			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
 		if err = DeleteUser(u); err != nil {
