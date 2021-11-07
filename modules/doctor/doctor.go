@@ -5,6 +5,7 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -42,12 +43,12 @@ func (w *wrappedLevelLogger) Log(skip int, level log.Level, format string, v ...
 			}, v...)...)
 }
 
-func initDBDisableConsole(disableConsole bool) error {
+func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
 	setting.NewContext()
 	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
-	if err := db.InitEngine(); err != nil {
+	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("models.SetEngine: %v", err)
 	}
 	return nil
@@ -57,7 +58,7 @@ func initDBDisableConsole(disableConsole bool) error {
 var Checks []*Check
 
 // RunChecks runs the doctor checks for the provided list
-func RunChecks(logger log.Logger, autofix bool, checks []*Check) error {
+func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*Check) error {
 	wrappedLogger := log.LevelLoggerLogger{
 		LevelLogger: &wrappedLevelLogger{logger},
 	}
@@ -67,7 +68,7 @@ func RunChecks(logger log.Logger, autofix bool, checks []*Check) error {
 		if !dbIsInit && !check.SkipDatabaseInitialization {
 			// Only open database after the most basic configuration check
 			setting.EnableXORMLog = false
-			if err := initDBDisableConsole(true); err != nil {
+			if err := initDBDisableConsole(ctx, true); err != nil {
 				logger.Error("Error whilst initializing the database: %v", err)
 				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
