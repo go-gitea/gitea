@@ -440,13 +440,13 @@ func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*User, error) {
 		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
-func getOrgsByUserID(sess db.Engine, userID int64, showAll bool) ([]*User, error) {
+func getOrgsByUserID(e db.Engine, userID int64, showAll bool) ([]*Organization, error) {
 	orgs := make([]*Organization, 0, 10)
+	sess := e.Where("`org_user`.uid=?", userID)
 	if !showAll {
-		sess.Where("`org_user`.is_public=?", true)
+		sess = sess.Where("`org_user`.is_public=?", true)
 	}
 	return orgs, sess.
-		Where("`org_user`.uid=?", userID).
 		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
 		Asc("`user`.name").
 		Find(&orgs)
@@ -454,7 +454,7 @@ func getOrgsByUserID(sess db.Engine, userID int64, showAll bool) ([]*User, error
 
 // GetOrgsByUserID returns a list of organizations that the given user ID
 // has joined.
-func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
+func GetOrgsByUserID(userID int64, showAll bool) ([]*Organization, error) {
 	return getOrgsByUserID(db.GetEngine(db.DefaultContext), userID, showAll)
 }
 
