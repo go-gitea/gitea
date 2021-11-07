@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/login"
@@ -207,7 +208,7 @@ func TestAddLdapBindDn(t *testing.T) {
 		// Mock functions.
 		var createdLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
@@ -438,7 +439,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 		// Mock functions.
 		var createdLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
@@ -863,7 +864,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 		// Mock functions.
 		var updatedLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
@@ -1227,7 +1228,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 		// Mock functions.
 		var updatedLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
