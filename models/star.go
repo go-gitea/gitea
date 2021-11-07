@@ -23,44 +23,44 @@ func init() {
 
 // StarRepo or unstar repository.
 func StarRepo(userID, repoID int64, star bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	staring := isStaring(db.GetEngine(ctx), userID, repoID)
 
 	if star {
-		if isStaring(sess, userID, repoID) {
+		if staring {
 			return nil
 		}
 
-		if _, err := sess.Insert(&Star{UID: userID, RepoID: repoID}); err != nil {
+		if err := db.Insert(ctx, &Star{UID: userID, RepoID: repoID}); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars + 1 WHERE id = ?", repoID); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars + 1 WHERE id = ?", userID); err != nil {
 			return err
 		}
 	} else {
-		if !isStaring(sess, userID, repoID) {
+		if !staring {
 			return nil
 		}
 
-		if _, err := sess.Delete(&Star{UID: userID, RepoID: repoID}); err != nil {
+		if _, err := db.DeleteByExample(ctx, &Star{UID: userID, RepoID: repoID}); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {
 			return err
 		}
-		if _, err := sess.Exec("UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars = num_stars - 1 WHERE id = ?", userID); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // IsStaring checks if user has starred given repository.

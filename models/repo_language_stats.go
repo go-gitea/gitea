@@ -112,11 +112,12 @@ func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error)
 
 // UpdateLanguageStats updates the language statistics for repository
 func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	defer sess.Close()
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	oldstats, err := repo.getLanguageStats(sess)
 	if err != nil {
@@ -178,16 +179,18 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]in
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
 func CopyLanguageStat(originalRepo, destRepo *Repository) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
 	RepoLang := make(LanguageStatList, 0, 6)
 	if err := sess.Where("`repo_id` = ?", originalRepo.ID).Desc("`size`").Find(&RepoLang); err != nil {
 		return err
@@ -207,5 +210,5 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 			return err
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }

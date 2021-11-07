@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Organization represents an organization
@@ -441,13 +440,13 @@ func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*User, error) {
 		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
-func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*Organization, error) {
+func getOrgsByUserID(sess db.Engine, userID int64, showAll bool) ([]*User, error) {
 	orgs := make([]*Organization, 0, 10)
 	if !showAll {
-		sess.And("`org_user`.is_public=?", true)
+		sess.Where("`org_user`.is_public=?", true)
 	}
 	return orgs, sess.
-		And("`org_user`.uid=?", userID).
+		Where("`org_user`.uid=?", userID).
 		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
 		Asc("`user`.name").
 		Find(&orgs)
@@ -455,10 +454,8 @@ func getOrgsByUserID(sess *xorm.Session, userID int64, showAll bool) ([]*Organiz
 
 // GetOrgsByUserID returns a list of organizations that the given user ID
 // has joined.
-func GetOrgsByUserID(userID int64, showAll bool) ([]*Organization, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	return getOrgsByUserID(sess, userID, showAll)
+func GetOrgsByUserID(userID int64, showAll bool) ([]*User, error) {
+	return getOrgsByUserID(db.GetEngine(db.DefaultContext), userID, showAll)
 }
 
 // MinimalOrg represents a simple orgnization with only needed columns
@@ -466,9 +463,6 @@ type MinimalOrg = Organization
 
 // GetUserOrgsList returns one user's all orgs list
 func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
 	schema, err := db.TableInfo(new(User))
 	if err != nil {
 		return nil, err
@@ -491,6 +485,7 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 	groupByStr := groupByCols.String()
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
+	sess := db.GetEngine(db.DefaultContext)
 	sess.Select(groupByStr+", count(distinct repo_id) as org_count").
 		Table("user").
 		Join("INNER", "team", "`team`.org_id = `user`.id").
@@ -524,7 +519,7 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 	return orgs, nil
 }
 
-func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
+func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*User, error) {
 	orgs := make([]*User, 0, 10)
 	return orgs, sess.
 		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
@@ -572,9 +567,7 @@ func HasOrgsVisible(orgs []*Organization, user *User) bool {
 
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
 func GetOwnedOrgsByUserID(userID int64) ([]*User, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	return getOwnedOrgsByUserID(sess, userID)
+	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext), userID)
 }
 
 // GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
@@ -664,11 +657,11 @@ func AddOrgUser(orgID, uid int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	ou := &OrgUser{
 		UID:      uid,
@@ -676,19 +669,13 @@ func AddOrgUser(orgID, uid int64) error {
 		IsPublic: setting.Service.DefaultOrgMemberVisible,
 	}
 
-	if _, err := sess.Insert(ou); err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("AddOrgUser: sess.Rollback: %v", err)
-		}
+	if err := db.Insert(ctx, ou); err != nil {
 		return err
-	} else if _, err = sess.Exec("UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("AddOrgUser: sess.Rollback: %v", err)
-		}
+	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members = num_members + 1 WHERE id = ?", orgID); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetOrgByIDCtx returns the user object by given ID if exists.
