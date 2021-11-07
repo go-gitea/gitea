@@ -58,11 +58,13 @@ func runMigrateTask(t *models.Task) (err error) {
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Message = err.Error()
-		if err := t.UpdateCols("status", "errors", "end_time"); err != nil {
-			log.Error("Task UpdateCols failed: %v", err)
-		}
 
 		_ = t.LoadRepo()
+
+		t.RepoID = 0
+		if err := t.UpdateCols("status", "errors", "repo_id", "end_time"); err != nil {
+			log.Error("Task UpdateCols failed: %v", err)
+		}
 
 		if t.Repo != nil {
 			if errDelete := models.DeleteRepository(t.Doer, t.OwnerID, t.Repo.ID); errDelete != nil {
