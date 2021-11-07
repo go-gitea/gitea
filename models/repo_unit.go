@@ -21,7 +21,7 @@ import (
 type RepoUnit struct {
 	ID          int64
 	RepoID      int64              `xorm:"INDEX(s)"`
-	Type        unit.UnitType      `xorm:"INDEX(s)"`
+	Type        unit.Type          `xorm:"INDEX(s)"`
 	Config      convert.Conversion `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
@@ -155,16 +155,16 @@ func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch unit.UnitType(login.Cell2Int64(val)) {
-		case unit.UnitTypeCode, unit.UnitTypeReleases, unit.UnitTypeWiki, unit.UnitTypeProjects:
+		switch unit.Type(login.Cell2Int64(val)) {
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 			r.Config = new(UnitConfig)
-		case unit.UnitTypeExternalWiki:
+		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
-		case unit.UnitTypeExternalTracker:
+		case unit.TypeExternalTracker:
 			r.Config = new(ExternalTrackerConfig)
-		case unit.UnitTypePullRequests:
+		case unit.TypePullRequests:
 			r.Config = new(PullRequestsConfig)
-		case unit.UnitTypeIssues:
+		case unit.TypeIssues:
 			r.Config = new(IssuesConfig)
 		default:
 			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
@@ -177,32 +177,32 @@ func (r *RepoUnit) Unit() unit.Unit {
 	return unit.Units[r.Type]
 }
 
-// CodeConfig returns config for unit.UnitTypeCode
+// CodeConfig returns config for unit.TypeCode
 func (r *RepoUnit) CodeConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
-// PullRequestsConfig returns config for unit.UnitTypePullRequests
+// PullRequestsConfig returns config for unit.TypePullRequests
 func (r *RepoUnit) PullRequestsConfig() *PullRequestsConfig {
 	return r.Config.(*PullRequestsConfig)
 }
 
-// ReleasesConfig returns config for unit.UnitTypeReleases
+// ReleasesConfig returns config for unit.TypeReleases
 func (r *RepoUnit) ReleasesConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
-// ExternalWikiConfig returns config for unit.UnitTypeExternalWiki
+// ExternalWikiConfig returns config for unit.TypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
 	return r.Config.(*ExternalWikiConfig)
 }
 
-// IssuesConfig returns config for unit.UnitTypeIssues
+// IssuesConfig returns config for unit.TypeIssues
 func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 	return r.Config.(*IssuesConfig)
 }
 
-// ExternalTrackerConfig returns config for unit.UnitTypeExternalTracker
+// ExternalTrackerConfig returns config for unit.TypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }

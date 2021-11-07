@@ -2032,9 +2032,9 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 		}
 		if len(teams) != 0 {
 			checked := make([]int64, 0, len(teams))
-			unittype := unit.UnitTypeIssues
+			unittype := unit.TypeIssues
 			if issue.IsPull {
-				unittype = unit.UnitTypePullRequests
+				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
 				if team.Authorize >= AccessModeOwner {

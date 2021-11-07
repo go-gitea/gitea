@@ -583,7 +583,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.CanWrite(unit.UnitTypeIssues) {
+	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -600,7 +600,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 	var assigneeIDs = make([]int64, 0)
 	var err error
-	if ctx.Repo.CanWrite(unit.UnitTypeIssues) {
+	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {

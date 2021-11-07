@@ -103,7 +103,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	}
 	ctx.Data["Tags"] = tags
 
-	writeAccess := ctx.Repo.CanWrite(unit.UnitTypeReleases)
+	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
@@ -187,7 +187,7 @@ func SingleRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
 
-	writeAccess := ctx.Repo.CanWrite(unit.UnitTypeReleases)
+	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))

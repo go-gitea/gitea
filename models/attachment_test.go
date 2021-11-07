@@ -108,11 +108,11 @@ func TestLinkedRepository(t *testing.T) {
 		name             string
 		attachID         int64
 		expectedRepo     *Repository
-		expectedUnitType unit.UnitType
+		expectedUnitType unit.Type
 	}{
-		{"LinkedIssue", 1, &Repository{ID: 1}, unit.UnitTypeIssues},
-		{"LinkedComment", 3, &Repository{ID: 1}, unit.UnitTypePullRequests},
-		{"LinkedRelease", 9, &Repository{ID: 1}, unit.UnitTypeReleases},
+		{"LinkedIssue", 1, &Repository{ID: 1}, unit.TypeIssues},
+		{"LinkedComment", 3, &Repository{ID: 1}, unit.TypePullRequests},
+		{"LinkedRelease", 9, &Repository{ID: 1}, unit.TypeReleases},
 		{"Notlinked", 10, nil, -1},
 	}
 	for _, tc := range testCases {

@@ -486,18 +486,18 @@ func RegisterRoutes(m *web.Route) {
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
-	reqRepoCodeWriter := context.RequireRepoWriter(unit.UnitTypeCode)
-	reqRepoCodeReader := context.RequireRepoReader(unit.UnitTypeCode)
-	reqRepoReleaseWriter := context.RequireRepoWriter(unit.UnitTypeReleases)
-	reqRepoReleaseReader := context.RequireRepoReader(unit.UnitTypeReleases)
-	reqRepoWikiWriter := context.RequireRepoWriter(unit.UnitTypeWiki)
-	reqRepoIssueWriter := context.RequireRepoWriter(unit.UnitTypeIssues)
-	reqRepoIssueReader := context.RequireRepoReader(unit.UnitTypeIssues)
-	reqRepoPullsReader := context.RequireRepoReader(unit.UnitTypePullRequests)
-	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.UnitTypeIssues, unit.UnitTypePullRequests)
-	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.UnitTypeIssues, unit.UnitTypePullRequests)
-	reqRepoProjectsReader := context.RequireRepoReader(unit.UnitTypeProjects)
-	reqRepoProjectsWriter := context.RequireRepoWriter(unit.UnitTypeProjects)
+	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
+	reqRepoCodeReader := context.RequireRepoReader(unit.TypeCode)
+	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
+	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
+	reqRepoWikiWriter := context.RequireRepoWriter(unit.TypeWiki)
+	reqRepoIssueWriter := context.RequireRepoWriter(unit.TypeIssues)
+	reqRepoIssueReader := context.RequireRepoReader(unit.TypeIssues)
+	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
+	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.TypeIssues, unit.TypePullRequests)
+	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
+	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
+	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -920,12 +920,12 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/{period}", repo.Activity)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.UnitTypePullRequests, unit.UnitTypeIssues, unit.UnitTypeReleases))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.UnitTypeCode))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypeCode))
 
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)

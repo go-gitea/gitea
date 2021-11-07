@@ -36,7 +36,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 		var hasPerm bool
 		var err error
 		if user != nil {
-			hasPerm, err = models.HasAccessUnit(user, repo, unit.UnitTypeCode, models.AccessModeWrite)
+			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, models.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}

@@ -370,7 +370,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(repo *models.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []unit.UnitType{unit.UnitTypeWiki}); err != nil {
+	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 

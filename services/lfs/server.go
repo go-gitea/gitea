@@ -490,7 +490,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 
-	canRead := perm.CanAccess(accessMode, unit.UnitTypeCode)
+	canRead := perm.CanAccess(accessMode, unit.TypeCode)
 	if canRead && (!requireSigned || ctx.IsSigned) {
 		return true
 	}

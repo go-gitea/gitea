@@ -27,7 +27,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	hasIssues := false
 	var internalTracker *api.InternalTracker
 	var externalTracker *api.ExternalTracker
-	if unit, err := repo.GetUnit(unit_model.UnitTypeIssues); err == nil {
+	if unit, err := repo.GetUnit(unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -35,7 +35,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(unit_model.UnitTypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -46,9 +46,9 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(unit_model.UnitTypeWiki); err == nil {
+	if _, err := repo.GetUnit(unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(unit_model.UnitTypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
@@ -62,7 +62,7 @@ func getRepoEditOptionFromRepo(repo *models.Repository) *api.EditRepoOption {
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
-	if unit, err := repo.GetUnit(unit_model.UnitTypePullRequests); err == nil {
+	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts

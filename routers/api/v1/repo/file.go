@@ -183,12 +183,12 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
 func canWriteFiles(r *context.Repository) bool {
-	return r.Permission.CanWrite(unit.UnitTypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
+	return r.Permission.CanWrite(unit.TypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
 func canReadFiles(r *context.Repository) bool {
-	return r.Permission.CanRead(unit.UnitTypeCode)
+	return r.Permission.CanRead(unit.TypeCode)
 }
 
 // CreateFile handles API call for creating a file

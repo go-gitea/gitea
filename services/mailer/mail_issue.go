@@ -115,9 +115,9 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 }
 
 func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
-	checkUnit := unit.UnitTypeIssues
+	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
-		checkUnit = unit.UnitTypePullRequests
+		checkUnit = unit.TypePullRequests
 	}
 
 	langMap := make(map[string][]*models.User)

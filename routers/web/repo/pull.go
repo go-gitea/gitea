@@ -74,11 +74,11 @@ func getRepository(ctx *context.Context, repoID int64) *models.Repository {
 		return nil
 	}
 
-	if !perm.CanRead(unit.UnitTypeCode) {
+	if !perm.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
 			"User in repo has Permissions: %-+v",
 			ctx.User,
-			unit.UnitTypeCode,
+			unit.TypeCode,
 			ctx.Repo,
 			perm)
 		ctx.NotFound("getRepository", nil)
@@ -1035,7 +1035,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.UnitTypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -1222,7 +1222,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
-	if !perm.CanWrite(unit.UnitTypeCode) {
+	if !perm.CanWrite(unit.TypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}

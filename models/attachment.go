@@ -63,25 +63,25 @@ func (a *Attachment) DownloadURL() string {
 }
 
 // LinkedRepository returns the linked repo if any
-func (a *Attachment) LinkedRepository() (*Repository, unit.UnitType, error) {
+func (a *Attachment) LinkedRepository() (*Repository, unit.Type, error) {
 	if a.IssueID != 0 {
 		iss, err := GetIssueByID(a.IssueID)
 		if err != nil {
-			return nil, unit.UnitTypeIssues, err
+			return nil, unit.TypeIssues, err
 		}
 		repo, err := GetRepositoryByID(iss.RepoID)
-		unitType := unit.UnitTypeIssues
+		unitType := unit.TypeIssues
 		if iss.IsPull {
-			unitType = unit.UnitTypePullRequests
+			unitType = unit.TypePullRequests
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
 		rel, err := GetReleaseByID(a.ReleaseID)
 		if err != nil {
-			return nil, unit.UnitTypeReleases, err
+			return nil, unit.TypeReleases, err
 		}
 		repo, err := GetRepositoryByID(rel.RepoID)
-		return repo, unit.UnitTypeReleases, err
+		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil
 }

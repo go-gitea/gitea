@@ -143,7 +143,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	// 4. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(unit.UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}

@@ -898,7 +898,7 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 			return false, err
 		}
 
-		permResult = perm.CanAccess(AccessModeWrite, unit.UnitTypePullRequests)
+		permResult = perm.CanAccess(AccessModeWrite, unit.TypePullRequests)
 		if !permResult {
 			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
 				return false, err

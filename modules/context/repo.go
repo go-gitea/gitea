@@ -74,12 +74,12 @@ type Repository struct {
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(unit.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
+	return r.Permission.CanWrite(unit.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
-	return r.Permission.CanWrite(unit.UnitTypeCode) && r.Repository.CanCreateBranch()
+	return r.Permission.CanWrite(unit.TypeCode) && r.Repository.CanCreateBranch()
 }
 
 // RepoMustNotBeArchived checks if a repo is archived
@@ -278,7 +278,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if !perm.CanRead(unit.UnitTypeCode) {
+	if !perm.CanRead(unit.TypeCode) {
 		repo.TemplateID = 0
 	}
 }
@@ -463,7 +463,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit_model.UnitTypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(unit_model.TypeExternalTracker)
 	if err == nil {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
@@ -487,9 +487,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 	ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
 	ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
-	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.UnitTypeCode)
-	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.UnitTypeIssues)
-	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.UnitTypePullRequests)
+	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
+	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
 	if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 		ctx.ServerError("CanUserFork", err)
@@ -579,7 +579,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 	// People who have push access or have forked repository can propose a new pull request.
-	canPush := ctx.Repo.CanWrite(unit_model.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -899,14 +899,14 @@ func GitHookService() func(ctx *Context) {
 // UnitTypes returns a middleware to set unit types to context variables.
 func UnitTypes() func(ctx *Context) {
 	return func(ctx *Context) {
-		ctx.Data["UnitTypeCode"] = unit.UnitTypeCode
-		ctx.Data["UnitTypeIssues"] = unit.UnitTypeIssues
-		ctx.Data["UnitTypePullRequests"] = unit.UnitTypePullRequests
-		ctx.Data["UnitTypeReleases"] = unit.UnitTypeReleases
-		ctx.Data["UnitTypeWiki"] = unit.UnitTypeWiki
-		ctx.Data["UnitTypeExternalWiki"] = unit.UnitTypeExternalWiki
-		ctx.Data["UnitTypeExternalTracker"] = unit.UnitTypeExternalTracker
-		ctx.Data["UnitTypeProjects"] = unit.UnitTypeProjects
+		ctx.Data["UnitTypeCode"] = unit.TypeCode
+		ctx.Data["UnitTypeIssues"] = unit.TypeIssues
+		ctx.Data["UnitTypePullRequests"] = unit.TypePullRequests
+		ctx.Data["UnitTypeReleases"] = unit.TypeReleases
+		ctx.Data["UnitTypeWiki"] = unit.TypeWiki
+		ctx.Data["UnitTypeExternalWiki"] = unit.TypeExternalWiki
+		ctx.Data["UnitTypeExternalTracker"] = unit.TypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = unit.TypeProjects
 	}
 }
 

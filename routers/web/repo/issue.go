@@ -83,13 +83,13 @@ func MustAllowUserComment(ctx *context.Context) {
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.CanRead(unit.UnitTypeIssues) &&
-		!ctx.Repo.CanRead(unit.UnitTypeExternalTracker) {
+	if !ctx.Repo.CanRead(unit.TypeIssues) &&
+		!ctx.Repo.CanRead(unit.TypeExternalTracker) {
 		ctx.NotFound("MustEnableIssues", nil)
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(unit.UnitTypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
 	if err == nil {
 		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
 		return
@@ -98,7 +98,7 @@ func MustEnableIssues(ctx *context.Context) {
 
 // MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.UnitTypePullRequests) {
+	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
 		ctx.NotFound("MustAllowPulls", nil)
 		return
 	}
@@ -791,7 +791,7 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.UnitTypeProjects)
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -829,7 +829,7 @@ func NewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.UnitTypeIssues)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
@@ -1066,7 +1066,7 @@ func getBranchData(ctx *context.Context, issue *models.Issue) {
 func ViewIssue(ctx *context.Context) {
 	if ctx.Params(":type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
-		extIssueUnit, err := ctx.Repo.Repository.GetUnit(unit.UnitTypeExternalTracker)
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas()
@@ -1115,9 +1115,9 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
-	if issue.IsPull && !ctx.Repo.CanRead(unit.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
 		ctx.Data["IssueType"] = "pulls"
-	} else if !issue.IsPull && !ctx.Repo.CanRead(unit.UnitTypePullRequests) {
+	} else if !issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) {
 		ctx.Data["IssueType"] = "issues"
 	} else {
 		ctx.Data["IssueType"] = "all"
@@ -1126,7 +1126,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.UnitTypeProjects)
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -1225,7 +1225,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		canChooseReviewer := ctx.Repo.CanWrite(unit.UnitTypePullRequests)
+		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
 		if !canChooseReviewer && ctx.User != nil && ctx.IsSigned {
 			canChooseReviewer, err = models.IsOfficialReviewer(issue, ctx.User)
 			if err != nil {
@@ -1482,7 +1482,7 @@ func ViewIssue(ctx *context.Context) {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
 				}
-				if perm.CanWrite(unit.UnitTypeCode) {
+				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
 					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
 						log.Error("IsProtectedBranch: %v", err)
@@ -1513,7 +1513,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		prUnit, err := repo.GetUnit(unit.UnitTypePullRequests)
+		prUnit, err := repo.GetUnit(unit.TypePullRequests)
 		if err != nil {
 			ctx.ServerError("GetUnit", err)
 			return
@@ -1615,7 +1615,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.UnitTypeProjects)
+	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
@@ -1642,8 +1642,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
-	if issue.IsPull && !ctx.Repo.CanRead(unit.UnitTypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanRead(unit.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -1668,8 +1668,8 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		return nil
 	}
 	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.CanRead(unit.UnitTypeIssues)
-	prUnitEnabled := ctx.Repo.CanRead(unit.UnitTypePullRequests)
+	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
+	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)

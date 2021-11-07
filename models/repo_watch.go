@@ -246,9 +246,9 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				permCode[i] = perm.CanRead(unit.UnitTypeCode)
-				permIssue[i] = perm.CanRead(unit.UnitTypeIssues)
-				permPR[i] = perm.CanRead(unit.UnitTypePullRequests)
+				permCode[i] = perm.CanRead(unit.TypeCode)
+				permIssue[i] = perm.CanRead(unit.TypeIssues)
+				permPR[i] = perm.CanRead(unit.TypePullRequests)
 			}
 		}
 

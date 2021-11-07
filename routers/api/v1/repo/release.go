@@ -115,7 +115,7 @@ func ListReleases(ctx *context.APIContext) {
 
 	opts := models.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.UnitTypeReleases) >= models.AccessModeWrite,
+		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= models.AccessModeWrite,
 		IncludeTags:   false,
 		IsDraft:       ctx.FormOptionalBool("draft"),
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),

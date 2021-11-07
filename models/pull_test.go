@@ -256,7 +256,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	externalTracker := RepoUnit{
-		Type: unit.UnitTypeExternalTracker,
+		Type: unit.TypeExternalTracker,
 		Config: &ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},

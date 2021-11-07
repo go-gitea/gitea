@@ -33,7 +33,7 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, "testOwner", metas["user"])
 
 	externalTracker := RepoUnit{
-		Type: unit.UnitTypeExternalTracker,
+		Type: unit.TypeExternalTracker,
 		Config: &ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},

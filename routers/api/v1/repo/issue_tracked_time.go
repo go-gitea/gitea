@@ -109,7 +109,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	cantSetUser := !ctx.User.IsAdmin &&
 		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]unit.UnitType{unit.UnitTypeIssues})
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
@@ -528,7 +528,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 	cantSetUser := !ctx.User.IsAdmin &&
 		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]unit.UnitType{unit.UnitTypeIssues})
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {

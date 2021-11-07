@@ -91,7 +91,7 @@ func (ctx *Context) IsUserRepoAdmin() bool {
 }
 
 // IsUserRepoWriter returns true if current user has write privilege in current repo
-func (ctx *Context) IsUserRepoWriter(unitTypes []unit.UnitType) bool {
+func (ctx *Context) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	for _, unitType := range unitTypes {
 		if ctx.Repo.CanWrite(unitType) {
 			return true
@@ -102,7 +102,7 @@ func (ctx *Context) IsUserRepoWriter(unitTypes []unit.UnitType) bool {
 }
 
 // IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
-func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.UnitType) bool {
+func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.Type) bool {
 	return ctx.Repo.CanRead(unitType)
 }
 
@@ -734,10 +734,10 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
-			ctx.Data["UnitWikiGlobalDisabled"] = unit.UnitTypeWiki.UnitGlobalDisabled()
-			ctx.Data["UnitIssuesGlobalDisabled"] = unit.UnitTypeIssues.UnitGlobalDisabled()
-			ctx.Data["UnitPullsGlobalDisabled"] = unit.UnitTypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = unit.UnitTypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

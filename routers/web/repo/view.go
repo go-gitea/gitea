@@ -354,7 +354,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(unit_model.UnitTypeCode) && ctx.Repo.IsViewBranch {
+	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
@@ -515,7 +515,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWrite(unit_model.UnitTypeCode) {
+			} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			}
 		}
@@ -564,7 +564,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(unit_model.UnitTypeCode) {
+	} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
@@ -610,7 +610,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		var firstUnit *unit_model.Unit
 		for _, repoUnit := range ctx.Repo.Units {
-			if repoUnit.Type == unit_model.UnitTypeCode {
+			if repoUnit.Type == unit_model.TypeCode {
 				return
 			}
 

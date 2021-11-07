@@ -66,7 +66,7 @@ type CreateTeamForm struct {
 	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description      string `binding:"MaxSize(255)"`
 	Permission       string
-	Units            []unit.UnitType
+	Units            []unit.Type
 	RepoAccess       string
 	CanCreateOrgRepo bool
 }

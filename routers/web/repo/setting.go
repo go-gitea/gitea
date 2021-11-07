@@ -339,7 +339,7 @@ func SettingsPost(ctx *context.Context) {
 	case "advanced":
 		var repoChanged bool
 		var units []models.RepoUnit
-		var deleteUnitTypes []unit.UnitType
+		var deleteUnitTypes []unit.Type
 
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
@@ -350,7 +350,7 @@ func SettingsPost(ctx *context.Context) {
 			repoChanged = true
 		}
 
-		if form.EnableWiki && form.EnableExternalWiki && !unit.UnitTypeExternalWiki.UnitGlobalDisabled() {
+		if form.EnableWiki && form.EnableExternalWiki && !unit.TypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
 				ctx.Redirect(repo.Link() + "/settings")
@@ -359,29 +359,29 @@ func SettingsPost(ctx *context.Context) {
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.UnitTypeExternalWiki,
+				Type:   unit.TypeExternalWiki,
 				Config: &models.ExternalWikiConfig{
 					ExternalWikiURL: form.ExternalWikiURL,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeWiki)
-		} else if form.EnableWiki && !form.EnableExternalWiki && !unit.UnitTypeWiki.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit.TypeWiki)
+		} else if form.EnableWiki && !form.EnableExternalWiki && !unit.TypeWiki.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.UnitTypeWiki,
+				Type:   unit.TypeWiki,
 				Config: new(models.UnitConfig),
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeExternalWiki)
+			deleteUnitTypes = append(deleteUnitTypes, unit.TypeExternalWiki)
 		} else {
-			if !unit.UnitTypeExternalWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeExternalWiki)
+			if !unit.TypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit.TypeExternalWiki)
 			}
-			if !unit.UnitTypeWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeWiki)
+			if !unit.TypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit.TypeWiki)
 			}
 		}
 
-		if form.EnableIssues && form.EnableExternalTracker && !unit.UnitTypeExternalTracker.UnitGlobalDisabled() {
+		if form.EnableIssues && form.EnableExternalTracker && !unit.TypeExternalTracker.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
 				ctx.Redirect(repo.Link() + "/settings")
@@ -394,47 +394,47 @@ func SettingsPost(ctx *context.Context) {
 			}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.UnitTypeExternalTracker,
+				Type:   unit.TypeExternalTracker,
 				Config: &models.ExternalTrackerConfig{
 					ExternalTrackerURL:    form.ExternalTrackerURL,
 					ExternalTrackerFormat: form.TrackerURLFormat,
 					ExternalTrackerStyle:  form.TrackerIssueStyle,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeIssues)
-		} else if form.EnableIssues && !form.EnableExternalTracker && !unit.UnitTypeIssues.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit.TypeIssues)
+		} else if form.EnableIssues && !form.EnableExternalTracker && !unit.TypeIssues.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.UnitTypeIssues,
+				Type:   unit.TypeIssues,
 				Config: &models.IssuesConfig{
 					EnableTimetracker:                form.EnableTimetracker,
 					AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               form.EnableIssueDependencies,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeExternalTracker)
+			deleteUnitTypes = append(deleteUnitTypes, unit.TypeExternalTracker)
 		} else {
-			if !unit.UnitTypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeExternalTracker)
+			if !unit.TypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit.TypeExternalTracker)
 			}
-			if !unit.UnitTypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeIssues)
+			if !unit.TypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit.TypeIssues)
 			}
 		}
 
-		if form.EnableProjects && !unit.UnitTypeProjects.UnitGlobalDisabled() {
+		if form.EnableProjects && !unit.TypeProjects.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.UnitTypeProjects,
+				Type:   unit.TypeProjects,
 			})
-		} else if !unit.UnitTypeProjects.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypeProjects)
+		} else if !unit.TypeProjects.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit.TypeProjects)
 		}
 
-		if form.EnablePulls && !unit.UnitTypePullRequests.UnitGlobalDisabled() {
+		if form.EnablePulls && !unit.TypePullRequests.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.UnitTypePullRequests,
+				Type:   unit.TypePullRequests,
 				Config: &models.PullRequestsConfig{
 					IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
 					AllowMerge:                    form.PullsAllowMerge,
@@ -447,8 +447,8 @@ func SettingsPost(ctx *context.Context) {
 					DefaultMergeStyle:             models.MergeStyle(form.PullsDefaultMergeStyle),
 				},
 			})
-		} else if !unit.UnitTypePullRequests.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit.UnitTypePullRequests)
+		} else if !unit.TypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit.TypePullRequests)
 		}
 
 		if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {

@@ -140,13 +140,13 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(unit.UnitTypePullRequests); err == nil {
+	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		if !config.AutodetectManualMerge {
 			return false
 		}
 	} else {
-		log.Error("PullRequest[%d].BaseRepo.GetUnit(unit.UnitTypePullRequests): %v", pr.ID, err)
+		log.Error("PullRequest[%d].BaseRepo.GetUnit(unit.TypePullRequests): %v", pr.ID, err)
 		return false
 	}
 

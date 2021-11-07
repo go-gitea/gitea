@@ -237,7 +237,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 	}
 
 	issueReference := "#"
-	if pr.BaseRepo.UnitEnabled(unit.UnitTypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 		issueReference = "!"
 	}
 
@@ -339,7 +339,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
 	}
-	if pr.BaseRepo.UnitEnabled(unit.UnitTypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)

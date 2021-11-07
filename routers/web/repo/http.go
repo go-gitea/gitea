@@ -100,11 +100,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	}
 
 	isWiki := false
-	var unitType = unit.UnitTypeCode
+	var unitType = unit.TypeCode
 	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
-		unitType = unit.UnitTypeWiki
+		unitType = unit.TypeWiki
 		wikiRepoName = reponame
 		reponame = reponame[:len(reponame)-5]
 	}
@@ -271,7 +271,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(unit.UnitTypeWiki); err != nil {
+		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if models.IsErrUnitTypeNotExist(err) {
 				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
 				return

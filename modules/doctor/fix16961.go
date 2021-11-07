@@ -213,34 +213,34 @@ func fixBrokenRepoUnit16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, e
 		return false, nil
 	}
 
-	switch unit.UnitType(repoUnit.Type) {
-	case unit.UnitTypeCode, unit.UnitTypeReleases, unit.UnitTypeWiki, unit.UnitTypeProjects:
+	switch unit.Type(repoUnit.Type) {
+	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 		cfg := &models.UnitConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixUnitConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case unit.UnitTypeExternalWiki:
+	case unit.TypeExternalWiki:
 		cfg := &models.ExternalWikiConfig{}
 		repoUnit.Config = cfg
 
 		if fixed, err := fixExternalWikiConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case unit.UnitTypeExternalTracker:
+	case unit.TypeExternalTracker:
 		cfg := &models.ExternalTrackerConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixExternalTrackerConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case unit.UnitTypePullRequests:
+	case unit.TypePullRequests:
 		cfg := &models.PullRequestsConfig{}
 		repoUnit.Config = cfg
 
 		if fixed, err := fixPullRequestsConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case unit.UnitTypeIssues:
+	case unit.TypeIssues:
 		cfg := &models.IssuesConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixIssuesConfig16961(bs, cfg); !fixed {
@@ -257,7 +257,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 	type RepoUnit struct {
 		ID          int64
 		RepoID      int64
-		Type        unit.UnitType
+		Type        unit.Type
 		Config      []byte
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	}

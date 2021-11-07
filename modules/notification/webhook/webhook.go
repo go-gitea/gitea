@@ -137,7 +137,7 @@ func (m *webhookNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 
 func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
 	if issue.IsPull {
-		mode, _ := models.AccessLevelUnit(doer, issue.Repo, unit.UnitTypePullRequests)
+		mode, _ := models.AccessLevelUnit(doer, issue.Repo, unit.TypePullRequests)
 
 		if err := issue.LoadPullRequest(); err != nil {
 			log.Error("LoadPullRequest failed: %v", err)
@@ -161,7 +161,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 			return
 		}
 	} else {
-		mode, _ := models.AccessLevelUnit(doer, issue.Repo, unit.UnitTypeIssues)
+		mode, _ := models.AccessLevelUnit(doer, issue.Repo, unit.TypeIssues)
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),

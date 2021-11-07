@@ -145,7 +145,7 @@ func Dashboard(ctx *context.Context) {
 
 // Milestones render the user milestones page
 func Milestones(ctx *context.Context) {
-	if unit.UnitTypeIssues.UnitGlobalDisabled() && unit.UnitTypePullRequests.UnitGlobalDisabled() {
+	if unit.TypeIssues.UnitGlobalDisabled() && unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Milestones overview page not available as both issues and pull requests are globally disabled")
 		ctx.Status(404)
 		return
@@ -317,7 +317,7 @@ func Milestones(ctx *context.Context) {
 
 // Pulls renders the user's pull request overview page
 func Pulls(ctx *context.Context) {
-	if unit.UnitTypePullRequests.UnitGlobalDisabled() {
+	if unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Pull request overview page not available as it is globally disabled.")
 		ctx.Status(404)
 		return
@@ -325,12 +325,12 @@ func Pulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("pull_requests")
 	ctx.Data["PageIsPulls"] = true
-	buildIssueOverview(ctx, unit.UnitTypePullRequests)
+	buildIssueOverview(ctx, unit.TypePullRequests)
 }
 
 // Issues renders the user's issues overview page
 func Issues(ctx *context.Context) {
-	if unit.UnitTypeIssues.UnitGlobalDisabled() {
+	if unit.TypeIssues.UnitGlobalDisabled() {
 		log.Debug("Issues overview page not available as it is globally disabled.")
 		ctx.Status(404)
 		return
@@ -338,13 +338,13 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
-	buildIssueOverview(ctx, unit.UnitTypeIssues)
+	buildIssueOverview(ctx, unit.TypeIssues)
 }
 
 // Regexp for repos query
 var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
-func buildIssueOverview(ctx *context.Context, unitType unit.UnitType) {
+func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// ----------------------------------------------------
 	// Determine user; can be either user or organization.
@@ -398,7 +398,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.UnitType) {
 	//       - Count Issues by repo
 	// --------------------------------------------------------------------------
 
-	isPullList := unitType == unit.UnitTypePullRequests
+	isPullList := unitType == unit.TypePullRequests
 	opts := &models.IssuesOptions{
 		IsPull:     util.OptionalBoolOf(isPullList),
 		SortType:   sortType,
@@ -725,7 +725,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit.UnitType) ([]int64, error) {
+func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var userRepoIDs []int64
 	var err error
 
@@ -750,7 +750,7 @@ func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit
 
 // getActiveTeamOrOrgRepoIds gets RepoIDs for ctxUser as Organization.
 // Should be called if and only if ctxUser.IsOrganization == true.
-func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType unit.UnitType) ([]int64, error) {
+func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 	var env models.AccessibleReposEnvironment
@@ -792,7 +792,7 @@ func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.Issue
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType unit.UnitType) (map[int64]*models.Repository, error) {
+func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*models.Repository, error) {
 	repoByID := make(map[int64]*models.Repository, len(issueCountByRepo))
 	for id := range issueCountByRepo {
 		if id <= 0 {

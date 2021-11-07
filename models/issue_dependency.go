@@ -142,7 +142,7 @@ func (repo *Repository) IsDependenciesEnabled() bool {
 func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.getUnit(e, unit.UnitTypeIssues); err != nil {
+	if u, err = repo.getUnit(e, unit.TypeIssues); err != nil {
 		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}

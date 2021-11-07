@@ -560,7 +560,7 @@ func (u *User) GetRepositories(listOpts db.ListOptions, names ...string) (err er
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
+func (u *User) GetRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	sess := db.GetEngine(db.DefaultContext).Table("repository").Cols("repository.id")
@@ -575,7 +575,7 @@ func (u *User) GetRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
 
 // GetActiveRepositoryIDs returns non-archived repositories IDs where user owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetActiveRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
+func (u *User) GetActiveRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	sess := db.GetEngine(db.DefaultContext).Table("repository").Cols("repository.id")
@@ -592,7 +592,7 @@ func (u *User) GetActiveRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
 
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetOrgRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
+func (u *User) GetOrgRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	if err := db.GetEngine(db.DefaultContext).Table("repository").
@@ -613,7 +613,7 @@ func (u *User) GetOrgRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
 
 // GetActiveOrgRepositoryIDs returns non-archived repositories IDs where user's team owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetActiveOrgRepositoryIDs(units ...unit.UnitType) ([]int64, error) {
+func (u *User) GetActiveOrgRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	if err := db.GetEngine(db.DefaultContext).Table("repository").
@@ -635,7 +635,7 @@ func (u *User) GetActiveOrgRepositoryIDs(units ...unit.UnitType) ([]int64, error
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
 // Caller shall check that units is not globally disabled
-func (u *User) GetAccessRepoIDs(units ...unit.UnitType) ([]int64, error) {
+func (u *User) GetAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 	ids, err := u.GetRepositoryIDs(units...)
 	if err != nil {
 		return nil, err
@@ -649,7 +649,7 @@ func (u *User) GetAccessRepoIDs(units ...unit.UnitType) ([]int64, error) {
 
 // GetActiveAccessRepoIDs returns all non-archived repositories IDs where user's or user is a team member organizations
 // Caller shall check that units is not globally disabled
-func (u *User) GetActiveAccessRepoIDs(units ...unit.UnitType) ([]int64, error) {
+func (u *User) GetActiveAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 	ids, err := u.GetActiveRepositoryIDs(units...)
 	if err != nil {
 		return nil, err
