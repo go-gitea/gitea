@@ -63,6 +63,10 @@ func GetFilesByVersionID(ctx context.Context, versionID int64) ([]*PackageFile, 
 
 // GetFileForVersionByName gets a file of a version by name
 func GetFileForVersionByName(ctx context.Context, versionID int64, name string) (*PackageFile, error) {
+	if name == "" {
+		return nil, ErrPackageFileNotExist
+	}
+
 	pf := &PackageFile{
 		VersionID: versionID,
 		LowerName: strings.ToLower(name),
