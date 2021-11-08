@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -16,7 +17,7 @@ import (
 
 type (
 	authService struct {
-		initDB             func() error
+		initDB             func(ctx context.Context) error
 		createLoginSource  func(loginSource *login.Source) error
 		updateLoginSource  func(loginSource *login.Source) error
 		getLoginSourceByID func(id int64) (*login.Source, error)
@@ -299,7 +300,10 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -321,7 +325,10 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
 func (a *authService) updateLdapBindDn(c *cli.Context) error {
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -344,7 +351,10 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -366,7 +376,10 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 
 // updateLdapBindDn updates a new LDAP (simple auth) authentication source.
 func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 

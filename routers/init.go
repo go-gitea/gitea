@@ -6,8 +6,10 @@ package routers
 
 import (
 	"context"
+	"net"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -155,7 +157,9 @@ func GlobalInit(ctx context.Context) {
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
+			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
+			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 	} else {
 		ssh.Unused()
 	}
