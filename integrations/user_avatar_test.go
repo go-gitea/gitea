@@ -73,7 +73,7 @@ func TestUserAvatar(t *testing.T) {
 
 		user2 = db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
 
-		req = NewRequest(t, "GET", user2.AvatarLink())
+		req = NewRequest(t, "GET", user2.AvatarLinkWithSize(0))
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Can't test if the response matches because the image is re-generated on upload but checking that this at least doesn't give a 404 should be enough.

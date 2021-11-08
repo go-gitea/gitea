@@ -1,20 +1,20 @@
 import Vue from 'vue';
 import {svgs} from '../svg.js';
 
-const vueDelimiters = ['${', '}'];
+export const vueDelimiters = ['${', '}'];
 
 let vueEnvInited = false;
-function initVueEnv() {
+export function initVueEnv() {
   if (vueEnvInited) return;
   vueEnvInited = true;
 
-  const isProd = window.config.IsProd;
+  const isProd = window.config.runModeIsProd;
   Vue.config.productionTip = false;
   Vue.config.devtools = !isProd;
 }
 
 let vueSvgInited = false;
-function initVueSvg() {
+export function initVueSvg() {
   if (vueSvgInited) return;
   vueSvgInited = true;
 
@@ -36,8 +36,7 @@ function initVueSvg() {
   }
 }
 
-
-function initVueApp(el, opts = {}) {
+export function initVueApp(el, opts = {}) {
   if (typeof el === 'string') {
     el = document.querySelector(el);
   }
@@ -48,5 +47,3 @@ function initVueApp(el, opts = {}) {
     delimiters: vueDelimiters,
   }, opts));
 }
-
-export {vueDelimiters, initVueEnv, initVueSvg, initVueApp};

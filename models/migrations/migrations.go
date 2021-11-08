@@ -350,7 +350,13 @@ var migrations = []Migration{
 	NewMigration("Add renamed_branch table", addRenamedBranchTable),
 	// v198 -> v199
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
-	// v198 -> v199
+	// v199 -> v200
+	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	// v200 -> v201
+	NewMigration("Add table app_state", addTableAppState),
+	// v201 -> v202
+	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
+	// v202 -> v203
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 }
 

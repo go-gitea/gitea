@@ -29,7 +29,7 @@ func TestGetU2FRegistrationByID(t *testing.T) {
 func TestGetU2FRegistrationsByUID(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	res, err := GetU2FRegistrationsByUID(1)
+	res, err := GetU2FRegistrationsByUID(32)
 
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)

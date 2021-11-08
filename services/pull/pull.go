@@ -80,7 +80,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	defer baseGitRepo.Close()
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(),
-		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), true)
+		git.BranchPrefix+pr.BaseBranch, pr.GetGitRefName(), true, false)
 	if err != nil {
 		return err
 	}

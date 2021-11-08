@@ -36,7 +36,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
-	context2 "github.com/gorilla/context"
 	"xorm.io/xorm"
 )
 
@@ -91,11 +90,11 @@ func runPR() {
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 
-	routers.NewServices()
+	routers.InitGitServices()
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	db.NewEngine(context.Background(), func(_ *xorm.Engine) error {
+	db.InitEngineWithMigration(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	db.HasEngine = true
@@ -138,7 +137,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(c))
+	http.ListenAndServe(":8080", c)
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*

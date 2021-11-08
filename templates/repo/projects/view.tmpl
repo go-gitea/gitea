@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository">
+<div class="page-content repository projects view-project">
 	{{template "repo/header" .}}
 	<div class="ui container">
 		<div class="ui two column stackable grid">
@@ -7,7 +7,7 @@
 				{{template "repo/issue/navbar" .}}
 			</div>
 			<div class="column right aligned">
-				{{if and .CanWriteProjects (not .Repository.IsArchived) .PageIsProjects}}
+				{{if and .CanWriteProjects (not .Repository.IsArchived)}}
 					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
 				{{end}}
@@ -23,7 +23,7 @@
 							</div>
 
 							<div class="field color-field">
-								<label for="new_board_color">{{$.i18n.Tr "color"}}</label>
+								<label for="new_board_color">{{$.i18n.Tr "repo.projects.board.color"}}</label>
 								<div class="color picker column">
 									<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color_picker" name="color">
 									<div class="column precolors">
@@ -80,10 +80,10 @@
 		<div class="board">
 			{{ range $board := .Boards }}
 
-			<div class="ui segment board-column" style="background: {{.Color}}!important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
+			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 				<div class="board-column-header df ac sb">
 					<div class="ui large label board-label py-2">{{.Title}}</div>
-					{{if and $.CanWriteProjects (not $.Repository.IsArchived) $.PageIsProjects (ne .ID 0)}}
+					{{if and $.CanWriteProjects (not $.Repository.IsArchived) (ne .ID 0)}}
 						<div class="ui dropdown jump item poping up" data-variation="tiny inverted">
 							<div class="not-mobile px-3" tabindex="-1">
 								{{svg "octicon-kebab-horizontal"}}
@@ -116,7 +116,7 @@
 											</div>
 
 											<div class="field color-field">
-												<label for="new_board_color">{{$.i18n.Tr "color"}}</label>
+												<label for="new_board_color">{{$.i18n.Tr "repo.projects.board.color"}}</label>
 												<div class="color picker column">
 													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color" name="color" value="{{.Color}}">
 													<div class="column precolors">
@@ -232,7 +232,7 @@
 						{{if .Labels}}
 							<div class="extra content labels-list p-0 pt-2">
 								{{ range .Labels }}
-								<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}}" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+								<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
 								{{ end }}
 							</div>
 						{{end}}
