@@ -539,3 +539,22 @@ func TestDiffToHTML_14231(t *testing.T) {
 
 	assertEqual(t, expected, output)
 }
+
+func TestNoCrashes(t *testing.T) {
+	type testcase struct {
+		gitdiff string
+	}
+
+	tests := []testcase{
+		{
+			gitdiff: "diff --git \n--- a\t\n",
+		},
+		{
+			gitdiff: "diff --git \"0\n",
+		},
+	}
+	for _, testcase := range tests {
+		// It shouldn't crash, so don't care about the output.
+		ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
+	}
+}
