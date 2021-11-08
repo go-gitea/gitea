@@ -796,12 +796,14 @@ func validateUser(u *User) error {
 	return ValidateEmail(u.Email)
 }
 
-func updateUser(e db.Engine, u *User, emailChanged bool) error {
+func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
 	if err := validateUser(u); err != nil {
 		return err
 	}
 
-	if emailChanged {
+	e := db.GetEngine(ctx)
+
+	if changePrimaryEmail {
 		var emailAddress EmailAddress
 		has, err := e.Where("lower_email=?", strings.ToLower(u.Email)).Get(&emailAddress)
 		if err != nil {
