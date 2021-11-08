@@ -1093,7 +1093,7 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	return nil, ErrUserNotExist{0, email, 0}
 }
 
-// GetUserByEmailAddress get user from table email_address via email
+// GetUserByEmailAddress get user from table email_address via activated email
 func GetUserByEmailAddress(ctx context.Context, email string) (*User, error) {
 	email = strings.TrimSpace(email)
 	if len(email) == 0 {

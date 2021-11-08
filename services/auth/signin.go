@@ -21,30 +21,26 @@ import (
 
 // UserSignIn validates user name and password.
 func UserSignIn(username, password string) (*user_model.User, *login.Source, error) {
+	trimmedUsername := strings.TrimSpace(username)
+	if len(trimmedUsername) == 0 {
+		return nil, nil, user_model.ErrUserNotExist{Name: trimmedUsername}
+	}
+
 	var user *user_model.User
-	if strings.Contains(username, "@") {
-		// check same email
-		exist, err := user_model.IsEmailAddressExist(strings.TrimSpace(username))
+	var hasUser bool
+	var err error
+	if strings.Contains(trimmedUsername, "@") { // login with activated email address
+		user, err = user_model.GetUserByEmail(trimmedUsername)
 		if err != nil {
 			return nil, nil, err
 		}
-		if exist {
-			return nil, nil, user_model.ErrEmailAlreadyUsed{
-				Email: user.Email,
-			}
-		}
+		hasUser = true
 	} else {
-		trimmedUsername := strings.TrimSpace(username)
-		if len(trimmedUsername) == 0 {
-			return nil, nil, user_model.ErrUserNotExist{Name: username}
-		}
-
 		user = &user_model.User{LowerName: strings.ToLower(trimmedUsername)}
-	}
-
-	hasUser, err := user_model.GetUser(user)
-	if err != nil {
-		return nil, nil, err
+		hasUser, err = user_model.GetUser(user)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	if hasUser {
