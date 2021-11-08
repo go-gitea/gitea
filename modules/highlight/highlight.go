@@ -54,7 +54,7 @@ func NewContext() {
 }
 
 // Code returns a HTML version of code string with chroma syntax highlighting classes
-func Code(fileName, code string) string {
+func Code(fileName, language, code string) string {
 	NewContext()
 
 	// diff view newline will be passed as empty, change to literal \n so it can be copied
@@ -68,9 +68,16 @@ func Code(fileName, code string) string {
 	}
 
 	var lexer chroma.Lexer
-	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
-		//use mapped value to find lexer
-		lexer = lexers.Get(val)
+
+	if len(language) > 0 {
+		lexer = lexers.Get(language)
+	}
+
+	if lexer == nil {
+		if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
+			//use mapped value to find lexer
+			lexer = lexers.Get(val)
+		}
 	}
 
 	if lexer == nil {
@@ -118,7 +125,7 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 }
 
 // File returns a slice of chroma syntax highlighted lines of code
-func File(numLines int, fileName string, code []byte) []string {
+func File(numLines int, fileName, language string, code []byte) []string {
 	NewContext()
 
 	if len(code) > sizeLimit {
@@ -138,8 +145,16 @@ func File(numLines int, fileName string, code []byte) []string {
 	htmlw := bufio.NewWriter(&htmlbuf)
 
 	var lexer chroma.Lexer
-	if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
-		lexer = lexers.Get(val)
+
+	// linguist-language overrides everything
+	if len(language) > 0 {
+		lexer = lexers.Get(language)
+	}
+
+	if lexer == nil {
+		if val, ok := highlightMapping[filepath.Ext(fileName)]; ok {
+			lexer = lexers.Get(val)
+		}
 	}
 
 	if lexer == nil {

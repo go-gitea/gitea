@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -202,6 +203,25 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*models.UserCommit, previousCommits map[string]string) {
 	repoLink := ctx.Repo.RepoLink
 
+	language := ""
+
+	indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
+	if err == nil {
+		defer deleteTemporaryFile()
+
+		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
+			CachedOnly: true,
+			Attributes: []string{"linguist-language"},
+			Filenames:  []string{ctx.Repo.TreePath},
+			IndexFile:  indexFilename,
+			WorkTree:   worktree,
+		})
+		if err != nil {
+			log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+		}
+
+		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
+	}
 	var lines = make([]string, 0)
 	rows := make([]*blameRow, 0)
 
@@ -246,7 +266,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				line += "\n"
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line = highlight.Code(fileName, line)
+			line = highlight.Code(fileName, language, line)
 
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
