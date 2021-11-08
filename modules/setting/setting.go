@@ -131,6 +131,7 @@ var (
 		BuiltinServerUser                     string             `ini:"BUILTIN_SSH_SERVER_USER"`
 		Domain                                string             `ini:"SSH_DOMAIN"`
 		Port                                  int                `ini:"SSH_PORT"`
+		User                                  string             `ini:"SSH_USER"`
 		ListenHost                            string             `ini:"SSH_LISTEN_HOST"`
 		ListenPort                            int                `ini:"SSH_LISTEN_PORT"`
 		RootPath                              string             `ini:"SSH_ROOT_PATH"`
@@ -970,6 +971,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
+	SSH.User = Cfg.Section("server").Key("SSH_USER").MustString(SSH.BuiltinServerUser)
 
 	newRepository()
 
