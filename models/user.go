@@ -131,14 +131,21 @@ type User struct {
 	// Maximum repository creation limit, -1 means use global default
 	MaxRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
 
-	// Permissions
-	IsActive                bool `xorm:"INDEX"` // Activate primary email
-	IsAdmin                 bool
-	IsRestricted            bool `xorm:"NOT NULL DEFAULT false"`
+	// IsActive true: primary email is activated, user can access Web UI and Git SSH.
+	// false: an inactive user can only log in Web UI for account operations (ex: activate the account by email), no other access.
+	IsActive bool `xorm:"INDEX"`
+	// user is a Gitea admin, can access all repositories and admin pages
+	IsAdmin bool
+	// true: user is allowed to see only organizations/repositories that he has explicit rights specified
+	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
+	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
+
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
-	ProhibitLogin           bool `xorm:"NOT NULL DEFAULT false"`
+
+	// true: user is not allowed to log in Web UI. Git SSH access could still be allowed.
+	ProhibitLogin bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Avatar
 	Avatar          string `xorm:"VARCHAR(2048) NOT NULL"`
