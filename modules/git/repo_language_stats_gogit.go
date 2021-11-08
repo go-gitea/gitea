@@ -11,11 +11,10 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"os"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/go-enry/go-enry/v2"
 	"github.com/go-git/go-git/v5"
