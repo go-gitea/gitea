@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -2116,7 +2115,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 }
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
-func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
+func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
@@ -2129,7 +2128,7 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 }
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
-func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
+func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
