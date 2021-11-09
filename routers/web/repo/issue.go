@@ -1042,9 +1042,9 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 		}
 	}
 
-	// Is the poster can write code to the repo, enable Writer tag.
+	// Is the poster can write issues or pulls to the repo, enable the Writer tag.
 	// Only enable this if the poster doesn't have the owner tag already.
-	if !commentTag.HasTag("Owner") && perm.CanWrite(models.UnitTypeCode) {
+	if !commentTag.HasTag("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
 		commentTag = commentTag.WithTag(models.CommentTagWriter)
 	}
 

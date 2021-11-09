@@ -128,3 +128,28 @@ func TestRenameBranch(t *testing.T) {
 		BranchName: "main",
 	})
 }
+
+func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
+	assert.NoError(t, db.PrepareTestDatabase())
+
+	// Get deletedBranch with ID of 1 on repo with ID 2.
+	// This should return a nil branch as this deleted branch
+	// is actually on repo with ID 1.
+	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+
+	deletedBranch, err := repo2.GetDeletedBranchByID(1)
+
+	// Expect no error, and the returned branch is nil.
+	assert.NoError(t, err)
+	assert.Nil(t, deletedBranch)
+
+	// Now get the deletedBranch with ID of 1 on repo with ID 1.
+	// This should return the deletedBranch.
+	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+
+	deletedBranch, err = repo1.GetDeletedBranchByID(1)
+
+	// Expect no error, and the returned branch to be not nil.
+	assert.NoError(t, err)
+	assert.NotNil(t, deletedBranch)
+}

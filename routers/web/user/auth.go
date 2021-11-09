@@ -211,38 +211,58 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// If this user is enrolled in 2FA, we can't sign the user in just yet.
+	// If this user is enrolled in 2FA TOTP, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err = login.GetTwoFactorByUID(u.ID)
+	hasTOTPtwofa, err := login.HasTwoFactorByUID(u.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
-			handleSignIn(ctx, u, form.Remember)
-		} else {
-			ctx.ServerError("UserSignIn", err)
-		}
+		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	// User needs to use 2FA, save data and redirect to 2FA page.
+	// Check if the user has u2f registration
+	hasU2Ftwofa, err := login.HasU2FRegistrationsByUID(u.ID)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+
+	if !hasTOTPtwofa && !hasU2Ftwofa {
+		// No two factor auth configured we can sign in the user
+		handleSignIn(ctx, u, form.Remember)
+		return
+	}
+
+	// User will need to use 2FA TOTP or U2F, save data
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
 		return
 	}
+
 	if err := ctx.Session.Set("twofaRemember", form.Remember); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaRemember in session", err)
 		return
 	}
+
+	if hasTOTPtwofa {
+		// User will need to use U2F, save data
+		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
+			ctx.ServerError("UserSignIn: Unable to set u2fEnrolled in session", err)
+			return
+		}
+	}
+
 	if err := ctx.Session.Release(); err != nil {
 		ctx.ServerError("UserSignIn: Unable to save session", err)
 		return
 	}
 
-	regs, err := login.GetU2FRegistrationsByUID(u.ID)
-	if err == nil && len(regs) > 0 {
+	// If we have U2F redirect there first
+	if hasU2Ftwofa {
 		ctx.Redirect(setting.AppSubURL + "/user/u2f")
 		return
 	}
 
+	// Fallback to 2FA
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
@@ -404,6 +424,11 @@ func U2F(ctx *context.Context) {
 	if ctx.Session.Get("twofaUid") == nil {
 		ctx.ServerError("UserSignIn", errors.New("not in U2F session"))
 		return
+	}
+
+	// See whether TOTP is also available.
+	if ctx.Session.Get("totpEnrolled") != nil {
+		ctx.Data["TOTPEnrolled"] = true
 	}
 
 	ctx.HTML(http.StatusOK, tplU2F)
