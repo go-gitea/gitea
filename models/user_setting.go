@@ -42,7 +42,8 @@ func init() {
 }
 
 // GetUserSetting returns specific settings from user
-func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
+// func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
+func GetUserSetting(uid int64, keys []string) (map[string]*UserSetting, error) {
 	settings := make([]*UserSetting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
@@ -50,11 +51,15 @@ func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
 		Find(&settings); err != nil {
 		return nil, err
 	}
-	return settings, nil
+	settingsMap := make(map[string]*UserSetting)
+	for _, s := range settings {
+		settingsMap[s.SettingKey] = s
+	}
+	return settingsMap, nil
 }
 
 // GetAllUserSettings returns all settings from user
-func GetUserAllSettings(uid int64) ([]*UserSetting, error) {
+func GetUserAllSettings(uid int64) (map[string]*UserSetting, error) {
 	settings := make([]*UserSetting, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
@@ -62,7 +67,11 @@ func GetUserAllSettings(uid int64) ([]*UserSetting, error) {
 		Find(&settings); err != nil {
 		return nil, err
 	}
-	return settings, nil
+	settingsMap := make(map[string]*UserSetting)
+	for _, s := range settings {
+		settingsMap[s.SettingKey] = s
+	}
+	return settingsMap, nil
 }
 
 // DeleteUserSetting deletes a specific setting for a user

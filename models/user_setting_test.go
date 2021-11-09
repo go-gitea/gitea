@@ -26,10 +26,10 @@ func TestUserSettings(t *testing.T) {
 	userSettings, err := GetUserSetting(99, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, userSettings, 1)
-	assert.EqualValues(t, newSetting.SettingValue, userSettings[0].SettingValue)
+	assert.EqualValues(t, newSetting.SettingValue, userSettings[keyName].SettingValue)
 
 	// updated setting
-	updatedSetting := &UserSetting{UserID: 99, SettingKey: keyName, SettingValue: "Updated", ID: userSettings[0].ID}
+	updatedSetting := &UserSetting{UserID: 99, SettingKey: keyName, SettingValue: "Updated", ID: userSettings[keyName].ID}
 	err = SetUserSetting(updatedSetting)
 	assert.NoError(t, err)
 
@@ -37,7 +37,7 @@ func TestUserSettings(t *testing.T) {
 	userSettings, err = GetUserAllSettings(99)
 	assert.NoError(t, err)
 	assert.Len(t, userSettings, 1)
-	assert.EqualValues(t, userSettings[0].SettingValue, updatedSetting.SettingValue)
+	assert.EqualValues(t, userSettings[updatedSetting.SettingKey].SettingValue, updatedSetting.SettingValue)
 
 	// delete setting
 	err = DeleteUserSetting(updatedSetting)
