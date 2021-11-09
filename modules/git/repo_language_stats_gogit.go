@@ -11,7 +11,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"path/filepath"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
@@ -47,14 +46,14 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	var checker *CheckAttributeReader
 
 	if CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+		indexFilename, workTree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 		if err == nil {
 			defer deleteTemporaryFile()
 			checker = &CheckAttributeReader{
 				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
 				Repo:       repo,
 				IndexFile:  indexFilename,
-				WorkTree:   filepath.Base(indexFilename),
+				WorkTree:   workTree,
 			}
 			ctx, cancel := context.WithCancel(DefaultContext)
 			if err := checker.Init(ctx); err != nil {
