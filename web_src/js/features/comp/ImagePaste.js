@@ -1,4 +1,4 @@
-const {appSubUrl, csrfToken} = window.config;
+const {csrfToken} = window.config;
 
 async function uploadFile(file, uploadUrl) {
   const formData = new FormData();
@@ -67,7 +67,7 @@ export function initCompImagePaste($target) {
           const name = img.name.substr(0, img.name.lastIndexOf('.'));
           insertAtCursor(textarea, `![${name}]()`);
           const data = await uploadFile(img, uploadUrl);
-          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](${appSubUrl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           dropzoneFiles.appendChild(input[0]);
         }
@@ -83,7 +83,7 @@ export function initSimpleMDEImagePaste(simplemde, dropzone, files) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
       const data = await uploadFile(img, uploadUrl);
       const pos = simplemde.codemirror.getCursor();
-      simplemde.codemirror.replaceRange(`![${name}](${appSubUrl}/attachments/${data.uuid})`, pos);
+      simplemde.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
       files.append(input);
     }

@@ -120,7 +120,7 @@ func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.L
 }
 
 func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("none")
+	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 

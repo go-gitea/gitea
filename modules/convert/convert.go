@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/webhook"
@@ -158,7 +157,7 @@ func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 		commitVerification.Payload = c.Signature.Payload
 	}
 	if verif.SigningUser != nil {
-		commitVerification.Signer = &structs.PayloadUser{
+		commitVerification.Signer = &api.PayloadUser{
 			Name:  verif.SigningUser.Name,
 			Email: verif.SigningUser.Email,
 		}
