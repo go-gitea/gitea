@@ -134,7 +134,7 @@ type User struct {
 	// IsActive true: primary email is activated, user can access Web UI and Git SSH.
 	// false: an inactive user can only log in Web UI for account operations (ex: activate the account by email), no other access.
 	IsActive bool `xorm:"INDEX"`
-	// user is a Gitea admin, can access all repositories and admin pages
+	// user is a Gitea admin, who can access all repositories and the admin pages.
 	IsAdmin bool
 	// true: user is allowed to see only organizations/repositories that he has explicit rights specified
 	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
