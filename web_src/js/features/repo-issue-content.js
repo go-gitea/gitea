@@ -104,7 +104,7 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
   });
 }
 
-export function initIssueContentHistory() {
+export function initRepoIssueContentHistory() {
   const issueIndex = $('#issueIndex').val();
   const $itemIssue = $('.timeline-item.comment.first');
   if (!issueIndex || !$itemIssue.length) return;
