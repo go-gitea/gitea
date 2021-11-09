@@ -3,7 +3,18 @@
 	{{template "repo/header" .}}
 	<div class="ui container">
 		
+		<ul id="displayJobs">
+
+		</ul>
+
+		<!-- display list of timeline -->
+		<div id="displayTimeline" >
+
+		</div>	
 	</div>
+
+
+
 	<script>
 		var ghHostApiUrl = 'http://localhost:5000';
 		var owner = 'runner';
@@ -21,7 +32,21 @@
 				jobs = r;
 
 				console.log(jobs);
-		});
+
+				for (const job of jobs){
+					let lineContents = [`requestId: ${job.requestId}`, `runid: ${job.runid}`, `name: ${job.name}`, `repo: ${job.repo}`];
+					for(const lineContent of lineContents){
+						var liDOM = document.createElement("li");
+						var jobContent = document.createTextNode(lineContent);
+						liDOM.appendChild(jobContent);
+						document.getElementById('displayJobs').appendChild(liDOM);
+					}
+					let hrDOM = document.createElement("hr");
+					document.getElementById('displayJobs').appendChild(hrDOM);
+
+				}
+
+				});
 
 		var apiUrl = ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/Message";
 		(async () => {
@@ -71,6 +96,14 @@
     let timeline = [];
 		function setTimeline(f) {
 			timeline = f(timeline);
+		//	for (const tl of timeline){
+		//		var pDOM = document.createElement("p");
+		//		var tlContent = document.createTextNode(`${tl}`);
+		//		console.log(tl);
+
+		//		pDOM.appendChild(tlContent);
+		//		document.getElementById('displayTimeline').appendChild(pDOM);
+		//	}
 		}
     let artifacts = [];
 		function setArtifacts(f) {
@@ -218,6 +251,15 @@
         }
         return () => {};
 		}
+
 	</script>
+
+	<style>
+		#displayJobs {
+			list-style: none;
+
+		}  
+	</style>
+
 </div>
 {{template "base/footer" .}}
