@@ -144,7 +144,7 @@ type User struct {
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
 
-	// true: the user is not allowed to log in Web UI. Git SSH access could still be allowed.
+	// true: the user is not allowed to log in Web UI. Git/SSH access could still be allowed (please refer to Git/SSH access related code/documents)
 	ProhibitLogin bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Avatar
