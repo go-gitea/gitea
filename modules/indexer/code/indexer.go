@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	giteautil "code.gitea.io/gitea/modules/util"
 )
 
 // SearchResult result of performing a search in a repo
@@ -185,7 +186,7 @@ func Init() {
 
 			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
 			if err != nil {
-				if rIndexer != nil {
+				if !giteautil.IsInterfaceNil(rIndexer) {
 					rIndexer.Close()
 				}
 				cancel()
@@ -205,7 +206,7 @@ func Init() {
 
 			rIndexer, populate, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
-				if rIndexer != nil {
+				if !giteautil.IsInterfaceNil(rIndexer) {
 					rIndexer.Close()
 				}
 				cancel()

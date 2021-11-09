@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
+	giteautil "code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
@@ -130,7 +131,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					log.Error("%v", combinedErr)
 
 					sessionStore := session.GetSession(req)
-					if sessionStore == nil {
+					if giteautil.IsInterfaceNil(sessionStore) {
 						if setting.IsProd {
 							http.Error(w, http.StatusText(500), 500)
 						} else {

@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"reflect"
 	"strconv"
 	"strings"
 )
@@ -160,4 +161,15 @@ func RandomString(length int64) (string, error) {
 		bytes[i] = letters[num]
 	}
 	return string(bytes), nil
+}
+
+// IsInterfaceNil checks if a variable with a typed interface is nil.
+// Because interface{} == nil is always false.
+func IsInterfaceNil(i interface{}) bool {
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
+		return reflect.ValueOf(i).IsNil()
+	default:
+		return false
+	}
 }

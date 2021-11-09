@@ -169,3 +169,30 @@ func Test_OptionalBool(t *testing.T) {
 	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("t"))
 	assert.Equal(t, OptionalBoolTrue, OptionalBoolParse("True"))
 }
+
+type SampleInterface interface {
+	Hello()
+}
+
+type BasicInterface int
+
+func (BasicInterface) Hello() {
+}
+
+func returnFilledBasicInterface() BasicInterface {
+	return BasicInterface(123123)
+}
+
+func returnNil() *BasicInterface {
+	return nil
+}
+
+func TestTypedInterfaceNil(t *testing.T) {
+	var info SampleInterface
+
+	info = returnNil()
+	assert.Equal(t, IsInterfaceNil(info), true)
+
+	info = returnFilledBasicInterface()
+	assert.Equal(t, IsInterfaceNil(info), false)
+}
