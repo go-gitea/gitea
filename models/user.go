@@ -136,7 +136,7 @@ type User struct {
 	IsActive bool `xorm:"INDEX"`
 	// the user is a Gitea admin, who can access all repositories and the admin pages.
 	IsAdmin bool
-	// true: the user is only allowed to see organizations/repositories that he/she has explicit rights to.
+	// true: the user is only allowed to see organizations/repositories that they has explicit rights to.
 	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
 	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
 
