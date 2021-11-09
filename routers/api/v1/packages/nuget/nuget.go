@@ -31,9 +31,7 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 
 // ServiceIndex https://docs.microsoft.com/en-us/nuget/api/service-index
 func ServiceIndex(ctx *context.APIContext) {
-	repoName := ctx.Repo.Repository.FullName()
-
-	resp := createServiceIndexResponse(setting.AppURL + "api/v1/repos/" + repoName + "/packages/nuget")
+	resp := createServiceIndexResponse(setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget")
 
 	ctx.JSON(http.StatusOK, resp)
 }
@@ -41,9 +39,9 @@ func ServiceIndex(ctx *context.APIContext) {
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.APIContext) {
 	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		Type:   "nuget",
-		Query:  ctx.FormTrim("q"),
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    string(packages.TypeNuGet),
+		Query:   ctx.FormTrim("q"),
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
@@ -61,7 +59,7 @@ func SearchService(ctx *context.APIContext) {
 	}
 
 	resp := createSearchResultResponse(
-		&linkBuilder{setting.AppURL + "api/v1/repos/" + ctx.Repo.Repository.FullName() + "/packages/nuget"},
+		&linkBuilder{setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		count,
 		pds,
 	)
@@ -73,7 +71,7 @@ func SearchService(ctx *context.APIContext) {
 func RegistrationIndex(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNuGet, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -90,7 +88,7 @@ func RegistrationIndex(ctx *context.APIContext) {
 	}
 
 	resp := createRegistrationIndexResponse(
-		&linkBuilder{setting.AppURL + "api/v1/repos/" + ctx.Repo.Repository.FullName() + "/packages/nuget"},
+		&linkBuilder{setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pds,
 	)
 
@@ -102,7 +100,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Repo.Repository.ID, packages.TypeNuGet, packageName, packageVersion)
+	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeNuGet, packageName, packageVersion)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -119,7 +117,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 	}
 
 	resp := createRegistrationLeafResponse(
-		&linkBuilder{setting.AppURL + "api/v1/repos/" + ctx.Repo.Repository.FullName() + "/packages/nuget"},
+		&linkBuilder{setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/nuget"},
 		pd,
 	)
 
@@ -130,7 +128,7 @@ func RegistrationLeaf(ctx *context.APIContext) {
 func EnumeratePackageVersions(ctx *context.APIContext) {
 	packageName := ctx.Params("id")
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypeNuGet, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNuGet, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -157,7 +155,15 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNuGet, packageName, packageVersion, filename)
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages.TypeNuGet,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+		filename,
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -187,7 +193,7 @@ func UploadPackage(ctx *context.APIContext) {
 	_, _, err := packages_service.CreatePackageAndAddFile(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
-				Repository:  ctx.Repo.Repository,
+				Owner:       ctx.Package.Owner,
 				PackageType: packages.TypeNuGet,
 				Name:        np.ID,
 				Version:     np.Version,
@@ -229,7 +235,7 @@ func UploadSymbolPackage(ctx *context.APIContext) {
 
 	_, _, err := packages_service.AddFileToExistingPackage(
 		&packages_service.PackageInfo{
-			Repository:  ctx.Repo.Repository,
+			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeNuGet,
 			Name:        np.ID,
 			Version:     np.Version,
@@ -304,7 +310,7 @@ func DeletePackage(ctx *context.APIContext) {
 	err := packages_service.DeletePackageVersionByNameAndVersion(
 		ctx.User,
 		&packages_service.PackageInfo{
-			Repository:  ctx.Repo.Repository,
+			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeNuGet,
 			Name:        packageName,
 			Version:     packageVersion,

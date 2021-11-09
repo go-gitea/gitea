@@ -76,7 +76,8 @@ func (pt Type) SVGName() string {
 // Package represents a package
 type Package struct {
 	ID               int64 `xorm:"pk autoincr"`
-	RepoID           int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	OwnerID          int64 `xorm:"UNIQUE(s) INDEX NOT NULL"`
+	RepoID           int64 `xorm:"INDEX"`
 	Type             Type  `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name             string
 	LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`
@@ -88,7 +89,7 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 	e := db.GetEngine(ctx)
 
 	key := &Package{
-		RepoID:    p.RepoID,
+		OwnerID:   p.OwnerID,
 		Type:      p.Type,
 		LowerName: p.LowerName,
 	}
@@ -135,6 +136,11 @@ func DeletePackageByIDIfUnreferenced(ctx context.Context, packageID int64) error
 		return err
 	}
 	return nil
+}
+
+// HasOwnerPackages tests if a user/org has packages
+func HasOwnerPackages(ownerID int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).Where("owner_id = ?", ownerID).Exist(&Package{})
 }
 
 // HasRepositoryPackages tests if a repository has packages

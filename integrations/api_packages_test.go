@@ -20,8 +20,7 @@ import (
 
 func TestPackageAPI(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -29,7 +28,7 @@ func TestPackageAPI(t *testing.T) {
 	packageVersion := "1.0.3"
 	filename := "file.bin"
 
-	url := fmt.Sprintf("/api/v1/repos/%s/%s/packages/generic/%s/%s/%s?token=%s", user.Name, repository.Name, packageName, packageVersion, filename, token)
+	url := fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/%s?token=%s", user.Name, packageName, packageVersion, filename, token)
 	req := NewRequestWithBody(t, "PUT", url, bytes.NewReader([]byte{}))
 	MakeRequest(t, req, http.StatusCreated)
 
@@ -38,7 +37,7 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackages", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/packages?token=%s", user.Name, repository.Name, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", user.Name, token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var apiPackages []*api.Package
@@ -57,10 +56,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("GetPackage", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/packages/%d?token=%s", user.Name, repository.Name, 123456, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, 123456, token))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/packages/%d?token=%s", user.Name, repository.Name, packageID, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, packageID, token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var p *api.Package
@@ -76,10 +75,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("ListPackageFiles", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/packages/%d/files?token=%s", user.Name, repository.Name, 123456, token))
+		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d/files?token=%s", user.Name, 123456, token))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/packages/%d/files?token=%s", user.Name, repository.Name, packageID, token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/%d/files?token=%s", user.Name, packageID, token))
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var files []*api.PackageFile
@@ -97,10 +96,10 @@ func TestPackageAPI(t *testing.T) {
 	t.Run("DeletePackage", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/packages/%d?token=%s", user.Name, repository.Name, 123456, token))
+		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, 123456, token))
 		MakeRequest(t, req, http.StatusNotFound)
 
-		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/packages/%d?token=%s", user.Name, repository.Name, packageID, token))
+		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/%d?token=%s", user.Name, packageID, token))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
 }

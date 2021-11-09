@@ -20,8 +20,7 @@ import (
 
 func TestPackageMaven(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	groupID := "com.gitea"
 	artifactID := "test-project"
@@ -29,7 +28,7 @@ func TestPackageMaven(t *testing.T) {
 	packageVersion := "1.0.1"
 	packageDescription := "Test Description"
 
-	root := fmt.Sprintf("/api/v1/repos/%s/%s/packages/maven/%s/%s", user.Name, repository.Name, strings.ReplaceAll(groupID, ".", "/"), artifactID)
+	root := fmt.Sprintf("/api/v1/packages/%s/maven/%s/%s", user.Name, strings.ReplaceAll(groupID, ".", "/"), artifactID)
 	filename := fmt.Sprintf("%s-%s.jar", packageName, packageVersion)
 
 	putFile := func(t *testing.T, path, content string, expectedStatus int) {
@@ -44,7 +43,7 @@ func TestPackageMaven(t *testing.T) {
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusCreated)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -81,7 +80,7 @@ func TestPackageMaven(t *testing.T) {
 
 		assert.Equal(t, []byte("test"), resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(0), pvs[0].DownloadCount)
@@ -113,7 +112,7 @@ func TestPackageMaven(t *testing.T) {
 	t.Run("UploadPOM", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -123,7 +122,7 @@ func TestPackageMaven(t *testing.T) {
 
 		putFile(t, fmt.Sprintf("/%s/%s.pom", packageVersion, filename), pomContent, http.StatusCreated)
 
-		pvs, err = packages.GetVersionsByPackageType(repository.ID, packages.TypeMaven)
+		pvs, err = packages.GetVersionsByPackageType(user.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -152,7 +151,7 @@ func TestPackageMaven(t *testing.T) {
 
 		assert.Equal(t, []byte(pomContent), resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeMaven)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeMaven)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)

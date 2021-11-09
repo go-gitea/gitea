@@ -68,7 +68,7 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 	// /com/foo/project/maven-metadata.xml[.md5/.sha1/.sha256/.sha512]
 
 	packageName := params.GroupID + "-" + params.ArtifactID
-	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypeMaven, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeMaven, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -118,7 +118,7 @@ func serveMavenMetadata(ctx *context.APIContext, params parameters) {
 func servePackageFile(ctx *context.APIContext, params parameters) {
 	packageName := params.GroupID + "-" + params.ArtifactID
 
-	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Repo.Repository.ID, packages.TypeMaven, packageName, params.Version)
+	pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages.TypeMaven, packageName, params.Version)
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -209,7 +209,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	pvci := &packages_service.PackageCreationInfo{
 		PackageInfo: packages_service.PackageInfo{
-			Repository:  ctx.Repo.Repository,
+			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeMaven,
 			Name:        packageName,
 			Version:     params.Version,
@@ -222,7 +222,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 
 	// Do not upload checksum files but compare the hashes.
 	if isChecksumExtension(ext) {
-		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Repository.ID, pvci.PackageType, pvci.Name, pvci.Version)
+		pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 		if err != nil {
 			if err == packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusNotFound, err)
@@ -281,7 +281,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 		}
 
 		if pvci.Metadata != nil {
-			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Repository.ID, pvci.PackageType, pvci.Name, pvci.Version)
+			pv, err := packages.GetVersionByNameAndVersion(db.DefaultContext, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version)
 			if err != nil && err != packages.ErrPackageNotExist {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return

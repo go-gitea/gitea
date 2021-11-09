@@ -23,8 +23,7 @@ import (
 
 func TestPackageNpm(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	packageName := "@scope/test-package"
 	packageVersion := "1.0.1-pre"
@@ -57,7 +56,7 @@ func TestPackageNpm(t *testing.T) {
 		}
 	  }`
 
-	root := fmt.Sprintf("/api/v1/repos/%s/%s/packages/npm/%s", user.Name, repository.Name, url.QueryEscape(packageName))
+	root := fmt.Sprintf("/api/v1/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
@@ -67,7 +66,7 @@ func TestPackageNpm(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -107,7 +106,7 @@ func TestPackageNpm(t *testing.T) {
 		b, _ := base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNpm)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNpm)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)

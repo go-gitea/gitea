@@ -127,7 +127,7 @@ func ViewPackage(ctx *context.Context) {
 
 // DeletePackagePost deletes a package
 func DeletePackagePost(ctx *context.Context) {
-	err := packages_service.DeleteVersionByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
+	err := packages_service.DeleteVersionByID(ctx.User, nil, ctx.ParamsInt64(":id")) // TODO
 	if err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
@@ -139,7 +139,7 @@ func DeletePackagePost(ctx *context.Context) {
 
 // DownloadPackageFile serves the content of a package file
 func DownloadPackageFile(ctx *context.Context) {
-	s, pf, err := packages_service.GetFileStreamByPackageVersionID(ctx.Repo.Repository, ctx.ParamsInt64(":id"), ctx.Params(":filename"))
+	s, pf, err := packages_service.GetFileStreamByPackageVersionID(nil, ctx.ParamsInt64(":id"), ctx.Params(":filename")) // TODO
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			ctx.NotFound("", err)

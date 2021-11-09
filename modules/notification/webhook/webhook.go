@@ -830,7 +830,12 @@ func (m *webhookNotifier) NotifyPackageDelete(doer *models.User, pd *packages.Pa
 }
 
 func notifyPackage(sender *models.User, pd *packages.PackageDescriptor, action api.HookPackageAction) {
-	org := pd.Repository.MustOwner()
+	if pd.Repository == nil {
+		//TODO
+		return
+	}
+
+	org := pd.Owner
 	if !org.IsOrganization() {
 		org = nil
 	}

@@ -29,7 +29,7 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 
 // EnumeratePackages serves the package list
 func EnumeratePackages(ctx *context.APIContext) {
-	packages, err := packages.GetVersionsByPackageType(ctx.Repo.Repository.ID, packages.TypeRubyGems)
+	packages, err := packages.GetVersionsByPackageType(ctx.Package.Owner.ID, packages.TypeRubyGems)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -41,8 +41,8 @@ func EnumeratePackages(ctx *context.APIContext) {
 // EnumeratePackagesLatest serves the list of the lastest version of every package
 func EnumeratePackagesLatest(ctx *context.APIContext) {
 	pvs, _, err := packages.SearchLatestVersions(&packages.PackageSearchOptions{
-		RepoID: ctx.Repo.Repository.ID,
-		Type:   "rubygems",
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    string(packages.TypeRubyGems),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -97,7 +97,7 @@ func ServePackageSpecification(ctx *context.APIContext) {
 		return
 	}
 
-	pvs, err := packages.GetVersionsByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
+	pvs, err := packages.GetVersionsByFilename(ctx.Package.Owner.ID, packages.TypeRubyGems, filename[:len(filename)-10]+"gem")
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -159,7 +159,7 @@ func ServePackageSpecification(ctx *context.APIContext) {
 func DownloadPackageFile(ctx *context.APIContext) {
 	filename := ctx.Params("filename")
 
-	pvs, err := packages.GetVersionsByFilename(ctx.Repo.Repository.ID, packages.TypeRubyGems, filename)
+	pvs, err := packages.GetVersionsByFilename(ctx.Package.Owner.ID, packages.TypeRubyGems, filename)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -222,7 +222,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
-				Repository:  ctx.Repo.Repository,
+				Owner:       ctx.Package.Owner,
 				PackageType: packages.TypeRubyGems,
 				Name:        rp.Name,
 				Version:     rp.Version,
@@ -262,7 +262,7 @@ func DeletePackage(ctx *context.APIContext) {
 	err := packages_service.DeletePackageVersionByNameAndVersion(
 		ctx.User,
 		&packages_service.PackageInfo{
-			Repository:  ctx.Repo.Repository,
+			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeRubyGems,
 			Name:        packageName,
 			Version:     packageVersion,

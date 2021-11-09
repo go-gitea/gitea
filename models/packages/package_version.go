@@ -87,9 +87,9 @@ func GetVersionByID(ctx context.Context, versionID int64) (*PackageVersion, erro
 }
 
 // GetVersionByNameAndVersion gets a version by name and version number
-func GetVersionByNameAndVersion(ctx context.Context, repositoryID int64, packageType Type, name, version string) (*PackageVersion, error) {
+func GetVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType Type, name, version string) (*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.repo_id":    repositoryID,
+		"package.owner_id":   ownerID,
 		"package.type":       packageType,
 		"package.lower_name": strings.ToLower(name),
 	}
@@ -111,10 +111,10 @@ func GetVersionByNameAndVersion(ctx context.Context, repositoryID int64, package
 }
 
 // GetVersionsByPackageType gets all versions of a specific type
-func GetVersionsByPackageType(repositoryID int64, packageType Type) ([]*PackageVersion, error) {
+func GetVersionsByPackageType(ownerID int64, packageType Type) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.repo_id": repositoryID,
-		"package.type":    packageType,
+		"package.owner_id": ownerID,
+		"package.type":     packageType,
 	}
 
 	pvs := make([]*PackageVersion, 0, 10)
@@ -125,9 +125,9 @@ func GetVersionsByPackageType(repositoryID int64, packageType Type) ([]*PackageV
 }
 
 // GetVersionsByPackageName gets all versions of a specific package
-func GetVersionsByPackageName(repositoryID int64, packageType Type, name string) ([]*PackageVersion, error) {
+func GetVersionsByPackageName(ownerID int64, packageType Type, name string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.repo_id":    repositoryID,
+		"package.owner_id":   ownerID,
 		"package.type":       packageType,
 		"package.lower_name": strings.ToLower(name),
 	}
@@ -140,9 +140,9 @@ func GetVersionsByPackageName(repositoryID int64, packageType Type, name string)
 }
 
 // GetVersionsByFilename gets all versions which are linked to a filename
-func GetVersionsByFilename(repositoryID int64, packageType Type, filename string) ([]*PackageVersion, error) {
+func GetVersionsByFilename(ownerID int64, packageType Type, filename string) ([]*PackageVersion, error) {
 	var cond builder.Cond = builder.Eq{
-		"package.repo_id":         repositoryID,
+		"package.owner_id":        ownerID,
 		"package.type":            packageType,
 		"package_file.lower_name": strings.ToLower(filename),
 	}
@@ -163,19 +163,22 @@ func DeleteVersionByID(ctx context.Context, versionID int64) error {
 
 // PackageSearchOptions are options for SearchXXX methods
 type PackageSearchOptions struct {
-	RepoID int64
-	Type   string
-	Query  string
+	OwnerID int64
+	RepoID  int64
+	Type    string
+	Query   string
 	db.Paginator
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"package.repo_id": opts.RepoID}
+	var cond builder.Cond = builder.Eq{"package.owner_id": opts.OwnerID}
 
+	if opts.RepoID != 0 {
+		cond = cond.And(builder.Eq{"package.repo_id": opts.RepoID})
+	}
 	if opts.Type != "" {
 		cond = cond.And(builder.Eq{"package.type": opts.Type})
 	}
-
 	if opts.Query != "" {
 		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Query)})
 	}

@@ -14,7 +14,7 @@ menu:
 
 # Generic Packages Repository
 
-Publish generic files, like release binaries or other output, in your project’s Package Registry.
+Publish generic files, like release binaries or other output, for your user or organization.
 
 **Table of Contents**
 
@@ -30,13 +30,12 @@ To publish a generic package perform a HTTP PUT operation with the package conte
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
 
 ```
-PUT https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/generic/{package_name}/{package_version}/{file_name}
+PUT https://gitea.example.com/api/v1/packages/{owner}/generic/{package_name}/{package_version}/{file_name}
 ```
 
 | Parameter         | Description |
 | ----------------- | ----------- |
-| `owner`           | The owner of the repository. |
-| `repository`      | The name of the repository. |
+| `owner`           | The owner of the package. |
 | `package_name`    | The package name. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
 | `package_version` | The package version as described in the [SemVer](https://semver.org/) spec. |
 | `file_name`       | The filename. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
@@ -46,7 +45,7 @@ Example request using HTTP Basic authentication:
 ```shell
 curl --user your_username:your_password_or_token \
      --upload-file path/to/file.bin \
-     "https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/generic/test_package/1.0.0/file.bin"
+     "https://gitea.example.com/api/v1/packages/testuser/generic/test_package/1.0.0/file.bin"
 ```
 
 The server reponds with the following HTTP Status codes.
@@ -61,13 +60,12 @@ The server reponds with the following HTTP Status codes.
 To download a generic package perform a HTTP GET operation.
 
 ```
-GET https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/generic/{package_name}/{package_version}/{file_name}
+GET https://gitea.example.com/api/v1/packages/{owner}/generic/{package_name}/{package_version}/{file_name}
 ```
 
 | Parameter         | Description |
 | ----------------- | ----------- |
-| `owner`           | The owner of the repository. |
-| `repository`      | The name of the repository. |
+| `owner`           | The owner of the package. |
 | `package_name`    | The package name. |
 | `package_version` | The package version. |
 | `file_name`       | The filename. |
@@ -78,5 +76,5 @@ Example request using HTTP Basic authentication:
 
 ```shell
 curl --user your_username:your_token_or_password \
-     "https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/generic/test_package/1.0.0/file.bin"
+     "https://gitea.example.com/api/v1/packages/testuser/generic/test_package/1.0.0/file.bin"
 ```

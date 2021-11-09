@@ -22,6 +22,7 @@ import (
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
 	Package    *Package
+	Owner      *models.User
 	Repository *models.Repository
 	Version    *PackageVersion
 	SemVer     *version.Version
@@ -48,8 +49,12 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 	if err != nil {
 		return nil, err
 	}
-	repository, err := models.GetRepositoryByIDCtx(ctx, p.RepoID)
+	o, err := models.GetUserByID(p.OwnerID)
 	if err != nil {
+		return nil, err
+	}
+	repository, err := models.GetRepositoryByIDCtx(ctx, p.RepoID)
+	if err != nil && !models.IsErrRepoNotExist(err) {
 		return nil, err
 	}
 	creator, err := models.GetUserByID(pv.CreatorID)
@@ -105,6 +110,7 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 
 	return &PackageDescriptor{
 		Package:    p,
+		Owner:      o,
 		Repository: repository,
 		Version:    pv,
 		SemVer:     semVer,

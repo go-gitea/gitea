@@ -193,6 +193,59 @@ func repoAssignment() func(ctx *context.APIContext) {
 	}
 }
 
+func packageOwnerAssignment() func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		ownerName := ctx.Params("owner")
+
+		ctx.Package = &context.APIPackage{}
+
+		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(ownerName) {
+			ctx.Package.Owner = ctx.User
+			ctx.Package.AccessMode = models.AccessModeOwner
+		} else {
+			owner, err := models.GetUserByName(ownerName)
+			if err != nil {
+				if models.IsErrUserNotExist(err) {
+					if redirectUserID, err := models.LookupUserRedirect(ownerName); err == nil {
+						context.RedirectToUser(ctx.Context, ownerName, redirectUserID)
+					} else if models.IsErrUserRedirectNotExist(err) {
+						ctx.NotFound("GetUserByName", err)
+					} else {
+						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
+					}
+				} else {
+					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+				}
+				return
+			}
+			ctx.Package.Owner = owner
+
+			if owner.IsOrganization() {
+				if ctx.User != nil && models.HasOrgOrUserVisible(owner, ctx.User) {
+					var err error
+					ctx.Package.AccessMode, err = owner.GetOrgUserMaxAuthorizeLevel(ctx.User.ID)
+					if err != nil {
+						ctx.Error(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
+						return
+					}
+				}
+			} else {
+				ctx.Package.AccessMode = models.AccessModeRead
+			}
+		}
+	}
+}
+
+func reqPackageAccess(accessMode models.AccessMode) func(ctx *context.APIContext) {
+	return func(ctx *context.APIContext) {
+		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
+			ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+			return
+		}
+	}
+}
+
 // Contexter middleware already checks token for user sign in process.
 func reqToken() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
@@ -222,7 +275,7 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 func reqBasicAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.Context.IsBasicAuth {
-			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="API"`)
+			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea API"`)
 			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
 			return
 		}
@@ -992,69 +1045,70 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
 				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
-				m.Group("/packages", func() {
-					m.Group("/generic", func() {
-						m.Group("/{packagename}/{packageversion}/{filename}", func() {
-							m.Get("", generic.DownloadPackageFile)
-							m.Group("", func() {
-								m.Put("", generic.UploadPackage)
-								m.Delete("", generic.DeletePackage)
-							}, reqToken(), reqRepoWriter(unit.TypePackages))
-						})
-					})
-					m.Group("/maven", func() {
-						m.Put("/*", reqToken(), reqRepoWriter(unit.TypePackages), maven.UploadPackageFile)
-						m.Get("/*", maven.DownloadPackageFile)
-					})
-					m.Group("/nuget", func() {
-						m.Get("/index.json", nuget.ServiceIndex)
-						m.Get("/query", nuget.SearchService)
-						m.Group("/registration/{id}", func() {
-							m.Get("/index.json", nuget.RegistrationIndex)
-							m.Get("/{version}", nuget.RegistrationLeaf)
-						})
-						m.Group("/package/{id}", func() {
-							m.Get("/index.json", nuget.EnumeratePackageVersions)
-							m.Get("/{version}/{filename}", nuget.DownloadPackageFile)
-						})
-						m.Group("", func() {
-							m.Put("/", reqRepoWriter(unit.TypePackages), nuget.UploadPackage)
-							m.Put("/symbolpackage", nuget.UploadSymbolPackage)
-							m.Delete("/{id}/{version}", reqRepoWriter(unit.TypePackages), nuget.DeletePackage)
-						}, reqBasicAuth(), reqRepoWriter(unit.TypePackages))
-					})
-					m.Group("/npm", func() {
-						m.Group("/{id}", func() {
-							m.Get("", npm.PackageMetadata)
-							m.Put("", reqToken(), reqRepoWriter(unit.TypePackages), npm.UploadPackage)
-							m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
-						})
-					})
-					m.Group("/pypi", func() {
-						m.Post("/", reqBasicAuth(), reqRepoWriter(unit.TypePackages), pypi.UploadPackageFile)
-						m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
-						m.Get("/simple/{id}", pypi.PackageMetadata)
-					})
-					m.Group("/rubygems", func() {
-						m.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
-						m.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
-						m.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
-						m.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
-						m.Get("/gems/{filename}", rubygems.DownloadPackageFile)
-						m.Group("/api/v1/gems", func() {
-							m.Post("/", rubygems.UploadPackageFile)
-							m.Delete("/yank", rubygems.DeletePackage)
-						}, reqToken(), reqRepoWriter(unit.TypePackages))
-					})
-					m.Group("/{id}", func() {
-						m.Get("/", repo.GetPackage)
-						m.Delete("/", reqRepoWriter(unit.TypePackages), repo.DeletePackage)
-						m.Get("/files", repo.ListPackageFiles)
-					})
-					m.Get("/", repo.ListPackages)
-				}, reqRepoReader(unit.TypePackages))
 			}, repoAssignment())
 		})
+
+		m.Group("/packages/{owner}", func() {
+			m.Group("/generic", func() {
+				m.Group("/{packagename}/{packageversion}/{filename}", func() {
+					m.Get("", generic.DownloadPackageFile)
+					m.Group("", func() {
+						m.Put("", generic.UploadPackage)
+						m.Delete("", generic.DeletePackage)
+					}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+				})
+			})
+			m.Group("/maven", func() {
+				m.Put("/*", reqToken(), reqPackageAccess(models.AccessModeWrite), maven.UploadPackageFile)
+				m.Get("/*", maven.DownloadPackageFile)
+			})
+			m.Group("/nuget", func() {
+				m.Get("/index.json", nuget.ServiceIndex)
+				m.Get("/query", nuget.SearchService)
+				m.Group("/registration/{id}", func() {
+					m.Get("/index.json", nuget.RegistrationIndex)
+					m.Get("/{version}", nuget.RegistrationLeaf)
+				})
+				m.Group("/package/{id}", func() {
+					m.Get("/index.json", nuget.EnumeratePackageVersions)
+					m.Get("/{version}/{filename}", nuget.DownloadPackageFile)
+				})
+				m.Group("", func() {
+					m.Put("/", nuget.UploadPackage)
+					m.Put("/symbolpackage", nuget.UploadSymbolPackage)
+					m.Delete("/{id}/{version}", nuget.DeletePackage)
+				}, reqBasicAuth(), reqPackageAccess(models.AccessModeWrite))
+			})
+			m.Group("/npm", func() {
+				m.Group("/{id}", func() {
+					m.Get("", npm.PackageMetadata)
+					m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), npm.UploadPackage)
+					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				})
+			})
+			m.Group("/pypi", func() {
+				m.Post("/", reqBasicAuth(), reqPackageAccess(models.AccessModeWrite), pypi.UploadPackageFile)
+				m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
+				m.Get("/simple/{id}", pypi.PackageMetadata)
+			})
+			m.Group("/rubygems", func() {
+				m.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
+				m.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
+				m.Get("/prerelease_specs.4.8.gz", rubygems.EnumeratePackagesPreRelease)
+				m.Get("/quick/Marshal.4.8/{filename}", rubygems.ServePackageSpecification)
+				m.Get("/gems/{filename}", rubygems.DownloadPackageFile)
+				m.Group("/api/v1/gems", func() {
+					m.Post("/", rubygems.UploadPackageFile)
+					m.Delete("/yank", rubygems.DeletePackage)
+				}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+			})
+			m.Group("/{id}", func() {
+				m.Get("/", repo.GetPackage)
+				m.Delete("/", reqPackageAccess(models.AccessModeWrite), repo.DeletePackage)
+				m.Get("/files", repo.ListPackageFiles)
+			})
+			m.Get("/", repo.ListPackages)
+		}, packageOwnerAssignment(), reqPackageAccess(models.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)

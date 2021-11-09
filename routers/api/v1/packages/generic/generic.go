@@ -36,7 +36,15 @@ func DownloadPackageFile(ctx *context.APIContext) {
 		return
 	}
 
-	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeGeneric, packageName, packageVersion, filename)
+	s, pf, err := package_service.GetFileStreamByPackageNameAndVersion(
+		&package_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages.TypeGeneric,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+		filename,
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -79,7 +87,7 @@ func UploadPackage(ctx *context.APIContext) {
 	_, _, err = package_service.CreatePackageAndAddFile(
 		&package_service.PackageCreationInfo{
 			PackageInfo: package_service.PackageInfo{
-				Repository:  ctx.Repo.Repository,
+				Owner:       ctx.Package.Owner,
 				PackageType: packages.TypeGeneric,
 				Name:        packageName,
 				Version:     packageVersion,
@@ -116,7 +124,7 @@ func DeletePackage(ctx *context.APIContext) {
 	err = package_service.DeletePackageVersionByNameAndVersion(
 		ctx.User,
 		&package_service.PackageInfo{
-			Repository:  ctx.Repo.Repository,
+			Owner:       ctx.Package.Owner,
 			PackageType: packages.TypeGeneric,
 			Name:        packageName,
 			Version:     packageVersion,

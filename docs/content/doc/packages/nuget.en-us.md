@@ -14,7 +14,7 @@ menu:
 
 # NuGet Packages Repository
 
-Publish [NuGet](https://www.nuget.org/) packages in your project’s Package Registry.
+Publish [NuGet](https://www.nuget.org/) packages for your user or organization.
 
 **Table of Contents**
 
@@ -31,7 +31,7 @@ The following examples use the `dotnet nuget` tool.
 To register the project’s package registry you need to configure a new NuGet feed source:
 
 ```shell
-dotnet nuget add source --name {source_name} --username {username} --password {password} https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/nuget/index.json
+dotnet nuget add source --name {source_name} --username {username} --password {password} https://gitea.example.com/api/v1/packages/{owner}/nuget/index.json
 ```
 
 | Parameter     | Description |
@@ -39,13 +39,12 @@ dotnet nuget add source --name {source_name} --username {username} --password {p
 | `source_name` | The desired source name. |
 | `username`    | Your Gitea username. |
 | `password`    | Your Gitea password or a personal access token. |
-| `owner`       | The owner of the repository. |
-| `repository`  | The name of the repository. |
+| `owner`       | The owner of the package. |
 
 For example:
 
 ```shell
-dotnet nuget add source --name gitea --username testuser --password password123 https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/nuget/index.json
+dotnet nuget add source --name gitea --username testuser --password password123 https://gitea.example.com/api/v1/packages/testuser/nuget/index.json
 ```
 
 ## Publish a package

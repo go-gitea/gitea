@@ -14,7 +14,7 @@ menu:
 
 # RubyGems Packages Repository
 
-Publish [RubyGems](https://guides.rubygems.org/) packages in your project’s Package Registry.
+Publish [RubyGems](https://guides.rubygems.org/) packages for your user or organization.
 
 **Table of Contents**
 
@@ -30,20 +30,19 @@ To register the project’s package registry edit the `~/.gem/credentials` file 
 
 ```ini
 ---
-https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/rubygems: Bearer {token}
+https://gitea.example.com/api/v1/packages/{owner}/rubygems: Bearer {token}
 ```
 
 | Parameter     | Description |
 | ------------- | ----------- |
-| `owner`       | The owner of the repository. |
-| `repository`  | The name of the repository. |
+| `owner`       | The owner of the package. |
 | `token`       | Your personal access token. |
 
 For example:
 
 ```ini
 ---
-https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/rubygems: Bearer 3bd626f84b01cd26b873931eace1e430a5773cc4
+https://gitea.example.com/api/v1/packages/testuser/rubygems: Bearer 3bd626f84b01cd26b873931eace1e430a5773cc4
 ```
 
 ## Publish a package
@@ -62,7 +61,7 @@ gem push --host {host} {package_file}
 For example:
 
 ```shell
-gem push --host https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/rubygems test_package-1.0.0.gem
+gem push --host https://gitea.example.com/api/v1/packages/testuser/rubygems test_package-1.0.0.gem
 ```
 
 You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
@@ -76,21 +75,20 @@ To install a package from the package registry you can use [Bundler](https://bun
 Add a new `source` block to your `Gemfile`:
 
 ```
-source "https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/rubygems" do
+source "https://gitea.example.com/api/v1/packages/{owner}/rubygems" do
   gem "{package_name}"
 end
 ```
 
 | Parameter         | Description |
 | ----------------- | ----------- |
-| `owner`           | The owner of the repository. |
-| `repository`      | The name of the repository. |
+| `owner`           | The owner of the package. |
 | `package_name`    | The package name. |
 
 For example:
 
 ```
-source "https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/rubygems" do
+source "https://gitea.example.com/api/v1/packages/testuser/rubygems" do
   gem "test_package"
 end
 ```
@@ -106,17 +104,16 @@ bundle install
 Execute the following command:
 
 ```shell
-gem install --host https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/rubygems {package_name}
+gem install --host https://gitea.example.com/api/v1/packages/{owner}/rubygems {package_name}
 ```
 
 | Parameter         | Description |
 | ----------------- | ----------- |
-| `owner`           | The owner of the repository. |
-| `repository`      | The name of the repository. |
+| `owner`           | The owner of the package. |
 | `package_name`    | The package name. |
 
 For example:
 
 ```shell
-gem install --host https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/rubygems test_package
+gem install --host https://gitea.example.com/api/v1/packages/testuser/rubygems test_package
 ```

@@ -14,7 +14,7 @@ menu:
 
 # Maven Packages Repository
 
-Publish [Maven](https://maven.apache.org) packages in your project’s Package Registry.
+Publish [Maven](https://maven.apache.org) packages for your user or organization.
 
 **Table of Contents**
 
@@ -53,17 +53,17 @@ Afterwards add the following sections to your project `pom.xml` file:
 <repositories>
   <repository>
     <id>gitea</id>
-    <url>https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/maven</url>
+    <url>https://gitea.example.com/api/v1/packages/{owner}/maven</url>
   </repository>
 </repositories>
 <distributionManagement>
   <repository>
     <id>gitea</id>
-    <url>https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/maven</url>
+    <url>https://gitea.example.com/api/v1/packages/{owner}/maven</url>
   </repository>
   <snapshotRepository>
     <id>gitea</id>
-    <url>https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/maven</url>
+    <url>https://gitea.example.com/api/v1/packages/{owner}/maven</url>
   </snapshotRepository>
 </distributionManagement>
 ```
@@ -71,8 +71,7 @@ Afterwards add the following sections to your project `pom.xml` file:
 | Parameter      | Description |
 | -------------- | ----------- |
 | `access_token` | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
-| `owner`        | The owner of the repository. |
-| `repository`   | The name of the repository. |
+| `owner`        | The owner of the package. |
 
 ## Publish a package
 

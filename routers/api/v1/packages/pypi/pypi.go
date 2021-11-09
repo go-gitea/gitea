@@ -39,7 +39,7 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 func PackageMetadata(ctx *context.APIContext) {
 	packageName := normalizer.Replace(ctx.Params("id"))
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypePyPI, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypePyPI, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -55,7 +55,7 @@ func PackageMetadata(ctx *context.APIContext) {
 		return
 	}
 
-	ctx.Data["RegistryURL"] = setting.AppURL + "api/v1/repos/" + ctx.Repo.Repository.FullName() + "/packages/pypi"
+	ctx.Data["RegistryURL"] = setting.AppURL + "api/v1/packages/" + ctx.Package.Owner.Name + "/pypi"
 	ctx.Data["PackageDescriptor"] = pds[0]
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Render = templates.HTMLRenderer()
@@ -68,7 +68,15 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypePyPI, packageName, packageVersion, filename)
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages.TypePyPI,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+		filename,
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -125,7 +133,7 @@ func UploadPackageFile(ctx *context.APIContext) {
 	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
-				Repository:  ctx.Repo.Repository,
+				Owner:       ctx.Package.Owner,
 				PackageType: packages.TypePyPI,
 				Name:        packageName,
 				Version:     packageVersion,

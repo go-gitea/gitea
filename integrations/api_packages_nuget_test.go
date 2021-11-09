@@ -25,8 +25,7 @@ import (
 
 func TestPackageNuGet(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	packageName := "test.package"
 	packageVersion := "1.0.3"
@@ -48,7 +47,7 @@ func TestPackageNuGet(t *testing.T) {
 	archive.Close()
 	content := buf.Bytes()
 
-	url := fmt.Sprintf("/api/v1/repos/%s/%s/packages/nuget", user.Name, repository.Name)
+	url := fmt.Sprintf("/api/v1/packages/%s/nuget", user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
@@ -94,7 +93,7 @@ func TestPackageNuGet(t *testing.T) {
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
@@ -153,7 +152,7 @@ func TestPackageNuGet(t *testing.T) {
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
-			pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNuGet)
+			pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
 			assert.NoError(t, err)
 			assert.Len(t, pvs, 1)
 
@@ -193,7 +192,7 @@ func TestPackageNuGet(t *testing.T) {
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNuGet)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -202,7 +201,7 @@ func TestPackageNuGet(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err = packages.GetVersionsByPackageType(repository.ID, packages.TypeNuGet)
+		pvs, err = packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -306,7 +305,7 @@ func TestPackageNuGet(t *testing.T) {
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeNuGet)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeNuGet)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

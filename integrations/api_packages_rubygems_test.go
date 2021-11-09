@@ -22,8 +22,7 @@ import (
 
 func TestPackageRubyGems(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	packageName := "gitea"
 	packageVersion := "1.0.5"
@@ -111,7 +110,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
-	root := fmt.Sprintf("/api/v1/repos/%s/%s/packages/rubygems", user.Name, repository.Name)
+	root := fmt.Sprintf("/api/v1/packages/%s/rubygems", user.Name)
 
 	uploadFile := func(t *testing.T, expectedStatus int) {
 		req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/api/v1/gems", root), bytes.NewReader(gemContent))
@@ -124,7 +123,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
 		uploadFile(t, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -161,7 +160,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 
 		assert.Equal(t, gemContent, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -180,7 +179,7 @@ DGAWSKc7zFhPJamg0qRK99TcYphehZLU4hKInFhGSUlBsZW+PtgZepn5+iDxECRzDUDGcfh6hoA4
 gAAAAP//MS06Gw==`)
 		assert.Equal(t, b, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -219,7 +218,7 @@ gAAAAP//MS06Gw==`)
 		req = AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeRubyGems)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeRubyGems)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

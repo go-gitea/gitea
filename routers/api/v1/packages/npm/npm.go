@@ -34,7 +34,7 @@ func PackageMetadata(ctx *context.APIContext) {
 		return
 	}
 
-	pvs, err := packages.GetVersionsByPackageName(ctx.Repo.Repository.ID, packages.TypeNpm, packageName)
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNpm, packageName)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
@@ -51,7 +51,7 @@ func PackageMetadata(ctx *context.APIContext) {
 	}
 
 	resp := createPackageMetadataResponse(
-		setting.AppURL+"api/v1/repos/"+ctx.Repo.Repository.FullName()+"/packages/npm",
+		setting.AppURL+"api/v1/packages/"+ctx.Package.Owner.Name+"/npm",
 		pds,
 	)
 
@@ -68,7 +68,15 @@ func DownloadPackageFile(ctx *context.APIContext) {
 	packageVersion := ctx.Params("version")
 	filename := ctx.Params("filename")
 
-	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(ctx.Repo.Repository, packages.TypeNpm, packageName, packageVersion, filename)
+	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages.TypeNpm,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+		filename,
+	)
 	if err != nil {
 		if err == packages.ErrPackageNotExist || err == packages.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -100,7 +108,7 @@ func UploadPackage(ctx *context.APIContext) {
 	_, _, err = packages_service.CreatePackageAndAddFile(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
-				Repository:  ctx.Repo.Repository,
+				Owner:       ctx.Package.Owner,
 				PackageType: packages.TypeNpm,
 				Name:        npmPackage.Name,
 				Version:     npmPackage.Version,

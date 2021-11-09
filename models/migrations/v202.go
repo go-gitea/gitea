@@ -13,7 +13,8 @@ import (
 func addPackageTables(x *xorm.Engine) error {
 	type Package struct {
 		ID               int64  `xorm:"pk autoincr"`
-		RepoID           int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		OwnerID          int64  `xorm:"UNIQUE(s) INDEX NOT NULL"`
+		RepoID           int64  `xorm:"INDEX"`
 		Type             string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 		Name             string
 		LowerName        string `xorm:"UNIQUE(s) INDEX NOT NULL"`

@@ -60,10 +60,8 @@ func ListPackages(ctx *context.APIContext) {
 	packageType := ctx.FormTrim("package_type")
 	query := ctx.FormTrim("q")
 
-	repo := ctx.Repo.Repository
-
 	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
-		RepoID:    repo.ID,
+		OwnerID:   ctx.Package.Owner.ID,
 		Type:      packageType,
 		Query:     query,
 		Paginator: &listOptions,
@@ -135,6 +133,11 @@ func GetPackage(ctx *context.APIContext) {
 		return
 	}
 
+	if ctx.Package.Owner.ID != pd.Owner.ID {
+		ctx.NotFound()
+		return
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToPackage(pd))
 }
 
@@ -166,7 +169,7 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := package_service.DeleteVersionByID(ctx.User, ctx.Repo.Repository, ctx.ParamsInt64(":id"))
+	err := package_service.DeleteVersionByID(ctx.User, ctx.Package.Owner, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if err == packages.ErrPackageNotExist {
 			ctx.NotFound()
@@ -218,20 +221,20 @@ func ListPackageFiles(ctx *context.APIContext) {
 		return
 	}
 
-	pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pv.ID)
+	pd, err := packages.GetPackageDescriptor(pv)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFilesByVersionID", err)
+		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptor", err)
 		return
 	}
 
-	apiPackageFiles := make([]*api.PackageFile, 0, len(pfs))
-	for _, pf := range pfs {
-		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetBlobByID", err)
-			return
-		}
-		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(pf, pb))
+	if ctx.Package.Owner.ID != pd.Owner.ID {
+		ctx.NotFound()
+		return
+	}
+
+	apiPackageFiles := make([]*api.PackageFile, 0, len(pd.Files))
+	for _, pfd := range pd.Files {
+		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(&pfd))
 	}
 
 	ctx.JSON(http.StatusOK, apiPackageFiles)

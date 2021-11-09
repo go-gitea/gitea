@@ -21,7 +21,7 @@ import (
 
 // PackageInfo describes a package
 type PackageInfo struct {
-	Repository  *models.Repository
+	Owner       *models.User
 	PackageType packages_models.Type
 	Name        string
 	Version     string
@@ -98,10 +98,10 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfi *PackageFileInfo, al
 }
 
 func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, allowDuplicate bool) (*packages_models.PackageVersion, bool, error) {
-	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %v", pvci.Creator.ID, pvci.Repository.ID, pvci.PackageType, pvci.Name, pvci.Version, pvci.Properties, allowDuplicate)
+	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %v", pvci.Creator.ID, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, pvci.Properties, allowDuplicate)
 
 	p := &packages_models.Package{
-		RepoID:           pvci.Repository.ID,
+		OwnerID:          pvci.Owner.ID,
 		Type:             pvci.PackageType,
 		Name:             pvci.Name,
 		LowerName:        strings.ToLower(pvci.Name),
@@ -154,7 +154,7 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfi *PackageFileInfo) (*packages
 	}
 	defer committer.Close()
 
-	pv, err := packages_models.GetVersionByNameAndVersion(ctx, pvi.Repository.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	pv, err := packages_models.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -226,25 +226,25 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_models.PackageVer
 func DeletePackageVersionByNameAndVersion(doer *models.User, pvi *PackageInfo) error {
 	return deletePackageVersion(
 		doer,
-		pvi.Repository,
+		pvi.Owner,
 		func(ctx context.Context) (*packages_models.PackageVersion, error) {
-			return packages_models.GetVersionByNameAndVersion(ctx, pvi.Repository.ID, pvi.PackageType, pvi.Name, pvi.Version)
+			return packages_models.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 		},
 	)
 }
 
 // DeleteVersionByID deletes a package version and all associated files
-func DeleteVersionByID(doer *models.User, repository *models.Repository, versionID int64) error {
+func DeleteVersionByID(doer *models.User, owner *models.User, versionID int64) error {
 	return deletePackageVersion(
 		doer,
-		repository,
+		owner,
 		func(ctx context.Context) (*packages_models.PackageVersion, error) {
 			return packages_models.GetVersionByID(ctx, versionID)
 		},
 	)
 }
 
-func deletePackageVersion(doer *models.User, repository *models.Repository, cb func(context.Context) (*packages_models.PackageVersion, error)) error {
+func deletePackageVersion(doer *models.User, owner *models.User, cb func(context.Context) (*packages_models.PackageVersion, error)) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -264,7 +264,7 @@ func deletePackageVersion(doer *models.User, repository *models.Repository, cb f
 		return err
 	}
 
-	log.Trace("Deleting package: %v, %v", repository.ID, pv.ID)
+	log.Trace("Deleting package: %v, %v", owner.ID, pv.ID)
 
 	if err := packages_models.DeleteVersionPropertiesByVersionID(ctx, pv.ID); err != nil {
 		return err
@@ -325,10 +325,10 @@ func DeleteUnreferencedBlobs() error {
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(repository *models.Repository, packageType packages_models.Type, name, version, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %s, %s, %s", repository.ID, packageType, name, version, filename)
+func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
+	log.Trace("Getting package file stream: %v, %v, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, filename)
 
-	pv, err := packages_models.GetVersionByNameAndVersion(db.DefaultContext, repository.ID, packageType, name, version)
+	pv, err := packages_models.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		if err == packages_models.ErrPackageNotExist {
 			return nil, nil, err
@@ -341,8 +341,8 @@ func GetFileStreamByPackageNameAndVersion(repository *models.Repository, package
 }
 
 // GetFileStreamByPackageVersionID returns the content of the specific package file
-func GetFileStreamByPackageVersionID(repository *models.Repository, versionID int64, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
-	log.Trace("Getting package file stream: %v, %v, %s", repository.ID, versionID, filename)
+func GetFileStreamByPackageVersionID(owner *models.User, versionID int64, filename string) (io.ReadCloser, *packages_models.PackageFile, error) {
+	log.Trace("Getting package file stream: %v, %v, %s", owner.ID, versionID, filename)
 
 	pv, err := packages_models.GetVersionByID(db.DefaultContext, versionID)
 	if err != nil {
@@ -359,7 +359,7 @@ func GetFileStreamByPackageVersionID(repository *models.Repository, versionID in
 		return nil, nil, err
 	}
 
-	if p.RepoID != repository.ID {
+	if p.OwnerID != owner.ID {
 		return nil, nil, packages_models.ErrPackageNotExist
 	}
 

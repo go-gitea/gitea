@@ -14,7 +14,7 @@ menu:
 
 # npm Packages Repository
 
-Publish [npm](https://www.npmjs.com/) packages in your project’s Package Registry.
+Publish [npm](https://www.npmjs.com/) packages for your user or organization.
 
 **Table of Contents**
 
@@ -33,22 +33,21 @@ The following examples use the `npm` tool with the scope `@test`.
 To register the project’s package registry you need to configure a new package source.
 
 ```shell
-npm config set {scope}:registry https://gitea.example.com/api/v1/repos/{owner}/{repository}/packages/npm/
-npm config set -- '//gitea.example.com/api/v1/repos/{owner}/{repository}/packages/npm/:_authToken' "{token}"
+npm config set {scope}:registry https://gitea.example.com/api/v1/packages/{owner}/npm/
+npm config set -- '//gitea.example.com/api/v1/packages/{owner}/npm/:_authToken' "{token}"
 ```
 
 | Parameter    | Description |
 | ------------ | ----------- |
 | `scope`      | The scope of the packages. |
-| `owner`      | The owner of the repository. |
-| `repository` | The name of the repository. |
+| `owner`      | The owner of the package. |
 | `token`      | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
 
 For example:
 
 ```shell
-npm config set @test:registry https://gitea.example.com/api/v1/repos/testuser/test-repository/packages/npm/
-npm config set -- '//gitea.example.com/api/v1/repos/testuser/test-repository/packages/npm/:_authToken' "personal_access_token"
+npm config set @test:registry https://gitea.example.com/api/v1/packages/testuser/npm/
+npm config set -- '//gitea.example.com/api/v1/packages/testuser/npm/:_authToken' "personal_access_token"
 ```
 
 ## Publish a package

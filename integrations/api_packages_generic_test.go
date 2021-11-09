@@ -19,8 +19,7 @@ import (
 
 func TestPackageGeneric(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -29,7 +28,7 @@ func TestPackageGeneric(t *testing.T) {
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
-	url := fmt.Sprintf("/api/v1/repos/%s/%s/packages/generic/%s/%s/%s?token=%s", user.Name, repository.Name, packageName, packageVersion, filename, token)
+	url := fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s/%s?token=%s", user.Name, packageName, packageVersion, filename, token)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
@@ -37,7 +36,7 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		MakeRequest(t, req, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -74,7 +73,7 @@ func TestPackageGeneric(t *testing.T) {
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
@@ -86,7 +85,7 @@ func TestPackageGeneric(t *testing.T) {
 		req := NewRequest(t, "DELETE", url)
 		MakeRequest(t, req, http.StatusOK)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypeGeneric)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypeGeneric)
 		assert.NoError(t, err)
 		assert.Empty(t, pvs)
 	})

@@ -24,8 +24,7 @@ import (
 
 func TestPackagePyPI(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repository := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: repository.OwnerID}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	packageName := "test-package"
 	packageVersion := "1.0.1"
@@ -35,7 +34,7 @@ func TestPackagePyPI(t *testing.T) {
 	content := "test"
 	hashSHA256 := "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
 
-	root := fmt.Sprintf("/api/v1/repos/%s/%s/packages/pypi", user.Name, repository.Name)
+	root := fmt.Sprintf("/api/v1/packages/%s/pypi", user.Name)
 
 	uploadFile := func(t *testing.T, filename, content string, expectedStatus int) {
 		body := &bytes.Buffer{}
@@ -65,7 +64,7 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.whl"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -93,7 +92,7 @@ func TestPackagePyPI(t *testing.T) {
 		filename := "test.tar.gz"
 		uploadFile(t, filename, content, http.StatusCreated)
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 
@@ -146,7 +145,7 @@ func TestPackagePyPI(t *testing.T) {
 		downloadFile("test.whl")
 		downloadFile("test.tar.gz")
 
-		pvs, err := packages.GetVersionsByPackageType(repository.ID, packages.TypePyPI)
+		pvs, err := packages.GetVersionsByPackageType(user.ID, packages.TypePyPI)
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(2), pvs[0].DownloadCount)

@@ -13,6 +13,7 @@ import (
 func ToPackage(pd *packages.PackageDescriptor) *api.Package {
 	return &api.Package{
 		ID:        pd.Version.ID,
+		Owner:     ToUser(pd.Owner, nil),
 		Creator:   ToUser(pd.Creator, nil),
 		Type:      string(pd.Package.Type),
 		Name:      pd.Package.Name,
@@ -21,15 +22,15 @@ func ToPackage(pd *packages.PackageDescriptor) *api.Package {
 	}
 }
 
-// ToPackageFile converts packages.PackageFile to api.PackageFile
-func ToPackageFile(pf *packages.PackageFile, pb *packages.PackageBlob) *api.PackageFile {
+// ToPackageFile converts packages.PackageFileDescriptor to api.PackageFile
+func ToPackageFile(pfd *packages.PackageFileDescriptor) *api.PackageFile {
 	return &api.PackageFile{
-		ID:         pf.ID,
-		Size:       pb.Size,
-		Name:       pf.Name,
-		HashMD5:    pb.HashMD5,
-		HashSHA1:   pb.HashSHA1,
-		HashSHA256: pb.HashSHA256,
-		HashSHA512: pb.HashSHA512,
+		ID:         pfd.File.ID,
+		Size:       pfd.Blob.Size,
+		Name:       pfd.File.Name,
+		HashMD5:    pfd.Blob.HashMD5,
+		HashSHA1:   pfd.Blob.HashSHA1,
+		HashSHA256: pfd.Blob.HashSHA256,
+		HashSHA512: pfd.Blob.HashSHA512,
 	}
 }
