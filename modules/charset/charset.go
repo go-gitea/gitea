@@ -121,7 +121,7 @@ readingloop:
 				lineHasRTLScript = false
 				lineHasLTRScript = false
 
-			case bytes.Contains([]byte("\r\t "), buf[i:i+size]):
+			case r == '\r' || r == '\t' || r == ' ':
 				// These are acceptable control characters and space characters
 			case unicode.IsSpace(r):
 				escaped.HasSpaces = true
