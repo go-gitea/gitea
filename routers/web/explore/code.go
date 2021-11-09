@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -77,7 +78,7 @@ func Code(ctx *context.Context) {
 		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if repo.CheckUnitUser(ctx.User, models.UnitTypeCode) {
+			if repo.CheckUnitUser(ctx.User, unit.TypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}

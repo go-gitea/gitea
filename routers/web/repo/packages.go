@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"sort"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,7 +25,7 @@ const (
 
 // MustEnablePackages checks if packages are enabled
 func MustEnablePackages(ctx *context.Context) {
-	if models.UnitTypePackages.UnitGlobalDisabled() || !ctx.Repo.CanRead(models.UnitTypePackages) {
+	if unit.TypePackages.UnitGlobalDisabled() || !ctx.Repo.CanRead(unit.TypePackages) {
 		ctx.NotFound("MustEnablePackages", nil)
 	}
 }
@@ -119,7 +119,7 @@ func ViewPackage(ctx *context.Context) {
 	ctx.Data["OtherVersions"] = otherVersions
 
 	ctx.Data["Repo"] = ctx.Repo.Repository
-	ctx.Data["CanWritePackages"] = ctx.Repo.Permission.CanWrite(models.UnitTypePackages)
+	ctx.Data["CanWritePackages"] = ctx.Repo.Permission.CanWrite(unit.TypePackages)
 	ctx.Data["PageIsPackages"] = true
 
 	ctx.HTML(http.StatusOK, tplPackagesView)

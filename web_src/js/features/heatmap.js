@@ -2,7 +2,7 @@ import Vue from 'vue';
 
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 
-export default async function initHeatmap() {
+export default function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
 
@@ -24,7 +24,7 @@ export default async function initHeatmap() {
 
     new View().$mount(el);
   } catch (err) {
-    console.error(err);
+    console.error('Heatmap failed to load', err);
     el.textContent = 'Heatmap failed to load';
   }
 }

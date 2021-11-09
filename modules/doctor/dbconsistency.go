@@ -74,7 +74,7 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 
 func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}

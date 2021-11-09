@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/caddyserver/certmagic"
-	context2 "github.com/gorilla/context"
 )
 
 func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
@@ -67,7 +66,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		}()
 	}
 
-	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, context2.ClearHandler(m))
+	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, m)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {

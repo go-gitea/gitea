@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package unit
 
 import (
 	"fmt"
@@ -12,53 +12,53 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-// UnitType is Unit's Type
-type UnitType int
+// Type is Unit's Type
+type Type int
 
 // Enumerate all the unit types
 const (
-	UnitTypeCode            UnitType = iota + 1 // 1 code
-	UnitTypeIssues                              // 2 issues
-	UnitTypePullRequests                        // 3 PRs
-	UnitTypeReleases                            // 4 Releases
-	UnitTypeWiki                                // 5 Wiki
-	UnitTypeExternalWiki                        // 6 ExternalWiki
-	UnitTypeExternalTracker                     // 7 ExternalTracker
-	UnitTypeProjects                            // 8 Kanban board
-	UnitTypePackages                            // 9 Packages
+	TypeCode            Type = iota + 1 // 1 code
+	TypeIssues                          // 2 issues
+	TypePullRequests                    // 3 PRs
+	TypeReleases                        // 4 Releases
+	TypeWiki                            // 5 Wiki
+	TypeExternalWiki                    // 6 ExternalWiki
+	TypeExternalTracker                 // 7 ExternalTracker
+	TypeProjects                        // 8 Kanban board
+	TypePackages                        // 9 Packages
 )
 
 // Value returns integer value for unit type
-func (u UnitType) Value() int {
+func (u Type) Value() int {
 	return int(u)
 }
 
-func (u UnitType) String() string {
+func (u Type) String() string {
 	switch u {
-	case UnitTypeCode:
-		return "UnitTypeCode"
-	case UnitTypeIssues:
-		return "UnitTypeIssues"
-	case UnitTypePullRequests:
-		return "UnitTypePullRequests"
-	case UnitTypeReleases:
-		return "UnitTypeReleases"
-	case UnitTypeWiki:
-		return "UnitTypeWiki"
-	case UnitTypeExternalWiki:
-		return "UnitTypeExternalWiki"
-	case UnitTypeExternalTracker:
-		return "UnitTypeExternalTracker"
-	case UnitTypeProjects:
-		return "UnitTypeProjects"
-	case UnitTypePackages:
-		return "UnitTypePackages"
+	case TypeCode:
+		return "TypeCode"
+	case TypeIssues:
+		return "TypeIssues"
+	case TypePullRequests:
+		return "TypePullRequests"
+	case TypeReleases:
+		return "TypeReleases"
+	case TypeWiki:
+		return "TypeWiki"
+	case TypeExternalWiki:
+		return "TypeExternalWiki"
+	case TypeExternalTracker:
+		return "TypeExternalTracker"
+	case TypeProjects:
+		return "TypeProjects"
+	case TypePackages:
+		return "TypePackages"
 	}
-	return fmt.Sprintf("Unknown UnitType %d", u)
+	return fmt.Sprintf("Unknown Type %d", u)
 }
 
-// ColorFormat provides a ColorFormatted version of this UnitType
-func (u UnitType) ColorFormat(s fmt.State) {
+// ColorFormat provides a ColorFormatted version of this Type
+func (u Type) ColorFormat(s fmt.State) {
 	log.ColorFprintf(s, "%d:%s",
 		log.NewColoredIDValue(u),
 		u)
@@ -66,51 +66,52 @@ func (u UnitType) ColorFormat(s fmt.State) {
 
 var (
 	// AllRepoUnitTypes contains all the unit types
-	AllRepoUnitTypes = []UnitType{
-		UnitTypeCode,
-		UnitTypeIssues,
-		UnitTypePullRequests,
-		UnitTypeReleases,
-		UnitTypeWiki,
-		UnitTypeExternalWiki,
-		UnitTypeExternalTracker,
-		UnitTypeProjects,
-		UnitTypePackages,
+	AllRepoUnitTypes = []Type{
+		TypeCode,
+		TypeIssues,
+		TypePullRequests,
+		TypeReleases,
+		TypeWiki,
+		TypeExternalWiki,
+		TypeExternalTracker,
+		TypeProjects,
+		TypePackages,
 	}
 
 	// DefaultRepoUnits contains the default unit types
-	DefaultRepoUnits = []UnitType{
-		UnitTypeCode,
-		UnitTypeIssues,
-		UnitTypePullRequests,
-		UnitTypeReleases,
-		UnitTypeWiki,
-		UnitTypeProjects,
-		UnitTypePackages,
+	DefaultRepoUnits = []Type{
+		TypeCode,
+		TypeIssues,
+		TypePullRequests,
+		TypeReleases,
+		TypeWiki,
+		TypeProjects,
+		TypePackages,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
-	NotAllowedDefaultRepoUnits = []UnitType{
-		UnitTypeExternalWiki,
-		UnitTypeExternalTracker,
+	NotAllowedDefaultRepoUnits = []Type{
+		TypeExternalWiki,
+		TypeExternalTracker,
 	}
 
 	// MustRepoUnits contains the units could not be disabled currently
-	MustRepoUnits = []UnitType{
-		UnitTypeCode,
-		UnitTypeReleases,
+	MustRepoUnits = []Type{
+		TypeCode,
+		TypeReleases,
 	}
 
 	// DisabledRepoUnits contains the units that have been globally disabled
-	DisabledRepoUnits = []UnitType{}
+	DisabledRepoUnits = []Type{}
 )
 
-func loadUnitConfig() {
+// LoadUnitConfig load units from settings
+func LoadUnitConfig() {
 	setDefaultRepoUnits := FindUnitTypes(setting.Repository.DefaultRepoUnits...)
 	// Default repo units set if setting is not empty
 	if len(setDefaultRepoUnits) > 0 {
 		// MustRepoUnits required as default
-		DefaultRepoUnits = make([]UnitType, len(MustRepoUnits))
+		DefaultRepoUnits = make([]Type, len(MustRepoUnits))
 		copy(DefaultRepoUnits, MustRepoUnits)
 		for _, defaultU := range setDefaultRepoUnits {
 			if !defaultU.CanBeDefault() {
@@ -143,7 +144,7 @@ func loadUnitConfig() {
 }
 
 // UnitGlobalDisabled checks if unit type is global disabled
-func (u UnitType) UnitGlobalDisabled() bool {
+func (u Type) UnitGlobalDisabled() bool {
 	for _, ud := range DisabledRepoUnits {
 		if u == ud {
 			return true
@@ -153,7 +154,7 @@ func (u UnitType) UnitGlobalDisabled() bool {
 }
 
 // CanDisable checks if this unit type can be disabled.
-func (u *UnitType) CanDisable() bool {
+func (u *Type) CanDisable() bool {
 	for _, mu := range MustRepoUnits {
 		if *u == mu {
 			return false
@@ -163,7 +164,7 @@ func (u *UnitType) CanDisable() bool {
 }
 
 // CanBeDefault checks if the unit type can be a default repo unit
-func (u *UnitType) CanBeDefault() bool {
+func (u *Type) CanBeDefault() bool {
 	for _, nadU := range NotAllowedDefaultRepoUnits {
 		if *u == nadU {
 			return false
@@ -174,7 +175,7 @@ func (u *UnitType) CanBeDefault() bool {
 
 // Unit is a section of one repository
 type Unit struct {
-	Type    UnitType
+	Type    Type
 	NameKey string
 	URI     string
 	DescKey string
@@ -188,7 +189,7 @@ func (u *Unit) CanDisable() bool {
 
 // IsLessThan compares order of two units
 func (u Unit) IsLessThan(unit Unit) bool {
-	if (u.Type == UnitTypeExternalTracker || u.Type == UnitTypeExternalWiki) && unit.Type != UnitTypeExternalTracker && unit.Type != UnitTypeExternalWiki {
+	if (u.Type == TypeExternalTracker || u.Type == TypeExternalWiki) && unit.Type != TypeExternalTracker && unit.Type != TypeExternalWiki {
 		return false
 	}
 	return u.Idx < unit.Idx
@@ -197,7 +198,7 @@ func (u Unit) IsLessThan(unit Unit) bool {
 // Enumerate all the units
 var (
 	UnitCode = Unit{
-		UnitTypeCode,
+		TypeCode,
 		"repo.code",
 		"/",
 		"repo.code.desc",
@@ -205,7 +206,7 @@ var (
 	}
 
 	UnitIssues = Unit{
-		UnitTypeIssues,
+		TypeIssues,
 		"repo.issues",
 		"/issues",
 		"repo.issues.desc",
@@ -213,7 +214,7 @@ var (
 	}
 
 	UnitExternalTracker = Unit{
-		UnitTypeExternalTracker,
+		TypeExternalTracker,
 		"repo.ext_issues",
 		"/issues",
 		"repo.ext_issues.desc",
@@ -221,7 +222,7 @@ var (
 	}
 
 	UnitPullRequests = Unit{
-		UnitTypePullRequests,
+		TypePullRequests,
 		"repo.pulls",
 		"/pulls",
 		"repo.pulls.desc",
@@ -229,7 +230,7 @@ var (
 	}
 
 	UnitReleases = Unit{
-		UnitTypeReleases,
+		TypeReleases,
 		"repo.releases",
 		"/releases",
 		"repo.releases.desc",
@@ -237,7 +238,7 @@ var (
 	}
 
 	UnitWiki = Unit{
-		UnitTypeWiki,
+		TypeWiki,
 		"repo.wiki",
 		"/wiki",
 		"repo.wiki.desc",
@@ -245,7 +246,7 @@ var (
 	}
 
 	UnitExternalWiki = Unit{
-		UnitTypeExternalWiki,
+		TypeExternalWiki,
 		"repo.ext_wiki",
 		"/wiki",
 		"repo.ext_wiki.desc",
@@ -253,7 +254,7 @@ var (
 	}
 
 	UnitProjects = Unit{
-		UnitTypeProjects,
+		TypeProjects,
 		"repo.projects",
 		"/projects",
 		"repo.projects.desc",
@@ -261,7 +262,7 @@ var (
 	}
 
 	UnitPackages = Unit{
-		UnitTypePackages,
+		TypePackages,
 		"repo.packages",
 		"/packages",
 		"repo.packages.desc",
@@ -269,21 +270,21 @@ var (
 	}
 
 	// Units contains all the units
-	Units = map[UnitType]Unit{
-		UnitTypeCode:            UnitCode,
-		UnitTypeIssues:          UnitIssues,
-		UnitTypeExternalTracker: UnitExternalTracker,
-		UnitTypePullRequests:    UnitPullRequests,
-		UnitTypeReleases:        UnitReleases,
-		UnitTypeWiki:            UnitWiki,
-		UnitTypeExternalWiki:    UnitExternalWiki,
-		UnitTypeProjects:        UnitProjects,
-		UnitTypePackages:        UnitPackages,
+	Units = map[Type]Unit{
+		TypeCode:            UnitCode,
+		TypeIssues:          UnitIssues,
+		TypeExternalTracker: UnitExternalTracker,
+		TypePullRequests:    UnitPullRequests,
+		TypeReleases:        UnitReleases,
+		TypeWiki:            UnitWiki,
+		TypeExternalWiki:    UnitExternalWiki,
+		TypeProjects:        UnitProjects,
+		TypePackages:        UnitPackages,
 	}
 )
 
 // FindUnitTypes give the unit key name and return unit
-func FindUnitTypes(nameKeys ...string) (res []UnitType) {
+func FindUnitTypes(nameKeys ...string) (res []Type) {
 	for _, key := range nameKeys {
 		for t, u := range Units {
 			if strings.EqualFold(key, u.NameKey) {
