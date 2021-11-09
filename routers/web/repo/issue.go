@@ -1546,6 +1546,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["ShowMergeInstructions"] = true
 		if pull.ProtectedBranch != nil {
+			var showMergeInstructions bool
+			if ctx.User != nil {
+				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx.User.ID)
+			}
 			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
@@ -1556,7 +1560,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
-			ctx.Data["ShowMergeInstructions"] = pull.ProtectedBranch.CanUserPush(ctx.User.ID)
+			ctx.Data["ShowMergeInstructions"] = showMergeInstructions
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {
