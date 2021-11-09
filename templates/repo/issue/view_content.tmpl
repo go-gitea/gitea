@@ -49,13 +49,13 @@
 						</div>
 						<div class="comment-header-right actions df ac">
 							{{if not $.Repository.IsArchived}}
-								{{if gt .Issue.ShowTag 0}}
-									{{if (.Issue.ShowTag.HasTag "Writer")}}
+								{{if gt .Issue.ShowRole 0}}
+									{{if (.Issue.ShowRole.HasRole "Writer")}}
 										<div class="ui basic label">
 											{{$.i18n.Tr "repo.issues.collaborator"}}
 										</div>
 									{{end}}
-									{{if (.Issue.ShowTag.HasTag "Owner")}}
+									{{if (.Issue.ShowRole.HasRole "Owner")}}
 										<div class="ui basic label">
 											{{$.i18n.Tr "repo.issues.owner"}}
 										</div>

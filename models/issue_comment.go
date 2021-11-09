@@ -105,40 +105,40 @@ const (
 	CommentTypeDismissReview
 )
 
-// CommentTag defines comment tag type
-type CommentTag int
+// RoleDescriptor defines comment tag type
+type RoleDescriptor int
 
-// Enumerate all the comment tag types
+// Enumerate all the role tags.
 const (
-	CommentTagNone CommentTag = iota
-	CommentTagPoster
-	CommentTagWriter
-	CommentTagOwner
+	RoleDescriptorNone RoleDescriptor = iota
+	RoleDescriptorPoster
+	RoleDescriptorWriter
+	RoleDescriptorOwner
 )
 
-// WithTag enable a specific tag on the CommentTag.
-func (ct CommentTag) WithTag(tag CommentTag) CommentTag {
-	ct |= (1 << tag)
-	return ct
+// WithRole enable a specific tag on the RoleDescriptor.
+func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
+	rd |= (1 << role)
+	return rd
 }
 
-func stringToCommentTag(tag string) CommentTag {
-	switch tag {
+func stringToRoleDescriptor(role string) RoleDescriptor {
+	switch role {
 	case "Poster":
-		return CommentTagPoster
+		return RoleDescriptorPoster
 	case "Writer":
-		return CommentTagWriter
+		return RoleDescriptorWriter
 	case "Owner":
-		return CommentTagOwner
+		return RoleDescriptorOwner
 	default:
-		return CommentTagNone
+		return RoleDescriptorNone
 	}
 }
 
-// HasTag returns if a certain tag is enabled on the CommentTag.
-func (ct CommentTag) HasTag(compareTag string) bool {
-	checkCommentTag := stringToCommentTag(compareTag)
-	bitValue := ct & (1 << checkCommentTag)
+// HasRole returns if a certain role is enabled on the RoleDescriptor.
+func (rd RoleDescriptor) HasRole(role string) bool {
+	roleDescriptor := stringToRoleDescriptor(role)
+	bitValue := rd & (1 << roleDescriptor)
 	return (bitValue > 0)
 }
 
@@ -200,7 +200,7 @@ type Comment struct {
 	Reactions   ReactionList  `xorm:"-"`
 
 	// For view issue page.
-	ShowTag CommentTag `xorm:"-"`
+	ShowRole RoleDescriptor `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`

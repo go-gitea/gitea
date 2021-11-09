@@ -44,17 +44,17 @@
 					</div>
 					<div class="comment-header-right actions df ac">
 						{{if not $.Repository.IsArchived}}
-							{{if (.ShowTag.HasTag "Poster")}}
+							{{if (.ShowRole.HasRole "Poster")}}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
 							{{end}}
-							{{if (.ShowTag.HasTag "Writer")}}
+							{{if (.ShowRole.HasRole "Writer")}}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.collaborator"}}
 								</div>
 							{{end}}
-							{{if (.ShowTag.HasTag "Owner")}}
+							{{if (.ShowRole.HasRole "Owner")}}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.owner"}}
 								</div>
@@ -550,17 +550,17 @@
 															</span>
 														</div>
 														<div class="comment-header-right actions df ac">
-															{{if (.ShowTag.HasTag "Poster")}}
+															{{if (.ShowRole.HasRole "Poster")}}
 																<div class="ui basic label">
 																	{{$.i18n.Tr "repo.issues.poster"}}
 																</div>
 															{{end}}
-															{{if (.ShowTag.HasTag "Writer")}}
+															{{if (.ShowRole.HasRole "Writer")}}
 																<div class="ui basic label">
 																	{{$.i18n.Tr "repo.issues.collaborator"}}
 																</div>
 															{{end}}
-															{{if (.ShowTag.HasTag "Owner")}}
+															{{if (.ShowRole.HasRole "Owner")}}
 																<div class="ui basic label">
 																	{{$.i18n.Tr "repo.issues.owner"}}
 																</div>
