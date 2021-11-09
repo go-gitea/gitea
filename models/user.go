@@ -468,7 +468,7 @@ func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
 		}
 
 		// Now we need to check if they in some organization together
-		count, err := db.GetEngine(db.DefaultContext).Table("team_user").
+		count, err := e.Table("team_user").
 			Where(
 				builder.And(
 					builder.Eq{"uid": viewer.ID},
