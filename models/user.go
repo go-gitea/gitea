@@ -134,9 +134,9 @@ type User struct {
 	// IsActive true: primary email is activated, user can access Web UI and Git SSH.
 	// false: an inactive user can only log in Web UI for account operations (ex: activate the account by email), no other access.
 	IsActive bool `xorm:"INDEX"`
-	// user is a Gitea admin, who can access all repositories and the admin pages.
+	// the user is a Gitea admin, who can access all repositories and the admin pages.
 	IsAdmin bool
-	// true: user is allowed to see only organizations/repositories that he has explicit rights specified
+	// true: the user is only allowed to see organizations/repositories that he/she has explicit rights to.
 	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
 	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
 
@@ -144,7 +144,7 @@ type User struct {
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
 
-	// true: user is not allowed to log in Web UI. Git SSH access could still be allowed.
+	// true: the user is not allowed to log in Web UI. Git SSH access could still be allowed.
 	ProhibitLogin bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Avatar
