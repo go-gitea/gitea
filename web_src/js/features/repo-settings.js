@@ -40,10 +40,10 @@ export function initRepoSettingSearchTeamBox() {
 }
 
 
-export async function initRepoSettingGitHook() {
+export function initRepoSettingGitHook() {
   if ($('.edit.githook').length === 0) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  await createMonaco($('#content')[0], filename, {language: 'shell'});
+  const _promise = createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 export function initRepoSettingBranches() {
