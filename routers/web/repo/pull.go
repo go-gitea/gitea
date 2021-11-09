@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -73,11 +74,11 @@ func getRepository(ctx *context.Context, repoID int64) *models.Repository {
 		return nil
 	}
 
-	if !perm.CanRead(models.UnitTypeCode) {
+	if !perm.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
 			"User in repo has Permissions: %-+v",
 			ctx.User,
-			models.UnitTypeCode,
+			unit.TypeCode,
 			ctx.Repo,
 			perm)
 		ctx.NotFound("getRepository", nil)
@@ -1034,7 +1035,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
 
 	var (
 		repo        = ctx.Repo.Repository
@@ -1221,7 +1222,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
-	if !perm.CanWrite(models.UnitTypeCode) {
+	if !perm.CanWrite(unit.TypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}

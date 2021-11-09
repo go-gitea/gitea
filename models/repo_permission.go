@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -15,7 +16,7 @@ import (
 type Permission struct {
 	AccessMode AccessMode
 	Units      []*RepoUnit
-	UnitsMode  map[UnitType]AccessMode
+	UnitsMode  map[unit.Type]AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -37,7 +38,7 @@ func (p *Permission) HasAccess() bool {
 }
 
 // UnitAccessMode returns current user accessmode to the specify unit of the repository
-func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
+func (p *Permission) UnitAccessMode(unitType unit.Type) AccessMode {
 	if p.UnitsMode == nil {
 		for _, u := range p.Units {
 			if u.Type == unitType {
@@ -50,12 +51,12 @@ func (p *Permission) UnitAccessMode(unitType UnitType) AccessMode {
 }
 
 // CanAccess returns true if user has mode access to the unit of the repository
-func (p *Permission) CanAccess(mode AccessMode, unitType UnitType) bool {
+func (p *Permission) CanAccess(mode AccessMode, unitType unit.Type) bool {
 	return p.UnitAccessMode(unitType) >= mode
 }
 
 // CanAccessAny returns true if user has mode access to any of the units of the repository
-func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...UnitType) bool {
+func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...unit.Type) bool {
 	for _, u := range unitTypes {
 		if p.CanAccess(mode, u) {
 			return true
@@ -65,12 +66,12 @@ func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...UnitType) bool {
 }
 
 // CanRead returns true if user could read to this unit
-func (p *Permission) CanRead(unitType UnitType) bool {
+func (p *Permission) CanRead(unitType unit.Type) bool {
 	return p.CanAccess(AccessModeRead, unitType)
 }
 
 // CanReadAny returns true if user has read access to any of the units of the repository
-func (p *Permission) CanReadAny(unitTypes ...UnitType) bool {
+func (p *Permission) CanReadAny(unitTypes ...unit.Type) bool {
 	return p.CanAccessAny(AccessModeRead, unitTypes...)
 }
 
@@ -78,13 +79,13 @@ func (p *Permission) CanReadAny(unitTypes ...UnitType) bool {
 // returns true if isPull is false and user could read to issues
 func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
 	if isPull {
-		return p.CanRead(UnitTypePullRequests)
+		return p.CanRead(unit.TypePullRequests)
 	}
-	return p.CanRead(UnitTypeIssues)
+	return p.CanRead(unit.TypeIssues)
 }
 
 // CanWrite returns true if user could write to this unit
-func (p *Permission) CanWrite(unitType UnitType) bool {
+func (p *Permission) CanWrite(unitType unit.Type) bool {
 	return p.CanAccess(AccessModeWrite, unitType)
 }
 
@@ -92,9 +93,9 @@ func (p *Permission) CanWrite(unitType UnitType) bool {
 // returns true if isPull is false and user could write to issues
 func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	if isPull {
-		return p.CanWrite(UnitTypePullRequests)
+		return p.CanWrite(unit.TypePullRequests)
 	}
-	return p.CanWrite(UnitTypeIssues)
+	return p.CanWrite(unit.TypeIssues)
 }
 
 // ColorFormat writes a colored string for these Permissions
@@ -215,7 +216,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 		return
 	}
 
-	perm.UnitsMode = make(map[UnitType]AccessMode)
+	perm.UnitsMode = make(map[unit.Type]AccessMode)
 
 	// Collaborators on organization
 	if isCollaborator {
@@ -330,16 +331,16 @@ func isUserRepoAdmin(e db.Engine, repo *Repository, user *User) (bool, error) {
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
 func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
-	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, UnitTypeCode)
+	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, unit.TypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
-func AccessLevelUnit(user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+func AccessLevelUnit(user *User, repo *Repository, unitType unit.Type) (AccessMode, error) {
 	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, unitType)
 }
 
-func accessLevelUnit(e db.Engine, user *User, repo *Repository, unitType UnitType) (AccessMode, error) {
+func accessLevelUnit(e db.Engine, user *User, repo *Repository, unitType unit.Type) (AccessMode, error) {
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
 		return AccessModeNone, err
@@ -347,13 +348,13 @@ func accessLevelUnit(e db.Engine, user *User, repo *Repository, unitType UnitTyp
 	return perm.UnitAccessMode(unitType), nil
 }
 
-func hasAccessUnit(e db.Engine, user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
+func hasAccessUnit(e db.Engine, user *User, repo *Repository, unitType unit.Type, testMode AccessMode) (bool, error) {
 	mode, err := accessLevelUnit(e, user, repo, unitType)
 	return testMode <= mode, err
 }
 
 // HasAccessUnit returns true if user has testMode to the unit of the repository
-func HasAccessUnit(user *User, repo *Repository, unitType UnitType, testMode AccessMode) (bool, error) {
+func HasAccessUnit(user *User, repo *Repository, unitType unit.Type, testMode AccessMode) (bool, error) {
 	return hasAccessUnit(db.GetEngine(db.DefaultContext), user, repo, unitType, testMode)
 }
 
@@ -372,7 +373,7 @@ func canBeAssigned(e db.Engine, user *User, repo *Repository, _ bool) (bool, err
 	if err != nil {
 		return false, err
 	}
-	return perm.CanAccessAny(AccessModeWrite, UnitTypeCode, UnitTypeIssues, UnitTypePullRequests), nil
+	return perm.CanAccessAny(AccessModeWrite, unit.TypeCode, unit.TypeIssues, unit.TypePullRequests), nil
 }
 
 func hasAccess(e db.Engine, userID int64, repo *Repository) (bool, error) {
@@ -397,7 +398,7 @@ func HasAccess(userID int64, repo *Repository) (bool, error) {
 }
 
 // FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
-func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...UnitType) ([]int64, error) {
+func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...unit.Type) ([]int64, error) {
 	i := 0
 	for _, rID := range repoIDs {
 		repo, err := GetRepositoryByID(rID)
