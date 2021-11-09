@@ -488,7 +488,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = getUserByID(db.GetEngine(db.DefaultContext), c.AssigneeID)
+		c.Assignee, err = GetUserByIDCtx(db.DefaultContext, c.AssigneeID)
 		if err != nil {
 			if !IsErrUserNotExist(err) {
 				return err
@@ -523,7 +523,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = getUserByID(db.GetEngine(db.DefaultContext), c.ResolveDoerID)
+	c.ResolveDoer, err = GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
 	if err != nil {
 		if IsErrUserNotExist(err) {
 			c.ResolveDoer = NewGhostUser()
