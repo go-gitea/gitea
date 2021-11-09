@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -791,10 +790,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		} else if !*opts.HasIssues {
-			if !unit.TypeExternalTracker.UnitGlobalDisabled() {
+			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 			}
-			if !unit.TypeIssues.UnitGlobalDisabled() {
+			if !unit_model.TypeIssues.UnitGlobalDisabled() {
 				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 			}
 		}
@@ -892,19 +891,19 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				Type:   unit_model.TypePullRequests,
 				Config: config,
 			})
-		} else if !*opts.HasPullRequests && !unit.TypePullRequests.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit.TypePullRequests)
+		} else if !*opts.HasPullRequests && !unit_model.TypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 	}
 
-	if opts.HasProjects != nil && !unit.TypeProjects.UnitGlobalDisabled() {
+	if opts.HasProjects != nil && !unit_model.TypeProjects.UnitGlobalDisabled() {
 		if *opts.HasProjects {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   unit.TypeProjects,
+				Type:   unit_model.TypeProjects,
 			})
 		} else {
-			deleteUnitTypes = append(deleteUnitTypes, unit.TypeProjects)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 	}
 
