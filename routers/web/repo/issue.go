@@ -1047,8 +1047,8 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 	if !commentTag.HasTag("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
 		commentTag = commentTag.WithTag(models.CommentTagWriter)
 	}
-
-	// If the poster is the actual poster of the issue, enable Poster tag.
+  
+  // If the poster is the actual poster of the issue, enable Poster tag.
 	if issue.IsPoster(poster.ID) {
 		commentTag = commentTag.WithTag(models.CommentTagPoster)
 	}
