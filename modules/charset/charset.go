@@ -25,6 +25,7 @@ import (
 // UTF8BOM is the utf-8 byte-order marker
 var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 
+// EscapeStatus represents the findings of the unicode escaper
 type EscapeStatus struct {
 	Escaped      bool
 	HasError     bool
@@ -38,6 +39,7 @@ type EscapeStatus struct {
 	HasLTRScript bool
 }
 
+// Or combines two EscapeStatus structs into one representing the conjunction of the two
 func (status EscapeStatus) Or(other EscapeStatus) EscapeStatus {
 	status.Escaped = status.Escaped || other.Escaped
 	status.HasError = status.HasError || other.HasError
@@ -52,18 +54,21 @@ func (status EscapeStatus) Or(other EscapeStatus) EscapeStatus {
 	return status
 }
 
+// EscapeControlString escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
 func EscapeControlString(text string) (EscapeStatus, string) {
 	sb := &strings.Builder{}
 	escaped, _ := EscapeControlReader(strings.NewReader(text), sb)
 	return escaped, sb.String()
 }
 
+// EscapeControlBytes escapes the unicode control sequences  a provided []byte and returns the findings as an EscapeStatus and the escaped []byte
 func EscapeControlBytes(text []byte) (EscapeStatus, []byte) {
 	buf := &bytes.Buffer{}
 	escaped, _ := EscapeControlReader(bytes.NewReader(text), buf)
 	return escaped, buf.Bytes()
 }
 
+// EscapeControlReader escapes the unicode control sequences  a provided Reader writing the escaped output to the output and returns the findings as an EscapeStatus and an error
 func EscapeControlReader(text io.Reader, output io.Writer) (escaped EscapeStatus, err error) {
 	buf := make([]byte, 4096)
 	readStart := 0
