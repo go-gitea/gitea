@@ -412,7 +412,7 @@ func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
 
 func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*User, error) {
 	users := make([]*User, 0, 10)
-	return users, db.GetEngine(db.DefaultContext).
+	return users, e.
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).
