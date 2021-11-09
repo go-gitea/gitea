@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -74,12 +73,12 @@ type Repository struct {
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(unit.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
+	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
-	return r.Permission.CanWrite(unit.TypeCode) && r.Repository.CanCreateBranch()
+	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanCreateBranch()
 }
 
 // RepoMustNotBeArchived checks if a repo is archived
@@ -278,7 +277,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if !perm.CanRead(unit.TypeCode) {
+	if !perm.CanRead(unit_model.TypeCode) {
 		repo.TemplateID = 0
 	}
 }
@@ -465,7 +464,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	unit, err := ctx.Repo.Repository.GetUnit(unit_model.TypeExternalTracker)
 	if err == nil {
-		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
+		ctx.Data["RepoExternalIssuesLink"] = unit_model.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
 	ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
@@ -899,14 +898,14 @@ func GitHookService() func(ctx *Context) {
 // UnitTypes returns a middleware to set unit types to context variables.
 func UnitTypes() func(ctx *Context) {
 	return func(ctx *Context) {
-		ctx.Data["UnitTypeCode"] = unit.TypeCode
-		ctx.Data["UnitTypeIssues"] = unit.TypeIssues
-		ctx.Data["UnitTypePullRequests"] = unit.TypePullRequests
-		ctx.Data["UnitTypeReleases"] = unit.TypeReleases
-		ctx.Data["UnitTypeWiki"] = unit.TypeWiki
-		ctx.Data["UnitTypeExternalWiki"] = unit.TypeExternalWiki
-		ctx.Data["UnitTypeExternalTracker"] = unit.TypeExternalTracker
-		ctx.Data["UnitTypeProjects"] = unit.TypeProjects
+		ctx.Data["UnitTypeCode"] = unit_model.TypeCode
+		ctx.Data["UnitTypeIssues"] = unit_model.TypeIssues
+		ctx.Data["UnitTypePullRequests"] = unit_model.TypePullRequests
+		ctx.Data["UnitTypeReleases"] = unit_model.TypeReleases
+		ctx.Data["UnitTypeWiki"] = unit_model.TypeWiki
+		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
+		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
 	}
 }
 
