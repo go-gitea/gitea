@@ -7,27 +7,25 @@ import {initDashboardRepoList} from './components/DashboardRepoList.js';
 import attachTribute from './features/tribute.js';
 import initGlobalCopyToClipboardListener from './features/clipboard.js';
 import initContextPopups from './features/contextpopup.js';
-import initGitGraph from './features/gitgraph.js';
+import initRepoGraphGit from './features/repo-graph.js';
 import initHeatmap from './features/heatmap.js';
 import initImageDiff from './features/imagediff.js';
-import initMigration from './features/migration.js';
-import initProject from './features/projects.js';
+import initRepoMigration from './features/repo-migration.js';
+import initRepoProject from './features/repo-projects.js';
 import initServiceWorker from './features/serviceworker.js';
 import initTableSort from './features/tablesort.js';
 import {initAdminUserListSearchForm} from './features/admin-users.js';
 import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
-import {initLastCommitLoader} from './features/lastcommitloader.js';
-import {initIssueContentHistory} from './features/issue-content-history.js';
+import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
-import {initDiffShowMore} from './features/diff.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
 import {
   initRepoDiffConversationForm,
   initRepoDiffFileViewToggle,
-  initRepoDiffReviewButton,
+  initRepoDiffReviewButton, initRepoDiffShowMore,
 } from './features/repo-diff.js';
 import {
   initRepoIssueDue,
@@ -38,7 +36,7 @@ import {
   initRepoPullRequestMergeInstruction,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
-import {initRepoCommitButton} from './features/repo-commit.js';
+import {initRepoCommitButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
 import {
   initFootLanguageMenu,
   initGlobalButtonClickOnEnter,
@@ -68,9 +66,9 @@ import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team
 import {initUserAuthU2fAuth, initUserAuthU2fRegister} from './features/user-auth-u2f.js';
 import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
 import {initRepoEditor} from './features/repo-editor.js';
-import {initSearchUserBox} from './features/comp/SearchUserBox.js';
+import {initCompSearchUserBox} from './features/comp/SearchUserBox.js';
 import {initInstall} from './features/install.js';
-import {initWebHookEditor} from './features/comp/WebHookEditor.js';
+import {initCompWebHookEditor} from './features/comp/WebHookEditor.js';
 import {initCommonIssue} from './features/common-issue.js';
 import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
@@ -82,85 +80,90 @@ $.fn.tab.settings.silent = true;
 
 initVueEnv();
 
-$(document).ready(async () => {
+$(document).ready(() => {
   initGlobalCommon();
-  initGlobalDropzone();
-  initGlobalLinkActions();
-  initGlobalButtons();
-  initRepoBranchButton();
-
-  initCommonIssue();
-
-  initSearchUserBox();
-  initRepoSettingSearchTeamBox();
-  initOrgTeamSearchRepoBox();
 
   initGlobalButtonClickOnEnter();
-  initMarkupAnchors();
-  initCommentContent();
-  initRepoCommentForm();
-  initInstall();
-  initRepoArchiveLinks();
-  initRepository();
-  initMigration();
-  initRepoWikiForm();
-  initRepoEditor();
-  initCommonOrganization();
-  initWebHookEditor();
-  initAdminCommon();
-  initRepoCodeView();
-  initRepoActivityTopAuthorsChart();
-  initDashboardRepoList();
-  initOrgTeamSettings();
+  initGlobalButtons();
+  initGlobalCopyToClipboardListener();
+  initGlobalDropzone();
   initGlobalEnterQuickSubmit();
+  initGlobalFormDirtyLeaveConfirm();
+  initGlobalLinkActions();
+
+  attachTribute(document.querySelectorAll('#content, .emoji-input'));
+
+  initCommonIssue();
+  initCommonOrganization();
+
+  initCompSearchUserBox();
+  initCompWebHookEditor();
+
+  initInstall();
+
   initHeadNavbarContentToggle();
   initFootLanguageMenu();
+
+  initCommentContent();
+  initContextPopups();
+  initHeatmap();
+  initImageDiff();
+  initMarkupAnchors();
+  initMarkupContent();
+  initServiceWorker();
+  initSshKeyFormParser();
+  initStopwatch();
+  initTableSort();
+
+  initAdminCommon();
+  initAdminEmails();
+  initAdminUserListSearchForm();
+
+  initDashboardRepoList();
+
+  initNotificationCount();
+  initNotificationsTable();
+
+  initOrgTeamSearchRepoBox();
+  initOrgTeamSettings();
+
+  initRepoActivityTopAuthorsChart();
+  initRepoArchiveLinks();
+  initRepoBranchButton();
+  initRepoCodeView();
+  initRepoCommentForm();
+  initRepoCommitButton();
+  initRepoCommitLastCommitLoader();
+  initRepoDiffConversationForm();
+  initRepoDiffFileViewToggle();
+  initRepoDiffReviewButton();
+  initRepoDiffShowMore();
+  initRepoEditor();
+  initRepoGraphGit();
+  initRepoIssueContentHistory();
+  initRepoIssueDue();
+  initRepoIssueList();
+  initRepoIssueReferenceRepositorySearch();
+  initRepoIssueTimeTracking();
+  initRepoIssueWipTitle();
+  initRepoMigration();
+  initRepoMigrationStatusChecker();
+  initRepoProject();
+  initRepoPullRequestMergeInstruction();
+  initRepoPullRequestReview();
+  initRepoRelease();
+  initRepoReleaseEditor();
+  initRepoSettingGitHook();
+  initRepoSettingSearchTeamBox();
+  initRepoSettingsCollaboration();
+  initRepoTemplateSearch();
   initRepoTopicBar();
+  initRepoWikiForm();
+  initRepository();
+
+  initUserAuthLinkAccountView();
+  initUserAuthOauth2();
   initUserAuthU2fAuth();
   initUserAuthU2fRegister();
-  initRepoIssueList();
-  initRepoIssueTimeTracking();
-  initRepoIssueDue();
-  initRepoIssueWipTitle();
-  initRepoPullRequestReview();
-  initRepoMigrationStatusChecker();
-  initRepoTemplateSearch();
-  initRepoIssueReferenceRepositorySearch();
-  initContextPopups();
-  initTableSort();
-  initNotificationsTable();
-  initLastCommitLoader();
-  initRepoPullRequestMergeInstruction();
-  initRepoDiffFileViewToggle();
-  initRepoReleaseEditor();
-  initRepoRelease();
-  initDiffShowMore();
-  initIssueContentHistory();
-  initAdminUserListSearchForm();
-  initGlobalCopyToClipboardListener();
-  initUserAuthOauth2();
-  initRepoDiffReviewButton();
-  initRepoCommitButton();
-  initAdminEmails();
-  initGlobalEnterQuickSubmit();
-  initSshKeyFormParser();
-  initGlobalFormDirtyLeaveConfirm();
   initUserSettings();
-  initRepoSettingsCollaboration();
-  initUserAuthLinkAccountView();
-  initRepoDiffConversationForm();
-
-  // parallel init of async loaded features
-  await Promise.all([
-    attachTribute(document.querySelectorAll('#content, .emoji-input')),
-    initGitGraph(),
-    initHeatmap(),
-    initProject(),
-    initServiceWorker(),
-    initNotificationCount(),
-    initStopwatch(),
-    initMarkupContent(),
-    initRepoSettingGitHook(),
-    initImageDiff(),
-  ]);
 });

@@ -1,5 +1,5 @@
 import imageminZopfli from 'imagemin-zopfli';
-import {optimize, extendDefaultPlugins} from 'svgo';
+import {optimize} from 'svgo';
 import {fabric} from 'fabric';
 import fs from 'fs';
 import {resolve, dirname} from 'path';
@@ -25,13 +25,14 @@ function loadSvg(svg) {
 async function generate(svg, outputFile, {size, bg}) {
   if (outputFile.endsWith('.svg')) {
     const {data} = optimize(svg, {
-      plugins: extendDefaultPlugins([
+      plugins: [
+        'preset-default',
         'removeDimensions',
         {
           name: 'addAttributesToSVGElement',
           params: {attributes: [{width: size}, {height: size}]}
         },
-      ]),
+      ],
     });
     await writeFile(outputFile, data);
     return;

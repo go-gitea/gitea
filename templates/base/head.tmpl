@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}} </title>
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
 	<link rel="manifest" href="data:{{.ManifestData}}"/>
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="default-theme" content="{{DefaultTheme}}" />
@@ -11,7 +11,6 @@
 	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
 	<meta name="keywords" content="{{MetaKeywords}}">
 	<meta name="referrer" content="no-referrer" />
-	<meta name="_csrf" content="{{.CsrfToken}}" />
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.CloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
@@ -19,25 +18,17 @@
 	<script>
 		<!-- /* eslint-disable */ -->
 		window.config = {
-			AppVer: '{{AppVer}}',
-			AppSubUrl: '{{AppSubUrl}}',
-			AssetUrlPrefix: '{{AssetUrlPrefix}}',
-			IsProd: {{.IsProd}},
-			CustomEmojis: {{CustomEmojis}},
-			UseServiceWorker: {{UseServiceWorker}},
-			csrf: '{{.CsrfToken}}',
-			pageData: {{ .PageData }},
-			HighlightJS: {{if .RequireHighlightJS}}true{{else}}false{{end}},
-			SimpleMDE: {{if .RequireSimpleMDE}}true{{else}}false{{end}},
-			Tribute: {{if .RequireTribute}}true{{else}}false{{end}},
-			NotificationSettings: {
-				MinTimeout: {{NotificationSettings.MinTimeout}},
-				TimeoutStep:  {{NotificationSettings.TimeoutStep}},
-				MaxTimeout: {{NotificationSettings.MaxTimeout}},
-				EventSourceUpdateTime: {{NotificationSettings.EventSourceUpdateTime}},
-			},
-			EnableTimetracking: {{if EnableTimetracking}}true{{else}}false{{end}},
-			PageIsProjects: {{if .PageIsProjects }}true{{else}}false{{end}},
+			appVer: '{{AppVer}}',
+			appSubUrl: '{{AppSubUrl}}',
+			assetUrlPrefix: '{{AssetUrlPrefix}}',
+			runModeIsProd: {{.RunModeIsProd}},
+			customEmojis: {{CustomEmojis}},
+			useServiceWorker: {{UseServiceWorker}},
+			csrfToken: '{{.CsrfToken}}',
+			pageData: {{.PageData}},
+			requireTribute: {{.RequireTribute}},
+			notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
+			enableTimeTracking: {{EnableTimetracking}},
 			{{if .RequireTribute}}
 			tributeValues: Array.from(new Map([
 				{{ range .Participants }}
@@ -54,7 +45,7 @@
 				{{ end }}
 			]).values()),
 			{{end}}
-			MermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
+			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
 		};
 	</script>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">

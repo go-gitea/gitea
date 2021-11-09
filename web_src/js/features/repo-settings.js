@@ -1,14 +1,14 @@
 import {createMonaco} from './codeeditor.js';
 import {initRepoCommonFilterSearchDropdown} from './repo-common.js';
 
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   $('.access-mode.menu .item').on('click', function () {
     const $menu = $(this).parent();
     $.post($menu.data('url'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       uid: $menu.data('uid'),
       mode: $(this).data('value')
     });
@@ -20,8 +20,8 @@ export function initRepoSettingSearchTeamBox() {
   $searchTeamBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${AppSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
-      headers: {'X-Csrf-Token': csrf},
+      url: `${appSubUrl}/api/v1/orgs/${$searchTeamBox.data('org')}/teams/search?q={query}`,
+      headers: {'X-Csrf-Token': csrfToken},
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {
@@ -40,10 +40,10 @@ export function initRepoSettingSearchTeamBox() {
 }
 
 
-export async function initRepoSettingGitHook() {
+export function initRepoSettingGitHook() {
   if ($('.edit.githook').length === 0) return;
   const filename = document.querySelector('.hook-filename').textContent;
-  await createMonaco($('#content')[0], filename, {language: 'shell'});
+  const _promise = createMonaco($('#content')[0], filename, {language: 'shell'});
 }
 
 export function initRepoSettingBranches() {

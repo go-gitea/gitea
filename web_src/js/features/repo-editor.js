@@ -1,7 +1,7 @@
 import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 let previewFileModes;
 
@@ -21,10 +21,10 @@ function initEditPreviewTab($form) {
       }
       context = context.substring(0, context.lastIndexOf('/'));
       $.post($this.data('url'), {
-        _csrf: csrf,
+        _csrf: csrfToken,
         mode,
         context,
-        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+        text: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
       }, (data) => {
         const $previewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('preview')}"]`);
         $previewPanel.html(data);
@@ -40,9 +40,9 @@ function initEditDiffTab($form) {
   $tabMenu.find(`.item[data-tab="${$tabMenu.data('diff')}"]`).on('click', function () {
     const $this = $(this);
     $.post($this.data('url'), {
-      _csrf: csrf,
+      _csrf: csrfToken,
       context: $this.data('context'),
-      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val()
+      content: $form.find(`.tab[data-tab="${$tabMenu.data('write')}"] textarea`).val(),
     }, (data) => {
       const $diffPreviewPanel = $form.find(`.tab[data-tab="${$tabMenu.data('diff')}"]`);
       $diffPreviewPanel.html(data);
@@ -75,7 +75,7 @@ function getCursorPosition($e) {
   return pos;
 }
 
-export async function initRepoEditor() {
+export function initRepoEditor() {
   initEditorForm();
 
   $('.js-quick-pull-choice-option').on('change', function () {
@@ -134,47 +134,49 @@ export async function initRepoEditor() {
   const $editArea = $('.repository.editor textarea#edit_area');
   if (!$editArea.length) return;
 
-  const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
+  (async () => {
+    const editor = await createCodeEditor($editArea[0], $editFilename[0], previewFileModes);
 
-  // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
-  // to enable or disable the commit button
-  const $commitButton = $('#commit-button');
-  const $editForm = $('.ui.edit.form');
-  const dirtyFileClass = 'dirty-file';
+    // Using events from https://github.com/codedance/jquery.AreYouSure#advanced-usage
+    // to enable or disable the commit button
+    const $commitButton = $('#commit-button');
+    const $editForm = $('.ui.edit.form');
+    const dirtyFileClass = 'dirty-file';
 
-  // Disabling the button at the start
-  if ($('input[name="page_has_posted"]').val() !== 'true') {
-    $commitButton.prop('disabled', true);
-  }
-
-  // Registering a custom listener for the file path and the file content
-  $editForm.areYouSure({
-    silent: true,
-    dirtyClass: dirtyFileClass,
-    fieldSelector: ':input:not(.commit-form-wrapper :input)',
-    change() {
-      const dirty = $(this).hasClass(dirtyFileClass);
-      $commitButton.prop('disabled', !dirty);
+    // Disabling the button at the start
+    if ($('input[name="page_has_posted"]').val() !== 'true') {
+      $commitButton.prop('disabled', true);
     }
-  });
 
-  // Update the editor from query params, if available,
-  // only after the dirtyFileClass initialization
-  const params = new URLSearchParams(window.location.search);
-  const value = params.get('value');
-  if (value) {
-    editor.setValue(value);
-  }
+    // Registering a custom listener for the file path and the file content
+    $editForm.areYouSure({
+      silent: true,
+      dirtyClass: dirtyFileClass,
+      fieldSelector: ':input:not(.commit-form-wrapper :input)',
+      change() {
+        const dirty = $(this).hasClass(dirtyFileClass);
+        $commitButton.prop('disabled', !dirty);
+      },
+    });
 
-  $commitButton.on('click', (event) => {
-    // A modal which asks if an empty file should be committed
-    if ($editArea.val().length === 0) {
-      $('#edit-empty-content-modal').modal({
-        onApprove() {
-          $('.edit.form').trigger('submit');
-        }
-      }).modal('show');
-      event.preventDefault();
+    // Update the editor from query params, if available,
+    // only after the dirtyFileClass initialization
+    const params = new URLSearchParams(window.location.search);
+    const value = params.get('value');
+    if (value) {
+      editor.setValue(value);
     }
-  });
+
+    $commitButton.on('click', (event) => {
+      // A modal which asks if an empty file should be committed
+      if ($editArea.val().length === 0) {
+        $('#edit-empty-content-modal').modal({
+          onApprove() {
+            $('.edit.form').trigger('submit');
+          },
+        }).modal('show');
+        event.preventDefault();
+      }
+    });
+  })();
 }

@@ -1,6 +1,6 @@
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
-export function initWebHookEditor() {
+export function initCompWebHookEditor() {
   if ($('.new.webhook').length === 0) {
     return;
   }
@@ -30,7 +30,7 @@ export function initWebHookEditor() {
     const $this = $(this);
     $this.addClass('loading disabled');
     $.post($this.data('link'), {
-      _csrf: csrf
+      _csrf: csrfToken
     }).done(
       setTimeout(() => {
         window.location.href = $this.data('redirect');

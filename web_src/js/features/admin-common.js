@@ -1,4 +1,4 @@
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initAdminCommon() {
   if ($('.admin').length === 0) {
@@ -204,7 +204,7 @@ export function initAdminCommon() {
         }
       });
       $.post($this.data('link'), {
-        _csrf: csrf,
+        _csrf: csrfToken,
         ids
       }).done(() => {
         window.location.href = $this.data('redirect');

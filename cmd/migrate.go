@@ -24,7 +24,10 @@ var CmdMigrate = cli.Command{
 }
 
 func runMigrate(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
@@ -35,7 +38,7 @@ func runMigrate(ctx *cli.Context) error {
 	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
-	if err := db.NewEngine(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}

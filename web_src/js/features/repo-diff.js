@@ -1,6 +1,6 @@
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
   $(document).on('click', 'button[name="is_review"]', (e) => {
@@ -45,7 +45,7 @@ export function initRepoDiffConversationForm() {
     const action = $(this).data('action');
     const url = $(this).data('update-url');
 
-    const data = await $.post(url, {_csrf: csrf, origin, action, comment_id});
+    const data = await $.post(url, {_csrf: csrfToken, origin, action, comment_id});
 
     if ($(this).closest('.conversation-holder').length) {
       const conversation = $(data);
@@ -77,5 +77,30 @@ export function initRepoDiffConversationNav() {
     const $nextConversation = $conversations.eq(nextIndex);
     const anchor = $nextConversation.find('.comment').first().attr('id');
     window.location.href = `#${anchor}`;
+  });
+}
+
+export function initRepoDiffShowMore() {
+  $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
+    e.preventDefault();
+
+    if ($(e.target).hasClass('disabled')) {
+      return;
+    }
+    $('#diff-show-more-files, #diff-show-more-files-stats').addClass('disabled');
+
+    const url = $('#diff-show-more-files, #diff-show-more-files-stats').data('href');
+    $.ajax({
+      type: 'GET',
+      url,
+    }).done((resp) => {
+      if (!resp || resp.html === '' || resp.empty) {
+        $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
+        return;
+      }
+      $('#diff-too-many-files-stats').remove();
+      $('#diff-files').append($(resp).find('#diff-files li'));
+      $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+    });
   });
 }

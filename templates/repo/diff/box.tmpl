@@ -59,7 +59,7 @@
 				{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{.Index}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.IsGenerated}}data-folded="true"{{end}}>
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
-						<div class="fold-file df ac">
+						<div class="df ac">
 							<a role="button" class="fold-file muted mr-2">
 								{{if $file.IsGenerated}}
 									{{svg "octicon-chevron-right" 18}}
