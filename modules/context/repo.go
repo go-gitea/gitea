@@ -464,7 +464,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	unit, err := ctx.Repo.Repository.GetUnit(unit_model.TypeExternalTracker)
 	if err == nil {
-		ctx.Data["RepoExternalIssuesLink"] = unit_model.ExternalTrackerConfig().ExternalTrackerURL
+		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
 	ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
