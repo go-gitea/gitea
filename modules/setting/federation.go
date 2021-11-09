@@ -9,9 +9,17 @@ import "code.gitea.io/gitea/modules/log"
 // Federation settings
 var (
 	Federation = struct {
-		Enabled bool
+		Enabled         bool
+		Algorithms      []string
+		DigestAlgorithm string
+		GetHeaders      []string
+		PostHeaders     []string
 	}{
-		Enabled: true,
+		Enabled:         true,
+		Algorithms:      []string{"rsa-sha256", "rsa-sha512"},
+		DigestAlgorithm: "SHA-256",
+		GetHeaders:      []string{"(request-target)", "Date"},
+		PostHeaders:     []string{"(request-target)", "Date", "Digest"},
 	}
 )
 
