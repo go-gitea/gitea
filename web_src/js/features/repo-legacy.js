@@ -259,7 +259,7 @@ export function initRepoCommentForm() {
 }
 
 
-export async function initRepository() {
+export function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -363,7 +363,7 @@ export async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        await attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
