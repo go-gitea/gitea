@@ -49,7 +49,7 @@ It's not recommended to use `async` event listeners, which may lead to problems.
 #### DOM Event Listener
 
 ```js
-e.addEventListener('click', () => {
+el.addEventListener('click', (e) => {
   (async () => {
     await asyncFoo(); // recommended
     // then we shound't do e.preventDefault() after await, no effect
@@ -60,7 +60,7 @@ e.addEventListener('click', () => {
   e.preventDefault(); // correct
 });
 
-e.addEventListener('async', async () => { // not recommended but acceptable
+el.addEventListener('async', async (e) => { // not recommended but acceptable
   e.preventDefault(); // acceptable
   await asyncFoo();   // skip out event dispath 
   e.preventDefault(); // WRONG
@@ -70,21 +70,23 @@ e.addEventListener('async', async () => { // not recommended but acceptable
 #### jQuery Event Listener
 
 ```js
-$('#e').on('click', () => {
+$('#el').on('click', (e) => {
   (async () => {
     await asyncFoo(); // recommended
     // then we shound't do e.preventDefault() after await, no effect
   })();
 
   const _promise = asyncFoo(); // recommended
-  
-  return false; // correct
+
+  e.preventDefault();  // correct
+  return false;        // correct
 });
 
-$('#e').on('click', async () => {  // not recommended but acceptable
-  e.preventDefault(); // acceptable
-  await asyncFoo();   // skip out event dispath
-  return false;       // WRONG
+$('#el').on('click', async (e) => {  // not recommended but acceptable
+  e.preventDefault();  // acceptable
+  return false;        // WRONG, jQuery expects the returned value is a boolean, not a Promise
+  await asyncFoo();    // skip out event dispath
+  return false;        // WRONG
 });
 ```
 
