@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1528,12 +1527,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
-	countSession := func(opts *IssueStatsOptions) *xorm.Session {
+	countSession := func(opts *IssueStatsOptions, issueIDs []int64) *xorm.Session {
 		sess := db.GetEngine(db.DefaultContext).
 			Where("issue.repo_id = ?", opts.RepoID)
 
-		if len(opts.IssueIDs) > 0 {
-			sess.In("issue.id", opts.IssueIDs)
+		if len(issueIDs) > 0 {
+			sess.In("issue.id", issueIDs)
 		}
 
 		if len(opts.Labels) > 0 && opts.Labels != "0" {
@@ -1583,13 +1582,13 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 	}
 
 	var err error
-	stats.OpenCount, err = countSession(opts).
+	stats.OpenCount, err = countSession(opts, issueIDs).
 		And("issue.is_closed = ?", false).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
 	}
-	stats.ClosedCount, err = countSession(opts).
+	stats.ClosedCount, err = countSession(opts, issueIDs).
 		And("issue.is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
@@ -2116,7 +2115,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 }
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
-func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, posterID int64) error {
+func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Table("issue").
 		Where("repo_id IN (SELECT id FROM repository WHERE original_service_type = ?)", gitServiceType).
 		And("original_author_id = ?", originalAuthorID).
@@ -2129,7 +2128,7 @@ func UpdateIssuesMigrationsByType(gitServiceType structs.GitServiceType, origina
 }
 
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
-func UpdateReactionsMigrationsByType(gitServiceType structs.GitServiceType, originalAuthorID string, userID int64) error {
+func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(gitServiceType)).
