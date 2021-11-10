@@ -55,23 +55,17 @@ func DeleteAccountLink(ctx *context.Context) {
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled := true
-	_, err := login.GetTwoFactorByUID(ctx.User.ID)
+	enrolled, err := login.HasTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
-			enrolled = false
-		} else {
-			ctx.ServerError("SettingsTwoFactor", err)
-			return
-		}
+		ctx.ServerError("SettingsTwoFactor", err)
+		return
 	}
-	ctx.Data["TwofaEnrolled"] = enrolled
-	if enrolled {
-		ctx.Data["U2FRegistrations"], err = login.GetU2FRegistrationsByUID(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("GetU2FRegistrationsByUID", err)
-			return
-		}
+	ctx.Data["TOTPEnrolled"] = enrolled
+
+	ctx.Data["U2FRegistrations"], err = login.GetU2FRegistrationsByUID(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetU2FRegistrationsByUID", err)
+		return
 	}
 
 	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})

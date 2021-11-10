@@ -31,7 +31,7 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
-				return models.ErrCancelledf("before fsck of %s", repo.FullName())
+				return db.ErrCancelledf("before fsck of %s", repo.FullName())
 			default:
 			}
 			log.Trace("Running health check on repository %v", repo)
@@ -66,7 +66,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
-				return models.ErrCancelledf("before GC of %s", repo.FullName())
+				return db.ErrCancelledf("before GC of %s", repo.FullName())
 			default:
 			}
 			log.Trace("Running git gc on %v", repo)
@@ -123,7 +123,7 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*models.Repository, error)
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
-				return models.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())
+				return db.ErrCancelledf("during gathering missing repo records before checking %s", repo.FullName())
 			default:
 			}
 			isDir, err := util.IsDir(repo.RepoPath())
@@ -161,7 +161,7 @@ func DeleteMissingRepositories(ctx context.Context, doer *models.User) error {
 	for _, repo := range repos {
 		select {
 		case <-ctx.Done():
-			return models.ErrCancelledf("during DeleteMissingRepositories before %s", repo.FullName())
+			return db.ErrCancelledf("during DeleteMissingRepositories before %s", repo.FullName())
 		default:
 		}
 		log.Trace("Deleting %d/%d...", repo.OwnerID, repo.ID)
@@ -189,7 +189,7 @@ func ReinitMissingRepositories(ctx context.Context) error {
 	for _, repo := range repos {
 		select {
 		case <-ctx.Done():
-			return models.ErrCancelledf("during ReinitMissingRepositories before %s", repo.FullName())
+			return db.ErrCancelledf("during ReinitMissingRepositories before %s", repo.FullName())
 		default:
 		}
 		log.Trace("Initializing %d/%d...", repo.OwnerID, repo.ID)

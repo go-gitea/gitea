@@ -84,28 +84,6 @@ func (err ErrSSHDisabled) Error() string {
 	return "SSH is disabled"
 }
 
-// ErrCancelled represents an error due to context cancellation
-type ErrCancelled struct {
-	Message string
-}
-
-// IsErrCancelled checks if an error is a ErrCancelled.
-func IsErrCancelled(err error) bool {
-	_, ok := err.(ErrCancelled)
-	return ok
-}
-
-func (err ErrCancelled) Error() string {
-	return "Cancelled: " + err.Message
-}
-
-// ErrCancelledf returns an ErrCancelled for the provided format and args
-func ErrCancelledf(format string, args ...interface{}) error {
-	return ErrCancelled{
-		fmt.Sprintf(format, args...),
-	}
-}
-
 //  ____ ___
 // |    |   \______ ___________
 // |    |   /  ___// __ \_  __ \
@@ -1307,28 +1285,6 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
 	return "a SHA or commit ID must be proved when updating a file"
-}
-
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
-
-// ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
-type ErrWebhookNotExist struct {
-	ID int64
-}
-
-// IsErrWebhookNotExist checks if an error is a ErrWebhookNotExist.
-func IsErrWebhookNotExist(err error) bool {
-	_, ok := err.(ErrWebhookNotExist)
-	return ok
-}
-
-func (err ErrWebhookNotExist) Error() string {
-	return fmt.Sprintf("webhook does not exist [id: %d]", err.ID)
 }
 
 // .___

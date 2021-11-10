@@ -2,7 +2,7 @@ import {htmlEscape} from 'escape-goat';
 
 const {appSubUrl} = window.config;
 
-export function initSearchUserBox() {
+export function initCompSearchUserBox() {
   const $searchUserBox = $('#search-user-box');
   $searchUserBox.search({
     minCharacters: 2,

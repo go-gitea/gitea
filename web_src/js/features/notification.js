@@ -40,7 +40,7 @@ async function receiveUpdateCount(event) {
   }
 }
 
-export async function initNotificationCount() {
+export function initNotificationCount() {
   const notificationCount = $('.notification_count');
 
   if (!notificationCount.length) {
@@ -66,7 +66,7 @@ export async function initNotificationCount() {
         return;
       }
       if (event.data.type === 'notification-count') {
-        receiveUpdateCount(event.data);
+        const _promise = receiveUpdateCount(event.data);
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
