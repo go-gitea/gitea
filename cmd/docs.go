@@ -45,8 +45,6 @@ func runDocs(ctx *cli.Context) error {
 		// https://github.com/urfave/cli/issues/1040
 		firstHashtagIndex := strings.Index(docs, "#")
 
-		// Only replace docs, when firstHashtagIndex isn't -1,
-		// as -1 shouldn't be passed into a slice.
 		if firstHashtagIndex != -1 {
 			docs = docs[firstHashtagIndex:]
 		}

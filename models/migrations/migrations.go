@@ -795,9 +795,6 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		// Get the index after the column definitions.
 		endColumnsIndex := strings.Index(tableSQL, "(")
 
-		// If endColumnsIndex is -1, which shouldn't be passed
-		// into a slice. We should return a error, as that also
-		// means that the substring wasn't found.
 		if endColumnsIndex == -1 {
 			return errors.New("couldn't get index after column defintions")
 		}
