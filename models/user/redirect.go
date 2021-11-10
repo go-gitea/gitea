@@ -28,7 +28,8 @@ func (err ErrUserRedirectNotExist) Error() string {
 }
 
 // UserRedirect represents that a user name should be redirected to another
-type UserRedirect struct { //nolint
+//nolint
+type UserRedirect struct {
 	ID             int64  `xorm:"pk autoincr"`
 	LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	RedirectUserID int64  // userID to redirect to
