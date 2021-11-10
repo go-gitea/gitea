@@ -1356,7 +1356,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 	for _, u := range users {
 		select {
 		case <-ctx.Done():
-			return ErrCancelledf("Before delete inactive user %s", u.Name)
+			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
 		if err = DeleteUser(u); err != nil {
@@ -1392,7 +1392,12 @@ func getUserByID(e db.Engine, id int64) (*User, error) {
 
 // GetUserByID returns the user object by given ID if exists.
 func GetUserByID(id int64) (*User, error) {
-	return getUserByID(db.GetEngine(db.DefaultContext), id)
+	return GetUserByIDCtx(db.DefaultContext, id)
+}
+
+// GetUserByIDCtx returns the user object by given ID if exists.
+func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
+	return getUserByID(db.GetEngine(ctx), id)
 }
 
 // GetUserByName returns user by given name.
@@ -1577,7 +1582,7 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 		return nil, err
 	}
 	if has {
-		return getUserByID(db.GetEngine(ctx), emailAddress.UID)
+		return GetUserByIDCtx(ctx, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
