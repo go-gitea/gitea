@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -358,7 +359,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	err := CreateUser(user)
 	assert.Error(t, err)
-	assert.True(t, IsErrEmailInvalid(err))
+	assert.True(t, user_model.IsErrEmailInvalid(err))
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {

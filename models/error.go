@@ -170,66 +170,6 @@ func (err ErrUserInactive) Error() string {
 	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
 }
 
-// ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
-type ErrEmailAlreadyUsed struct {
-	Email string
-}
-
-// IsErrEmailAlreadyUsed checks if an error is a ErrEmailAlreadyUsed.
-func IsErrEmailAlreadyUsed(err error) bool {
-	_, ok := err.(ErrEmailAlreadyUsed)
-	return ok
-}
-
-func (err ErrEmailAlreadyUsed) Error() string {
-	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
-}
-
-// ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
-type ErrEmailInvalid struct {
-	Email string
-}
-
-// IsErrEmailInvalid checks if an error is an ErrEmailInvalid
-func IsErrEmailInvalid(err error) bool {
-	_, ok := err.(ErrEmailInvalid)
-	return ok
-}
-
-func (err ErrEmailInvalid) Error() string {
-	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
-}
-
-// ErrEmailAddressNotExist email address not exist
-type ErrEmailAddressNotExist struct {
-	Email string
-}
-
-// IsErrEmailAddressNotExist checks if an error is an ErrEmailAddressNotExist
-func IsErrEmailAddressNotExist(err error) bool {
-	_, ok := err.(ErrEmailAddressNotExist)
-	return ok
-}
-
-func (err ErrEmailAddressNotExist) Error() string {
-	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
-}
-
-// ErrPrimaryEmailCannotDelete primary email address cannot be deleted
-type ErrPrimaryEmailCannotDelete struct {
-	Email string
-}
-
-// IsErrPrimaryEmailCannotDelete checks if an error is an ErrPrimaryEmailCannotDelete
-func IsErrPrimaryEmailCannotDelete(err error) bool {
-	_, ok := err.(ErrPrimaryEmailCannotDelete)
-	return ok
-}
-
-func (err ErrPrimaryEmailCannotDelete) Error() string {
-	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
-}
-
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
 type ErrOpenIDAlreadyUsed struct {
 	OpenID string
