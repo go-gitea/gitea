@@ -9,13 +9,14 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/webhook"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list all hooks of a repository
@@ -48,18 +49,18 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	opts := &models.ListWebhookOptions{
+	opts := &webhook.ListWebhookOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
 	}
 
-	count, err := models.CountWebhooksByOpts(opts)
+	count, err := webhook.CountWebhooksByOpts(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	hooks, err := models.ListWebhooksByOpts(opts)
+	hooks, err := webhook.ListWebhooksByOpts(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -155,7 +156,7 @@ func TestHook(ctx *context.APIContext) {
 
 	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
 
-	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
+	if err := webhook_service.PrepareWebhook(hook, ctx.Repo.Repository, webhook.HookEventPush, &api.PushPayload{
 		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
 		Before:     ctx.Repo.Commit.ID.String(),
 		After:      ctx.Repo.Commit.ID.String(),
@@ -272,8 +273,8 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrWebhookNotExist(err) {
+	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByRepoID", err)

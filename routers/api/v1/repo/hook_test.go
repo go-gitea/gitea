@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
 
@@ -27,7 +27,7 @@ func TestTestHook(t *testing.T) {
 	TestHook(&context.APIContext{Context: ctx, Org: nil})
 	assert.EqualValues(t, http.StatusNoContent, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.HookTask{
+	db.AssertExistsAndLoadBean(t, &webhook.HookTask{
 		RepoID: 1,
 		HookID: 1,
 	}, db.Cond("is_delivered=?", false))
