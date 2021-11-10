@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issuesModel "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -87,7 +88,7 @@ func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comm
 	canSoftDelete := false
 	if ctx.Repo.IsOwner() {
 		canSoftDelete = true
-	} else if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	} else if ctx.Repo.CanWrite(unit.TypeIssues) {
 		if comment == nil {
 			// the issue poster or the history poster can soft-delete
 			canSoftDelete = ctx.User.ID == issue.PosterID || ctx.User.ID == history.PosterID
