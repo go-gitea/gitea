@@ -64,19 +64,19 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 }
 
 // DeleteSetting deletes a specific setting for a user
-func DeleteSetting(Setting *Setting) error {
+func DeleteSetting(setting *Setting) error {
 	sess := db.GetEngine(db.DefaultContext)
 
-	_, err := sess.Delete(Setting)
+	_, err := sess.Delete(setting)
 	return err
 }
 
 // SetSetting updates a users' setting for a specific key
-func SetSetting(Setting *Setting) error {
-	if strings.ToLower(Setting.SettingKey) != Setting.SettingKey {
+func SetSetting(setting *Setting) error {
+	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
 		return fmt.Errorf("setting key should be lowercase")
 	}
-	return upsertSettingValue(db.GetEngine(db.DefaultContext), Setting.UserID, Setting.SettingKey, Setting.SettingValue)
+	return upsertSettingValue(db.GetEngine(db.DefaultContext), setting.UserID, setting.SettingKey, setting.SettingValue)
 }
 
 func upsertSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
