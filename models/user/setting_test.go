@@ -12,34 +12,34 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestUserSettings(t *testing.T) {
+func TestSettings(t *testing.T) {
 	keyName := "test_user_setting"
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	newSetting := &UserSetting{UserID: 99, SettingKey: keyName, SettingValue: "Gitea User Setting Test"}
+	newSetting := &Setting{UserID: 99, SettingKey: keyName, SettingValue: "Gitea User Setting Test"}
 
 	// create setting
-	err := SetUserSetting(newSetting)
+	err := SetSetting(newSetting)
 	assert.NoError(t, err)
 
 	// get specific setting
-	userSettings, err := GetUserSetting(99, []string{keyName})
+	Settings, err := GetSetting(99, []string{keyName})
 	assert.NoError(t, err)
-	assert.Len(t, userSettings, 1)
-	assert.EqualValues(t, newSetting.SettingValue, userSettings[keyName].SettingValue)
+	assert.Len(t, Settings, 1)
+	assert.EqualValues(t, newSetting.SettingValue, Settings[keyName].SettingValue)
 
 	// updated setting
-	updatedSetting := &UserSetting{UserID: 99, SettingKey: keyName, SettingValue: "Updated", ID: userSettings[keyName].ID}
-	err = SetUserSetting(updatedSetting)
+	updatedSetting := &Setting{UserID: 99, SettingKey: keyName, SettingValue: "Updated", ID: Settings[keyName].ID}
+	err = SetSetting(updatedSetting)
 	assert.NoError(t, err)
 
 	// get all settings
-	userSettings, err = GetUserAllSettings(99)
+	Settings, err = GetUserAllSettings(99)
 	assert.NoError(t, err)
-	assert.Len(t, userSettings, 1)
-	assert.EqualValues(t, userSettings[updatedSetting.SettingKey].SettingValue, updatedSetting.SettingValue)
+	assert.Len(t, Settings, 1)
+	assert.EqualValues(t, Settings[updatedSetting.SettingKey].SettingValue, updatedSetting.SettingValue)
 
 	// delete setting
-	err = DeleteUserSetting(updatedSetting)
+	err = DeleteSetting(updatedSetting)
 	assert.NoError(t, err)
 }

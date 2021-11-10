@@ -14,29 +14,33 @@ import (
 	"xorm.io/builder"
 )
 
-// UserSetting is a key value store of user settings
-type UserSetting struct {
+// Setting is a key value store of user settings
+type Setting struct {
 	ID           int64  `xorm:"pk autoincr"`
 	UserID       int64  `xorm:"index unique(key_userid)"`              // to load all of someone's settings
 	SettingKey   string `xorm:"varchar(255) index unique(key_userid)"` // ensure key is always lowercase
 	SettingValue string `xorm:"text"`
 }
 
-func init() {
-	db.RegisterModel(new(UserSetting))
+func (Setting) TableName() string {
+	return "user_setting"
 }
 
-// GetUserSetting returns specific settings from user
-// func GetUserSetting(uid int64, keys []string) ([]*UserSetting, error) {
-func GetUserSetting(uid int64, keys []string) (map[string]*UserSetting, error) {
-	settings := make([]*UserSetting, 0, len(keys))
+func init() {
+	db.RegisterModel(new(Setting))
+}
+
+// GetSetting returns specific settings from user
+// func GetSetting(uid int64, keys []string) ([]*Setting, error) {
+func GetSetting(uid int64, keys []string) (map[string]*Setting, error) {
+	settings := make([]*Setting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
 		And(builder.In("setting_key", keys)).
 		Find(&settings); err != nil {
 		return nil, err
 	}
-	settingsMap := make(map[string]*UserSetting)
+	settingsMap := make(map[string]*Setting)
 	for _, s := range settings {
 		settingsMap[s.SettingKey] = s
 	}
@@ -44,38 +48,38 @@ func GetUserSetting(uid int64, keys []string) (map[string]*UserSetting, error) {
 }
 
 // GetUserAllSettings returns all settings from user
-func GetUserAllSettings(uid int64) (map[string]*UserSetting, error) {
-	settings := make([]*UserSetting, 0, 5)
+func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
+	settings := make([]*Setting, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
 		Asc("id").
 		Find(&settings); err != nil {
 		return nil, err
 	}
-	settingsMap := make(map[string]*UserSetting)
+	settingsMap := make(map[string]*Setting)
 	for _, s := range settings {
 		settingsMap[s.SettingKey] = s
 	}
 	return settingsMap, nil
 }
 
-// DeleteUserSetting deletes a specific setting for a user
-func DeleteUserSetting(userSetting *UserSetting) error {
+// DeleteSetting deletes a specific setting for a user
+func DeleteSetting(Setting *Setting) error {
 	sess := db.GetEngine(db.DefaultContext)
 
-	_, err := sess.Delete(userSetting)
+	_, err := sess.Delete(Setting)
 	return err
 }
 
-// SetUserSetting updates a users' setting for a specific key
-func SetUserSetting(userSetting *UserSetting) error {
-	if strings.ToLower(userSetting.SettingKey) != userSetting.SettingKey {
+// SetSetting updates a users' setting for a specific key
+func SetSetting(Setting *Setting) error {
+	if strings.ToLower(Setting.SettingKey) != Setting.SettingKey {
 		return fmt.Errorf("setting key should be lowercase")
 	}
-	return upsertUserSettingValue(db.GetEngine(db.DefaultContext), userSetting.UserID, userSetting.SettingKey, userSetting.SettingValue)
+	return upsertSettingValue(db.GetEngine(db.DefaultContext), Setting.UserID, Setting.SettingKey, Setting.SettingValue)
 }
 
-func upsertUserSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
+func upsertSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
 	// Intentionally lowercase key here as XORM may not pick it up via Before* actions
 	key = strings.ToLower(key)
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
