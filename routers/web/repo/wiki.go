@@ -16,7 +16,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
-	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -383,14 +382,14 @@ func renderEditPage(ctx *context.Context) {
 func WikiPost(ctx *context.Context) {
 	switch ctx.FormString("action") {
 	case "_new":
-		if !ctx.Repo.CanWrite(unit_model.TypeWiki) {
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
 		NewWikiPost(ctx)
 		return
 	case "_delete":
-		if !ctx.Repo.CanWrite(unit_model.TypeWiki) {
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
@@ -398,7 +397,7 @@ func WikiPost(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.CanWrite(unit_model.TypeWiki) {
+	if !ctx.Repo.CanWrite(unit.TypeWiki) {
 		ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 		return
 	}
@@ -424,14 +423,14 @@ func Wiki(ctx *context.Context) {
 		WikiRevision(ctx)
 		return
 	case "_edit":
-		if !ctx.Repo.CanWrite(unit_model.TypeWiki) {
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
 		EditWiki(ctx)
 		return
 	case "_new":
-		if !ctx.Repo.CanWrite(unit_model.TypeWiki) {
+		if !ctx.Repo.CanWrite(unit.TypeWiki) {
 			ctx.NotFound(ctx.Req.URL.RequestURI(), nil)
 			return
 		}
