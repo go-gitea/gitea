@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
@@ -32,7 +33,7 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, "testOwner", metas["user"])
 
 	externalTracker := RepoUnit{
-		Type: UnitTypeExternalTracker,
+		Type: unit.TypeExternalTracker,
 		Config: &ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},

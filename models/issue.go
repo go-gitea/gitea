@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -2031,9 +2032,9 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 		}
 		if len(teams) != 0 {
 			checked := make([]int64, 0, len(teams))
-			unittype := UnitTypeIssues
+			unittype := unit.TypeIssues
 			if issue.IsPull {
-				unittype = UnitTypePullRequests
+				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
 				if team.Authorize >= AccessModeOwner {

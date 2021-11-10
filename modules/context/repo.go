@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -72,12 +73,12 @@ type Repository struct {
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
+	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
 func (r *Repository) CanCreateBranch() bool {
-	return r.Permission.CanWrite(models.UnitTypeCode) && r.Repository.CanCreateBranch()
+	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanCreateBranch()
 }
 
 // RepoMustNotBeArchived checks if a repo is archived
@@ -276,7 +277,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 		return
 	}
 
-	if !perm.CanRead(models.UnitTypeCode) {
+	if !perm.CanRead(unit_model.TypeCode) {
 		repo.TemplateID = 0
 	}
 }
@@ -461,7 +462,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["RepoLink"] = ctx.Repo.RepoLink
 	ctx.Data["RepoRelPath"] = ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name
 
-	unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(unit_model.TypeExternalTracker)
 	if err == nil {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
@@ -485,9 +486,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["IsRepositoryOwner"] = ctx.Repo.IsOwner()
 	ctx.Data["IsRepositoryAdmin"] = ctx.Repo.IsAdmin()
 	ctx.Data["RepoOwnerIsOrganization"] = repo.Owner.IsOrganization()
-	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(models.UnitTypeCode)
-	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
-	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
+	ctx.Data["CanWriteCode"] = ctx.Repo.CanWrite(unit_model.TypeCode)
+	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
+	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
 	if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
 		ctx.ServerError("CanUserFork", err)
@@ -577,7 +578,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 	// People who have push access or have forked repository can propose a new pull request.
-	canPush := ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -897,14 +898,14 @@ func GitHookService() func(ctx *Context) {
 // UnitTypes returns a middleware to set unit types to context variables.
 func UnitTypes() func(ctx *Context) {
 	return func(ctx *Context) {
-		ctx.Data["UnitTypeCode"] = models.UnitTypeCode
-		ctx.Data["UnitTypeIssues"] = models.UnitTypeIssues
-		ctx.Data["UnitTypePullRequests"] = models.UnitTypePullRequests
-		ctx.Data["UnitTypeReleases"] = models.UnitTypeReleases
-		ctx.Data["UnitTypeWiki"] = models.UnitTypeWiki
-		ctx.Data["UnitTypeExternalWiki"] = models.UnitTypeExternalWiki
-		ctx.Data["UnitTypeExternalTracker"] = models.UnitTypeExternalTracker
-		ctx.Data["UnitTypeProjects"] = models.UnitTypeProjects
+		ctx.Data["UnitTypeCode"] = unit_model.TypeCode
+		ctx.Data["UnitTypeIssues"] = unit_model.TypeIssues
+		ctx.Data["UnitTypePullRequests"] = unit_model.TypePullRequests
+		ctx.Data["UnitTypeReleases"] = unit_model.TypeReleases
+		ctx.Data["UnitTypeWiki"] = unit_model.TypeWiki
+		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
+		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
+		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
 	}
 }
 
