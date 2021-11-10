@@ -186,9 +186,6 @@ func Init() {
 
 			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
 			if err != nil {
-				if !giteautil.IsInterfaceNil(rIndexer) {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
