@@ -27,26 +27,21 @@ func (err ErrUserRedirectNotExist) Error() string {
 	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
 }
 
-// Redirect represents that a user name should be redirected to another
-type Redirect struct {
+// UserRedirect represents that a user name should be redirected to another
+type UserRedirect struct { // nolint
 	ID             int64  `xorm:"pk autoincr"`
 	LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	RedirectUserID int64  // userID to redirect to
 }
 
-// TableName provides the real table name
-func (Redirect) TableName() string {
-	return "user_redirect"
-}
-
 func init() {
-	db.RegisterModel(new(Redirect))
+	db.RegisterModel(new(UserRedirect))
 }
 
 // LookupUserRedirect look up userID if a user has a redirect name
 func LookupUserRedirect(userName string) (int64, error) {
 	userName = strings.ToLower(userName)
-	redirect := &Redirect{LowerName: userName}
+	redirect := &UserRedirect{LowerName: userName}
 	if has, err := db.GetEngine(db.DefaultContext).Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
@@ -64,7 +59,7 @@ func NewUserRedirect(ctx context.Context, ID int64, oldUserName, newUserName str
 		return err
 	}
 
-	return db.Insert(ctx, &Redirect{
+	return db.Insert(ctx, &UserRedirect{
 		LowerName:      oldUserName,
 		RedirectUserID: ID,
 	})
@@ -74,6 +69,6 @@ func NewUserRedirect(ctx context.Context, ID int64, oldUserName, newUserName str
 // anything else
 func DeleteUserRedirect(ctx context.Context, userName string) error {
 	userName = strings.ToLower(userName)
-	_, err := db.GetEngine(ctx).Delete(&Redirect{LowerName: userName})
+	_, err := db.GetEngine(ctx).Delete(&UserRedirect{LowerName: userName})
 	return err
 }
