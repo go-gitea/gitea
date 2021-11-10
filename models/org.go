@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -202,8 +203,8 @@ func CreateOrganization(org, owner *User) (err error) {
 	}
 
 	// insert units for team
-	units := make([]TeamUnit, 0, len(AllRepoUnitTypes))
-	for _, tp := range AllRepoUnitTypes {
+	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
+	for _, tp := range unit.AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
 			TeamID: t.ID,
@@ -412,7 +413,7 @@ func GetUsersWhoCanCreateOrgRepo(orgID int64) ([]*User, error) {
 
 func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*User, error) {
 	users := make([]*User, 0, 10)
-	return users, db.GetEngine(db.DefaultContext).
+	return users, e.
 		Join("INNER", "`team_user`", "`team_user`.uid=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where(builder.Eq{"team.can_create_org_repo": true}.Or(builder.Eq{"team.authorize": AccessModeOwner})).

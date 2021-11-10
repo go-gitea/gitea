@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -74,7 +75,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		} else if repo, err := GetRepositoryByID(protectBranch.RepoID); err != nil {
 			log.Error("GetRepositoryByID: %v", err)
 			return false
-		} else if writeAccess, err := HasAccessUnit(user, repo, UnitTypeCode, AccessModeWrite); err != nil {
+		} else if writeAccess, err := HasAccessUnit(user, repo, unit.TypeCode, AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -102,7 +103,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permissionInRepo Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
-		return permissionInRepo.CanWrite(UnitTypeCode)
+		return permissionInRepo.CanWrite(unit.TypeCode)
 	}
 
 	if base.Int64sContains(protectBranch.MergeWhitelistUserIDs, userID) {
@@ -134,7 +135,7 @@ func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e db.Engine, user *
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := hasAccessUnit(e, user, repo, UnitTypeCode, AccessModeWrite)
+		writeAccess, err := hasAccessUnit(e, user, repo, unit.TypeCode, AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -454,7 +455,7 @@ func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
 
-		if !perm.CanWrite(UnitTypeCode) {
+		if !perm.CanWrite(unit.TypeCode) {
 			continue // Drop invalid user ID
 		}
 

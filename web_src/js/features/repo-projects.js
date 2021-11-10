@@ -1,10 +1,6 @@
 const {csrfToken} = window.config;
 
-export default async function initProject() {
-  if (!$('.repository.projects').length) {
-    return;
-  }
-
+async function initRepoProjectSortable() {
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
   const boardColumns = document.getElementsByClassName('board-column');
 
@@ -60,6 +56,16 @@ export default async function initProject() {
       },
     );
   }
+}
+
+export default function initRepoProject() {
+  if (!$('.repository.projects').length) {
+    return;
+  }
+
+  (async () => {
+    await initRepoProjectSortable();
+  })();
 
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');

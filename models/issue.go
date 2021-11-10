@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -1538,12 +1539,12 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
-	countSession := func(opts *IssueStatsOptions) *xorm.Session {
+	countSession := func(opts *IssueStatsOptions, issueIDs []int64) *xorm.Session {
 		sess := db.GetEngine(db.DefaultContext).
 			Where("issue.repo_id = ?", opts.RepoID)
 
-		if len(opts.IssueIDs) > 0 {
-			sess.In("issue.id", opts.IssueIDs)
+		if len(issueIDs) > 0 {
+			sess.In("issue.id", issueIDs)
 		}
 
 		if len(opts.Labels) > 0 && opts.Labels != "0" {
@@ -1593,13 +1594,13 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 	}
 
 	var err error
-	stats.OpenCount, err = countSession(opts).
+	stats.OpenCount, err = countSession(opts, issueIDs).
 		And("issue.is_closed = ?", false).
 		Count(new(Issue))
 	if err != nil {
 		return stats, err
 	}
-	stats.ClosedCount, err = countSession(opts).
+	stats.ClosedCount, err = countSession(opts, issueIDs).
 		And("issue.is_closed = ?", true).
 		Count(new(Issue))
 	return stats, err
@@ -2042,9 +2043,9 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 		}
 		if len(teams) != 0 {
 			checked := make([]int64, 0, len(teams))
-			unittype := UnitTypeIssues
+			unittype := unit.TypeIssues
 			if issue.IsPull {
-				unittype = UnitTypePullRequests
+				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
 				if team.Authorize >= AccessModeOwner {

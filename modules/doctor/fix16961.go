@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/builder"
@@ -212,34 +213,34 @@ func fixBrokenRepoUnit16961(repoUnit *models.RepoUnit, bs []byte) (fixed bool, e
 		return false, nil
 	}
 
-	switch models.UnitType(repoUnit.Type) {
-	case models.UnitTypeCode, models.UnitTypeReleases, models.UnitTypeWiki, models.UnitTypeProjects:
+	switch unit.Type(repoUnit.Type) {
+	case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 		cfg := &models.UnitConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixUnitConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case models.UnitTypeExternalWiki:
+	case unit.TypeExternalWiki:
 		cfg := &models.ExternalWikiConfig{}
 		repoUnit.Config = cfg
 
 		if fixed, err := fixExternalWikiConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case models.UnitTypeExternalTracker:
+	case unit.TypeExternalTracker:
 		cfg := &models.ExternalTrackerConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixExternalTrackerConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case models.UnitTypePullRequests:
+	case unit.TypePullRequests:
 		cfg := &models.PullRequestsConfig{}
 		repoUnit.Config = cfg
 
 		if fixed, err := fixPullRequestsConfig16961(bs, cfg); !fixed {
 			return false, err
 		}
-	case models.UnitTypeIssues:
+	case unit.TypeIssues:
 		cfg := &models.IssuesConfig{}
 		repoUnit.Config = cfg
 		if fixed, err := fixIssuesConfig16961(bs, cfg); !fixed {
@@ -256,7 +257,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 	type RepoUnit struct {
 		ID          int64
 		RepoID      int64
-		Type        models.UnitType
+		Type        unit.Type
 		Config      []byte
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 	}
