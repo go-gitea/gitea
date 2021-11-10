@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/templates"
-	giteautil "code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
@@ -130,8 +129,8 @@ func Recovery() func(next http.Handler) http.Handler {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
 
-					sessionStore := session.GetSession(req)
-					if giteautil.IsInterfaceNil(sessionStore) {
+					sessionStore, ok := session.GetSessionWithCheck(req)
+					if !ok {
 						if setting.IsProd {
 							http.Error(w, http.StatusText(500), 500)
 						} else {

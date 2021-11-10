@@ -186,13 +186,3 @@ func returnFilledBasicInterface() BasicInterface {
 func returnNil() *BasicInterface {
 	return nil
 }
-
-func TestTypedInterfaceNil(t *testing.T) {
-	var info SampleInterface
-
-	info = returnNil()
-	assert.Equal(t, IsInterfaceNil(info), true)
-
-	info = returnFilledBasicInterface()
-	assert.Equal(t, IsInterfaceNil(info), false)
-}

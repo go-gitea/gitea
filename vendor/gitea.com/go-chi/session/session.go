@@ -267,10 +267,16 @@ func Sessioner(options ...Options) func(next http.Handler) http.Handler {
 	}
 }
 
+// GetSessionWithCheck returns session store and a bool if Session is nil
+func GetSessionWithCheck(req *http.Request) (Store, bool) {
+	sessCtx := req.Context().Value("Session")
+	sess, ok := sessCtx.(*store)
+	return sess, ok
+}
+
 // GetSession returns session store
 func GetSession(req *http.Request) Store {
-	sessCtx := req.Context().Value("Session")
-	sess, _ := sessCtx.(*store)
+	sess, _ := GetSessionWithCheck(req)
 	return sess
 }
 
