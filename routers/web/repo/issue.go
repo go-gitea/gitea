@@ -1256,7 +1256,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		tag          models.RoleDescriptor
+		role         models.RoleDescriptor
 		ok           bool
 		marked       = make(map[int64]models.RoleDescriptor)
 		comment      *models.Comment
@@ -1338,9 +1338,9 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			// Check tag.
-			tag, ok = marked[comment.PosterID]
+			role, ok = marked[comment.PosterID]
 			if ok {
-				comment.ShowRole = tag
+				comment.ShowRole = role
 				continue
 			}
 
@@ -1437,9 +1437,9 @@ func ViewIssue(ctx *context.Context) {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
 						// Check tag.
-						tag, ok = marked[c.PosterID]
+						role, ok = marked[c.PosterID]
 						if ok {
-							c.ShowRole = tag
+							c.ShowRole = role
 							continue
 						}
 
