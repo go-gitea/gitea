@@ -1,16 +1,31 @@
 extends: stylelint-config-standard
 
+overrides:
+  - files: ["**/*.less"]
+    customSyntax: postcss-less
+
 rules:
+  alpha-value-notation: null
   at-rule-empty-line-before: null
   block-closing-brace-empty-line-before: null
+  color-function-notation: null
   color-hex-length: null
   comment-empty-line-before: null
+  declaration-block-no-redundant-longhand-properties: null
   declaration-block-single-line-max-declarations: null
   declaration-empty-line-before: null
+  hue-degree-notation: null
   indentation: 2
+  max-line-length: null
   no-descending-specificity: null
+  no-invalid-position-at-import-rule: null
   number-leading-zero: never
+  number-max-precision: null
+  property-no-vendor-prefix: null
   rule-empty-line-before: null
+  selector-class-pattern: null
+  selector-id-pattern: null
   selector-pseudo-element-colon-notation: double
   shorthand-property-no-redundant-values: true
-  no-invalid-position-at-import-rule: null
+  string-quotes: null
+  value-no-vendor-prefix: null
