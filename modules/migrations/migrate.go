@@ -477,6 +477,7 @@ func Init() error {
 	}
 	if setting.Migrations.AllowLocalNetworks {
 		allowList.AppendPattern(hostmatcher.MatchBuiltinPrivate)
+		allowList.AppendPattern(hostmatcher.MatchBuiltinLoopback)
 	}
 	return nil
 }
