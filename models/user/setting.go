@@ -22,7 +22,8 @@ type Setting struct {
 	SettingValue string `xorm:"text"`
 }
 
-func (Setting) TableName() string {
+// TableName sets the table name for the settings struct
+func (s *Setting) TableName() string {
 	return "user_setting"
 }
 
