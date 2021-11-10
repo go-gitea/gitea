@@ -45,7 +45,7 @@ func runDocs(ctx *cli.Context) error {
 		// https://github.com/urfave/cli/issues/1040
 		firstHashtagIndex := strings.Index(docs, "#")
 
-		if firstHashtagIndex != -1 {
+		if firstHashtagIndex > 0 {
 			docs = docs[firstHashtagIndex:]
 		}
 	}
