@@ -930,7 +930,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 
 	// save changes to database
 
-	if err = deleteUserRedirect(sess, u.Name); err != nil {
+	if err = user_model.DeleteUserRedirect(ctx, u.Name); err != nil {
 		return err
 	}
 
@@ -1024,11 +1024,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	isExist, err := isUserExist(sess, 0, newUserName)
 	if err != nil {
@@ -1046,11 +1047,11 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	if err = newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
+	if err = user_model.NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)

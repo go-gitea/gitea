@@ -512,3 +512,50 @@ func TestUpdateUser(t *testing.T) {
 	user.Email = "no mail@mail.org"
 	assert.Error(t, UpdateUser(user))
 }
+
+func TestNewUserRedirect(t *testing.T) {
+	// redirect to a completely new name
+	assert.NoError(t, db.PrepareTestDatabase())
+
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
+
+	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+		LowerName:      user.LowerName,
+		RedirectUserID: user.ID,
+	})
+	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+		LowerName:      "olduser1",
+		RedirectUserID: user.ID,
+	})
+}
+
+func TestNewUserRedirect2(t *testing.T) {
+	// redirect to previously used name
+	assert.NoError(t, db.PrepareTestDatabase())
+
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
+
+	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+		LowerName:      user.LowerName,
+		RedirectUserID: user.ID,
+	})
+	db.AssertNotExistsBean(t, &user_model.UserRedirect{
+		LowerName:      "olduser1",
+		RedirectUserID: user.ID,
+	})
+}
+
+func TestNewUserRedirect3(t *testing.T) {
+	// redirect for a previously-unredirected user
+	assert.NoError(t, db.PrepareTestDatabase())
+
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
+
+	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+		LowerName:      user.LowerName,
+		RedirectUserID: user.ID,
+	})
+}

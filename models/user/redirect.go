@@ -2,16 +2,33 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package user
 
 import (
+	"context"
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 )
 
+// ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
+type ErrUserRedirectNotExist struct {
+	Name string
+}
+
+// IsErrUserRedirectNotExist check if an error is an ErrUserRedirectNotExist.
+func IsErrUserRedirectNotExist(err error) bool {
+	_, ok := err.(ErrUserRedirectNotExist)
+	return ok
+}
+
+func (err ErrUserRedirectNotExist) Error() string {
+	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
+}
+
 // UserRedirect represents that a user name should be redirected to another
-type UserRedirect struct {
+type UserRedirect struct { // nolint
 	ID             int64  `xorm:"pk autoincr"`
 	LowerName      string `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	RedirectUserID int64  // userID to redirect to
@@ -33,28 +50,25 @@ func LookupUserRedirect(userName string) (int64, error) {
 	return redirect.RedirectUserID, nil
 }
 
-// newUserRedirect create a new user redirect
-func newUserRedirect(e db.Engine, ID int64, oldUserName, newUserName string) error {
+// NewUserRedirect create a new user redirect
+func NewUserRedirect(ctx context.Context, ID int64, oldUserName, newUserName string) error {
 	oldUserName = strings.ToLower(oldUserName)
 	newUserName = strings.ToLower(newUserName)
 
-	if err := deleteUserRedirect(e, newUserName); err != nil {
+	if err := DeleteUserRedirect(ctx, newUserName); err != nil {
 		return err
 	}
 
-	if _, err := e.Insert(&UserRedirect{
+	return db.Insert(ctx, &UserRedirect{
 		LowerName:      oldUserName,
 		RedirectUserID: ID,
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
-// deleteUserRedirect delete any redirect from the specified user name to
+// DeleteUserRedirect delete any redirect from the specified user name to
 // anything else
-func deleteUserRedirect(e db.Engine, userName string) error {
+func DeleteUserRedirect(ctx context.Context, userName string) error {
 	userName = strings.ToLower(userName)
-	_, err := e.Delete(&UserRedirect{LowerName: userName})
+	_, err := db.GetEngine(ctx).Delete(&UserRedirect{LowerName: userName})
 	return err
 }
