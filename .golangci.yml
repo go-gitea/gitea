@@ -15,6 +15,7 @@ linters:
     - gofmt
     - misspell
     - gocritic
+    - bidichk
   enable-all: false
   disable-all: true
   fast: false
