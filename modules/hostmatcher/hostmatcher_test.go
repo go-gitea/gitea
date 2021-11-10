@@ -132,22 +132,29 @@ func TestHostOrIPMatchesList(t *testing.T) {
 	}
 	test(cases)
 
-	hl = ParseSimpleMatchList("", "loopback, *.domain.com", true)
+	hl = ParseSimpleMatchList("", "loopback, *.domain.com")
 	cases = []tc{
 		{"loopback", nil, true},
 		{"", net.ParseIP("127.0.0.1"), false},
 		{"sub.domain.com", nil, true},
 		{"other.com", nil, false},
-		{"", net.ParseIP("192.168.1.1"), true},
 		{"", net.ParseIP("1.1.1.1"), false},
 	}
 	test(cases)
 
-	hl = ParseSimpleMatchList("", "external", false)
+	hl = ParseSimpleMatchList("", "external")
 	cases = []tc{
 		{"", net.ParseIP("192.168.1.1"), false},
 		{"", net.ParseIP("1.1.1.1"), false},
 		{"external", nil, true},
+	}
+	test(cases)
+
+	hl = ParseSimpleMatchList("", "")
+	cases = []tc{
+		{"", net.ParseIP("192.168.1.1"), false},
+		{"", net.ParseIP("1.1.1.1"), false},
+		{"external", nil, false},
 	}
 	test(cases)
 }

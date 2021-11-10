@@ -75,10 +75,8 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 	hostName, _, err := net.SplitHostPort(u.Host)
 	if err != nil {
 		// u.Host can be "host" or "host:port"
+		err = nil
 		hostName = u.Host
-	}
-	if err != nil {
-		return &models.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
 	}
 	addrList, err := net.LookupIP(hostName)
 	if err != nil {
@@ -469,7 +467,16 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 // Init migrations service
 func Init() error {
 	// TODO: maybe we can deprecate these legacy ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS, use ALLOWED_HOST_LIST/BLOCKED_HOST_LIST instead
-	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains, setting.Migrations.AllowLocalNetworks)
-	blockList = hostmatcher.ParseSimpleMatchList("migrations.BLOCKED_DOMAINS", setting.Migrations.BlockedDomains, false)
+
+	blockList = hostmatcher.ParseSimpleMatchList("migrations.BLOCKED_DOMAINS", setting.Migrations.BlockedDomains)
+
+	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains)
+	if allowList.IsEmpty() {
+		// the default policy is that migration module can access external hosts
+		allowList.AppendPattern(hostmatcher.MatchBuiltinExternal)
+	}
+	if setting.Migrations.AllowLocalNetworks {
+		allowList.AppendPattern(hostmatcher.MatchBuiltinPrivate)
+	}
 	return nil
 }
