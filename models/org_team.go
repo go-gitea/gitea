@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -135,7 +136,7 @@ func (t *Team) getUnits(e db.Engine) (err error) {
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
 	for _, u := range t.Units {
-		res = append(res, Units[u.Type].NameKey)
+		res = append(res, unit.Units[u.Type].NameKey)
 	}
 	return
 }
@@ -435,11 +436,11 @@ func (t *Team) RemoveRepository(repoID int64) error {
 }
 
 // UnitEnabled returns if the team has the given unit type enabled
-func (t *Team) UnitEnabled(tp UnitType) bool {
+func (t *Team) UnitEnabled(tp unit.Type) bool {
 	return t.unitEnabled(db.GetEngine(db.DefaultContext), tp)
 }
 
-func (t *Team) unitEnabled(e db.Engine, tp UnitType) bool {
+func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
 	if err := t.getUnits(e); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
@@ -1029,15 +1030,15 @@ func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, er
 
 // TeamUnit describes all units of a repository
 type TeamUnit struct {
-	ID     int64    `xorm:"pk autoincr"`
-	OrgID  int64    `xorm:"INDEX"`
-	TeamID int64    `xorm:"UNIQUE(s)"`
-	Type   UnitType `xorm:"UNIQUE(s)"`
+	ID     int64     `xorm:"pk autoincr"`
+	OrgID  int64     `xorm:"INDEX"`
+	TeamID int64     `xorm:"UNIQUE(s)"`
+	Type   unit.Type `xorm:"UNIQUE(s)"`
 }
 
 // Unit returns Unit
-func (t *TeamUnit) Unit() Unit {
-	return Units[t.Type]
+func (t *TeamUnit) Unit() unit.Unit {
+	return unit.Units[t.Type]
 }
 
 func getUnitsByTeamID(e db.Engine, teamID int64) (units []*TeamUnit, err error) {

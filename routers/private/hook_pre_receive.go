@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -58,7 +59,7 @@ func (ctx *preReceiveContext) Perm() *models.Permission {
 // CanWriteCode returns true if can write code
 func (ctx *preReceiveContext) CanWriteCode() bool {
 	if !ctx.checkedCanWriteCode {
-		ctx.canWriteCode = ctx.Perm().CanWrite(models.UnitTypeCode)
+		ctx.canWriteCode = ctx.Perm().CanWrite(unit.TypeCode)
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -81,7 +82,7 @@ func (ctx *preReceiveContext) AssertCanWriteCode() bool {
 // CanCreatePullRequest returns true if can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
 	if !ctx.checkedCanCreatePullRequest {
-		ctx.canCreatePullRequest = ctx.Perm().CanRead(models.UnitTypePullRequests)
+		ctx.canCreatePullRequest = ctx.Perm().CanRead(unit.TypePullRequests)
 		ctx.checkedCanCreatePullRequest = true
 	}
 	return ctx.canCreatePullRequest

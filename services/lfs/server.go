@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -489,7 +490,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 
-	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	canRead := perm.CanAccess(accessMode, unit.TypeCode)
 	if canRead && (!requireSigned || ctx.IsSigned) {
 		return true
 	}
