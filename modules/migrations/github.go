@@ -7,7 +7,6 @@ package migrations
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
@@ -19,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -99,12 +97,7 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 			)
 			var client = &http.Client{
 				Transport: &oauth2.Transport{
-					Base: &http.Transport{
-						TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-						Proxy: func(req *http.Request) (*url.URL, error) {
-							return proxy.Proxy()(req)
-						},
-					},
+					Base:   NewMigrationHTTPTransport(),
 					Source: oauth2.ReuseTokenSource(nil, ts),
 				},
 			}
@@ -112,14 +105,13 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 			downloader.addClient(client, baseURL)
 		}
 	} else {
+		var transport = NewMigrationHTTPTransport()
+		transport.Proxy = func(req *http.Request) (*url.URL, error) {
+			req.SetBasicAuth(userName, password)
+			return proxy.Proxy()(req)
+		}
 		var client = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-				Proxy: func(req *http.Request) (*url.URL, error) {
-					req.SetBasicAuth(userName, password)
-					return proxy.Proxy()(req)
-				},
-			},
+			Transport: transport,
 		}
 		downloader.addClient(client, baseURL)
 	}
@@ -315,12 +307,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 		r.Published = rel.PublishedAt.Time
 	}
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-			Proxy:           proxy.Proxy(),
-		},
-	}
+	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Assets {
 		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable

@@ -7,7 +7,6 @@ package lfs
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,12 +33,15 @@ func (c *HTTPClient) BatchSize() int {
 	return batchSize
 }
 
-func newHTTPClient(endpoint *url.URL, skipTLSVerify bool) *HTTPClient {
+func newHTTPClient(endpoint *url.URL, httpTransport *http.Transport) *HTTPClient {
+	if httpTransport == nil {
+		httpTransport = &http.Transport{
+			Proxy: proxy.Proxy(),
+		}
+	}
+
 	hc := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: skipTLSVerify},
-			Proxy:           proxy.Proxy(),
-		},
+		Transport: httpTransport,
 	}
 
 	client := &HTTPClient{

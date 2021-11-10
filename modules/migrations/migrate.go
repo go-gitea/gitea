@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -27,8 +27,8 @@ type MigrateOptions = base.MigrateOptions
 var (
 	factories []base.DownloaderFactory
 
-	allowList *matchlist.Matchlist
-	blockList *matchlist.Matchlist
+	allowList *hostmatcher.HostMatchList
+	blockList *hostmatcher.HostMatchList
 )
 
 // RegisterDownloaderFactory registers a downloader factory
@@ -72,30 +72,33 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 		return &models.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	host := strings.ToLower(u.Host)
-	if len(setting.Migrations.AllowedDomains) > 0 {
-		if !allowList.Match(host) {
-			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
-		}
-	} else {
-		if blockList.Match(host) {
+	hostName, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, IsURLError: true}
+	}
+	addrList, err := net.LookupIP(hostName)
+	if err != nil {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
+	}
+
+	var ipAllowed bool
+	var ipBlocked bool
+	for _, addr := range addrList {
+		ipAllowed = ipAllowed || allowList.MatchIPAddr(addr)
+		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
+	}
+	var blockedError error
+	if blockList.MatchHostName(hostName) || ipBlocked {
+		blockedError = &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+	}
+	// if we have an allow-list, check the allow-list first
+	if !allowList.IsEmpty() {
+		if !allowList.MatchHostName(hostName) && !ipAllowed {
 			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
 		}
 	}
-
-	if !setting.Migrations.AllowLocalNetworks {
-		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
-		if err != nil {
-			return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
-		}
-		for _, addr := range addrList {
-			if util.IsIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return &models.ErrInvalidCloneAddr{Host: u.Host, PrivateNet: addr.String(), IsPermissionDenied: true}
-			}
-		}
-	}
-
-	return nil
+	// otherwise, we always follow the blocked list
+	return blockedError
 }
 
 // MigrateRepository migrate repository according MigrateOptions
@@ -461,16 +464,8 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 // Init migrations service
 func Init() error {
-	var err error
-	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowedDomains...)
-	if err != nil {
-		return fmt.Errorf("init migration allowList domains failed: %v", err)
-	}
-
-	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlockedDomains...)
-	if err != nil {
-		return fmt.Errorf("init migration blockList domains failed: %v", err)
-	}
-
+	// TODO: maybe we can deprecate these legacy ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS, use ALLOWED_HOST_LIST/BLOCKED_HOST_LIST instead
+	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains, setting.Migrations.AllowLocalNetworks)
+	blockList = hostmatcher.ParseSimpleMatchList("migrations.BLOCKED_DOMAINS", setting.Migrations.BlockedDomains, false)
 	return nil
 }

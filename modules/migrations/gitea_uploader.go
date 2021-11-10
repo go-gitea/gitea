@@ -123,7 +123,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 		MirrorInterval: opts.MirrorInterval,
-	})
+	}, NewMigrationHTTPTransport())
 
 	g.repo = r
 	if err != nil {

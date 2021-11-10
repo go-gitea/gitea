@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"net/url"
 	"regexp"
 	"time"
 
@@ -133,8 +132,9 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 			}
 			defer gitRepo.Close()
 
-			ep := lfs.DetermineEndpoint(remoteAddr.String(), "")
-			if err := pushAllLFSObjects(ctx, gitRepo, ep, false); err != nil {
+			endpoint := lfs.DetermineEndpoint(remoteAddr.String(), "")
+			lfsClient := lfs.NewClient(endpoint, nil)
+			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
 				return util.NewURLSanitizedError(err, remoteAddr, true)
 			}
 		}
@@ -176,8 +176,7 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	return nil
 }
 
-func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *url.URL, skipTLSVerify bool) error {
-	client := lfs.NewClient(endpoint, skipTLSVerify)
+func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, lfsClient lfs.Client) error {
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)
@@ -185,7 +184,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *u
 	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
 
 	uploadObjects := func(pointers []lfs.Pointer) error {
-		err := client.Upload(ctx, pointers, func(p lfs.Pointer, objectError error) (io.ReadCloser, error) {
+		err := lfsClient.Upload(ctx, pointers, func(p lfs.Pointer, objectError error) (io.ReadCloser, error) {
 			if objectError != nil {
 				return nil, objectError
 			}
@@ -219,7 +218,7 @@ func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *u
 		}
 
 		batch = append(batch, pointerBlob.Pointer)
-		if len(batch) >= client.BatchSize() {
+		if len(batch) >= lfsClient.BatchSize() {
 			if err := uploadObjects(batch); err != nil {
 				return err
 			}

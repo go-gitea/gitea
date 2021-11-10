@@ -7,7 +7,6 @@ package setting
 import (
 	"net/url"
 
-	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -17,7 +16,7 @@ var (
 		QueueLength     int
 		DeliverTimeout  int
 		SkipTLSVerify   bool
-		AllowedHostList *hostmatcher.HostMatchList
+		AllowedHostList string
 		Types           []string
 		PagingNum       int
 		ProxyURL        string
@@ -38,7 +37,7 @@ func newWebhookService() {
 	Webhook.QueueLength = sec.Key("QUEUE_LENGTH").MustInt(1000)
 	Webhook.DeliverTimeout = sec.Key("DELIVER_TIMEOUT").MustInt(5)
 	Webhook.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool()
-	Webhook.AllowedHostList = hostmatcher.ParseHostMatchList(sec.Key("ALLOWED_HOST_LIST").MustString(hostmatcher.MatchBuiltinExternal))
+	Webhook.AllowedHostList = sec.Key("ALLOWED_HOST_LIST").MustString("")
 	Webhook.Types = []string{"gitea", "gogs", "slack", "discord", "dingtalk", "telegram", "msteams", "feishu", "matrix", "wechatwork"}
 	Webhook.PagingNum = sec.Key("PAGING_NUM").MustInt(10)
 	Webhook.ProxyURL = sec.Key("PROXY_URL").MustString("")
