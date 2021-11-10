@@ -14,5 +14,6 @@ import (
 func TestMain(m *testing.M) {
 	db.MainTest(m, filepath.Join("..", ".."),
 		"email_address.yml",
+		"user_redirect.yml",
 	)
 }
