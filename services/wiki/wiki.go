@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -369,7 +370,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(repo *models.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []models.UnitType{models.UnitTypeWiki}); err != nil {
+	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 
