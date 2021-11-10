@@ -792,15 +792,14 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		tableSQL := string(res[0]["sql"])
 
-		// Get the index after the column definitions.
-		endColumnsIndex := strings.Index(tableSQL, "(")
-
-		if endColumnsIndex == -1 {
-			return errors.New("couldn't get index after column defintions")
+		// Get the string offset for column defintions: `CREATE TABLE ( column-definitions... )`
+		columnDefinitionsIndex := strings.Index(tableSQL, "(")
+		if columnDefinitionsIndex == -1 {
+			return errors.New("couldn't find column defintions")
 		}
 
 		// Separate out the column definitions
-		tableSQL = tableSQL[endColumnsIndex:]
+		tableSQL = tableSQL[columnDefinitionsIndex:]
 
 		// Remove the required columnNames
 		for _, name := range columnNames {
