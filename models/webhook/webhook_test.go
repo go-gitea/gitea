@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package webhook
 
 import (
 	"context"
@@ -92,7 +92,7 @@ func TestCreateWebhook(t *testing.T) {
 		Events:      `{"push_only":false,"send_everything":false,"choose_events":false,"events":{"create":false,"push":true,"pull_request":true}}`,
 	}
 	db.AssertNotExistsBean(t, hook)
-	assert.NoError(t, CreateWebhook(hook))
+	assert.NoError(t, CreateWebhook(db.DefaultContext, hook))
 	db.AssertExistsAndLoadBean(t, hook)
 }
 

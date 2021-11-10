@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -18,7 +19,7 @@ func UpdateMigrationPosterID(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			log.Warn("UpdateMigrationPosterID aborted before %s", gitService.Name())
-			return models.ErrCancelledf("during UpdateMigrationPosterID before %s", gitService.Name())
+			return db.ErrCancelledf("during UpdateMigrationPosterID before %s", gitService.Name())
 		default:
 		}
 		if err := updateMigrationPosterIDByGitService(ctx, gitService); err != nil {

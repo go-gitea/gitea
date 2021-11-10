@@ -7,7 +7,7 @@ package webhook
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -180,7 +180,7 @@ func TestDiscordPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(DiscordPayload)
-		pl, err := d.Review(p, models.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &DiscordPayload{}, pl)
