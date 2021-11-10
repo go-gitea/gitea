@@ -43,7 +43,13 @@ func runDocs(ctx *cli.Context) error {
 		// Clean up markdown. The following bug was fixed in v2, but is present in v1.
 		// It affects markdown output (even though the issue is referring to man pages)
 		// https://github.com/urfave/cli/issues/1040
-		docs = docs[strings.Index(docs, "#"):]
+		firstHashtagIndex := strings.Index(docs, "#")
+
+		// Only replace docs, when firstHashtagIndex isn't -1,
+		// as -1 shouldn't be passed into a slice.
+		if firstHashtagIndex != -1 {
+			docs = docs[firstHashtagIndex:]
+		}
 	}
 
 	out := os.Stdout

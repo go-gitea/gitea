@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -791,8 +792,18 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		tableSQL := string(res[0]["sql"])
 
+		// Get the index after the column definitions.
+		endColumnsIndex := strings.Index(tableSQL, "(")
+
+		// If endColumnsIndex is -1, which shouldn't be passed
+		// into a slice. We should return a error, as that also
+		// means that the substring wasn't found.
+		if endColumnsIndex == -1 {
+			return errors.New("Couldn't get index after column defintions")
+		}
+
 		// Separate out the column definitions
-		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+		tableSQL = tableSQL[endColumnsIndex:]
 
 		// Remove the required columnNames
 		for _, name := range columnNames {
