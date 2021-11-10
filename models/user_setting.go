@@ -22,21 +22,6 @@ type UserSetting struct {
 	SettingValue string `xorm:"text"`
 }
 
-// BeforeInsert will be invoked by XORM before inserting a record
-func (userSetting *UserSetting) BeforeInsert() {
-	userSetting.SettingKey = strings.ToLower(userSetting.SettingKey)
-}
-
-// BeforeUpdate will be invoked by XORM before updating a record
-func (userSetting *UserSetting) BeforeUpdate() {
-	userSetting.SettingKey = strings.ToLower(userSetting.SettingKey)
-}
-
-// BeforeDelete will be invoked by XORM before updating a record
-func (userSetting *UserSetting) BeforeDelete() {
-	userSetting.SettingKey = strings.ToLower(userSetting.SettingKey)
-}
-
 func init() {
 	db.RegisterModel(new(UserSetting))
 }
@@ -58,7 +43,7 @@ func GetUserSetting(uid int64, keys []string) (map[string]*UserSetting, error) {
 	return settingsMap, nil
 }
 
-// GetAllUserSettings returns all settings from user
+// GetUserAllSettings returns all settings from user
 func GetUserAllSettings(uid int64) (map[string]*UserSetting, error) {
 	settings := make([]*UserSetting, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).
@@ -84,6 +69,9 @@ func DeleteUserSetting(userSetting *UserSetting) error {
 
 // SetUserSetting updates a users' setting for a specific key
 func SetUserSetting(userSetting *UserSetting) error {
+	if strings.ToLower(userSetting.SettingKey) != userSetting.SettingKey {
+		return fmt.Errorf("setting key should be lowercase")
+	}
 	return upsertUserSettingValue(db.GetEngine(db.DefaultContext), userSetting.UserID, userSetting.SettingKey, userSetting.SettingValue)
 }
 
