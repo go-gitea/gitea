@@ -5,7 +5,7 @@
 package webhook
 
 import (
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -19,37 +19,37 @@ type PayloadConvertor interface {
 	IssueComment(*api.IssueCommentPayload) (api.Payloader, error)
 	Push(*api.PushPayload) (api.Payloader, error)
 	PullRequest(*api.PullRequestPayload) (api.Payloader, error)
-	Review(*api.PullRequestPayload, models.HookEventType) (api.Payloader, error)
+	Review(*api.PullRequestPayload, webhook_model.HookEventType) (api.Payloader, error)
 	Repository(*api.RepositoryPayload) (api.Payloader, error)
 	Release(*api.ReleasePayload) (api.Payloader, error)
 }
 
-func convertPayloader(s PayloadConvertor, p api.Payloader, event models.HookEventType) (api.Payloader, error) {
+func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_model.HookEventType) (api.Payloader, error) {
 	switch event {
-	case models.HookEventCreate:
+	case webhook_model.HookEventCreate:
 		return s.Create(p.(*api.CreatePayload))
-	case models.HookEventDelete:
+	case webhook_model.HookEventDelete:
 		return s.Delete(p.(*api.DeletePayload))
-	case models.HookEventFork:
+	case webhook_model.HookEventFork:
 		return s.Fork(p.(*api.ForkPayload))
-	case models.HookEventIssues, models.HookEventIssueAssign, models.HookEventIssueLabel, models.HookEventIssueMilestone:
+	case webhook_model.HookEventIssues, webhook_model.HookEventIssueAssign, webhook_model.HookEventIssueLabel, webhook_model.HookEventIssueMilestone:
 		return s.Issue(p.(*api.IssuePayload))
-	case models.HookEventIssueComment, models.HookEventPullRequestComment:
+	case webhook_model.HookEventIssueComment, webhook_model.HookEventPullRequestComment:
 		pl, ok := p.(*api.IssueCommentPayload)
 		if ok {
 			return s.IssueComment(pl)
 		}
 		return s.PullRequest(p.(*api.PullRequestPayload))
-	case models.HookEventPush:
+	case webhook_model.HookEventPush:
 		return s.Push(p.(*api.PushPayload))
-	case models.HookEventPullRequest, models.HookEventPullRequestAssign, models.HookEventPullRequestLabel,
-		models.HookEventPullRequestMilestone, models.HookEventPullRequestSync:
+	case webhook_model.HookEventPullRequest, webhook_model.HookEventPullRequestAssign, webhook_model.HookEventPullRequestLabel,
+		webhook_model.HookEventPullRequestMilestone, webhook_model.HookEventPullRequestSync:
 		return s.PullRequest(p.(*api.PullRequestPayload))
-	case models.HookEventPullRequestReviewApproved, models.HookEventPullRequestReviewRejected, models.HookEventPullRequestReviewComment:
+	case webhook_model.HookEventPullRequestReviewApproved, webhook_model.HookEventPullRequestReviewRejected, webhook_model.HookEventPullRequestReviewComment:
 		return s.Review(p.(*api.PullRequestPayload), event)
-	case models.HookEventRepository:
+	case webhook_model.HookEventRepository:
 		return s.Repository(p.(*api.RepositoryPayload))
-	case models.HookEventRelease:
+	case webhook_model.HookEventRelease:
 		return s.Release(p.(*api.ReleasePayload))
 	}
 	return s, nil

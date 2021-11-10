@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -255,7 +256,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	externalTracker := RepoUnit{
-		Type: UnitTypeExternalTracker,
+		Type: unit.TypeExternalTracker,
 		Config: &ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
