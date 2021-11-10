@@ -19,10 +19,11 @@ import (
 )
 
 const (
-	activityStreamsContentType = "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""
+	// ActivityStreamsContentType const
+	ActivityStreamsContentType = "application/ld+json; profile=\"https://www.w3.org/ns/activitystreams\""
 )
 
-func containsRequiredHttpHeaders(method string, headers []string) error {
+func containsRequiredHTTPHeaders(method string, headers []string) error {
 	var hasRequestTarget, hasDate, hasDigest bool
 	for _, header := range headers {
 		hasRequestTarget = hasRequestTarget || header == httpsig.RequestTarget
@@ -39,6 +40,7 @@ func containsRequiredHttpHeaders(method string, headers []string) error {
 	return nil
 }
 
+// Client struct
 type Client struct {
 	clock       pub.Clock
 	client      *http.Client
@@ -47,13 +49,14 @@ type Client struct {
 	getHeaders  []string
 	postHeaders []string
 	priv        *rsa.PrivateKey
-	pubId       string
+	pubID       string
 }
 
-func NewClient(user *user_model.User, pubId string) (c *Client, err error) {
-	if err = containsRequiredHttpHeaders(http.MethodGet, setting.Federation.GetHeaders); err != nil {
+// NewClient function
+func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
+	if err = containsRequiredHTTPHeaders(http.MethodGet, setting.Federation.GetHeaders); err != nil {
 		return
-	} else if err = containsRequiredHttpHeaders(http.MethodPost, setting.Federation.PostHeaders); err != nil {
+	} else if err = containsRequiredHTTPHeaders(http.MethodPost, setting.Federation.PostHeaders); err != nil {
 		return
 	} else if !httpsig.IsSupportedDigestAlgorithm(setting.Federation.DigestAlgorithm) {
 		err = fmt.Errorf("unsupported digest algorithm: %s", setting.Federation.DigestAlgorithm)
@@ -86,21 +89,21 @@ func NewClient(user *user_model.User, pubId string) (c *Client, err error) {
 		getHeaders:  setting.Federation.GetHeaders,
 		postHeaders: setting.Federation.PostHeaders,
 		priv:        privParsed,
-		pubId:       pubId,
+		pubID:       pubID,
 	}
 	return
 }
 
-func (c *Client) Post(b []byte, to string) (resp *http.Response, err error) {
+// NewRequest function
+func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) {
 	byteCopy := make([]byte, len(b))
 	copy(byteCopy, b)
 	buf := bytes.NewBuffer(byteCopy)
-	var req *http.Request
 	req, err = http.NewRequest(http.MethodPost, to, buf)
 	if err != nil {
 		return
 	}
-	req.Header.Add("Content-Type", activityStreamsContentType)
+	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Accept-Charset", "utf-8")
 	req.Header.Add("Date", fmt.Sprintf("%s GMT", c.clock.Now().UTC().Format("Mon, 02 Jan 2006 15:04:05")))
 
@@ -108,8 +111,14 @@ func (c *Client) Post(b []byte, to string) (resp *http.Response, err error) {
 	if err != nil {
 		return
 	}
-	err = signer.SignRequest(c.priv, c.pubId, req, b)
-	if err != nil {
+	err = signer.SignRequest(c.priv, c.pubID, req, b)
+	return
+}
+
+// Post function
+func (c *Client) Post(b []byte, to string) (resp *http.Response, err error) {
+	var req *http.Request
+	if req, err = c.NewRequest(b, to); err != nil {
 		return
 	}
 	resp, err = c.client.Do(req)

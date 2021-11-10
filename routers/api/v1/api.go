@@ -602,6 +602,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
 				})
+				m.Post("/user/{username}/inbox", activitypub.ReqSignature(), activitypub.PersonInbox)
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)

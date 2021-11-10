@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -17,32 +16,9 @@ import (
 	"github.com/go-fed/activity/streams"
 )
 
-// hack waiting on https://github.com/go-gitea/gitea/pull/16834
-func GetPublicKey(user *models.User) (string, error) {
-	if settings, err := models.GetUserSetting(user.ID, []string{"activitypub_pubPem"}); err != nil {
-		return "", err
-	} else if len(settings) == 0 {
-		if priv, pub, err := activitypub.GenerateKeyPair(); err != nil {
-			return "", err
-		} else {
-			privPem := &models.UserSetting{UserID: user.ID, Name: "activitypub_privPem", Value: priv}
-			if err := models.SetUserSetting(privPem); err != nil {
-				return "", err
-			}
-			pubPem := &models.UserSetting{UserID: user.ID, Name: "activitypub_pubPem", Value: pub}
-			if err := models.SetUserSetting(pubPem); err != nil {
-				return "", err
-			}
-			return pubPem.Value, nil
-		}
-	} else {
-		return settings[0].Value, nil
-	}
-}
-
-// NodeInfo returns the NodeInfo for the Gitea instance to allow for federation
+// Person function
 func Person(ctx *context.APIContext) {
-	// swagger:operation GET /activitypub/user/{username} information
+	// swagger:operation GET /activitypub/user/{username} activitypub activitypubPerson
 	// ---
 	// summary: Returns the person
 	// produces:
@@ -73,30 +49,30 @@ func Person(ctx *context.APIContext) {
 	person.SetActivityStreamsName(name)
 
 	ibox := streams.NewActivityStreamsInboxProperty()
-	url_object, _ := url.Parse(link + "/inbox")
-	ibox.SetIRI(url_object)
+	urlObject, _ := url.Parse(link + "/inbox")
+	ibox.SetIRI(urlObject)
 	person.SetActivityStreamsInbox(ibox)
 
 	obox := streams.NewActivityStreamsOutboxProperty()
-	url_object, _ = url.Parse(link + "/outbox")
-	obox.SetIRI(url_object)
+	urlObject, _ = url.Parse(link + "/outbox")
+	obox.SetIRI(urlObject)
 	person.SetActivityStreamsOutbox(obox)
 
 	publicKeyProp := streams.NewW3IDSecurityV1PublicKeyProperty()
 
 	publicKeyType := streams.NewW3IDSecurityV1PublicKey()
 
-	pubKeyIdProp := streams.NewJSONLDIdProperty()
+	pubKeyIDProp := streams.NewJSONLDIdProperty()
 	pubKeyIRI, _ := url.Parse(link + "/#main-key")
-	pubKeyIdProp.SetIRI(pubKeyIRI)
-	publicKeyType.SetJSONLDId(pubKeyIdProp)
+	pubKeyIDProp.SetIRI(pubKeyIRI)
+	publicKeyType.SetJSONLDId(pubKeyIDProp)
 
 	ownerProp := streams.NewW3IDSecurityV1OwnerProperty()
 	ownerProp.SetIRI(idIRI)
 	publicKeyType.SetW3IDSecurityV1Owner(ownerProp)
 
 	publicKeyPemProp := streams.NewW3IDSecurityV1PublicKeyPemProperty()
-	if publicKeyPem, err := GetPublicKey(user); err != nil {
+	if publicKeyPem, err := activitypub.GetPublicKey(user); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
 	} else {
 		publicKeyPemProp.Set(publicKeyPem)
@@ -109,4 +85,25 @@ func Person(ctx *context.APIContext) {
 	var jsonmap map[string]interface{}
 	jsonmap, _ = streams.Serialize(person)
 	ctx.JSON(http.StatusOK, jsonmap)
+}
+
+// PersonInbox function
+func PersonInbox(ctx *context.APIContext) {
+	// swagger:operation POST /activitypub/user/{username}/inbox activitypub activitypubPersonInbox
+	// ---
+	// summary: Send to the inbox
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+
+	ctx.Status(http.StatusNoContent)
 }

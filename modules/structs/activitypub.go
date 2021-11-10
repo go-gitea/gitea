@@ -4,6 +4,7 @@
 
 package structs
 
+// ActivityPub type
 type ActivityPub struct {
 	Context string `json:"@context"`
 }

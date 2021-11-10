@@ -28,8 +28,11 @@
         "produces": [
           "application/json"
         ],
+        "tags": [
+          "activitypub"
+        ],
         "summary": "Returns the person",
-        "operationId": "information",
+        "operationId": "activitypubPerson",
         "parameters": [
           {
             "type": "string",
@@ -42,6 +45,32 @@
         "responses": {
           "200": {
             "$ref": "#/responses/ActivityPub"
+          }
+        }
+      }
+    },
+    "/activitypub/user/{username}/inbox": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Send to the inbox",
+        "operationId": "activitypubPersonInbox",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
           }
         }
       }
