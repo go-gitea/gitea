@@ -837,7 +837,7 @@ func updateUser(ctx context.Context, u *User, changePrimaryEmail bool) error {
 
 // UpdateUser updates user's information.
 func UpdateUser(u *User, emailChanged bool) error {
-	return updateUser(db.GetEngine(db.DefaultContext), u, emailChanged)
+	return updateUser(db.DefaultContext, u, emailChanged)
 }
 
 // UpdateUserCols update user according special columns
