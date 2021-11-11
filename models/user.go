@@ -1221,7 +1221,7 @@ func deleteUser(e db.Engine, u *User) error {
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
-		&user.Setting{UserID: u.ID},
+		&user_model.Setting{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
