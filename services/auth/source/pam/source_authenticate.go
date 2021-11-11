@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/mailer"
@@ -39,13 +40,13 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 	if idx > -1 {
 		username = pamLogin[:idx]
 	}
-	if models.ValidateEmail(email) != nil {
+	if user_model.ValidateEmail(email) != nil {
 		if source.EmailDomain != "" {
 			email = fmt.Sprintf("%s@%s", username, source.EmailDomain)
 		} else {
 			email = fmt.Sprintf("%s@%s", username, setting.Service.NoReplyAddress)
 		}
-		if models.ValidateEmail(email) != nil {
+		if user_model.ValidateEmail(email) != nil {
 			email = uuid.New().String() + "@localhost"
 		}
 	}
