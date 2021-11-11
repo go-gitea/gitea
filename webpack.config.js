@@ -1,20 +1,20 @@
-import fastGlob from 'fast-glob';
+import webpack from 'webpack';
 import wrapAnsi from 'wrap-ansi';
+import fastGlob from 'fast-glob';
+import VueLoader from 'vue-loader';
+import { fileURLToPath } from 'url';
+import EsBuildLoader from 'esbuild-loader';
+import { resolve, parse, dirname } from 'path';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
-import VueLoader from 'vue-loader';
-import EsBuildLoader from 'esbuild-loader';
-import {resolve, parse, dirname} from 'path';
-import webpack from 'webpack';
-import {fileURLToPath} from 'url';
+import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 
-const {VueLoaderPlugin} = VueLoader;
-const {ESBuildMinifyPlugin} = EsBuildLoader;
-const {SourceMapDevToolPlugin} = webpack;
+const { VueLoaderPlugin } = VueLoader;
+const { SourceMapDevToolPlugin } = webpack;
+const { ESBuildMinifyPlugin } = EsBuildLoader;
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
+const glob = (pattern) => fastGlob.sync(pattern, { cwd: __dirname, absolute: true });
 
 const themes = {};
 for (const path of glob('web_src/less/themes/*.less')) {
@@ -69,12 +69,12 @@ export default {
   devtool: false,
   output: {
     path: resolve(__dirname, 'public'),
-    filename: ({chunk}) => {
+    filename: ({ chunk }) => {
       // serviceworker can only manage assets below it's script's directory so
       // we have to put it in / instead of /js/
       return chunk.name === 'serviceworker' ? '[name].js' : 'js/[name].js';
     },
-    chunkFilename: ({chunk}) => {
+    chunkFilename: ({ chunk }) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
       return language ? `js/monaco-language-${language.toLowerCase()}.js` : `js/[name].js`;
     },
@@ -137,8 +137,8 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: {filter: filterCssImport},
-              import: {filter: filterCssImport},
+              url: { filter: filterCssImport },
+              import: { filter: filterCssImport },
             },
           },
         ],
@@ -154,8 +154,8 @@ export default {
             options: {
               sourceMap: true,
               importLoaders: 1,
-              url: {filter: filterCssImport},
-              import: {filter: filterCssImport},
+              url: { filter: filterCssImport },
+              import: { filter: filterCssImport },
             },
           },
           {
@@ -205,16 +205,16 @@ export default {
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'js/licenses.txt',
-      outputWriter: ({dependencies}) => {
+      outputWriter: ({ dependencies }) => {
         const line = '-'.repeat(80);
         return dependencies.map((module) => {
-          const {name, version, licenseName, licenseText} = module;
+          const { name, version, licenseName, licenseText } = module;
           const body = wrapAnsi(licenseText || '', 80);
           return `${line}\n${name}@${version} - ${licenseName}\n${line}\n${body}`;
         }).join('\n');
       },
       override: {
-        'jquery.are-you-sure@*': {licenseName: 'MIT'},
+        'jquery.are-you-sure@*': { licenseName: 'MIT' },
       },
       ignore: [
         'font-awesome',
