@@ -66,7 +66,7 @@ func checkForConsistency(bean interface{}, t *testing.T) {
 	case *Action:
 		checkForActionConsistency(b, t)
 	default:
-		t.Errorf("unknow bean type: %#v", bean)
+		t.Errorf("unknown bean type: %#v", bean)
 	}
 }
 
