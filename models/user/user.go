@@ -1103,7 +1103,7 @@ func GetUserByEmailAddress(ctx context.Context, email string) (*User, error) {
 	email = strings.ToLower(email)
 
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email}
+	emailAddress := &EmailAddress{LowerEmail: email}
 	has, err := db.GetEngine(ctx).Where("is_activated=?", true).Get(emailAddress)
 	if err != nil {
 		return nil, err
