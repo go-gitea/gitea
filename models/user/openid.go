@@ -15,6 +15,7 @@ import (
 var ErrOpenIDNotExist = errors.New("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
+//nolint
 type UserOpenID struct { //nolint
 	ID   int64  `xorm:"pk autoincr"`
 	UID  int64  `xorm:"INDEX NOT NULL"`
