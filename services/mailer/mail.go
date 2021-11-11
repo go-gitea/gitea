@@ -16,6 +16,7 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
@@ -112,7 +113,7 @@ func SendResetPasswordMail(u *models.User) {
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
+func SendActivateEmailMail(u *models.User, email *user_model.EmailAddress) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
