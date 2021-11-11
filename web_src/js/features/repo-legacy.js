@@ -259,7 +259,7 @@ export function initRepoCommentForm() {
 }
 
 
-export async function initRepository() {
+export function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -267,10 +267,13 @@ export async function initRepository() {
 
   // Commit statuses
   $('.commit-statuses-trigger').each(function () {
+    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
+    const popupPosition = positionRight ? 'right center' : 'left center';
     $(this)
       .popup({
         on: 'click',
-        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
+        position: popupPosition,
       });
   });
 
@@ -360,7 +363,7 @@ export async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        await attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');

@@ -19,19 +19,23 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/gobwas/glob"
 )
 
+var contextKeyWebhookRequest interface{} = "contextKeyWebhookRequest"
+
 // Deliver deliver hook task
-func Deliver(t *models.HookTask) error {
-	w, err := models.GetWebhookByID(t.HookID)
+func Deliver(t *webhook_model.HookTask) error {
+	w, err := webhook_model.GetWebhookByID(t.HookID)
 	if err != nil {
 		return err
 	}
@@ -55,14 +59,14 @@ func Deliver(t *models.HookTask) error {
 		fallthrough
 	case http.MethodPost:
 		switch w.ContentType {
-		case models.ContentTypeJSON:
+		case webhook_model.ContentTypeJSON:
 			req, err = http.NewRequest("POST", w.URL, strings.NewReader(t.PayloadContent))
 			if err != nil {
 				return err
 			}
 
 			req.Header.Set("Content-Type", "application/json")
-		case models.ContentTypeForm:
+		case webhook_model.ContentTypeForm:
 			var forms = url.Values{
 				"payload": []string{t.PayloadContent},
 			}
@@ -88,7 +92,7 @@ func Deliver(t *models.HookTask) error {
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case models.MATRIX:
+		case webhook_model.MATRIX:
 			req, err = getMatrixHookRequest(w, t)
 			if err != nil {
 				return err
@@ -130,7 +134,7 @@ func Deliver(t *models.HookTask) error {
 	req.Header["X-GitHub-Event-Type"] = []string{eventType}
 
 	// Record delivery information.
-	t.RequestInfo = &models.HookRequest{
+	t.RequestInfo = &webhook_model.HookRequest{
 		URL:        req.URL.String(),
 		HTTPMethod: req.Method,
 		Headers:    map[string]string{},
@@ -139,7 +143,7 @@ func Deliver(t *models.HookTask) error {
 		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	t.ResponseInfo = &models.HookResponse{
+	t.ResponseInfo = &webhook_model.HookResponse{
 		Headers: map[string]string{},
 	}
 
@@ -151,17 +155,17 @@ func Deliver(t *models.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		if err := models.UpdateHookTask(t); err != nil {
+		if err := webhook_model.UpdateHookTask(t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = models.HookStatusSucceed
+			w.LastStatus = webhook_model.HookStatusSucceed
 		} else {
-			w.LastStatus = models.HookStatusFail
+			w.LastStatus = webhook_model.HookStatusFail
 		}
-		if err = models.UpdateWebhookLastStatus(w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
@@ -171,7 +175,7 @@ func Deliver(t *models.HookTask) error {
 		return fmt.Errorf("Webhook task skipped (webhooks disabled): [%d]", t.ID)
 	}
 
-	resp, err := webhookHTTPClient.Do(req)
+	resp, err := webhookHTTPClient.Do(req.WithContext(context.WithValue(req.Context(), contextKeyWebhookRequest, req)))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
 		return err
@@ -203,7 +207,7 @@ func DeliverHooks(ctx context.Context) {
 		return
 	default:
 	}
-	tasks, err := models.FindUndeliveredHookTasks()
+	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
 		return
@@ -237,7 +241,7 @@ func DeliverHooks(ctx context.Context) {
 				continue
 			}
 
-			tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
+			tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
 			if err != nil {
 				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
 				continue
@@ -293,14 +297,29 @@ func InitDeliverHooks() {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
 	webhookHTTPClient = &http.Client{
+		Timeout: timeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Webhook.SkipTLSVerify},
 			Proxy:           webhookProxy(),
-			Dial: func(netw, addr string) (net.Conn, error) {
-				return net.DialTimeout(netw, addr, timeout) // dial timeout
+			DialContext: func(ctx context.Context, network, addrOrHost string) (net.Conn, error) {
+				dialer := net.Dialer{
+					Timeout: timeout,
+					Control: func(network, ipAddr string, c syscall.RawConn) error {
+						// in Control func, the addr was already resolved to IP:PORT format, there is no cost to do ResolveTCPAddr here
+						tcpAddr, err := net.ResolveTCPAddr(network, ipAddr)
+						req := ctx.Value(contextKeyWebhookRequest).(*http.Request)
+						if err != nil {
+							return fmt.Errorf("webhook can only call HTTP servers via TCP, deny '%s(%s:%s)', err=%v", req.Host, network, ipAddr, err)
+						}
+						if !setting.Webhook.AllowedHostList.MatchesHostOrIP(req.Host, tcpAddr.IP) {
+							return fmt.Errorf("webhook can only call allowed HTTP servers (check your webhook.ALLOWED_HOST_LIST setting), deny '%s(%s)'", req.Host, ipAddr)
+						}
+						return nil
+					},
+				}
+				return dialer.DialContext(ctx, network, addrOrHost)
 			},
 		},
-		Timeout: timeout, // request timeout
 	}
 
 	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)

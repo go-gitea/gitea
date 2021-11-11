@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -20,7 +21,7 @@ import (
 type RepoUnit struct {
 	ID          int64
 	RepoID      int64              `xorm:"INDEX(s)"`
-	Type        UnitType           `xorm:"INDEX(s)"`
+	Type        unit.Type          `xorm:"INDEX(s)"`
 	Config      convert.Conversion `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
 }
@@ -154,16 +155,16 @@ func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
-		switch UnitType(login.Cell2Int64(val)) {
-		case UnitTypeCode, UnitTypeReleases, UnitTypeWiki, UnitTypeProjects:
+		switch unit.Type(login.Cell2Int64(val)) {
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 			r.Config = new(UnitConfig)
-		case UnitTypeExternalWiki:
+		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
-		case UnitTypeExternalTracker:
+		case unit.TypeExternalTracker:
 			r.Config = new(ExternalTrackerConfig)
-		case UnitTypePullRequests:
+		case unit.TypePullRequests:
 			r.Config = new(PullRequestsConfig)
-		case UnitTypeIssues:
+		case unit.TypeIssues:
 			r.Config = new(IssuesConfig)
 		default:
 			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
@@ -172,36 +173,36 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 }
 
 // Unit returns Unit
-func (r *RepoUnit) Unit() Unit {
-	return Units[r.Type]
+func (r *RepoUnit) Unit() unit.Unit {
+	return unit.Units[r.Type]
 }
 
-// CodeConfig returns config for UnitTypeCode
+// CodeConfig returns config for unit.TypeCode
 func (r *RepoUnit) CodeConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
-// PullRequestsConfig returns config for UnitTypePullRequests
+// PullRequestsConfig returns config for unit.TypePullRequests
 func (r *RepoUnit) PullRequestsConfig() *PullRequestsConfig {
 	return r.Config.(*PullRequestsConfig)
 }
 
-// ReleasesConfig returns config for UnitTypeReleases
+// ReleasesConfig returns config for unit.TypeReleases
 func (r *RepoUnit) ReleasesConfig() *UnitConfig {
 	return r.Config.(*UnitConfig)
 }
 
-// ExternalWikiConfig returns config for UnitTypeExternalWiki
+// ExternalWikiConfig returns config for unit.TypeExternalWiki
 func (r *RepoUnit) ExternalWikiConfig() *ExternalWikiConfig {
 	return r.Config.(*ExternalWikiConfig)
 }
 
-// IssuesConfig returns config for UnitTypeIssues
+// IssuesConfig returns config for unit.TypeIssues
 func (r *RepoUnit) IssuesConfig() *IssuesConfig {
 	return r.Config.(*IssuesConfig)
 }
 
-// ExternalTrackerConfig returns config for UnitTypeExternalTracker
+// ExternalTrackerConfig returns config for unit.TypeExternalTracker
 func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }

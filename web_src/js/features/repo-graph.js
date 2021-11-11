@@ -1,4 +1,4 @@
-export default async function initGitGraph() {
+export default function initRepoGraphGit() {
   const graphContainer = document.getElementById('git-graph-container');
   if (!graphContainer) return;
 

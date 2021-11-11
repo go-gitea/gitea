@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -88,7 +89,7 @@ func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 		case "anything":
 			return content, nil
 		case "email":
-			emails, err := GetEmailAddresses(user.ID)
+			emails, err := user_model.GetEmailAddresses(user.ID)
 			if err != nil {
 				return "", err
 			}
