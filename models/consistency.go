@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-
+	user_model "code.gitea.io/gitea/models/user"
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )
@@ -88,8 +88,8 @@ func checkForUserConsistency(user *User, t *testing.T) {
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
 	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)
-	assertCount(t, &Follow{UserID: user.ID}, user.NumFollowing)
-	assertCount(t, &Follow{FollowID: user.ID}, user.NumFollowers)
+	assertCount(t, &user_model.Follow{UserID: user.ID}, user.NumFollowing)
+	assertCount(t, &user_model.Follow{FollowID: user.ID}, user.NumFollowers)
 	if user.Type != UserTypeOrganization {
 		assert.EqualValues(t, 0, user.NumMembers)
 		assert.EqualValues(t, 0, user.NumTeams)

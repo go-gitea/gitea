@@ -2,21 +2,20 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package user
 
 import (
 	"errors"
+	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/auth/openid"
-	"code.gitea.io/gitea/modules/log"
 )
 
 // ErrOpenIDNotExist openid is not known
 var ErrOpenIDNotExist = errors.New("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
-type UserOpenID struct {
+type UserOpenID struct { //nolint
 	ID   int64  `xorm:"pk autoincr"`
 	UID  int64  `xorm:"INDEX NOT NULL"`
 	URI  string `xorm:"UNIQUE NOT NULL"`
@@ -47,6 +46,21 @@ func isOpenIDUsed(e db.Engine, uri string) (bool, error) {
 	}
 
 	return e.Get(&UserOpenID{URI: uri})
+}
+
+// ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
+type ErrOpenIDAlreadyUsed struct {
+	OpenID string
+}
+
+// IsErrOpenIDAlreadyUsed checks if an error is a ErrOpenIDAlreadyUsed.
+func IsErrOpenIDAlreadyUsed(err error) bool {
+	_, ok := err.(ErrOpenIDAlreadyUsed)
+	return ok
+}
+
+func (err ErrOpenIDAlreadyUsed) Error() string {
+	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
 }
 
 // NOTE: make sure openid.URI is normalized already
@@ -94,30 +108,4 @@ func DeleteUserOpenID(openid *UserOpenID) (err error) {
 func ToggleUserOpenIDVisibility(id int64) (err error) {
 	_, err = db.GetEngine(db.DefaultContext).Exec("update `user_open_id` set `show` = not `show` where `id` = ?", id)
 	return err
-}
-
-// GetUserByOpenID returns the user object by given OpenID if exists.
-func GetUserByOpenID(uri string) (*User, error) {
-	if len(uri) == 0 {
-		return nil, ErrUserNotExist{0, uri, 0}
-	}
-
-	uri, err := openid.Normalize(uri)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Trace("Normalized OpenID URI: " + uri)
-
-	// Otherwise, check in openid table
-	oid := &UserOpenID{}
-	has, err := db.GetEngine(db.DefaultContext).Where("uri=?", uri).Get(oid)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return GetUserByID(oid.UID)
-	}
-
-	return nil, ErrUserNotExist{0, uri, 0}
 }
