@@ -34,6 +34,7 @@ type Redirect struct {
 	RedirectUserID int64  // userID to redirect to
 }
 
+// TableName provides the real table name
 func (Redirect) TableName() string {
 	return "user_redirect"
 }
