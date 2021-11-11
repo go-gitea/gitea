@@ -129,15 +129,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, string(log.Stack(2)))
 					log.Error("%v", combinedErr)
 
-					sessionStore, ok := session.GetSessionWithCheck(req)
-					if !ok {
-						if setting.IsProd {
-							http.Error(w, http.StatusText(500), 500)
-						} else {
-							http.Error(w, combinedErr, 500)
-						}
-						return
-					}
+					sessionStore := session.GetSession(req)
 
 					var lc = middleware.Locale(w, req)
 					var store = dataStore{
