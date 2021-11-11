@@ -159,6 +159,8 @@ export function initAdminCommon() {
     $('#oauth2_provider').on('change', () => onOAuth2Change(true));
     $('#oauth2_use_custom_url').on('change', () => onOAuth2UseCustomURLChange(true));
     $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
+    $('#team_group_map_enabled').on('change', onVerifyGroupMembershipChange);
+    $('#team_group_map_removal').on('change', onVerifyGroupMembershipChange);
   }
   // Edit authentication
   if ($('.admin.edit.authentication').length > 0) {
@@ -166,6 +168,8 @@ export function initAdminCommon() {
     if (authType === '2' || authType === '5') {
       $('#security_protocol').on('change', onSecurityProtocolChange);
       $('#groups_enabled').on('change', onVerifyGroupMembershipChange);
+      $('#team_group_map_enabled').on('change', onVerifyGroupMembershipChange);
+      $('#team_group_map_removal').on('change', onVerifyGroupMembershipChange);
       onVerifyGroupMembershipChange();
       if (authType === '2') {
         $('#use_paged_search').on('change', onUsePagedSearchChange);

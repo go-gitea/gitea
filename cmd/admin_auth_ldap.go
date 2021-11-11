@@ -102,8 +102,8 @@ var (
 			Name:  "team-group-map",
 			Usage: "Map of LDAP groups to teams.",
 		},
-		cli.StringFlag{
-			Name:  "team-group-map-force",
+		cli.BoolFlag{
+			Name:  "team-group-map-removal",
 			Usage: "Force synchronization of mapped LDAP groups to teams.",
 		},
 	}
@@ -269,6 +269,7 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 		config.SkipLocalTwoFA = c.Bool("skip-local-2fa")
 	}
 	if c.IsSet("team-group-map") {
+		config.TeamGroupMapEnabled = c.Bool("team-group-map")
 		config.TeamGroupMap = c.String("team-group-map")
 	}
 	if c.IsSet("team-group-map-removal") {
