@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -359,7 +360,7 @@ func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
 
 // IsFollowing returns true if user is following followID.
 func (u *User) IsFollowing(followID int64) bool {
-	return IsFollowing(u.ID, followID)
+	return user_model.IsFollowing(u.ID, followID)
 }
 
 // GetFollowing returns range of user's following.
@@ -469,7 +470,7 @@ func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
 		}
 
 		// If they follow - they see each over
-		follower := IsFollowing(u.ID, viewer.ID)
+		follower := user_model.IsFollowing(u.ID, viewer.ID)
 		if follower {
 			return true
 		}
@@ -1212,12 +1213,12 @@ func deleteUser(e db.Engine, u *User) error {
 		&Access{UserID: u.ID},
 		&Watch{UserID: u.ID},
 		&Star{UID: u.ID},
-		&Follow{UserID: u.ID},
-		&Follow{FollowID: u.ID},
+		&user_model.Follow{UserID: u.ID},
+		&user_model.Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
-		&UserOpenID{UID: u.ID},
+		&user_model.UserOpenID{UID: u.ID},
 		&Reaction{UserID: u.ID},
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
@@ -1797,4 +1798,30 @@ func IterateUser(f func(user *User) error) error {
 			}
 		}
 	}
+}
+
+// GetUserByOpenID returns the user object by given OpenID if exists.
+func GetUserByOpenID(uri string) (*User, error) {
+	if len(uri) == 0 {
+		return nil, ErrUserNotExist{0, uri, 0}
+	}
+
+	uri, err := openid.Normalize(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace("Normalized OpenID URI: " + uri)
+
+	// Otherwise, check in openid table
+	oid := &user_model.UserOpenID{}
+	has, err := db.GetEngine(db.DefaultContext).Where("uri=?", uri).Get(oid)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return GetUserByID(oid.UID)
+	}
+
+	return nil, ErrUserNotExist{0, uri, 0}
 }
