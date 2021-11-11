@@ -71,6 +71,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -138,9 +139,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					if redirectUserID, err := models.LookupUserRedirect(userName); err == nil {
+					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
 						context.RedirectToUser(ctx.Context, userName, redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
+					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
@@ -421,10 +422,10 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					redirectUserID, err := models.LookupUserRedirect(ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
 					if err == nil {
 						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
+					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)

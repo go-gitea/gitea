@@ -14,15 +14,17 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/webhook"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ToEmail convert models.EmailAddress to api.Email
-func ToEmail(email *models.EmailAddress) *api.Email {
+func ToEmail(email *user_model.EmailAddress) *api.Email {
 	return &api.Email{
 		Email:    email.Email,
 		Verified: email.IsActivated,
@@ -218,7 +220,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 }
 
 // ToGPGKeyEmail convert models.EmailAddress to api.GPGKeyEmail
-func ToGPGKeyEmail(email *models.EmailAddress) *api.GPGKeyEmail {
+func ToGPGKeyEmail(email *user_model.EmailAddress) *api.GPGKeyEmail {
 	return &api.GPGKeyEmail{
 		Email:    email.Email,
 		Verified: email.IsActivated,
@@ -226,13 +228,13 @@ func ToGPGKeyEmail(email *models.EmailAddress) *api.GPGKeyEmail {
 }
 
 // ToHook convert models.Webhook to api.Hook
-func ToHook(repoLink string, w *models.Webhook) *api.Hook {
+func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
 	config := map[string]string{
 		"url":          w.URL,
 		"content_type": w.ContentType.Name(),
 	}
-	if w.Type == models.SLACK {
-		s := webhook.GetSlackHook(w)
+	if w.Type == webhook.SLACK {
+		s := webhook_service.GetSlackHook(w)
 		config["channel"] = s.Channel
 		config["username"] = s.Username
 		config["icon_url"] = s.IconURL

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -113,13 +114,13 @@ func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *Repositor
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *Repository) error {
-	templateWebhooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: templateRepo.ID})
+	templateWebhooks, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}
 
 	for _, templateWebhook := range templateWebhooks {
-		generateWebhook := &Webhook{
+		generateWebhook := &webhook.Webhook{
 			RepoID:      generateRepo.ID,
 			URL:         templateWebhook.URL,
 			HTTPMethod:  templateWebhook.HTTPMethod,
@@ -132,7 +133,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *Repositor
 			Events:      templateWebhook.Events,
 			Meta:        templateWebhook.Meta,
 		}
-		if err := createWebhook(db.GetEngine(ctx), generateWebhook); err != nil {
+		if err := webhook.CreateWebhook(ctx, generateWebhook); err != nil {
 			return err
 		}
 	}

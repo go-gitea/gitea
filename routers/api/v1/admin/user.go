@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -109,10 +110,10 @@ func CreateUser(ctx *context.APIContext) {
 
 	if err := models.CreateUser(u, overwriteDefault); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrEmailAlreadyUsed(err) ||
+			user_model.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
 			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrEmailInvalid(err) ||
+			user_model.IsErrEmailInvalid(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -245,7 +246,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := models.UpdateUser(u); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) || models.IsErrEmailInvalid(err) {
+		if user_model.IsErrEmailAlreadyUsed(err) || user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
