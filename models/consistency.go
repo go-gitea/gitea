@@ -50,21 +50,21 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 func checkForConsistency(bean interface{}, t *testing.T) {
 	switch b := bean.(type) {
 	case *User:
-		checkForConsistencyUser(b, t)
+		checkForUserConsistency(b, t)
 	case *Repository:
-		checkForConsistencyRepo(b, t)
+		checkForRepoConsistency(b, t)
 	case *Issue:
-		checkForConsistencyIssue(b, t)
+		checkForIssueConsistency(b, t)
 	case *PullRequest:
-		checkForConsistencyPullRequest(b, t)
+		checkForPullRequestConsistency(b, t)
 	case *Milestone:
-		checkForConsistencyMilestone(b, t)
+		checkForMilestoneConsistency(b, t)
 	case *Label:
-		checkForConsistencyLabel(b, t)
+		checkForLabelConsistency(b, t)
 	case *Team:
-		checkForConsistencyTeam(b, t)
+		checkForTeamConsistency(b, t)
 	case *Action:
-		checkForConsistencyAction(b, t)
+		checkForActionConsistency(b, t)
 	default:
 		t.Errorf("unknow bean type: %#v", bean)
 	}
@@ -83,7 +83,7 @@ func assertCount(t *testing.T, bean interface{}, expected int) {
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-func checkForConsistencyUser(user *User, t *testing.T) {
+func checkForUserConsistency(user *User, t *testing.T) {
 	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
@@ -96,7 +96,7 @@ func checkForConsistencyUser(user *User, t *testing.T) {
 	}
 }
 
-func checkForConsistencyRepo(repo *Repository, t *testing.T) {
+func checkForRepoConsistency(repo *Repository, t *testing.T) {
 	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
 	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
 	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
@@ -130,7 +130,7 @@ func checkForConsistencyRepo(repo *Repository, t *testing.T) {
 		"Unexpected number of closed milestones for repo %+v", repo)
 }
 
-func checkForConsistencyIssue(issue *Issue, t *testing.T) {
+func checkForIssueConsistency(issue *Issue, t *testing.T) {
 	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
 	assert.EqualValues(t, issue.NumComments, actual,
 		"Unexpected number of comments for issue %+v", issue)
@@ -140,13 +140,13 @@ func checkForConsistencyIssue(issue *Issue, t *testing.T) {
 	}
 }
 
-func checkForConsistencyPullRequest(pr *PullRequest, t *testing.T) {
+func checkForPullRequestConsistency(pr *PullRequest, t *testing.T) {
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: pr.IssueID}).(*Issue)
 	assert.True(t, issue.IsPull)
 	assert.EqualValues(t, issue.Index, pr.Index)
 }
 
-func checkForConsistencyMilestone(milestone *Milestone, t *testing.T) {
+func checkForMilestoneConsistency(milestone *Milestone, t *testing.T) {
 	assertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
 	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
@@ -160,7 +160,7 @@ func checkForConsistencyMilestone(milestone *Milestone, t *testing.T) {
 	assert.Equal(t, completeness, milestone.Completeness)
 }
 
-func checkForConsistencyLabel(label *Label, t *testing.T) {
+func checkForLabelConsistency(label *Label, t *testing.T) {
 	issueLabels := make([]*IssueLabel, 0, 10)
 	assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&issueLabels, &IssueLabel{LabelID: label.ID}))
 	assert.EqualValues(t, label.NumIssues, len(issueLabels),
@@ -179,12 +179,12 @@ func checkForConsistencyLabel(label *Label, t *testing.T) {
 		"Unexpected number of closed issues for label %+v", label)
 }
 
-func checkForConsistencyTeam(team *Team, t *testing.T) {
+func checkForTeamConsistency(team *Team, t *testing.T) {
 	assertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
 	assertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
 }
 
-func checkForConsistencyAction(action *Action, t *testing.T) {
+func checkForActionConsistency(action *Action, t *testing.T) {
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
 }
