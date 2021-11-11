@@ -520,11 +520,11 @@ func TestNewUserRedirect(t *testing.T) {
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      "olduser1",
 		RedirectUserID: user.ID,
 	})
@@ -537,11 +537,11 @@ func TestNewUserRedirect2(t *testing.T) {
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-	db.AssertNotExistsBean(t, &user_model.UserRedirect{
+	db.AssertNotExistsBean(t, &user_model.Redirect{
 		LowerName:      "olduser1",
 		RedirectUserID: user.ID,
 	})
@@ -554,7 +554,7 @@ func TestNewUserRedirect3(t *testing.T) {
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.UserRedirect{
+	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
