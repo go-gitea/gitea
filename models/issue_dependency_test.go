@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,7 +14,7 @@ import (
 
 func TestCreateIssueDependency(t *testing.T) {
 	// Prepare
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1, err := GetUserByID(1)
 	assert.NoError(t, err)

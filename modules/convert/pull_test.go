@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -16,7 +17,7 @@ import (
 
 func TestPullRequest_APIFormat(t *testing.T) {
 	//with HeadRepo
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	headRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest)
 	assert.NoError(t, pr.LoadAttributes())

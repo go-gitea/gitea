@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -44,7 +45,7 @@ func TestNewReleasePost(t *testing.T) {
 			},
 		},
 	} {
-		db.PrepareTestEnv(t)
+		unittest.PrepareTestEnv(t)
 
 		ctx := test.MockContext(t, "user2/repo1/releases/new")
 		test.LoadUser(t, ctx, 2)

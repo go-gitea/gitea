@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -15,7 +16,7 @@ import (
 )
 
 func TestUser_ToUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &models.User{ID: 1, IsAdmin: true}).(*models.User)
 

@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 	"time"
 
@@ -193,7 +194,7 @@ Unknown GPG key with good email
 }
 
 func TestCheckGPGUserEmail(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	_ = db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 

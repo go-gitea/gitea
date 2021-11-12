@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"testing"
 	"time"
@@ -19,7 +20,7 @@ import (
 )
 
 func TestLabel_ToLabel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &models.Label{ID: 1}).(*models.Label)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: label.RepoID}).(*models.Repository)
 	assert.Equal(t, &api.Label{

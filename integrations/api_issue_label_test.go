@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"net/http"
 	"strings"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestAPIModifyLabels(t *testing.T) {
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
@@ -88,7 +89,7 @@ func TestAPIModifyLabels(t *testing.T) {
 }
 
 func TestAPIAddIssueLabels(t *testing.T) {
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	issue := db.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
@@ -111,7 +112,7 @@ func TestAPIAddIssueLabels(t *testing.T) {
 }
 
 func TestAPIReplaceIssueLabels(t *testing.T) {
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	issue := db.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
@@ -137,7 +138,7 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 }
 
 func TestAPIModifyOrgLabels(t *testing.T) {
-	assert.NoError(t, db.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)

@@ -9,6 +9,7 @@ Checkout a PR and load the tests data into sqlite database
 */
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"context"
 	"flag"
 	"fmt"
@@ -99,8 +100,8 @@ func runPR() {
 	})
 	db.HasEngine = true
 	//x.ShowSQL(true)
-	err = db.InitFixtures(
-		db.FixturesOptions{
+	err = unittest.InitFixtures(
+		unittest.FixturesOptions{
 			Dir: path.Join(curDir, "models/fixtures/"),
 		},
 	)
@@ -108,7 +109,7 @@ func runPR() {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
-	db.LoadFixtures()
+	unittest.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(models.LocalCopyPath())
 	util.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)

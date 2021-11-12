@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"crypto/md5"
 	"fmt"
 	"testing"
@@ -17,7 +18,7 @@ import (
 )
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -100,7 +101,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{

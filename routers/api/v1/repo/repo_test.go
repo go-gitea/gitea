@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"net/http"
 	"testing"
 
@@ -19,7 +20,7 @@ import (
 )
 
 func TestRepoEdit(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
@@ -66,7 +67,7 @@ func TestRepoEdit(t *testing.T) {
 }
 
 func TestRepoEditNameChange(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)

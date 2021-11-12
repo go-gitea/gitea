@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 )
 
 func TestToCommitMeta(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	headRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	sha1, _ := git.NewIDFromString("0000000000000000000000000000000000000000")
 	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}

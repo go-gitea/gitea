@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestForkRepository(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// user 13 has already forked repo10
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 13}).(*models.User)

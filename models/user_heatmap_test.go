@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"testing"
 	"time"
@@ -39,7 +40,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		{10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
 	}
 	// Prepare
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Mock time
 	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))

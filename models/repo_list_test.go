@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestSearchRepository(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// test search public repository on explore page
 	repos, count, err := SearchRepositoryByName(&SearchRepoOptions{
@@ -324,7 +325,7 @@ func TestSearchRepository(t *testing.T) {
 }
 
 func TestSearchRepositoryByTopicName(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testCases := []struct {
 		name  string

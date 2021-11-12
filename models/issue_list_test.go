@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestIssueList_LoadRepositories(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issueList := IssueList{
 		db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
@@ -31,7 +32,7 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 }
 
 func TestIssueList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Service.EnableTimetracking = true
 	issueList := IssueList{
 		db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),

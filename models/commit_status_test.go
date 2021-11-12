@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,7 +14,7 @@ import (
 )
 
 func TestGetCommitStatuses(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 

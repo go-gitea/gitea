@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"net/http"
 	"testing"
 
@@ -17,7 +18,7 @@ import (
 )
 
 func TestTestHook(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/wiki/_pages")
 	ctx.SetParams(":id", "1")

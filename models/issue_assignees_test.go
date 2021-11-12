@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestUpdateAssignee(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Fake issue with assignees
 	issue, err := GetIssueWithAttrsByID(1)
@@ -62,7 +63,7 @@ func TestUpdateAssignee(t *testing.T) {
 }
 
 func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	_ = db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	_ = db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)

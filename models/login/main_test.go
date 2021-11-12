@@ -5,14 +5,13 @@
 package login
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"path/filepath"
 	"testing"
-
-	"code.gitea.io/gitea/models/db"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", ".."),
+	unittest.MainTest(m, filepath.Join("..", ".."),
 		"login_source.yml",
 		"oauth2_application.yml",
 		"oauth2_authorization_code.yml",

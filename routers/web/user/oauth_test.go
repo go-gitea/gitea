@@ -5,6 +5,7 @@
 package user
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -41,7 +42,7 @@ func createAndParseToken(t *testing.T, grant *login.OAuth2Grant) *oauth2.OIDCTok
 }
 
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	grants, err := login.GetOAuth2GrantsByUserID(3)
 	assert.NoError(t, err)

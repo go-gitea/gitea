@@ -5,6 +5,7 @@
 package integrations
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"os"
 	"testing"
 
@@ -17,7 +18,7 @@ import (
 )
 
 func TestMigrateLocalPath(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	adminUser := db.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 

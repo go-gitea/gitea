@@ -5,15 +5,15 @@
 package code
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestESIndexAndSearch(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	u := os.Getenv("TEST_INDEXER_CODE_ES_URL")
 	if u == "" {

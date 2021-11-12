@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -14,7 +15,7 @@ import (
 )
 
 func TestContentHistory(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	dbCtx := db.DefaultContext
 	dbEngine := db.GetEngine(dbCtx)

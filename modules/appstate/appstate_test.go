@@ -5,16 +5,15 @@
 package appstate
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"path/filepath"
 	"testing"
-
-	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", ".."), "")
+	unittest.MainTest(m, filepath.Join("..", ".."), "")
 }
 
 type testItem1 struct {
@@ -35,7 +34,7 @@ func (*testItem2) Name() string {
 }
 
 func TestAppStateDB(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	as := &DBStore{}
 

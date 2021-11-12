@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"testing"
 
@@ -16,7 +17,7 @@ import (
 )
 
 func TestIncludesAllRepositoriesTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := db.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)

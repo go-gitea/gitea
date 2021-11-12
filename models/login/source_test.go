@@ -5,6 +5,7 @@
 package login
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"strings"
 	"testing"
 
@@ -34,7 +35,7 @@ func (source *TestSource) ToDB() ([]byte, error) {
 }
 
 func TestDumpLoginSource(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	loginSourceSchema, err := db.TableInfo(new(Source))
 	assert.NoError(t, err)

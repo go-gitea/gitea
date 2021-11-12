@@ -6,6 +6,7 @@ package mailer
 
 import (
 	"bytes"
+	"code.gitea.io/gitea/models/unittest"
 	"html/template"
 	"testing"
 	texttmpl "text/template"
@@ -41,7 +42,7 @@ const bodyTpl = `
 `
 
 func prepareMailerTest(t *testing.T) (doer *models.User, repo *models.Repository, issue *models.Issue, comment *models.Comment) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	var mailService = setting.Mailer{
 		From: "test@gitea.com",
 	}

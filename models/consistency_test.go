@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestDeleteOrphanedObjects(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	countBefore, err := db.GetEngine(db.DefaultContext).Count(&PullRequest{})
 	assert.NoError(t, err)

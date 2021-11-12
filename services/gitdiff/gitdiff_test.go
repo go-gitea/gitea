@@ -6,6 +6,7 @@
 package gitdiff
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"html/template"
 	"strconv"
@@ -493,7 +494,7 @@ func setupDefaultDiff() *Diff {
 	}
 }
 func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)

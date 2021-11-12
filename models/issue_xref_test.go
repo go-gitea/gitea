@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"testing"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func TestXRef_AddCrossReferences(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Issue #1 to test against
 	itarget := testCreateIssue(t, 1, 2, "title1", "content1", false)
@@ -66,7 +67,7 @@ func TestXRef_AddCrossReferences(t *testing.T) {
 }
 
 func TestXRef_NeuterCrossReferences(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Issue #1 to test against
 	itarget := testCreateIssue(t, 1, 2, "title1", "content1", false)
@@ -88,7 +89,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 }
 
 func TestXRef_ResolveCrossReferences(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	d := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 

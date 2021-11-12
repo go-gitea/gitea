@@ -6,6 +6,7 @@
 package pull
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"strconv"
 	"testing"
 	"time"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestPullRequest_AddToTaskQueue(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	idChan := make(chan int64, 10)
 

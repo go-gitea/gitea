@@ -1,28 +1,30 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
-// Use of this source code is governed by a MIT-style
-// license that can be found in the LICENSE file.
-
-package db
+package unittest
 
 import (
 	"fmt"
 	"os"
 	"time"
-
-	"github.com/go-testfixtures/testfixtures/v3"
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
+
+	"code.gitea.io/gitea/models/db"
+
+	"github.com/go-testfixtures/testfixtures/v3"
 )
 
 var fixtures *testfixtures.Loader
 
-// InitFixtures initialize test fixtures for a test database
-func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
-	e := x
+func getXORMEngine(engine ...*xorm.Engine) *xorm.Engine {
+	e := db.DefaultContext.(*db.Context).Engine().(*xorm.Engine)
 	if len(engine) == 1 {
 		e = engine[0]
 	}
+	return e
+}
 
+// InitFixtures initialize test fixtures for a test database
+func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
+	e := getXORMEngine(engine...)
 	var testfiles func(*testfixtures.Loader) error
 	if opts.Dir != "" {
 		testfiles = testfixtures.Directory(opts.Dir)
@@ -64,10 +66,7 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 
 // LoadFixtures load fixtures for a test database
 func LoadFixtures(engine ...*xorm.Engine) error {
-	e := x
-	if len(engine) == 1 {
-		e = engine[0]
-	}
+	e := getXORMEngine(engine...)
 	var err error
 	// Database transaction conflicts could occur and result in ROLLBACK
 	// As a simple workaround, we just retry 20 times.

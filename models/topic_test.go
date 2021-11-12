@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -16,7 +17,7 @@ func TestAddTopic(t *testing.T) {
 	repo1NrOfTopics := 3
 	repo2NrOfTopics := 2
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	topics, _, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)

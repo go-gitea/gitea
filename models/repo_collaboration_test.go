@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestRepository_AddCollaborator(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(repoID, userID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
@@ -27,7 +28,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 }
 
 func TestRepository_GetCollaborators(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		collaborators, err := repo.GetCollaborators(db.ListOptions{})
@@ -47,7 +48,7 @@ func TestRepository_GetCollaborators(t *testing.T) {
 }
 
 func TestRepository_IsCollaborator(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(repoID, userID int64, expected bool) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
@@ -62,7 +63,7 @@ func TestRepository_IsCollaborator(t *testing.T) {
 }
 
 func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, AccessModeAdmin))
@@ -81,7 +82,7 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo.GetOwner())
