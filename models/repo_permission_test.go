@@ -9,11 +9,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public non-organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
@@ -66,7 +67,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 }
 
 func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private non-organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
@@ -118,7 +119,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 }
 
 func TestRepoPermissionPublicOrgRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 32}).(*Repository)
@@ -180,7 +181,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 }
 
 func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private organization repo
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)

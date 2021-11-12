@@ -7,29 +7,16 @@ package models
 import (
 	"reflect"
 	"strings"
-	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/unittestbridge"
 
-	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )
 
-// CheckConsistencyForAll test that the entire database is consistent
-func CheckConsistencyForAll(t *testing.T) {
-	CheckConsistencyFor(t,
-		&User{},
-		&Repository{},
-		&Issue{},
-		&PullRequest{},
-		&Milestone{},
-		&Label{},
-		&Team{},
-		&Action{})
-}
-
 // CheckConsistencyFor test that all matching database entries are consistent
-func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
+func CheckConsistencyFor(t unittestbridge.Tester, beansToCheck ...interface{}) {
+	ta := unittestbridge.NewAsserter(t)
 	for _, bean := range beansToCheck {
 		sliceType := reflect.SliceOf(reflect.TypeOf(bean))
 		sliceValue := reflect.MakeSlice(sliceType, 0, 10)
@@ -37,133 +24,133 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 		ptrToSliceValue := reflect.New(sliceType)
 		ptrToSliceValue.Elem().Set(sliceValue)
 
-		assert.NoError(t, db.GetEngine(db.DefaultContext).Table(bean).Find(ptrToSliceValue.Interface()))
+		ta.NoError(db.GetEngine(db.DefaultContext).Table(bean).Find(ptrToSliceValue.Interface()))
 		sliceValue = ptrToSliceValue.Elem()
 
 		for i := 0; i < sliceValue.Len(); i++ {
 			entity := sliceValue.Index(i).Interface()
-			checkForConsistency(entity, t)
+			checkForConsistency(ta, entity)
 		}
 	}
 }
 
-func checkForConsistency(bean interface{}, t *testing.T) {
+func checkForConsistency(ta unittestbridge.Asserter, bean interface{}) {
 	switch b := bean.(type) {
 	case *User:
-		checkForUserConsistency(b, t)
+		checkForUserConsistency(b, ta)
 	case *Repository:
-		checkForRepoConsistency(b, t)
+		checkForRepoConsistency(b, ta)
 	case *Issue:
-		checkForIssueConsistency(b, t)
+		checkForIssueConsistency(b, ta)
 	case *PullRequest:
-		checkForPullRequestConsistency(b, t)
+		checkForPullRequestConsistency(b, ta)
 	case *Milestone:
-		checkForMilestoneConsistency(b, t)
+		checkForMilestoneConsistency(b, ta)
 	case *Label:
-		checkForLabelConsistency(b, t)
+		checkForLabelConsistency(b, ta)
 	case *Team:
-		checkForTeamConsistency(b, t)
+		checkForTeamConsistency(b, ta)
 	case *Action:
-		checkForActionConsistency(b, t)
+		checkForActionConsistency(b, ta)
 	default:
-		t.Errorf("unknown bean type: %#v", bean)
+		ta.Errorf("unknown bean type: %#v", bean)
 	}
 }
 
 // getCount get the count of database entries matching bean
-func getCount(t *testing.T, e db.Engine, bean interface{}) int64 {
+func getCount(ta unittestbridge.Asserter, e db.Engine, bean interface{}) int64 {
 	count, err := e.Count(bean)
-	assert.NoError(t, err)
+	ta.NoError(err)
 	return count
 }
 
 // assertCount test the count of database entries matching bean
-func assertCount(t *testing.T, bean interface{}, expected int) {
-	assert.EqualValues(t, expected, getCount(t, db.GetEngine(db.DefaultContext), bean),
+func assertCount(ta unittestbridge.Asserter, bean interface{}, expected int) {
+	ta.EqualValues(expected, getCount(ta, db.GetEngine(db.DefaultContext), bean),
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-func checkForUserConsistency(user *User, t *testing.T) {
-	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
-	assertCount(t, &Star{UID: user.ID}, user.NumStars)
-	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
-	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)
-	assertCount(t, &Follow{UserID: user.ID}, user.NumFollowing)
-	assertCount(t, &Follow{FollowID: user.ID}, user.NumFollowers)
+func checkForUserConsistency(user *User, ta unittestbridge.Asserter) {
+	assertCount(ta, &Repository{OwnerID: user.ID}, user.NumRepos)
+	assertCount(ta, &Star{UID: user.ID}, user.NumStars)
+	assertCount(ta, &OrgUser{OrgID: user.ID}, user.NumMembers)
+	assertCount(ta, &Team{OrgID: user.ID}, user.NumTeams)
+	assertCount(ta, &Follow{UserID: user.ID}, user.NumFollowing)
+	assertCount(ta, &Follow{FollowID: user.ID}, user.NumFollowers)
 	if user.Type != UserTypeOrganization {
-		assert.EqualValues(t, 0, user.NumMembers)
-		assert.EqualValues(t, 0, user.NumTeams)
+		ta.EqualValues(0, user.NumMembers)
+		ta.EqualValues(0, user.NumTeams)
 	}
 }
 
-func checkForRepoConsistency(repo *Repository, t *testing.T) {
-	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
-	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
-	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
-	assertCount(t, &Repository{ForkID: repo.ID}, repo.NumForks)
+func checkForRepoConsistency(repo *Repository, ta unittestbridge.Asserter) {
+	ta.Equal(repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
+	assertCount(ta, &Star{RepoID: repo.ID}, repo.NumStars)
+	assertCount(ta, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
+	assertCount(ta, &Repository{ForkID: repo.ID}, repo.NumForks)
 	if repo.IsFork {
-		db.AssertExistsAndLoadBean(t, &Repository{ID: repo.ForkID})
+		db.AssertExistsAndLoadBean(ta, &Repository{ID: repo.ForkID})
 	}
 
-	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("Mode<>?", RepoWatchModeDont), &Watch{RepoID: repo.ID})
-	assert.EqualValues(t, repo.NumWatches, actual,
+	actual := getCount(ta, db.GetEngine(db.DefaultContext).Where("Mode<>?", RepoWatchModeDont), &Watch{RepoID: repo.ID})
+	ta.EqualValues(repo.NumWatches, actual,
 		"Unexpected number of watches for repo %+v", repo)
 
-	actual = getCount(t, db.GetEngine(db.DefaultContext).Where("is_pull=?", false), &Issue{RepoID: repo.ID})
-	assert.EqualValues(t, repo.NumIssues, actual,
+	actual = getCount(ta, db.GetEngine(db.DefaultContext).Where("is_pull=?", false), &Issue{RepoID: repo.ID})
+	ta.EqualValues(repo.NumIssues, actual,
 		"Unexpected number of issues for repo %+v", repo)
 
-	actual = getCount(t, db.GetEngine(db.DefaultContext).Where("is_pull=? AND is_closed=?", false, true), &Issue{RepoID: repo.ID})
-	assert.EqualValues(t, repo.NumClosedIssues, actual,
+	actual = getCount(ta, db.GetEngine(db.DefaultContext).Where("is_pull=? AND is_closed=?", false, true), &Issue{RepoID: repo.ID})
+	ta.EqualValues(repo.NumClosedIssues, actual,
 		"Unexpected number of closed issues for repo %+v", repo)
 
-	actual = getCount(t, db.GetEngine(db.DefaultContext).Where("is_pull=?", true), &Issue{RepoID: repo.ID})
-	assert.EqualValues(t, repo.NumPulls, actual,
+	actual = getCount(ta, db.GetEngine(db.DefaultContext).Where("is_pull=?", true), &Issue{RepoID: repo.ID})
+	ta.EqualValues(repo.NumPulls, actual,
 		"Unexpected number of pulls for repo %+v", repo)
 
-	actual = getCount(t, db.GetEngine(db.DefaultContext).Where("is_pull=? AND is_closed=?", true, true), &Issue{RepoID: repo.ID})
-	assert.EqualValues(t, repo.NumClosedPulls, actual,
+	actual = getCount(ta, db.GetEngine(db.DefaultContext).Where("is_pull=? AND is_closed=?", true, true), &Issue{RepoID: repo.ID})
+	ta.EqualValues(repo.NumClosedPulls, actual,
 		"Unexpected number of closed pulls for repo %+v", repo)
 
-	actual = getCount(t, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Milestone{RepoID: repo.ID})
-	assert.EqualValues(t, repo.NumClosedMilestones, actual,
+	actual = getCount(ta, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Milestone{RepoID: repo.ID})
+	ta.EqualValues(repo.NumClosedMilestones, actual,
 		"Unexpected number of closed milestones for repo %+v", repo)
 }
 
-func checkForIssueConsistency(issue *Issue, t *testing.T) {
-	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
-	assert.EqualValues(t, issue.NumComments, actual,
+func checkForIssueConsistency(issue *Issue, ta unittestbridge.Asserter) {
+	actual := getCount(ta, db.GetEngine(db.DefaultContext).Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
+	ta.EqualValues(issue.NumComments, actual,
 		"Unexpected number of comments for issue %+v", issue)
 	if issue.IsPull {
-		pr := db.AssertExistsAndLoadBean(t, &PullRequest{IssueID: issue.ID}).(*PullRequest)
-		assert.EqualValues(t, pr.Index, issue.Index)
+		pr := db.AssertExistsAndLoadBean(ta, &PullRequest{IssueID: issue.ID}).(*PullRequest)
+		ta.EqualValues(pr.Index, issue.Index)
 	}
 }
 
-func checkForPullRequestConsistency(pr *PullRequest, t *testing.T) {
-	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: pr.IssueID}).(*Issue)
-	assert.True(t, issue.IsPull)
-	assert.EqualValues(t, issue.Index, pr.Index)
+func checkForPullRequestConsistency(pr *PullRequest, ta unittestbridge.Asserter) {
+	issue := db.AssertExistsAndLoadBean(ta, &Issue{ID: pr.IssueID}).(*Issue)
+	ta.True(issue.IsPull)
+	ta.EqualValues(issue.Index, pr.Index)
 }
 
-func checkForMilestoneConsistency(milestone *Milestone, t *testing.T) {
-	assertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
+func checkForMilestoneConsistency(milestone *Milestone, ta unittestbridge.Asserter) {
+	assertCount(ta, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
-	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
-	assert.EqualValues(t, milestone.NumClosedIssues, actual,
+	actual := getCount(ta, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
+	ta.EqualValues(milestone.NumClosedIssues, actual,
 		"Unexpected number of closed issues for milestone %+v", milestone)
 
 	completeness := 0
 	if milestone.NumIssues > 0 {
 		completeness = milestone.NumClosedIssues * 100 / milestone.NumIssues
 	}
-	assert.Equal(t, completeness, milestone.Completeness)
+	ta.Equal(completeness, milestone.Completeness)
 }
 
-func checkForLabelConsistency(label *Label, t *testing.T) {
+func checkForLabelConsistency(label *Label, ta unittestbridge.Asserter) {
 	issueLabels := make([]*IssueLabel, 0, 10)
-	assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&issueLabels, &IssueLabel{LabelID: label.ID}))
-	assert.EqualValues(t, label.NumIssues, len(issueLabels),
+	ta.NoError(db.GetEngine(db.DefaultContext).Find(&issueLabels, &IssueLabel{LabelID: label.ID}))
+	ta.EqualValues(label.NumIssues, len(issueLabels),
 		"Unexpected number of issue for label %+v", label)
 
 	issueIDs := make([]int64, len(issueLabels))
@@ -173,20 +160,20 @@ func checkForLabelConsistency(label *Label, t *testing.T) {
 
 	expected := int64(0)
 	if len(issueIDs) > 0 {
-		expected = getCount(t, db.GetEngine(db.DefaultContext).In("id", issueIDs).Where("is_closed=?", true), &Issue{})
+		expected = getCount(ta, db.GetEngine(db.DefaultContext).In("id", issueIDs).Where("is_closed=?", true), &Issue{})
 	}
-	assert.EqualValues(t, expected, label.NumClosedIssues,
+	ta.EqualValues(expected, label.NumClosedIssues,
 		"Unexpected number of closed issues for label %+v", label)
 }
 
-func checkForTeamConsistency(team *Team, t *testing.T) {
-	assertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
-	assertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
+func checkForTeamConsistency(team *Team, ta unittestbridge.Asserter) {
+	assertCount(ta, &TeamUser{TeamID: team.ID}, team.NumMembers)
+	assertCount(ta, &TeamRepo{TeamID: team.ID}, team.NumRepos)
 }
 
-func checkForActionConsistency(action *Action, t *testing.T) {
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
-	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
+func checkForActionConsistency(action *Action, ta unittestbridge.Asserter) {
+	repo := db.AssertExistsAndLoadBean(ta, &Repository{ID: action.RepoID}).(*Repository)
+	ta.Equal(repo.IsPrivate, action.IsPrivate, "action: %+v", action)
 }
 
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
