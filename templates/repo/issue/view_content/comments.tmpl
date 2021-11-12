@@ -1,64 +1,67 @@
 {{ template "base/alert" }}
 {{range .Issue.Comments}}
 	{{if call $.IsEventShown .Type}}
-		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }
-    
-    <!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
-    5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
-    13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
-    18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
-    22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
-    26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
-    29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
-    32 = DISMISSED_REVIEW -->
-    {{if eq .Type 0}}
-      <div class="timeline-item comment" id="{{.HashTag}}">
-      {{if .OriginalAuthor }}
-        <span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
-      {{else}}
-        <a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-          {{avatar .Poster}}
-        </a>
-      {{end}}
-        <div class="content comment-container">
-          <div class="ui top attached header comment-header df ac sb">
-            <div class="comment-header-left df ac">
-              {{if .OriginalAuthor }}
-                <span class="text black mr-2">
-                  {{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-                  {{ .OriginalAuthor }}
-                </span>
-                <span class="text grey">
-                  {{$.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}} {{if $.Repository.OriginalURL}}
-                </span>
-                <span class="text migrate">
-                  ({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}
-                </span>
-              {{else}}
-                <span class="text grey">
-                  <a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
-                    {{.Poster.GetDisplayName}}
-                  </a>
-                  {{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
-                </span>
-              {{end}}
-            </div>
-            <div class="comment-header-right actions df ac">
-              {{if not $.Repository.IsArchived}}
-                {{if (.ShowRole.HasRole "Poster")}}
-                  <div class="ui basic label">
-                    {{$.i18n.Tr "repo.issues.poster"}}
-                  </div>
-                {{end}}
-                {{if (.ShowRole.HasRole "Writer")}}
-                  <div class="ui basic label">
-                    {{$.i18n.Tr "repo.issues.collaborator"}}
-                  </div>
-                {{end}}
-                {{if (.ShowRole.HasRole "Owner")}}
-                  <div class="ui basic label">
-                    {{$.i18n.Tr "repo.issues.owner"}}
-                  </div>
+		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+
+		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
+		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
+		13 = STOP_TRACKING, 14 = ADD_TIME_MANUAL, 16 = ADDED_DEADLINE, 17 = MODIFIED_DEADLINE,
+		18 = REMOVED_DEADLINE, 19 = ADD_DEPENDENCY, 20 = REMOVE_DEPENDENCY, 21 = CODE,
+		22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
+		26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
+		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
+		32 = DISMISSED_REVIEW -->
+		{{if eq .Type 0}}
+			<div class="timeline-item comment" id="{{.HashTag}}">
+			{{if .OriginalAuthor }}
+				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
+			{{else}}
+				<a class="timeline-avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
+					{{avatar .Poster}}
+				</a>
+			{{end}}
+				<div class="content comment-container">
+					<div class="ui top attached header comment-header df ac sb">
+						<div class="comment-header-left df ac">
+							{{if .OriginalAuthor }}
+								<span class="text black mr-2">
+									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+									{{ .OriginalAuthor }}
+								</span>
+								<span class="text grey">
+									{{$.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}} {{if $.Repository.OriginalURL}}
+								</span>
+								<span class="text migrate">
+									({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}
+								</span>
+							{{else}}
+								<span class="text grey">
+									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
+										{{.Poster.GetDisplayName}}
+									</a>
+									{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+								</span>
+							{{end}}
+						</div>
+						<div class="comment-header-right actions df ac">
+							{{if not $.Repository.IsArchived}}
+								{{if (.ShowRole.HasRole "Poster")}}
+									<div class="ui basic label">
+										{{$.i18n.Tr "repo.issues.poster"}}
+									</div>
+								{{end}}
+								{{if (.ShowRole.HasRole "Writer")}}
+									<div class="ui basic label">
+										{{$.i18n.Tr "repo.issues.collaborator"}}
+									</div>
+								{{end}}
+								{{if (.ShowRole.HasRole "Owner")}}
+									<div class="ui basic label">
+										{{$.i18n.Tr "repo.issues.owner"}}
+									</div>
+								{{end}}
+								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 							{{end}}
 						</div>
 					</div>
@@ -84,81 +87,20 @@
 					{{end}}
 				</div>
 			</div>
-      </div>
-    {{else if eq .Type 1}}
-      <div class="timeline-item event" id="{{.HashTag}}">
-        <span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
-        <a href="{{.Poster.HomeLink}}">
-          {{avatar .Poster}}
-        </a>
-        <span class="text grey">
-          <a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-          {{if .Issue.IsPull }}
-            {{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
-          {{else}}
-            {{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
-          {{end}}
-        </span>
-      </div>
-    {{else if eq .Type 2}}
-      <div class="timeline-item event" id="{{.HashTag}}">
-        <span class="badge bg-red text-white">{{svg "octicon-circle-slash"}}</span>
-        <a href="{{.Poster.HomeLink}}">
-          {{avatar .Poster}}
-        </a>
-        <span class="text grey">
-          <a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-          {{if .Issue.IsPull }}
-            {{$.i18n.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
-          {{else}}
-            {{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
-          {{end}}
-        </span>
-      </div>
-    {{else if eq .Type 28}}
-      <div class="timeline-item event" id="{{.HashTag}}">
-        <span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
-        <a href="{{.Poster.HomeLink}}">
-          {{avatar .Poster}}
-        </a>
-        <span class="text grey">
-          <a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-          {{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
-          {{if eq $.Issue.PullRequest.Status 3}}
-            {{$.i18n.Tr "repo.issues.manually_pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
-          {{else}}
-            {{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
-          {{end}}
-        </span>
-      </div>
-    {{else if eq .Type 3 5 6}}
-      {{ $refFrom:= "" }}
-      {{if ne .RefRepoID .Issue.RepoID}}
-        {{ $refFrom = $.i18n.Tr "repo.issues.ref_from" .RefRepo.FullName }}
-      {{end}}
-      {{ $refTr := "repo.issues.ref_issue_from" }}
-      {{if .Issue.IsPull}}
-        {{ $refTr = "repo.issues.ref_pull_from" }}
-      {{else if eq .RefAction 1 }}
-        {{ $refTr = "repo.issues.ref_closing_from" }}
-      {{else if eq .RefAction 2 }}
-        {{ $refTr = "repo.issues.ref_reopening_from" }}
-      {{end}}
-      {{ $createdStr:= TimeSinceUnix .CreatedUnix $.Lang }}
-      <div class="timeline-item event" id="{{.HashTag}}">
-        <span class="badge">{{svg "octicon-bookmark"}}</span>
-        <a href="{{.Poster.HomeLink}}">
-          {{avatar .Poster}}
-        </a>
-        {{if eq .RefAction 3}}<del>{{end}}
-        <span class="text grey">
-          <a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-          {{$.i18n.Tr $refTr .EventTag $createdStr .RefCommentHTMLURL $refFrom | Safe}}
-        </span>
-        {{if eq .RefAction 3}}</del>{{end}}
-
-        <div class="detail">
-          <span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle}}</b> {{.RefIssueIdent}}</a></span>
+		{{else if eq .Type 1}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge bg-green text-white">{{svg "octicon-dot-fill"}}</span>
+				<a href="{{.Poster.HomeLink}}">
+					{{avatar .Poster}}
+				</a>
+				<span class="text grey">
+					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{if .Issue.IsPull }}
+						{{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+					{{end}}
+				</span>
 			</div>
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
@@ -218,7 +160,7 @@
 				{{if eq .RefAction 3}}</del>{{end}}
 
 				<div class="detail">
-					<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle | Str2html}}</b> {{.RefIssueIdent | Str2html}}</a></span>
+					<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle}}</b> {{.RefIssueIdent}}</a></span>
 				</div>
 			</div>
 		{{else if eq .Type 4}}
@@ -580,53 +522,64 @@
 												</div>
 											</div>
 										</div>
-                    </div>
-                  {{end}}
-                  <div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
-                    <div class="ui comments mb-0">
-                      {{range $comms}}
-                        {{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
-                        <div class="comment code-comment pb-4" id="{{.HashTag}}">
-                          <div class="content">
-                            <div class="header comment-header">
-                              <div class="comment-header-left df ac">
-                                {{if not .OriginalAuthor }}
-                                  <a class="avatar">
-                                    {{avatar .Poster}}
-                                  </a>
-                                {{end}}
-                                <span class="text grey">
-                                  {{if .OriginalAuthor }}
-                                    <span class="text black">
-                                      {{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-                                      {{ .OriginalAuthor }}
-                                    </span>
-                                    <span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-                                    <span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
-                                  {{else}}
-                                    <a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
-                                  {{end}}
-                                  {{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
-                                </span>
-                              </div>
-                              <div class="comment-header-right actions df ac">
-                                {{if (.ShowRole.HasRole "Poster")}}
-                                  <div class="ui basic label">
-                                    {{$.i18n.Tr "repo.issues.poster"}}
-                                  </div>
-                                {{end}}
-                                {{if (.ShowRole.HasRole "Writer")}}
-                                  <div class="ui basic label">
-                                    {{$.i18n.Tr "repo.issues.collaborator"}}
-                                  </div>
-                                {{end}}
-                                {{if (.ShowRole.HasRole "Owner")}}
-                                  <div class="ui basic label">
-                                    {{$.i18n.Tr "repo.issues.owner"}}
-                                  </div>
-                                {{end}}
-                                {{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-                                {{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+									{{end}}
+									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
+										<div class="ui comments mb-0">
+											{{range $comms}}
+												{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.Lang }}
+												<div class="comment code-comment pb-4" id="{{.HashTag}}">
+													<div class="content">
+														<div class="header comment-header">
+															<div class="comment-header-left df ac">
+																{{if not .OriginalAuthor }}
+																	<a class="avatar">
+																		{{avatar .Poster}}
+																	</a>
+																{{end}}
+																<span class="text grey">
+																	{{if .OriginalAuthor }}
+																		<span class="text black">
+																			{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+																			{{ .OriginalAuthor }}
+																		</span>
+																		<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
+																		<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+																	{{else}}
+																		<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
+																	{{end}}
+																	{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
+																</span>
+															</div>
+															<div class="comment-header-right actions df ac">
+																{{if (.ShowRole.HasRole "Poster")}}
+																	<div class="ui basic label">
+																		{{$.i18n.Tr "repo.issues.poster"}}
+																	</div>
+																{{end}}
+																{{if (.ShowRole.HasRole "Writer")}}
+																	<div class="ui basic label">
+																		{{$.i18n.Tr "repo.issues.collaborator"}}
+																	</div>
+																{{end}}
+																{{if (.ShowRole.HasRole "Owner")}}
+																	<div class="ui basic label">
+																		{{$.i18n.Tr "repo.issues.owner"}}
+																	</div>
+																{{end}}
+																{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+																{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+															</div>
+														</div>
+														<div class="text comment-content">
+															<div class="render-content markup" {{if or $.Permission.IsAdmin $.HasIssuesOrPullsWritePermission (and $.IsSigned (eq $.SignedUserID .PosterID))}}data-can-edit="true"{{end}}>
+															{{if .RenderedContent}}
+																{{.RenderedContent|Str2html}}
+															{{else}}
+																<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+															{{end}}
+															</div>
+															<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
+															<div class="edit-content-zone hide" data-write="issuecomment-{{.ID}}-write" data-preview="issuecomment-{{.ID}}-preview" data-update-url="{{$.RepoLink}}/comments/{{.ID}}" data-context="{{$.RepoLink}}" data-attachment-url="{{$.RepoLink}}/comments/{{.ID}}/attachments"></div>
 														</div>
 														{{$reactions := .Reactions.GroupByType}}
 														{{if $reactions}}
