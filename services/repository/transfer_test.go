@@ -8,9 +8,9 @@ import (
 	"sync"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/util"

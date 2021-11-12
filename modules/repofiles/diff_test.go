@@ -7,8 +7,8 @@ package repofiles
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/gitdiff"
 

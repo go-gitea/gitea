@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
