@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -62,7 +63,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -76,7 +77,7 @@ func TestPullMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -84,7 +85,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -98,7 +99,7 @@ func TestPullRebase(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -106,7 +107,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -120,7 +121,7 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -128,7 +129,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -143,7 +144,7 @@ func TestPullSquash(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})

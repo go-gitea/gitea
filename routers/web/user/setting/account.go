@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -91,7 +92,7 @@ func EmailPost(ctx *context.Context) {
 
 	// Make emailaddress primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := models.MakeEmailPrimary(&models.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+		if err := models.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -110,7 +111,7 @@ func EmailPost(ctx *context.Context) {
 		}
 
 		id := ctx.FormInt64("id")
-		email, err := models.GetEmailAddressByID(ctx.User.ID, id)
+		email, err := user_model.GetEmailAddressByID(ctx.User.ID, id)
 		if err != nil {
 			log.Error("GetEmailAddressByID(%d,%d) error: %v", ctx.User.ID, id, err)
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -174,18 +175,18 @@ func EmailPost(ctx *context.Context) {
 		return
 	}
 
-	email := &models.EmailAddress{
+	email := &user_model.EmailAddress{
 		UID:         ctx.User.ID,
 		Email:       form.Email,
 		IsActivated: !setting.Service.RegisterEmailConfirm,
 	}
-	if err := models.AddEmailAddress(email); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
+	if err := user_model.AddEmailAddress(email); err != nil {
+		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSettingsAccount, &form)
 			return
-		} else if models.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailInvalid(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplSettingsAccount, &form)
@@ -212,7 +213,7 @@ func EmailPost(ctx *context.Context) {
 
 // DeleteEmail response for delete user's email
 func DeleteEmail(ctx *context.Context) {
-	if err := models.DeleteEmailAddress(&models.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := user_model.DeleteEmailAddress(&user_model.EmailAddress{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteEmail", err)
 		return
 	}
@@ -258,13 +259,13 @@ func DeleteAccount(ctx *context.Context) {
 }
 
 func loadAccountData(ctx *context.Context) {
-	emlist, err := models.GetEmailAddresses(ctx.User.ID)
+	emlist, err := user_model.GetEmailAddresses(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetEmailAddresses", err)
 		return
 	}
 	type UserEmail struct {
-		models.EmailAddress
+		user_model.EmailAddress
 		CanBePrimary bool
 	}
 	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName)

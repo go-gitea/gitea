@@ -22,19 +22,20 @@ import (
 	"syscall"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/gobwas/glob"
 )
 
 var contextKeyWebhookRequest interface{} = "contextKeyWebhookRequest"
 
 // Deliver deliver hook task
-func Deliver(t *models.HookTask) error {
-	w, err := models.GetWebhookByID(t.HookID)
+func Deliver(t *webhook_model.HookTask) error {
+	w, err := webhook_model.GetWebhookByID(t.HookID)
 	if err != nil {
 		return err
 	}
@@ -58,14 +59,14 @@ func Deliver(t *models.HookTask) error {
 		fallthrough
 	case http.MethodPost:
 		switch w.ContentType {
-		case models.ContentTypeJSON:
+		case webhook_model.ContentTypeJSON:
 			req, err = http.NewRequest("POST", w.URL, strings.NewReader(t.PayloadContent))
 			if err != nil {
 				return err
 			}
 
 			req.Header.Set("Content-Type", "application/json")
-		case models.ContentTypeForm:
+		case webhook_model.ContentTypeForm:
 			var forms = url.Values{
 				"payload": []string{t.PayloadContent},
 			}
@@ -91,7 +92,7 @@ func Deliver(t *models.HookTask) error {
 		}
 	case http.MethodPut:
 		switch w.Type {
-		case models.MATRIX:
+		case webhook_model.MATRIX:
 			req, err = getMatrixHookRequest(w, t)
 			if err != nil {
 				return err
@@ -133,7 +134,7 @@ func Deliver(t *models.HookTask) error {
 	req.Header["X-GitHub-Event-Type"] = []string{eventType}
 
 	// Record delivery information.
-	t.RequestInfo = &models.HookRequest{
+	t.RequestInfo = &webhook_model.HookRequest{
 		URL:        req.URL.String(),
 		HTTPMethod: req.Method,
 		Headers:    map[string]string{},
@@ -142,7 +143,7 @@ func Deliver(t *models.HookTask) error {
 		t.RequestInfo.Headers[k] = strings.Join(vals, ",")
 	}
 
-	t.ResponseInfo = &models.HookResponse{
+	t.ResponseInfo = &webhook_model.HookResponse{
 		Headers: map[string]string{},
 	}
 
@@ -154,17 +155,17 @@ func Deliver(t *models.HookTask) error {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
 
-		if err := models.UpdateHookTask(t); err != nil {
+		if err := webhook_model.UpdateHookTask(t); err != nil {
 			log.Error("UpdateHookTask [%d]: %v", t.ID, err)
 		}
 
 		// Update webhook last delivery status.
 		if t.IsSucceed {
-			w.LastStatus = models.HookStatusSucceed
+			w.LastStatus = webhook_model.HookStatusSucceed
 		} else {
-			w.LastStatus = models.HookStatusFail
+			w.LastStatus = webhook_model.HookStatusFail
 		}
-		if err = models.UpdateWebhookLastStatus(w); err != nil {
+		if err = webhook_model.UpdateWebhookLastStatus(w); err != nil {
 			log.Error("UpdateWebhookLastStatus: %v", err)
 			return
 		}
@@ -206,7 +207,7 @@ func DeliverHooks(ctx context.Context) {
 		return
 	default:
 	}
-	tasks, err := models.FindUndeliveredHookTasks()
+	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
 		return
@@ -240,7 +241,7 @@ func DeliverHooks(ctx context.Context) {
 				continue
 			}
 
-			tasks, err := models.FindRepoUndeliveredHookTasks(repoID)
+			tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
 			if err != nil {
 				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
 				continue

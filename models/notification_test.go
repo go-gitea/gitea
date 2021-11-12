@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateOrUpdateIssueNotifications(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
 	assert.NoError(t, CreateOrUpdateIssueNotifications(issue.ID, 0, 2, 0))
@@ -27,7 +28,7 @@ func TestCreateOrUpdateIssueNotifications(t *testing.T) {
 }
 
 func TestNotificationsForUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
 	notfs, err := NotificationsForUser(user, statuses, 1, 10)
@@ -43,7 +44,7 @@ func TestNotificationsForUser(t *testing.T) {
 }
 
 func TestNotification_GetRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	notf := db.AssertExistsAndLoadBean(t, &Notification{RepoID: 1}).(*Notification)
 	repo, err := notf.GetRepo()
 	assert.NoError(t, err)
@@ -52,7 +53,7 @@ func TestNotification_GetRepo(t *testing.T) {
 }
 
 func TestNotification_GetIssue(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	notf := db.AssertExistsAndLoadBean(t, &Notification{RepoID: 1}).(*Notification)
 	issue, err := notf.GetIssue()
 	assert.NoError(t, err)
@@ -61,7 +62,7 @@ func TestNotification_GetIssue(t *testing.T) {
 }
 
 func TestGetNotificationCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	cnt, err := GetNotificationCount(user, NotificationStatusRead)
 	assert.NoError(t, err)
@@ -73,7 +74,7 @@ func TestGetNotificationCount(t *testing.T) {
 }
 
 func TestSetNotificationStatus(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	notf := db.AssertExistsAndLoadBean(t,
 		&Notification{UserID: user.ID, Status: NotificationStatusRead}).(*Notification)
@@ -89,7 +90,7 @@ func TestSetNotificationStatus(t *testing.T) {
 }
 
 func TestUpdateNotificationStatuses(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	notfUnread := db.AssertExistsAndLoadBean(t,
 		&Notification{UserID: user.ID, Status: NotificationStatusUnread}).(*Notification)

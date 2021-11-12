@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddTime(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user3, err := GetUserByID(3)
 	assert.NoError(t, err)
@@ -36,7 +37,7 @@ func TestAddTime(t *testing.T) {
 }
 
 func TestGetTrackedTimes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// by Issue
 	times, err := GetTrackedTimes(&FindTrackedTimesOptions{IssueID: 1})
@@ -77,7 +78,7 @@ func TestGetTrackedTimes(t *testing.T) {
 }
 
 func TestTotalTimes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	total, err := TotalTimes(&FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)

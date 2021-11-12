@@ -64,7 +64,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 				repository := bean.(*Repository)
 				select {
 				case <-ctx.Done():
-					return ErrCancelledf("before random avatars removed for %s", repository.FullName())
+					return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
 				default:
 				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)

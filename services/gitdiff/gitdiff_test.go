@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/json"
@@ -493,7 +494,7 @@ func setupDefaultDiff() *Diff {
 	}
 }
 func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
@@ -540,4 +541,23 @@ func TestDiffToHTML_14231(t *testing.T) {
 	output := diffToHTML("main.v", diffRecord, DiffLineAdd)
 
 	assertEqual(t, expected, output)
+}
+
+func TestNoCrashes(t *testing.T) {
+	type testcase struct {
+		gitdiff string
+	}
+
+	tests := []testcase{
+		{
+			gitdiff: "diff --git \n--- a\t\n",
+		},
+		{
+			gitdiff: "diff --git \"0\n",
+		},
+	}
+	for _, testcase := range tests {
+		// It shouldn't crash, so don't care about the output.
+		ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
+	}
 }
