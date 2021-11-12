@@ -115,6 +115,11 @@ func GetU2FRegistrationsByUID(uid int64) (U2FRegistrationList, error) {
 	return getU2FRegistrationsByUID(db.GetEngine(db.DefaultContext), uid)
 }
 
+// HasU2FRegistrationsByUID returns whether a given user has U2F registrations
+func HasU2FRegistrationsByUID(uid int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).Where("user_id = ?", uid).Exist(&U2FRegistration{})
+}
+
 func createRegistration(e db.Engine, userID int64, name string, reg *u2f.Registration) (*U2FRegistration, error) {
 	raw, err := reg.MarshalBinary()
 	if err != nil {

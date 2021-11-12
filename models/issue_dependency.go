@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -141,7 +142,7 @@ func (repo *Repository) IsDependenciesEnabled() bool {
 func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.getUnit(e, UnitTypeIssues); err != nil {
+	if u, err = repo.getUnit(e, unit.TypeIssues); err != nil {
 		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}

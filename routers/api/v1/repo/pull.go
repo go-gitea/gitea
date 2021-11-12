@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -481,7 +482,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	issue := pr.Issue
 	issue.Repo = ctx.Repo.Repository
 
-	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(models.UnitTypePullRequests) {
+	if !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWrite(unit.TypePullRequests) {
 		ctx.Status(http.StatusForbidden)
 		return
 	}
@@ -518,7 +519,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	// Pass one or more user logins to replace the set of assignees on this Issue.
 	// Send an empty array ([]) to clear all assignees from the Issue.
 
-	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
+	if ctx.Repo.CanWrite(unit.TypePullRequests) && (form.Assignees != nil || len(form.Assignee) > 0) {
 		err = issue_service.UpdateAssignees(issue, form.Assignee, form.Assignees, ctx.User)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
@@ -530,7 +531,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Milestone != 0 &&
+	if ctx.Repo.CanWrite(unit.TypePullRequests) && form.Milestone != 0 &&
 		issue.MilestoneID != form.Milestone {
 		oldMilestoneID := issue.MilestoneID
 		issue.MilestoneID = form.Milestone
@@ -540,7 +541,7 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if ctx.Repo.CanWrite(models.UnitTypePullRequests) && form.Labels != nil {
+	if ctx.Repo.CanWrite(unit.TypePullRequests) && form.Labels != nil {
 		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
@@ -978,7 +979,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(models.UnitTypeCode) {
+	if !permBase.CanReadIssuesOrPulls(true) || !permBase.CanRead(unit.TypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User %-v cannot create/read pull requests or cannot read code in Repo %-v\nUser in baseRepo has Permissions: %-+v",
 				ctx.User,
@@ -997,7 +998,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return nil, nil, nil, nil, "", ""
 	}
-	if !permHead.CanRead(models.UnitTypeCode) {
+	if !permHead.CanRead(unit.TypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 				ctx.User,
