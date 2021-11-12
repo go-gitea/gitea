@@ -1,7 +1,6 @@
 import fastGlob from 'fast-glob';
 import wrapAnsi from 'wrap-ansi';
 import AddAssetPlugin from 'add-asset-webpack-plugin';
-import CssMinimizerPlugin from 'css-minimizer-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
@@ -85,20 +84,9 @@ export default {
     minimizer: [
       new ESBuildMinifyPlugin({
         target: 'es2015',
-        minify: true
-      }),
-      new CssMinimizerPlugin({
-        minimizerOptions: {
-          preset: [
-            'default',
-            {
-              discardComments: {
-                removeAll: true,
-              },
-              colormin: false,
-            },
-          ],
-        },
+        minify: true,
+        css: true,
+        legalComments: 'none',
       }),
     ],
     splitChunks: {
@@ -149,8 +137,8 @@ export default {
             loader: 'css-loader',
             options: {
               sourceMap: true,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
         ],
@@ -166,8 +154,8 @@ export default {
             options: {
               sourceMap: true,
               importLoaders: 1,
-              url: filterCssImport,
-              import: filterCssImport,
+              url: {filter: filterCssImport},
+              import: {filter: filterCssImport},
             },
           },
           {
@@ -188,7 +176,6 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'fonts/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
         }
       },
       {
@@ -196,7 +183,6 @@ export default {
         type: 'asset/resource',
         generator: {
           filename: 'img/webpack/[name][ext]',
-          publicPath: '../', // required to remove css/ path segment
         }
       },
     ],
@@ -230,6 +216,9 @@ export default {
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
+      ignore: [
+        'font-awesome',
+      ],
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {

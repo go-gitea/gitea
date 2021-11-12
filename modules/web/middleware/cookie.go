@@ -149,7 +149,7 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 	if len(others) > 2 {
 		if v, ok := others[2].(string); ok && len(v) > 0 {
 			cookie.Domain = v
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+		} else if v, ok := others[2].(func(*http.Cookie)); ok {
 			v(&cookie)
 		}
 	}
@@ -170,7 +170,7 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 	if len(others) > 4 {
 		if v, ok := others[4].(bool); ok && v {
 			cookie.HttpOnly = true
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+		} else if v, ok := others[4].(func(*http.Cookie)); ok {
 			v(&cookie)
 		}
 	}
@@ -179,7 +179,7 @@ func SetCookie(resp http.ResponseWriter, name string, value string, others ...in
 		if v, ok := others[5].(time.Time); ok {
 			cookie.Expires = v
 			cookie.RawExpires = v.Format(time.UnixDate)
-		} else if v, ok := others[1].(func(*http.Cookie)); ok {
+		} else if v, ok := others[5].(func(*http.Cookie)); ok {
 			v(&cookie)
 		}
 	}

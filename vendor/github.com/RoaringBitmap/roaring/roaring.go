@@ -151,8 +151,7 @@ func (rb *Bitmap) ToArray() []uint32 {
 		hs := uint32(rb.highlowcontainer.getKeyAtIndex(pos)) << 16
 		c := rb.highlowcontainer.getContainerAtIndex(pos)
 		pos++
-		c.fillLeastSignificant16bits(array, pos2, hs)
-		pos2 += c.getCardinality()
+		pos2 = c.fillLeastSignificant16bits(array, pos2, hs)
 	}
 	return array
 }
@@ -542,7 +541,7 @@ func AddOffset64(x *Bitmap, offset int64) (answer *Bitmap) {
 			c := x.highlowcontainer.getContainerAtIndex(pos)
 			offsetted := c.addOffset(inOffset)
 
-			if offsetted[0].getCardinality() > 0 && (key >= 0 && key <= MaxUint16) {
+			if !offsetted[0].isEmpty() && (key >= 0 && key <= MaxUint16) {
 				curSize := answer.highlowcontainer.size()
 				lastkey := int32(0)
 
@@ -559,7 +558,7 @@ func AddOffset64(x *Bitmap, offset int64) (answer *Bitmap) {
 				}
 			}
 
-			if offsetted[1].getCardinality() > 0 && ((key+1) >= 0 && (key+1) <= MaxUint16) {
+			if !offsetted[1].isEmpty() && ((key+1) >= 0 && (key+1) <= MaxUint16) {
 				answer.highlowcontainer.appendContainer(uint16(key+1), offsetted[1], false)
 			}
 		}
@@ -630,13 +629,13 @@ func (rb *Bitmap) Remove(x uint32) {
 	if i >= 0 {
 		c := rb.highlowcontainer.getWritableContainerAtIndex(i).iremoveReturnMinimized(lowbits(x))
 		rb.highlowcontainer.setContainerAtIndex(i, c)
-		if rb.highlowcontainer.getContainerAtIndex(i).getCardinality() == 0 {
+		if rb.highlowcontainer.getContainerAtIndex(i).isEmpty() {
 			rb.highlowcontainer.removeAtIndex(i)
 		}
 	}
 }
 
-// CheckedRemove removes the integer x from the bitmap and return true if the integer was effectively remove (and false if the integer was not present)
+// CheckedRemove removes the integer x from the bitmap and return true if the integer was effectively removed (and false if the integer was not present)
 func (rb *Bitmap) CheckedRemove(x uint32) bool {
 	// TODO: add unit tests for this method
 	hb := highbits(x)
@@ -646,7 +645,7 @@ func (rb *Bitmap) CheckedRemove(x uint32) bool {
 		oldcard := C.getCardinality()
 		C = C.iremoveReturnMinimized(lowbits(x))
 		rb.highlowcontainer.setContainerAtIndex(i, C)
-		if rb.highlowcontainer.getContainerAtIndex(i).getCardinality() == 0 {
+		if rb.highlowcontainer.getContainerAtIndex(i).isEmpty() {
 			rb.highlowcontainer.removeAtIndex(i)
 			return true
 		}
@@ -701,8 +700,9 @@ func (rb *Bitmap) Select(x uint32) (uint32, error) {
 	remaining := x
 	for i := 0; i < rb.highlowcontainer.size(); i++ {
 		c := rb.highlowcontainer.getContainerAtIndex(i)
-		if remaining >= uint32(c.getCardinality()) {
-			remaining -= uint32(c.getCardinality())
+		card := uint32(c.getCardinality())
+		if remaining >= card {
+			remaining -= card
 		} else {
 			key := rb.highlowcontainer.getKeyAtIndex(i)
 			return uint32(key)<<16 + uint32(c.selectInt(uint16(remaining))), nil
@@ -729,7 +729,7 @@ main:
 					c1 := rb.highlowcontainer.getWritableContainerAtIndex(pos1)
 					c2 := x2.highlowcontainer.getContainerAtIndex(pos2)
 					diff := c1.iand(c2)
-					if diff.getCardinality() > 0 {
+					if !diff.isEmpty() {
 						rb.highlowcontainer.replaceKeyAndContainerAtIndex(intersectionsize, s1, diff, false)
 						intersectionsize++
 					}
@@ -931,7 +931,7 @@ func (rb *Bitmap) Xor(x2 *Bitmap) {
 			} else {
 				// TODO: couple be computed in-place for reduced memory usage
 				c := rb.highlowcontainer.getContainerAtIndex(pos1).xor(x2.highlowcontainer.getContainerAtIndex(pos2))
-				if c.getCardinality() > 0 {
+				if !c.isEmpty() {
 					rb.highlowcontainer.setContainerAtIndex(pos1, c)
 					pos1++
 				} else {
@@ -1011,7 +1011,7 @@ main:
 					c1 := rb.highlowcontainer.getWritableContainerAtIndex(pos1)
 					c2 := x2.highlowcontainer.getContainerAtIndex(pos2)
 					diff := c1.iandNot(c2)
-					if diff.getCardinality() > 0 {
+					if !diff.isEmpty() {
 						rb.highlowcontainer.replaceKeyAndContainerAtIndex(intersectionsize, s1, diff, false)
 						intersectionsize++
 					}
@@ -1120,7 +1120,7 @@ main:
 				C := x1.highlowcontainer.getContainerAtIndex(pos1)
 				C = C.and(x2.highlowcontainer.getContainerAtIndex(pos2))
 
-				if C.getCardinality() > 0 {
+				if !C.isEmpty() {
 					answer.highlowcontainer.appendContainer(s1, C, false)
 				}
 				pos1++
@@ -1167,7 +1167,7 @@ func Xor(x1, x2 *Bitmap) *Bitmap {
 				pos2++
 			} else {
 				c := x1.highlowcontainer.getContainerAtIndex(pos1).xor(x2.highlowcontainer.getContainerAtIndex(pos2))
-				if c.getCardinality() > 0 {
+				if !c.isEmpty() {
 					answer.highlowcontainer.appendContainer(s1, c, false)
 				}
 				pos1++
@@ -1210,7 +1210,7 @@ main:
 					c1 := x1.highlowcontainer.getContainerAtIndex(pos1)
 					c2 := x2.highlowcontainer.getContainerAtIndex(pos2)
 					diff := c1.andNot(c2)
-					if diff.getCardinality() > 0 {
+					if !diff.isEmpty() {
 						answer.highlowcontainer.appendContainer(s1, diff, false)
 					}
 					pos1++
@@ -1300,7 +1300,7 @@ func (rb *Bitmap) Flip(rangeStart, rangeEnd uint64) {
 
 		if i >= 0 {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(i).inot(int(containerStart), int(containerLast)+1)
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				rb.highlowcontainer.setContainerAtIndex(i, c)
 			} else {
 				rb.highlowcontainer.removeAtIndex(i)
@@ -1381,7 +1381,7 @@ func (rb *Bitmap) RemoveRange(rangeStart, rangeEnd uint64) {
 			return
 		}
 		c := rb.highlowcontainer.getWritableContainerAtIndex(i).iremoveRange(int(lbStart), int(lbLast+1))
-		if c.getCardinality() > 0 {
+		if !c.isEmpty() {
 			rb.highlowcontainer.setContainerAtIndex(i, c)
 		} else {
 			rb.highlowcontainer.removeAtIndex(i)
@@ -1394,7 +1394,7 @@ func (rb *Bitmap) RemoveRange(rangeStart, rangeEnd uint64) {
 	if ifirst >= 0 {
 		if lbStart != 0 {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(ifirst).iremoveRange(int(lbStart), int(max+1))
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				rb.highlowcontainer.setContainerAtIndex(ifirst, c)
 				ifirst++
 			}
@@ -1405,7 +1405,7 @@ func (rb *Bitmap) RemoveRange(rangeStart, rangeEnd uint64) {
 	if ilast >= 0 {
 		if lbLast != max {
 			c := rb.highlowcontainer.getWritableContainerAtIndex(ilast).iremoveRange(int(0), int(lbLast+1))
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				rb.highlowcontainer.setContainerAtIndex(ilast, c)
 			} else {
 				ilast++
@@ -1461,7 +1461,7 @@ func Flip(bm *Bitmap, rangeStart, rangeEnd uint64) *Bitmap {
 
 		if i >= 0 {
 			c := bm.highlowcontainer.getContainerAtIndex(i).not(int(containerStart), int(containerLast)+1)
-			if c.getCardinality() > 0 {
+			if !c.isEmpty() {
 				answer.highlowcontainer.insertNewKeyValueAt(-j-1, uint16(hb), c)
 			}
 

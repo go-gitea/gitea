@@ -6,7 +6,7 @@ import (
 )
 
 // Cfstatement lexer.
-var Cfstatement = internal.Register(MustNewLexer(
+var Cfstatement = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "cfstatement",
 		Aliases:         []string{"cfs"},
@@ -15,7 +15,11 @@ var Cfstatement = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	cfstatementRules,
+))
+
+func cfstatementRules() Rules {
+	return Rules{
 		"root": {
 			{`//.*?\n`, CommentSingle, nil},
 			{`/\*(?:.|\n)*?\*/`, CommentMultiline, nil},
@@ -44,5 +48,5 @@ var Cfstatement = internal.Register(MustNewLexer(
 			{`#`, LiteralStringDouble, nil},
 			{`"`, LiteralStringDouble, Pop(1)},
 		},
-	},
-))
+	}
+}

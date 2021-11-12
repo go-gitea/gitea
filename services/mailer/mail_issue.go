@@ -8,8 +8,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func fallbackMailSubject(issue *models.Issue) string {
@@ -31,7 +32,7 @@ const (
 
 // mailIssueCommentToParticipants can be used for both new issue creation and comment.
 // This function sends two list of emails:
-// 1. Repository watchers and users who are participated in comments.
+// 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.User) error {
 
@@ -75,11 +76,13 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
-	ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
-	if err != nil {
-		return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
+	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
+		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
+		}
+		unfiltered = append(ids, unfiltered...)
 	}
-	unfiltered = append(ids, unfiltered...)
 
 	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
 
@@ -111,18 +114,13 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 	return nil
 }
 
-type langMapItem struct {
-	Tos     []string
-	ToRands []string
-}
-
 func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
-	checkUnit := models.UnitTypeIssues
+	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
-		checkUnit = models.UnitTypePullRequests
+		checkUnit = unit.TypePullRequests
 	}
 
-	langMap := make(map[string]*langMapItem)
+	langMap := make(map[string][]*models.User)
 	for _, user := range users {
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
@@ -144,48 +142,50 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 			continue
 		}
 
-		if _, has := langMap[user.Language]; !has {
-			langMap[user.Language] = &langMapItem{}
-			langMap[user.Language].ToRands = make([]string, 0, 10)
-			langMap[user.Language].Tos = make([]string, 0, 10)
-		}
-
-		langMap[user.Language].Tos = append(langMap[user.Language].Tos, user.Email)
-		langMap[user.Language].ToRands = append(langMap[user.Language].ToRands,
-			generateRandKey(ctx.Issue.ID, user.Email, user.Rands))
+		langMap[user.Language] = append(langMap[user.Language], user)
 	}
 
-	for lang, item := range langMap {
+	for lang, receivers := range langMap {
 		// because we know that the len(receivers) > 0 and we don't care about the order particularly
 		// working backwards from the last (possibly) incomplete batch. If len(receivers) can be 0 this
 		// starting condition will need to be changed slightly
-		for i := ((len(item.Tos) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
-			msgs, err := composeIssueCommentMessages(ctx, lang, item.Tos[i:], item.ToRands[i:], fromMention, "issue comments")
+		for i := ((len(receivers) - 1) / MailBatchSize) * MailBatchSize; i >= 0; i -= MailBatchSize {
+			msgs, err := composeIssueCommentMessages(ctx, lang, receivers[i:], fromMention, "issue comments")
 			if err != nil {
 				return err
 			}
 			SendAsyncs(msgs)
-			item.Tos = item.Tos[:i]
-			item.ToRands = item.ToRands[:i]
+			receivers = receivers[:i]
 		}
 	}
 
 	return nil
 }
 
-func generateRandKey(issueID int64, mail string, rands string) string {
-	return base.EncodeSha256(fmt.Sprintf("%d:%s/%s", issueID, mail, rands))
-}
+// func generateRandKey(issueID int64, mail string, rands string) string {
+// 	return base.EncodeSha256(fmt.Sprintf("%d:%s/%s", issueID, mail, rands))
+// }
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
+	content := issue.Content
+	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
+		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||
+		opType == models.ActionMergePullRequest {
+		content = ""
+	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,
-			Content:    issue.Content,
+			Content:    content,
 			Comment:    nil,
 		}, mentions); err != nil {
 		log.Error("mailIssueCommentToParticipants: %v", err)

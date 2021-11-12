@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -181,9 +182,9 @@ func handleReciveEmail(m *Mail) error {
 	}
 
 	// check permission
-	permUnit := models.UnitTypeIssues
+	permUnit := unit.TypeIssues
 	if issue.IsPull {
-		permUnit = models.UnitTypePullRequests
+		permUnit = unit.TypePullRequests
 	}
 
 	if issue.IsLocked && !perm.CanWrite(permUnit) {

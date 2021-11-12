@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -23,9 +24,28 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 	// Only actual create when publish.
 	if !rel.IsDraft {
 		if !gitRepo.IsTagExist(rel.TagName) {
+			if err := rel.LoadAttributes(); err != nil {
+				log.Error("LoadAttributes: %v", err)
+				return false, err
+			}
+
+			protectedTags, err := rel.Repo.GetProtectedTags()
+			if err != nil {
+				return false, fmt.Errorf("GetProtectedTags: %v", err)
+			}
+			isAllowed, err := models.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
+			if err != nil {
+				return false, err
+			}
+			if !isAllowed {
+				return false, models.ErrProtectedTagName{
+					TagName: rel.TagName,
+				}
+			}
+
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return false, fmt.Errorf("GetCommit: %v", err)
+				return false, fmt.Errorf("createTag::GetCommit[%v]: %v", rel.Target, err)
 			}
 
 			// Trim '--' prefix to prevent command line argument vulnerability.
@@ -49,11 +69,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 			}
 			created = true
 			rel.LowerTagName = strings.ToLower(rel.TagName)
-			// Prepare Notify
-			if err := rel.LoadAttributes(); err != nil {
-				log.Error("LoadAttributes: %v", err)
-				return false, err
-			}
+
 			notification.NotifyPushCommits(
 				rel.Publisher, rel.Repo,
 				&repository.PushUpdateOptions{
@@ -107,7 +123,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(models.DefaultDBContext(), rel.ID, attachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(db.DefaultContext, rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
@@ -137,7 +153,9 @@ func CreateNewTag(doer *models.User, repo *models.Repository, commit, tagName, m
 
 	rel := &models.Release{
 		RepoID:       repo.ID,
+		Repo:         repo,
 		PublisherID:  doer.ID,
+		Publisher:    doer,
 		TagName:      tagName,
 		Target:       commit,
 		IsDraft:      false,
@@ -171,11 +189,11 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, commiter, err := models.TxDBContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = models.UpdateRelease(ctx, rel); err != nil {
 		return err
@@ -232,7 +250,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		}
 	}
 
-	if err = commiter.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return
 	}
 
@@ -293,7 +311,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	} else {
 		rel.IsTag = true
 
-		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
+		if err = models.UpdateRelease(db.DefaultContext, rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

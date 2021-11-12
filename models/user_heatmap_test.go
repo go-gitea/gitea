@@ -7,8 +7,12 @@ package models
 import (
 	"fmt"
 	"testing"
+	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,21 +23,33 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		CountResult int
 		JSONResult  string
 	}{
-		{2, 2, 1, `[{"timestamp":1603152000,"contributions":1}]`}, // self looks at action in private repo
-		{2, 1, 1, `[{"timestamp":1603152000,"contributions":1}]`}, // admin looks at action in private repo
-		{2, 3, 0, `[]`}, // other user looks at action in private repo
-		{2, 0, 0, `[]`}, // nobody looks at action in private repo
-		{16, 15, 1, `[{"timestamp":1603238400,"contributions":1}]`}, // collaborator looks at action in private repo
-		{3, 3, 0, `[]`}, // no action action not performed by target user
+		// self looks at action in private repo
+		{2, 2, 1, `[{"timestamp":1603227600,"contributions":1}]`},
+		// admin looks at action in private repo
+		{2, 1, 1, `[{"timestamp":1603227600,"contributions":1}]`},
+		// other user looks at action in private repo
+		{2, 3, 0, `[]`},
+		// nobody looks at action in private repo
+		{2, 0, 0, `[]`},
+		// collaborator looks at action in private repo
+		{16, 15, 1, `[{"timestamp":1603267200,"contributions":1}]`},
+		// no action action not performed by target user
+		{3, 3, 0, `[]`},
+		// multiple actions performed with two grouped together
+		{10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
 	}
 	// Prepare
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, db.PrepareTestDatabase())
+
+	// Mock time
+	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer timeutil.Unset()
 
 	for i, tc := range testCases {
-		user := AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
+		user := db.AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
 
 		doer := &User{ID: tc.doerID}
-		_, err := loadBeanIfExists(doer)
+		_, err := db.LoadBeanIfExists(doer)
 		assert.NoError(t, err)
 		if tc.doerID == 0 {
 			doer = nil
@@ -51,12 +67,15 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 
 		// Get the heatmap and compare
 		heatmap, err := GetUserHeatmapDataByUser(user, doer)
+		var contributions int
+		for _, hm := range heatmap {
+			contributions += int(hm.Contributions)
+		}
 		assert.NoError(t, err)
-		assert.Equal(t, len(actions), len(heatmap), "invalid action count: did the test data became too old?")
-		assert.Equal(t, tc.CountResult, len(heatmap), fmt.Sprintf("testcase %d", i))
+		assert.Len(t, actions, contributions, "invalid action count: did the test data became too old?")
+		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase %d", i))
 
 		// Test JSON rendering
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSONResult, string(jsonData))

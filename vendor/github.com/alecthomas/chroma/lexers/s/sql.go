@@ -6,7 +6,7 @@ import (
 )
 
 // SQL lexer.
-var SQL = internal.Register(MustNewLexer(
+var SQL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "SQL",
 		Aliases:         []string{"sql"},
@@ -15,9 +15,13 @@ var SQL = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	sqlRules,
+))
+
+func sqlRules() Rules {
+	return Rules{
 		"root": {
-			{`\s+`, Text, nil},
+			{`\s+`, TextWhitespace, nil},
 			{`--.*\n?`, CommentSingle, nil},
 			{`/\*`, CommentMultiline, Push("multiline-comments")},
 			{`'`, LiteralStringSingle, Push("string")},
@@ -45,5 +49,5 @@ var SQL = internal.Register(MustNewLexer(
 			{`""`, LiteralStringDouble, nil},
 			{`"`, LiteralStringDouble, Pop(1)},
 		},
-	},
-))
+	}
+}

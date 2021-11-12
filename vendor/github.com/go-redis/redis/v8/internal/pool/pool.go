@@ -12,7 +12,10 @@ import (
 )
 
 var (
-	ErrClosed      = errors.New("redis: client is closed")
+	// ErrClosed performs any operation on the closed client will return this error.
+	ErrClosed = errors.New("redis: client is closed")
+
+	// ErrPoolTimeout timed out waiting to get a connection from the connection pool.
 	ErrPoolTimeout = errors.New("redis: connection pool timeout")
 )
 
@@ -185,7 +188,6 @@ func (p *ConnPool) dialConn(ctx context.Context, pooled bool) (*Conn, error) {
 		return nil, err
 	}
 
-	internal.NewConnectionsCounter.Add(ctx, 1)
 	cn := NewConn(netConn)
 	cn.pooled = pooled
 	return cn, nil

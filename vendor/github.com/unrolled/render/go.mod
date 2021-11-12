@@ -1,5 +1,8 @@
 module github.com/unrolled/render
 
-go 1.12
+go 1.16
 
-require github.com/eknkc/amber v0.0.0-20171010120322-cdade1c07385
+require (
+	github.com/fsnotify/fsnotify v1.4.9
+	golang.org/x/sys v0.0.0-20210525143221-35b2ab0089ea // indirect
+)

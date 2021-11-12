@@ -6,14 +6,18 @@ import (
 )
 
 // Cmake lexer.
-var Cmake = internal.Register(MustNewLexer(
+var Cmake = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "CMake",
 		Aliases:   []string{"cmake"},
 		Filenames: []string{"*.cmake", "CMakeLists.txt"},
 		MimeTypes: []string{"text/x-cmake"},
 	},
-	Rules{
+	cmakeRules,
+))
+
+func cmakeRules() Rules {
+	return Rules{
 		"root": {
 			{`\b(\w+)([ \t]*)(\()`, ByGroups(NameBuiltin, Text, Punctuation), Push("args")},
 			Include("keywords"),
@@ -40,5 +44,5 @@ var Cmake = internal.Register(MustNewLexer(
 			{`[ \t]+`, Text, nil},
 			{`#.*\n`, Comment, nil},
 		},
-	},
-))
+	}
+}

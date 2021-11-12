@@ -6,7 +6,7 @@
 			<div class="column">
 				{{template "repo/issue/navbar" .}}
 			</div>
-			{{if not .Repository.IsArchived}}
+			{{if and (not .Repository.IsArchived) (not .Issue.IsPull)}}
 				<div class="column right aligned">
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.i18n.Tr "repo.issues.new"}}</a>

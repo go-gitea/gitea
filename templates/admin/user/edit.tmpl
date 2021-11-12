@@ -8,6 +8,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.i18n.Tr "username"}}</label>
@@ -17,17 +18,44 @@
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
 					<label>{{.i18n.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type}}-{{.LoginSource.ID}}" required>
+						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
 						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
-								<div class="item" data-value="{{.Type}}-{{.ID}}">{{.Name}}</div>
+								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
 						</div>
 					</div>
 				</div>
+
+				<div class="inline field {{if .Err_Visibility}}error{{end}}">
+					<span class="inline required field"><label for="visibility">{{.i18n.Tr "settings.visibility"}}</label></span>
+					<div class="ui selection type dropdown">
+						{{if .User.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
+						{{if .User.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
+						{{if .User.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
+						<div class="text">
+							{{if .User.Visibility.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
+							{{if .User.Visibility.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
+							{{if .User.Visibility.IsPrivate}}{{.i18n.Tr "settings.visibility.private"}}{{end}}
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="menu">
+							{{range $mode := .AllowedUserVisibilityModes}}
+								{{if $mode.IsPublic}}
+									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+								{{else if $mode.IsLimited}}
+									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+								{{else if $mode.IsPrivate}}
+									<div class="item poping up" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+								{{end}}
+							{{end}}
+						</div>
+					</div>
+				</div>
+
 				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
 					<label for="login_name">{{.i18n.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
@@ -40,7 +68,6 @@
 					<label for="email">{{.i18n.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
-				<input class="fake" type="password">
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
 					<label for="password">{{.i18n.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">

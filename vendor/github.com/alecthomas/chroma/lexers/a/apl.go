@@ -6,14 +6,18 @@ import (
 )
 
 // Apl lexer.
-var Apl = internal.Register(MustNewLexer(
+var Apl = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "APL",
 		Aliases:   []string{"apl"},
 		Filenames: []string{"*.apl"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	aplRules,
+))
+
+func aplRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`[⍝#].*$`, CommentSingle, nil},
@@ -32,5 +36,5 @@ var Apl = internal.Register(MustNewLexer(
 			{`[⍺⍵⍶⍹∇:]`, NameBuiltinPseudo, nil},
 			{`[{}]`, KeywordType, nil},
 		},
-	},
-))
+	}
+}

@@ -6,14 +6,18 @@ import (
 )
 
 // Pony lexer.
-var Pony = internal.Register(MustNewLexer(
+var Pony = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Pony",
 		Aliases:   []string{"pony"},
 		Filenames: []string{"*.pony"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	ponyRules,
+))
+
+func ponyRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`[^\S\n]+`, Text, nil},
@@ -55,5 +59,5 @@ var Pony = internal.Register(MustNewLexer(
 			{`\\"`, LiteralString, nil},
 			{`[^\\"]+`, LiteralString, nil},
 		},
-	},
-))
+	}
+}

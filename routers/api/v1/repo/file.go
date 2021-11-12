@@ -12,12 +12,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/repo"
 )
 
 // GetRawFile get a file by path on a repository
@@ -61,7 +63,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	commit := ctx.Repo.Commit
 
-	if ref := ctx.QueryTrim("ref"); len(ref) > 0 {
+	if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 		var err error
 		commit, err = ctx.Repo.GitRepo.GetCommit(ref)
 		if err != nil {
@@ -83,7 +85,7 @@ func GetRawFile(ctx *context.APIContext) {
 		}
 		return
 	}
-	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
+	if err = common.ServeBlob(ctx.Context, blob); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
@@ -118,13 +120,15 @@ func GetArchive(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return
+	if ctx.Repo.GitRepo == nil {
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+		defer gitRepo.Close()
 	}
-	ctx.Repo.GitRepo = gitRepo
-	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }
@@ -179,12 +183,12 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
 func canWriteFiles(r *context.Repository) bool {
-	return r.Permission.CanWrite(models.UnitTypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
+	return r.Permission.CanWrite(unit.TypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
 func canReadFiles(r *context.Repository) bool {
-	return r.Permission.CanRead(models.UnitTypeCode)
+	return r.Permission.CanRead(unit.TypeCode)
 }
 
 // CreateFile handles API call for creating a file
@@ -548,7 +552,7 @@ func GetContents(ctx *context.APIContext) {
 	}
 
 	treePath := ctx.Params("*")
-	ref := ctx.QueryTrim("ref")
+	ref := ctx.FormTrim("ref")
 
 	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {

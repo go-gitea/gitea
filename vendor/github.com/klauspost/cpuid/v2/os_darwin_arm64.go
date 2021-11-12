@@ -11,5 +11,9 @@ func detectOS(c *CPUInfo) bool {
 	// to all Go programs running on darwin/arm64.
 	// TODO: Add more if we know them.
 	c.featureSet.setIf(runtime.GOOS != "ios", AESARM, PMULL, SHA1, SHA2)
+	c.PhysicalCores = runtime.NumCPU()
+	// For now assuming 1 thread per core...
+	c.ThreadsPerCore = 1
+	c.LogicalCores = c.PhysicalCores
 	return true
 }

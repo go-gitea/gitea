@@ -48,7 +48,7 @@
 													<a href="{{EscapePound $.SourcePath}}/src/commit/{{$result.CommitID}}/{{EscapePound $result.Filename}}#L{{.}}"><span>{{.}}</span></a>
 												{{end}}
 											</td>
-											<td class="lines-code"><pre><code class="chroma"><ol class="linenums">{{.FormattedLines | Safe}}</ol></code></pre></td>
+											<td class="lines-code chroma"><code class="code-inner">{{.FormattedLines | Safe}}</code></td>
 										</tr>
 									</tbody>
 								</table>

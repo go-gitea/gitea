@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/services/imap"
 )
 
@@ -34,7 +35,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return models.DeleteRepositoryArchives(ctx)
+		return repo_module.DeleteRepositoryArchives(ctx)
 	})
 }
 
@@ -142,6 +143,24 @@ func registerImapFetchUnReadMails() {
 	})
 }
 
+func registerUpdateGiteaChecker() {
+	type UpdateCheckerConfig struct {
+		BaseConfig
+		HTTPEndpoint string
+	}
+	RegisterTaskFatal("update_checker", &UpdateCheckerConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
+	}, func(ctx context.Context, _ *models.User, config Config) error {
+		updateCheckerConfig := config.(*UpdateCheckerConfig)
+		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -153,5 +172,6 @@ func initExtendedTasks() {
 	registerDeleteMissingRepositories()
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
+	registerUpdateGiteaChecker()
 	registerImapFetchUnReadMails()
 }

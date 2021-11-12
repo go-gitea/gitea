@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,16 +24,16 @@ func TestIssue_AddLabels(t *testing.T) {
 		{2, []int64{}, 1},     // pull-request, empty
 	}
 	for _, test := range tests {
-		assert.NoError(t, models.PrepareTestDatabase())
-		issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
+		assert.NoError(t, db.PrepareTestDatabase())
+		issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
 		labels := make([]*models.Label, len(test.labelIDs))
 		for i, labelID := range test.labelIDs {
-			labels[i] = models.AssertExistsAndLoadBean(t, &models.Label{ID: labelID}).(*models.Label)
+			labels[i] = db.AssertExistsAndLoadBean(t, &models.Label{ID: labelID}).(*models.Label)
 		}
-		doer := models.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)
+		doer := db.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)
 		assert.NoError(t, AddLabels(issue, doer, labels))
 		for _, labelID := range test.labelIDs {
-			models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: labelID})
+			db.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: labelID})
 		}
 	}
 }
@@ -49,11 +50,11 @@ func TestIssue_AddLabel(t *testing.T) {
 		{2, 1, 2}, // pull-request, already-added label
 	}
 	for _, test := range tests {
-		assert.NoError(t, models.PrepareTestDatabase())
-		issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
-		label := models.AssertExistsAndLoadBean(t, &models.Label{ID: test.labelID}).(*models.Label)
-		doer := models.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)
+		assert.NoError(t, db.PrepareTestDatabase())
+		issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
+		label := db.AssertExistsAndLoadBean(t, &models.Label{ID: test.labelID}).(*models.Label)
+		doer := db.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)
 		assert.NoError(t, AddLabel(issue, doer, label))
-		models.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
+		db.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
 	}
 }

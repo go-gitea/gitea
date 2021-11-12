@@ -2,9 +2,9 @@
 
 [![godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/rs/xid) [![license](http://img.shields.io/badge/license-MIT-red.svg?style=flat)](https://raw.githubusercontent.com/rs/xid/master/LICENSE) [![Build Status](https://travis-ci.org/rs/xid.svg?branch=master)](https://travis-ci.org/rs/xid) [![Coverage](http://gocover.io/_badge/github.com/rs/xid)](http://gocover.io/github.com/rs/xid)
 
-Package xid is a globally unique id generator library, ready to be used safely directly in your server code.
+Package xid is a globally unique id generator library, ready to safely be used directly in your server code.
 
-Xid is using Mongo Object ID algorithm to generate globally unique ids with a different serialization (base64) to make it shorter when transported as a string:
+Xid uses the Mongo Object ID algorithm to generate globally unique ids with a different serialization (base64) to make it shorter when transported as a string:
 https://docs.mongodb.org/manual/reference/object-id/
 
 - 4-byte value representing the seconds since the Unix epoch,
@@ -33,7 +33,7 @@ is required so it can be used directly in server's code.
 |-------------|-------------|----------------|----------------
 | [UUID]      | 16 bytes    | 36 chars       | configuration free, not sortable
 | [shortuuid] | 16 bytes    | 22 chars       | configuration free, not sortable
-| [Snowflake] | 8 bytes     | up to 20 chars | needs machin/DC configuration, needs central server, sortable
+| [Snowflake] | 8 bytes     | up to 20 chars | needs machine/DC configuration, needs central server, sortable
 | [MongoID]   | 12 bytes    | 24 chars       | configuration free, sortable
 | xid         | 12 bytes    | 20 chars       | configuration free, sortable
 
@@ -57,7 +57,7 @@ Best used with [zerolog](https://github.com/rs/zerolog)'s
 
 Notes:
 
-- Xid is dependent on the system time, a monotonic counter and so is not cryptographically secure. If unpredictability of IDs is important, you should not use Xids. It is worth noting that most of the other UUID like implementations are also not cryptographically secure. You shoud use libraries that rely on cryptographically secure sources (like /dev/urandom on unix, crypto/rand in golang), if you want a truly random ID generator.
+- Xid is dependent on the system time, a monotonic counter and so is not cryptographically secure. If unpredictability of IDs is important, you should not use Xids. It is worth noting that most other UUID-like implementations are also not cryptographically secure. You should use libraries that rely on cryptographically secure sources (like /dev/urandom on unix, crypto/rand in golang), if you want a truly random ID generator.
 
 References:
 
@@ -66,6 +66,9 @@ References:
 - https://blog.twitter.com/2010/announcing-snowflake
 - Python port by [Graham Abbott](https://github.com/graham): https://github.com/graham/python_xid
 - Scala port by [Egor Kolotaev](https://github.com/kolotaev): https://github.com/kolotaev/ride
+- Rust port by [Jérôme Renard](https://github.com/jeromer/): https://github.com/jeromer/libxid
+- Ruby port by [Valar](https://github.com/valarpirai/): https://github.com/valarpirai/ruby_xid
+- Java port by [0xShamil](https://github.com/0xShamil/): https://github.com/0xShamil/java-xid
 
 ## Install
 
@@ -105,7 +108,7 @@ BenchmarkUUIDv4-2   	 1000000	      1427 ns/op	      64 B/op	       2 allocs/op
 BenchmarkUUIDv4-4   	 1000000	      1452 ns/op	      64 B/op	       2 allocs/op
 ```
 
-Note: UUIDv1 requires a global lock, hence the performence degrading as we add more CPUs.
+Note: UUIDv1 requires a global lock, hence the performance degradation as we add more CPUs.
 
 ## Licenses
 

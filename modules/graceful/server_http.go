@@ -5,7 +5,9 @@
 package graceful
 
 import (
+	"context"
 	"crypto/tls"
+	"net"
 	"net/http"
 )
 
@@ -16,6 +18,7 @@ func newHTTPServer(network, address, name string, handler http.Handler) (*Server
 		WriteTimeout:   DefaultWriteTimeOut,
 		MaxHeaderBytes: DefaultMaxHeaderBytes,
 		Handler:        handler,
+		BaseContext:    func(net.Listener) context.Context { return GetManager().HammerContext() },
 	}
 	server.OnShutdown = func() {
 		httpServer.SetKeepAlivesEnabled(false)

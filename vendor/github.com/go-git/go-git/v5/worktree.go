@@ -59,7 +59,7 @@ func (w *Worktree) Pull(o *PullOptions) error {
 // Pull only supports merges where the can be resolved as a fast-forward.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (w *Worktree) PullContext(ctx context.Context, o *PullOptions) error {
 	if err := o.Validate(); err != nil {

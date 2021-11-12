@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -66,9 +66,8 @@ type (
 )
 
 // GetDiscordHook returns discord metadata
-func GetDiscordHook(w *models.Webhook) *DiscordMeta {
+func GetDiscordHook(w *webhook_model.Webhook) *DiscordMeta {
 	s := &DiscordMeta{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
 	}
@@ -97,12 +96,8 @@ var (
 	redColor         = color("ff3232")
 )
 
-// SetSecret sets the discord secret
-func (d *DiscordPayload) SetSecret(_ string) {}
-
 // JSONPayload Marshals the DiscordPayload to json
 func (d *DiscordPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -120,22 +115,7 @@ func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title: title,
-				URL:   p.Repo.HTMLURL + "/src/" + refName,
-				Color: greenColor,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+refName, greenColor), nil
 }
 
 // Delete implements PayloadConvertor Delete method
@@ -144,44 +124,14 @@ func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title: title,
-				URL:   p.Repo.HTMLURL + "/src/" + refName,
-				Color: redColor,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+refName, redColor), nil
 }
 
 // Fork implements PayloadConvertor Fork method
 func (d *DiscordPayload) Fork(p *api.ForkPayload) (api.Payloader, error) {
 	title := fmt.Sprintf("%s is forked to %s", p.Forkee.FullName, p.Repo.FullName)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title: title,
-				URL:   p.Repo.HTMLURL,
-				Color: greenColor,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL, greenColor), nil
 }
 
 // Push implements PayloadConvertor Push method
@@ -216,96 +166,32 @@ func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		}
 	}
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title:       title,
-				Description: text,
-				URL:         titleLink,
-				Color:       greenColor,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, text, titleLink, greenColor), nil
 }
 
 // Issue implements PayloadConvertor Issue method
 func (d *DiscordPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
-	text, _, attachmentText, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
+	title, _, text, color := getIssuesPayloadInfo(p, noneLinkFormatter, false)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title:       text,
-				Description: attachmentText,
-				URL:         p.Issue.HTMLURL,
-				Color:       color,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, text, p.Issue.HTMLURL, color), nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method
 func (d *DiscordPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
-	text, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
+	title, _, color := getIssueCommentPayloadInfo(p, noneLinkFormatter, false)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title:       text,
-				Description: p.Comment.Body,
-				URL:         p.Comment.HTMLURL,
-				Color:       color,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, p.Comment.Body, p.Comment.HTMLURL, color), nil
 }
 
 // PullRequest implements PayloadConvertor PullRequest method
 func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, error) {
-	text, _, attachmentText, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
+	title, _, text, color := getPullRequestPayloadInfo(p, noneLinkFormatter, false)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title:       text,
-				Description: attachmentText,
-				URL:         p.PullRequest.HTMLURL,
-				Color:       color,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, text, p.PullRequest.HTMLURL, color), nil
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -319,34 +205,18 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEven
 		text = p.Review.Content
 
 		switch event {
-		case models.HookEventPullRequestReviewApproved:
+		case webhook_model.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case models.HookEventPullRequestReviewRejected:
+		case webhook_model.HookEventPullRequestReviewRejected:
 			color = redColor
-		case models.HookEventPullRequestComment:
+		case webhook_model.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
 		}
 	}
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title:       title,
-				Description: text,
-				URL:         p.PullRequest.HTMLURL,
-				Color:       color,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, text, p.PullRequest.HTMLURL, color), nil
 }
 
 // Repository implements PayloadConvertor Repository method
@@ -363,53 +233,21 @@ func (d *DiscordPayload) Repository(p *api.RepositoryPayload) (api.Payloader, er
 		color = redColor
 	}
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title: title,
-				URL:   url,
-				Color: color,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, title, "", url, color), nil
 }
 
 // Release implements PayloadConvertor Release method
 func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, color := getReleasePayloadInfo(p, noneLinkFormatter, false)
 
-	return &DiscordPayload{
-		Username:  d.Username,
-		AvatarURL: d.AvatarURL,
-		Embeds: []DiscordEmbed{
-			{
-				Title:       text,
-				Description: p.Release.Note,
-				URL:         p.Release.URL,
-				Color:       color,
-				Author: DiscordEmbedAuthor{
-					Name:    p.Sender.UserName,
-					URL:     setting.AppURL + p.Sender.UserName,
-					IconURL: p.Sender.AvatarURL,
-				},
-			},
-		},
-	}, nil
+	return d.createPayload(p.Sender, text, p.Release.Note, p.Release.URL, color), nil
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
 		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
 	}
@@ -419,17 +257,37 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 	return convertPayloader(s, p, event)
 }
 
-func parseHookPullRequestEventType(event models.HookEventType) (string, error) {
+func parseHookPullRequestEventType(event webhook_model.HookEventType) (string, error) {
 	switch event {
 
-	case models.HookEventPullRequestReviewApproved:
+	case webhook_model.HookEventPullRequestReviewApproved:
 		return "approved", nil
-	case models.HookEventPullRequestReviewRejected:
+	case webhook_model.HookEventPullRequestReviewRejected:
 		return "rejected", nil
-	case models.HookEventPullRequestComment:
+	case webhook_model.HookEventPullRequestComment:
 		return "comment", nil
 
 	default:
 		return "", errors.New("unknown event type")
+	}
+}
+
+func (d *DiscordPayload) createPayload(s *api.User, title, text, url string, color int) *DiscordPayload {
+	return &DiscordPayload{
+		Username:  d.Username,
+		AvatarURL: d.AvatarURL,
+		Embeds: []DiscordEmbed{
+			{
+				Title:       title,
+				Description: text,
+				URL:         url,
+				Color:       color,
+				Author: DiscordEmbedAuthor{
+					Name:    s.UserName,
+					URL:     setting.AppURL + s.UserName,
+					IconURL: s.AvatarURL,
+				},
+			},
+		},
 	}
 }

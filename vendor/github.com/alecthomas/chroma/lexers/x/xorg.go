@@ -6,14 +6,18 @@ import (
 )
 
 // Xorg lexer.
-var Xorg = internal.Register(MustNewLexer(
+var Xorg = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Xorg",
 		Aliases:   []string{"xorg.conf"},
 		Filenames: []string{"xorg.conf"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	xorgRules,
+))
+
+func xorgRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, TextWhitespace, nil},
 			{`#.*$`, Comment, nil},
@@ -21,5 +25,5 @@ var Xorg = internal.Register(MustNewLexer(
 			{`(End(|Sub)Section)`, KeywordNamespace, nil},
 			{`(\w+)(\s+)([^\n#]+)`, ByGroups(NameKeyword, TextWhitespace, LiteralString), nil},
 		},
-	},
-))
+	}
+}

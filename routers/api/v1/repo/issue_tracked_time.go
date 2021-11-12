@@ -7,10 +7,10 @@ package repo
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -84,13 +84,13 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
 	}
 
-	qUser := strings.Trim(ctx.Query("user"), " ")
+	qUser := ctx.FormTrim("user")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
@@ -109,7 +109,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	cantSetUser := !ctx.User.IsAdmin &&
 		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
@@ -118,6 +118,12 @@ func ListTrackedTimes(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
 		}
+	}
+
+	count, err := models.CountTrackedTimes(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 
 	trackedTimes, err := models.GetTrackedTimes(opts)
@@ -129,6 +135,8 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
@@ -424,7 +432,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		UserID:       user.ID,
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
@@ -494,13 +502,13 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
 	// Filters
-	qUser := strings.Trim(ctx.Query("user"), " ")
+	qUser := ctx.FormTrim("user")
 	if qUser != "" {
 		user, err := models.GetUserByName(qUser)
 		if models.IsErrUserNotExist(err) {
@@ -520,15 +528,21 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 	cantSetUser := !ctx.User.IsAdmin &&
 		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
 			opts.UserID = ctx.User.ID
 		} else {
-			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query user not allowed not enouth rights"))
+			ctx.Error(http.StatusForbidden, "", fmt.Errorf("query by user not allowed; not enough rights"))
 			return
 		}
+	}
+
+	count, err := models.CountTrackedTimes(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 
 	trackedTimes, err := models.GetTrackedTimes(opts)
@@ -540,6 +554,8 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }
 
@@ -574,7 +590,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 
-	opts := models.FindTrackedTimesOptions{
+	opts := &models.FindTrackedTimesOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		UserID:      ctx.User.ID,
 	}
@@ -582,6 +598,12 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	var err error
 	if opts.CreatedBeforeUnix, opts.CreatedAfterUnix, err = utils.GetQueryBeforeSince(ctx); err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+		return
+	}
+
+	count, err := models.CountTrackedTimes(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -596,5 +618,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, convert.ToTrackedTimeList(trackedTimes))
 }

@@ -71,8 +71,10 @@
   --color-diff-removed-word-bg: #6f3333;
   --color-diff-added-word-bg: #3c653c;
   --color-diff-removed-row-bg: #3c2626;
+  --color-diff-moved-row-bg: #818044;
   --color-diff-added-row-bg: #283e2d;
   --color-diff-removed-row-border: #634343;
+  --color-diff-moved-row-border: #bcca6f;
   --color-diff-added-row-border: #314a37;
   --color-diff-inactive: #353846;
   /* target-based colors */
@@ -92,15 +94,17 @@
   --color-input-border-hover: #505667;
   --color-navbar: #2a2e3a;
   --color-light: #00000028;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(40 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #ffffff28;
   --color-hover: #ffffff10;
   --color-active: #ffffff16;
   --color-menu: #2e323e;
   --color-card: #2e323e;
-  --color-markdown-table-row: #ffffff06;
-  --color-markdown-code-block: #2a2e3a;
+  --color-markup-table-row: #ffffff06;
+  --color-markup-code-block: #292d39;
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
+  --color-code-sidebar-bg: #2e323e;
   --color-shadow: #00000060;
   --color-secondary-bg: #2a2e3a;
   --color-text-focus: #fff;
@@ -109,6 +113,8 @@
   --color-editor-line-highlight: var(--color-primary-light-5);
   --color-project-board-bg: var(--color-secondary-light-2);
   --color-caret: var(--color-text); /* should ideally be --color-text-dark, see #15651 */
+  --color-reaction-bg: #ffffff12;
+  --color-reaction-active-bg: var(--color-primary-alpha-40);
 }
 
 ::-webkit-calendar-picker-indicator {
@@ -117,21 +123,6 @@
 
 .ui.horizontal.segments > .segment {
   background-color: #383c4a;
-}
-
-.repository .segment.reactions .ui.label.basic.blue {
-  background: var(--color-primary-alpha-20) !important;
-}
-
-[data-tooltip]::before,
-[data-tooltip]::after {
-  background: #1b1c1d !important; /* .ui.inverted.popup */
-  border-color: #1b1c1d !important; /* .ui.inverted.popup */
-  color: #dbdbdb !important;
-}
-
-[data-tooltip]::before {
-  box-shadow: 1px 1px 0 0 #1b1c1d !important; /* .ui.inverted.popup */
 }
 
 .ui.green.progress .bar {
@@ -153,12 +144,6 @@
 
 .feeds .list ul li.private {
   background: #353945;
-}
-
-.ui.link.list .item,
-.ui.link.list a.item,
-.ui.link.list .item a:not(.ui) {
-  color: #dbdbdb;
 }
 
 .ui.red.label,
@@ -301,7 +286,7 @@ a.ui.basic.green.label:hover {
   & + .editor-preview-side {
     background: #353945;
 
-    .markdown:not(code).ui.segment {
+    .markup.ui.segment {
       border-width: 0;
     }
   }
@@ -317,19 +302,6 @@ a.ui.basic.green.label:hover {
 
 .ui.list > .item > .content {
   color: var(--color-secondary-dark-6) !important;
-}
-
-.ui.active.button:active,
-.ui.button:active,
-.ui.button:focus,
-.ui.active.button {
-  background-color: #2e3e4e;
-  color: #dbdbdb;
-}
-
-.ui.active.button:hover {
-  background-color: #475e75;
-  color: #dbdbdb;
 }
 
 .repository .navbar .active.item,
@@ -449,11 +421,6 @@ td.blob-hunk {
 
 .repository.labels .ui.basic.black.label {
   background-color: #bbbbbb !important;
-}
-
-.lines-commit,
-.blame .lines-num {
-  background: #2e323e !important;
 }
 
 .lines-num {
@@ -754,7 +721,7 @@ img[src$="/img/matrix.svg"] {
   border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
 }
 
-.markdown-block-error {
+.markup-block-error {
   border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
 }

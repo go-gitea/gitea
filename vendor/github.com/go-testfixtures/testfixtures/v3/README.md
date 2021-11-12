@@ -139,7 +139,7 @@ func TestMain(m *testing.M) {
         fixtures, err = testfixtures.New(
                 testfixtures.Database(db), // You database connection
                 testfixtures.Dialect("postgres"), // Available: "postgresql", "timescaledb", "mysql", "mariadb", "sqlite" and "sqlserver"
-                testfixtures.Directory("testdata/fixtures"), // the directory containing the YAML files
+                testfixtures.Directory("testdata/fixtures"), // The directory containing the YAML files
         )
         if err != nil {
                 ...
@@ -188,15 +188,6 @@ fixtures, err := testfixtures.New(
 if err != nil {
         ...
 }
-
-fixtures, err := testfixtures.NewFiles(db, &testfixtures.PostgreSQL{},
-        "fixtures/orders.yml",
-        "fixtures/customers.yml",
-        // add as many files you want
-)
-if err != nil {
-        ...
-}
 ```
 
 With `Paths` option, you can specify the paths that fixtures will load
@@ -234,8 +225,9 @@ testfixtures.New(
 
 ## Sequences
 
-For PostgreSQL, this package also resets all sequences to a high
-number to prevent duplicated primary keys while running the tests.
+For PostgreSQL and MySQL/MariaDB, this package also resets all
+sequences to a high number to prevent duplicated primary keys while
+running the tests.
 The default is 10000, but you can change that with:
 
 ```go

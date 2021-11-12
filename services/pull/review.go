@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -58,7 +59,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(models.DefaultDBContext(), doer, comment.Content)
+		mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +101,7 @@ func CreateCodeComment(doer *models.User, gitRepo *git.Repository, issue *models
 
 	if !isReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
-		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID); err != nil {
+		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID, nil); err != nil {
 			return nil, err
 		}
 	}
@@ -132,12 +133,12 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 	head := pr.GetGitRefName()
 	if line > 0 {
 		if reviewID != 0 {
-			first, err := models.FindComments(models.FindCommentsOptions{
+			first, err := models.FindComments(&models.FindCommentsOptions{
 				ReviewID: reviewID,
 				Line:     line,
 				TreePath: treePath,
 				Type:     models.CommentTypeCode,
-				ListOptions: models.ListOptions{
+				ListOptions: db.ListOptions{
 					PageSize: 1,
 					Page:     1,
 				},
@@ -215,7 +216,7 @@ func createCodeComment(doer *models.User, repo *models.Repository, issue *models
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string) (*models.Review, *models.Comment, error) {
+func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string, attachmentUUIDs []string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
@@ -240,12 +241,12 @@ func SubmitReview(doer *models.User, gitRepo *git.Repository, issue *models.Issu
 		}
 	}
 
-	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitID, stale)
+	review, comm, err := models.SubmitReview(doer, issue, reviewType, content, commitID, stale, attachmentUUIDs)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ctx := models.DefaultDBContext()
+	ctx := db.DefaultContext
 	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err

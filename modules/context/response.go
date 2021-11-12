@@ -49,7 +49,7 @@ func (r *Response) Write(bs []byte) (int, error) {
 		return size, err
 	}
 	if r.status == 0 {
-		r.WriteHeader(200)
+		r.status = http.StatusOK
 	}
 	return size, nil
 }

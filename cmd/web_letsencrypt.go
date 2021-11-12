@@ -6,22 +6,31 @@ package cmd
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/caddyserver/certmagic"
-	context2 "github.com/gorilla/context"
 )
 
 func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
 
 	// If HTTP Challenge enabled, needs to be serving on port 80. For TLSALPN needs 443.
-	// Due to docker port mapping this can't be checked programatically
+	// Due to docker port mapping this can't be checked programmatically
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
 	enableHTTPChallenge := true
 	enableTLSALPNChallenge := true
+	altHTTPPort := 0
+	altTLSALPNPort := 0
+
+	if p, err := strconv.Atoi(setting.PortToRedirect); err == nil {
+		altHTTPPort = p
+	}
+	if p, err := strconv.Atoi(setting.HTTPPort); err == nil {
+		altTLSALPNPort = p
+	}
 
 	magic := certmagic.NewDefault()
 	magic.Storage = &certmagic.FileStorage{Path: directory}
@@ -30,6 +39,9 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		Agreed:                  setting.LetsEncryptTOS,
 		DisableHTTPChallenge:    !enableHTTPChallenge,
 		DisableTLSALPNChallenge: !enableTLSALPNChallenge,
+		ListenHost:              setting.HTTPAddr,
+		AltTLSALPNPort:          altTLSALPNPort,
+		AltHTTPPort:             altHTTPPort,
 	})
 
 	magic.Issuers = []certmagic.Issuer{myACME}
@@ -41,6 +53,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	}
 
 	tlsConfig := magic.TLSConfig()
+	tlsConfig.NextProtos = append(tlsConfig.NextProtos, "h2")
 
 	if enableHTTPChallenge {
 		go func() {
@@ -53,7 +66,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		}()
 	}
 
-	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, context2.ClearHandler(m))
+	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, m)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {

@@ -8,7 +8,7 @@ require (
 	github.com/alecthomas/kong v0.2.4
 	github.com/alecthomas/repr v0.0.0-20180818092828-117648cd9897 // indirect
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964
-	github.com/dlclark/regexp2 v1.2.0
+	github.com/dlclark/regexp2 v1.4.0
 	github.com/mattn/go-colorable v0.1.6
 	github.com/mattn/go-isatty v0.0.12
 	github.com/pkg/errors v0.9.1 // indirect

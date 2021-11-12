@@ -7,35 +7,27 @@ package integrations
 import (
 	"archive/zip"
 	"bytes"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers/web"
 
 	gzipp "github.com/klauspost/compress/gzip"
 	"github.com/stretchr/testify/assert"
 )
 
-var lfsID = int64(20000)
-
 func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string {
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
-	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.Database.UsePostgreSQL {
-		lfsMetaObject = &models.LFSMetaObject{ID: lfsID, Pointer: pointer, RepositoryID: repositoryID}
-	} else {
-		lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID}
-	}
-
-	lfsID++
-	lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
+	_, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
@@ -82,7 +74,7 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 		assert.Contains(t, contentEncoding, "gzip")
 		gzippReader, err := gzipp.NewReader(resp.Body)
 		assert.NoError(t, err)
-		result, err := ioutil.ReadAll(gzippReader)
+		result, err := io.ReadAll(gzippReader)
 		assert.NoError(t, err)
 		assert.Equal(t, *content, result)
 	}
@@ -90,7 +82,7 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 
 func TestGetLFSSmall(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -103,12 +95,12 @@ func TestGetLFSSmall(t *testing.T) {
 
 func TestGetLFSLarge(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
 	}
-	content := make([]byte, routes.GzipMinSize*10)
+	content := make([]byte, web.GzipMinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
 	}
@@ -119,12 +111,12 @@ func TestGetLFSLarge(t *testing.T) {
 
 func TestGetLFSGzip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
 	}
-	b := make([]byte, routes.GzipMinSize*10)
+	b := make([]byte, web.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -140,12 +132,12 @@ func TestGetLFSGzip(t *testing.T) {
 
 func TestGetLFSZip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
 	}
-	b := make([]byte, routes.GzipMinSize*10)
+	b := make([]byte, web.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
 	}
@@ -163,7 +155,7 @@ func TestGetLFSZip(t *testing.T) {
 
 func TestGetLFSRangeNo(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -176,7 +168,7 @@ func TestGetLFSRangeNo(t *testing.T) {
 
 func TestGetLFSRange(t *testing.T) {
 	defer prepareTestEnv(t)()
-	setting.CheckLFSVersion()
+	git.CheckLFSVersion()
 	if !setting.LFS.StartServer {
 		t.Skip()
 		return
@@ -210,7 +202,14 @@ func TestGetLFSRange(t *testing.T) {
 				"Range": []string{tt.in},
 			}
 			resp := storeAndGetLfs(t, &content, &h, tt.status)
-			assert.Equal(t, tt.out, resp.Body.String())
+			if tt.status == http.StatusPartialContent || tt.status == http.StatusOK {
+				assert.Equal(t, tt.out, resp.Body.String())
+			} else {
+				var er lfs.ErrorResponse
+				err := json.Unmarshal(resp.Body.Bytes(), &er)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.out, er.Message)
+			}
 		})
 	}
 }

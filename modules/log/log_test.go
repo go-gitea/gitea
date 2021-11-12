@@ -26,9 +26,9 @@ func baseConsoleTest(t *testing.T, logger *MultiChannelledLogger) (chan []byte, 
 	channelledLog := m.GetEventLogger("console")
 	assert.NotEmpty(t, channelledLog)
 	realChanLog, ok := channelledLog.(*ChannelledLog)
-	assert.Equal(t, true, ok)
+	assert.True(t, ok)
 	realCL, ok := realChanLog.loggerProvider.(*ConsoleLogger)
-	assert.Equal(t, true, ok)
+	assert.True(t, ok)
 	assert.Equal(t, INFO, realCL.Level)
 	realCL.out = c
 
@@ -38,20 +38,20 @@ func baseConsoleTest(t *testing.T, logger *MultiChannelledLogger) (chan []byte, 
 	logger.Log(0, INFO, format, args...)
 	line := <-written
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
-	assert.Equal(t, false, <-closed)
+	assert.False(t, <-closed)
 
 	format = "test2: %s"
 	logger.Warn(format, args...)
 	line = <-written
 
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
-	assert.Equal(t, false, <-closed)
+	assert.False(t, <-closed)
 
 	format = "testerror: %s"
 	logger.Error(format, args...)
 	line = <-written
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
-	assert.Equal(t, false, <-closed)
+	assert.False(t, <-closed)
 	return written, closed
 }
 
@@ -63,7 +63,7 @@ func TestNewLoggerUnexported(t *testing.T) {
 	out := logger.MultiChannelledLog.GetEventLogger("console")
 	assert.NotEmpty(t, out)
 	chanlog, ok := out.(*ChannelledLog)
-	assert.Equal(t, true, ok)
+	assert.True(t, ok)
 	assert.Equal(t, "console", chanlog.provider)
 	assert.Equal(t, INFO, logger.GetLevel())
 	baseConsoleTest(t, logger)
@@ -74,11 +74,11 @@ func TestNewLoggger(t *testing.T) {
 	logger := NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 
 	assert.Equal(t, INFO, GetLevel())
-	assert.Equal(t, false, IsTrace())
-	assert.Equal(t, false, IsDebug())
-	assert.Equal(t, true, IsInfo())
-	assert.Equal(t, true, IsWarn())
-	assert.Equal(t, true, IsError())
+	assert.False(t, IsTrace())
+	assert.False(t, IsDebug())
+	assert.True(t, IsInfo())
+	assert.True(t, IsWarn())
+	assert.True(t, IsError())
 
 	written, closed := baseConsoleTest(t, logger)
 
@@ -88,17 +88,17 @@ func TestNewLoggger(t *testing.T) {
 	Log(0, INFO, format, args...)
 	line := <-written
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
-	assert.Equal(t, false, <-closed)
+	assert.False(t, <-closed)
 
 	Info(format, args...)
 	line = <-written
 	assert.Contains(t, string(line), fmt.Sprintf(format, args...))
-	assert.Equal(t, false, <-closed)
+	assert.False(t, <-closed)
 
 	go DelLogger("console")
 	line = <-written
 	assert.Equal(t, "", string(line))
-	assert.Equal(t, true, <-closed)
+	assert.True(t, <-closed)
 }
 
 func TestNewLogggerRecreate(t *testing.T) {
@@ -106,11 +106,11 @@ func TestNewLogggerRecreate(t *testing.T) {
 	NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 
 	assert.Equal(t, INFO, GetLevel())
-	assert.Equal(t, false, IsTrace())
-	assert.Equal(t, false, IsDebug())
-	assert.Equal(t, true, IsInfo())
-	assert.Equal(t, true, IsWarn())
-	assert.Equal(t, true, IsError())
+	assert.False(t, IsTrace())
+	assert.False(t, IsDebug())
+	assert.True(t, IsInfo())
+	assert.True(t, IsWarn())
+	assert.True(t, IsError())
 
 	format := "test: %s"
 	args := []interface{}{"A"}
@@ -120,11 +120,11 @@ func TestNewLogggerRecreate(t *testing.T) {
 	NewLogger(0, "console", "console", fmt.Sprintf(`{"level":"%s"}`, level.String()))
 
 	assert.Equal(t, INFO, GetLevel())
-	assert.Equal(t, false, IsTrace())
-	assert.Equal(t, false, IsDebug())
-	assert.Equal(t, true, IsInfo())
-	assert.Equal(t, true, IsWarn())
-	assert.Equal(t, true, IsError())
+	assert.False(t, IsTrace())
+	assert.False(t, IsDebug())
+	assert.True(t, IsInfo())
+	assert.True(t, IsWarn())
+	assert.True(t, IsError())
 
 	Log(0, INFO, format, args...)
 
@@ -150,5 +150,5 @@ func TestNewNamedLogger(t *testing.T) {
 	go DelNamedLogger("test")
 	line := <-written
 	assert.Equal(t, "", string(line))
-	assert.Equal(t, true, <-closed)
+	assert.True(t, <-closed)
 }

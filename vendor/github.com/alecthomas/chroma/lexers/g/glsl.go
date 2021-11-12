@@ -6,14 +6,18 @@ import (
 )
 
 // GLSL lexer.
-var GLSL = internal.Register(MustNewLexer(
+var GLSL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "GLSL",
 		Aliases:   []string{"glsl"},
 		Filenames: []string{"*.vert", "*.frag", "*.geo"},
 		MimeTypes: []string{"text/x-glslsrc"},
 	},
-	Rules{
+	glslRules,
+))
+
+func glslRules() Rules {
+	return Rules{
 		"root": {
 			{`^#.*`, CommentPreproc, nil},
 			{`//.*`, CommentSingle, nil},
@@ -33,5 +37,5 @@ var GLSL = internal.Register(MustNewLexer(
 			{`\.`, Punctuation, nil},
 			{`\s+`, Text, nil},
 		},
-	},
-))
+	}
+}

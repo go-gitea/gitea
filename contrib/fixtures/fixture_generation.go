@@ -6,11 +6,11 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 )
 
 // To generate derivative fixtures, execute the following from Gitea's repository base dir:
@@ -31,11 +31,13 @@ var (
 func main() {
 	pathToGiteaRoot := "."
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err := models.CreateTestEngine(fixturesDir); err != nil {
+	if err := db.CreateTestEngine(db.FixturesOptions{
+		Dir: fixturesDir,
+	}); err != nil {
 		fmt.Printf("CreateTestEngine: %+v", err)
 		os.Exit(1)
 	}
-	if err := models.PrepareTestDatabase(); err != nil {
+	if err := db.PrepareTestDatabase(); err != nil {
 		fmt.Printf("PrepareTestDatabase: %+v\n", err)
 		os.Exit(1)
 	}
@@ -64,7 +66,7 @@ func generate(name string) error {
 				return err
 			}
 			path := filepath.Join(fixturesDir, name+".yml")
-			if err := ioutil.WriteFile(path, []byte(data), 0644); err != nil {
+			if err := os.WriteFile(path, []byte(data), 0644); err != nil {
 				return fmt.Errorf("%s: %+v", path, err)
 			}
 			fmt.Printf("%s created.\n", path)

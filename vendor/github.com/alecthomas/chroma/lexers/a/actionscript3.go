@@ -6,7 +6,7 @@ import (
 )
 
 // Actionscript 3 lexer.
-var Actionscript3 = internal.Register(MustNewLexer(
+var Actionscript3 = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "ActionScript 3",
 		Aliases:   []string{"as3", "actionscript3"},
@@ -14,7 +14,11 @@ var Actionscript3 = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/x-actionscript3", "text/x-actionscript3", "text/actionscript3"},
 		DotAll:    true,
 	},
-	Rules{
+	actionscript3Rules,
+))
+
+func actionscript3Rules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`(function\s+)([$a-zA-Z_]\w*)(\s*)(\()`, ByGroups(KeywordDeclaration, NameFunction, Text, Operator), Push("funcparams")},
@@ -52,5 +56,5 @@ var Actionscript3 = internal.Register(MustNewLexer(
 			{`,`, Operator, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

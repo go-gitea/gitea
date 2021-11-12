@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 func statusStringToNotificationStatus(status string) models.NotificationStatus {
@@ -66,8 +66,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	// - name: all
 	//   in: query
 	//   description: If true, show notifications marked as read. Default value is false
-	//   type: string
-	//   required: false
+	//   type: boolean
 	// - name: status-types
 	//   in: query
 	//   description: "Show notifications with the provided status types. Options are: unread, read and/or pinned. Defaults to unread & pinned"
@@ -75,19 +74,24 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	//   collectionFormat: multi
 	//   items:
 	//     type: string
-	//   required: false
+	// - name: subject-type
+	//   in: query
+	//   description: "filter notifications by subject type"
+	//   type: array
+	//   collectionFormat: multi
+	//   items:
+	//     type: string
+	//     enum: [issue,pull,commit,repository]
 	// - name: since
 	//   in: query
 	//   description: Only show notifications updated after the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
-	//   required: false
 	// - name: before
 	//   in: query
 	//   description: Only show notifications updated before the given time. This is a timestamp in RFC 3339 format
 	//   type: string
 	//   format: date-time
-	//   required: false
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -99,34 +103,30 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/NotificationThreadList"
-
-	before, since, err := utils.GetQueryBeforeSince(ctx)
-	if err != nil {
-		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
+	opts := getFindNotificationOptions(ctx)
+	if ctx.Written() {
 		return
 	}
-	opts := models.FindNotificationOptions{
-		ListOptions:       utils.GetListOptions(ctx),
-		UserID:            ctx.User.ID,
-		RepoID:            ctx.Repo.Repository.ID,
-		UpdatedBeforeUnix: before,
-		UpdatedAfterUnix:  since,
+	opts.RepoID = ctx.Repo.Repository.ID
+
+	totalCount, err := models.CountNotifications(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 
-	if !ctx.QueryBool("all") {
-		statuses := ctx.QueryStrings("status-types")
-		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread", "pinned"})
-	}
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 	err = nl.LoadAttributes()
-	if err != nil {
+	if err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
+
+	ctx.SetTotalCountHeader(totalCount)
 
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
@@ -177,10 +177,10 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/NotificationThreadList"
 
 	lastRead := int64(0)
-	qLastRead := strings.Trim(ctx.Query("last_read_at"), " ")
+	qLastRead := ctx.FormTrim("last_read_at")
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
@@ -192,14 +192,14 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		}
 	}
 
-	opts := models.FindNotificationOptions{
+	opts := &models.FindNotificationOptions{
 		UserID:            ctx.User.ID,
 		RepoID:            ctx.Repo.Repository.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
 
-	if !ctx.QueryBool("all") {
-		statuses := ctx.QueryStrings("status-types")
+	if !ctx.FormBool("all") {
+		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 		log.Error("%v", opts.Status)
 	}
@@ -209,19 +209,21 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
 		targetStatus = models.NotificationStatusRead
 	}
 
+	changed := make([]*structs.NotificationThread, len(nl))
+
 	for _, n := range nl {
-		err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+		notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-		ctx.Status(http.StatusResetContent)
+		_ = notif.LoadAttributes()
+		changed = append(changed, convert.ToNotificationThread(notif))
 	}
-
-	ctx.Status(http.StatusResetContent)
+	ctx.JSON(http.StatusResetContent, changed)
 }

@@ -11,16 +11,19 @@ import (
 	"html/template"
 	"mime"
 	"regexp"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/translation"
 
@@ -55,6 +58,10 @@ func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
 	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
@@ -66,13 +73,15 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
 		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
-		"i18n":              locale,
 		"Language":          locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(tpl), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -86,30 +95,44 @@ func sendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
 func SendActivateAccountMail(locale translation.Locale, u *models.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
 func SendResetPasswordMail(u *models.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
+func SendActivateEmailMail(u *models.User, email *user_model.EmailAddress) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
-		"i18n":            locale,
 		"Language":        locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthActivateEmail), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -123,18 +146,24 @@ func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
 func SendRegisterNotifyMail(u *models.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 
 	data := map[string]interface{}{
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
-		"i18n":        locale,
 		"Language":    locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailAuthRegisterNotify), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -148,6 +177,10 @@ func SendRegisterNotifyMail(u *models.User) {
 
 // SendCollaboratorMail sends mail notification to new collaborator.
 func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
 	locale := translation.NewLocale(u.Language)
 	repoName := repo.FullName()
 
@@ -156,13 +189,15 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 		"Subject":  subject,
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
-		"i18n":     locale,
 		"Language": locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailNotifyCollaborator), data); err != nil {
 		log.Error("Template: %v", err)
 		return
@@ -174,7 +209,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos, toRands []string, fromMention bool, info string) ([]*Message, error) {
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*models.User, fromMention bool, info string) ([]*Message, error) {
 	var (
 		subject string
 		link    string
@@ -238,12 +273,14 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos, toRa
 		"ActionType":      actType,
 		"ActionName":      actName,
 		"ReviewComments":  reviewComments,
-		"i18n":            locale,
 		"Language":        locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var mailSubject bytes.Buffer
-	// TODO: i18n templates?
 	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 		if subject == "" {
@@ -259,45 +296,79 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, tos, toRa
 
 	var mailBody bytes.Buffer
 
-	// TODO: i18n templates?
 	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgs := make([]*Message, 0, len(tos))
-	for index, to := range tos {
-		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+	msgs := make([]*Message, 0, len(recipients))
+	for _, recipient := range recipients {
+		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		if setting.MailReciveService != nil &&
-			len(setting.MailReciveService.ReciveEmail) > 0 {
-			msg.SetHeader("Reply-To", "<"+setting.MailReciveService.ReciveEmail+">")
-		}
+		msg.SetHeader("Message-ID", "<"+createReference(ctx.Issue, ctx.Comment)+">")
+		reference := createReference(ctx.Issue, nil)
+		msg.SetHeader("In-Reply-To", "<"+reference+">")
+		msg.SetHeader("References", "<"+reference+">")
 
-		key := ""
-		if toRands != nil {
-			key = toRands[index]
-		}
-
-		if actName != "new" && ctx.Comment != nil {
-			msg.SetHeader("Message-ID", "<"+ctx.Comment.ReplyReference(key)+">")
-			msg.SetHeader("References", "<"+ctx.Comment.ReplyReference(key)+">")
-			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
-			msgs = append(msgs, msg)
-			continue
-		}
-
-		msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference(key)+">")
-		msg.SetHeader("References", "<"+ctx.Issue.ReplyReference(key)+">")
-		if actName != "new" {
-			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
+		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
+			msg.SetHeader(key, value)
 		}
 
 		msgs = append(msgs, msg)
 	}
 
 	return msgs, nil
+}
+
+func createReference(issue *models.Issue, comment *models.Comment) string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	var extra string
+	if comment != nil {
+		extra = fmt.Sprintf("/comment/%d", comment.ID)
+	}
+
+	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+}
+
+func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *models.User) map[string]string {
+	repo := ctx.Issue.Repo
+
+	return map[string]string{
+		// https://datatracker.ietf.org/doc/html/rfc2919
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+
+		// https://datatracker.ietf.org/doc/html/rfc2369
+		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
+		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
+		//"List-Unsubscribe": https://github.com/go-gitea/gitea/issues/10808, https://github.com/go-gitea/gitea/issues/13283
+
+		"X-Gitea-Reason":            reason,
+		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
+		"X-Gitea-Recipient":         recipient.DisplayName(),
+		"X-Gitea-Recipient-Address": recipient.Email,
+		"X-Gitea-Repository":        repo.Name,
+		"X-Gitea-Repository-Path":   repo.FullName(),
+		"X-Gitea-Repository-Link":   repo.HTMLURL(),
+		"X-Gitea-Issue-ID":          strconv.FormatInt(ctx.Issue.Index, 10),
+		"X-Gitea-Issue-Link":        ctx.Issue.HTMLURL(),
+
+		"X-GitHub-Reason":            reason,
+		"X-GitHub-Sender":            ctx.Doer.DisplayName(),
+		"X-GitHub-Recipient":         recipient.DisplayName(),
+		"X-GitHub-Recipient-Address": recipient.Email,
+
+		"X-GitLab-NotificationReason": reason,
+		"X-GitLab-Project":            repo.Name,
+		"X-GitLab-Project-Path":       repo.FullName(),
+		"X-GitLab-Issue-IID":          strconv.FormatInt(ctx.Issue.Index, 10),
+	}
 }
 
 func sanitizeSubject(subject string) string {
@@ -311,27 +382,29 @@ func sanitizeSubject(subject string) string {
 
 // SendIssueAssignedMail composes and sends issue assigned email
 func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, recipients []*models.User) error {
-	langMap := make(map[string]*langMapItem)
-	for _, user := range recipients {
-		if _, has := langMap[user.Language]; !has {
-			langMap[user.Language] = &langMapItem{}
-			langMap[user.Language].ToRands = make([]string, 0, 10)
-			langMap[user.Language].Tos = make([]string, 0, 10)
-		}
-
-		langMap[user.Language].Tos = append(langMap[user.Language].Tos, user.Email)
-		langMap[user.Language].ToRands = append(langMap[user.Language].ToRands,
-			generateRandKey(issue.ID, user.Email, user.Rands))
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
 	}
 
-	for lang, item := range langMap {
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		return err
+	}
+
+	langMap := make(map[string][]*models.User)
+	for _, user := range recipients {
+		langMap[user.Language] = append(langMap[user.Language], user)
+	}
+
+	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: models.ActionType(0),
 			Content:    content,
 			Comment:    comment,
-		}, lang, item.Tos, item.ToRands, false, "issue assigned")
+		}, lang, tos, false, "issue assigned")
 		if err != nil {
 			return err
 		}
@@ -362,6 +435,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		name = "merge"
 	case models.ActionPullReviewDismissed:
 		name = "review_dismissed"
+	case models.ActionPullRequestReadyForReview:
+		name = "ready_for_review"
 	default:
 		switch commentType {
 		case models.CommentTypeReview:

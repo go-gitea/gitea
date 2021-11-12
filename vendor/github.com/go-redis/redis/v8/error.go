@@ -10,6 +10,7 @@ import (
 	"github.com/go-redis/redis/v8/internal/proto"
 )
 
+// ErrClosed performs any operation on the closed client will return this error.
 var ErrClosed = pool.ErrClosed
 
 type Error interface {

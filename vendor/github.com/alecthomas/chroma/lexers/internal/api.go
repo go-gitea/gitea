@@ -11,6 +11,19 @@ import (
 	"github.com/alecthomas/chroma"
 )
 
+var (
+	ignoredSuffixes = [...]string{
+		// Editor backups
+		"~", ".bak", ".old", ".orig",
+		// Debian and derivatives apt/dpkg backups
+		".dpkg-dist", ".dpkg-old",
+		// Red Hat and derivatives rpm backups
+		".rpmnew", ".rpmorig", ".rpmsave",
+		// Build system input/template files
+		".in",
+	}
+)
+
 // Registry of Lexers.
 var Registry = struct {
 	Lexers  chroma.Lexers
@@ -93,6 +106,13 @@ func Match(filename string) chroma.Lexer {
 		for _, glob := range config.Filenames {
 			if fnmatch.Match(glob, filename, 0) {
 				matched = append(matched, lexer)
+			} else {
+				for _, suf := range &ignoredSuffixes {
+					if fnmatch.Match(glob+suf, filename, 0) {
+						matched = append(matched, lexer)
+						break
+					}
+				}
 			}
 		}
 	}
@@ -107,6 +127,13 @@ func Match(filename string) chroma.Lexer {
 		for _, glob := range config.AliasFilenames {
 			if fnmatch.Match(glob, filename, 0) {
 				matched = append(matched, lexer)
+			} else {
+				for _, suf := range &ignoredSuffixes {
+					if fnmatch.Match(glob+suf, filename, 0) {
+						matched = append(matched, lexer)
+						break
+					}
+				}
 			}
 		}
 	}
@@ -146,16 +173,19 @@ func Register(lexer chroma.Lexer) chroma.Lexer {
 	return lexer
 }
 
-// Used for the fallback lexer as well as the explicit plaintext lexer
-var PlaintextRules = chroma.Rules{
-	"root": []chroma.Rule{
-		{`.+`, chroma.Text, nil},
-		{`\n`, chroma.Text, nil},
-	},
+// PlaintextRules is used for the fallback lexer as well as the explicit
+// plaintext lexer.
+func PlaintextRules() chroma.Rules {
+	return chroma.Rules{
+		"root": []chroma.Rule{
+			{`.+`, chroma.Text, nil},
+			{`\n`, chroma.Text, nil},
+		},
+	}
 }
 
 // Fallback lexer if no other is found.
-var Fallback chroma.Lexer = chroma.MustNewLexer(&chroma.Config{
+var Fallback chroma.Lexer = chroma.MustNewLazyLexer(&chroma.Config{
 	Name:      "fallback",
 	Filenames: []string{"*"},
 }, PlaintextRules)

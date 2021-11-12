@@ -6,14 +6,18 @@ import (
 )
 
 // Ebnf lexer.
-var Ebnf = internal.Register(MustNewLexer(
+var Ebnf = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "EBNF",
 		Aliases:   []string{"ebnf"},
 		Filenames: []string{"*.ebnf"},
 		MimeTypes: []string{"text/x-ebnf"},
 	},
-	Rules{
+	ebnfRules,
+))
+
+func ebnfRules() Rules {
+	return Rules{
 		"root": {
 			Include("whitespace"),
 			Include("comment_start"),
@@ -47,5 +51,5 @@ var Ebnf = internal.Register(MustNewLexer(
 		"identifier": {
 			{`([a-zA-Z][\w \-]*)`, Keyword, nil},
 		},
-	},
-))
+	}
+}

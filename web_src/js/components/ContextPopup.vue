@@ -1,0 +1,127 @@
+<template>
+  <div>
+    <div v-if="loading" class="ui active centered inline loader"/>
+    <div v-if="!loading && issue !== null">
+      <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
+      <p><svg-icon :name="icon" :class="[color]" /> <strong>{{ issue.title }}</strong> #{{ issue.number }}</p>
+      <p>{{ body }}</p>
+      <div>
+        <div
+          v-for="label in labels"
+          :key="label.name"
+          class="ui label"
+          :style="{ color: label.textColor, backgroundColor: label.color }"
+        >
+          {{ label.name }}
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {SvgIcon} from '../svg.js';
+
+const {appSubUrl} = window.config;
+
+// NOTE: see models/issue_label.go for similar implementation
+const srgbToLinear = (color) => {
+  color /= 255;
+  if (color <= 0.04045) {
+    return color / 12.92;
+  }
+  return ((color + 0.055) / 1.055) ** 2.4;
+};
+const luminance = (colorString) => {
+  const r = srgbToLinear(parseInt(colorString.substring(0, 2), 16));
+  const g = srgbToLinear(parseInt(colorString.substring(2, 4), 16));
+  const b = srgbToLinear(parseInt(colorString.substring(4, 6), 16));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+const luminanceThreshold = 0.179;
+
+export default {
+  name: 'ContextPopup',
+
+  components: {
+    SvgIcon,
+  },
+
+  data: () => ({
+    loading: false,
+    issue: null
+  }),
+
+  computed: {
+    createdAt() {
+      return new Date(this.issue.created_at).toLocaleDateString(undefined, {year: 'numeric', month: 'short', day: 'numeric'});
+    },
+
+    body() {
+      const body = this.issue.body.replace(/\n+/g, ' ');
+      if (body.length > 85) {
+        return `${body.substring(0, 85)}…`;
+      }
+      return body;
+    },
+
+    icon() {
+      if (this.issue.pull_request !== null) {
+        if (this.issue.state === 'open') {
+          return 'octicon-git-pull-request'; // Open PR
+        } else if (this.issue.pull_request.merged === true) {
+          return 'octicon-git-merge'; // Merged PR
+        }
+        return 'octicon-git-pull-request'; // Closed PR
+      } else if (this.issue.state === 'open') {
+        return 'octicon-issue-opened'; // Open Issue
+      }
+      return 'octicon-issue-closed'; // Closed Issue
+    },
+
+    color() {
+      if (this.issue.state === 'open') {
+        return 'green';
+      } else if (this.issue.pull_request !== null && this.issue.pull_request.merged === true) {
+        return 'purple';
+      }
+      return 'red';
+    },
+
+    labels() {
+      return this.issue.labels.map((label) => {
+        let textColor;
+        if (luminance(label.color) < luminanceThreshold) {
+          textColor = '#ffffff';
+        } else {
+          textColor = '#000000';
+        }
+        return {name: label.name, color: `#${label.color}`, textColor};
+      });
+    }
+  },
+
+  mounted() {
+    this.$root.$on('load-context-popup', (data, callback) => {
+      if (!this.loading && this.issue === null) {
+        this.load(data, callback);
+      }
+    });
+  },
+
+  methods: {
+    load(data, callback) {
+      this.loading = true;
+      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`, (issue) => {
+        this.issue = issue;
+        this.loading = false;
+        this.$nextTick(() => {
+          if (callback) {
+            callback();
+          }
+        });
+      });
+    }
+  }
+};
+</script>

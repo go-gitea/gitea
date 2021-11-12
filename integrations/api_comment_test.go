@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -20,11 +21,11 @@ import (
 func TestAPIListRepoComments(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
-		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{},
+		db.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
@@ -36,9 +37,9 @@ func TestAPIListRepoComments(t *testing.T) {
 	assert.Len(t, apiComments, 2)
 	for _, apiComment := range apiComments {
 		c := &models.Comment{ID: apiComment.ID}
-		models.AssertExistsAndLoadBean(t, c,
-			models.Cond("type = ?", models.CommentTypeComment))
-		models.AssertExistsAndLoadBean(t, &models.Issue{ID: c.IssueID, RepoID: repo.ID})
+		db.AssertExistsAndLoadBean(t, c,
+			db.Cond("type = ?", models.CommentTypeComment))
+		db.AssertExistsAndLoadBean(t, &models.Issue{ID: c.IssueID, RepoID: repo.ID})
 	}
 
 	//test before and since filters
@@ -66,11 +67,11 @@ func TestAPIListRepoComments(t *testing.T) {
 func TestAPIListIssueComments(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
-		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{},
+		db.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments",
@@ -79,8 +80,8 @@ func TestAPIListIssueComments(t *testing.T) {
 
 	var comments []*api.Comment
 	DecodeJSON(t, resp, &comments)
-	expectedCount := models.GetCount(t, &models.Comment{IssueID: issue.ID},
-		models.Cond("type = ?", models.CommentTypeComment))
+	expectedCount := db.GetCount(t, &models.Comment{IssueID: issue.ID},
+		db.Cond("type = ?", models.CommentTypeComment))
 	assert.EqualValues(t, expectedCount, len(comments))
 }
 
@@ -88,9 +89,9 @@ func TestAPICreateComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const commentBody = "Comment body"
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{}).(*models.Issue)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{}).(*models.Issue)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -104,16 +105,16 @@ func TestAPICreateComment(t *testing.T) {
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
 	assert.EqualValues(t, commentBody, updatedComment.Body)
-	models.AssertExistsAndLoadBean(t, &models.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
+	db.AssertExistsAndLoadBean(t, &models.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
 }
 
 func TestAPIGetComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := models.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
 	assert.NoError(t, comment.LoadIssue())
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: comment.Issue.RepoID}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: comment.Issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -138,11 +139,11 @@ func TestAPIEditComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const newCommentBody = "This is the new comment body"
 
-	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
-		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{},
+		db.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -157,17 +158,17 @@ func TestAPIEditComment(t *testing.T) {
 	DecodeJSON(t, resp, &updatedComment)
 	assert.EqualValues(t, comment.ID, updatedComment.ID)
 	assert.EqualValues(t, newCommentBody, updatedComment.Body)
-	models.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
+	db.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
 }
 
 func TestAPIDeleteComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := models.AssertExistsAndLoadBean(t, &models.Comment{},
-		models.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	comment := db.AssertExistsAndLoadBean(t, &models.Comment{},
+		db.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
+	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
+	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -175,5 +176,5 @@ func TestAPIDeleteComment(t *testing.T) {
 		repoOwner.Name, repo.Name, comment.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
-	models.AssertNotExistsBean(t, &models.Comment{ID: comment.ID})
+	db.AssertNotExistsBean(t, &models.Comment{ID: comment.ID})
 }

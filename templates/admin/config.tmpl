@@ -149,6 +149,8 @@
 				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
 				<dd>{{if .Service.DisableRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
+				<dt>{{.i18n.Tr "admin.config.allow_only_internal_registration"}}</dt>
+				<dd>{{if .Service.AllowOnlyInternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.allow_only_external_registration"}}</dt>
 				<dd>{{if .Service.AllowOnlyExternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>

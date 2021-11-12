@@ -6,7 +6,7 @@ import (
 )
 
 // Cobol lexer.
-var Cobol = internal.Register(MustNewLexer(
+var Cobol = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "COBOL",
 		Aliases:         []string{"cobol"},
@@ -14,7 +14,11 @@ var Cobol = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/x-cobol"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	cobolRules,
+))
+
+func cobolRules() Rules {
+	return Rules{
 		"root": {
 			Include("comment"),
 			Include("strings"),
@@ -47,5 +51,5 @@ var Cobol = internal.Register(MustNewLexer(
 			{`[+-]?\d*\.\d+(E[-+]?\d+)?`, LiteralNumberFloat, nil},
 			{`[+-]?\d+\.\d*(E[-+]?\d+)?`, LiteralNumberFloat, nil},
 		},
-	},
-))
+	}
+}

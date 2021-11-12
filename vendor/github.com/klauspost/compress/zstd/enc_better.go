@@ -138,7 +138,7 @@ func (e *betterFastEncoder) Encode(blk *blockEnc, src []byte) {
 		blk.literals = append(blk.literals, src[nextEmit:until]...)
 		s.litLen = uint32(until - nextEmit)
 	}
-	if debug {
+	if debugEncoder {
 		println("recent offsets:", blk.recentOffsets)
 	}
 
@@ -204,7 +204,7 @@ encodeLoop:
 
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, lenght)
 
 						}
@@ -264,7 +264,7 @@ encodeLoop:
 					s += lenght + repOff2
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, lenght)
 
 						}
@@ -412,8 +412,41 @@ encodeLoop:
 			cv = load6432(src, s)
 		}
 
-		// A 4-byte match has been found. Update recent offsets.
-		// We'll later see if more than 4 bytes.
+		// Try to find a better match by searching for a long match at the end of the current best match
+		if true && s+matched < sLimit {
+			nextHashL := hash8(load6432(src, s+matched), betterLongTableBits)
+			cv := load3232(src, s)
+			candidateL := e.longTable[nextHashL]
+			coffsetL := candidateL.offset - e.cur - matched
+			if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
+				// Found a long match, at least 4 bytes.
+				matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
+				if matchedNext > matched {
+					t = coffsetL
+					matched = matchedNext
+					if debugMatches {
+						println("long match at end-of-match")
+					}
+				}
+			}
+
+			// Check prev long...
+			if true {
+				coffsetL = candidateL.prev - e.cur - matched
+				if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
+					// Found a long match, at least 4 bytes.
+					matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
+					if matchedNext > matched {
+						t = coffsetL
+						matched = matchedNext
+						if debugMatches {
+							println("prev long match at end-of-match")
+						}
+					}
+				}
+			}
+		}
+		// A match has been found. Update recent offsets.
 		offset2 = offset1
 		offset1 = s - t
 
@@ -520,7 +553,7 @@ encodeLoop:
 	}
 	blk.recentOffsets[0] = uint32(offset1)
 	blk.recentOffsets[1] = uint32(offset2)
-	if debug {
+	if debugEncoder {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 }
@@ -623,7 +656,7 @@ func (e *betterFastEncoderDict) Encode(blk *blockEnc, src []byte) {
 		blk.literals = append(blk.literals, src[nextEmit:until]...)
 		s.litLen = uint32(until - nextEmit)
 	}
-	if debug {
+	if debugEncoder {
 		println("recent offsets:", blk.recentOffsets)
 	}
 
@@ -691,7 +724,7 @@ encodeLoop:
 
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, lenght)
 
 						}
@@ -754,7 +787,7 @@ encodeLoop:
 					s += lenght + repOff2
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, lenght)
 
 						}
@@ -905,9 +938,41 @@ encodeLoop:
 			}
 			cv = load6432(src, s)
 		}
+		// Try to find a better match by searching for a long match at the end of the current best match
+		if s+matched < sLimit {
+			nextHashL := hash8(load6432(src, s+matched), betterLongTableBits)
+			cv := load3232(src, s)
+			candidateL := e.longTable[nextHashL]
+			coffsetL := candidateL.offset - e.cur - matched
+			if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
+				// Found a long match, at least 4 bytes.
+				matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
+				if matchedNext > matched {
+					t = coffsetL
+					matched = matchedNext
+					if debugMatches {
+						println("long match at end-of-match")
+					}
+				}
+			}
 
-		// A 4-byte match has been found. Update recent offsets.
-		// We'll later see if more than 4 bytes.
+			// Check prev long...
+			if true {
+				coffsetL = candidateL.prev - e.cur - matched
+				if coffsetL >= 0 && coffsetL < s && s-coffsetL < e.maxMatchOff && cv == load3232(src, coffsetL) {
+					// Found a long match, at least 4 bytes.
+					matchedNext := e.matchlen(s+4, coffsetL+4, src) + 4
+					if matchedNext > matched {
+						t = coffsetL
+						matched = matchedNext
+						if debugMatches {
+							println("prev long match at end-of-match")
+						}
+					}
+				}
+			}
+		}
+		// A match has been found. Update recent offsets.
 		offset2 = offset1
 		offset1 = s - t
 
@@ -1019,7 +1084,7 @@ encodeLoop:
 	}
 	blk.recentOffsets[0] = uint32(offset1)
 	blk.recentOffsets[1] = uint32(offset2)
-	if debug {
+	if debugEncoder {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 }

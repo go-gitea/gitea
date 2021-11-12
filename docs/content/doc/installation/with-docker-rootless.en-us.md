@@ -32,15 +32,14 @@ image as a service. Since there is no database available, one can be initialized
 Create a directory for `data` and `config` then paste the following content into a file named `docker-compose.yml`.
 Note that the volume should be owned by the user/group with the UID/GID specified in the config file. By default Gitea in docker will use uid:1000 gid:1000. If needed you can set ownership on those folders with the command: `sudo chown 1000:1000 config/ data/`
 If you don't give the volume correct permissions, the container may not start.
-Also be aware that the tag `:latest-rootless` will install the current development version.
-For a stable release you can use `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`.
+For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag.
 
 ```yaml
 version: "2"
 
 services:
   server:
-    image: gitea/gitea:latest-rootless
+    image: gitea/gitea:{{< version >}}-rootless
     restart: always
     volumes:
       - ./data:/var/lib/gitea
@@ -63,7 +62,7 @@ version: "2"
 
 services:
   server:
-    image: gitea/gitea:latest-rootless
+    image: gitea/gitea:{{< version >}}-rootless
     restart: always
     volumes:
       - ./data:/var/lib/gitea
@@ -87,7 +86,7 @@ version: "2"
 
 services:
   server:
-    image: gitea/gitea:latest-rootless
+    image: gitea/gitea:{{< version >}}-rootless
 +    environment:
 +      - GITEA__database__DB_TYPE=mysql
 +      - GITEA__database__HOST=db:3306
@@ -107,7 +106,7 @@ services:
 +      - db
 +
 +  db:
-+    image: mysql:5.7
++    image: mysql:8
 +    restart: always
 +    environment:
 +      - MYSQL_ROOT_PASSWORD=gitea
@@ -128,7 +127,7 @@ version: "2"
 
 services:
   server:
-    image: gitea/gitea:latest-rootless
+    image: gitea/gitea:{{< version >}}-rootless
     environment:
 +      - GITEA__database__DB_TYPE=postgres
 +      - GITEA__database__HOST=db:5432
@@ -148,7 +147,7 @@ services:
 +      - db
 +
 +  db:
-+    image: postgres:9.6
++    image: postgres:13
 +    restart: always
 +    environment:
 +      - POSTGRES_USER=gitea
@@ -174,7 +173,7 @@ version: "2"
 +
 services:
   server:
-    image: gitea/gitea:latest-rootless
+    image: gitea/gitea:{{< version >}}-rootless
     restart: always
     volumes:
 -      - ./data:/var/lib/gitea
@@ -201,7 +200,7 @@ version: "2"
 
 services:
   server:
-    image: gitea/gitea:latest-rootless
+    image: gitea/gitea:{{< version >}}-rootless
     restart: always
 +    user: 1001
     volumes:
@@ -262,7 +261,7 @@ docker-compose up -d
 - Rename folder (inside volume) gitea to custom
 - Edit app.ini if needed
   - Set START_SSH_SERVER = true
-- Use image gitea/gitea:latest-rootless
+- Use image gitea/gitea:{{< version >}}-rootless
 
 ## Managing Deployments With Environment Variables
 
@@ -286,8 +285,43 @@ services:
 
 To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
-# SSH Container Passthrough (not tested)
+# SSH Container Passthrough
 
-This should be possible by forcing `authorized_keys` generation via `gitea admin regenerate keys`.
+Since SSH is running inside the container, SSH needs to be passed through from the host to the container if SSH support is desired. One option would be to run the container SSH on a non-standard port (or moving the host port to a non-standard port). Another option which might be more straightforward is to forward SSH commands from the host to the container. This setup is explained in the following.
 
-We should use directly [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) when it will be based on internal api.
+This guide assumes that you have created a user on the host called `git` with permission to run `docker exec`, and that the gitea container is called `gitea`. You will need to modify that user's shell to forward the commands to the `sh` executable inside the container, using `docker exec`.
+
+First, create the file `/usr/local/bin/gitea-shell` on the host, with the following contents:
+
+```bash
+#!/bin/sh
+/usr/bin/docker exec -i --env SSH_ORIGINAL_COMMAND="$SSH_ORIGINAL_COMMAND" gitea sh "$@"
+```
+
+Note that `gitea` in the docker command above is the name of the container. If you named yours differently, don't forget to change that.
+
+You should also make sure that you’ve set the permissions of the shell wrapper correctly:
+
+```bash
+sudo chmod +x /usr/local/bin/gitea-shell
+```
+
+Once the wrapper is in place, you can make it the shell for the `git` user:
+
+```bash
+sudo usermod -s /usr/local/bin/gitea-shell git
+```
+
+Now that all the SSH commands are forwarded to the container, you need to set up the SSH authentication on the host. This is done by leveraging the [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) to match the keys against those accepted by gitea. Add the following block to `/etc/ssh/sshd_config`, on the host:
+
+```bash
+Match User git
+  AuthorizedKeysCommandUser git
+  AuthorizedKeysCommand /usr/bin/docker exec -i gitea /usr/local/bin/gitea keys -c /etc/gitea/app.ini -e git -u %u -t %t -k %k
+```
+
+All that is left to do is restart the SSH server:
+
+```bash
+sudo systemctl restart sshd
+```

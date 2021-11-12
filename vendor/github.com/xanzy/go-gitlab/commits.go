@@ -185,7 +185,7 @@ type CreateCommitOptions struct {
 	StartBranch   *string                `url:"start_branch,omitempty" json:"start_branch,omitempty"`
 	StartSHA      *string                `url:"start_sha,omitempty" json:"start_sha,omitempty"`
 	StartProject  *string                `url:"start_project,omitempty" json:"start_project,omitempty"`
-	Actions       []*CommitActionOptions `url:"actions,omitempty" json:"actions,omitempty"`
+	Actions       []*CommitActionOptions `url:"actions" json:"actions"`
 	AuthorEmail   *string                `url:"author_email,omitempty" json:"author_email,omitempty"`
 	AuthorName    *string                `url:"author_name,omitempty" json:"author_name,omitempty"`
 	Stats         *bool                  `url:"stats,omitempty" json:"stats,omitempty"`

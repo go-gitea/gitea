@@ -7,7 +7,7 @@ import (
 )
 
 // Makefile lexer.
-var Makefile = internal.Register(MustNewLexer(
+var Makefile = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Base Makefile",
 		Aliases:   []string{"make", "makefile", "mf", "bsdmake"},
@@ -15,7 +15,11 @@ var Makefile = internal.Register(MustNewLexer(
 		MimeTypes: []string{"text/x-makefile"},
 		EnsureNL:  true,
 	},
-	Rules{
+	makefileRules,
+))
+
+func makefileRules() Rules {
+	return Rules{
 		"root": {
 			{`^(?:[\t ]+.*\n|\n)+`, Using(Bash), nil},
 			{`\$[<@$+%?|*]`, Keyword, nil},
@@ -50,5 +54,5 @@ var Makefile = internal.Register(MustNewLexer(
 			{`\n`, Text, Pop(1)},
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

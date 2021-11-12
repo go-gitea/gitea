@@ -113,18 +113,23 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName       string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description    string `binding:"MaxSize(255)"`
-	Website        string `binding:"ValidUrl;MaxSize(255)"`
-	Interval       string
-	MirrorAddress  string
-	MirrorUsername string
-	MirrorPassword string
-	LFS            bool   `form:"mirror_lfs"`
-	LFSEndpoint    string `form:"mirror_lfs_endpoint"`
-	Private        bool
-	Template       bool
-	EnablePrune    bool
+	RepoName           string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description        string `binding:"MaxSize(255)"`
+	Website            string `binding:"ValidUrl;MaxSize(255)"`
+	Interval           string
+	MirrorAddress      string
+	MirrorUsername     string
+	MirrorPassword     string
+	LFS                bool   `form:"mirror_lfs"`
+	LFSEndpoint        string `form:"mirror_lfs_endpoint"`
+	PushMirrorID       string
+	PushMirrorAddress  string
+	PushMirrorUsername string
+	PushMirrorPassword string
+	PushMirrorInterval string
+	Private            bool
+	Template           bool
+	EnablePrune        bool
 
 	// Advanced settings
 	EnableWiki                            bool
@@ -146,6 +151,7 @@ type RepoSettingForm struct {
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
 	EnableAutodetectManualMerge           bool
+	DefaultDeleteBranchAfterMerge         bool
 	EnableTimetracker                     bool
 	AllowOnlyContributorsToTrackTime      bool
 	EnableIssueDependencies               bool
@@ -193,6 +199,7 @@ type ProtectBranchForm struct {
 	DismissStaleApprovals         bool
 	RequireSignedCommits          bool
 	ProtectedFilePatterns         string
+	UnprotectedFilePatterns       string
 }
 
 // Validate validates the fields
@@ -376,6 +383,18 @@ func (f *NewFeishuHookForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// NewWechatWorkHookForm form for creating wechatwork hook
+type NewWechatWorkHookForm struct {
+	PayloadURL string `binding:"Required;ValidUrl"`
+	WebhookForm
+}
+
+// Validate validates the fields
+func (f *NewWechatWorkHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
 // .___
 // |   | ______ ________ __   ____
 // |   |/  ___//  ___/  |  \_/ __ \
@@ -480,6 +499,7 @@ type UserCreateProjectForm struct {
 type EditProjectBoardForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
+	Color   string `binding:"MaxSize(7)"`
 }
 
 //    _____  .__.__                   __
@@ -546,11 +566,12 @@ func (f *InitializeLabelsForm) Validate(req *http.Request, errs binding.Errors) 
 type MergePullRequestForm struct {
 	// required: true
 	// enum: merge,rebase,rebase-merge,squash,manually-merged
-	Do                string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
-	MergeTitleField   string
-	MergeMessageField string
-	MergeCommitID     string // only used for manually-merged
-	ForceMerge        *bool  `json:"force_merge,omitempty"`
+	Do                     string `binding:"Required;In(merge,rebase,rebase-merge,squash,manually-merged)"`
+	MergeTitleField        string
+	MergeMessageField      string
+	MergeCommitID          string // only used for manually-merged
+	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
 
 // Validate validates the fields
@@ -582,6 +603,7 @@ type SubmitReviewForm struct {
 	Content  string
 	Type     string `binding:"Required;In(approve,comment,reject)"`
 	CommitID string
+	Files    []string
 }
 
 // Validate validates the fields

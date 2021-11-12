@@ -6,14 +6,18 @@ import (
 )
 
 // Reasonml lexer.
-var Reasonml = internal.Register(MustNewLexer(
+var Reasonml = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "ReasonML",
 		Aliases:   []string{"reason", "reasonml"},
 		Filenames: []string{"*.re", "*.rei"},
 		MimeTypes: []string{"text/x-reasonml"},
 	},
-	Rules{
+	reasonmlRules,
+))
+
+func reasonmlRules() Rules {
+	return Rules{
 		"escape-sequence": {
 			{`\\[\\"\'ntbr]`, LiteralStringEscape, nil},
 			{`\\[0-9]{3}`, LiteralStringEscape, nil},
@@ -63,5 +67,5 @@ var Reasonml = internal.Register(MustNewLexer(
 			{`[a-z_][\w\']*`, Name, Pop(1)},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

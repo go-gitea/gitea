@@ -6,14 +6,18 @@ import (
 )
 
 // GDScript lexer.
-var GDScript = internal.Register(MustNewLexer(
+var GDScript = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "GDScript",
 		Aliases:   []string{"gdscript", "gd"},
 		Filenames: []string{"*.gd"},
 		MimeTypes: []string{"text/x-gdscript", "application/x-gdscript"},
 	},
-	Rules{
+	gdscriptRules,
+))
+
+func gdscriptRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`^(\s*)([rRuUbB]{,2})("""(?:.|\n)*?""")`, ByGroups(Text, LiteralStringAffix, LiteralStringDoc), nil},
@@ -120,5 +124,5 @@ var GDScript = internal.Register(MustNewLexer(
 			Include("strings-single"),
 			{`\n`, LiteralStringSingle, nil},
 		},
-	},
-))
+	}
+}

@@ -94,6 +94,20 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 		}
 	}
 
+	// In case the new owner would not have sufficient access to the repo, give access rights for read
+	hasAccess, err := models.HasAccess(newOwner.ID, repo)
+	if err != nil {
+		return err
+	}
+	if !hasAccess {
+		if err := repo.AddCollaborator(newOwner); err != nil {
+			return err
+		}
+		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, models.AccessModeRead); err != nil {
+			return err
+		}
+	}
+
 	// Make repo as pending for transfer
 	repo.Status = models.RepositoryPendingTransfer
 	if err := models.CreatePendingRepositoryTransfer(doer, newOwner, repo.ID, teams); err != nil {

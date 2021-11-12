@@ -6,14 +6,18 @@ import (
 )
 
 // Elm lexer.
-var Elm = internal.Register(MustNewLexer(
+var Elm = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Elm",
 		Aliases:   []string{"elm"},
 		Filenames: []string{"*.elm"},
 		MimeTypes: []string{"text/x-elm"},
 	},
-	Rules{
+	elmRules,
+))
+
+func elmRules() Rules {
+	return Rules{
 		"root": {
 			{`\{-`, CommentMultiline, Push("comment")},
 			{`--.*`, CommentSingle, nil},
@@ -55,5 +59,5 @@ var Elm = internal.Register(MustNewLexer(
 			{`\|\]`, NameEntity, Pop(1)},
 			{`.*\n`, NameEntity, nil},
 		},
-	},
-))
+	}
+}

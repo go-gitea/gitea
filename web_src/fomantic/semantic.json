@@ -21,7 +21,6 @@
   "rtl": false,
   "admin": false,
   "components": [
-    "accordion",
     "api",
     "breadcrumb",
     "button",
@@ -50,7 +49,6 @@
     "reset",
     "search",
     "segment",
-    "sidebar",
     "site",
     "tab",
     "table",

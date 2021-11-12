@@ -3,7 +3,7 @@
 		<a class="{{if .PageIsOpenIDConnect}}active{{end}} item" href="{{AppSubUrl}}/user/openid/connect">
 			{{.i18n.Tr "auth.openid_connect_title"}}
 		</a>
-		{{if .EnableOpenIDSignUp}}
+		{{if and .EnableOpenIDSignUp (not .AllowOnlyInternalRegistration)}}
 			<a class="{{if .PageIsOpenIDRegister}}active{{end}} item" href="{{AppSubUrl}}/user/openid/register">
 				{{.i18n.Tr "auth.openid_register_title"}}
 			</a>

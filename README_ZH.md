@@ -12,13 +12,10 @@
   <a href="https://discord.gg/Gitea" title="Join the Discord chat at https://discord.gg/Gitea">
     <img src="https://img.shields.io/discord/322538954119184384.svg">
   </a>
-  <a href="https://microbadger.com/images/gitea/gitea" title="Get your own image badge on microbadger.com">
-    <img src="https://images.microbadger.com/badges/image/gitea/gitea.svg">
-  </a>
   <a href="https://codecov.io/gh/go-gitea/gitea" title="Codecov">
     <img src="https://codecov.io/gh/go-gitea/gitea/branch/main/graph/badge.svg">
   </a>
-  <a href="https://godoc.org/code.gitea.io/gitea" title="Go Report Card">
+  <a href="https://goreportcard.com/report/code.gitea.io/gitea" title="Go Report Card">
     <img src="https://goreportcard.com/badge/code.gitea.io/gitea">
   </a>
   <a href="https://godoc.org/code.gitea.io/gitea" title="GoDoc">
@@ -70,6 +67,11 @@ Gitea 的首要目标是创建一个极易安装，运行非常快速，安装�
 ## 贡献流程
 
 Fork -> Patch -> Push -> Pull Request
+
+## 翻译
+
+多语言翻译是基于Crowdin进行的.
+[![Crowdin](https://badges.crowdin.net/gitea/localized.svg)](https://crowdin.com/project/gitea)
 
 ## 作者
 

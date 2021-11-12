@@ -10,7 +10,6 @@ import (
 	"github.com/go-redis/redis/v8/internal"
 	"github.com/go-redis/redis/v8/internal/pool"
 	"github.com/go-redis/redis/v8/internal/proto"
-	"go.opentelemetry.io/otel/attribute"
 )
 
 // Nil reply returned by Redis when key does not exist.
@@ -237,9 +236,6 @@ func (c *baseClient) initConn(ctx context.Context, cn *pool.Conn) error {
 		return nil
 	}
 
-	ctx, span := internal.StartSpan(ctx, "redis.init_conn")
-	defer span.End()
-
 	connPool := pool.NewSingleConnPool(c.connPool, cn)
 	conn := newConn(ctx, c.opt, connPool)
 
@@ -287,18 +283,9 @@ func (c *baseClient) releaseConn(ctx context.Context, cn *pool.Conn, err error) 
 func (c *baseClient) withConn(
 	ctx context.Context, fn func(context.Context, *pool.Conn) error,
 ) error {
-	ctx, span := internal.StartSpan(ctx, "redis.with_conn")
-	defer span.End()
-
 	cn, err := c.getConn(ctx)
 	if err != nil {
 		return err
-	}
-
-	if span.IsRecording() {
-		if remoteAddr := cn.RemoteAddr(); remoteAddr != nil {
-			span.SetAttributes(attribute.String("net.peer.ip", remoteAddr.String()))
-		}
 	}
 
 	defer func() {

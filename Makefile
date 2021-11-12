@@ -24,8 +24,8 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.16.x
-MIN_GO_VERSION := 001014000
+XGO_VERSION := go-1.17.x
+MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -41,6 +41,9 @@ ifeq ($(HAS_GO), GO)
 endif
 
 ifeq ($(OS), Windows_NT)
+	GOFLAGS := -v -buildmode=exe
+	EXECUTABLE ?= gitea.exe
+else ifeq ($(OS), Windows)
 	GOFLAGS := -v -buildmode=exe
 	EXECUTABLE ?= gitea.exe
 else
@@ -61,8 +64,9 @@ EXTRA_GOFLAGS ?=
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
 MAKE_EVIDENCE_DIR := .make_evidence
 
-ifneq ($(RACE_ENABLED),)
-	GOTESTFLAGS ?= -race
+ifeq ($(RACE_ENABLED),true)
+	GOFLAGS += -race
+	GOTESTFLAGS += -race
 endif
 
 STORED_VERSION_FILE := VERSION
@@ -196,7 +200,7 @@ help:
 go-check:
 	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
-		echo "Gitea requires Go 1.14 or greater to build. You can get it at https://golang.org/dl/"; \
+		echo "Gitea requires Go 1.16 or greater to build. You can get it at https://golang.org/dl/"; \
 		exit 1; \
 	fi
 
@@ -219,7 +223,7 @@ node-check:
 
 .PHONY: clean-all
 clean-all: clean
-	rm -rf $(WEBPACK_DEST_ENTRIES)
+	rm -rf $(WEBPACK_DEST_ENTRIES) node_modules
 
 .PHONY: clean
 clean:
@@ -275,27 +279,30 @@ swagger-validate:
 .PHONY: errcheck
 errcheck:
 	@hash errcheck > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/kisielk/errcheck; \
+		$(GO) install github.com/kisielk/errcheck@8ddee489636a8311a376fc92e27a6a13c6658344; \
 	fi
 	@echo "Running errcheck..."
 	@errcheck $(GO_PACKAGES)
 
 .PHONY: revive
 revive:
-	GO111MODULE=on $(GO) run -mod=vendor build/lint.go -config .revive.toml -exclude=./vendor/... ./... || exit 1
+	@hash revive > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		$(GO) install github.com/mgechev/revive@v1.1.2; \
+	fi
+	@revive -config .revive.toml -exclude=./vendor/... ./...
 
 .PHONY: misspell-check
 misspell-check:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
 	fi
 	@echo "Running misspell-check..."
-	@misspell -error -i unknwon,destory $(GO_SOURCES_OWN)
+	@misspell -error -i unknwon $(GO_SOURCES_OWN)
 
 .PHONY: misspell
 misspell:
 	@hash misspell > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/client9/misspell/cmd/misspell; \
+		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
 	fi
 	@echo "Running go misspell..."
 	@misspell -w -i unknwon $(GO_SOURCES_OWN)
@@ -343,20 +350,20 @@ watch-frontend: node-check node_modules
 .PHONY: watch-backend
 watch-backend: go-check
 	@hash air > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/cosmtrek/air; \
+		$(GO) install github.com/cosmtrek/air@bedc18201271882c2be66d216d0e1a275b526ec4; \
 	fi
-	air -c .air.conf
+	air -c .air.toml
 
 .PHONY: test
 test: test-frontend test-backend
 
 .PHONY: test-backend
 test-backend:
-	@echo "Running go test with -tags '$(TEST_TAGS)'..."
+	@echo "Running go test with $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' $(GO_PACKAGES)
 
 .PHONY: test-frontend
-test-frontend:
+test-frontend: node_modules
 	@NODE_OPTIONS="--experimental-vm-modules --no-warnings" npx jest --color
 
 .PHONY: test-check
@@ -374,15 +381,17 @@ test-check:
 .PHONY: test\#%
 test\#%:
 	@echo "Running go test with -tags '$(TEST_TAGS)'..."
-	@$(GO) test -mod=vendor -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
+	@$(GO) test -mod=vendor $(GOTESTFLAGS) -tags='$(TEST_TAGS)' -run $(subst .,/,$*) $(GO_PACKAGES)
 
 .PHONY: coverage
 coverage:
-	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage.out $(shell find . -type f -name "coverage.out") > coverage.all
+	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
+	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
+	GO111MODULE=on $(GO) run -mod=vendor build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
-	@echo "Running unit-test-coverage -tags '$(TEST_TAGS)'..."
+	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -mod=vendor -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
 .PHONY: vendor
@@ -652,7 +661,7 @@ release-check: | $(DIST_DIRS)
 .PHONY: release-compress
 release-compress: | $(DIST_DIRS)
 	@hash gxz > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		GO111MODULE=off $(GO) get -u github.com/ulikunitz/xz/cmd/gxz; \
+		$(GO) install github.com/ulikunitz/xz/cmd/gxz@v0.5.10; \
 	fi
 	cd $(DIST)/release/; for file in `find . -type f -name "*"`; do echo "compressing $${file}" && gxz -k -9 $${file}; done;
 
@@ -692,7 +701,9 @@ fomantic:
 	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
+	cp -f web_src/js/vendor/dropdown.js $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/definitions/modules
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 
 .PHONY: webpack
 webpack: $(WEBPACK_DEST)

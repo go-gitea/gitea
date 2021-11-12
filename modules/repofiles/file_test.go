@@ -7,7 +7,7 @@ package repofiles
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -81,7 +81,7 @@ func getExpectedFileResponse() *api.FileResponse {
 }
 
 func TestGetFileResponseFromCommit(t *testing.T) {
-	models.PrepareTestEnv(t)
+	db.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)

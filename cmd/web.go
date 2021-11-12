@@ -16,11 +16,9 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers/install"
 
-	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -48,6 +46,14 @@ and it takes care of all the other things for you`,
 			Value: setting.PIDFile,
 			Usage: "Custom pid file path",
 		},
+		cli.BoolFlag{
+			Name:  "quiet, q",
+			Usage: "Only display Fatal logging errors until logging is set-up",
+		},
+		cli.BoolFlag{
+			Name:  "verbose",
+			Usage: "Set initial logging to TRACE level until logging is properly set-up",
+		},
 	},
 }
 
@@ -64,7 +70,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, "HTTP Redirector", context2.ClearHandler(handler))
+	var err = runHTTP("tcp", source, "HTTP Redirector", handler)
 
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
@@ -72,6 +78,19 @@ func runHTTPRedirector() {
 }
 
 func runWeb(ctx *cli.Context) error {
+	if ctx.Bool("verbose") {
+		_ = log.DelLogger("console")
+		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "trace", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	} else if ctx.Bool("quiet") {
+		_ = log.DelLogger("console")
+		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
+	}
+	defer func() {
+		if panicked := recover(); panicked != nil {
+			log.Fatal("PANIC: %v\n%s", panicked, string(log.Stack(2)))
+		}
+	}()
+
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
@@ -89,7 +108,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform pre-initialization
-	needsInstall := routers.PreInstallInit(graceful.GetManager().HammerContext())
+	needsInstall := install.PreloadSettings(graceful.GetManager().HammerContext())
 	if needsInstall {
 		// Flag for port number in case first time run conflict
 		if ctx.IsSet("port") {
@@ -102,7 +121,7 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := routes.InstallRoutes()
+		c := install.Routes()
 		err := listen(c, false)
 		select {
 		case <-graceful.GetManager().IsShutdown():
@@ -135,7 +154,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routes.NormalRoutes()
+	c := routers.NormalRoutes()
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
@@ -152,19 +171,6 @@ func setPort(port string) error {
 	case setting.FCGI:
 	case setting.FCGIUnix:
 	default:
-		// Save LOCAL_ROOT_URL if port changed
-		cfg := ini.Empty()
-		isFile, err := util.IsFile(setting.CustomConf)
-		if err != nil {
-			log.Fatal("Unable to check if %s is a file", err)
-		}
-		if isFile {
-			// Keeps custom settings if there is already something.
-			if err := cfg.Append(setting.CustomConf); err != nil {
-				return fmt.Errorf("Failed to load custom conf '%s': %v", setting.CustomConf, err)
-			}
-		}
-
 		defaultLocalURL := string(setting.Protocol) + "://"
 		if setting.HTTPAddr == "0.0.0.0" {
 			defaultLocalURL += "localhost"
@@ -173,10 +179,10 @@ func setPort(port string) error {
 		}
 		defaultLocalURL += ":" + setting.HTTPPort + "/"
 
-		cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
-		if err := cfg.SaveTo(setting.CustomConf); err != nil {
-			return fmt.Errorf("Error saving generated JWT Secret to custom config: %v", err)
-		}
+		// Save LOCAL_ROOT_URL if port changed
+		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			cfg.Section("server").Key("LOCAL_ROOT_URL").SetValue(defaultLocalURL)
+		})
 	}
 	return nil
 }
@@ -187,6 +193,10 @@ func listen(m http.Handler, handleRedirector bool) error {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
+	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.
+	// A user may fix the configuration mistake when he sees this log.
+	// And this is also very helpful to maintainers to provide help to users to resolve their configuration problems.
+	log.Info("AppURL(ROOT_URL): %s", setting.AppURL)
 
 	if setting.LFS.StartServer {
 		log.Info("LFS server enabled")
@@ -198,10 +208,10 @@ func listen(m http.Handler, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, "Web", context2.ClearHandler(m))
+		err = runHTTP("tcp", listenAddr, "Web", m)
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
+			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
 			break
 		}
 		if handleRedirector {
@@ -211,22 +221,22 @@ func listen(m http.Handler, handleRedirector bool) error {
 				NoHTTPRedirector()
 			}
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, context2.ClearHandler(m))
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, "FCGI Web", context2.ClearHandler(m))
+		err = runFCGI("tcp", listenAddr, "FCGI Web", m)
 	case setting.UnixSocket:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, "Web", context2.ClearHandler(m))
+		err = runHTTP("unix", listenAddr, "Web", m)
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, "Web", context2.ClearHandler(m))
+		err = runFCGI("unix", listenAddr, "Web", m)
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}

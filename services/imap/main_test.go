@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -35,5 +35,5 @@ func TestMain(m *testing.M) {
 	c.IsTLS = setting.MailReciveService.IsTLSEnabled
 	c.Client = new(testIMAPClient)
 
-	models.MainTest(m, filepath.Join("..", ".."))
+	db.MainTest(m, filepath.Join("..", ".."))
 }

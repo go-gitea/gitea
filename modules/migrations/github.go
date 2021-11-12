@@ -7,19 +7,23 @@ package migrations
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 )
 
@@ -60,18 +64,19 @@ func (f *GithubDownloaderV3Factory) GitServiceType() structs.GitServiceType {
 	return structs.GithubService
 }
 
-// GithubDownloaderV3 implements a Downloader interface to get repository informations
+// GithubDownloaderV3 implements a Downloader interface to get repository information
 // from github via APIv3
 type GithubDownloaderV3 struct {
 	base.NullDownloader
-	ctx        context.Context
-	client     *github.Client
-	repoOwner  string
-	repoName   string
-	userName   string
-	password   string
-	rate       *github.Rate
-	maxPerPage int
+	ctx          context.Context
+	clients      []*github.Client
+	repoOwner    string
+	repoName     string
+	userName     string
+	password     string
+	rates        []*github.Rate
+	curClientIdx int
+	maxPerPage   int
 }
 
 // NewGithubDownloaderV3 creates a github Downloader via github v3 API
@@ -85,25 +90,49 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 		maxPerPage: 100,
 	}
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			Proxy: func(req *http.Request) (*url.URL, error) {
-				req.SetBasicAuth(userName, password)
-				return nil, nil
-			},
-		},
-	}
 	if token != "" {
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: token},
-		)
-		client = oauth2.NewClient(downloader.ctx, ts)
-	}
-	downloader.client = github.NewClient(client)
-	if baseURL != "https://github.com" {
-		downloader.client, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+		tokens := strings.Split(token, ",")
+		for _, token := range tokens {
+			token = strings.TrimSpace(token)
+			ts := oauth2.StaticTokenSource(
+				&oauth2.Token{AccessToken: token},
+			)
+			var client = &http.Client{
+				Transport: &oauth2.Transport{
+					Base: &http.Transport{
+						TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+						Proxy: func(req *http.Request) (*url.URL, error) {
+							return proxy.Proxy()(req)
+						},
+					},
+					Source: oauth2.ReuseTokenSource(nil, ts),
+				},
+			}
+
+			downloader.addClient(client, baseURL)
+		}
+	} else {
+		var client = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					req.SetBasicAuth(userName, password)
+					return proxy.Proxy()(req)
+				},
+			},
+		}
+		downloader.addClient(client, baseURL)
 	}
 	return &downloader
+}
+
+func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
+	githubClient := github.NewClient(client)
+	if baseURL != "https://github.com" {
+		githubClient, _ = github.NewEnterpriseClient(baseURL, baseURL, client)
+	}
+	g.clients = append(g.clients, githubClient)
+	g.rates = append(g.rates, nil)
 }
 
 // SetContext set context
@@ -111,9 +140,19 @@ func (g *GithubDownloaderV3) SetContext(ctx context.Context) {
 	g.ctx = ctx
 }
 
-func (g *GithubDownloaderV3) sleep() {
-	for g.rate != nil && g.rate.Remaining <= GithubLimitRateRemaining {
-		timer := time.NewTimer(time.Until(g.rate.Reset.Time))
+func (g *GithubDownloaderV3) waitAndPickClient() {
+	var recentIdx int
+	var maxRemaining int
+	for i := 0; i < len(g.clients); i++ {
+		if g.rates[i] != nil && g.rates[i].Remaining > maxRemaining {
+			maxRemaining = g.rates[i].Remaining
+			recentIdx = i
+		}
+	}
+	g.curClientIdx = recentIdx // if no max remain, it will always pick the first client.
+
+	for g.rates[g.curClientIdx] != nil && g.rates[g.curClientIdx].Remaining <= GithubLimitRateRemaining {
+		timer := time.NewTimer(time.Until(g.rates[g.curClientIdx].Reset.Time))
 		select {
 		case <-g.ctx.Done():
 			util.StopTimer(timer)
@@ -123,61 +162,64 @@ func (g *GithubDownloaderV3) sleep() {
 
 		err := g.RefreshRate()
 		if err != nil {
-			log.Error("g.client.RateLimits: %s", err)
+			log.Error("g.getClient().RateLimits: %s", err)
 		}
 	}
 }
 
 // RefreshRate update the current rate (doesn't count in rate limit)
 func (g *GithubDownloaderV3) RefreshRate() error {
-	rates, _, err := g.client.RateLimits(g.ctx)
+	rates, _, err := g.getClient().RateLimits(g.ctx)
 	if err != nil {
 		// if rate limit is not enabled, ignore it
 		if strings.Contains(err.Error(), "404") {
-			g.rate = nil
+			g.setRate(nil)
 			return nil
 		}
 		return err
 	}
 
-	g.rate = rates.GetCore()
+	g.setRate(rates.GetCore())
 	return nil
+}
+
+func (g *GithubDownloaderV3) getClient() *github.Client {
+	return g.clients[g.curClientIdx]
+}
+
+func (g *GithubDownloaderV3) setRate(rate *github.Rate) {
+	g.rates[g.curClientIdx] = rate
 }
 
 // GetRepoInfo returns a repository information
 func (g *GithubDownloaderV3) GetRepoInfo() (*base.Repository, error) {
-	g.sleep()
-	gr, resp, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	g.waitAndPickClient()
+	gr, resp, err := g.getClient().Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
-	g.rate = &resp.Rate
-
-	defaultBranch := ""
-	if gr.DefaultBranch != nil {
-		defaultBranch = *gr.DefaultBranch
-	}
+	g.setRate(&resp.Rate)
 
 	// convert github repo to stand Repo
 	return &base.Repository{
 		Owner:         g.repoOwner,
 		Name:          gr.GetName(),
-		IsPrivate:     *gr.Private,
+		IsPrivate:     gr.GetPrivate(),
 		Description:   gr.GetDescription(),
 		OriginalURL:   gr.GetHTMLURL(),
 		CloneURL:      gr.GetCloneURL(),
-		DefaultBranch: defaultBranch,
+		DefaultBranch: gr.GetDefaultBranch(),
 	}, nil
 }
 
 // GetTopics return github topics
 func (g *GithubDownloaderV3) GetTopics() ([]string, error) {
-	g.sleep()
-	r, resp, err := g.client.Repositories.Get(g.ctx, g.repoOwner, g.repoName)
+	g.waitAndPickClient()
+	r, resp, err := g.getClient().Repositories.Get(g.ctx, g.repoOwner, g.repoName)
 	if err != nil {
 		return nil, err
 	}
-	g.rate = &resp.Rate
+	g.setRate(&resp.Rate)
 	return r.Topics, nil
 }
 
@@ -186,8 +228,8 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 	var perPage = g.maxPerPage
 	var milestones = make([]*base.Milestone, 0, perPage)
 	for i := 1; ; i++ {
-		g.sleep()
-		ms, resp, err := g.client.Issues.ListMilestones(g.ctx, g.repoOwner, g.repoName,
+		g.waitAndPickClient()
+		ms, resp, err := g.getClient().Issues.ListMilestones(g.ctx, g.repoOwner, g.repoName,
 			&github.MilestoneListOptions{
 				State: "all",
 				ListOptions: github.ListOptions{
@@ -197,23 +239,19 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.rate = &resp.Rate
+		g.setRate(&resp.Rate)
 
 		for _, m := range ms {
-			var desc string
-			if m.Description != nil {
-				desc = *m.Description
-			}
 			var state = "open"
 			if m.State != nil {
 				state = *m.State
 			}
 			milestones = append(milestones, &base.Milestone{
-				Title:       *m.Title,
-				Description: desc,
+				Title:       m.GetTitle(),
+				Description: m.GetDescription(),
 				Deadline:    m.DueOn,
 				State:       state,
-				Created:     *m.CreatedAt,
+				Created:     m.GetCreatedAt(),
 				Updated:     m.UpdatedAt,
 				Closed:      m.ClosedAt,
 			})
@@ -226,14 +264,10 @@ func (g *GithubDownloaderV3) GetMilestones() ([]*base.Milestone, error) {
 }
 
 func convertGithubLabel(label *github.Label) *base.Label {
-	var desc string
-	if label.Description != nil {
-		desc = *label.Description
-	}
 	return &base.Label{
-		Name:        *label.Name,
-		Color:       *label.Color,
-		Description: desc,
+		Name:        label.GetName(),
+		Color:       label.GetColor(),
+		Description: label.GetDescription(),
 	}
 }
 
@@ -242,8 +276,8 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 	var perPage = g.maxPerPage
 	var labels = make([]*base.Label, 0, perPage)
 	for i := 1; ; i++ {
-		g.sleep()
-		ls, resp, err := g.client.Issues.ListLabels(g.ctx, g.repoOwner, g.repoName,
+		g.waitAndPickClient()
+		ls, resp, err := g.getClient().Issues.ListLabels(g.ctx, g.repoOwner, g.repoName,
 			&github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
@@ -251,7 +285,7 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.rate = &resp.Rate
+		g.setRate(&resp.Rate)
 
 		for _, label := range ls {
 			labels = append(labels, convertGithubLabel(label))
@@ -264,67 +298,60 @@ func (g *GithubDownloaderV3) GetLabels() ([]*base.Label, error) {
 }
 
 func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease) *base.Release {
-	var (
-		name string
-		desc string
-	)
-	if rel.Body != nil {
-		desc = *rel.Body
-	}
-	if rel.Name != nil {
-		name = *rel.Name
-	}
-
-	var email string
-	if rel.Author.Email != nil {
-		email = *rel.Author.Email
-	}
-
 	r := &base.Release{
-		TagName:         *rel.TagName,
-		TargetCommitish: *rel.TargetCommitish,
-		Name:            name,
-		Body:            desc,
-		Draft:           *rel.Draft,
-		Prerelease:      *rel.Prerelease,
-		Created:         rel.CreatedAt.Time,
-		PublisherID:     *rel.Author.ID,
-		PublisherName:   *rel.Author.Login,
-		PublisherEmail:  email,
-		Published:       rel.PublishedAt.Time,
+		Name:            rel.GetName(),
+		TagName:         rel.GetTagName(),
+		TargetCommitish: rel.GetTargetCommitish(),
+		Draft:           rel.GetDraft(),
+		Prerelease:      rel.GetPrerelease(),
+		Created:         rel.GetCreatedAt().Time,
+		PublisherID:     rel.GetAuthor().GetID(),
+		PublisherName:   rel.GetAuthor().GetLogin(),
+		PublisherEmail:  rel.GetAuthor().GetEmail(),
+		Body:            rel.GetBody(),
+	}
+
+	if rel.PublishedAt != nil {
+		r.Published = rel.PublishedAt.Time
+	}
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
+			Proxy:           proxy.Proxy(),
+		},
 	}
 
 	for _, asset := range rel.Assets {
 		var assetID = *asset.ID // Don't optimize this, for closure we need a local variable
 		r.Assets = append(r.Assets, &base.ReleaseAsset{
-			ID:            *asset.ID,
-			Name:          *asset.Name,
+			ID:            asset.GetID(),
+			Name:          asset.GetName(),
 			ContentType:   asset.ContentType,
 			Size:          asset.Size,
 			DownloadCount: asset.DownloadCount,
 			Created:       asset.CreatedAt.Time,
 			Updated:       asset.UpdatedAt.Time,
 			DownloadFunc: func() (io.ReadCloser, error) {
-				g.sleep()
-				asset, redir, err := g.client.Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
+				g.waitAndPickClient()
+				asset, redirectURL, err := g.getClient().Repositories.DownloadReleaseAsset(g.ctx, g.repoOwner, g.repoName, assetID, nil)
 				if err != nil {
 					return nil, err
 				}
-				err = g.RefreshRate()
-				if err != nil {
-					log.Error("g.client.RateLimits: %s", err)
+				if err := g.RefreshRate(); err != nil {
+					log.Error("g.getClient().RateLimits: %s", err)
 				}
 				if asset == nil {
-					if redir != "" {
-						g.sleep()
-						req, err := http.NewRequestWithContext(g.ctx, "GET", redir, nil)
+					if redirectURL != "" {
+						g.waitAndPickClient()
+						req, err := http.NewRequestWithContext(g.ctx, "GET", redirectURL, nil)
 						if err != nil {
 							return nil, err
 						}
-						resp, err := http.DefaultClient.Do(req)
+						resp, err := httpClient.Do(req)
 						err1 := g.RefreshRate()
 						if err1 != nil {
-							log.Error("g.client.RateLimits: %s", err1)
+							log.Error("g.getClient().RateLimits: %s", err1)
 						}
 						if err != nil {
 							return nil, err
@@ -345,8 +372,8 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 	var perPage = g.maxPerPage
 	var releases = make([]*base.Release, 0, perPage)
 	for i := 1; ; i++ {
-		g.sleep()
-		ls, resp, err := g.client.Repositories.ListReleases(g.ctx, g.repoOwner, g.repoName,
+		g.waitAndPickClient()
+		ls, resp, err := g.getClient().Repositories.ListReleases(g.ctx, g.repoOwner, g.repoName,
 			&github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
@@ -354,7 +381,7 @@ func (g *GithubDownloaderV3) GetReleases() ([]*base.Release, error) {
 		if err != nil {
 			return nil, err
 		}
-		g.rate = &resp.Rate
+		g.setRate(&resp.Rate)
 
 		for _, release := range ls {
 			releases = append(releases, g.convertGithubRelease(release))
@@ -382,47 +409,35 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 	}
 
 	var allIssues = make([]*base.Issue, 0, perPage)
-	g.sleep()
-	issues, resp, err := g.client.Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
+	g.waitAndPickClient()
+	issues, resp, err := g.getClient().Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
 	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
-	g.rate = &resp.Rate
+	g.setRate(&resp.Rate)
 	for _, issue := range issues {
 		if issue.IsPullRequest() {
 			continue
 		}
-		var body string
-		if issue.Body != nil {
-			body = *issue.Body
-		}
-		var milestone string
-		if issue.Milestone != nil {
-			milestone = *issue.Milestone.Title
-		}
+
 		var labels = make([]*base.Label, 0, len(issue.Labels))
 		for _, l := range issue.Labels {
 			labels = append(labels, convertGithubLabel(l))
 		}
 
-		var email string
-		if issue.User.Email != nil {
-			email = *issue.User.Email
-		}
-
 		// get reactions
 		var reactions []*base.Reaction
 		for i := 1; ; i++ {
-			g.sleep()
-			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
+			g.waitAndPickClient()
+			res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
 			})
 			if err != nil {
 				return nil, false, err
 			}
-			g.rate = &resp.Rate
+			g.setRate(&resp.Rate)
 			if len(res) == 0 {
 				break
 			}
@@ -435,29 +450,50 @@ func (g *GithubDownloaderV3) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			}
 		}
 
+		var assignees []string
+		for i := range issue.Assignees {
+			assignees = append(assignees, issue.Assignees[i].GetLogin())
+		}
+
 		allIssues = append(allIssues, &base.Issue{
 			Title:       *issue.Title,
 			Number:      int64(*issue.Number),
-			PosterID:    *issue.User.ID,
-			PosterName:  *issue.User.Login,
-			PosterEmail: email,
-			Content:     body,
-			Milestone:   milestone,
-			State:       *issue.State,
-			Created:     *issue.CreatedAt,
-			Updated:     *issue.UpdatedAt,
+			PosterID:    issue.GetUser().GetID(),
+			PosterName:  issue.GetUser().GetLogin(),
+			PosterEmail: issue.GetUser().GetEmail(),
+			Content:     issue.GetBody(),
+			Milestone:   issue.GetMilestone().GetTitle(),
+			State:       issue.GetState(),
+			Created:     issue.GetCreatedAt(),
+			Updated:     issue.GetUpdatedAt(),
 			Labels:      labels,
 			Reactions:   reactions,
 			Closed:      issue.ClosedAt,
-			IsLocked:    *issue.Locked,
+			IsLocked:    issue.GetLocked(),
+			Assignees:   assignees,
+			Context:     base.BasicIssueContext(*issue.Number),
 		})
 	}
 
 	return allIssues, len(issues) < perPage, nil
 }
 
+// SupportGetRepoComments return true if it supports get repo comments
+func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
+	return true
+}
+
 // GetComments returns comments according issueNumber
-func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, error) {
+func (g *GithubDownloaderV3) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
+	if opts.Context != nil {
+		comments, err := g.getComments(opts.Context)
+		return comments, false, err
+	}
+
+	return g.GetAllComments(opts.Page, opts.PageSize)
+}
+
+func (g *GithubDownloaderV3) getComments(issueContext base.IssueContext) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
@@ -471,30 +507,25 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		},
 	}
 	for {
-		g.sleep()
-		comments, resp, err := g.client.Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(issueNumber), opt)
+		g.waitAndPickClient()
+		comments, resp, err := g.getClient().Issues.ListComments(g.ctx, g.repoOwner, g.repoName, int(issueContext.ForeignID()), opt)
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
-		g.rate = &resp.Rate
+		g.setRate(&resp.Rate)
 		for _, comment := range comments {
-			var email string
-			if comment.User.Email != nil {
-				email = *comment.User.Email
-			}
-
 			// get reactions
 			var reactions []*base.Reaction
 			for i := 1; ; i++ {
-				g.sleep()
-				res, resp, err := g.client.Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
+				g.waitAndPickClient()
+				res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
 					Page:    i,
 					PerPage: g.maxPerPage,
 				})
 				if err != nil {
 					return nil, err
 				}
-				g.rate = &resp.Rate
+				g.setRate(&resp.Rate)
 				if len(res) == 0 {
 					break
 				}
@@ -506,14 +537,15 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 					})
 				}
 			}
+
 			allComments = append(allComments, &base.Comment{
-				IssueIndex:  issueNumber,
-				PosterID:    *comment.User.ID,
-				PosterName:  *comment.User.Login,
-				PosterEmail: email,
-				Content:     *comment.Body,
-				Created:     *comment.CreatedAt,
-				Updated:     *comment.UpdatedAt,
+				IssueIndex:  issueContext.LocalID(),
+				PosterID:    comment.GetUser().GetID(),
+				PosterName:  comment.GetUser().GetLogin(),
+				PosterEmail: comment.GetUser().GetEmail(),
+				Content:     comment.GetBody(),
+				Created:     comment.GetCreatedAt(),
+				Updated:     comment.GetUpdatedAt(),
 				Reactions:   reactions,
 			})
 		}
@@ -523,6 +555,75 @@ func (g *GithubDownloaderV3) GetComments(issueNumber int64) ([]*base.Comment, er
 		opt.Page = resp.NextPage
 	}
 	return allComments, nil
+}
+
+// GetAllComments returns repository comments according page and perPageSize
+func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment, bool, error) {
+	var (
+		allComments = make([]*base.Comment, 0, perPage)
+		created     = "created"
+		asc         = "asc"
+	)
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+	opt := &github.IssueListCommentsOptions{
+		Sort:      &created,
+		Direction: &asc,
+		ListOptions: github.ListOptions{
+			Page:    page,
+			PerPage: perPage,
+		},
+	}
+
+	g.waitAndPickClient()
+	comments, resp, err := g.getClient().Issues.ListComments(g.ctx, g.repoOwner, g.repoName, 0, opt)
+	if err != nil {
+		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+	}
+	var isEnd = resp.NextPage == 0
+
+	log.Trace("Request get comments %d/%d, but in fact get %d, next page is %d", perPage, page, len(comments), resp.NextPage)
+	g.setRate(&resp.Rate)
+	for _, comment := range comments {
+		// get reactions
+		var reactions []*base.Reaction
+		for i := 1; ; i++ {
+			g.waitAndPickClient()
+			res, resp, err := g.getClient().Reactions.ListIssueCommentReactions(g.ctx, g.repoOwner, g.repoName, comment.GetID(), &github.ListOptions{
+				Page:    i,
+				PerPage: g.maxPerPage,
+			})
+			if err != nil {
+				return nil, false, err
+			}
+			g.setRate(&resp.Rate)
+			if len(res) == 0 {
+				break
+			}
+			for _, reaction := range res {
+				reactions = append(reactions, &base.Reaction{
+					UserID:   reaction.User.GetID(),
+					UserName: reaction.User.GetLogin(),
+					Content:  reaction.GetContent(),
+				})
+			}
+		}
+		idx := strings.LastIndex(*comment.IssueURL, "/")
+		issueIndex, _ := strconv.ParseInt((*comment.IssueURL)[idx+1:], 10, 64)
+		allComments = append(allComments, &base.Comment{
+			IssueIndex:  issueIndex,
+			PosterID:    comment.GetUser().GetID(),
+			PosterName:  comment.GetUser().GetLogin(),
+			PosterEmail: comment.GetUser().GetEmail(),
+			Content:     comment.GetBody(),
+			Created:     comment.GetCreatedAt(),
+			Updated:     comment.GetUpdatedAt(),
+			Reactions:   reactions,
+		})
+	}
+
+	return allComments, isEnd, nil
 }
 
 // GetPullRequests returns pull requests according page and perPage
@@ -540,78 +641,31 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		},
 	}
 	var allPRs = make([]*base.PullRequest, 0, perPage)
-	g.sleep()
-	prs, resp, err := g.client.PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
+	g.waitAndPickClient()
+	prs, resp, err := g.getClient().PullRequests.List(g.ctx, g.repoOwner, g.repoName, opt)
 	if err != nil {
 		return nil, false, fmt.Errorf("error while listing repos: %v", err)
 	}
-	g.rate = &resp.Rate
+	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
+	g.setRate(&resp.Rate)
 	for _, pr := range prs {
-		var body string
-		if pr.Body != nil {
-			body = *pr.Body
-		}
-		var milestone string
-		if pr.Milestone != nil {
-			milestone = *pr.Milestone.Title
-		}
 		var labels = make([]*base.Label, 0, len(pr.Labels))
 		for _, l := range pr.Labels {
 			labels = append(labels, convertGithubLabel(l))
 		}
 
-		var email string
-		if pr.User.Email != nil {
-			email = *pr.User.Email
-		}
-		var merged bool
-		// pr.Merged is not valid, so use MergedAt to test if it's merged
-		if pr.MergedAt != nil {
-			merged = true
-		}
-
-		var (
-			headRepoName string
-			cloneURL     string
-			headRef      string
-			headSHA      string
-		)
-		if pr.Head.Repo != nil {
-			if pr.Head.Repo.Name != nil {
-				headRepoName = *pr.Head.Repo.Name
-			}
-			if pr.Head.Repo.CloneURL != nil {
-				cloneURL = *pr.Head.Repo.CloneURL
-			}
-		}
-		if pr.Head.Ref != nil {
-			headRef = *pr.Head.Ref
-		}
-		if pr.Head.SHA != nil {
-			headSHA = *pr.Head.SHA
-		}
-		var mergeCommitSHA string
-		if pr.MergeCommitSHA != nil {
-			mergeCommitSHA = *pr.MergeCommitSHA
-		}
-
-		var headUserName string
-		if pr.Head.User != nil && pr.Head.User.Login != nil {
-			headUserName = *pr.Head.User.Login
-		}
-
 		// get reactions
 		var reactions []*base.Reaction
 		for i := 1; ; i++ {
-			g.sleep()
-			res, resp, err := g.client.Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
+			g.waitAndPickClient()
+			res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
 				Page:    i,
 				PerPage: perPage,
 			})
 			if err != nil {
 				return nil, false, err
 			}
-			g.rate = &resp.Rate
+			g.setRate(&resp.Rate)
 			if len(res) == 0 {
 				break
 			}
@@ -624,38 +678,42 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 			}
 		}
 
+		// download patch and saved as tmp file
+		g.waitAndPickClient()
+
 		allPRs = append(allPRs, &base.PullRequest{
-			Title:          *pr.Title,
-			Number:         int64(*pr.Number),
-			PosterName:     *pr.User.Login,
-			PosterID:       *pr.User.ID,
-			PosterEmail:    email,
-			Content:        body,
-			Milestone:      milestone,
-			State:          *pr.State,
-			Created:        *pr.CreatedAt,
-			Updated:        *pr.UpdatedAt,
+			Title:          pr.GetTitle(),
+			Number:         int64(pr.GetNumber()),
+			PosterID:       pr.GetUser().GetID(),
+			PosterName:     pr.GetUser().GetLogin(),
+			PosterEmail:    pr.GetUser().GetEmail(),
+			Content:        pr.GetBody(),
+			Milestone:      pr.GetMilestone().GetTitle(),
+			State:          pr.GetState(),
+			Created:        pr.GetCreatedAt(),
+			Updated:        pr.GetUpdatedAt(),
 			Closed:         pr.ClosedAt,
 			Labels:         labels,
-			Merged:         merged,
-			MergeCommitSHA: mergeCommitSHA,
+			Merged:         pr.MergedAt != nil,
+			MergeCommitSHA: pr.GetMergeCommitSHA(),
 			MergedTime:     pr.MergedAt,
 			IsLocked:       pr.ActiveLockReason != nil,
 			Head: base.PullRequestBranch{
-				Ref:       headRef,
-				SHA:       headSHA,
-				RepoName:  headRepoName,
-				OwnerName: headUserName,
-				CloneURL:  cloneURL,
+				Ref:       pr.GetHead().GetRef(),
+				SHA:       pr.GetHead().GetSHA(),
+				OwnerName: pr.GetHead().GetUser().GetLogin(),
+				RepoName:  pr.GetHead().GetRepo().GetName(),
+				CloneURL:  pr.GetHead().GetRepo().GetCloneURL(),
 			},
 			Base: base.PullRequestBranch{
-				Ref:       *pr.Base.Ref,
-				SHA:       *pr.Base.SHA,
-				RepoName:  *pr.Base.Repo.Name,
-				OwnerName: *pr.Base.User.Login,
+				Ref:       pr.GetBase().GetRef(),
+				SHA:       pr.GetBase().GetSHA(),
+				RepoName:  pr.GetBase().GetRepo().GetName(),
+				OwnerName: pr.GetBase().GetUser().GetLogin(),
 			},
-			PatchURL:  *pr.PatchURL,
+			PatchURL:  pr.GetPatchURL(),
 			Reactions: reactions,
+			Context:   base.BasicIssueContext(*pr.Number),
 		})
 	}
 
@@ -680,15 +738,15 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 		// get reactions
 		var reactions []*base.Reaction
 		for i := 1; ; i++ {
-			g.sleep()
-			res, resp, err := g.client.Reactions.ListPullRequestCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
+			g.waitAndPickClient()
+			res, resp, err := g.getClient().Reactions.ListPullRequestCommentReactions(g.ctx, g.repoOwner, g.repoName, c.GetID(), &github.ListOptions{
 				Page:    i,
 				PerPage: g.maxPerPage,
 			})
 			if err != nil {
 				return nil, err
 			}
-			g.rate = &resp.Rate
+			g.setRate(&resp.Rate)
 			if len(res) == 0 {
 				break
 			}
@@ -719,32 +777,32 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GithubDownloaderV3) GetReviews(pullRequestNumber int64) ([]*base.Review, error) {
+func (g *GithubDownloaderV3) GetReviews(context base.IssueContext) ([]*base.Review, error) {
 	var allReviews = make([]*base.Review, 0, g.maxPerPage)
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
 	}
 	for {
-		g.sleep()
-		reviews, resp, err := g.client.PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(pullRequestNumber), opt)
+		g.waitAndPickClient()
+		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(context.ForeignID()), opt)
 		if err != nil {
 			return nil, fmt.Errorf("error while listing repos: %v", err)
 		}
-		g.rate = &resp.Rate
+		g.setRate(&resp.Rate)
 		for _, review := range reviews {
 			r := convertGithubReview(review)
-			r.IssueIndex = pullRequestNumber
+			r.IssueIndex = context.LocalID()
 			// retrieve all review comments
 			opt2 := &github.ListOptions{
 				PerPage: g.maxPerPage,
 			}
 			for {
-				g.sleep()
-				reviewComments, resp, err := g.client.PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(pullRequestNumber), review.GetID(), opt2)
+				g.waitAndPickClient()
+				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(context.ForeignID()), review.GetID(), opt2)
 				if err != nil {
 					return nil, fmt.Errorf("error while listing repos: %v", err)
 				}
-				g.rate = &resp.Rate
+				g.setRate(&resp.Rate)
 
 				cs, err := g.convertGithubReviewComments(reviewComments)
 				if err != nil {

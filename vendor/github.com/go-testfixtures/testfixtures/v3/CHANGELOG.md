@@ -1,5 +1,10 @@
 # Changelog
 
+## v3.6.1 - 2021-05-20
+
+- Fix possible security vulnerability by upgrading golang.org/x/crypto
+  ([#100](https://github.com/go-testfixtures/testfixtures/pull/100)).
+
 ## v3.6.0 - 2021-04-17
 
 - Add support for dumping a database using the CLI (use the `--dump` flag)

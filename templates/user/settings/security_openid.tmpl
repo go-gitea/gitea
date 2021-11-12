@@ -9,7 +9,7 @@
 		{{range .OpenIDs}}
 			<div class="item">
 				<div class="right floated content">
-						<button class="ui red tiny button delete-button" id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
+						<button class="ui red tiny button delete-button" data-modal-id="delete-openid" data-url="{{AppSubUrl}}/user/settings/security/openid/delete" data-id="{{.ID}}">
 							{{$.i18n.Tr "settings.delete_key"}}
 						</button>
 				</div>
@@ -19,12 +19,12 @@
 						<input name="id" type="hidden" value="{{.ID}}">
 						{{if .Show}}
 							<button class="ui tiny button">
-							<i class="icon fa-eye"></i>
+							{{svg "octicon-eye" 16 "icon"}}
 							{{$.i18n.Tr "settings.hide_openid"}}
 							</button>
 						{{else}}
 							<button class="ui tiny button">
-							<i class="icon fa-eye-slash"></i>
+							{{svg "octicon-eye-closed" 16 "icon"}}
 							{{$.i18n.Tr "settings.show_openid"}}
 							</button>
 						{{end}}

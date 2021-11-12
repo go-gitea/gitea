@@ -6,7 +6,7 @@
       "encoding/xml"
       "net/http"
 
-      "github.com/unrolled/render"  // or "gopkg.in/unrolled/render.v1"
+      "github.com/unrolled/render"
   )
 
   type ExampleXml struct {
@@ -49,7 +49,7 @@
           r.HTML(w, http.StatusOK, "example", nil)
       })
 
-      http.ListenAndServe("0.0.0.0:3000", mux)
+      http.ListenAndServe("127.0.0.1:3000", mux)
   }
 */
 package render

@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestXSSUserFullName(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	const fullName = `name & <script class="evil">alert('Oh no!');</script>`
 
 	session := loginUser(t, user.Name)

@@ -88,8 +88,8 @@ Adds the following fields:
 - Bind Password (optional)
 
   - The password for the Bind DN specified above, if any. _Note: The password
-    is stored in plaintext at the server. As such, ensure that the Bind DN
-    has as few privileges as possible._
+    is stored encrypted with the SECRET_KEY on the server. It is still recommended
+    to ensure that the Bind DN has as few privileges as possible._
 
 - User Search Base **(required)**
 
@@ -170,6 +170,8 @@ To configure PAM, set the 'PAM Service Name' to a filename in `/etc/pam.d/`. To
 work with normal Linux passwords, the user running Gitea must have read access
 to `/etc/shadow`.
 
+**Note**: PAM support is added via [build-time flags](https://docs.gitea.io/en-us/install-from-source/#build), and the official binaries provided do not have this enabled.
+
 ## SMTP (Simple Mail Transfer Protocol)
 
 This option allows Gitea to log in to an SMTP host as a Gitea user. To
@@ -199,16 +201,18 @@ configure this, set the fields below:
     with multiple domains.
   - Example: `gitea.io,mydomain.com,mydomain2.com`
 
-- Enable TLS Encryption
+- Force SMTPS
 
-  - Enable TLS encryption on authentication.
+  - SMTPS will be used by default for connections to port 465, if you wish to use SMTPS 
+  for other ports. Set this value.
+  - Otherwise if the server provides the `STARTTLS` extension this will be used.
 
 - Skip TLS Verify
 
   - Disable TLS verify on authentication.
 
-- This authentication is activate
-  - Enable or disable this auth.
+- This Authentication Source is Activated
+  - Enable or disable this authentication source.
 
 ## FreeIPA
 
@@ -259,7 +263,7 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 
 - Create a service principal name for the host where `gitea.exe` is running with class `HTTP`:
 
-  - Start `Command Prompt` or `PowerShell` as a priviledged domain user (eg. Domain Administrator)
+  - Start `Command Prompt` or `PowerShell` as a privileged domain user (eg. Domain Administrator)
   - Run the command below, replacing `host.domain.local` with the fully qualified domain name (FQDN) of the server where the web application will be running, and `domain\user` with the name of the account created in the previous step:
 
   ```sh
@@ -283,7 +287,7 @@ Before activating SSPI single sign-on authentication (SSO) you have to prepare y
 - Click the `Sign In` button on the dashboard and choose SSPI to be automatically logged in with the same user that is currently logged on to the computer
 
 - If it does not work, make sure that:
-  - You are not running the web browser on the same server where gitea is running. You should be running the web browser on a domain joined computer (client) that is different from the server. If both the client and server are runnning on the same computer NTLM will be prefered over Kerberos.
+  - You are not running the web browser on the same server where gitea is running. You should be running the web browser on a domain joined computer (client) that is different from the server. If both the client and server are running on the same computer NTLM will be preferred over Kerberos.
   - There is only one `HTTP/...` SPN for the host
   - The SPN contains only the hostname, without the port
   - You have added the URL of the web app to the `Local intranet zone`

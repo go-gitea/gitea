@@ -54,16 +54,10 @@ type ProcessCollectorOpts struct {
 	ReportErrors bool
 }
 
-// NewProcessCollector returns a collector which exports the current state of
-// process metrics including CPU, memory and file descriptor usage as well as
-// the process start time. The detailed behavior is defined by the provided
-// ProcessCollectorOpts. The zero value of ProcessCollectorOpts creates a
-// collector for the current process with an empty namespace string and no error
-// reporting.
+// NewProcessCollector is the obsolete version of collectors.NewProcessCollector.
+// See there for documentation.
 //
-// The collector only works on operating systems with a Linux-style proc
-// filesystem and on Microsoft Windows. On other operating systems, it will not
-// collect any metrics.
+// Deprecated: Use collectors.NewProcessCollector instead.
 func NewProcessCollector(opts ProcessCollectorOpts) Collector {
 	ns := ""
 	if len(opts.Namespace) > 0 {

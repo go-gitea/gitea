@@ -8,14 +8,18 @@ import (
 )
 
 // Restructuredtext lexer.
-var Restructuredtext = internal.Register(MustNewLexer(
+var Restructuredtext = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "reStructuredText",
 		Aliases:   []string{"rst", "rest", "restructuredtext"},
 		Filenames: []string{"*.rst", "*.rest"},
 		MimeTypes: []string{"text/x-rst", "text/prs.fallenstein.rst"},
 	},
-	Rules{
+	restructuredtextRules,
+))
+
+func restructuredtextRules() Rules {
+	return Rules{
 		"root": {
 			{"^(=+|-+|`+|:+|\\.+|\\'+|\"+|~+|\\^+|_+|\\*+|\\++|#+)([ \\t]*\\n)(.+)(\\n)(\\1)(\\n)", ByGroups(GenericHeading, Text, GenericHeading, Text, GenericHeading, Text), nil},
 			{"^(\\S.*)(\\n)(={3,}|-{3,}|`{3,}|:{3,}|\\.{3,}|\\'{3,}|\"{3,}|~{3,}|\\^{3,}|_{3,}|\\*{3,}|\\+{3,}|#{3,})(\\n)", ByGroups(GenericHeading, Text, GenericHeading, Text), nil},
@@ -56,10 +60,10 @@ var Restructuredtext = internal.Register(MustNewLexer(
 			{"``((?=$)|(?=[-/:.,; \\n\\x00\\\u2010\\\u2011\\\u2012\\\u2013\\\u2014\\\u00a0\\'\\\"\\)\\]\\}\\>\\\u2019\\\u201d\\\u00bb\\!\\?]))", LiteralString, Pop(1)},
 			{"`", LiteralString, nil},
 		},
-	},
-))
+	}
+}
 
-func rstCodeBlock(groups []string, lexer Lexer) Iterator {
+func rstCodeBlock(groups []string, state *LexerState) Iterator {
 	iterators := []Iterator{}
 	tokens := []Token{
 		{Punctuation, groups[1]},
@@ -71,7 +75,7 @@ func rstCodeBlock(groups []string, lexer Lexer) Iterator {
 		{Text, groups[7]},
 	}
 	code := strings.Join(groups[8:], "")
-	lexer = internal.Get(groups[6])
+	lexer := internal.Get(groups[6])
 	if lexer == nil {
 		tokens = append(tokens, Token{String, code})
 		iterators = append(iterators, Literator(tokens...))

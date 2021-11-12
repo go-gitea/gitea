@@ -13,7 +13,7 @@
 									{{avatar .User}}
 								</a>
 							{{end}}
-							<span class="text grey">
+							<span>
 								{{if .User}}
 									<a href="{{.User.HomeLink}}">{{.User.GetDisplayName}}</a>
 								{{else if .Team}}
@@ -35,11 +35,11 @@
 						<div class="review-item-right">
 							{{if .Review.Stale}}
 								<span class="ui poping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
-									<i class="octicon icon fa-hourglass-end"></i>
+									{{svg "octicon-hourglass" 16 "icon"}}
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui grey poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
+								<a href="#" class="ui muted poping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
 									{{svg "octicon-x" 16}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
@@ -86,7 +86,12 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname | Safe }}"><span class="text black "><i class="fa {{MigrationIcon $.Repository.GetOriginalURLHostname}}" aria-hidden="true"></i> {{ .OriginalAuthor }}</span></a>
+							<a href="{{$.Repository.OriginalURL}}" class="ui poping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" $.Repository.GetOriginalURLHostname | Safe }}">
+								<span class="text black ">
+									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
+									{{ .OriginalAuthor }}
+								</span>
+							</a>
 						</div>
 						<div class="review-item-right">
 							<span class="type-icon text {{if eq .Type 1}}green
@@ -172,9 +177,18 @@
 					{{$.i18n.Tr "repo.pulls.data_broken"}}
 				</div>
 			{{else if .IsPullWorkInProgress}}
-				<div class="item">
-					<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-					{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" (.WorkInProgressPrefix|Escape) | Str2html}}
+				<div class="item toggle-wip df ac sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title">
+					<div>
+						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
+						{{$.i18n.Tr "repo.pulls.cannot_merge_work_in_progress" }}
+					</div>
+					<div>
+						{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
+							<button class="ui compact button">
+								{{$.i18n.Tr "repo.pulls.remove_prefix" (.WorkInProgressPrefix|Escape) | Safe}}
+							</button>
+						{{end}}
+					</div>
 				</div>
 			{{else if .Issue.PullRequest.IsChecking}}
 				<div class="item">
@@ -182,7 +196,7 @@
 					{{$.i18n.Tr "repo.pulls.is_checking"}}
 				</div>
 			{{else if .Issue.PullRequest.IsEmpty}}
-				<div class="item text grey">
+				<div class="item">
 					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
 					{{$.i18n.Tr "repo.pulls.is_empty"}}
 				</div>
@@ -272,7 +286,26 @@
 							{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
 						</div>
 						<div class="item-section-right">
-							{{if .UpdateAllowed}}
+							{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
+								<div class="dib">
+									<div class="ui buttons update-button">
+										<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
+											<span class="button-text">
+												{{$.i18n.Tr "repo.pulls.update_branch"}}
+											</span>
+										</button>
+
+										<div class="ui dropdown icon button no-text">
+											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+											<div class="menu">
+												<div class="item active selected" data-do="{{.Link}}/update">{{$.i18n.Tr "repo.pulls.update_branch"}}</div>
+												<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.i18n.Tr "repo.pulls.update_branch_rebase"}}</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							{{end}}
+							{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
 								<form action="{{.Link}}/update" method="post" class="ui update-branch-form">
 									{{.CsrfTokenHtml}}
 									<button class="ui compact button" data-do="update">
@@ -306,6 +339,12 @@
 									<button class="ui button merge-cancel">
 										{{$.i18n.Tr "cancel"}}
 									</button>
+									{{if .IsPullBranchDeletable}}
+										<div class="ui checkbox ml-2">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
+											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+										</div>
+									{{end}}
 								</form>
 							</div>
 							{{end}}
@@ -319,6 +358,12 @@
 									<button class="ui button merge-cancel">
 										{{$.i18n.Tr "cancel"}}
 									</button>
+									{{if .IsPullBranchDeletable}}
+										<div class="ui checkbox ml-2">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
+											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+										</div>
+									{{end}}
 								</form>
 							</div>
 							{{end}}
@@ -338,6 +383,12 @@
 									<button class="ui button merge-cancel">
 										{{$.i18n.Tr "cancel"}}
 									</button>
+									{{if .IsPullBranchDeletable}}
+										<div class="ui checkbox ml-2">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
+											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+										</div>
+									{{end}}
 								</form>
 							</div>
 							{{end}}
@@ -357,6 +408,12 @@
 									<button class="ui button merge-cancel">
 										{{$.i18n.Tr "cancel"}}
 									</button>
+									{{if .IsPullBranchDeletable}}
+										<div class="ui checkbox ml-2">
+											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
+											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+										</div>
+									{{end}}
 								</form>
 							</div>
 							{{end}}
@@ -373,6 +430,12 @@
 										<button class="ui button merge-cancel">
 											{{$.i18n.Tr "cancel"}}
 										</button>
+										{{if .IsPullBranchDeletable}}
+											<div class="ui checkbox ml-2">
+												<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
+												<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
+											</div>
+										{{end}}
 									</form>
 								</div>
 							{{end}}
@@ -422,35 +485,41 @@
 									{{end}}
 								</div>
 							</div>
-							<div class="instruct-toggle ml-3">{{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}}</div>
-							<div class="instruct-content" style="display:none">
-								<div class="ui divider"></div>
-								<div><h3 class="di">{{$.i18n.Tr "step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
-								<div class="ui secondary segment">
-									<div>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</div>
-									<div>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</div>
+							{{if .ShowMergeInstructions}}
+								<div class="instruct-toggle ml-3"> {{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
+								<div class="instruct-content" style="display:none">
+									<div class="ui divider"></div>
+									<div><h3 class="di">{{$.i18n.Tr "step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
+									<div class="ui secondary segment">
+										{{if eq .Issue.PullRequest.Flow 0}}
+											<div>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</div>
+											<div>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</div>
+										{{else}}
+											<div>git fetch origin {{.Issue.PullRequest.GetGitRefName}}:{{.Issue.PullRequest.HeadBranch}}</div>
+										{{end}}
+									</div>
+									<div><h3 class="di">{{$.i18n.Tr "step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
+									<div class="ui secondary segment">
+										<div>git checkout {{.Issue.PullRequest.BaseBranch}}</div>
+										<div>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</div>
+										<div>git push origin {{.Issue.PullRequest.BaseBranch}}</div>
+									</div>
 								</div>
-								<div><h3 class="di">{{$.i18n.Tr "step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
-								<div class="ui secondary segment">
-									<div>git checkout {{.Issue.PullRequest.BaseBranch}}</div>
-									<div>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</div>
-									<div>git push origin {{.Issue.PullRequest.BaseBranch}}</div>
-								</div>
-							</div>
+							{{end}}
 						{{else}}
 							<div class="ui divider"></div>
 							<div class="item text red">
 								{{svg "octicon-x"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
 							</div>
-							<div class="item text grey">
+							<div class="item">
 								{{svg "octicon-info"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
 						{{end}}
 					{{else}}
 						<div class="ui divider"></div>
-						<div class="item text grey">
+						<div class="item">
 							{{svg "octicon-info"}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
@@ -503,7 +572,7 @@
 						{{svg "octicon-x"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_desc"}}
 					</div>
-					<div class="item text grey">
+					<div class="item">
 						{{svg "octicon-info"}}
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
@@ -511,17 +580,40 @@
 			{{end}}
 
 			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
-				<div class="item text grey">
-					<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
-					{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-					{{if .UpdateAllowed}}
-						<form action="{{.Link}}/update" method="post" class="ui floating right">
-							{{.CsrfTokenHtml}}
-							<button class="ui compact button" data-do="update">
-								<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-							</button>
-						</form>
-					{{end}}
+				<div class="item df ac sb">
+					<div>
+						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
+						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
+					</div>
+					<div>
+						{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
+							<div class="dib">
+								<div class="ui buttons update-button">
+									<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
+										<span class="button-text">
+											{{$.i18n.Tr "repo.pulls.update_branch"}}
+										</span>
+									</button>
+
+									<div class="ui dropdown icon button no-text">
+										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+										<div class="menu">
+											<div class="item active selected" data-do="{{.Link}}/update">{{$.i18n.Tr "repo.pulls.update_branch"}}</div>
+											<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.i18n.Tr "repo.pulls.update_branch_rebase"}}</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						{{end}}
+						{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
+							<form action="{{.Link}}/update" method="post">
+								{{.CsrfTokenHtml}}
+								<button class="ui compact button" data-do="update">
+									<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
+								</button>
+							</form>
+						{{end}}
+					</div>
 				</div>
 			{{end}}
 

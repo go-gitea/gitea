@@ -9,11 +9,12 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 )
 
 var manager *Manager
@@ -110,7 +111,6 @@ func (m *Manager) Add(managed interface{},
 	configuration,
 	exemplar interface{}) int64 {
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	cfg, _ := json.Marshal(configuration)
 	mq := &ManagedQueue{
 		Type:          t,
@@ -170,7 +170,17 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			mqs := m.ManagedQueues()
+			nonEmptyQueues := []string{}
+			for _, mq := range mqs {
+				if !mq.IsEmpty() {
+					nonEmptyQueues = append(nonEmptyQueues, mq.Name)
+				}
+			}
+			if len(nonEmptyQueues) > 0 {
+				return fmt.Errorf("flush timeout with non-empty queues: %s", strings.Join(nonEmptyQueues, ", "))
+			}
+			return nil
 		default:
 		}
 		mqs := m.ManagedQueues()
@@ -187,27 +197,30 @@ func (m *Manager) FlushAll(baseCtx context.Context, timeout time.Duration) error
 			if flushable, ok := mq.Managed.(Flushable); ok {
 				log.Debug("Flushing (flushable) queue: %s", mq.Name)
 				go func(q *ManagedQueue) {
-					localCtx, localCancel := context.WithCancel(ctx)
-					pid := q.RegisterWorkers(1, start, hasTimeout, end, localCancel, true)
+					localCtx, localCtxCancel := context.WithCancel(ctx)
+					pid := q.RegisterWorkers(1, start, hasTimeout, end, localCtxCancel, true)
 					err := flushable.FlushWithContext(localCtx)
 					if err != nil && err != ctx.Err() {
 						cancel()
 					}
 					q.CancelWorkers(pid)
-					localCancel()
+					localCtxCancel()
 					wg.Done()
 				}(mq)
 			} else {
-				log.Debug("Queue: %s is non-empty but is not flushable - adding 100 millisecond wait", mq.Name)
-				go func() {
-					<-time.After(100 * time.Millisecond)
-					wg.Done()
-				}()
+				log.Debug("Queue: %s is non-empty but is not flushable", mq.Name)
+				wg.Done()
 			}
-
 		}
 		if allEmpty {
+			log.Debug("All queues are empty")
 			break
+		}
+		// Ensure there are always at least 100ms between loops but not more if we've actually been doing some flushign
+		// but don't delay cancellation here.
+		select {
+		case <-ctx.Done():
+		case <-time.After(100 * time.Millisecond):
 		}
 		wg.Wait()
 	}

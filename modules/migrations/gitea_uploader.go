@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/repository"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -69,17 +69,17 @@ func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, re
 func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	switch tp {
 	case "issue":
-		return models.MaxBatchInsertSize(new(models.Issue))
+		return db.MaxBatchInsertSize(new(models.Issue))
 	case "comment":
-		return models.MaxBatchInsertSize(new(models.Comment))
+		return db.MaxBatchInsertSize(new(models.Comment))
 	case "milestone":
-		return models.MaxBatchInsertSize(new(models.Milestone))
+		return db.MaxBatchInsertSize(new(models.Milestone))
 	case "label":
-		return models.MaxBatchInsertSize(new(models.Label))
+		return db.MaxBatchInsertSize(new(models.Label))
 	case "release":
-		return models.MaxBatchInsertSize(new(models.Release))
+		return db.MaxBatchInsertSize(new(models.Release))
 	case "pullrequest":
-		return models.MaxBatchInsertSize(new(models.PullRequest))
+		return db.MaxBatchInsertSize(new(models.PullRequest))
 	}
 	return 10
 }
@@ -110,7 +110,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 	r.DefaultBranch = repo.DefaultBranch
 
-	r, err = repository.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
+	r, err = repo_module.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
 		OriginalURL:    repo.OriginalURL,
@@ -165,11 +165,27 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		if deadline == 0 {
 			deadline = timeutil.TimeStamp(time.Date(9999, 1, 1, 0, 0, 0, 0, setting.DefaultUILocation).Unix())
 		}
+
+		if milestone.Created.IsZero() {
+			if milestone.Updated != nil {
+				milestone.Created = *milestone.Updated
+			} else if milestone.Deadline != nil {
+				milestone.Created = *milestone.Deadline
+			} else {
+				milestone.Created = time.Now()
+			}
+		}
+		if milestone.Updated == nil || milestone.Updated.IsZero() {
+			milestone.Updated = &milestone.Created
+		}
+
 		var ms = models.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
 			IsClosed:     milestone.State == "closed",
+			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
+			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
 			DeadlineUnix: deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
@@ -215,6 +231,14 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 	var rels = make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
+		if release.Created.IsZero() {
+			if !release.Published.IsZero() {
+				release.Created = release.Published
+			} else {
+				release.Created = time.Now()
+			}
+		}
+
 		var rel = models.Release{
 			RepoID:       g.repo.ID,
 			TagName:      release.TagName,
@@ -250,17 +274,26 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			rel.OriginalAuthorID = release.PublisherID
 		}
 
-		// calc NumCommits
-		commit, err := g.gitRepo.GetCommit(rel.TagName)
-		if err != nil {
-			return fmt.Errorf("GetCommit: %v", err)
-		}
-		rel.NumCommits, err = commit.CommitsCount()
-		if err != nil {
-			return fmt.Errorf("CommitsCount: %v", err)
+		// calc NumCommits if no draft
+		if !release.Draft {
+			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
+			if err != nil {
+				return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+			}
+			rel.NumCommits, err = commit.CommitsCount()
+			if err != nil {
+				return fmt.Errorf("CommitsCount: %v", err)
+			}
 		}
 
 		for _, asset := range release.Assets {
+			if asset.Created.IsZero() {
+				if !asset.Updated.IsZero() {
+					asset.Created = asset.Updated
+				} else {
+					asset.Created = release.Created
+				}
+			}
 			var attach = models.Attachment{
 				UUID:          gouuid.New().String(),
 				Name:          asset.Name,
@@ -270,22 +303,26 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 
 			// download attachment
-			err = func() error {
+			err := func() error {
 				// asset.DownloadURL maybe a local file
 				var rc io.ReadCloser
-				if asset.DownloadURL == nil {
+				var err error
+				if asset.DownloadFunc != nil {
 					rc, err = asset.DownloadFunc()
 					if err != nil {
 						return err
 					}
-				} else {
+				} else if asset.DownloadURL != nil {
 					rc, err = uri.Open(*asset.DownloadURL)
 					if err != nil {
 						return err
 					}
 				}
-				defer rc.Close()
+				if rc == nil {
+					return nil
+				}
 				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+				rc.Close()
 				return err
 			}()
 			if err != nil {
@@ -303,7 +340,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags() error {
-	return repository.SyncReleasesWithTags(g.repo, g.gitRepo)
+	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
@@ -323,6 +360,21 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			milestone, ok := g.milestones.Load(issue.Milestone)
 			if ok {
 				milestoneID = milestone.(int64)
+			}
+		}
+
+		if issue.Created.IsZero() {
+			if issue.Closed != nil {
+				issue.Created = *issue.Closed
+			} else {
+				issue.Created = time.Now()
+			}
+		}
+		if issue.Updated.IsZero() {
+			if issue.Closed != nil {
+				issue.Updated = *issue.Closed
+			} else {
+				issue.Updated = time.Now()
 			}
 		}
 
@@ -400,7 +452,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		for _, is := range iss {
-			g.issues.Store(is.Index, is.ID)
+			g.issues.Store(is.Index, is)
 		}
 	}
 
@@ -411,16 +463,17 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	var cms = make([]*models.Comment, 0, len(comments))
 	for _, comment := range comments {
-		var issueID int64
-		if issueIDStr, ok := g.issues.Load(comment.IssueIndex); !ok {
-			issue, err := models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
+		var issue *models.Issue
+		issueInter, ok := g.issues.Load(comment.IssueIndex)
+		if !ok {
+			var err error
+			issue, err = models.GetIssueByIndex(g.repo.ID, comment.IssueIndex)
 			if err != nil {
 				return err
 			}
-			issueID = issue.ID
-			g.issues.Store(comment.IssueIndex, issueID)
+			g.issues.Store(comment.IssueIndex, issue)
 		} else {
-			issueID = issueIDStr.(int64)
+			issue = issueInter.(*models.Issue)
 		}
 
 		userid, ok := g.userMap[comment.PosterID]
@@ -436,8 +489,15 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			}
 		}
 
+		if comment.Created.IsZero() {
+			comment.Created = time.Unix(int64(issue.CreatedUnix), 0)
+		}
+		if comment.Updated.IsZero() {
+			comment.Updated = comment.Created
+		}
+
 		cm := models.Comment{
-			IssueID:     issueID,
+			IssueID:     issue.ID,
 			Type:        models.CommentTypeComment,
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
@@ -524,7 +584,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		return err
 	}
 	for _, pr := range gprs {
-		g.issues.Store(pr.Issue.Index, pr.Issue.ID)
+		g.issues.Store(pr.Issue.Index, pr.Issue)
 		pull.AddToTaskQueue(pr)
 	}
 	return nil
@@ -549,6 +609,9 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 	// download patch file
 	err := func() error {
+		if pr.PatchURL == "" {
+			return nil
+		}
 		// pr.PatchURL maybe a local file
 		ret, err := uri.Open(pr.PatchURL)
 		if err != nil {
@@ -626,6 +689,36 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		}
 	} else {
 		head = pr.Head.Ref
+		// Ensure the closed PR SHA still points to an existing ref
+		_, err = git.NewCommand("rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		if err != nil {
+			if pr.Head.SHA != "" {
+				// Git update-ref remove bad references with a relative path
+				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
+				relPath := pr.GetGitRefName()
+				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+			} else {
+				// The SHA is empty, remove the head file
+				log.Warn("Empty reference, removing : %v", pullHead)
+				err = os.Remove(filepath.Join(pullHead, "head"))
+			}
+			if err != nil {
+				log.Error("Cannot remove local head ref, %v", err)
+			}
+		}
+	}
+
+	if pr.Created.IsZero() {
+		if pr.Closed != nil {
+			pr.Created = *pr.Closed
+		} else if pr.MergedTime != nil {
+			pr.Created = *pr.MergedTime
+		} else {
+			pr.Created = time.Now()
+		}
+	}
+	if pr.Updated.IsZero() {
+		pr.Updated = pr.Created
 	}
 
 	var issue = models.Issue{
@@ -737,16 +830,17 @@ func convertReviewState(state string) models.ReviewType {
 func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	var cms = make([]*models.Review, 0, len(reviews))
 	for _, review := range reviews {
-		var issueID int64
-		if issueIDStr, ok := g.issues.Load(review.IssueIndex); !ok {
-			issue, err := models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
+		var issue *models.Issue
+		issueInter, ok := g.issues.Load(review.IssueIndex)
+		if !ok {
+			var err error
+			issue, err = models.GetIssueByIndex(g.repo.ID, review.IssueIndex)
 			if err != nil {
 				return err
 			}
-			issueID = issue.ID
-			g.issues.Store(review.IssueIndex, issueID)
+			g.issues.Store(review.IssueIndex, issue)
 		} else {
-			issueID = issueIDStr.(int64)
+			issue = issueInter.(*models.Issue)
 		}
 
 		userid, ok := g.userMap[review.ReviewerID]
@@ -762,9 +856,13 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 		}
 
+		if review.CreatedAt.IsZero() {
+			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
+		}
+
 		var cm = models.Review{
 			Type:        convertReviewState(review.State),
-			IssueID:     issueID,
+			IssueID:     issue.ID,
 			Content:     review.Content,
 			Official:    review.Official,
 			CreatedUnix: timeutil.TimeStamp(review.CreatedAt.Unix()),
@@ -780,14 +878,14 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		// get pr
-		pr, ok := g.prCache[issueID]
+		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issueID)
+			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
 			if err != nil {
 				return err
 			}
-			g.prCache[issueID] = pr
+			g.prCache[issue.ID] = pr
 		}
 
 		for _, comment := range review.Comments {
@@ -799,7 +897,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 			headCommitID, err := g.gitRepo.GetRefCommitID(pr.GetGitRefName())
 			if err != nil {
-				return fmt.Errorf("GetRefCommitID[%s]: %v", pr.GetGitRefName(), err)
+				log.Warn("GetRefCommitID[%s]: %v, the review comment will be ignored", pr.GetGitRefName(), err)
+				continue
 			}
 
 			var patch string
@@ -818,10 +917,17 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 
 			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 
+			if comment.CreatedAt.IsZero() {
+				comment.CreatedAt = review.CreatedAt
+			}
+			if comment.UpdatedAt.IsZero() {
+				comment.UpdatedAt = comment.CreatedAt
+			}
+
 			var c = models.Comment{
 				Type:        models.CommentTypeCode,
 				PosterID:    comment.PosterID,
-				IssueID:     issueID,
+				IssueID:     issue.ID,
 				Content:     comment.Content,
 				Line:        int64(line + comment.Position - 1),
 				TreePath:    comment.TreePath,
@@ -851,6 +957,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 // Rollback when migrating failed, this will rollback all the changes.
 func (g *GiteaLocalUploader) Rollback() error {
 	if g.repo != nil && g.repo.ID > 0 {
+		g.gitRepo.Close()
 		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
 			return err
 		}
@@ -862,6 +969,11 @@ func (g *GiteaLocalUploader) Rollback() error {
 func (g *GiteaLocalUploader) Finish() error {
 	if g.repo == nil || g.repo.ID <= 0 {
 		return ErrRepoNotCreated
+	}
+
+	// update issue_index
+	if err := models.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+		return err
 	}
 
 	g.repo.Status = models.RepositoryReady

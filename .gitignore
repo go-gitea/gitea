@@ -9,6 +9,8 @@ _test
 
 # IntelliJ
 .idea
+# Goland's output filename can not be set manually
+/go_build_*
 
 # MS VSCode
 .vscode
@@ -76,6 +78,8 @@ cpu.out
 /integrations/mssql.ini
 /node_modules
 /yarn.lock
+/yarn-error.log
+/npm-debug.log*
 /public/js
 /public/serviceworker.js
 /public/css

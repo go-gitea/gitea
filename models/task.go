@@ -7,10 +7,14 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/secret"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -29,16 +33,26 @@ type Task struct {
 	StartTime      timeutil.TimeStamp
 	EndTime        timeutil.TimeStamp
 	PayloadContent string             `xorm:"TEXT"`
-	Errors         string             `xorm:"TEXT"` // if task failed, saved the error reason
+	Message        string             `xorm:"TEXT"` // if task failed, saved the error reason
 	Created        timeutil.TimeStamp `xorm:"created"`
+}
+
+func init() {
+	db.RegisterModel(new(Task))
+}
+
+// TranslatableMessage represents JSON struct that can be translated with a Locale
+type TranslatableMessage struct {
+	Format string
+	Args   []interface{} `json:"omitempty"`
 }
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo() error {
-	return task.loadRepo(x)
+	return task.loadRepo(db.GetEngine(db.DefaultContext))
 }
 
-func (task *Task) loadRepo(e Engine) error {
+func (task *Task) loadRepo(e db.Engine) error {
 	if task.Repo != nil {
 		return nil
 	}
@@ -62,7 +76,7 @@ func (task *Task) LoadDoer() error {
 	}
 
 	var doer User
-	has, err := x.ID(task.DoerID).Get(&doer)
+	has, err := db.GetEngine(db.DefaultContext).ID(task.DoerID).Get(&doer)
 	if err != nil {
 		return err
 	} else if !has {
@@ -82,7 +96,7 @@ func (task *Task) LoadOwner() error {
 	}
 
 	var owner User
-	has, err := x.ID(task.OwnerID).Get(&owner)
+	has, err := db.GetEngine(db.DefaultContext).ID(task.OwnerID).Get(&owner)
 	if err != nil {
 		return err
 	} else if !has {
@@ -97,7 +111,7 @@ func (task *Task) LoadOwner() error {
 
 // UpdateCols updates some columns
 func (task *Task) UpdateCols(cols ...string) error {
-	_, err := x.ID(task.ID).Cols(cols...).Update(task)
+	_, err := db.GetEngine(db.DefaultContext).ID(task.ID).Cols(cols...).Update(task)
 	return err
 }
 
@@ -105,11 +119,28 @@ func (task *Task) UpdateCols(cols ...string) error {
 func (task *Task) MigrateConfig() (*migration.MigrateOptions, error) {
 	if task.Type == structs.TaskTypeMigrateRepo {
 		var opts migration.MigrateOptions
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		err := json.Unmarshal([]byte(task.PayloadContent), &opts)
 		if err != nil {
 			return nil, err
 		}
+
+		// decrypt credentials
+		if opts.CloneAddrEncrypted != "" {
+			if opts.CloneAddr, err = secret.DecryptSecret(setting.SecretKey, opts.CloneAddrEncrypted); err != nil {
+				return nil, err
+			}
+		}
+		if opts.AuthPasswordEncrypted != "" {
+			if opts.AuthPassword, err = secret.DecryptSecret(setting.SecretKey, opts.AuthPasswordEncrypted); err != nil {
+				return nil, err
+			}
+		}
+		if opts.AuthTokenEncrypted != "" {
+			if opts.AuthToken, err = secret.DecryptSecret(setting.SecretKey, opts.AuthTokenEncrypted); err != nil {
+				return nil, err
+			}
+		}
+
 		return &opts, nil
 	}
 	return nil, fmt.Errorf("Task type is %s, not Migrate Repo", task.Type.Name())
@@ -139,7 +170,7 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 		RepoID: repoID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := x.Get(&task)
+	has, err := db.GetEngine(db.DefaultContext).Get(&task)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -155,7 +186,7 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 		DoerID: doerID,
 		Type:   structs.TaskTypeMigrateRepo,
 	}
-	has, err := x.Get(&task)
+	has, err := db.GetEngine(db.DefaultContext).Get(&task)
 	if err != nil {
 		return nil, nil, err
 	} else if !has {
@@ -163,7 +194,6 @@ func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, e
 	}
 
 	var opts migration.MigrateOptions
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(task.PayloadContent), &opts); err != nil {
 		return nil, nil, err
 	}
@@ -187,16 +217,16 @@ func (opts FindTaskOptions) ToConds() builder.Cond {
 // FindTasks find all tasks
 func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 	tasks := make([]*Task, 0, 10)
-	err := x.Where(opts.ToConds()).Find(&tasks)
+	err := db.GetEngine(db.DefaultContext).Where(opts.ToConds()).Find(&tasks)
 	return tasks, err
 }
 
 // CreateTask creates a task on database
 func CreateTask(task *Task) error {
-	return createTask(x, task)
+	return createTask(db.GetEngine(db.DefaultContext), task)
 }
 
-func createTask(e Engine, task *Task) error {
+func createTask(e db.Engine, task *Task) error {
 	_, err := e.Insert(task)
 	return err
 }
@@ -205,12 +235,30 @@ func createTask(e Engine, task *Task) error {
 func FinishMigrateTask(task *Task) error {
 	task.Status = structs.TaskStatusFinished
 	task.EndTime = timeutil.TimeStampNow()
-	sess := x.NewSession()
+
+	// delete credentials when we're done, they're a liability.
+	conf, err := task.MigrateConfig()
+	if err != nil {
+		return err
+	}
+	conf.AuthPassword = ""
+	conf.AuthToken = ""
+	conf.CloneAddr = util.NewStringURLSanitizer(conf.CloneAddr, true).Replace(conf.CloneAddr)
+	conf.AuthPasswordEncrypted = ""
+	conf.AuthTokenEncrypted = ""
+	conf.CloneAddrEncrypted = ""
+	confBytes, err := json.Marshal(conf)
+	if err != nil {
+		return err
+	}
+	task.PayloadContent = string(confBytes)
+
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if _, err := sess.ID(task.ID).Cols("status", "end_time").Update(task); err != nil {
+	if _, err := sess.ID(task.ID).Cols("status", "end_time", "payload_content").Update(task); err != nil {
 		return err
 	}
 

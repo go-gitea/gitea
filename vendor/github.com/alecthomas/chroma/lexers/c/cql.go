@@ -6,7 +6,7 @@ import (
 )
 
 // CassandraCQL lexer.
-var CassandraCQL = internal.Register(MustNewLexer(
+var CassandraCQL = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Cassandra CQL",
 		Aliases:         []string{"cassandra", "cql"},
@@ -15,7 +15,11 @@ var CassandraCQL = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	cassandraCQLRules,
+))
+
+func cassandraCQLRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, TextWhitespace, nil},
 			{`(--|\/\/).*\n?`, CommentSingle, nil},
@@ -23,7 +27,8 @@ var CassandraCQL = internal.Register(MustNewLexer(
 			{`(ascii|bigint|blob|boolean|counter|date|decimal|double|float|frozen|inet|int|list|map|set|smallint|text|time|timestamp|timeuuid|tinyint|tuple|uuid|varchar|varint)\b`, NameBuiltin, nil},
 			{Words(``, `\b`, `ADD`, `AGGREGATE`, `ALL`, `ALLOW`, `ALTER`, `AND`, `ANY`, `APPLY`, `AS`, `ASC`, `AUTHORIZE`, `BATCH`, `BEGIN`, `BY`, `CLUSTERING`, `COLUMNFAMILY`, `COMPACT`, `CONSISTENCY`, `COUNT`, `CREATE`, `CUSTOM`, `DELETE`, `DESC`, `DISTINCT`, `DROP`, `EACH_QUORUM`, `ENTRIES`, `EXISTS`, `FILTERING`, `FROM`, `FULL`, `GRANT`, `IF`, `IN`, `INDEX`, `INFINITY`, `INSERT`, `INTO`, `KEY`, `KEYS`, `KEYSPACE`, `KEYSPACES`, `LEVEL`, `LIMIT`, `LOCAL_ONE`, `LOCAL_QUORUM`, `MATERIALIZED`, `MODIFY`, `NAN`, `NORECURSIVE`, `NOSUPERUSER`, `NOT`, `OF`, `ON`, `ONE`, `ORDER`, `PARTITION`, `PASSWORD`, `PER`, `PERMISSION`, `PERMISSIONS`, `PRIMARY`, `QUORUM`, `RENAME`, `REVOKE`, `SCHEMA`, `SELECT`, `STATIC`, `STORAGE`, `SUPERUSER`, `TABLE`, `THREE`, `TO`, `TOKEN`, `TRUNCATE`, `TTL`, `TWO`, `TYPE`, `UNLOGGED`, `UPDATE`, `USE`, `USER`, `USERS`, `USING`, `VALUES`, `VIEW`, `WHERE`, `WITH`, `WRITETIME`, `REPLICATION`, `OR`, `REPLACE`, `FUNCTION`, `CALLED`, `INPUT`, `RETURNS`, `LANGUAGE`, `ROLE`, `ROLES`, `TRIGGER`, `DURABLE_WRITES`, `LOGIN`, `OPTIONS`, `LOGGED`, `SFUNC`, `STYPE`, `FINALFUNC`, `INITCOND`, `IS`, `CONTAINS`, `JSON`, `PAGING`, `OFF`), Keyword, nil},
 			{"[+*/<>=~!@#%^&|`?-]+", Operator, nil},
-			{`(?s)(java|javascript)(\s+)(AS)(\s+)('|\$\$)(.*?)(\5)`,
+			{
+				`(?s)(java|javascript)(\s+)(AS)(\s+)('|\$\$)(.*?)(\5)`,
 				UsingByGroup(
 					internal.Get,
 					1, 6,
@@ -65,5 +70,5 @@ var CassandraCQL = internal.Register(MustNewLexer(
 			{`[^\$]+`, LiteralStringHeredoc, nil},
 			{`\$\$`, LiteralStringHeredoc, Pop(1)},
 		},
-	},
-))
+	}
+}

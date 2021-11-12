@@ -48,7 +48,7 @@ var (
 func init() {
 	freebsdVersion, _ = syscall.SysctlUint32("kern.osreldate")
 	if freebsdVersion >= 1000000 {
-		sockOpts[ssoMulticastInterface] = &sockOpt{Option: socket.Option{Level: iana.ProtocolIP, Name: unix.IP_MULTICAST_IF, Len: sizeofIPMreqn}, typ: ssoTypeIPMreqn}
+		sockOpts[ssoMulticastInterface] = &sockOpt{Option: socket.Option{Level: iana.ProtocolIP, Name: unix.IP_MULTICAST_IF, Len: unix.SizeofIPMreqn}, typ: ssoTypeIPMreqn}
 	}
 	if runtime.GOOS == "freebsd" && runtime.GOARCH == "386" {
 		archs, _ := syscall.Sysctl("kern.supported_archs")

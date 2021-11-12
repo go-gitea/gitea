@@ -11,10 +11,13 @@ import "code.gitea.io/gitea/modules/structs"
 // this is for internal usage by migrations module and func who interact with it
 type MigrateOptions struct {
 	// required: true
-	CloneAddr    string `json:"clone_addr" binding:"Required"`
-	AuthUsername string `json:"auth_username"`
-	AuthPassword string `json:"auth_password"`
-	AuthToken    string `json:"auth_token"`
+	CloneAddr             string `json:"clone_addr" binding:"Required"`
+	CloneAddrEncrypted    string `json:"clone_addr_encrypted,omitempty"`
+	AuthUsername          string `json:"auth_username"`
+	AuthPassword          string `json:"-"`
+	AuthPasswordEncrypted string `json:"auth_password_encrypted,omitempty"`
+	AuthToken             string `json:"-"`
+	AuthTokenEncrypted    string `json:"auth_token_encrypted,omitempty"`
 	// required: true
 	UID int `json:"uid" binding:"Required"`
 	// required: true

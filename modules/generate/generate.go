@@ -9,30 +9,12 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"math/big"
 	"time"
 
-	"github.com/dgrijalva/jwt-go"
+	"code.gitea.io/gitea/modules/util"
+
+	"github.com/golang-jwt/jwt"
 )
-
-// GetRandomString generate random string by specify chars.
-func GetRandomString(n int) (string, error) {
-	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-
-	buffer := make([]byte, n)
-	max := big.NewInt(int64(len(alphanum)))
-
-	for i := 0; i < n; i++ {
-		index, err := randomInt(max)
-		if err != nil {
-			return "", err
-		}
-
-		buffer[i] = alphanum[index]
-	}
-
-	return string(buffer), nil
-}
 
 // NewInternalToken generate a new value intended to be used by INTERNAL_TOKEN.
 func NewInternalToken() (string, error) {
@@ -57,31 +39,31 @@ func NewInternalToken() (string, error) {
 	return internalToken, nil
 }
 
-// NewJwtSecret generate a new value intended to be used by LFS_JWT_SECRET.
-func NewJwtSecret() (string, error) {
-	JWTSecretBytes := make([]byte, 32)
-	_, err := io.ReadFull(rand.Reader, JWTSecretBytes)
+// NewJwtSecret generates a new value intended to be used for JWT secrets.
+func NewJwtSecret() ([]byte, error) {
+	bytes := make([]byte, 32)
+	_, err := io.ReadFull(rand.Reader, bytes)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+// NewJwtSecretBase64 generates a new base64 encoded value intended to be used for JWT secrets.
+func NewJwtSecretBase64() (string, error) {
+	bytes, err := NewJwtSecret()
 	if err != nil {
 		return "", err
 	}
-	return base64.RawURLEncoding.EncodeToString(JWTSecretBytes), nil
+	return base64.RawURLEncoding.EncodeToString(bytes), nil
 }
 
 // NewSecretKey generate a new value intended to be used by SECRET_KEY.
 func NewSecretKey() (string, error) {
-	secretKey, err := GetRandomString(64)
+	secretKey, err := util.RandomString(64)
 	if err != nil {
 		return "", err
 	}
 
 	return secretKey, nil
-}
-
-func randomInt(max *big.Int) (int, error) {
-	rand, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(rand.Int64()), nil
 }

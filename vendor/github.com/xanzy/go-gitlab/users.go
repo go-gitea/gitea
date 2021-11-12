@@ -143,13 +143,20 @@ func (s *UsersService) ListUsers(opt *ListUsersOptions, options ...RequestOption
 	return usr, resp, err
 }
 
+// GetUsersOptions represents the available GetUser() options.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/users.html#single-user
+type GetUsersOptions struct {
+	WithCustomAttributes *bool `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
+}
+
 // GetUser gets a single user.
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/users.html#single-user
-func (s *UsersService) GetUser(user int, options ...RequestOptionFunc) (*User, *Response, error) {
+func (s *UsersService) GetUser(user int, opt GetUsersOptions, options ...RequestOptionFunc) (*User, *Response, error) {
 	u := fmt.Sprintf("users/%d", user)
 
-	req, err := s.client.NewRequest(http.MethodGet, u, nil, options)
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -838,7 +845,7 @@ type PersonalAccessToken struct {
 	Revoked   bool       `json:"revoked"`
 	CreatedAt *time.Time `json:"created_at"`
 	Scopes    []string   `json:"scopes"`
-	UserID    string     `json:"user_id"`
+	UserID    int        `json:"user_id"`
 	Active    bool       `json:"active"`
 	ExpiresAt *ISOTime   `json:"expires_at"`
 	Token     string     `json:"token"`

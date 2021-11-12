@@ -87,9 +87,11 @@ type Writer struct {
 	last_processed_pos_ uint64
 	dist_cache_         [numDistanceShortCodes]int
 	saved_dist_cache_   [4]int
+	last_bytes_         uint16
+	last_bytes_bits_    byte
 	prev_byte_          byte
 	prev_byte2_         byte
-	bw                  bitWriter
+	storage             []byte
 	small_table_        [1 << 10]int
 	large_table_        []int
 	large_table_size_   uint
@@ -139,6 +141,14 @@ func wrapPosition(position uint64) uint32 {
 	return result
 }
 
+func (s *Writer) getStorage(size int) []byte {
+	if len(s.storage) < size {
+		s.storage = make([]byte, size)
+	}
+
+	return s.storage
+}
+
 func hashTableSize(max_table_size uint, input_size uint) uint {
 	var htsize uint = 256
 	for htsize < max_table_size && htsize < input_size {
@@ -184,18 +194,23 @@ func getHashTable(s *Writer, quality int, input_size uint, table_size *uint) []i
 	return table
 }
 
-func encodeWindowBits(lgwin int, large_window bool, bw *bitWriter) {
+func encodeWindowBits(lgwin int, large_window bool, last_bytes *uint16, last_bytes_bits *byte) {
 	if large_window {
-		bw.writeBits(14, uint64((lgwin&0x3F)<<8|0x11))
+		*last_bytes = uint16((lgwin&0x3F)<<8 | 0x11)
+		*last_bytes_bits = 14
 	} else {
 		if lgwin == 16 {
-			bw.writeBits(1, 0)
+			*last_bytes = 0
+			*last_bytes_bits = 1
 		} else if lgwin == 17 {
-			bw.writeBits(7, 1)
+			*last_bytes = 1
+			*last_bytes_bits = 7
 		} else if lgwin > 17 {
-			bw.writeBits(4, uint64((lgwin-17)<<1|0x01))
+			*last_bytes = uint16((lgwin-17)<<1 | 0x01)
+			*last_bytes_bits = 4
 		} else {
-			bw.writeBits(7, uint64((lgwin-8)<<4|0x01))
+			*last_bytes = uint16((lgwin-8)<<4 | 0x01)
+			*last_bytes_bits = 7
 		}
 	}
 }
@@ -417,15 +432,18 @@ func chooseContextMode(params *encoderParams, data []byte, pos uint, mask uint, 
 	return contextUTF8
 }
 
-func writeMetaBlockInternal(data []byte, mask uint, last_flush_pos uint64, bytes uint, is_last bool, literal_context_mode int, params *encoderParams, prev_byte byte, prev_byte2 byte, num_literals uint, commands []command, saved_dist_cache []int, dist_cache []int, bw *bitWriter) {
+func writeMetaBlockInternal(data []byte, mask uint, last_flush_pos uint64, bytes uint, is_last bool, literal_context_mode int, params *encoderParams, prev_byte byte, prev_byte2 byte, num_literals uint, commands []command, saved_dist_cache []int, dist_cache []int, storage_ix *uint, storage []byte) {
 	var wrapped_last_flush_pos uint32 = wrapPosition(last_flush_pos)
+	var last_bytes uint16
+	var last_bytes_bits byte
 	var literal_context_lut contextLUT = getContextLUT(literal_context_mode)
 	var block_params encoderParams = *params
 
 	if bytes == 0 {
 		/* Write the ISLAST and ISEMPTY bits. */
-		bw.writeBits(2, 3)
-		bw.jumpToByteBoundary()
+		writeBits(2, 3, storage_ix, storage)
+
+		*storage_ix = (*storage_ix + 7) &^ 7
 		return
 	}
 
@@ -434,15 +452,17 @@ func writeMetaBlockInternal(data []byte, mask uint, last_flush_pos uint64, bytes
 		   CreateBackwardReferences is now unused. */
 		copy(dist_cache, saved_dist_cache[:4])
 
-		storeUncompressedMetaBlock(is_last, data, uint(wrapped_last_flush_pos), mask, bytes, bw)
+		storeUncompressedMetaBlock(is_last, data, uint(wrapped_last_flush_pos), mask, bytes, storage_ix, storage)
 		return
 	}
 
-	savedPos := bw.getPos()
+	assert(*storage_ix <= 14)
+	last_bytes = uint16(storage[1])<<8 | uint16(storage[0])
+	last_bytes_bits = byte(*storage_ix)
 	if params.quality <= maxQualityForStaticEntropyCodes {
-		storeMetaBlockFast(data, uint(wrapped_last_flush_pos), bytes, mask, is_last, params, commands, bw)
+		storeMetaBlockFast(data, uint(wrapped_last_flush_pos), bytes, mask, is_last, params, commands, storage_ix, storage)
 	} else if params.quality < minQualityForBlockSplit {
-		storeMetaBlockTrivial(data, uint(wrapped_last_flush_pos), bytes, mask, is_last, params, commands, bw)
+		storeMetaBlockTrivial(data, uint(wrapped_last_flush_pos), bytes, mask, is_last, params, commands, storage_ix, storage)
 	} else {
 		mb := getMetaBlockSplit()
 		if params.quality < minQualityForHqBlockSplitting {
@@ -469,15 +489,18 @@ func writeMetaBlockInternal(data []byte, mask uint, last_flush_pos uint64, bytes
 			optimizeHistograms(num_effective_dist_codes, mb)
 		}
 
-		storeMetaBlock(data, uint(wrapped_last_flush_pos), bytes, mask, prev_byte, prev_byte2, is_last, &block_params, literal_context_mode, commands, mb, bw)
+		storeMetaBlock(data, uint(wrapped_last_flush_pos), bytes, mask, prev_byte, prev_byte2, is_last, &block_params, literal_context_mode, commands, mb, storage_ix, storage)
 		freeMetaBlockSplit(mb)
 	}
 
-	if bytes+4 < bw.getPos()>>3 {
+	if bytes+4 < *storage_ix>>3 {
 		/* Restore the distance cache and last byte. */
 		copy(dist_cache, saved_dist_cache[:4])
-		bw.rewind(savedPos)
-		storeUncompressedMetaBlock(is_last, data, uint(wrapped_last_flush_pos), mask, bytes, bw)
+
+		storage[0] = byte(last_bytes)
+		storage[1] = byte(last_bytes >> 8)
+		*storage_ix = uint(last_bytes_bits)
+		storeUncompressedMetaBlock(is_last, data, uint(wrapped_last_flush_pos), mask, bytes, storage_ix, storage)
 	}
 }
 
@@ -510,10 +533,8 @@ func ensureInitialized(s *Writer) bool {
 		return true
 	}
 
-	s.bw.bits = 0
-	s.bw.nbits = 0
-	s.bw.dst = s.bw.dst[:0]
-
+	s.last_bytes_bits_ = 0
+	s.last_bytes_ = 0
 	s.remaining_metadata_bytes_ = math.MaxUint32
 
 	sanitizeParams(&s.params)
@@ -529,7 +550,7 @@ func ensureInitialized(s *Writer) bool {
 			lgwin = brotli_max_int(lgwin, 18)
 		}
 
-		encodeWindowBits(lgwin, s.params.large_window, &s.bw)
+		encodeWindowBits(lgwin, s.params.large_window, &s.last_bytes_, &s.last_bytes_bits_)
 	}
 
 	if s.params.quality == fastOnePassCompressionQuality {
@@ -761,6 +782,8 @@ func encodeData(s *Writer, is_last bool, force_flush bool) bool {
 	}
 
 	if s.params.quality == fastOnePassCompressionQuality || s.params.quality == fastTwoPassCompressionQuality {
+		var storage []byte
+		var storage_ix uint = uint(s.last_bytes_bits_)
 		var table_size uint
 		var table []int
 
@@ -770,16 +793,20 @@ func encodeData(s *Writer, is_last bool, force_flush bool) bool {
 			return true
 		}
 
+		storage = s.getStorage(int(2*bytes + 503))
+		storage[0] = byte(s.last_bytes_)
+		storage[1] = byte(s.last_bytes_ >> 8)
 		table = getHashTable(s, s.params.quality, uint(bytes), &table_size)
 		if s.params.quality == fastOnePassCompressionQuality {
-			compressFragmentFast(data[wrapped_last_processed_pos&mask:], uint(bytes), is_last, table, table_size, s.cmd_depths_[:], s.cmd_bits_[:], &s.cmd_code_numbits_, s.cmd_code_[:], &s.bw)
+			compressFragmentFast(data[wrapped_last_processed_pos&mask:], uint(bytes), is_last, table, table_size, s.cmd_depths_[:], s.cmd_bits_[:], &s.cmd_code_numbits_, s.cmd_code_[:], &storage_ix, storage)
 		} else {
-			compressFragmentTwoPass(data[wrapped_last_processed_pos&mask:], uint(bytes), is_last, s.command_buf_, s.literal_buf_, table, table_size, &s.bw)
+			compressFragmentTwoPass(data[wrapped_last_processed_pos&mask:], uint(bytes), is_last, s.command_buf_, s.literal_buf_, table, table_size, &storage_ix, storage)
 		}
 
+		s.last_bytes_ = uint16(storage[storage_ix>>3])
+		s.last_bytes_bits_ = byte(storage_ix & 7)
 		updateLastProcessedPos(s)
-		s.writeOutput(s.bw.dst)
-		s.bw.dst = s.bw.dst[:0]
+		s.writeOutput(storage[:storage_ix>>3])
 		return true
 	}
 	{
@@ -856,7 +883,13 @@ func encodeData(s *Writer, is_last bool, force_flush bool) bool {
 	assert(s.input_pos_-s.last_flush_pos_ <= 1<<24)
 	{
 		var metablock_size uint32 = uint32(s.input_pos_ - s.last_flush_pos_)
-		writeMetaBlockInternal(data, uint(mask), s.last_flush_pos_, uint(metablock_size), is_last, literal_context_mode, &s.params, s.prev_byte_, s.prev_byte2_, s.num_literals_, s.commands, s.saved_dist_cache_[:], s.dist_cache_[:], &s.bw)
+		var storage []byte = s.getStorage(int(2*metablock_size + 503))
+		var storage_ix uint = uint(s.last_bytes_bits_)
+		storage[0] = byte(s.last_bytes_)
+		storage[1] = byte(s.last_bytes_ >> 8)
+		writeMetaBlockInternal(data, uint(mask), s.last_flush_pos_, uint(metablock_size), is_last, literal_context_mode, &s.params, s.prev_byte_, s.prev_byte2_, s.num_literals_, s.commands, s.saved_dist_cache_[:], s.dist_cache_[:], &storage_ix, storage)
+		s.last_bytes_ = uint16(storage[storage_ix>>3])
+		s.last_bytes_bits_ = byte(storage_ix & 7)
 		s.last_flush_pos_ = s.input_pos_
 		if updateLastProcessedPos(s) {
 			hasherReset(s.hasher_)
@@ -877,22 +910,28 @@ func encodeData(s *Writer, is_last bool, force_flush bool) bool {
 		   emitting an uncompressed block. */
 		copy(s.saved_dist_cache_[:], s.dist_cache_[:])
 
-		s.writeOutput(s.bw.dst)
-		s.bw.dst = s.bw.dst[:0]
+		s.writeOutput(storage[:storage_ix>>3])
 		return true
 	}
 }
 
-/* Dumps remaining output bits and metadata header to s.bw.
+/* Dumps remaining output bits and metadata header to |header|.
+   Returns number of produced bytes.
+   REQUIRED: |header| should be 8-byte aligned and at least 16 bytes long.
    REQUIRED: |block_size| <= (1 << 24). */
-func writeMetadataHeader(s *Writer, block_size uint) {
-	bw := &s.bw
+func writeMetadataHeader(s *Writer, block_size uint, header []byte) uint {
+	var storage_ix uint
+	storage_ix = uint(s.last_bytes_bits_)
+	header[0] = byte(s.last_bytes_)
+	header[1] = byte(s.last_bytes_ >> 8)
+	s.last_bytes_ = 0
+	s.last_bytes_bits_ = 0
 
-	bw.writeBits(1, 0)
-	bw.writeBits(2, 3)
-	bw.writeBits(1, 0)
+	writeBits(1, 0, &storage_ix, header)
+	writeBits(2, 3, &storage_ix, header)
+	writeBits(1, 0, &storage_ix, header)
 	if block_size == 0 {
-		bw.writeBits(2, 0)
+		writeBits(2, 0, &storage_ix, header)
 	} else {
 		var nbits uint32
 		if block_size == 1 {
@@ -901,19 +940,34 @@ func writeMetadataHeader(s *Writer, block_size uint) {
 			nbits = log2FloorNonZero(uint(uint32(block_size)-1)) + 1
 		}
 		var nbytes uint32 = (nbits + 7) / 8
-		bw.writeBits(2, uint64(nbytes))
-		bw.writeBits(uint(8*nbytes), uint64(block_size)-1)
+		writeBits(2, uint64(nbytes), &storage_ix, header)
+		writeBits(uint(8*nbytes), uint64(block_size)-1, &storage_ix, header)
 	}
 
-	bw.jumpToByteBoundary()
+	return (storage_ix + 7) >> 3
 }
 
 func injectBytePaddingBlock(s *Writer) {
+	var seal uint32 = uint32(s.last_bytes_)
+	var seal_bits uint = uint(s.last_bytes_bits_)
+	s.last_bytes_ = 0
+	s.last_bytes_bits_ = 0
+
 	/* is_last = 0, data_nibbles = 11, reserved = 0, meta_nibbles = 00 */
-	s.bw.writeBits(6, 0x6)
-	s.bw.jumpToByteBoundary()
-	s.writeOutput(s.bw.dst)
-	s.bw.dst = s.bw.dst[:0]
+	seal |= 0x6 << seal_bits
+
+	seal_bits += 6
+
+	destination := s.tiny_buf_.u8[:]
+
+	destination[0] = byte(seal)
+	if seal_bits > 8 {
+		destination[1] = byte(seal >> 8)
+	}
+	if seal_bits > 16 {
+		destination[2] = byte(seal >> 16)
+	}
+	s.writeOutput(destination[:(seal_bits+7)>>3])
 }
 
 func checkFlushComplete(s *Writer) {
@@ -945,7 +999,7 @@ func encoderCompressStreamFast(s *Writer, op int, available_in *uint, next_in *[
 	}
 
 	for {
-		if s.stream_state_ == streamFlushRequested && s.bw.nbits&7 != 0 {
+		if s.stream_state_ == streamFlushRequested && s.last_bytes_bits_ != 0 {
 			injectBytePaddingBlock(s)
 			continue
 		}
@@ -957,6 +1011,9 @@ func encoderCompressStreamFast(s *Writer, op int, available_in *uint, next_in *[
 			var block_size uint = brotli_min_size_t(block_size_limit, *available_in)
 			var is_last bool = (*available_in == block_size) && (op == int(operationFinish))
 			var force_flush bool = (*available_in == block_size) && (op == int(operationFlush))
+			var max_out_size uint = 2*block_size + 503
+			var storage []byte = nil
+			var storage_ix uint = uint(s.last_bytes_bits_)
 			var table_size uint
 			var table []int
 
@@ -965,18 +1022,25 @@ func encoderCompressStreamFast(s *Writer, op int, available_in *uint, next_in *[
 				continue
 			}
 
+			storage = s.getStorage(int(max_out_size))
+
+			storage[0] = byte(s.last_bytes_)
+			storage[1] = byte(s.last_bytes_ >> 8)
 			table = getHashTable(s, s.params.quality, block_size, &table_size)
 
 			if s.params.quality == fastOnePassCompressionQuality {
-				compressFragmentFast(*next_in, block_size, is_last, table, table_size, s.cmd_depths_[:], s.cmd_bits_[:], &s.cmd_code_numbits_, s.cmd_code_[:], &s.bw)
+				compressFragmentFast(*next_in, block_size, is_last, table, table_size, s.cmd_depths_[:], s.cmd_bits_[:], &s.cmd_code_numbits_, s.cmd_code_[:], &storage_ix, storage)
 			} else {
-				compressFragmentTwoPass(*next_in, block_size, is_last, command_buf, literal_buf, table, table_size, &s.bw)
+				compressFragmentTwoPass(*next_in, block_size, is_last, command_buf, literal_buf, table, table_size, &storage_ix, storage)
 			}
 
 			*next_in = (*next_in)[block_size:]
 			*available_in -= block_size
-			s.writeOutput(s.bw.dst)
-			s.bw.dst = s.bw.dst[:0]
+			var out_bytes uint = storage_ix >> 3
+			s.writeOutput(storage[:out_bytes])
+
+			s.last_bytes_ = uint16(storage[storage_ix>>3])
+			s.last_bytes_bits_ = byte(storage_ix & 7)
 
 			if force_flush {
 				s.stream_state_ = streamFlushRequested
@@ -1010,7 +1074,7 @@ func processMetadata(s *Writer, available_in *uint, next_in *[]byte) bool {
 	}
 
 	for {
-		if s.stream_state_ == streamFlushRequested && s.bw.nbits&7 != 0 {
+		if s.stream_state_ == streamFlushRequested && s.last_bytes_bits_ != 0 {
 			injectBytePaddingBlock(s)
 			continue
 		}
@@ -1024,9 +1088,8 @@ func processMetadata(s *Writer, available_in *uint, next_in *[]byte) bool {
 		}
 
 		if s.stream_state_ == streamMetadataHead {
-			writeMetadataHeader(s, uint(s.remaining_metadata_bytes_))
-			s.writeOutput(s.bw.dst)
-			s.bw.dst = s.bw.dst[:0]
+			n := writeMetadataHeader(s, uint(s.remaining_metadata_bytes_), s.tiny_buf_.u8[:])
+			s.writeOutput(s.tiny_buf_.u8[:n])
 			s.stream_state_ = streamMetadataBody
 			continue
 		} else {
@@ -1112,7 +1175,7 @@ func encoderCompressStream(s *Writer, op int, available_in *uint, next_in *[]byt
 			continue
 		}
 
-		if s.stream_state_ == streamFlushRequested && s.bw.nbits&7 != 0 {
+		if s.stream_state_ == streamFlushRequested && s.last_bytes_bits_ != 0 {
 			injectBytePaddingBlock(s)
 			continue
 		}

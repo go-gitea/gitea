@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/migrations"
 	repository_service "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/auth"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
@@ -36,7 +38,7 @@ func registerRepoHealthCheck() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: false,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		Timeout: 60 * time.Second,
 		Args:    []string{},
@@ -50,7 +52,7 @@ func registerCheckRepoStats() {
 	RegisterTaskFatal("check_repo_stats", &BaseConfig{
 		Enabled:    true,
 		RunAtStart: true,
-		Schedule:   "@every 24h",
+		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return models.CheckRepoStats(ctx)
 	})
@@ -61,7 +63,7 @@ func registerArchiveCleanup() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: true,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
@@ -75,12 +77,12 @@ func registerSyncExternalUsers() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: false,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		UpdateExisting: true,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		realConfig := config.(*UpdateExistingConfig)
-		return models.SyncExternalUsers(ctx, realConfig.UpdateExisting)
+		return auth.SyncExternalUsers(ctx, realConfig.UpdateExisting)
 	})
 }
 
@@ -89,7 +91,7 @@ func registerDeletedBranchesCleanup() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: true,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
@@ -103,7 +105,7 @@ func registerUpdateMigrationPosterID() {
 	RegisterTaskFatal("update_migration_poster_id", &BaseConfig{
 		Enabled:    true,
 		RunAtStart: true,
-		Schedule:   "@every 24h",
+		Schedule:   "@midnight",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
 		return migrations.UpdateMigrationPosterID(ctx)
 	})
@@ -114,14 +116,14 @@ func registerCleanupHookTaskTable() {
 		BaseConfig: BaseConfig{
 			Enabled:    true,
 			RunAtStart: false,
-			Schedule:   "@every 24h",
+			Schedule:   "@midnight",
 		},
 		CleanupType:  "OlderThan",
 		OlderThan:    168 * time.Hour,
 		NumberToKeep: 10,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		realConfig := config.(*CleanupHookTaskConfig)
-		return models.CleanupHookTaskTable(ctx, models.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.OlderThan, realConfig.NumberToKeep)
+		return webhook.CleanupHookTaskTable(ctx, webhook.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.OlderThan, realConfig.NumberToKeep)
 	})
 }
 

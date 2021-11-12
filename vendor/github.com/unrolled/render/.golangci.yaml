@@ -1,0 +1,56 @@
+issues:
+  exclude:
+    - G203
+
+linters:
+  disable-all: true
+  enable:
+    - bodyclose
+    - deadcode
+    - depguard
+    - dogsled
+    - dupl
+    - errcheck
+    - exhaustive
+    - goconst
+    - gocritic
+    - gocyclo
+    - goimports
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - ineffassign
+    - nakedret
+    - nolintlint
+    - rowserrcheck
+    - staticcheck
+    - structcheck
+    - stylecheck
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - varcheck
+    - whitespace
+    - noctx
+    - misspell
+    # - golint
+    # - gochecknoinits
+    # - funlen
+    # - gofmt
+    # - scopelint
+    # - interfacer
+    # - gomnd
+    # - lll
+    # - asciicheck
+    # - gochecknoglobals
+    # - gocognit
+    # - godot
+    # - godox
+    # - goerr113
+    # - maligned
+    # - nestif
+    # - prealloc
+    # - testpackage
+    # - wsl

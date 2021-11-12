@@ -14,11 +14,12 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/session"
 )
@@ -94,7 +95,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
 
-		if setting.IsProd() && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd && !(ctx.User != nil && ctx.User.IsAdmin) {
 			message = ""
 		}
 	}
@@ -111,7 +112,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if !setting.IsProd() || (ctx.User != nil && ctx.User.IsAdmin) {
+	if !setting.IsProd || (ctx.User != nil && ctx.User.IsAdmin) {
 		message = err.Error()
 	}
 
@@ -177,10 +178,27 @@ func genAPILinks(curURL *url.URL, total, pageSize, curPage int) []string {
 
 // SetLinkHeader sets pagination link header by given total number and page size.
 func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
-	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.QueryInt("page"))
+	links := genAPILinks(ctx.Req.URL, total, pageSize, ctx.FormInt("page"))
 
 	if len(links) > 0 {
 		ctx.Header().Set("Link", strings.Join(links, ","))
+		ctx.AppendAccessControlExposeHeaders("Link")
+	}
+}
+
+// SetTotalCountHeader set "X-Total-Count" header
+func (ctx *APIContext) SetTotalCountHeader(total int64) {
+	ctx.Header().Set("X-Total-Count", fmt.Sprint(total))
+	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
+}
+
+// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
+func (ctx *APIContext) AppendAccessControlExposeHeaders(names ...string) {
+	val := ctx.Header().Get("Access-Control-Expose-Headers")
+	if len(val) != 0 {
+		ctx.Header().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
+	} else {
+		ctx.Header().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
 	}
 }
 
@@ -197,10 +215,14 @@ func (ctx *APIContext) RequireCSRF() {
 
 // CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
+	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
+		return // Skip 2FA
+	}
+
 	otpHeader := ctx.Req.Header.Get("X-Gitea-OTP")
-	twofa, err := models.GetTwoFactorByUID(ctx.Context.User.ID)
+	twofa, err := login.GetTwoFactorByUID(ctx.Context.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
+		if login.IsErrTwoFactorNotEnrolled(err) {
 			return // No 2FA enrollment for this user
 		}
 		ctx.Context.Error(http.StatusInternalServerError)
@@ -214,6 +236,26 @@ func (ctx *APIContext) CheckForOTP() {
 	if !ok {
 		ctx.Context.Error(401)
 		return
+	}
+}
+
+// APIAuth converts auth.Auth as a middleware
+func APIAuth(authMethod auth.Method) func(*APIContext) {
+	return func(ctx *APIContext) {
+		// Get user from session if logged in.
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+		}
 	}
 }
 
@@ -250,25 +292,22 @@ func APIContexter() func(http.Handler) http.Handler {
 				}
 			}
 
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
-			}
-
-			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			// Handle adding signedUserName to the context for the AccessLogger
+			usernameInterface := ctx.Data["SignedUserName"]
+			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
+			if usernameInterface != nil && identityPtrInterface != nil {
+				username := usernameInterface.(string)
+				identityPtr := identityPtrInterface.(*string)
+				if identityPtr != nil && username != "" {
+					*identityPtr = username
+				}
+			}
 		})
 	}
 }

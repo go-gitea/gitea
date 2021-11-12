@@ -64,7 +64,7 @@
 		{{end}}
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view {{if .IsMarkup}}{{.MarkupType}} {{if ne "csv" .MarkupType}}markdown{{end}}{{else if .IsRenderedHTML}}plain-text{{else if .IsTextSource}}code-view{{end}}">
+		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
 			{{else if .IsRenderedHTML}}
@@ -82,7 +82,7 @@
 							<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else if .IsPDFFile}}
-						<iframe width="100%" height="600px" src="{{StaticUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
+						<iframe width="100%" height="600px" src="{{AssetUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
 					{{else}}
 						<a href="{{EscapePound $.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
 					{{end}}
@@ -99,7 +99,8 @@
 				{{else}}
 				<table>
 					<tbody>
-						{{range $line, $code := .FileContent}}
+						{{range $idx, $code := .FileContent}}
+						{{$line := Add $idx 1}}
 						<tr>
 							<td id="L{{$line}}" class="lines-num">
 								<span id="L{{$line}}" data-line-number="{{$line}}"></span>
@@ -111,11 +112,16 @@
 						{{end}}
 					</tbody>
 				</table>
-				<div class="code-view-menu-list ui fluid popup transition hidden">
+				<div class="code-line-menu ui fluid popup transition hidden">
 					<div class="ui column relaxed equal height">
 						<div class="column">
+							{{if $.Permission.CanRead $.UnitTypeIssues}}
+								<div class="ui link list">
+									<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+								</div>
+							{{end}}
 							<div class="ui link list">
-								<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+								<a data-clipboard-text="{{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}" class="item copy-line-permalink">{{.i18n.Tr "repo.file_copy_permalink"}}</a>
 							</div>
 						</div>
 					</div>
@@ -125,13 +131,3 @@
 		</div>
 	</div>
 </div>
-
-<script>
-function submitDeleteForm() {
-	var message = prompt("{{.i18n.Tr "repo.delete_confirm_message"}}\n\n{{.i18n.Tr "repo.delete_commit_summary"}}", "Delete '{{.TreeName}}'");
-	if (message != null) {
-		$("#delete-message").val(message);
-		$("#delete-file-form").submit()
-	}
-}
-</script>

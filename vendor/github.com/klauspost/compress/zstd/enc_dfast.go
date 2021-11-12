@@ -109,7 +109,7 @@ func (e *doubleFastEncoder) Encode(blk *blockEnc, src []byte) {
 		blk.literals = append(blk.literals, src[nextEmit:until]...)
 		s.litLen = uint32(until - nextEmit)
 	}
-	if debug {
+	if debugEncoder {
 		println("recent offsets:", blk.recentOffsets)
 	}
 
@@ -170,7 +170,7 @@ encodeLoop:
 					s += lenght + repOff
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, lenght)
 
 						}
@@ -368,7 +368,7 @@ encodeLoop:
 	}
 	blk.recentOffsets[0] = uint32(offset1)
 	blk.recentOffsets[1] = uint32(offset2)
-	if debug {
+	if debugEncoder {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 }
@@ -427,7 +427,7 @@ func (e *doubleFastEncoder) EncodeNoHist(blk *blockEnc, src []byte) {
 		blk.literals = append(blk.literals, src[nextEmit:until]...)
 		s.litLen = uint32(until - nextEmit)
 	}
-	if debug {
+	if debugEncoder {
 		println("recent offsets:", blk.recentOffsets)
 	}
 
@@ -483,7 +483,7 @@ encodeLoop:
 					s += length + repOff
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, length)
 
 						}
@@ -677,7 +677,7 @@ encodeLoop:
 		blk.literals = append(blk.literals, src[nextEmit:]...)
 		blk.extraLits = len(src) - int(nextEmit)
 	}
-	if debug {
+	if debugEncoder {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 
@@ -767,7 +767,7 @@ func (e *doubleFastEncoderDict) Encode(blk *blockEnc, src []byte) {
 		blk.literals = append(blk.literals, src[nextEmit:until]...)
 		s.litLen = uint32(until - nextEmit)
 	}
-	if debug {
+	if debugEncoder {
 		println("recent offsets:", blk.recentOffsets)
 	}
 
@@ -830,7 +830,7 @@ encodeLoop:
 					s += lenght + repOff
 					nextEmit = s
 					if s >= sLimit {
-						if debug {
+						if debugEncoder {
 							println("repeat ended", s, lenght)
 
 						}
@@ -1039,7 +1039,7 @@ encodeLoop:
 	}
 	blk.recentOffsets[0] = uint32(offset1)
 	blk.recentOffsets[1] = uint32(offset2)
-	if debug {
+	if debugEncoder {
 		println("returning, recent offsets:", blk.recentOffsets, "extra literals:", blk.extraLits)
 	}
 	// If we encoded more than 64K mark all dirty.

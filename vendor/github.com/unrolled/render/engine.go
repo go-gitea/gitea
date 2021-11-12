@@ -78,7 +78,7 @@ func (d Data) Render(w io.Writer, v interface{}) error {
 		d.Head.Write(hw)
 	}
 
-	w.Write(v.([]byte))
+	_, _ = w.Write(v.([]byte))
 	return nil
 }
 
@@ -99,7 +99,7 @@ func (h HTML) Render(w io.Writer, binding interface{}) error {
 	if hw, ok := w.(http.ResponseWriter); ok {
 		h.Head.Write(hw)
 	}
-	buf.WriteTo(w)
+	_, _ = buf.WriteTo(w)
 
 	return nil
 }
@@ -125,9 +125,9 @@ func (j JSON) Render(w io.Writer, v interface{}) error {
 
 	// Unescape HTML if needed.
 	if j.UnEscapeHTML {
-		result = bytes.Replace(result, []byte("\\u003c"), []byte("<"), -1)
-		result = bytes.Replace(result, []byte("\\u003e"), []byte(">"), -1)
-		result = bytes.Replace(result, []byte("\\u0026"), []byte("&"), -1)
+		result = bytes.ReplaceAll(result, []byte("\\u003c"), []byte("<"))
+		result = bytes.ReplaceAll(result, []byte("\\u003e"), []byte(">"))
+		result = bytes.ReplaceAll(result, []byte("\\u0026"), []byte("&"))
 	}
 
 	// JSON marshaled fine, write out the result.
@@ -135,9 +135,9 @@ func (j JSON) Render(w io.Writer, v interface{}) error {
 		j.Head.Write(hw)
 	}
 	if len(j.Prefix) > 0 {
-		w.Write(j.Prefix)
+		_, _ = w.Write(j.Prefix)
 	}
-	w.Write(result)
+	_, _ = w.Write(result)
 	return nil
 }
 
@@ -146,7 +146,7 @@ func (j JSON) renderStreamingJSON(w io.Writer, v interface{}) error {
 		j.Head.Write(hw)
 	}
 	if len(j.Prefix) > 0 {
-		w.Write(j.Prefix)
+		_, _ = w.Write(j.Prefix)
 	}
 
 	return json.NewEncoder(w).Encode(v)
@@ -170,13 +170,13 @@ func (j JSONP) Render(w io.Writer, v interface{}) error {
 	if hw, ok := w.(http.ResponseWriter); ok {
 		j.Head.Write(hw)
 	}
-	w.Write([]byte(j.Callback + "("))
-	w.Write(result)
-	w.Write([]byte(");"))
+	_, _ = w.Write([]byte(j.Callback + "("))
+	_, _ = w.Write(result)
+	_, _ = w.Write([]byte(");"))
 
 	// If indenting, append a new line.
 	if j.Indent {
-		w.Write([]byte("\n"))
+		_, _ = w.Write([]byte("\n"))
 	}
 	return nil
 }
@@ -191,7 +191,7 @@ func (t Text) Render(w io.Writer, v interface{}) error {
 		t.Head.Write(hw)
 	}
 
-	w.Write([]byte(v.(string)))
+	_, _ = w.Write([]byte(v.(string)))
 	return nil
 }
 
@@ -215,8 +215,8 @@ func (x XML) Render(w io.Writer, v interface{}) error {
 		x.Head.Write(hw)
 	}
 	if len(x.Prefix) > 0 {
-		w.Write(x.Prefix)
+		_, _ = w.Write(x.Prefix)
 	}
-	w.Write(result)
+	_, _ = w.Write(result)
 	return nil
 }
