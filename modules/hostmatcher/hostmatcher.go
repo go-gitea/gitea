@@ -13,18 +13,17 @@ import (
 )
 
 // HostMatchList is used to check if a host or IP is in a list.
-// If you only need to do wildcard matching, consider to use modules/matchlist
 type HostMatchList struct {
 	SettingKeyHint string
 	SettingValue   string
 
-	// patterns for host names or built-in networks
+	// builtins networks
+	builtins []string
+	// patterns for host names (with wildcard support)
 	patterns []string
-	ipNets   []*net.IPNet
+	// ipNets is the CIDR network list
+	ipNets []*net.IPNet
 }
-
-// MatchBuiltinAll all hosts are matched
-const MatchBuiltinAll = "*"
 
 // MatchBuiltinExternal A valid non-private unicast IP, all hosts on public internet are matched
 const MatchBuiltinExternal = "external"
@@ -34,6 +33,10 @@ const MatchBuiltinPrivate = "private"
 
 // MatchBuiltinLoopback 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
 const MatchBuiltinLoopback = "loopback"
+
+func isBuiltin(s string) bool {
+	return s == MatchBuiltinExternal || s == MatchBuiltinPrivate || s == MatchBuiltinLoopback
+}
 
 // ParseHostMatchList parses the host list HostMatchList
 func ParseHostMatchList(settingKeyHint string, hostList string) *HostMatchList {
@@ -46,6 +49,8 @@ func ParseHostMatchList(settingKeyHint string, hostList string) *HostMatchList {
 		_, ipNet, err := net.ParseCIDR(s)
 		if err == nil {
 			hl.ipNets = append(hl.ipNets, ipNet)
+		} else if isBuiltin(s) {
+			hl.builtins = append(hl.builtins, s)
 		} else {
 			hl.patterns = append(hl.patterns, s)
 		}
@@ -53,7 +58,7 @@ func ParseHostMatchList(settingKeyHint string, hostList string) *HostMatchList {
 	return hl
 }
 
-// ParseSimpleMatchList parse a simple matchlist (no built-in networks, no CIDR support)
+// ParseSimpleMatchList parse a simple matchlist (no built-in networks, no CIDR support, only wildcard pattern match)
 func ParseSimpleMatchList(settingKeyHint string, matchList string) *HostMatchList {
 	hl := &HostMatchList{
 		SettingKeyHint: settingKeyHint,
@@ -64,13 +69,8 @@ func ParseSimpleMatchList(settingKeyHint string, matchList string) *HostMatchLis
 		if s == "" {
 			continue
 		}
-		if s == MatchBuiltinLoopback || s == MatchBuiltinPrivate || s == MatchBuiltinExternal {
-			// for built-in patterns, we convert it from "private" => "[p]rivate" for internal usage and keep the same result as `matchlist`
-			hl.patterns = append(hl.patterns, "["+s[:1]+"]"+s[1:])
-		} else {
-			// we keep the same result as `matchlist`, so no CIDR support here
-			hl.patterns = append(hl.patterns, s)
-		}
+		// we keep the same result as old `matchlist`, so no builtin/CIDR support here, we only match wildcard patterns
+		hl.patterns = append(hl.patterns, s)
 	}
 	return hl
 }
@@ -80,27 +80,16 @@ func (hl *HostMatchList) AppendPattern(pattern string) {
 	hl.patterns = append(hl.patterns, pattern)
 }
 
-// IsEmpty checks if the check list is empty
+// IsEmpty checks if the checklist is empty
 func (hl *HostMatchList) IsEmpty() bool {
-	return hl == nil || (len(hl.patterns) == 0 && len(hl.ipNets) == 0)
+	return hl == nil || (len(hl.builtins) == 0 && len(hl.patterns) == 0 && len(hl.ipNets) == 0)
 }
 
 func (hl *HostMatchList) checkPattern(host string) bool {
 	host = strings.ToLower(strings.TrimSpace(host))
 	for _, pattern := range hl.patterns {
-		switch pattern {
-		case "":
-		case MatchBuiltinExternal:
-		case MatchBuiltinPrivate:
-		case MatchBuiltinLoopback:
-			// ignore empty string or built-in network patterns
-			continue
-		case MatchBuiltinAll:
+		if matched, _ := filepath.Match(pattern, host); matched {
 			return true
-		default:
-			if matched, _ := filepath.Match(pattern, host); matched {
-				return true
-			}
 		}
 	}
 	return false
@@ -108,11 +97,12 @@ func (hl *HostMatchList) checkPattern(host string) bool {
 
 func (hl *HostMatchList) checkIP(ip net.IP) bool {
 	for _, pattern := range hl.patterns {
-		switch pattern {
-		case "":
-			continue
-		case MatchBuiltinAll:
+		if pattern == "*" {
 			return true
+		}
+	}
+	for _, builtin := range hl.builtins {
+		switch builtin {
 		case MatchBuiltinExternal:
 			if ip.IsGlobalUnicast() && !util.IsIPPrivate(ip) {
 				return true
