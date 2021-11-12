@@ -8,7 +8,7 @@ import (
 	"context"
 	"math"
 
-	"code.gitea.io/gitea/modules/unittestapi"
+	"code.gitea.io/gitea/modules/unittestbridge"
 
 	"xorm.io/xorm"
 )
@@ -58,16 +58,16 @@ func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error)
 }
 
 // BeanExists for testing, check if a bean exists
-func BeanExists(t unittestapi.Tester, bean interface{}, conditions ...interface{}) bool {
-	ta := unittestapi.NewAsserter(t)
+func BeanExists(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) bool {
+	ta := unittestbridge.NewAsserter(t)
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	ta.NoError(err)
 	return exists
 }
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
-func AssertExistsAndLoadBean(t unittestapi.Tester, bean interface{}, conditions ...interface{}) interface{} {
-	ta := unittestapi.NewAsserter(t)
+func AssertExistsAndLoadBean(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) interface{} {
+	ta := unittestbridge.NewAsserter(t)
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	ta.NoError(err)
 	ta.True(exists,
@@ -77,8 +77,8 @@ func AssertExistsAndLoadBean(t unittestapi.Tester, bean interface{}, conditions 
 }
 
 // GetCount get the count of a bean
-func GetCount(t unittestapi.Tester, bean interface{}, conditions ...interface{}) int {
-	ta := unittestapi.NewAsserter(t)
+func GetCount(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) int {
+	ta := unittestbridge.NewAsserter(t)
 	sess := x.NewSession()
 	defer sess.Close()
 	whereConditions(sess, conditions)
@@ -88,8 +88,8 @@ func GetCount(t unittestapi.Tester, bean interface{}, conditions ...interface{})
 }
 
 // AssertNotExistsBean assert that a bean does not exist in the test database
-func AssertNotExistsBean(t unittestapi.Tester, bean interface{}, conditions ...interface{}) {
-	ta := unittestapi.NewAsserter(t)
+func AssertNotExistsBean(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) {
+	ta := unittestbridge.NewAsserter(t)
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	ta.NoError(err)
 	ta.False(exists)
@@ -97,29 +97,29 @@ func AssertNotExistsBean(t unittestapi.Tester, bean interface{}, conditions ...i
 
 // AssertExistsIf asserts that a bean exists or does not exist, depending on
 // what is expected.
-func AssertExistsIf(t unittestapi.Tester, expected bool, bean interface{}, conditions ...interface{}) {
-	ta := unittestapi.NewAsserter(t)
+func AssertExistsIf(t unittestbridge.Tester, expected bool, bean interface{}, conditions ...interface{}) {
+	ta := unittestbridge.NewAsserter(t)
 	exists, err := LoadBeanIfExists(bean, conditions...)
 	ta.NoError(err)
 	ta.Equal(expected, exists)
 }
 
 // AssertSuccessfulInsert assert that beans is successfully inserted
-func AssertSuccessfulInsert(t unittestapi.Tester, beans ...interface{}) {
-	ta := unittestapi.NewAsserter(t)
+func AssertSuccessfulInsert(t unittestbridge.Tester, beans ...interface{}) {
+	ta := unittestbridge.NewAsserter(t)
 	_, err := x.Insert(beans...)
 	ta.NoError(err)
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t unittestapi.Tester, bean, expected interface{}) {
-	ta := unittestapi.NewAsserter(t)
+func AssertCount(t unittestbridge.Tester, bean, expected interface{}) {
+	ta := unittestbridge.NewAsserter(t)
 	ta.EqualValues(expected, GetCount(ta, bean))
 }
 
 // AssertInt64InRange assert value is in range [low, high]
-func AssertInt64InRange(t unittestapi.Tester, low, high, value int64) {
-	ta := unittestapi.NewAsserter(t)
+func AssertInt64InRange(t unittestbridge.Tester, low, high, value int64) {
+	ta := unittestbridge.NewAsserter(t)
 	ta.True(value >= low && value <= high,
 		"Expected value in range [%d, %d], found %d", low, high, value)
 }

@@ -15,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/unittestapi"
-	"code.gitea.io/gitea/modules/unittestassert"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
@@ -45,7 +43,7 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	var err error
-	unittestapi.SetNewAsserterFunc(unittestassert.NewTestifyAsserter)
+	InitUnitTestBridge()
 	giteaRoot = pathToGiteaRoot
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
 

@@ -9,14 +9,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/unittestapi"
+	"code.gitea.io/gitea/modules/unittestbridge"
 
 	"xorm.io/builder"
 )
 
 // CheckConsistencyFor test that all matching database entries are consistent
-func CheckConsistencyFor(t unittestapi.Tester, beansToCheck ...interface{}) {
-	ta := unittestapi.NewAsserter(t)
+func CheckConsistencyFor(t unittestbridge.Tester, beansToCheck ...interface{}) {
+	ta := unittestbridge.NewAsserter(t)
 	for _, bean := range beansToCheck {
 		sliceType := reflect.SliceOf(reflect.TypeOf(bean))
 		sliceValue := reflect.MakeSlice(sliceType, 0, 10)
@@ -34,7 +34,7 @@ func CheckConsistencyFor(t unittestapi.Tester, beansToCheck ...interface{}) {
 	}
 }
 
-func checkForConsistency(ta unittestapi.Asserter, bean interface{}) {
+func checkForConsistency(ta unittestbridge.Asserter, bean interface{}) {
 	switch b := bean.(type) {
 	case *User:
 		checkForUserConsistency(b, ta)
@@ -58,19 +58,19 @@ func checkForConsistency(ta unittestapi.Asserter, bean interface{}) {
 }
 
 // getCount get the count of database entries matching bean
-func getCount(ta unittestapi.Asserter, e db.Engine, bean interface{}) int64 {
+func getCount(ta unittestbridge.Asserter, e db.Engine, bean interface{}) int64 {
 	count, err := e.Count(bean)
 	ta.NoError(err)
 	return count
 }
 
 // assertCount test the count of database entries matching bean
-func assertCount(ta unittestapi.Asserter, bean interface{}, expected int) {
+func assertCount(ta unittestbridge.Asserter, bean interface{}, expected int) {
 	ta.EqualValues(expected, getCount(ta, db.GetEngine(db.DefaultContext), bean),
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-func checkForUserConsistency(user *User, ta unittestapi.Asserter) {
+func checkForUserConsistency(user *User, ta unittestbridge.Asserter) {
 	assertCount(ta, &Repository{OwnerID: user.ID}, user.NumRepos)
 	assertCount(ta, &Star{UID: user.ID}, user.NumStars)
 	assertCount(ta, &OrgUser{OrgID: user.ID}, user.NumMembers)
@@ -83,7 +83,7 @@ func checkForUserConsistency(user *User, ta unittestapi.Asserter) {
 	}
 }
 
-func checkForRepoConsistency(repo *Repository, ta unittestapi.Asserter) {
+func checkForRepoConsistency(repo *Repository, ta unittestbridge.Asserter) {
 	ta.Equal(repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
 	assertCount(ta, &Star{RepoID: repo.ID}, repo.NumStars)
 	assertCount(ta, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
@@ -117,7 +117,7 @@ func checkForRepoConsistency(repo *Repository, ta unittestapi.Asserter) {
 		"Unexpected number of closed milestones for repo %+v", repo)
 }
 
-func checkForIssueConsistency(issue *Issue, ta unittestapi.Asserter) {
+func checkForIssueConsistency(issue *Issue, ta unittestbridge.Asserter) {
 	actual := getCount(ta, db.GetEngine(db.DefaultContext).Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
 	ta.EqualValues(issue.NumComments, actual,
 		"Unexpected number of comments for issue %+v", issue)
@@ -127,13 +127,13 @@ func checkForIssueConsistency(issue *Issue, ta unittestapi.Asserter) {
 	}
 }
 
-func checkForPullRequestConsistency(pr *PullRequest, ta unittestapi.Asserter) {
+func checkForPullRequestConsistency(pr *PullRequest, ta unittestbridge.Asserter) {
 	issue := db.AssertExistsAndLoadBean(ta, &Issue{ID: pr.IssueID}).(*Issue)
 	ta.True(issue.IsPull)
 	ta.EqualValues(issue.Index, pr.Index)
 }
 
-func checkForMilestoneConsistency(milestone *Milestone, ta unittestapi.Asserter) {
+func checkForMilestoneConsistency(milestone *Milestone, ta unittestbridge.Asserter) {
 	assertCount(ta, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
 	actual := getCount(ta, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
@@ -147,7 +147,7 @@ func checkForMilestoneConsistency(milestone *Milestone, ta unittestapi.Asserter)
 	ta.Equal(completeness, milestone.Completeness)
 }
 
-func checkForLabelConsistency(label *Label, ta unittestapi.Asserter) {
+func checkForLabelConsistency(label *Label, ta unittestbridge.Asserter) {
 	issueLabels := make([]*IssueLabel, 0, 10)
 	ta.NoError(db.GetEngine(db.DefaultContext).Find(&issueLabels, &IssueLabel{LabelID: label.ID}))
 	ta.EqualValues(label.NumIssues, len(issueLabels),
@@ -166,12 +166,12 @@ func checkForLabelConsistency(label *Label, ta unittestapi.Asserter) {
 		"Unexpected number of closed issues for label %+v", label)
 }
 
-func checkForTeamConsistency(team *Team, ta unittestapi.Asserter) {
+func checkForTeamConsistency(team *Team, ta unittestbridge.Asserter) {
 	assertCount(ta, &TeamUser{TeamID: team.ID}, team.NumMembers)
 	assertCount(ta, &TeamRepo{TeamID: team.ID}, team.NumRepos)
 }
 
-func checkForActionConsistency(action *Action, ta unittestapi.Asserter) {
+func checkForActionConsistency(action *Action, ta unittestbridge.Asserter) {
 	repo := db.AssertExistsAndLoadBean(ta, &Repository{ID: action.RepoID}).(*Repository)
 	ta.Equal(repo.IsPrivate, action.IsPrivate, "action: %+v", action)
 }

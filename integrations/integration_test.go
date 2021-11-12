@@ -34,8 +34,6 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	"code.gitea.io/gitea/modules/unittestapi"
-	"code.gitea.io/gitea/modules/unittestassert"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers"
@@ -86,7 +84,7 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 func TestMain(m *testing.M) {
 	defer log.Close()
 
-	unittestapi.SetNewAsserterFunc(unittestassert.NewTestifyAsserter)
+	unittest.InitUnitTestBridge()
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
