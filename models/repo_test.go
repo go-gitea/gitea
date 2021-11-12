@@ -14,13 +14,14 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMetas(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
@@ -72,7 +73,7 @@ func TestMetas(t *testing.T) {
 }
 
 func TestGetRepositoryCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	count, err1 := GetRepositoryCount(&User{ID: int64(10)})
 	privateCount, err2 := GetPrivateRepositoryCount(&User{ID: int64(10)})
@@ -85,7 +86,7 @@ func TestGetRepositoryCount(t *testing.T) {
 }
 
 func TestGetPublicRepositoryCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	count, err := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err)
@@ -93,7 +94,7 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 }
 
 func TestGetPrivateRepositoryCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	count, err := GetPrivateRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err)
@@ -101,7 +102,7 @@ func TestGetPrivateRepositoryCount(t *testing.T) {
 }
 
 func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Get sample repo and change visibility
 	repo, err := GetRepositoryByID(9)
@@ -121,7 +122,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 }
 
 func TestGetUserFork(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// User13 has repo 11 forked from repo10
 	repo, err := GetRepositoryByID(10)
@@ -140,7 +141,7 @@ func TestGetUserFork(t *testing.T) {
 }
 
 func TestRepoAPIURL(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
@@ -152,7 +153,7 @@ func TestUploadAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
@@ -166,7 +167,7 @@ func TestUploadBigAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
@@ -179,7 +180,7 @@ func TestDeleteAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
@@ -192,13 +193,13 @@ func TestDeleteAvatar(t *testing.T) {
 }
 
 func TestDoctorUserStarNum(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	assert.NoError(t, DoctorUserStarNum())
 }
 
 func TestRepoGetReviewers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// test public repo
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
@@ -215,7 +216,7 @@ func TestRepoGetReviewers(t *testing.T) {
 }
 
 func TestRepoGetReviewerTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	teams, err := repo2.GetReviewerTeams()
