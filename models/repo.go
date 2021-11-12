@@ -494,6 +494,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 				metas["style"] = markup.IssueNameStyleAlphanumeric
 			case markup.IssueNameStyleRegexp:
 				metas["style"] = markup.IssueNameStyleRegexp
+				metas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 			default:
 				metas["style"] = markup.IssueNameStyleNumeric
 			}
