@@ -5,11 +5,11 @@
 package repo
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"net/http"
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"

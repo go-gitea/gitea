@@ -5,11 +5,11 @@
 package action
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"

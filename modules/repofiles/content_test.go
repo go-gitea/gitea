@@ -5,9 +5,10 @@
 package repofiles
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"path/filepath"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"

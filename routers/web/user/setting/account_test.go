@@ -5,10 +5,10 @@
 package setting
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"

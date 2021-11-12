@@ -5,9 +5,9 @@
 package issue
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"github.com/stretchr/testify/assert"
 )

@@ -5,13 +5,13 @@
 package issues
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"os"
 	"path"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 

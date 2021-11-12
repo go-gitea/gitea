@@ -1,3 +1,7 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package unittest
 
 import (
@@ -5,12 +9,12 @@ import (
 	"os"
 	"time"
 
-	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
-
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/go-testfixtures/testfixtures/v3"
+
+	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 var fixtures *testfixtures.Loader

@@ -5,10 +5,10 @@
 package code
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"os"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"

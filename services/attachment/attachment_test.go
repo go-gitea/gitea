@@ -5,11 +5,11 @@
 package attachment
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 

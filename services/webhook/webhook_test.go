@@ -5,9 +5,9 @@
 package webhook
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	webhook_model "code.gitea.io/gitea/models/webhook"

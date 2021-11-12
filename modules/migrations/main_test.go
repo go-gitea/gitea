@@ -6,11 +6,11 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/migrations/base"
 
 	"github.com/stretchr/testify/assert"

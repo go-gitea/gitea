@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"

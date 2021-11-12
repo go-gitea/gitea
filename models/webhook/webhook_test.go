@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"

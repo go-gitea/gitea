@@ -9,7 +9,6 @@ Checkout a PR and load the tests data into sqlite database
 */
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"context"
 	"flag"
 	"fmt"
@@ -27,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"

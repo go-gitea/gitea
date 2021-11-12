@@ -5,12 +5,12 @@
 package repository
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"crypto/md5"
 	"fmt"
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"

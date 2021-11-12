@@ -6,9 +6,10 @@
 package pull
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"path/filepath"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 )
 
 func TestMain(m *testing.M) {

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"
 )

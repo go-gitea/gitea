@@ -5,12 +5,12 @@
 package main
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 )
 
 // To generate derivative fixtures, execute the following from Gitea's repository base dir:

@@ -124,6 +124,7 @@ func NewEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
+//SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }

@@ -5,9 +5,9 @@
 package repository
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"github.com/stretchr/testify/assert"

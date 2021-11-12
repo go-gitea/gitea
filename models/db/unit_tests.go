@@ -19,6 +19,7 @@ import (
 // NonexistentID an ID that will never exist
 const NonexistentID = int64(math.MaxInt64)
 
+//SetUnitTestEngine is used by unit test code
 func SetUnitTestEngine(eng *xorm.Engine) {
 	x = eng
 	DefaultContext = &Context{
