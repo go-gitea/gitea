@@ -33,7 +33,7 @@ import (
 const (
 	IssueNameStyleNumeric      = "numeric"
 	IssueNameStyleAlphanumeric = "alphanumeric"
-	IssueNameStyleRegexp			 = "regexp"
+	IssueNameStyleRegexp       = "regexp"
 )
 
 var (
