@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/tstranex/u2f"
 )
 
 func TestGetU2FRegistrationByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	res, err := GetU2FRegistrationByID(1)
 	assert.NoError(t, err)
@@ -27,7 +28,7 @@ func TestGetU2FRegistrationByID(t *testing.T) {
 }
 
 func TestGetU2FRegistrationsByUID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	res, err := GetU2FRegistrationsByUID(32)
 
@@ -41,7 +42,7 @@ func TestU2FRegistration_TableName(t *testing.T) {
 }
 
 func TestU2FRegistration_UpdateCounter(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	reg := db.AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
 	reg.Counter = 1
 	assert.NoError(t, reg.UpdateCounter())
@@ -49,7 +50,7 @@ func TestU2FRegistration_UpdateCounter(t *testing.T) {
 }
 
 func TestU2FRegistration_UpdateLargeCounter(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	reg := db.AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
 	reg.Counter = 0xffffffff
 	assert.NoError(t, reg.UpdateCounter())
@@ -57,7 +58,7 @@ func TestU2FRegistration_UpdateLargeCounter(t *testing.T) {
 }
 
 func TestCreateRegistration(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	res, err := CreateRegistration(1, "U2F Created Key", &u2f.Registration{Raw: []byte("Test")})
 	assert.NoError(t, err)
@@ -68,7 +69,7 @@ func TestCreateRegistration(t *testing.T) {
 }
 
 func TestDeleteRegistration(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	reg := db.AssertExistsAndLoadBean(t, &U2FRegistration{ID: 1}).(*U2FRegistration)
 
 	assert.NoError(t, DeleteRegistration(reg))
