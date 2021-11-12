@@ -1018,7 +1018,7 @@
           }
         }
 
-        > .merge-section {
+        .merge-section {
           background-color: var(--color-box-body);
 
           .item {
@@ -1034,6 +1034,13 @@
             margin-bottom: -.25rem;
           }
 
+          @media @mediaSm {
+            .item-section {
+              align-items: flex-start;
+              flex-direction: column;
+            }
+          }
+
           .divider {
             margin-left: -1rem;
             margin-right: -1rem;
@@ -1046,15 +1053,15 @@
               border-right-color: var(--color-box-body);
             }
           }
+        }
 
-          .markup {
-            font-size: 14px;
-          }
+        .markup {
+          font-size: 14px;
+        }
 
-          .no-content {
-            color: var(--color-text-light-2);
-            font-style: italic;
-          }
+        .no-content {
+          color: var(--color-text-light-2);
+          font-style: italic;
         }
 
         .ui.form {

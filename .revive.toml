@@ -23,3 +23,4 @@ warningCode = 1
 [rule.unexported-return]
 [rule.indent-error-flow]
 [rule.errorf]
+[rule.duplicated-imports]
