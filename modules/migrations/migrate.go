@@ -473,11 +473,11 @@ func Init() error {
 	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains)
 	if allowList.IsEmpty() {
 		// the default policy is that migration module can access external hosts
-		allowList.AppendPattern(hostmatcher.MatchBuiltinExternal)
+		allowList.AppendBuiltin(hostmatcher.MatchBuiltinExternal)
 	}
 	if setting.Migrations.AllowLocalNetworks {
-		allowList.AppendPattern(hostmatcher.MatchBuiltinPrivate)
-		allowList.AppendPattern(hostmatcher.MatchBuiltinLoopback)
+		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
+		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
 	return nil
 }

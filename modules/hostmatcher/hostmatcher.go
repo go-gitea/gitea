@@ -75,9 +75,9 @@ func ParseSimpleMatchList(settingKeyHint string, matchList string) *HostMatchLis
 	return hl
 }
 
-// AppendPattern appends more patterns to match
-func (hl *HostMatchList) AppendPattern(pattern string) {
-	hl.patterns = append(hl.patterns, pattern)
+// AppendBuiltin appends more builtins to match
+func (hl *HostMatchList) AppendBuiltin(builtin string) {
+	hl.builtins = append(hl.builtins, builtin)
 }
 
 // IsEmpty checks if the checklist is empty
