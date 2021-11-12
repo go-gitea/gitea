@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -167,7 +168,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 			}
 		}
 
-		committerEmailAddresses, _ := GetEmailAddresses(committer.ID)
+		committerEmailAddresses, _ := user_model.GetEmailAddresses(committer.ID)
 		activated := false
 		for _, e := range committerEmailAddresses {
 			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {

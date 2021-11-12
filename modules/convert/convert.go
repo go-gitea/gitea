@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -23,7 +24,7 @@ import (
 )
 
 // ToEmail convert models.EmailAddress to api.Email
-func ToEmail(email *models.EmailAddress) *api.Email {
+func ToEmail(email *user_model.EmailAddress) *api.Email {
 	return &api.Email{
 		Email:    email.Email,
 		Verified: email.IsActivated,
@@ -219,7 +220,7 @@ func ToGPGKey(key *models.GPGKey) *api.GPGKey {
 }
 
 // ToGPGKeyEmail convert models.EmailAddress to api.GPGKeyEmail
-func ToGPGKeyEmail(email *models.EmailAddress) *api.GPGKeyEmail {
+func ToGPGKeyEmail(email *user_model.EmailAddress) *api.GPGKeyEmail {
 	return &api.GPGKeyEmail{
 		Email:    email.Email,
 		Verified: email.IsActivated,

@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -112,7 +113,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	owner, err := models.GetUserByName(username)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+			if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
 				context.RedirectToUser(ctx, username, redirectUserID)
 			} else {
 				ctx.NotFound(fmt.Sprintf("User %s does not exist", username), nil)
