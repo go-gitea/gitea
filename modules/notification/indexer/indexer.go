@@ -109,7 +109,7 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
 	if setting.Indexer.RepoIndexerEnabled {
-		code_indexer.DeleteRepoFromIndexer(repo)
+		code_indexer.UpdateRepoIndexer(repo)
 	}
 }
 

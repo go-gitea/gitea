@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/util"
@@ -28,7 +29,7 @@ func registerNotifier() {
 func TestTransferOwnership(t *testing.T) {
 	registerNotifier()
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
@@ -55,7 +56,7 @@ func TestTransferOwnership(t *testing.T) {
 }
 
 func TestStartRepositoryTransferSetPermission(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
 	recipient := db.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)

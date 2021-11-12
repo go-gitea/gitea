@@ -14,7 +14,7 @@ import (
 // Session represents a session compatible for go-chi session
 type Session struct {
 	Key    string             `xorm:"pk CHAR(16)"` // has to be Key to match with go-chi/session
-	Data   []byte             `xorm:"BLOB"`
+	Data   []byte             `xorm:"BLOB"`        // on MySQL this has a maximum size of 64Kb - this may need to be increased
 	Expiry timeutil.TimeStamp // has to be Expiry to match with go-chi/session
 }
 

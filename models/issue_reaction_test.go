@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func addReaction(t *testing.T, doer *User, issue *Issue, comment *Comment, conte
 }
 
 func TestIssueAddReaction(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
@@ -37,7 +38,7 @@ func TestIssueAddReaction(t *testing.T) {
 }
 
 func TestIssueAddDuplicateReaction(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
@@ -58,7 +59,7 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 }
 
 func TestIssueDeleteReaction(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
@@ -73,7 +74,7 @@ func TestIssueDeleteReaction(t *testing.T) {
 }
 
 func TestIssueReactionCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	setting.UI.ReactionMaxUserNum = 2
 
@@ -111,7 +112,7 @@ func TestIssueReactionCount(t *testing.T) {
 }
 
 func TestIssueCommentAddReaction(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
@@ -125,7 +126,7 @@ func TestIssueCommentAddReaction(t *testing.T) {
 }
 
 func TestIssueCommentDeleteReaction(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
@@ -152,7 +153,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 }
 
 func TestIssueCommentReactionCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 

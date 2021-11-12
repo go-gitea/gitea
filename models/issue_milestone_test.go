@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -23,7 +24,7 @@ func TestMilestone_State(t *testing.T) {
 }
 
 func TestNewMilestone(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestone := &Milestone{
 		RepoID:  1,
 		Name:    "milestoneName",
@@ -36,7 +37,7 @@ func TestNewMilestone(t *testing.T) {
 }
 
 func TestGetMilestoneByRepoID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	milestone, err := GetMilestoneByRepoID(1, 1)
 	assert.NoError(t, err)
@@ -48,7 +49,7 @@ func TestGetMilestoneByRepoID(t *testing.T) {
 }
 
 func TestGetMilestonesByRepoID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		milestones, _, err := GetMilestones(GetMilestonesOption{
@@ -97,7 +98,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 }
 
 func TestGetMilestones(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
@@ -158,7 +159,7 @@ func TestGetMilestones(t *testing.T) {
 }
 
 func TestUpdateMilestone(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	milestone := db.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
 	milestone.Name = " newMilestoneName  "
@@ -170,7 +171,7 @@ func TestUpdateMilestone(t *testing.T) {
 }
 
 func TestCountRepoMilestones(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		count, err := countRepoMilestones(db.GetEngine(db.DefaultContext), repoID)
@@ -187,7 +188,7 @@ func TestCountRepoMilestones(t *testing.T) {
 }
 
 func TestCountRepoClosedMilestones(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		count, err := CountRepoClosedMilestones(repoID)
@@ -204,7 +205,7 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 }
 
 func TestChangeMilestoneStatus(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestone := db.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
 
 	assert.NoError(t, ChangeMilestoneStatus(milestone, true))
@@ -217,7 +218,7 @@ func TestChangeMilestoneStatus(t *testing.T) {
 }
 
 func TestUpdateMilestoneCounters(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := db.AssertExistsAndLoadBean(t, &Issue{MilestoneID: 1},
 		"is_closed=0").(*Issue)
 
@@ -237,7 +238,7 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 }
 
 func TestChangeMilestoneAssign(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := db.AssertExistsAndLoadBean(t, &Issue{RepoID: 1}).(*Issue)
 	doer := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.NotNil(t, issue)
@@ -256,7 +257,7 @@ func TestChangeMilestoneAssign(t *testing.T) {
 }
 
 func TestDeleteMilestoneByRepoID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.NoError(t, DeleteMilestoneByRepoID(1, 1))
 	db.AssertNotExistsBean(t, &Milestone{ID: 1})
 	CheckConsistencyFor(t, &Repository{ID: 1})
@@ -265,7 +266,7 @@ func TestDeleteMilestoneByRepoID(t *testing.T) {
 }
 
 func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	miles := MilestoneList{
 		db.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone),
 	}
@@ -276,7 +277,7 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 }
 
 func TestCountMilestonesByRepoIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestonesCount := func(repoID int64) (int, int) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		return repo.NumOpenMilestones, repo.NumClosedMilestones
@@ -296,7 +297,7 @@ func TestCountMilestonesByRepoIDs(t *testing.T) {
 }
 
 func TestGetMilestonesByRepoIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	test := func(sortType string, sortCond func(*Milestone) int) {
@@ -341,7 +342,7 @@ func TestGetMilestonesByRepoIDs(t *testing.T) {
 }
 
 func TestLoadTotalTrackedTime(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestone := db.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
 
 	assert.NoError(t, milestone.LoadTotalTrackedTime())
@@ -350,7 +351,7 @@ func TestLoadTotalTrackedTime(t *testing.T) {
 }
 
 func TestGetMilestonesStats(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(repoID int64) {
 		repo := db.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)

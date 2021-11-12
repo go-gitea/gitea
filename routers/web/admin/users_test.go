@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -20,7 +21,7 @@ import (
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := db.AssertExistsAndLoadBean(t, &models.User{
@@ -57,7 +58,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 }
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := db.AssertExistsAndLoadBean(t, &models.User{
@@ -94,7 +95,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 }
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := db.AssertExistsAndLoadBean(t, &models.User{
@@ -124,7 +125,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := db.AssertExistsAndLoadBean(t, &models.User{
@@ -162,7 +163,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
 	u := db.AssertExistsAndLoadBean(t, &models.User{

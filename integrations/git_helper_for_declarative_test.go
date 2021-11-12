@@ -13,6 +13,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -55,7 +56,7 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 	u2 := *u
 	u2.Scheme = "ssh"
 	u2.User = url.User("git")
-	u2.Host = fmt.Sprintf("%s:%d", setting.SSH.ListenHost, setting.SSH.ListenPort)
+	u2.Host = net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort))
 	u2.Path = gitPath
 	return &u2
 }
