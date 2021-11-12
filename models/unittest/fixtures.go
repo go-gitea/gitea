@@ -19,12 +19,11 @@ import (
 
 var fixtures *testfixtures.Loader
 
-func getXORMEngine(engine ...*xorm.Engine) *xorm.Engine {
-	e := db.DefaultContext.(*db.Context).Engine().(*xorm.Engine)
+func getXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
 	if len(engine) == 1 {
-		e = engine[0]
+		return engine[0]
 	}
-	return e
+	return db.DefaultContext.(*db.Context).Engine().(*xorm.Engine)
 }
 
 // InitFixtures initialize test fixtures for a test database
