@@ -5,9 +5,10 @@
 package login
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"encoding/hex"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 
 	"code.gitea.io/gitea/models/db"
 

@@ -5,8 +5,9 @@
 package user
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )

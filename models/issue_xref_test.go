@@ -5,9 +5,10 @@
 package models
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"fmt"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/references"
