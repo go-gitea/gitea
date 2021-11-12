@@ -42,9 +42,17 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 
 ### `async` Functions
 
-Only mark a function as `async` if and only if there are `await` calls or `Promise` returns inside the function.
+Only mark a function as `async` if and only if there are `await` calls 
+or `Promise` returns inside the function.
 
-It's not recommended to use `async` event listeners, which may lead to problems. The reason is that the code after await is executed outside the event dispatch. Reference: https://github.com/github/eslint-plugin-github/blob/main/docs/rules/async-preventdefault.md
+It's not recommended to use `async` event listeners, which may lead to problems. 
+The reason is that the code after await is executed outside the event dispatch. 
+Reference: https://github.com/github/eslint-plugin-github/blob/main/docs/rules/async-preventdefault.md
+
+If we want to call an `async` function in a non-async context,
+it's recommended to use `const _promise = asyncFoo()` to tell readers
+that this is done by purpose, we want to call the async function and ignore the Promise.
+Some lint rules and IDEs also have warnings if the returned Promise is not handled.
 
 #### DOM Event Listener
 
