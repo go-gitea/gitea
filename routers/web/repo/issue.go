@@ -1015,38 +1015,46 @@ func NewIssuePost(ctx *context.Context) {
 	}
 }
 
-// commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
-func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
+// roleDescriptor returns the Role Decriptor for a comment in/with the given repo, poster and issue
+func roleDescriptor(repo *models.Repository, poster *models.User, issue *models.Issue) (models.RoleDescriptor, error) {
 	perm, err := models.GetUserRepoPermission(repo, poster)
 	if err != nil {
-		return models.CommentTagNone, err
+		return models.RoleDescriptorNone, err
 	}
+
+	// By default the poster has no roles on the comment.
+	roleDescriptor := models.RoleDescriptorNone
+
+	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
+		// If the poster isn't a admin, enable the owner role.
 		if !poster.IsAdmin {
-			return models.CommentTagOwner, nil
-		}
+			roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorOwner)
+		} else {
 
-		ok, err := models.IsUserRealRepoAdmin(repo, poster)
-		if err != nil {
-			return models.CommentTagNone, err
+			// Otherwise check if poster is the real repo admin.
+			ok, err := models.IsUserRealRepoAdmin(repo, poster)
+			if err != nil {
+				return models.RoleDescriptorNone, err
+			}
+			if ok {
+				roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorOwner)
+			}
 		}
-
-		if ok {
-			return models.CommentTagOwner, nil
-		}
-
-		if ok, err = repo.IsCollaborator(poster.ID); ok && err == nil {
-			return models.CommentTagWriter, nil
-		}
-
-		return models.CommentTagNone, err
 	}
 
-	if perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return models.CommentTagWriter, nil
+	// Is the poster can write issues or pulls to the repo, enable the Writer role.
+	// Only enable this if the poster doesn't have the owner role already.
+	if !roleDescriptor.HasRole("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
+		roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorWriter)
 	}
 
-	return models.CommentTagNone, nil
+	// If the poster is the actual poster of the issue, enable Poster role.
+	if issue.IsPoster(poster.ID) {
+		roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorPoster)
+	}
+
+	return roleDescriptor, nil
 }
 
 func getBranchData(ctx *context.Context, issue *models.Issue) {
@@ -1249,9 +1257,9 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		tag          models.CommentTag
+		role         models.RoleDescriptor
 		ok           bool
-		marked       = make(map[int64]models.CommentTag)
+		marked       = make(map[int64]models.RoleDescriptor)
 		comment      *models.Comment
 		participants = make([]*models.User, 1, 10)
 	)
@@ -1298,11 +1306,11 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err != nil {
-		ctx.ServerError("commentTag", err)
+	if issue.ShowRole, err = roleDescriptor(repo, issue.Poster, issue); err != nil {
+		ctx.ServerError("roleDescriptor", err)
 		return
 	}
-	marked[issue.PosterID] = issue.ShowTag
+	marked[issue.PosterID] = issue.ShowRole
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
@@ -1331,18 +1339,18 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			// Check tag.
-			tag, ok = marked[comment.PosterID]
+			role, ok = marked[comment.PosterID]
 			if ok {
-				comment.ShowTag = tag
+				comment.ShowRole = role
 				continue
 			}
 
-			comment.ShowTag, err = commentTag(repo, comment.Poster, issue)
+			comment.ShowRole, err = roleDescriptor(repo, comment.Poster, issue)
 			if err != nil {
-				ctx.ServerError("commentTag", err)
+				ctx.ServerError("roleDescriptor", err)
 				return
 			}
-			marked[comment.PosterID] = comment.ShowTag
+			marked[comment.PosterID] = comment.ShowRole
 			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
@@ -1430,18 +1438,18 @@ func ViewIssue(ctx *context.Context) {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
 						// Check tag.
-						tag, ok = marked[c.PosterID]
+						role, ok = marked[c.PosterID]
 						if ok {
-							c.ShowTag = tag
+							c.ShowRole = role
 							continue
 						}
 
-						c.ShowTag, err = commentTag(repo, c.Poster, issue)
+						c.ShowRole, err = roleDescriptor(repo, c.Poster, issue)
 						if err != nil {
-							ctx.ServerError("commentTag", err)
+							ctx.ServerError("roleDescriptor", err)
 							return
 						}
-						marked[c.PosterID] = c.ShowTag
+						marked[c.PosterID] = c.ShowRole
 						participants = addParticipant(c.Poster, participants)
 					}
 				}

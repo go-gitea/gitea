@@ -49,14 +49,17 @@
 						</div>
 						<div class="comment-header-right actions df ac">
 							{{if not $.Repository.IsArchived}}
-								{{if gt .Issue.ShowTag 0}}
-									<div class="ui basic label">
-										{{if eq .Issue.ShowTag 2}}
+								{{if gt .Issue.ShowRole 0}}
+									{{if (.Issue.ShowRole.HasRole "Writer")}}
+										<div class="ui basic label">
 											{{$.i18n.Tr "repo.issues.collaborator"}}
-										{{else if eq .Issue.ShowTag 3}}
+										</div>
+									{{end}}
+									{{if (.Issue.ShowRole.HasRole "Owner")}}
+										<div class="ui basic label">
 											{{$.i18n.Tr "repo.issues.owner"}}
-										{{end}}
-									</div>
+										</div>
+									{{end}}
 								{{end}}
 								{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/issues/%d/reactions" $.RepoLink .Issue.Index)}}
 								{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" .Issue "delete" false "issue" true "diff" false "IsCommentPoster" $.IsIssuePoster}}
