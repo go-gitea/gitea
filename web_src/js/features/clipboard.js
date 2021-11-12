@@ -46,7 +46,7 @@ function fallbackCopyToClipboard(text) {
 }
 
 export default function initGlobalCopyToClipboardListener() {
-  document.addEventListener('click', async (e) => {
+  document.addEventListener('click', (e) => {
     let target = e.target;
     // in case <button data-clipboard-text><svg></button>, so we just search up to 3 levels for performance.
     for (let i = 0; i < 3 && target; i++) {
@@ -58,16 +58,20 @@ export default function initGlobalCopyToClipboardListener() {
       }
       if (text) {
         e.preventDefault();
-        try {
-          await navigator.clipboard.writeText(text);
-          onSuccess(target);
-        } catch {
-          if (fallbackCopyToClipboard(text)) {
+
+        (async() => {
+          try {
+            await navigator.clipboard.writeText(text);
             onSuccess(target);
-          } else {
-            onError(target);
+          } catch {
+            if (fallbackCopyToClipboard(text)) {
+              onSuccess(target);
+            } else {
+              onError(target);
+            }
           }
-        }
+        })();
+
         break;
       }
       target = target.parentElement;
