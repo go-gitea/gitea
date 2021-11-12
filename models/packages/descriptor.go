@@ -6,6 +6,7 @@ package packages
 
 import (
 	"context"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -36,6 +37,11 @@ type PackageDescriptor struct {
 type PackageFileDescriptor struct {
 	File *PackageFile
 	Blob *PackageBlob
+}
+
+// WebLink returns the package's web link
+func (pd *PackageDescriptor) WebLink() string {
+	return pd.Owner.HTMLURL() + "/-/packages/" + strconv.FormatInt(pd.Version.ID, 10)
 }
 
 // GetPackageDescriptor gets the package description for a version

@@ -1,18 +1,18 @@
 {{if eq .PackageDescriptor.Package.Type "pypi"}}
-	<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{.i18n.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "repo.packages.pypi.install"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="pip install --extra-index-url {{AppUrl}}api/v1/repos/{{.Repository.FullName}}/packages/pypi/simple {{.PackageDescriptor.Package.Name}}">
+				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.pypi.install"}}</label>
+				<input id="installation-input" type="text" readonly="readonly" value="pip install --extra-index-url {{AppUrl}}api/v1/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple {{.PackageDescriptor.Package.Name}}">
 			</div>
 			<div class="field">
-				<label>{{.i18n.Tr "repo.packages.pypi.documentation" | Safe}}</label>
+				<label>{{.i18n.Tr "packages.pypi.documentation" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.LongDescription .PackageDescriptor.Metadata.Summary}}
-		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.about"}}</h4>
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			<p>{{if .PackageDescriptor.Metadata.Summary}}{{.PackageDescriptor.Metadata.Summary}}{{end}}</p>
 			{{if .PackageDescriptor.Metadata.LongDescription}}
@@ -23,9 +23,9 @@
 		</div>
 	{{end}}
 	{{if .PackageDescriptor.Metadata.RequiresPython}}
-		<h4 class="ui top attached header">{{.i18n.Tr "repo.packages.requirements"}}</h4>
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.requirements"}}</h4>
 		<div class="ui attached segment">
-			{{.i18n.Tr "repo.packages.pypi.requires"}}: {{.PackageDescriptor.Metadata.RequiresPython}}
+			{{.i18n.Tr "packages.pypi.requires"}}: {{.PackageDescriptor.Metadata.RequiresPython}}
 		</div>
 	{{end}}
 {{end}}

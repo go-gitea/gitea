@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -498,8 +499,14 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
-	reqRepoPackagesReader := context.RequireRepoReader(unit.TypePackages)
-	reqRepoPackagesWriter := context.RequireRepoWriter(unit.TypePackages)
+
+	reqPackageAccess := func(accessMode models.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+				ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
+			}
+		}
+	}
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -592,6 +599,20 @@ func RegisterRoutes(m *web.Route) {
 				Post(bindIgnErr(forms.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
 	}, reqSignIn)
+
+	m.Group("/{username}/-", func() {
+		m.Group("/packages", func() {
+			m.Get("", user.Packages)
+			m.Group("/{versionid}", func() {
+				m.Get("", user.ViewPackage)
+				m.Get("/files/{filename}", user.DownloadPackageFile)
+				m.Group("/settings", func() {
+					m.Get("", user.PackageSettings)
+					m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
+				}, reqPackageAccess(models.AccessModeWrite))
+			})
+		}, context.PackageAssignment(), reqPackageAccess(models.AccessModeRead))
+	}, context.UserAssignment())
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
@@ -871,14 +892,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
-		m.Group("/packages", func() {
-			m.Get("", repo.Packages)
-			m.Group("/{id}", func() {
-				m.Get("/", repo.ViewPackage)
-				m.Post("/", reqRepoPackagesWriter, repo.DeletePackagePost)
-				m.Get("/files/{filename}", repo.DownloadPackageFile)
-			})
-		}, reqRepoPackagesReader, repo.MustEnablePackages)
+		m.Get("/packages", repo.Packages)
 
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)

@@ -27,8 +27,7 @@ import (
 // APIContext is a specific context for API service
 type APIContext struct {
 	*Context
-	Org     *APIOrganization
-	Package *APIPackage
+	Org *APIOrganization
 }
 
 // APIError is error format response

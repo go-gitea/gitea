@@ -107,6 +107,12 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 	return p, nil
 }
 
+// SetRepositoryLink sets the linked repository
+func SetRepositoryLink(packageID, repoID int64) error {
+	_, err := db.GetEngine(db.DefaultContext).ID(packageID).Cols("repo_id").Update(&Package{RepoID: repoID})
+	return err
+}
+
 // GetPackageByID gets a package by id
 func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 	p := &Package{}

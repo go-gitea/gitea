@@ -5,20 +5,27 @@
 package convert
 
 import (
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/packages"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToPackage convert a packages.PackageDescriptor to api.Package
 func ToPackage(pd *packages.PackageDescriptor) *api.Package {
+	var repo *api.Repository
+	if pd.Repository != nil {
+		repo = ToRepo(pd.Repository, models.AccessModeNone)
+	}
+
 	return &api.Package{
-		ID:        pd.Version.ID,
-		Owner:     ToUser(pd.Owner, nil),
-		Creator:   ToUser(pd.Creator, nil),
-		Type:      string(pd.Package.Type),
-		Name:      pd.Package.Name,
-		Version:   pd.Version.Version,
-		CreatedAt: pd.Version.CreatedUnix.AsTime(),
+		ID:         pd.Version.ID,
+		Owner:      ToUser(pd.Owner, nil),
+		Repository: repo,
+		Creator:    ToUser(pd.Creator, nil),
+		Type:       string(pd.Package.Type),
+		Name:       pd.Package.Name,
+		Version:    pd.Version.Version,
+		CreatedAt:  pd.Version.CreatedUnix.AsTime(),
 	}
 }
 

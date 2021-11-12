@@ -66,8 +66,10 @@ type Context struct {
 	IsSigned    bool
 	IsBasicAuth bool
 
-	Repo *Repository
-	Org  *Organization
+	ContextUser *models.User
+	Repo        *Repository
+	Org         *Organization
+	Package     *Package
 }
 
 // GetData returns the data
@@ -753,7 +755,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
-			ctx.Data["UnitPackagesGlobalDisabled"] = unit.TypePackages.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

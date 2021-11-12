@@ -421,15 +421,6 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
-			units = append(units, models.RepoUnit{
-				RepoID: repo.ID,
-				Type:   unit_model.TypePackages,
-			})
-		} else if !unit_model.TypePackages.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
-		}
-
 		if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,

@@ -1029,7 +1029,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 }
 
 var (
-	reservedRepoNames    = []string{".", ".."}
+	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
@@ -1773,6 +1773,10 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 
+	if opts.Page != 0 {
+		sess = db.SetSessionPagination(sess, opts)
+	}
+
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
@@ -1780,7 +1784,7 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 
 	sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
+	return repos, count, sess.Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.

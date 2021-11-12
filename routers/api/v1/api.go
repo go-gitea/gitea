@@ -158,6 +158,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 			}
 		}
 		ctx.Repo.Owner = owner
+		ctx.ContextUser = owner
 
 		// Get repository.
 		repo, err := models.GetRepositoryByName(owner.ID, repoName)
@@ -189,49 +190,6 @@ func repoAssignment() func(ctx *context.APIContext) {
 		if !ctx.Repo.HasAccess() {
 			ctx.NotFound()
 			return
-		}
-	}
-}
-
-func packageOwnerAssignment() func(ctx *context.APIContext) {
-	return func(ctx *context.APIContext) {
-		ownerName := ctx.Params("owner")
-
-		ctx.Package = &context.APIPackage{}
-
-		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(ownerName) {
-			ctx.Package.Owner = ctx.User
-			ctx.Package.AccessMode = models.AccessModeOwner
-		} else {
-			owner, err := models.GetUserByName(ownerName)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					if redirectUserID, err := models.LookupUserRedirect(ownerName); err == nil {
-						context.RedirectToUser(ctx.Context, ownerName, redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
-						ctx.NotFound("GetUserByName", err)
-					} else {
-						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
-					}
-				} else {
-					ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
-				}
-				return
-			}
-			ctx.Package.Owner = owner
-
-			if owner.IsOrganization() {
-				if ctx.User != nil && models.HasOrgOrUserVisible(owner, ctx.User) {
-					var err error
-					ctx.Package.AccessMode, err = owner.GetOrgUserMaxAuthorizeLevel(ctx.User.ID)
-					if err != nil {
-						ctx.Error(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
-						return
-					}
-				}
-			} else {
-				ctx.Package.AccessMode = models.AccessModeRead
-			}
 		}
 	}
 }
@@ -1048,7 +1006,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 			}, repoAssignment())
 		})
 
-		m.Group("/packages/{owner}", func() {
+		m.Group("/packages/{username}", func() {
 			m.Group("/generic", func() {
 				m.Group("/{packagename}/{packageversion}/{filename}", func() {
 					m.Get("", generic.DownloadPackageFile)
@@ -1102,13 +1060,13 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Delete("/yank", rubygems.DeletePackage)
 				}, reqToken(), reqPackageAccess(models.AccessModeWrite))
 			})
-			m.Group("/{id}", func() {
-				m.Get("/", repo.GetPackage)
-				m.Delete("/", reqPackageAccess(models.AccessModeWrite), repo.DeletePackage)
+			m.Group("/{versionid}", func() {
+				m.Get("", repo.GetPackage)
+				m.Delete("", reqPackageAccess(models.AccessModeWrite), repo.DeletePackage)
 				m.Get("/files", repo.ListPackageFiles)
 			})
 			m.Get("/", repo.ListPackages)
-		}, packageOwnerAssignment(), reqPackageAccess(models.AccessModeRead))
+		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(models.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)

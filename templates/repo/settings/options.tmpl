@@ -377,19 +377,6 @@
 
 				<div class="ui divider"></div>
 
-				{{$isPackagesEnabled := .Repository.UnitEnabled $.UnitTypePackages}}
-				<div class="inline field">
-					<label>{{.i18n.Tr "repo.packages"}}</label>
-					{{if .UnitTypePackages.UnitGlobalDisabled}}
-					<div class="ui checkbox poping up disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
-					{{else}}
-					<div class="ui checkbox">
-					{{end}}
-						<input class="enable-system" name="enable_packages" type="checkbox" {{if $isPackagesEnabled}}checked{{end}}>
-						<label>{{.i18n.Tr "repo.settings.packages_desc"}}</label>
-					</div>
-				</div>
-
 				{{$isProjectsEnabled := .Repository.UnitEnabled $.UnitTypeProjects}}
 				<div class="inline field">
 					<label>{{.i18n.Tr "repo.project_board"}}</label>

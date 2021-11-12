@@ -156,7 +156,7 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch unit.Type(login.Cell2Int64(val)) {
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
 			r.Config = new(UnitConfig)
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)

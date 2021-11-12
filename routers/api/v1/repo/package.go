@@ -7,7 +7,6 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -16,22 +15,17 @@ import (
 	package_service "code.gitea.io/gitea/services/packages"
 )
 
-// ListPackages gets all packages of a repository
+// ListPackages gets all packages of an owner
 func ListPackages(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/packages repository repoListPackages
+	// swagger:operation GET /packages/{owner} package listPackages
 	// ---
-	// summary: Gets all packages of a repository
+	// summary: Gets all packages of an owner
 	// produces:
 	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: name of the repo
+	//   description: owner of the packages
 	//   type: string
 	//   required: true
 	// - name: page
@@ -42,7 +36,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
-	// - name: package_type
+	// - name: type
 	//   in: query
 	//   description: package type filter
 	//   type: string
@@ -57,7 +51,7 @@ func ListPackages(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	packageType := ctx.FormTrim("package_type")
+	packageType := ctx.FormTrim("type")
 	query := ctx.FormTrim("q")
 
 	pvs, count, err := packages.SearchVersions(&packages.PackageSearchOptions{
@@ -89,7 +83,7 @@ func ListPackages(ctx *context.APIContext) {
 
 // GetPackage gets a package
 func GetPackage(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/packages/{id} repository repoGetPackage
+	// swagger:operation GET /packages/{owner}/{versionid} package getPackage
 	// ---
 	// summary: Gets a package
 	// produces:
@@ -97,17 +91,12 @@ func GetPackage(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: owner of the package
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: versionid
 	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the package
+	//   description: id of the package version
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -117,49 +106,23 @@ func GetPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pv, err := packages.GetVersionByID(db.DefaultContext, ctx.ParamsInt64(":id"))
-	if err != nil {
-		if err == packages.ErrPackageNotExist {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVersionByID", err)
-		}
-		return
-	}
-
-	pd, err := packages.GetPackageDescriptor(pv)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptor", err)
-		return
-	}
-
-	if ctx.Package.Owner.ID != pd.Owner.ID {
-		ctx.NotFound()
-		return
-	}
-
-	ctx.JSON(http.StatusOK, convert.ToPackage(pd))
+	ctx.JSON(http.StatusOK, convert.ToPackage(ctx.Package.Descriptor))
 }
 
-// DeletePackage delete a package from a repository
+// DeletePackage deletes a package
 func DeletePackage(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/packages/{id} repository repoDeletePackage
+	// swagger:operation DELETE /packages/{owner}/{versionid} package deletePackage
 	// ---
-	// summary: Delete a package from a repository
+	// summary: Delete a package
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: owner of the package
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: versionid
 	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the package
+	//   description: id of the package version
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -169,13 +132,9 @@ func DeletePackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	err := package_service.DeleteVersionByID(ctx.User, ctx.Package.Owner, ctx.ParamsInt64(":id"))
+	err := package_service.DeletePackageVersion(ctx.User, ctx.Package.Descriptor.Version)
 	if err != nil {
-		if err == packages.ErrPackageNotExist {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "DeleteVersionByID", err)
-		}
+		ctx.Error(http.StatusInternalServerError, "DeletePackageVersion", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -183,7 +142,7 @@ func DeletePackage(ctx *context.APIContext) {
 
 // ListPackageFiles gets all files of a package
 func ListPackageFiles(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/packages/{id}/files repository repoListPackageFiles
+	// swagger:operation GET /packages/{owner}/{versionid}/files package listPackageFiles
 	// ---
 	// summary: Gets all files of a package
 	// produces:
@@ -191,17 +150,12 @@ func ListPackageFiles(ctx *context.APIContext) {
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo
+	//   description: owner of the package
 	//   type: string
 	//   required: true
-	// - name: repo
+	// - name: versionid
 	//   in: path
-	//   description: name of the repo
-	//   type: string
-	//   required: true
-	// - name: id
-	//   in: path
-	//   description: id of the package
+	//   description: id of the package version
 	//   type: integer
 	//   format: int64
 	//   required: true
@@ -211,29 +165,8 @@ func ListPackageFiles(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pv, err := packages.GetVersionByID(db.DefaultContext, ctx.ParamsInt64(":id"))
-	if err != nil {
-		if err == packages.ErrPackageNotExist {
-			ctx.NotFound()
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetVersionByID", err)
-		}
-		return
-	}
-
-	pd, err := packages.GetPackageDescriptor(pv)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetPackageDescriptor", err)
-		return
-	}
-
-	if ctx.Package.Owner.ID != pd.Owner.ID {
-		ctx.NotFound()
-		return
-	}
-
-	apiPackageFiles := make([]*api.PackageFile, 0, len(pd.Files))
-	for _, pfd := range pd.Files {
+	apiPackageFiles := make([]*api.PackageFile, 0, len(ctx.Package.Descriptor.Files))
+	for _, pfd := range ctx.Package.Descriptor.Files {
 		apiPackageFiles = append(apiPackageFiles, convert.ToPackageFile(&pfd))
 	}
 

@@ -429,6 +429,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Repo.Owner = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
+	ctx.ContextUser = owner
 
 	// Get repository.
 	repo, err := models.GetRepositoryByName(owner.ID, repoName)
@@ -906,7 +907,6 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
-		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
 	}
 }
 

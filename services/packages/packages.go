@@ -224,47 +224,28 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_models.PackageVer
 
 // DeletePackageVersionByNameAndVersion deletes a package version and all associated files
 func DeletePackageVersionByNameAndVersion(doer *models.User, pvi *PackageInfo) error {
-	return deletePackageVersion(
-		doer,
-		pvi.Owner,
-		func(ctx context.Context) (*packages_models.PackageVersion, error) {
-			return packages_models.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
-		},
-	)
+	pv, err := packages_models.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
+	if err != nil {
+		return err
+	}
+
+	return DeletePackageVersion(doer, pv)
 }
 
-// DeleteVersionByID deletes a package version and all associated files
-func DeleteVersionByID(doer *models.User, owner *models.User, versionID int64) error {
-	return deletePackageVersion(
-		doer,
-		owner,
-		func(ctx context.Context) (*packages_models.PackageVersion, error) {
-			return packages_models.GetVersionByID(ctx, versionID)
-		},
-	)
-}
-
-func deletePackageVersion(doer *models.User, owner *models.User, cb func(context.Context) (*packages_models.PackageVersion, error)) error {
+// DeletePackageVersion deletes the package version and all associated files
+func DeletePackageVersion(doer *models.User, pv *packages_models.PackageVersion) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	pv, err := cb(ctx)
-	if err != nil {
-		if err != packages_models.ErrPackageNotExist {
-			log.Error("Error getting package: %v", err)
-		}
-		return err
-	}
-
 	pd, err := packages_models.GetPackageDescriptorCtx(ctx, pv)
 	if err != nil {
 		return err
 	}
 
-	log.Trace("Deleting package: %v, %v", owner.ID, pv.ID)
+	log.Trace("Deleting package: %v", pv.ID)
 
 	if err := packages_models.DeleteVersionPropertiesByVersionID(ctx, pv.ID); err != nil {
 		return err
