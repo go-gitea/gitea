@@ -127,6 +127,8 @@ func CreateTestEngine(opts FixturesOptions) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
+	db.SetUnitTestEngine(x)
+
 	if err = db.SyncAllTables(); err != nil {
 		return err
 	}
@@ -135,7 +137,6 @@ func CreateTestEngine(opts FixturesOptions) error {
 		x.ShowSQL(true)
 	}
 
-	db.SetUnitTestEngine(x)
 	return InitFixtures(opts)
 }
 
