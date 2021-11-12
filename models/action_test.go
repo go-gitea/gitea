@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAction_GetRepoPath(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
 	owner := db.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	action := &Action{RepoID: repo.ID}
@@ -23,7 +24,7 @@ func TestAction_GetRepoPath(t *testing.T) {
 }
 
 func TestAction_GetRepoLink(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := db.AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
 	owner := db.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 	action := &Action{RepoID: repo.ID}
@@ -34,7 +35,7 @@ func TestAction_GetRepoLink(t *testing.T) {
 
 func TestGetFeeds(t *testing.T) {
 	// test with an individual user
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	actions, err := GetFeeds(GetFeedsOptions{
@@ -62,7 +63,7 @@ func TestGetFeeds(t *testing.T) {
 
 func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 

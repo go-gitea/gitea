@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // Organization contains organization context
@@ -51,10 +52,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.Organization, err = models.GetUserByName(orgName)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			redirectUserID, err := models.LookupUserRedirect(orgName)
+			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
-			} else if models.IsErrUserRedirectNotExist(err) {
+			} else if user_model.IsErrUserRedirectNotExist(err) {
 				ctx.NotFound("GetUserByName", err)
 			} else {
 				ctx.ServerError("LookupUserRedirect", err)

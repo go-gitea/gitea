@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func Test_newIssueUsers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	newIssue := &Issue{
@@ -34,7 +35,7 @@ func Test_newIssueUsers(t *testing.T) {
 }
 
 func TestUpdateIssueUserByRead(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
 	assert.NoError(t, UpdateIssueUserByRead(4, issue.ID))
@@ -47,7 +48,7 @@ func TestUpdateIssueUserByRead(t *testing.T) {
 }
 
 func TestUpdateIssueUsersByMentions(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 
 	uids := []int64{2, 5}

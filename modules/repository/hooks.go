@@ -254,7 +254,7 @@ func SyncRepositoryHooks(ctx context.Context) error {
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
-				return models.ErrCancelledf("before sync repository hooks for %s", repo.FullName())
+				return db.ErrCancelledf("before sync repository hooks for %s", repo.FullName())
 			default:
 			}
 

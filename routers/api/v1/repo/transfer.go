@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -65,7 +64,7 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if newOwner.Type == models.UserTypeOrganization {
-		if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
+		if !ctx.User.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
