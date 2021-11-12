@@ -5,9 +5,10 @@
 package integrations
 
 import (
-	"code.gitea.io/gitea/models/unittest"
 	"net/url"
 	"testing"
+
+	"code.gitea.io/gitea/models/unittest"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/repofiles"
