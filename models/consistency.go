@@ -10,14 +10,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+
 	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )
-
-// consistencyCheckable a type that can be tested for database consistency
-type consistencyCheckable interface {
-	checkForConsistency(t *testing.T)
-}
 
 // CheckConsistencyForAll test that the entire database is consistent
 func CheckConsistencyForAll(t *testing.T) {
@@ -46,14 +42,31 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 
 		for i := 0; i < sliceValue.Len(); i++ {
 			entity := sliceValue.Index(i).Interface()
-			checkable, ok := entity.(consistencyCheckable)
-			if !ok {
-				t.Errorf("Expected %+v (of type %T) to be checkable for consistency",
-					entity, entity)
-			} else {
-				checkable.checkForConsistency(t)
-			}
+			checkForConsistency(entity, t)
 		}
+	}
+}
+
+func checkForConsistency(bean interface{}, t *testing.T) {
+	switch b := bean.(type) {
+	case *User:
+		checkForUserConsistency(b, t)
+	case *Repository:
+		checkForRepoConsistency(b, t)
+	case *Issue:
+		checkForIssueConsistency(b, t)
+	case *PullRequest:
+		checkForPullRequestConsistency(b, t)
+	case *Milestone:
+		checkForMilestoneConsistency(b, t)
+	case *Label:
+		checkForLabelConsistency(b, t)
+	case *Team:
+		checkForTeamConsistency(b, t)
+	case *Action:
+		checkForActionConsistency(b, t)
+	default:
+		t.Errorf("unknown bean type: %#v", bean)
 	}
 }
 
@@ -70,7 +83,7 @@ func assertCount(t *testing.T, bean interface{}, expected int) {
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-func (user *User) checkForConsistency(t *testing.T) {
+func checkForUserConsistency(user *User, t *testing.T) {
 	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
@@ -83,7 +96,7 @@ func (user *User) checkForConsistency(t *testing.T) {
 	}
 }
 
-func (repo *Repository) checkForConsistency(t *testing.T) {
+func checkForRepoConsistency(repo *Repository, t *testing.T) {
 	assert.Equal(t, repo.LowerName, strings.ToLower(repo.Name), "repo: %+v", repo)
 	assertCount(t, &Star{RepoID: repo.ID}, repo.NumStars)
 	assertCount(t, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
@@ -117,7 +130,7 @@ func (repo *Repository) checkForConsistency(t *testing.T) {
 		"Unexpected number of closed milestones for repo %+v", repo)
 }
 
-func (issue *Issue) checkForConsistency(t *testing.T) {
+func checkForIssueConsistency(issue *Issue, t *testing.T) {
 	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("type=?", CommentTypeComment), &Comment{IssueID: issue.ID})
 	assert.EqualValues(t, issue.NumComments, actual,
 		"Unexpected number of comments for issue %+v", issue)
@@ -127,13 +140,13 @@ func (issue *Issue) checkForConsistency(t *testing.T) {
 	}
 }
 
-func (pr *PullRequest) checkForConsistency(t *testing.T) {
+func checkForPullRequestConsistency(pr *PullRequest, t *testing.T) {
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: pr.IssueID}).(*Issue)
 	assert.True(t, issue.IsPull)
 	assert.EqualValues(t, issue.Index, pr.Index)
 }
 
-func (milestone *Milestone) checkForConsistency(t *testing.T) {
+func checkForMilestoneConsistency(milestone *Milestone, t *testing.T) {
 	assertCount(t, &Issue{MilestoneID: milestone.ID}, milestone.NumIssues)
 
 	actual := getCount(t, db.GetEngine(db.DefaultContext).Where("is_closed=?", true), &Issue{MilestoneID: milestone.ID})
@@ -147,7 +160,7 @@ func (milestone *Milestone) checkForConsistency(t *testing.T) {
 	assert.Equal(t, completeness, milestone.Completeness)
 }
 
-func (label *Label) checkForConsistency(t *testing.T) {
+func checkForLabelConsistency(label *Label, t *testing.T) {
 	issueLabels := make([]*IssueLabel, 0, 10)
 	assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&issueLabels, &IssueLabel{LabelID: label.ID}))
 	assert.EqualValues(t, label.NumIssues, len(issueLabels),
@@ -166,12 +179,12 @@ func (label *Label) checkForConsistency(t *testing.T) {
 		"Unexpected number of closed issues for label %+v", label)
 }
 
-func (team *Team) checkForConsistency(t *testing.T) {
+func checkForTeamConsistency(team *Team, t *testing.T) {
 	assertCount(t, &TeamUser{TeamID: team.ID}, team.NumMembers)
 	assertCount(t, &TeamRepo{TeamID: team.ID}, team.NumRepos)
 }
 
-func (action *Action) checkForConsistency(t *testing.T) {
+func checkForActionConsistency(action *Action, t *testing.T) {
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: action.RepoID}).(*Repository)
 	assert.Equal(t, repo.IsPrivate, action.IsPrivate, "action: %+v", action)
 }

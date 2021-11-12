@@ -71,7 +71,7 @@ type Issue struct {
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 
 	// For view issue page.
-	ShowTag CommentTag `xorm:"-"`
+	ShowRole RoleDescriptor `xorm:"-"`
 }
 
 var (

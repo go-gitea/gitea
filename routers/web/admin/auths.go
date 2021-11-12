@@ -12,7 +12,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
@@ -388,7 +387,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	if err := login.UpdateSource(source); err != nil {
-		if models.IsErrOpenIDConnectInitialize(err) {
+		if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {
