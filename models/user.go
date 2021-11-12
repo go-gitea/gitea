@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -77,9 +78,6 @@ const (
 )
 
 var (
-	// ErrEmailNotActivated e-mail address has not been activated error
-	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
-
 	// ErrUserNameIllegal user name contains illegal characters error
 	ErrUserNameIllegal = errors.New("User name contains illegal characters")
 
@@ -890,14 +888,15 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		u.Visibility = overwriteDefault[0].Visibility
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	// validate data
-
 	if err := validateUser(u); err != nil {
 		return err
 	}
@@ -909,11 +908,13 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	isExist, err = isEmailUsed(sess, u.Email)
+	isExist, err = user_model.IsEmailUsed(ctx, u.Email)
 	if err != nil {
 		return err
 	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
+		return user_model.ErrEmailAlreadyUsed{
+			Email: u.Email,
+		}
 	}
 
 	// prepare for database
@@ -929,16 +930,16 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 
 	// save changes to database
 
-	if err = deleteUserRedirect(sess, u.Name); err != nil {
+	if err = user_model.DeleteUserRedirect(ctx, u.Name); err != nil {
 		return err
 	}
 
-	if _, err = sess.Insert(u); err != nil {
+	if err = db.Insert(ctx, u); err != nil {
 		return err
 	}
 
 	// insert email address
-	if _, err := sess.Insert(&EmailAddress{
+	if err := db.Insert(ctx, &user_model.EmailAddress{
 		UID:         u.ID,
 		Email:       u.Email,
 		LowerEmail:  strings.ToLower(u.Email),
@@ -948,7 +949,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func countUsers(e db.Engine) int64 {
@@ -998,7 +999,7 @@ func VerifyUserActiveCode(code string) (user *User) {
 }
 
 // VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *EmailAddress {
+func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
 	minutes := setting.Service.ActiveCodeLives
 
 	if user := getVerifyUser(code); user != nil {
@@ -1007,7 +1008,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &EmailAddress{UID: user.ID, Email: email}
+			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
 				return emailAddress
 			}
@@ -1023,11 +1024,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	isExist, err := isUserExist(sess, 0, newUserName)
 	if err != nil {
@@ -1045,11 +1047,11 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	if err = newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
+	if err = user_model.NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
@@ -1071,7 +1073,9 @@ func checkDupEmail(e db.Engine, u *User) error {
 	if err != nil {
 		return err
 	} else if has {
-		return ErrEmailAlreadyUsed{u.Email}
+		return user_model.ErrEmailAlreadyUsed{
+			Email: u.Email,
+		}
 	}
 	return nil
 }
@@ -1083,7 +1087,7 @@ func validateUser(u *User) error {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	return ValidateEmail(u.Email)
+	return user_model.ValidateEmail(u.Email)
 }
 
 func updateUser(e db.Engine, u *User) error {
@@ -1211,7 +1215,7 @@ func deleteUser(e db.Engine, u *User) error {
 		&Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
-		&EmailAddress{UID: u.ID},
+		&user_model.EmailAddress{UID: u.ID},
 		&UserOpenID{UID: u.ID},
 		&Reaction{UserID: u.ID},
 		&TeamUser{UID: u.ID},
@@ -1370,7 +1374,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 
 	_, err = db.GetEngine(db.DefaultContext).
 		Where("is_activated = ?", false).
-		Delete(new(EmailAddress))
+		Delete(new(user_model.EmailAddress))
 	return err
 }
 
@@ -1576,7 +1580,7 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
+	emailAddress := &user_model.EmailAddress{Email: email, IsActivated: true}
 	has, err = db.GetEngine(ctx).Get(emailAddress)
 	if err != nil {
 		return nil, err
