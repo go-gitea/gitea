@@ -51,7 +51,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 
 	auths := strings.SplitN(baHead, " ", 2)
 	if len(auths) != 2 || (strings.ToLower(auths[0]) != "basic") {
- 		return nil
+		return nil
 	}
 
 	uname, passwd, _ := base.BasicAuthDecode(auths[1])
