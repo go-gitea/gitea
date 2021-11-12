@@ -5,12 +5,18 @@
 package db
 
 import (
-	"code.gitea.io/gitea/modules/unittestapi"
 	"context"
 	"math"
 
+	"code.gitea.io/gitea/modules/unittestapi"
+
 	"xorm.io/xorm"
 )
+
+
+// Code in this file is mainly used by models.CheckConsistencyFor, which is not in the unit test for various reasons.
+// In the future if we can decouple CheckConsistencyFor into separate unit test code, then this file can be moved into unittest package too.
+
 
 // NonexistentID an ID that will never exist
 const NonexistentID = int64(math.MaxInt64)
