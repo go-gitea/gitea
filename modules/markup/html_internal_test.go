@@ -207,39 +207,35 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 	setting.AppSubURL = AppSubURL
 
 	// regexp: render inputs without valid mentions
-	test := func(s, expectedFmt string, pattern string, ids []string, names []string) {
-		metas := regexpMetas
-		metas["regexp"] = pattern
-		links := make([]interface{}, len(ids))
-		for i, id := range ids {
-			links[i] = link(util.URLJoin("https://someurl.com/someUser/someRepo/", id), names[i])
+	test := func(s, expectedFmt string, pattern string, names []string) {
+		links := make([]interface{}, len(names))
+		for i, name := range names {
+			// TODO: rename alphanumIssueLink to externalIssueLink
+			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &postProcessCtx{metas: metas})
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: regexpMetas})
 	}
 
-	test("abc ISSUE-123 def", "abc %s def", "ISSUE-(\\d+)",
-		[]string{"123"},
+	test("abc ISSUE-123 def", "abc %s def",
+		"ISSUE-(\\d+)",
 		[]string{"ISSUE-123"},
 	)
 
 	test("abc (ISSUE 123) def", "abc %s def",
 		"\\(ISSUE (\\d+)\\)",
-		[]string{"123"},
 		[]string{"(ISSUE 123)"},
 	)
 
 	test("abc (ISSUE 123) def (TASK 456) ghi", "abc %s def %s ghi", "\\((?:ISSUE|TASK) (\\d+)\\)",
-		[]string{"123", "456"},
 		[]string{"(ISSUE 123)", "(TASK 456)"},
 	)
 
 	metas := regexpMetas
 	metas["regexp"] = "no matches"
-	testRenderIssueIndexPattern(t, "will not match", "will not match", &postProcessCtx{metas: metas})
+	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{Metas: regexpMetas})
 }
-
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
 	if ctx.URLPrefix == "" {

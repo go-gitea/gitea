@@ -33,7 +33,7 @@ import (
 const (
 	IssueNameStyleNumeric      = "numeric"
 	IssueNameStyleAlphanumeric = "alphanumeric"
-	IssueNameStyleRegexp       = "regexp"
+	IssueNameStyleRegexp			 = "regexp"
 )
 
 var (
@@ -818,14 +818,14 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 			found = foundNumeric
 			ref = refNumeric
 		case IssueNameStyleAlphanumeric:
-			found, ref := references.FindRenderizableReferenceAlphanumeric(node.Data)
+			found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
 			// TODO: Compile only once, at regexp definition time
-			pattern, err := regexp.Compile(ctx.metas["regexp"])
+			pattern, err := regexp.Compile(ctx.Metas["regexp"])
 			if err == nil {
 				return
 			}
-			found, ref := references.FindRenderizableReferenceRegexp(node.Data, pattern)
+			found, ref = references.FindRenderizableReferenceRegexp(node.Data, pattern)
 		}
 
 		// Repos with external issue trackers might still need to reference local PRs

@@ -341,7 +341,7 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 }
 
 // FindRenderizableReferenceRegexp returns the first regexp unvalidated references found in a string.
-func FindRenderizableReferenceRegexp(content string, pattern *Regexp) (bool, *RenderizableReference) {
+func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) (bool, *RenderizableReference) {
 	match := pattern.FindStringSubmatchIndex(content)
 	if match == nil {
 		return false, nil

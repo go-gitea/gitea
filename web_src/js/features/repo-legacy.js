@@ -309,15 +309,15 @@ export function initRepository() {
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
     });
-    $('.enable-system-pick').change(function () {
-        if ($(this).data('context') && $(this).data('target')) {
-            if ($(this).data('context') === this.value) {
-                $($(this).data('target')).removeClass('disabled')
-            } else {
-                $($(this).data('target')).addClass('disabled')
-            }
+    $('.enable-system-pick').on('change', function () {
+      if ($(this).data('context') && $(this).data('target')) {
+        if ($(this).data('context') === this.value) {
+          $($(this).data('target')).removeClass('disabled');
+        } else {
+          $($(this).data('target')).addClass('disabled');
         }
-    })
+      }
+    });
   }
 
   // Labels
