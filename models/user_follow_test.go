@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIsFollowing(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.True(t, IsFollowing(4, 2))
 	assert.False(t, IsFollowing(2, 4))
 	assert.False(t, IsFollowing(5, db.NonexistentID))
@@ -21,7 +22,7 @@ func TestIsFollowing(t *testing.T) {
 }
 
 func TestFollowUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
 		assert.NoError(t, FollowUser(followerID, followedID))
@@ -36,7 +37,7 @@ func TestFollowUser(t *testing.T) {
 }
 
 func TestUnfollowUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
 		assert.NoError(t, UnfollowUser(followerID, followedID))

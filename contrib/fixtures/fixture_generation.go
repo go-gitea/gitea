@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 )
 
 // To generate derivative fixtures, execute the following from Gitea's repository base dir:
@@ -31,13 +31,13 @@ var (
 func main() {
 	pathToGiteaRoot := "."
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
-	if err := db.CreateTestEngine(db.FixturesOptions{
+	if err := unittest.CreateTestEngine(unittest.FixturesOptions{
 		Dir: fixturesDir,
 	}); err != nil {
 		fmt.Printf("CreateTestEngine: %+v", err)
 		os.Exit(1)
 	}
-	if err := db.PrepareTestDatabase(); err != nil {
+	if err := unittest.PrepareTestDatabase(); err != nil {
 		fmt.Printf("PrepareTestDatabase: %+v\n", err)
 		os.Exit(1)
 	}

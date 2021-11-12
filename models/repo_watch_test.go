@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIsWatching(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	assert.True(t, IsWatching(1, 1))
 	assert.True(t, IsWatching(4, 1))
@@ -26,7 +27,7 @@ func TestIsWatching(t *testing.T) {
 }
 
 func TestWatchRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	const repoID = 3
 	const userID = 2
 
@@ -40,7 +41,7 @@ func TestWatchRepo(t *testing.T) {
 }
 
 func TestGetWatchers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	watches, err := GetWatchers(repo.ID)
@@ -57,7 +58,7 @@ func TestGetWatchers(t *testing.T) {
 }
 
 func TestRepository_GetWatchers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	watchers, err := repo.GetWatchers(db.ListOptions{Page: 1})
@@ -74,7 +75,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 }
 
 func TestNotifyWatchers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	action := &Action{
 		ActUserID: 8,
@@ -111,7 +112,7 @@ func TestNotifyWatchers(t *testing.T) {
 }
 
 func TestWatchIfAuto(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	watchers, err := repo.GetWatchers(db.ListOptions{Page: 1})
@@ -168,7 +169,7 @@ func TestWatchIfAuto(t *testing.T) {
 }
 
 func TestWatchRepoMode(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	db.AssertCount(t, &Watch{UserID: 12, RepoID: 1}, 0)
 

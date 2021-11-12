@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
@@ -34,7 +35,7 @@ func (source *TestSource) ToDB() ([]byte, error) {
 }
 
 func TestDumpLoginSource(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	loginSourceSchema, err := db.TableInfo(new(Source))
 	assert.NoError(t, err)
