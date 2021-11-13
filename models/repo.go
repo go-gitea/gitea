@@ -2136,7 +2136,7 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
-func updateUsers(users []User) error {
+func updateUserStarNumbers(users []User) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -2165,7 +2165,7 @@ func DoctorUserStarNum() (err error) {
 			break
 		}
 
-		if err = updateUsers(users); err != nil {
+		if err = updateUserStarNumbers(users); err != nil {
 			return
 		}
 	}

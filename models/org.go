@@ -444,7 +444,7 @@ func getOrgsByUserID(e db.Engine, userID int64, showAll bool) ([]*Organization, 
 	orgs := make([]*Organization, 0, 10)
 	sess := e.Where("`org_user`.uid=?", userID)
 	if !showAll {
-		sess = sess.Where("`org_user`.is_public=?", true)
+		sess = sess.And("`org_user`.is_public=?", true)
 	}
 	return orgs, sess.
 		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
