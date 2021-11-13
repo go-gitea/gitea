@@ -9,20 +9,21 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 // TODO TestGetLabelTemplateFile
 
 func TestLabel_CalOpenIssues(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	label.CalOpenIssues()
 	assert.EqualValues(t, 2, label.NumOpenIssues)
 }
 
 func TestLabel_ForegroundColor(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	assert.Equal(t, template.CSS("#000"), label.ForegroundColor())
 
@@ -31,7 +32,7 @@ func TestLabel_ForegroundColor(t *testing.T) {
 }
 
 func TestNewLabels(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels := []*Label{
 		{RepoID: 2, Name: "labelName2", Color: "#123456"},
 		{RepoID: 3, Name: "labelName3", Color: "#23456F"},
@@ -50,7 +51,7 @@ func TestNewLabels(t *testing.T) {
 }
 
 func TestGetLabelByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label, err := GetLabelByID(1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, label.ID)
@@ -60,7 +61,7 @@ func TestGetLabelByID(t *testing.T) {
 }
 
 func TestGetLabelInRepoByName(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label, err := GetLabelInRepoByName(1, "label1")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, label.ID)
@@ -74,7 +75,7 @@ func TestGetLabelInRepoByName(t *testing.T) {
 }
 
 func TestGetLabelInRepoByNames(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2"})
 	assert.NoError(t, err)
 
@@ -85,7 +86,7 @@ func TestGetLabelInRepoByNames(t *testing.T) {
 }
 
 func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	// label3 doesn't exists.. See labels.yml
 	labelIDs, err := GetLabelIDsInRepoByNames(1, []string{"label1", "label2", "label3"})
 	assert.NoError(t, err)
@@ -98,7 +99,7 @@ func TestGetLabelInRepoByNamesDiscardsNonExistentLabels(t *testing.T) {
 }
 
 func TestGetLabelInRepoByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label, err := GetLabelInRepoByID(1, 1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, label.ID)
@@ -111,7 +112,7 @@ func TestGetLabelInRepoByID(t *testing.T) {
 }
 
 func TestGetLabelsInRepoByIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels, err := GetLabelsInRepoByIDs(1, []int64{1, 2, db.NonexistentID})
 	assert.NoError(t, err)
 	if assert.Len(t, labels, 2) {
@@ -121,7 +122,7 @@ func TestGetLabelsInRepoByIDs(t *testing.T) {
 }
 
 func TestGetLabelsByRepoID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(repoID int64, sortType string, expectedIssueIDs []int64) {
 		labels, err := GetLabelsByRepoID(repoID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
@@ -139,7 +140,7 @@ func TestGetLabelsByRepoID(t *testing.T) {
 // Org versions
 
 func TestGetLabelInOrgByName(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label, err := GetLabelInOrgByName(3, "orglabel3")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, label.ID)
@@ -159,7 +160,7 @@ func TestGetLabelInOrgByName(t *testing.T) {
 }
 
 func TestGetLabelInOrgByNames(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	labelIDs, err := GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4"})
 	assert.NoError(t, err)
 
@@ -170,7 +171,7 @@ func TestGetLabelInOrgByNames(t *testing.T) {
 }
 
 func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	// orglabel99 doesn't exists.. See labels.yml
 	labelIDs, err := GetLabelIDsInOrgByNames(3, []string{"orglabel3", "orglabel4", "orglabel99"})
 	assert.NoError(t, err)
@@ -183,7 +184,7 @@ func TestGetLabelInOrgByNamesDiscardsNonExistentLabels(t *testing.T) {
 }
 
 func TestGetLabelInOrgByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label, err := GetLabelInOrgByID(3, 3)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 3, label.ID)
@@ -202,7 +203,7 @@ func TestGetLabelInOrgByID(t *testing.T) {
 }
 
 func TestGetLabelsInOrgByIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels, err := GetLabelsInOrgByIDs(3, []int64{3, 4, db.NonexistentID})
 	assert.NoError(t, err)
 	if assert.Len(t, labels, 2) {
@@ -212,7 +213,7 @@ func TestGetLabelsInOrgByIDs(t *testing.T) {
 }
 
 func TestGetLabelsByOrgID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(orgID int64, sortType string, expectedIssueIDs []int64) {
 		labels, err := GetLabelsByOrgID(orgID, sortType, db.ListOptions{})
 		assert.NoError(t, err)
@@ -237,7 +238,7 @@ func TestGetLabelsByOrgID(t *testing.T) {
 //
 
 func TestGetLabelsByIssueID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	labels, err := GetLabelsByIssueID(1)
 	assert.NoError(t, err)
 	if assert.Len(t, labels, 1) {
@@ -250,7 +251,7 @@ func TestGetLabelsByIssueID(t *testing.T) {
 }
 
 func TestUpdateLabel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	// make sure update wont overwrite it
 	update := &Label{
@@ -271,7 +272,7 @@ func TestUpdateLabel(t *testing.T) {
 }
 
 func TestDeleteLabel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	assert.NoError(t, DeleteLabel(label.RepoID, label.ID))
 	db.AssertNotExistsBean(t, &Label{ID: label.ID, RepoID: label.RepoID})
@@ -284,14 +285,14 @@ func TestDeleteLabel(t *testing.T) {
 }
 
 func TestHasIssueLabel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.True(t, HasIssueLabel(1, 1))
 	assert.False(t, HasIssueLabel(1, 2))
 	assert.False(t, HasIssueLabel(db.NonexistentID, db.NonexistentID))
 }
 
 func TestNewIssueLabel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
 	doer := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
@@ -316,7 +317,7 @@ func TestNewIssueLabel(t *testing.T) {
 }
 
 func TestNewIssueLabels(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	label1 := db.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	label2 := db.AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 5}).(*Issue)
@@ -346,7 +347,7 @@ func TestNewIssueLabels(t *testing.T) {
 }
 
 func TestDeleteIssueLabel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(labelID, issueID, doerID int64) {
 		label := db.AssertExistsAndLoadBean(t, &Label{ID: labelID}).(*Label)
 		issue := db.AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)

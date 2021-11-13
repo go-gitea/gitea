@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -241,14 +242,14 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
-		if err := db.InitFixtures(
-			db.FixturesOptions{
+		if err := unittest.InitFixtures(
+			unittest.FixturesOptions{
 				Dir: fixturesDir,
 			}, x); err != nil {
 			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}
-		if err := db.LoadFixtures(x); err != nil {
+		if err := unittest.LoadFixtures(x); err != nil {
 			t.Errorf("error whilst loading fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}

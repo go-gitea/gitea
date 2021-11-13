@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 	"github.com/stretchr/testify/assert"
@@ -27,7 +28,7 @@ func TestWebhook_GetSlackHook(t *testing.T) {
 }
 
 func TestPrepareWebhooks(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	hookTasks := []*webhook_model.HookTask{
@@ -43,7 +44,7 @@ func TestPrepareWebhooks(t *testing.T) {
 }
 
 func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	hookTasks := []*webhook_model.HookTask{
@@ -60,7 +61,7 @@ func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 }
 
 func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	hookTasks := []*webhook_model.HookTask{
