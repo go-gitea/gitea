@@ -27,26 +27,26 @@
 	{{if .PackageDescriptor.Metadata.Dependencies}}
 		<h4 class="ui top attached header">{{.i18n.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
-			<div class="ui list">
-				{{range $framework, $dependencies := .PackageDescriptor.Metadata.Dependencies}}
-					<div class="item">
-						<div class="content">
-							<div class="header"><strong>{{$framework}}</strong></div>
-							<div class="list">
-								{{range $dependencies}}
-									<div class="item">
-										<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
-										<div class="content">
-											<div class="header">{{.ID}}</div>
-											<div class="description text small">{{.Version}}</div>
-										</div>
-									</div>
-								{{end}}
-							</div>
-						</div>
-					</div>
-				{{end}}
-			</div>
+			<table class="ui single line very basic table">
+				<thead>
+					<tr>
+						<th class="ten wide">{{.i18n.Tr "packages.dependency.id"}}</th>
+						<th class="three wide">{{.i18n.Tr "packages.dependency.version"}}</th>
+						<th class="three wide">{{.i18n.Tr "packages.nuget.dependency.framework"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range $framework, $dependencies := .PackageDescriptor.Metadata.Dependencies}}
+						{{range $dependencies}}
+						<tr>
+							<td>{{.ID}}</td>
+							<td>{{.Version}}</td>
+							<td>{{$framework}}</td>
+						</tr>
+						{{end}}
+					{{end}}
+				</tbody>
+			</table>
 		</div>
 	{{end}}
 {{end}}

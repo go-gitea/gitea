@@ -1,18 +1,19 @@
 {{if .dependencies}}
-<div class="item">
-	<div class="content">
-		<div class="header"><strong>{{.title}}</strong></div>
-		<div class="list">
-			{{range $dependency, $version := .dependencies}}
-				<div class="item">
-					<i class="icon">{{svg "octicon-package-dependencies" 16 ""}}</i>
-					<div class="content">
-						<div class="header">{{$dependency}}</div>
-						<div class="description">{{$version}}</div>
-					</div>
-				</div>
-			{{end}}
-		</div>
-	</div>
-</div>
+<p><strong>{{.title}}</strong></p>
+<table class="ui single line very basic table">
+	<thead>
+		<tr>
+			<th class="eleven wide">{{.i18n.Tr "packages.dependency.id"}}</th>
+			<th class="five wide">{{.i18n.Tr "packages.dependency.version"}}</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{range $dependency, $version := .dependencies}}
+		<tr>
+			<td>{{$dependency}}</td>
+			<td>{{$version}}</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>
 {{end}}
