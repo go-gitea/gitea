@@ -63,9 +63,7 @@ export default function initRepoProject() {
     return;
   }
 
-  (async () => {
-    await initRepoProjectSortable();
-  })();
+  const _promise = initRepoProjectSortable();
 
   $('.edit-project-board').each(function () {
     const projectHeader = $(this).closest('.board-column-header');
