@@ -414,7 +414,7 @@ func GetOrgsByUserID(userID int64, showAll bool) ([]*Organization, error) {
 }
 
 // MinimalOrg represents a simple orgnization with only needed columns
-type MinimalOrg = User
+type MinimalOrg = Organization
 
 // GetUserOrgsList returns one user's all orgs list
 func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
@@ -455,8 +455,8 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 		GroupBy(groupByStr)
 
 	type OrgCount struct {
-		User     `xorm:"extends"`
-		OrgCount int
+		Organization `xorm:"extends"`
+		OrgCount     int
 	}
 
 	orgCounts := make([]*OrgCount, 0, 10)
@@ -469,8 +469,8 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 
 	orgs := make([]*MinimalOrg, len(orgCounts))
 	for i, orgCount := range orgCounts {
-		orgCount.User.NumRepos = orgCount.OrgCount
-		orgs[i] = &orgCount.User
+		orgCount.Organization.NumRepos = orgCount.OrgCount
+		orgs[i] = &orgCount.Organization
 	}
 
 	return orgs, nil

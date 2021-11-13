@@ -283,8 +283,7 @@ func getOAuthGroupsForUser(user *models.User) ([]string, error) {
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-
-		teams, err := (*models.Organization)(org).LoadTeams()
+		teams, err := org.LoadTeams()
 		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %v", err)
 		}
