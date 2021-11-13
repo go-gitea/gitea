@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/structs"
@@ -24,7 +25,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	// FIXME: Since no accesskey or user/password will trigger rate limit of github, just skip
 	t.Skip()
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
