@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/user"
 )
 
 // UserAssignment returns a middleware to handle context-user assignment
@@ -46,9 +47,9 @@ func userAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		ctx.ContextUser, err = models.GetUserByName(username)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
-				if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+				if redirectUserID, err := user.LookupUserRedirect(username); err == nil {
 					RedirectToUser(ctx, username, redirectUserID)
-				} else if models.IsErrUserRedirectNotExist(err) {
+				} else if user.IsErrUserRedirectNotExist(err) {
 					errCb(http.StatusNotFound, "GetUserByName", err)
 				} else {
 					errCb(http.StatusInternalServerError, "LookupUserRedirect", err)

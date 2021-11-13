@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -31,7 +32,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	select {
 	case <-ctx.Done():
 		log.Warn("SyncExternalUsers: Cancelled before update of %s", source.loginSource.Name)
-		return models.ErrCancelledf("Before update of %s", source.loginSource.Name)
+		return db.ErrCancelledf("Before update of %s", source.loginSource.Name)
 	default:
 	}
 
@@ -70,7 +71,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
 			}
-			return models.ErrCancelledf("During update of %s before completed update of users", source.loginSource.Name)
+			return db.ErrCancelledf("During update of %s before completed update of users", source.loginSource.Name)
 		default:
 		}
 		if len(su.Username) == 0 {
@@ -177,7 +178,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	select {
 	case <-ctx.Done():
 		log.Warn("SyncExternalUsers: Cancelled during update of %s before delete users", source.loginSource.Name)
-		return models.ErrCancelledf("During update of %s before delete users", source.loginSource.Name)
+		return db.ErrCancelledf("During update of %s before delete users", source.loginSource.Name)
 	default:
 	}
 

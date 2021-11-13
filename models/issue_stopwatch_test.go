@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCancelStopwatch(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1, err := GetUserByID(1)
 	assert.NoError(t, err)
@@ -34,14 +35,14 @@ func TestCancelStopwatch(t *testing.T) {
 }
 
 func TestStopwatchExists(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	assert.True(t, StopwatchExists(1, 1))
 	assert.False(t, StopwatchExists(1, 2))
 }
 
 func TestHasUserStopwatch(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	exists, sw, err := HasUserStopwatch(1)
 	assert.NoError(t, err)
@@ -54,7 +55,7 @@ func TestHasUserStopwatch(t *testing.T) {
 }
 
 func TestCreateOrStopIssueStopwatch(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user2, err := GetUserByID(2)
 	assert.NoError(t, err)

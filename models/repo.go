@@ -24,6 +24,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -1153,7 +1154,7 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 		}
 	}
 
-	if err = copyDefaultWebhooksToRepo(db.GetEngine(ctx), repo.ID); err != nil {
+	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
 		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
 	}
 
@@ -1509,7 +1510,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Comment{RefRepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&DeletedBranch{RepoID: repoID},
-		&HookTask{RepoID: repoID},
+		&webhook.HookTask{RepoID: repoID},
 		&LFSLock{RepoID: repoID},
 		&LanguageStat{RepoID: repoID},
 		&Milestone{RepoID: repoID},
@@ -1526,7 +1527,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
 		&Watch{RepoID: repoID},
-		&Webhook{RepoID: repoID},
+		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1936,7 +1937,7 @@ func CheckRepoStats(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
-			return ErrCancelledf("before checking %s", checker.desc)
+			return db.ErrCancelledf("before checking %s", checker.desc)
 		default:
 			repoStatsCheck(ctx, checker)
 		}
@@ -1953,7 +1954,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
@@ -1976,7 +1977,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
@@ -1999,7 +2000,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
