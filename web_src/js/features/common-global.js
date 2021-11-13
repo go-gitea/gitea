@@ -135,11 +135,11 @@ export function initGlobalCommon() {
   });
 }
 
-export async function initGlobalDropzone() {
+export function initGlobalDropzone() {
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
     const $dropzone = $(el);
-    await createDropzone(el, {
+    const _promise = createDropzone(el, {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
       maxFiles: $dropzone.data('max-file'),

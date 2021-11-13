@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -44,7 +45,7 @@ func TestNewReleasePost(t *testing.T) {
 			},
 		},
 	} {
-		db.PrepareTestEnv(t)
+		unittest.PrepareTestEnv(t)
 
 		ctx := test.MockContext(t, "user2/repo1/releases/new")
 		test.LoadUser(t, ctx, 2)

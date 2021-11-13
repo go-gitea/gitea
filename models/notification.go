@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -262,10 +263,10 @@ func createOrUpdateIssueNotifications(e db.Engine, issueID, commentID, notificat
 
 			return err
 		}
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypePullRequests) {
+		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.TypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, UnitTypeIssues) {
+		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.TypeIssues) {
 			continue
 		}
 
@@ -433,7 +434,13 @@ func (n *Notification) loadComment(e db.Engine) (err error) {
 	if n.Comment == nil && n.CommentID != 0 {
 		n.Comment, err = getCommentByID(e, n.CommentID)
 		if err != nil {
-			return fmt.Errorf("GetCommentByID [%d] for issue ID [%d]: %v", n.CommentID, n.IssueID, err)
+			if IsErrCommentNotExist(err) {
+				return ErrCommentNotExist{
+					ID:      n.CommentID,
+					IssueID: n.IssueID,
+				}
+			}
+			return err
 		}
 	}
 	return nil
@@ -487,7 +494,7 @@ type NotificationList []*Notification
 func (nl NotificationList) LoadAttributes() (err error) {
 	for i := 0; i < len(nl); i++ {
 		err = nl[i].LoadAttributes()
-		if err != nil {
+		if err != nil && !IsErrCommentNotExist(err) {
 			return
 		}
 	}

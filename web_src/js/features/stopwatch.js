@@ -3,7 +3,7 @@ const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.
 
 let updateTimeInterval = null; // holds setInterval id when active
 
-export async function initStopwatch() {
+export function initStopwatch() {
   if (!enableTimeTracking) {
     return;
   }
@@ -82,8 +82,8 @@ export async function initStopwatch() {
   }
 
   const fn = (timeout) => {
-    setTimeout(async () => {
-      await updateStopwatchWithCallback(fn, timeout);
+    setTimeout(() => {
+      const _promise = updateStopwatchWithCallback(fn, timeout);
     }, timeout);
   };
 
@@ -122,7 +122,7 @@ async function updateStopwatch() {
   return updateStopwatchData(data);
 }
 
-async function updateStopwatchData(data) {
+function updateStopwatchData(data) {
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
@@ -142,7 +142,7 @@ async function updateStopwatchData(data) {
   return !!data.length;
 }
 
-async function updateStopwatchTime(seconds) {
+function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
   if (!Number.isFinite(secs)) return;
 
