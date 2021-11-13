@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/golang-jwt/jwt"
@@ -41,7 +42,7 @@ func createAndParseToken(t *testing.T, grant *login.OAuth2Grant) *oauth2.OIDCTok
 }
 
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	grants, err := login.GetOAuth2GrantsByUserID(3)
 	assert.NoError(t, err)

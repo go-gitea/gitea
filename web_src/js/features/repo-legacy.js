@@ -351,6 +351,7 @@ export function initRepository() {
 
     // Edit issue or comment content
     $(document).on('click', '.edit-content', async function (event) {
+      event.preventDefault();
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -511,7 +512,6 @@ export function initRepository() {
         $textarea.focus();
         $simplemde.codemirror.focus();
       });
-      event.preventDefault();
     });
 
     initRepoIssueCommentDelete();
