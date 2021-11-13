@@ -87,6 +87,11 @@ func (org *Organization) GetMembers() (UserList, map[int64]bool, error) {
 	})
 }
 
+// AvatarLink returns the full avatar link with http host
+func (org *Organization) AvatarLink() string {
+	return org.AsUser().AvatarLink()
+}
+
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
