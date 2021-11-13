@@ -51,7 +51,7 @@ func TestTransferOwnership(t *testing.T) {
 		Content:   "user3/repo3",
 	})
 
-	models.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
 }
 
 func TestStartRepositoryTransferSetPermission(t *testing.T) {
@@ -72,5 +72,5 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, hasAccess)
 
-	models.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
 }

@@ -61,7 +61,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 
 	// Test that push to a non-default branch closes no issue.
 	pushCommits = []*repository.PushCommit{
@@ -88,7 +88,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, "non-existing-branch"))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 
 	pushCommits = []*repository.PushCommit{
 		{
@@ -114,7 +114,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {
@@ -139,7 +139,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
@@ -173,7 +173,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, "non-existing-branch"))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
@@ -208,7 +208,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
@@ -243,7 +243,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
 	unittest.AssertExistsAndLoadBean(t, commentBean)
 	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
@@ -294,5 +294,5 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	unittest.AssertNotExistsBean(t, commentBean)
 	unittest.AssertNotExistsBean(t, commentBean2)
 	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }

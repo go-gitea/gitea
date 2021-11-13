@@ -201,7 +201,7 @@ func TestDeleteUser(t *testing.T) {
 		}
 		assert.NoError(t, DeleteUser(user))
 		unittest.AssertNotExistsBean(t, &User{ID: userID})
-		CheckConsistencyFor(t, &User{}, &Repository{})
+		unittest.CheckConsistencyFor(t, &User{}, &Repository{})
 	}
 	test(2)
 	test(4)

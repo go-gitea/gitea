@@ -175,7 +175,7 @@ func TestPullRequest_Update(t *testing.T) {
 	pr = unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: pr.ID}).(*PullRequest)
 	assert.Equal(t, "baseBranch", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
-	CheckConsistencyFor(t, pr)
+	unittest.CheckConsistencyFor(t, pr)
 }
 
 func TestPullRequest_UpdateCols(t *testing.T) {
@@ -190,7 +190,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	pr = unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
-	CheckConsistencyFor(t, pr)
+	unittest.CheckConsistencyFor(t, pr)
 }
 
 func TestPullRequestList_LoadAttributes(t *testing.T) {

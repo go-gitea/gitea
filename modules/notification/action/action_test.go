@@ -44,5 +44,5 @@ func TestRenameRepoAction(t *testing.T) {
 	NewNotifier().NotifyRenameRepository(user, repo, oldRepoName)
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }

@@ -6,6 +6,7 @@ package unittest
 
 import (
 	"code.gitea.io/gitea/modules/unittestbridge"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +47,7 @@ func (ta TestifyAsserter) False(value bool, msgAndArgs ...interface{}) bool {
 	return assert.False(ta, value, msgAndArgs...)
 }
 
-// InitUnitTestBridge init the unit test bridge. eg: models.CheckConsistencyFor can use testing and assert frameworks
+// InitUnitTestBridge init the unit test bridge. eg: unittest.CheckConsistencyFor can use testing and assert frameworks
 func InitUnitTestBridge() {
 	unittestbridge.SetNewAsserterFunc(func(t unittestbridge.Tester) unittestbridge.Asserter {
 		return &TestifyAsserter{t: t}

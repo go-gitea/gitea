@@ -47,7 +47,7 @@ func TestNewLabels(t *testing.T) {
 	for _, label := range labels {
 		unittest.AssertExistsAndLoadBean(t, label, unittest.Cond("id = ?", label.ID))
 	}
-	CheckConsistencyFor(t, &Label{}, &Repository{})
+	unittest.CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 
 func TestGetLabelByID(t *testing.T) {
@@ -268,7 +268,7 @@ func TestUpdateLabel(t *testing.T) {
 	assert.EqualValues(t, label.Color, newLabel.Color)
 	assert.EqualValues(t, label.Name, newLabel.Name)
 	assert.EqualValues(t, label.Description, newLabel.Description)
-	CheckConsistencyFor(t, &Label{}, &Repository{})
+	unittest.CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 
 func TestDeleteLabel(t *testing.T) {
@@ -281,7 +281,7 @@ func TestDeleteLabel(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &Label{ID: label.ID})
 
 	assert.NoError(t, DeleteLabel(unittest.NonexistentID, unittest.NonexistentID))
-	CheckConsistencyFor(t, &Label{}, &Repository{})
+	unittest.CheckConsistencyFor(t, &Label{}, &Repository{})
 }
 
 func TestHasIssueLabel(t *testing.T) {
@@ -313,7 +313,7 @@ func TestNewIssueLabel(t *testing.T) {
 
 	// re-add existing IssueLabel
 	assert.NoError(t, NewIssueLabel(issue, label, doer))
-	CheckConsistencyFor(t, &Issue{}, &Label{})
+	unittest.CheckConsistencyFor(t, &Issue{}, &Label{})
 }
 
 func TestNewIssueLabels(t *testing.T) {
@@ -343,7 +343,7 @@ func TestNewIssueLabels(t *testing.T) {
 	// corner case: test empty slice
 	assert.NoError(t, NewIssueLabels(issue, []*Label{}, doer))
 
-	CheckConsistencyFor(t, &Issue{}, &Label{})
+	unittest.CheckConsistencyFor(t, &Issue{}, &Label{})
 }
 
 func TestDeleteIssueLabel(t *testing.T) {
@@ -378,5 +378,5 @@ func TestDeleteIssueLabel(t *testing.T) {
 	testSuccess(2, 5, 2)
 	testSuccess(1, 1, 2) // delete non-existent IssueLabel
 
-	CheckConsistencyFor(t, &Issue{}, &Label{})
+	unittest.CheckConsistencyFor(t, &Issue{}, &Label{})
 }

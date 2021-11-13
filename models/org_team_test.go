@@ -73,7 +73,7 @@ func TestTeam_AddMember(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, team.AddMember(userID))
 		unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: userID, TeamID: teamID})
-		CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
 	}
 	test(1, 2)
 	test(1, 4)
@@ -87,7 +87,7 @@ func TestTeam_RemoveMember(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, team.RemoveMember(userID))
 		unittest.AssertNotExistsBean(t, &TeamUser{UID: userID, TeamID: teamID})
-		CheckConsistencyFor(t, &Team{ID: teamID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID})
 	}
 	testSuccess(1, 4)
 	testSuccess(2, 2)
@@ -123,7 +123,7 @@ func TestTeam_AddRepository(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		assert.NoError(t, team.AddRepository(repo))
 		unittest.AssertExistsAndLoadBean(t, &TeamRepo{TeamID: teamID, RepoID: repoID})
-		CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
 	}
 	testSuccess(2, 3)
 	testSuccess(2, 5)
@@ -131,7 +131,7 @@ func TestTeam_AddRepository(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &Team{ID: 1}).(*Team)
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.Error(t, team.AddRepository(repo))
-	CheckConsistencyFor(t, &Team{ID: 1}, &Repository{ID: 1})
+	unittest.CheckConsistencyFor(t, &Team{ID: 1}, &Repository{ID: 1})
 }
 
 func TestTeam_RemoveRepository(t *testing.T) {
@@ -141,7 +141,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, team.RemoveRepository(repoID))
 		unittest.AssertNotExistsBean(t, &TeamRepo{TeamID: teamID, RepoID: repoID})
-		CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &Repository{ID: repoID})
 	}
 	testSuccess(2, 3)
 	testSuccess(2, 5)
@@ -160,7 +160,7 @@ func TestNewTeam(t *testing.T) {
 	team := &Team{Name: teamName, OrgID: 3}
 	assert.NoError(t, NewTeam(team))
 	unittest.AssertExistsAndLoadBean(t, &Team{Name: teamName})
-	CheckConsistencyFor(t, &Team{}, &User{ID: team.OrgID})
+	unittest.CheckConsistencyFor(t, &Team{}, &User{ID: team.OrgID})
 }
 
 func TestGetTeam(t *testing.T) {
@@ -215,7 +215,7 @@ func TestUpdateTeam(t *testing.T) {
 	access := unittest.AssertExistsAndLoadBean(t, &Access{UserID: 4, RepoID: 3}).(*Access)
 	assert.EqualValues(t, AccessModeAdmin, access.Mode)
 
-	CheckConsistencyFor(t, &Team{ID: team.ID})
+	unittest.CheckConsistencyFor(t, &Team{ID: team.ID})
 }
 
 func TestUpdateTeam2(t *testing.T) {
@@ -229,7 +229,7 @@ func TestUpdateTeam2(t *testing.T) {
 	err := UpdateTeam(team, true, false)
 	assert.True(t, IsErrTeamAlreadyExist(err))
 
-	CheckConsistencyFor(t, &Team{ID: team.ID})
+	unittest.CheckConsistencyFor(t, &Team{ID: team.ID})
 }
 
 func TestDeleteTeam(t *testing.T) {
@@ -320,7 +320,7 @@ func TestAddTeamMember(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, AddTeamMember(team, userID))
 		unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: userID, TeamID: teamID})
-		CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
 	}
 	test(1, 2)
 	test(1, 4)
@@ -334,7 +334,7 @@ func TestRemoveTeamMember(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, RemoveTeamMember(team, userID))
 		unittest.AssertNotExistsBean(t, &TeamUser{UID: userID, TeamID: teamID})
-		CheckConsistencyFor(t, &Team{ID: teamID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID})
 	}
 	testSuccess(1, 4)
 	testSuccess(2, 2)

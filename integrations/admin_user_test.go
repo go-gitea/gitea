@@ -79,5 +79,5 @@ func TestAdminDeleteUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &models.User{})
 }

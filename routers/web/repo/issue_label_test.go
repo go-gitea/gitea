@@ -134,7 +134,7 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
 	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
-	models.CheckConsistencyFor(t, &models.Label{})
+	unittest.CheckConsistencyFor(t, &models.Label{})
 }
 
 func TestUpdateIssueLabel_Toggle(t *testing.T) {
@@ -164,6 +164,6 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 				LabelID: testCase.LabelID,
 			})
 		}
-		models.CheckConsistencyFor(t, &models.Label{})
+		unittest.CheckConsistencyFor(t, &models.Label{})
 	}
 }

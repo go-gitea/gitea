@@ -32,7 +32,7 @@ func TestFollowUser(t *testing.T) {
 
 	assert.NoError(t, FollowUser(2, 2))
 
-	CheckConsistencyFor(t, &User{})
+	unittest.CheckConsistencyFor(t, &User{})
 }
 
 func TestUnfollowUser(t *testing.T) {
@@ -46,5 +46,5 @@ func TestUnfollowUser(t *testing.T) {
 	testSuccess(5, 2)
 	testSuccess(2, 2)
 
-	CheckConsistencyFor(t, &User{})
+	unittest.CheckConsistencyFor(t, &User{})
 }

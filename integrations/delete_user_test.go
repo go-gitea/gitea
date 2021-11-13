@@ -37,7 +37,7 @@ func TestUserDeleteAccount(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &models.User{})
 }
 
 func TestUserDeleteAccountStillOwnRepos(t *testing.T) {

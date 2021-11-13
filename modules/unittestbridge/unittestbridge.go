@@ -5,8 +5,8 @@
 package unittestbridge
 
 // Usage: generally, non-unit-test code shouldn't depend on unit test code.
-// However, we have some code like models.CheckConsistencyFor, which need to do some unit test works.
-// Now we can not decouple models.CheckConsistencyFor from unit test code easily (cycle-import reasons).
+// However, we have some code like unittest.CheckConsistencyFor, which need to do some unit test works.
+// Now we can not decouple unittest.CheckConsistencyFor from unit test code easily (cycle-import reasons).
 // So we introduce this `unit test bridge`:
 // * When a release binary is built, no testing/assert framework would be compiled into the binary, and CheckConsistencyFor won't run unit test related code
 // * When a unit test binary is built, the unit test code will init this bridge, then CheckConsistencyFor can run unit test related code
@@ -15,12 +15,12 @@ package unittestbridge
 // One day, if CheckConsistencyFor is clean enough, we can remove these intermediate interfaces.
 
 // Tester is the same as TestingT in "stretchr/testify/assert"
-// Tester can be used in non-unit-test code (ex: models.CheckConsistencyFor), it is used to isolate dependencies
+// Tester can be used in non-unit-test code (ex: unittest.CheckConsistencyFor), it is used to isolate dependencies
 type Tester interface {
 	Errorf(format string, args ...interface{})
 }
 
-// Asserter can be used in non-unit-test code (ex: models.CheckConsistencyFor), it is used to isolate dependencies
+// Asserter can be used in non-unit-test code (ex: unittest.CheckConsistencyFor), it is used to isolate dependencies
 type Asserter interface {
 	Tester
 	NoError(err error, msgAndArgs ...interface{}) bool

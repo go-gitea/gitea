@@ -9,9 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/unittestbridge"
+	"xorm.io/builder"
 )
 
-// Code in this file is mainly used by models.CheckConsistencyFor, which is not in the unit test for various reasons.
+// Code in this file is mainly used by unittest.CheckConsistencyFor, which is not in the unit test for various reasons.
 // In the future if we can decouple CheckConsistencyFor into separate unit test code, then this file can be moved into unittest package too.
 
 // NonexistentID an ID that will never exist
@@ -108,4 +109,17 @@ func AssertInt64InRange(t unittestbridge.Tester, low, high, value int64) {
 	ta := unittestbridge.NewAsserter(t)
 	ta.True(value >= low && value <= high,
 		"Expected value in range [%d, %d], found %d", low, high, value)
+}
+
+// GetCountByCond get the count of database entries matching bean
+func GetCountByCond(ta unittestbridge.Asserter, e db.Engine, tableName string, cond builder.Cond) int64 {
+	count, err := e.Table(tableName).Where(cond).Count()
+	ta.NoError(err)
+	return count
+}
+
+// AssertCount test the count of database entries matching bean
+func AssertCountByCond(ta unittestbridge.Asserter, tableName string, cond builder.Cond, expected int) {
+	ta.EqualValues(expected, GetCount(ta, db.GetEngine(db.DefaultContext), tableName, cond),
+		"Failed consistency test, the counted bean (of table %s) was %+v", tableName, cond)
 }

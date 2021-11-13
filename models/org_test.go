@@ -128,7 +128,7 @@ func TestUser_AddMember(t *testing.T) {
 	org = unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.Equal(t, prevNumMembers, org.NumMembers)
 
-	CheckConsistencyFor(t, &User{})
+	unittest.CheckConsistencyFor(t, &User{})
 }
 
 func TestUser_RemoveMember(t *testing.T) {
@@ -151,7 +151,7 @@ func TestUser_RemoveMember(t *testing.T) {
 	org = unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.Equal(t, prevNumMembers, org.NumMembers)
 
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {
@@ -171,7 +171,7 @@ func TestUser_RemoveOrgRepo(t *testing.T) {
 
 	assert.NoError(t, org.RemoveOrgRepo(unittest.NonexistentID))
 
-	CheckConsistencyFor(t,
+	unittest.CheckConsistencyFor(t,
 		&User{ID: org.ID},
 		&Team{OrgID: org.ID},
 		&Repository{ID: repo.ID})
@@ -194,7 +194,7 @@ func TestCreateOrganization(t *testing.T) {
 	ownerTeam := unittest.AssertExistsAndLoadBean(t,
 		&Team{Name: ownerTeamName, OrgID: org.ID}).(*Team)
 	unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: owner.ID, TeamID: ownerTeam.ID})
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestCreateOrganization2(t *testing.T) {
@@ -212,7 +212,7 @@ func TestCreateOrganization2(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrUserNotAllowedCreateOrg(err))
 	unittest.AssertNotExistsBean(t, &User{Name: newOrgName, Type: UserTypeOrganization})
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestCreateOrganization3(t *testing.T) {
@@ -225,7 +225,7 @@ func TestCreateOrganization3(t *testing.T) {
 	err := CreateOrganization(org, owner)
 	assert.Error(t, err)
 	assert.True(t, IsErrUserAlreadyExist(err))
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestCreateOrganization4(t *testing.T) {
@@ -236,7 +236,7 @@ func TestCreateOrganization4(t *testing.T) {
 	err := CreateOrganization(&User{Name: "assets"}, owner)
 	assert.Error(t, err)
 	assert.True(t, IsErrNameReserved(err))
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestGetOrgByName(t *testing.T) {
@@ -276,7 +276,7 @@ func TestDeleteOrganization(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	assert.Error(t, DeleteOrganization(user))
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestIsOrganizationOwner(t *testing.T) {
@@ -468,7 +468,7 @@ func TestAddOrgUser(t *testing.T) {
 	setting.Service.DefaultOrgMemberVisible = true
 	testSuccess(6, 3, true)
 
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestRemoveOrgUser(t *testing.T) {
@@ -491,7 +491,7 @@ func TestRemoveOrgUser(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrLastOrgOwner(err))
 	unittest.AssertExistsAndLoadBean(t, &OrgUser{OrgID: 7, UID: 5})
-	CheckConsistencyFor(t, &User{}, &Team{})
+	unittest.CheckConsistencyFor(t, &User{}, &Team{})
 }
 
 func TestUser_GetUserTeamIDs(t *testing.T) {

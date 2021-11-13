@@ -33,7 +33,7 @@ func TestNewMilestone(t *testing.T) {
 
 	assert.NoError(t, NewMilestone(milestone))
 	unittest.AssertExistsAndLoadBean(t, milestone)
-	CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
+	unittest.CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
 }
 
 func TestGetMilestoneByRepoID(t *testing.T) {
@@ -167,7 +167,7 @@ func TestUpdateMilestone(t *testing.T) {
 	assert.NoError(t, UpdateMilestone(milestone, milestone.IsClosed))
 	milestone = unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
 	assert.EqualValues(t, "newMilestoneName", milestone.Name)
-	CheckConsistencyFor(t, &Milestone{})
+	unittest.CheckConsistencyFor(t, &Milestone{})
 }
 
 func TestCountRepoMilestones(t *testing.T) {
@@ -210,11 +210,11 @@ func TestChangeMilestoneStatus(t *testing.T) {
 
 	assert.NoError(t, ChangeMilestoneStatus(milestone, true))
 	unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}, "is_closed=1")
-	CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
+	unittest.CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
 
 	assert.NoError(t, ChangeMilestoneStatus(milestone, false))
 	unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}, "is_closed=0")
-	CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
+	unittest.CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
 }
 
 func TestUpdateMilestoneCounters(t *testing.T) {
@@ -227,14 +227,14 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 	_, err := db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, updateMilestoneCounters(db.GetEngine(db.DefaultContext), issue.MilestoneID))
-	CheckConsistencyFor(t, &Milestone{})
+	unittest.CheckConsistencyFor(t, &Milestone{})
 
 	issue.IsClosed = false
 	issue.ClosedUnix = 0
 	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Cols("is_closed", "closed_unix").Update(issue)
 	assert.NoError(t, err)
 	assert.NoError(t, updateMilestoneCounters(db.GetEngine(db.DefaultContext), issue.MilestoneID))
-	CheckConsistencyFor(t, &Milestone{})
+	unittest.CheckConsistencyFor(t, &Milestone{})
 }
 
 func TestChangeMilestoneAssign(t *testing.T) {
@@ -253,14 +253,14 @@ func TestChangeMilestoneAssign(t *testing.T) {
 		MilestoneID:    issue.MilestoneID,
 		OldMilestoneID: oldMilestoneID,
 	})
-	CheckConsistencyFor(t, &Milestone{}, &Issue{})
+	unittest.CheckConsistencyFor(t, &Milestone{}, &Issue{})
 }
 
 func TestDeleteMilestoneByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.NoError(t, DeleteMilestoneByRepoID(1, 1))
 	unittest.AssertNotExistsBean(t, &Milestone{ID: 1})
-	CheckConsistencyFor(t, &Repository{ID: 1})
+	unittest.CheckConsistencyFor(t, &Repository{ID: 1})
 
 	assert.NoError(t, DeleteMilestoneByRepoID(unittest.NonexistentID, unittest.NonexistentID))
 }

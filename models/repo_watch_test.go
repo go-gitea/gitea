@@ -33,11 +33,11 @@ func TestWatchRepo(t *testing.T) {
 
 	assert.NoError(t, WatchRepo(userID, repoID, true))
 	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repoID, UserID: userID})
-	CheckConsistencyFor(t, &Repository{ID: repoID})
+	unittest.CheckConsistencyFor(t, &Repository{ID: repoID})
 
 	assert.NoError(t, WatchRepo(userID, repoID, false))
 	unittest.AssertNotExistsBean(t, &Watch{RepoID: repoID, UserID: userID})
-	CheckConsistencyFor(t, &Repository{ID: repoID})
+	unittest.CheckConsistencyFor(t, &Repository{ID: repoID})
 }
 
 func TestGetWatchers(t *testing.T) {
