@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/attachment"
 
@@ -19,11 +20,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", ".."))
+	unittest.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestRelease_Create(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -127,7 +128,7 @@ func TestRelease_Create(t *testing.T) {
 }
 
 func TestRelease_Update(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -269,7 +270,7 @@ func TestRelease_Update(t *testing.T) {
 }
 
 func TestRelease_createTag(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
@@ -352,7 +353,7 @@ func TestRelease_createTag(t *testing.T) {
 }
 
 func TestCreateNewTag(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 

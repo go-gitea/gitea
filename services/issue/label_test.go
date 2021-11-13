@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,7 @@ func TestIssue_AddLabels(t *testing.T) {
 		{2, []int64{}, 1},     // pull-request, empty
 	}
 	for _, test := range tests {
-		assert.NoError(t, db.PrepareTestDatabase())
+		assert.NoError(t, unittest.PrepareTestDatabase())
 		issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
 		labels := make([]*models.Label, len(test.labelIDs))
 		for i, labelID := range test.labelIDs {
@@ -50,7 +51,7 @@ func TestIssue_AddLabel(t *testing.T) {
 		{2, 1, 2}, // pull-request, already-added label
 	}
 	for _, test := range tests {
-		assert.NoError(t, db.PrepareTestDatabase())
+		assert.NoError(t, unittest.PrepareTestDatabase())
 		issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
 		label := db.AssertExistsAndLoadBean(t, &models.Label{ID: test.labelID}).(*models.Label)
 		doer := db.AssertExistsAndLoadBean(t, &models.User{ID: test.doerID}).(*models.User)

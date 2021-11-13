@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/test"
@@ -17,7 +18,7 @@ import (
 )
 
 func TestTestHook(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/wiki/_pages")
 	ctx.SetParams(":id", "1")
