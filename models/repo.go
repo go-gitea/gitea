@@ -783,7 +783,7 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(user.ID)
+		isOwner, err := OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
 		} else if isOwner {
@@ -1118,10 +1118,11 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.loadTeams(db.GetEngine(ctx)); err != nil {
+		teams, err := OrgFromUser(u).loadTeams(db.GetEngine(ctx))
+		if err != nil {
 			return fmt.Errorf("loadTeams: %v", err)
 		}
-		for _, t := range u.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(db.GetEngine(ctx), repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
@@ -1444,11 +1445,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err != nil {
 		return err
 	}
-	if org.IsOrganization() {
-		if err = org.loadTeams(sess); err != nil {
-			return err
-		}
-	}
 
 	repo := &Repository{OwnerID: uid}
 	has, err := sess.ID(repoID).Get(repo)
@@ -1476,7 +1472,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if org.IsOrganization() {
-		for _, t := range org.Teams {
+		teams, err := OrgFromUser(org).loadTeams(sess)
+		if err != nil {
+			return err
+		}
+		for _, t := range teams {
 			if !t.hasRepository(sess, repoID) {
 				continue
 			} else if err = t.removeRepository(sess, repo, false); err != nil {
@@ -1790,8 +1790,8 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 		Find(&repos)
 }
 
-func getRepositoryCount(e db.Engine, u *User) (int64, error) {
-	return e.Count(&Repository{OwnerID: u.ID})
+func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
+	return e.Count(&Repository{OwnerID: ownerID})
 }
 
 func getPublicRepositoryCount(e db.Engine, u *User) (int64, error) {
@@ -1804,7 +1804,7 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 
 // GetRepositoryCount returns the total number of repositories of user.
 func GetRepositoryCount(ctx context.Context, u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), u)
+	return getRepositoryCount(db.GetEngine(ctx), u.ID)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.

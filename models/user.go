@@ -159,11 +159,11 @@ type User struct {
 	NumRepos     int
 
 	// For organization
-	NumTeams                  int
-	NumMembers                int
-	Teams                     []*Team             `xorm:"-"`
-	Members                   UserList            `xorm:"-"`
-	MembersIsPublic           map[int64]bool      `xorm:"-"`
+	NumTeams   int
+	NumMembers int
+	//Teams                     []*Team             `xorm:"-"`
+	//Members                   UserList            `xorm:"-"`
+	//MembersIsPublic           map[int64]bool      `xorm:"-"`
 	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 

@@ -879,7 +879,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := ctx.Repo.Owner.GetTeam(name)
+	team, err := models.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
 	if err != nil {
 		if models.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))

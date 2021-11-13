@@ -284,10 +284,11 @@ func getOAuthGroupsForUser(user *models.User) ([]string, error) {
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
 
-		if err := org.LoadTeams(); err != nil {
+		teams, err := (*models.Organization)(org).LoadTeams()
+		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %v", err)
 		}
-		for _, team := range org.Teams {
+		for _, team := range teams {
 			if team.IsMember(user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
