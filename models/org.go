@@ -92,6 +92,11 @@ func (org *Organization) AvatarLink() string {
 	return org.AsUser().AvatarLink()
 }
 
+// HTMLURL returns the organization's full link.
+func (org *Organization) HTMLURL() string {
+	return org.AsUser().HTMLURL()
+}
+
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
