@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -12,14 +12,14 @@ var (
 	c *Client
 )
 
-// FetchAllUnReadMails fetch all unread mails
-func FetchAllUnReadMails() (err error) {
+// FetchAllUnreadMails fetch all unread mails
+func FetchAllUnreadMails() (err error) {
 	if c == nil {
 		c, err = NewImapClient(ClientInitOpt{
-			Addr:     setting.MailReciveService.Host,
-			UserName: setting.MailReciveService.User,
-			Passwd:   setting.MailReciveService.Passwd,
-			IsTLS:    setting.MailReciveService.IsTLSEnabled,
+			Addr:     setting.MailRecieveService.Host,
+			UserName: setting.MailRecieveService.User,
+			Passwd:   setting.MailRecieveService.Passwd,
+			IsTLS:    setting.MailRecieveService.IsTLSEnabled,
 		})
 		if err != nil {
 			return
@@ -30,7 +30,7 @@ func FetchAllUnReadMails() (err error) {
 		return
 	}
 
-	mails, err := c.GetUnReadMails(setting.MailReciveService.ReciveBox, 100)
+	mails, err := c.GetUnreadMails(setting.MailRecieveService.ReceiveBox, 100)
 	if err != nil {
 		return
 	}

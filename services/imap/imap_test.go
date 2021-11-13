@@ -21,9 +21,9 @@ type testIMAPClient struct {
 }
 
 func TestIMAP(t *testing.T) {
-	// test GetUnReadMails
+	// test GetUnreadMails
 	logs = ""
-	mails, err := c.GetUnReadMails(setting.MailReciveService.ReciveBox, 100)
+	mails, err := c.GetUnreadMails(setting.MailRecieveService.ReceiveBox, 100)
 	assert.NoError(t, err)
 	if !assert.Equal(t, 2, len(mails)) {
 		return
@@ -34,7 +34,7 @@ func TestIMAP(t *testing.T) {
 		"logout\n", logs)
 
 	// TODO
-	// test handleReciveEmail
+	// test handleReceiveEmail
 	// c.Client.(*testIMAPClient).t = t
 
 	// for _, mail := range mails {
@@ -42,7 +42,7 @@ func TestIMAP(t *testing.T) {
 	// 	if !assert.NoError(t, mail.LoadHeader([]string{"From", "To", "In-Reply-To", "References"})) {
 	// 		return
 	// 	}
-	// 	if !assert.NoError(t, handleReciveEmail(mail)) {
+	// 	if !assert.NoError(t, handleReceiveEmail(mail)) {
 	// 		return
 	// 	}
 	// 	assert.Equal(t, "", logs)

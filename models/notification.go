@@ -178,7 +178,7 @@ func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) erro
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
-// receiverID > 0 just send to reciver, else send to all watcher
+// receiverID > 0 just send to receiver, else send to all watcher
 func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()

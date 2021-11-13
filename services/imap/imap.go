@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -29,9 +29,7 @@ func init() {
 	charset.RegisterEncoding("gb18030", simplifiedchinese.GB18030)
 }
 
-var testMode bool
-
-// Client an imap clientor
+// Client is an imap client
 type Client struct {
 	Client   ClientPort
 	UserName string
@@ -41,7 +39,7 @@ type Client struct {
 	Lock     sync.Mutex
 }
 
-// ClientPort client port to imap server or test code
+// ClientPort operations to perform for an IMAP server or to test the code
 type ClientPort interface {
 	Login(username, password string) error
 	Logout() error
@@ -52,7 +50,7 @@ type ClientPort interface {
 	Fetch(seqset *imap.SeqSet, items []imap.FetchItem, ch chan *imap.Message) error
 }
 
-// ClientInitOpt options to init an Client
+// ClientInitOpt options to init a Client
 type ClientInitOpt struct {
 	Addr     string
 	UserName string
@@ -86,11 +84,6 @@ func (c *Client) Login() error {
 	var err error
 
 	c.Lock.Lock()
-
-	// test mode
-	if testMode {
-		return c.Client.Login(c.UserName, c.Passwd)
-	}
 
 	// Connect to server
 	if c.IsTLS {
@@ -251,7 +244,6 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 	go func() {
 		err = c.Client.Fetch(seqSet, items, messages)
 		finished = true
-		cancel()
 	}()
 
 	var msg *imap.Message
@@ -262,26 +254,28 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 				if !finished {
 					close(messages)
 				}
-				break
+				goto _exit
 			}
 		case <-ctx.Done():
 			if !finished {
 				close(messages)
 			}
-			break
+			goto _exit
 		}
 	}
 
+_exit:
 	if err != nil {
 		return nil, err
 	}
+
 	if msg == nil {
-		return nil, errors.New("Server didn't returned message")
+		return nil, errors.New("server didn't return message")
 	}
 
 	r := msg.GetBody(&section)
 	if r == nil {
-		return nil, errors.New("Server didn't returned message body")
+		return nil, errors.New("server didn't return message body")
 	}
 
 	// Create a new mail reader
@@ -293,7 +287,7 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 	return mr, nil
 }
 
-// Mail save an mail data
+// Mail stores mail metadata
 type Mail struct {
 	Client *Client
 	ID     uint32
@@ -310,8 +304,8 @@ type Mail struct {
 	Deleted bool
 }
 
-// GetUnReadMails get all unread mails
-func (c *Client) GetUnReadMails(mailBox string, limit int) ([]*Mail, error) {
+// GetUnreadMails get all unread mails
+func (c *Client) GetUnreadMails(mailBox string, limit int) ([]*Mail, error) {
 	ids, err := c.GetUnReadMailIDs(mailBox)
 	if err != nil {
 		return nil, err

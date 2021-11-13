@@ -162,10 +162,6 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 	return nil
 }
 
-// func generateRandKey(issueID int64, mail string, rands string) string {
-// 	return base.EncodeSha256(fmt.Sprintf("%d:%s/%s", issueID, mail, rands))
-// }
-
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
 func MailParticipants(issue *models.Issue, doer *models.User, opType models.ActionType, mentions []*models.User) error {

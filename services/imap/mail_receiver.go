@@ -1,4 +1,4 @@
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -24,11 +24,11 @@ var mailReadQueue queue.Queue
 
 // NewContext start received mail read queue service
 func NewContext() {
-	if setting.MailReciveService == nil || mailReadQueue != nil {
+	if setting.MailRecieveService == nil || mailReadQueue != nil {
 		return
 	}
 
-	mailReadQueue = queue.CreateQueue("mail_recive", func(data ...queue.Data) {
+	mailReadQueue = queue.CreateQueue("mail_receive", func(data ...queue.Data) {
 		for _, datum := range data {
 			mail := datum.(*Mail)
 			if err := mail.LoadHeader([]string{"From", "To", "In-Reply-To", "References"}); err != nil {
@@ -41,13 +41,13 @@ func NewContext() {
 				continue
 			}
 
-			if mail.Heads["To"][0].Address != setting.MailReciveService.ReciveEmail {
+			if mail.Heads["To"][0].Address != setting.MailRecieveService.ReceiveEmail {
 				continue
 			}
 
 			log.Trace("start read email from %v", mail.Heads["From"][0].String())
-			if err := handleReciveEmail(mail); err != nil {
-				log.Error("handleReciveEmail(): %v", err)
+			if err := handleReceiveEmail(mail); err != nil {
+				log.Error("handleReceiveEmail(): %v", err)
 				continue
 			}
 			log.Trace("finished read email from %v", mail.Heads["From"][0].String())
@@ -57,7 +57,7 @@ func NewContext() {
 	go graceful.GetManager().RunWithShutdownFns(mailReadQueue.Run)
 }
 
-func handleReciveEmail(m *Mail) error {
+func handleReceiveEmail(m *Mail) error {
 	fromEmail, ok := m.Heads["From"]
 	if !ok || len(fromEmail) < 1 {
 		return nil
@@ -211,7 +211,7 @@ func handleReciveEmail(m *Mail) error {
 
 	_ = m.SetRead(true)
 
-	if setting.MailReciveService.DeleteRodeMail {
+	if setting.MailRecieveService.DeleteReadMail {
 		_ = m.Delete()
 	}
 

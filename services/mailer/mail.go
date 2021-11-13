@@ -303,13 +303,34 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	// Make sure to compose independent messages to avoid leaking user emails
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
+		key := ""
+		if setting.MailRecieveService != nil {
+			// gen key
+			key = base.EncodeSha256(fmt.Sprintf("%d:%s/%s", ctx.Issue.ID, recipient.GetEmail(), recipient.Rands))
+		}
+
 		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+
+		if setting.MailRecieveService != nil &&
+			len(setting.MailRecieveService.ReceiveEmail) > 0 {
+			msg.SetHeader("Reply-To", "<"+setting.MailRecieveService.ReceiveEmail+">")
+		}
+
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		msg.SetHeader("Message-ID", "<"+createReference(ctx.Issue, ctx.Comment)+">")
-		reference := createReference(ctx.Issue, nil)
-		msg.SetHeader("In-Reply-To", "<"+reference+">")
-		msg.SetHeader("References", "<"+reference+">")
+		if actName != "new" && ctx.Comment != nil {
+			msg.SetHeader("Message-ID", "<"+ctx.Comment.ReplyReference(key)+">")
+			msg.SetHeader("References", "<"+ctx.Comment.ReplyReference(key)+">")
+			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
+			msgs = append(msgs, msg)
+			continue
+		}
+
+		msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference(key)+">")
+		msg.SetHeader("References", "<"+ctx.Issue.ReplyReference(key)+">")
+		if actName != "new" {
+			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference("")+">")
+		}
 
 		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
 			msg.SetHeader(key, value)
@@ -319,22 +340,6 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	return msgs, nil
-}
-
-func createReference(issue *models.Issue, comment *models.Comment) string {
-	var path string
-	if issue.IsPull {
-		path = "pulls"
-	} else {
-		path = "issues"
-	}
-
-	var extra string
-	if comment != nil {
-		extra = fmt.Sprintf("/comment/%d", comment.ID)
-	}
-
-	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *models.User) map[string]string {

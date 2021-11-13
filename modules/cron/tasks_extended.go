@@ -133,13 +133,13 @@ func registerDeleteOldActions() {
 	})
 }
 
-func registerImapFetchUnReadMails() {
+func registerImapFetchUnreadMails() {
 	RegisterTaskFatal("imap_fetch_mails", &BaseConfig{
-		Enabled:    setting.MailReciveService != nil,
+		Enabled:    setting.MailRecieveService != nil,
 		RunAtStart: false,
 		Schedule:   "@every 5m",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return imap.FetchAllUnReadMails()
+		return imap.FetchAllUnreadMails()
 	})
 }
 
@@ -173,5 +173,5 @@ func initExtendedTasks() {
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
 	registerUpdateGiteaChecker()
-	registerImapFetchUnReadMails()
+	registerImapFetchUnreadMails()
 }

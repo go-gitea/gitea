@@ -1203,7 +1203,7 @@ func NewServices() {
 	newSessionService()
 	newCORSService()
 	newMailService()
-	newMailReciveService()
+	newMailRecieveService()
 	newRegisterMailService()
 	newNotifyMailService()
 	newProxyService()
