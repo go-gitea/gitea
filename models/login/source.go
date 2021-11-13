@@ -6,6 +6,7 @@
 package login
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -16,6 +17,14 @@ import (
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
+)
+
+var (
+	// ErrLoginSourceNotActived login source is not actived error
+	ErrLoginSourceNotActived = errors.New("Login source is not actived")
+
+	// ErrUnsupportedLoginType login source is unknown error
+	ErrUnsupportedLoginType = errors.New("Login source is unknown")
 )
 
 // Type represents an login type.

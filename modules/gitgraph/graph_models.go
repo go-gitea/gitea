@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -88,10 +89,9 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // before finally retrieving the latest status
 func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo *git.Repository) error {
 	var err error
-
 	var ok bool
 
-	emails := map[string]*models.User{}
+	emails := map[string]*user_model.User{}
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -106,7 +106,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 		if c.Commit.Author != nil {
 			email := c.Commit.Author.Email
 			if c.User, ok = emails[email]; !ok {
-				c.User, _ = models.GetUserByEmail(email)
+				c.User, _ = user_model.GetUserByEmail(email)
 				emails[email] = c.User
 			}
 		}
@@ -233,7 +233,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 // Commit represents a commit at co-ordinate X, Y with the data
 type Commit struct {
 	Commit       *git.Commit
-	User         *models.User
+	User         *user_model.User
 	Verification *models.CommitVerification
 	Status       *models.CommitStatus
 	Flow         int64

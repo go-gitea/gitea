@@ -23,10 +23,10 @@ import (
 )
 
 // UserSignIn validates user name and password.
-func UserSignIn(username, password string) (*models.User, *login.Source, error) {
-	var user *models.User
+func UserSignIn(username, password string) (*user_model.User, *login.Source, error) {
+	var user *user_model.User
 	if strings.Contains(username, "@") {
-		user = &models.User{Email: strings.ToLower(strings.TrimSpace(username))}
+		user = &user_model.User{Email: strings.ToLower(strings.TrimSpace(username))}
 		// check same email
 		cnt, err := db.Count(user)
 		if err != nil {
@@ -40,13 +40,13 @@ func UserSignIn(username, password string) (*models.User, *login.Source, error) 
 	} else {
 		trimmedUsername := strings.TrimSpace(username)
 		if len(trimmedUsername) == 0 {
-			return nil, nil, models.ErrUserNotExist{Name: username}
+			return nil, nil, user_model.ErrUserNotExist{Name: username}
 		}
 
-		user = &models.User{LowerName: strings.ToLower(trimmedUsername)}
+		user = &user_model.User{LowerName: strings.ToLower(trimmedUsername)}
 	}
 
-	hasUser, err := models.GetUser(user)
+	hasUser, err := user_model.GetUser(user)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -58,12 +58,12 @@ func UserSignIn(username, password string) (*models.User, *login.Source, error) 
 		}
 
 		if !source.IsActive {
-			return nil, nil, models.ErrLoginSourceNotActived
+			return nil, nil, login.ErrLoginSourceNotActived
 		}
 
 		authenticator, ok := source.Cfg.(PasswordAuthenticator)
 		if !ok {
-			return nil, nil, models.ErrUnsupportedLoginType
+			return nil, nil, login.ErrUnsupportedLoginType
 		}
 
 		user, err := authenticator.Authenticate(user, username, password)
@@ -105,12 +105,12 @@ func UserSignIn(username, password string) (*models.User, *login.Source, error) 
 			err = models.ErrUserProhibitLogin{UID: authUser.ID, Name: authUser.Name}
 		}
 
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			log.Debug("Failed to login '%s' via '%s': %v", username, source.Name, err)
 		} else {
 			log.Warn("Failed to login '%s' via '%s': %v", username, source.Name, err)
 		}
 	}
 
-	return nil, nil, models.ErrUserNotExist{Name: username}
+	return nil, nil, user_model.ErrUserNotExist{Name: username}
 }

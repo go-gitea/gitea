@@ -8,15 +8,16 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user5 := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
-	user29 := db.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	user2 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user5 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user29 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 	// A public repository owned by User 2
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
@@ -65,8 +66,8 @@ func TestAccessLevel(t *testing.T) {
 func TestHasAccess(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user1 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user2 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	// A public repository owned by User 2
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
@@ -91,13 +92,13 @@ func TestHasAccess(t *testing.T) {
 func TestUser_GetRepositoryAccesses(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	accesses, err := user1.GetRepositoryAccesses()
+	user1 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	accesses, err := GetRepositoryAccesses(user1)
 	assert.NoError(t, err)
 	assert.Len(t, accesses, 0)
 
-	user29 := db.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
-	accesses, err = user29.GetRepositoryAccesses()
+	user29 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
+	accesses, err = GetRepositoryAccesses(user29)
 	assert.NoError(t, err)
 	assert.Len(t, accesses, 2)
 }
@@ -105,18 +106,18 @@ func TestUser_GetRepositoryAccesses(t *testing.T) {
 func TestUser_GetAccessibleRepositories(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	repos, err := user1.GetAccessibleRepositories(0)
+	user1 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	repos, err := GetAccessibleRepositories(user1, 0)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 0)
 
-	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repos, err = user2.GetAccessibleRepositories(0)
+	user2 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repos, err = GetAccessibleRepositories(user2, 0)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 4)
 
-	user29 := db.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
-	repos, err = user29.GetAccessibleRepositories(0)
+	user29 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
+	repos, err = GetAccessibleRepositories(user29, 0)
 	assert.NoError(t, err)
 	assert.Len(t, repos, 2)
 }
@@ -156,7 +157,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 func TestRepository_RecalculateAccesses3(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	team5 := db.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
-	user29 := db.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	user29 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
 	assert.NoError(t, err)

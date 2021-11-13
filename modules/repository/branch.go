@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 )
 
@@ -67,7 +68,7 @@ func checkBranchName(repo *models.Repository, name string) error {
 }
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
+func CreateNewBranch(doer *user_model.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
 	// Check if branch name can be used
 	if err := checkBranchName(repo, branchName); err != nil {
 		return err
@@ -94,7 +95,7 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(doer *models.User, repo *models.Repository, commit, branchName string) (err error) {
+func CreateNewBranchFromCommit(doer *user_model.User, repo *models.Repository, commit, branchName string) (err error) {
 	// Check if branch name can be used
 	if err := checkBranchName(repo, branchName); err != nil {
 		return err

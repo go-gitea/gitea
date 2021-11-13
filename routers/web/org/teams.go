@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -37,13 +39,19 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	for _, t := range org.Teams {
+	teams, err := models.FindTeamsCtx(db.DefaultContext, org.ID)
+	if err != nil {
+		ctx.ServerError("FindTeamsCtx", err)
+		return
+	}
+	for _, t := range teams {
 		if err := t.GetMembers(&models.SearchMembersOptions{}); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
 	}
-	ctx.Data["Teams"] = org.Teams
+
+	ctx.Data["Teams"] = teams
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -114,10 +122,10 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
-		var u *models.User
-		u, err = models.GetUserByName(uname)
+		var u *user_model.User
+		u, err = user_model.GetUserByName(uname)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName)
 			} else {

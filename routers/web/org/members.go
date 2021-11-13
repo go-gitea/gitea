@@ -37,7 +37,7 @@ func Members(ctx *context.Context) {
 	}
 
 	if ctx.User != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+		isMember, err := (*models.Organization)(ctx.Org.Organization).IsOrgMember(ctx.User.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
@@ -96,7 +96,7 @@ func MembersAction(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = org.RemoveMember(uid)
+		err = (*models.Organization)(org).RemoveMember(uid)
 		if models.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
@@ -105,7 +105,7 @@ func MembersAction(ctx *context.Context) {
 			return
 		}
 	case "leave":
-		err = org.RemoveMember(ctx.User.ID)
+		err = (*models.Organization)(org).RemoveMember(ctx.User.ID)
 		if models.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{

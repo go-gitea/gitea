@@ -23,6 +23,7 @@ import (
 	"unicode"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -556,7 +557,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 func Avatar(item interface{}, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	if user, ok := item.(*models.User); ok {
+	if user, ok := item.(*user_model.User); ok {
 		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, user.DisplayName())

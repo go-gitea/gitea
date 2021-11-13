@@ -26,7 +26,7 @@ func Test_newIssueUsers(t *testing.T) {
 	// artificially insert new issue
 	db.AssertSuccessfulInsert(t, newIssue)
 
-	assert.NoError(t, newIssueUsers(db.GetEngine(db.DefaultContext), repo, newIssue))
+	assert.NoError(t, newIssueUsers(db.DefaultContext, repo, newIssue))
 
 	// issue_user table should now have entries for new issue
 	db.AssertExistsAndLoadBean(t, &IssueUser{IssueID: newIssue.ID, UID: newIssue.PosterID})

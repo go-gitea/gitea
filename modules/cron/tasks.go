@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -28,7 +29,7 @@ type Task struct {
 	lock      sync.Mutex
 	Name      string
 	config    Config
-	fun       func(context.Context, *models.User, Config) error
+	fun       func(context.Context, *user_model.User, Config) error
 	ExecTimes int64
 }
 
@@ -54,7 +55,7 @@ func (t *Task) GetConfig() Config {
 
 // Run will run the task incrementing the cron counter with no user defined
 func (t *Task) Run() {
-	t.RunWithUser(&models.User{
+	t.RunWithUser(&user_model.User{
 		ID:        -1,
 		Name:      "(Cron)",
 		LowerName: "(cron)",
@@ -62,7 +63,7 @@ func (t *Task) Run() {
 }
 
 // RunWithUser will run the task incrementing the cron counter at the time with User
-func (t *Task) RunWithUser(doer *models.User, config Config) {
+func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	if !taskStatusTable.StartIfNotRunning(t.Name) {
 		return
 	}
@@ -117,7 +118,7 @@ func GetTask(name string) *Task {
 }
 
 // RegisterTask allows a task to be registered with the cron service
-func RegisterTask(name string, config Config, fun func(context.Context, *models.User, Config) error) error {
+func RegisterTask(name string, config Config, fun func(context.Context, *user_model.User, Config) error) error {
 	log.Debug("Registering task: %s", name)
 	_, err := setting.GetCronSettings(name, config)
 	if err != nil {
@@ -162,7 +163,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *models.
 }
 
 // RegisterTaskFatal will register a task but if there is an error log.Fatal
-func RegisterTaskFatal(name string, config Config, fun func(context.Context, *models.User, Config) error) {
+func RegisterTaskFatal(name string, config Config, fun func(context.Context, *user_model.User, Config) error) {
 	if err := RegisterTask(name, config, fun); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}

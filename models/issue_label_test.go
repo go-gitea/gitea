@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -294,7 +295,7 @@ func TestNewIssueLabel(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	label := db.AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-	doer := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	doer := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	// add new IssueLabel
 	prevNumIssues := label.NumIssues
@@ -320,7 +321,7 @@ func TestNewIssueLabels(t *testing.T) {
 	label1 := db.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
 	label2 := db.AssertExistsAndLoadBean(t, &Label{ID: 2}).(*Label)
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 5}).(*Issue)
-	doer := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	doer := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	assert.NoError(t, NewIssueLabels(issue, []*Label{label1, label2}, doer))
 	db.AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issue.ID, LabelID: label1.ID})
@@ -350,7 +351,7 @@ func TestDeleteIssueLabel(t *testing.T) {
 	testSuccess := func(labelID, issueID, doerID int64) {
 		label := db.AssertExistsAndLoadBean(t, &Label{ID: labelID}).(*Label)
 		issue := db.AssertExistsAndLoadBean(t, &Issue{ID: issueID}).(*Issue)
-		doer := db.AssertExistsAndLoadBean(t, &User{ID: doerID}).(*User)
+		doer := db.AssertExistsAndLoadBean(t, &user_model.User{ID: doerID}).(*user_model.User)
 
 		expectedNumIssues := label.NumIssues
 		expectedNumClosedIssues := label.NumClosedIssues

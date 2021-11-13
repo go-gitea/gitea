@@ -6,9 +6,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -76,7 +78,7 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) {
+func accessLevel(e db.Engine, user *user_model.User, repo *Repository) (AccessMode, error) {
 	mode := AccessModeNone
 	var userID int64
 	restricted := false
@@ -115,7 +117,7 @@ func (repoAccess) TableName() string {
 }
 
 // GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
-func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
+func GetRepositoryAccesses(user *user_model.User) (map[*Repository]AccessMode, error) {
 	rows, err := db.GetEngine(db.DefaultContext).
 		Join("INNER", "repository", "repository.id = access.repo_id").
 		Where("access.user_id = ?", user.ID).
@@ -127,7 +129,7 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 	defer rows.Close()
 
 	repos := make(map[*Repository]AccessMode, 10)
-	ownerCache := make(map[int64]*User, 10)
+	ownerCache := make(map[int64]*user_model.User, 10)
 	for rows.Next() {
 		var repo repoAccess
 		err = rows.Scan(&repo)
@@ -150,7 +152,7 @@ func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
 
 // GetAccessibleRepositories finds repositories which the user has access but does not own.
 // If limit is smaller than 1 means returns all found results.
-func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
+func GetAccessibleRepositories(user *user_model.User, limit int) (repos []*Repository, _ error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("owner_id !=? ", user.ID).
 		Desc("updated_unix")
@@ -176,12 +178,12 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 }
 
 type userAccess struct {
-	User *User
+	User *user_model.User
 	Mode AccessMode
 }
 
 // updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
+func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
 	} else {
@@ -224,8 +226,8 @@ func (repo *Repository) refreshAccesses(e db.Engine, accessMap map[int64]*userAc
 }
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func (repo *Repository) refreshCollaboratorAccesses(e db.Engine, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo.getCollaborators(e, db.ListOptions{})
+func (repo *Repository) refreshCollaboratorAccesses(ctx context.Context, accessMap map[int64]*userAccess) error {
+	collaborators, err := repo.getCollaborators(ctx, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}
@@ -241,24 +243,27 @@ func (repo *Repository) refreshCollaboratorAccesses(e db.Engine, accessMap map[i
 // recalculateTeamAccesses recalculates new accesses for teams of an organization
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
-func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (err error) {
+func (repo *Repository) recalculateTeamAccesses(ctx context.Context, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
-	if err = repo.getOwner(e); err != nil {
+	if err = repo.getOwner(ctx); err != nil {
 		return err
 	} else if !repo.Owner.IsOrganization() {
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
 	}
 
-	if err = repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
+	e := db.GetEngine(ctx)
+
+	if err = repo.refreshCollaboratorAccesses(ctx, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	if err = repo.Owner.loadTeams(e); err != nil {
+	teams, err := FindTeamsCtx(ctx, repo.Owner.ID)
+	if err != nil {
 		return err
 	}
 
-	for _, t := range repo.Owner.Teams {
+	for _, t := range teams {
 		if t.ID == ignTeamID {
 			continue
 		}
@@ -271,7 +276,7 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 			continue
 		}
 
-		if err = t.getMembers(e); err != nil {
+		if err = t.getMembers(ctx); err != nil {
 			return fmt.Errorf("getMembers '%d': %v", t.ID, err)
 		}
 		for _, m := range t.Members {
@@ -284,11 +289,13 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 
 // recalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error) {
+func (repo *Repository) recalculateUserAccess(ctx context.Context, uid int64) (err error) {
 	minMode := AccessModeRead
 	if !repo.IsPrivate {
 		minMode = AccessModeWrite
 	}
+
+	e := db.GetEngine(ctx)
 
 	accessMode := AccessModeNone
 	collaborator, err := repo.getCollaboration(e, uid)
@@ -298,7 +305,7 @@ func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.getOwner(e); err != nil {
+	if err = repo.getOwner(ctx); err != nil {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []Team
@@ -331,19 +338,19 @@ func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error
 	return nil
 }
 
-func (repo *Repository) recalculateAccesses(e db.Engine) error {
+func (repo *Repository) recalculateAccesses(ctx context.Context) error {
 	if repo.Owner.IsOrganization() {
-		return repo.recalculateTeamAccesses(e, 0)
+		return repo.recalculateTeamAccesses(ctx, 0)
 	}
 
 	accessMap := make(map[int64]*userAccess, 20)
-	if err := repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
+	if err := repo.refreshCollaboratorAccesses(ctx, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
-	return repo.refreshAccesses(e, accessMap)
+	return repo.refreshAccesses(db.GetEngine(ctx), accessMap)
 }
 
 // RecalculateAccesses recalculates all accesses for repository.
 func (repo *Repository) RecalculateAccesses() error {
-	return repo.recalculateAccesses(db.GetEngine(db.DefaultContext))
+	return repo.recalculateAccesses(db.DefaultContext)
 }

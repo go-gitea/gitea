@@ -5,12 +5,14 @@
 package models
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,7 +33,7 @@ type CommitStatus struct {
 	Description string                `xorm:"TEXT"`
 	ContextHash string                `xorm:"char(40) index"`
 	Context     string                `xorm:"TEXT"`
-	Creator     *User                 `xorm:"-"`
+	Creator     *user_model.User      `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -118,15 +120,15 @@ func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 	return curIdx, nil
 }
 
-func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
+func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 	if status.Repo == nil {
-		status.Repo, err = getRepositoryByID(e, status.RepoID)
+		status.Repo, err = getRepositoryByID(db.GetEngine(ctx), status.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %v", status.RepoID, err)
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = getUserByID(e, status.CreatorID)
+		status.Creator, err = user_model.GetUserByIDCtx(ctx, status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", status.CreatorID, err)
 		}
@@ -136,7 +138,7 @@ func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadAttributes(db.GetEngine(db.DefaultContext))
+	_ = status.loadAttributes(db.DefaultContext)
 	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
 		setting.AppURL, status.Repo.FullName(), status.SHA)
 }
@@ -274,7 +276,7 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
 	Repo         *Repository
-	Creator      *User
+	Creator      *user_model.User
 	SHA          string
 	CommitStatus *CommitStatus
 }

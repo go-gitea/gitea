@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -47,7 +48,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 }
 
 // UploadRepoFiles uploads files to the given repository
-func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) error {
+func UploadRepoFiles(repo *models.Repository, doer *user_model.User, opts *UploadRepoFileOptions) error {
 	if len(opts.Files) == 0 {
 		return nil
 	}

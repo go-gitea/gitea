@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"sort"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -148,7 +147,7 @@ func createProvider(providerName string, source *Source) (goth.Provider, error) 
 
 	p, ok := gothProviders[source.Provider]
 	if !ok {
-		return nil, models.ErrLoginSourceNotActived
+		return nil, login.ErrLoginSourceNotActived
 	}
 
 	provider, err = p.CreateGothProvider(providerName, callbackURL, source)

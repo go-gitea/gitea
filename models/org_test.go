@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -28,7 +29,7 @@ func TestUser_IsOwnedBy(t *testing.T) {
 		{2, 2, false}, // user2 is not an organization
 		{2, 3, false},
 	} {
-		org := db.AssertExistsAndLoadBean(t, &User{ID: testCase.OrgID}).(*User)
+		org := db.AssertExistsAndLoadBean(t, &Organization{ID: testCase.OrgID}).(*Organization)
 		isOwner, err := org.IsOwnedBy(testCase.UserID)
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.ExpectedOwner, isOwner)
@@ -49,7 +50,7 @@ func TestUser_IsOrgMember(t *testing.T) {
 		{2, 2, false}, // user2 is not an organization
 		{2, 3, false},
 	} {
-		org := db.AssertExistsAndLoadBean(t, &User{ID: testCase.OrgID}).(*User)
+		org := db.AssertExistsAndLoadBean(t, &Organization{ID: testCase.OrgID}).(*Organization)
 		isMember, err := org.IsOrgMember(testCase.UserID)
 		assert.NoError(t, err)
 		assert.Equal(t, testCase.ExpectedMember, isMember)
@@ -58,7 +59,7 @@ func TestUser_IsOrgMember(t *testing.T) {
 
 func TestUser_GetTeam(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	team, err := org.GetTeam("team1")
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, team.OrgID)
@@ -67,56 +68,60 @@ func TestUser_GetTeam(t *testing.T) {
 	_, err = org.GetTeam("does not exist")
 	assert.True(t, IsErrTeamNotExist(err))
 
-	nonOrg := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	nonOrg := db.AssertExistsAndLoadBean(t, &Organization{ID: 2}).(*Organization)
 	_, err = nonOrg.GetTeam("team")
 	assert.True(t, IsErrTeamNotExist(err))
 }
 
 func TestUser_GetOwnerTeam(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	team, err := org.GetOwnerTeam()
 	assert.NoError(t, err)
 	assert.Equal(t, org.ID, team.OrgID)
 
-	nonOrg := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	nonOrg := db.AssertExistsAndLoadBean(t, &Organization{ID: 2}).(*Organization)
 	_, err = nonOrg.GetOwnerTeam()
 	assert.True(t, IsErrTeamNotExist(err))
 }
 
 func TestUser_GetTeams(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.NoError(t, org.LoadTeams())
-	if assert.Len(t, org.Teams, 4) {
-		assert.Equal(t, int64(1), org.Teams[0].ID)
-		assert.Equal(t, int64(2), org.Teams[1].ID)
-		assert.Equal(t, int64(12), org.Teams[2].ID)
-		assert.Equal(t, int64(7), org.Teams[3].ID)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
+	teams, err := FindTeamsCtx(db.DefaultContext, org.ID)
+	assert.NoError(t, err)
+	if assert.Len(t, teams, 4) {
+		assert.Equal(t, int64(1), teams[0].ID)
+		assert.Equal(t, int64(2), teams[1].ID)
+		assert.Equal(t, int64(12), teams[2].ID)
+		assert.Equal(t, int64(7), teams[3].ID)
 	}
 }
 
 func TestUser_GetMembers(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.NoError(t, org.GetMembers())
-	if assert.Len(t, org.Members, 3) {
-		assert.Equal(t, int64(2), org.Members[0].ID)
-		assert.Equal(t, int64(28), org.Members[1].ID)
-		assert.Equal(t, int64(4), org.Members[2].ID)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
+	members, _, err := FindOrgMembers(&FindOrgMembersOpts{
+		OrgID: org.ID,
+	})
+	assert.NoError(t, err)
+	if assert.Len(t, members, 3) {
+		assert.Equal(t, int64(2), members[0].ID)
+		assert.Equal(t, int64(28), members[1].ID)
+		assert.Equal(t, int64(4), members[2].ID)
 	}
 }
 
 func TestUser_AddMember(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 
 	// add a user that is not a member
 	db.AssertNotExistsBean(t, &OrgUser{UID: 5, OrgID: 3})
 	prevNumMembers := org.NumMembers
 	assert.NoError(t, org.AddMember(5))
 	db.AssertExistsAndLoadBean(t, &OrgUser{UID: 5, OrgID: 3})
-	org = db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org = db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	assert.Equal(t, prevNumMembers+1, org.NumMembers)
 
 	// add a user that is already a member
@@ -124,22 +129,22 @@ func TestUser_AddMember(t *testing.T) {
 	prevNumMembers = org.NumMembers
 	assert.NoError(t, org.AddMember(4))
 	db.AssertExistsAndLoadBean(t, &OrgUser{UID: 4, OrgID: 3})
-	org = db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org = db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	assert.Equal(t, prevNumMembers, org.NumMembers)
 
-	CheckConsistencyFor(t, &User{})
+	CheckConsistencyFor(t, &user_model.User{})
 }
 
 func TestUser_RemoveMember(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 
 	// remove a user that is a member
 	db.AssertExistsAndLoadBean(t, &OrgUser{UID: 4, OrgID: 3})
 	prevNumMembers := org.NumMembers
 	assert.NoError(t, org.RemoveMember(4))
 	db.AssertNotExistsBean(t, &OrgUser{UID: 4, OrgID: 3})
-	org = db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org = db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	assert.Equal(t, prevNumMembers-1, org.NumMembers)
 
 	// remove a user that is not a member
@@ -147,15 +152,15 @@ func TestUser_RemoveMember(t *testing.T) {
 	prevNumMembers = org.NumMembers
 	assert.NoError(t, org.RemoveMember(5))
 	db.AssertNotExistsBean(t, &OrgUser{UID: 5, OrgID: 3})
-	org = db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org = db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	assert.Equal(t, prevNumMembers, org.NumMembers)
 
-	CheckConsistencyFor(t, &User{}, &Team{})
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestUser_RemoveOrgRepo(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	repo := db.AssertExistsAndLoadBean(t, &Repository{OwnerID: org.ID}).(*Repository)
 
 	// remove a repo that does belong to org
@@ -171,7 +176,7 @@ func TestUser_RemoveOrgRepo(t *testing.T) {
 	assert.NoError(t, org.RemoveOrgRepo(db.NonexistentID))
 
 	CheckConsistencyFor(t,
-		&User{ID: org.ID},
+		&user_model.User{ID: org.ID},
 		&Team{OrgID: org.ID},
 		&Repository{ID: repo.ID})
 }
@@ -180,62 +185,62 @@ func TestCreateOrganization(t *testing.T) {
 	// successful creation of org
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	const newOrgName = "neworg"
-	org := &User{
+	org := &Organization{
 		Name: newOrgName,
 	}
 
-	db.AssertNotExistsBean(t, &User{Name: newOrgName, Type: UserTypeOrganization})
+	db.AssertNotExistsBean(t, &user_model.User{Name: newOrgName, Type: user_model.UserTypeOrganization})
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = db.AssertExistsAndLoadBean(t,
-		&User{Name: newOrgName, Type: UserTypeOrganization}).(*User)
+		&Organization{Name: newOrgName, Type: user_model.UserTypeOrganization}).(*Organization)
 	ownerTeam := db.AssertExistsAndLoadBean(t,
 		&Team{Name: ownerTeamName, OrgID: org.ID}).(*Team)
 	db.AssertExistsAndLoadBean(t, &TeamUser{UID: owner.ID, TeamID: ownerTeam.ID})
-	CheckConsistencyFor(t, &User{}, &Team{})
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestCreateOrganization2(t *testing.T) {
 	// unauthorized creation of org
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	const newOrgName = "neworg"
-	org := &User{
+	org := &Organization{
 		Name: newOrgName,
 	}
 
-	db.AssertNotExistsBean(t, &User{Name: newOrgName, Type: UserTypeOrganization})
+	db.AssertNotExistsBean(t, &user_model.User{Name: newOrgName, Type: user_model.UserTypeOrganization})
 	err := CreateOrganization(org, owner)
 	assert.Error(t, err)
 	assert.True(t, IsErrUserNotAllowedCreateOrg(err))
-	db.AssertNotExistsBean(t, &User{Name: newOrgName, Type: UserTypeOrganization})
-	CheckConsistencyFor(t, &User{}, &Team{})
+	db.AssertNotExistsBean(t, &user_model.User{Name: newOrgName, Type: user_model.UserTypeOrganization})
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestCreateOrganization3(t *testing.T) {
 	// create org with same name as existent org
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	org := &User{Name: "user3"}                          // should already exist
-	db.AssertExistsAndLoadBean(t, &User{Name: org.Name}) // sanity check
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	org := &Organization{Name: "user3"}                             // should already exist
+	db.AssertExistsAndLoadBean(t, &user_model.User{Name: org.Name}) // sanity check
 	err := CreateOrganization(org, owner)
 	assert.Error(t, err)
-	assert.True(t, IsErrUserAlreadyExist(err))
-	CheckConsistencyFor(t, &User{}, &Team{})
+	assert.True(t, user_model.IsErrUserAlreadyExist(err))
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestCreateOrganization4(t *testing.T) {
 	// create org with unusable name
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	err := CreateOrganization(&User{Name: "assets"}, owner)
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	err := CreateOrganization(&Organization{Name: "assets"}, owner)
 	assert.Error(t, err)
-	assert.True(t, IsErrNameReserved(err))
-	CheckConsistencyFor(t, &User{}, &Team{})
+	assert.True(t, db.IsErrNameReserved(err))
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestGetOrgByName(t *testing.T) {
@@ -255,27 +260,27 @@ func TestGetOrgByName(t *testing.T) {
 
 func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", UserTypeOrganization).Count(&User{})
+	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&user_model.User{})
 	assert.NoError(t, err)
 	assert.Equal(t, expected, CountOrganizations())
 }
 
 func TestDeleteOrganization(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 6}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 6}).(*Organization)
 	assert.NoError(t, DeleteOrganization(org))
-	db.AssertNotExistsBean(t, &User{ID: 6})
+	db.AssertNotExistsBean(t, &user_model.User{ID: 6})
 	db.AssertNotExistsBean(t, &OrgUser{OrgID: 6})
 	db.AssertNotExistsBean(t, &Team{OrgID: 6})
 
-	org = db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org = db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	err := DeleteOrganization(org)
 	assert.Error(t, err)
 	assert.True(t, IsErrUserOwnRepos(err))
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &Organization{ID: 5}).(*Organization)
 	assert.Error(t, DeleteOrganization(user))
-	CheckConsistencyFor(t, &User{}, &Team{})
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestIsOrganizationOwner(t *testing.T) {
@@ -310,7 +315,7 @@ func TestIsOrganizationMember(t *testing.T) {
 func TestIsPublicMembership(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	test := func(orgID, userID int64, expected bool) {
-		isMember, err := IsPublicMembership(orgID, userID)
+		isMember, err := user_model.IsPublicMembership(orgID, userID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, expected, isMember)
 	}
@@ -446,7 +451,7 @@ func TestChangeOrgUserStatus(t *testing.T) {
 func TestAddOrgUser(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	testSuccess := func(orgID, userID int64, isPublic bool) {
-		org := db.AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
+		org := db.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
 		expectedNumMembers := org.NumMembers
 		if !db.BeanExists(t, &OrgUser{OrgID: orgID, UID: userID}) {
 			expectedNumMembers++
@@ -455,7 +460,7 @@ func TestAddOrgUser(t *testing.T) {
 		ou := &OrgUser{OrgID: orgID, UID: userID}
 		db.AssertExistsAndLoadBean(t, ou)
 		assert.Equal(t, isPublic, ou.IsPublic)
-		org = db.AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
+		org = db.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
 	}
 
@@ -467,20 +472,20 @@ func TestAddOrgUser(t *testing.T) {
 	setting.Service.DefaultOrgMemberVisible = true
 	testSuccess(6, 3, true)
 
-	CheckConsistencyFor(t, &User{}, &Team{})
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestRemoveOrgUser(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 	testSuccess := func(orgID, userID int64) {
-		org := db.AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
+		org := db.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
 		expectedNumMembers := org.NumMembers
 		if db.BeanExists(t, &OrgUser{OrgID: orgID, UID: userID}) {
 			expectedNumMembers--
 		}
 		assert.NoError(t, RemoveOrgUser(orgID, userID))
 		db.AssertNotExistsBean(t, &OrgUser{OrgID: orgID, UID: userID})
-		org = db.AssertExistsAndLoadBean(t, &User{ID: orgID}).(*User)
+		org = db.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
 		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
 	}
 	testSuccess(3, 4)
@@ -490,12 +495,12 @@ func TestRemoveOrgUser(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrLastOrgOwner(err))
 	db.AssertExistsAndLoadBean(t, &OrgUser{OrgID: 7, UID: 5})
-	CheckConsistencyFor(t, &User{}, &Team{})
+	CheckConsistencyFor(t, &user_model.User{}, &Team{})
 }
 
 func TestUser_GetUserTeamIDs(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	testSuccess := func(userID int64, expected []int64) {
 		teamIDs, err := org.GetUserTeamIDs(userID)
 		assert.NoError(t, err)
@@ -508,7 +513,7 @@ func TestUser_GetUserTeamIDs(t *testing.T) {
 
 func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	testSuccess := func(userID, expectedCount int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
@@ -522,7 +527,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 
 func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	testSuccess := func(userID, _, pageSize int64, expectedRepoIDs []int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
@@ -536,7 +541,7 @@ func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 
 func TestAccessibleReposEnv_Repos(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
@@ -555,7 +560,7 @@ func TestAccessibleReposEnv_Repos(t *testing.T) {
 
 func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := db.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
 	testSuccess := func(userID int64, expectedRepoIDs []int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
@@ -574,19 +579,19 @@ func TestAccessibleReposEnv_MirrorRepos(t *testing.T) {
 
 func TestHasOrgVisibleTypePublic(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user3 := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user3 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 
 	const newOrgName = "test-org-public"
-	org := &User{
+	org := &Organization{
 		Name:       newOrgName,
 		Visibility: structs.VisibleTypePublic,
 	}
 
-	db.AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
+	db.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = db.AssertExistsAndLoadBean(t,
-		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
+		&Organization{Name: org.Name, Type: user_model.UserTypeOrganization}).(*Organization)
 	test1 := HasOrgOrUserVisible(org, owner)
 	test2 := HasOrgOrUserVisible(org, user3)
 	test3 := HasOrgOrUserVisible(org, nil)
@@ -597,19 +602,19 @@ func TestHasOrgVisibleTypePublic(t *testing.T) {
 
 func TestHasOrgVisibleTypeLimited(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user3 := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user3 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 
 	const newOrgName = "test-org-limited"
-	org := &User{
+	org := &Organization{
 		Name:       newOrgName,
 		Visibility: structs.VisibleTypeLimited,
 	}
 
-	db.AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
+	db.AssertNotExistsBean(t, &Organization{Name: org.Name, Type: user_model.UserTypeOrganization})
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = db.AssertExistsAndLoadBean(t,
-		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
+		&Organization{Name: org.Name, Type: user_model.UserTypeOrganization}).(*Organization)
 	test1 := HasOrgOrUserVisible(org, owner)
 	test2 := HasOrgOrUserVisible(org, user3)
 	test3 := HasOrgOrUserVisible(org, nil)
@@ -620,19 +625,19 @@ func TestHasOrgVisibleTypeLimited(t *testing.T) {
 
 func TestHasOrgVisibleTypePrivate(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
-	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user3 := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user3 := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
 
 	const newOrgName = "test-org-private"
-	org := &User{
+	org := &Organization{
 		Name:       newOrgName,
 		Visibility: structs.VisibleTypePrivate,
 	}
 
-	db.AssertNotExistsBean(t, &User{Name: org.Name, Type: UserTypeOrganization})
+	db.AssertNotExistsBean(t, &user_model.User{Name: org.Name, Type: user_model.UserTypeOrganization})
 	assert.NoError(t, CreateOrganization(org, owner))
 	org = db.AssertExistsAndLoadBean(t,
-		&User{Name: org.Name, Type: UserTypeOrganization}).(*User)
+		&Organization{Name: org.Name, Type: user_model.UserTypeOrganization}).(*Organization)
 	test1 := HasOrgOrUserVisible(org, owner)
 	test2 := HasOrgOrUserVisible(org, user3)
 	test3 := HasOrgOrUserVisible(org, nil)

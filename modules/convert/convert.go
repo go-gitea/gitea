@@ -33,7 +33,7 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var err error
@@ -83,15 +83,15 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := models.GetUserNamesByIDs(bp.WhitelistUserIDs)
+	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.WhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
 	}
-	mergeWhitelistUsernames, err := models.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
+	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
 	}
-	approvalsWhitelistUsernames, err := models.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
 	}
@@ -276,8 +276,8 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 	}
 }
 
-// ToOrganization convert models.User to api.Organization
-func ToOrganization(org *models.User) *api.Organization {
+// ToOrganization convert user_model.User to api.Organization
+func ToOrganization(org *user_model.User) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
 		AvatarURL:                 org.AvatarLink(),

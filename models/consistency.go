@@ -18,7 +18,7 @@ import (
 // CheckConsistencyForAll test that the entire database is consistent
 func CheckConsistencyForAll(t *testing.T) {
 	CheckConsistencyFor(t,
-		&User{},
+		&user_model.User{},
 		&Repository{},
 		&Issue{},
 		&PullRequest{},
@@ -49,7 +49,7 @@ func CheckConsistencyFor(t *testing.T, beansToCheck ...interface{}) {
 
 func checkForConsistency(bean interface{}, t *testing.T) {
 	switch b := bean.(type) {
-	case *User:
+	case *user_model.User:
 		checkForUserConsistency(b, t)
 	case *Repository:
 		checkForRepoConsistency(b, t)
@@ -83,14 +83,14 @@ func assertCount(t *testing.T, bean interface{}, expected int) {
 		"Failed consistency test, the counted bean (of type %T) was %+v", bean, bean)
 }
 
-func checkForUserConsistency(user *User, t *testing.T) {
+func checkForUserConsistency(user *user_model.User, t *testing.T) {
 	assertCount(t, &Repository{OwnerID: user.ID}, user.NumRepos)
 	assertCount(t, &Star{UID: user.ID}, user.NumStars)
 	assertCount(t, &OrgUser{OrgID: user.ID}, user.NumMembers)
 	assertCount(t, &Team{OrgID: user.ID}, user.NumTeams)
 	assertCount(t, &user_model.Follow{UserID: user.ID}, user.NumFollowing)
 	assertCount(t, &user_model.Follow{FollowID: user.ID}, user.NumFollowers)
-	if user.Type != UserTypeOrganization {
+	if user.Type != user_model.UserTypeOrganization {
 		assert.EqualValues(t, 0, user.NumMembers)
 		assert.EqualValues(t, 0, user.NumTeams)
 	}
@@ -347,12 +347,12 @@ func FixNullArchivedRepository() (int64, error) {
 
 // CountWrongUserType count OrgUser who have wrong type
 func CountWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(user_model.User))
 }
 
 // FixWrongUserType fix OrgUser who have wrong type
 func FixWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&user_model.User{Type: 1})
 }
 
 // CountCommentTypeLabelWithEmptyLabel count label comments with empty label

@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/matchlist"
 	"code.gitea.io/gitea/modules/migrations/base"
@@ -37,7 +38,7 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 }
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
-func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
+func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	u, err := url.Parse(remoteURL)
 	if err != nil {
@@ -99,7 +100,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 }
 
 // MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*models.Repository, error) {
+func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*models.Repository, error) {
 	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
 	if err != nil {
 		return nil, err

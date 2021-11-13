@@ -30,7 +30,7 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgOrUserVisible(org, ctx.User) {
+	if !models.HasOrgOrUserVisible((*models.Organization)(org), ctx.User) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -50,21 +50,21 @@ func Home(ctx *context.Context) {
 		ctx.Data["RenderedDescription"] = desc
 	}
 
-	var orderBy models.SearchOrderBy
+	var orderBy db.SearchOrderBy
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = models.SearchOrderByNewest
+		orderBy = db.SearchOrderByNewest
 	case "oldest":
-		orderBy = models.SearchOrderByOldest
+		orderBy = db.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
+		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
+		orderBy = db.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = db.SearchOrderByAlphabetically
 	case "moststars":
 		orderBy = models.SearchOrderByStarsReverse
 	case "feweststars":
@@ -75,7 +75,7 @@ func Home(ctx *context.Context) {
 		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	}
 
 	keyword := ctx.FormTrim("q")
@@ -115,7 +115,7 @@ func Home(ctx *context.Context) {
 	}
 
 	if ctx.User != nil {
-		isMember, err := org.IsOrgMember(ctx.User.ID)
+		isMember, err := (*models.Organization)(org).IsOrgMember(ctx.User.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
@@ -135,12 +135,18 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	teams, err := models.FindTeamsCtx(db.DefaultContext, org.ID)
+	if err != nil {
+		ctx.ServerError("CountOrgMembers", err)
+		return
+	}
+
 	ctx.Data["Owner"] = org
 	ctx.Data["Repos"] = repos
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = org.Teams
+	ctx.Data["Teams"] = teams
 
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 

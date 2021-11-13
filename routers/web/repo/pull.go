@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -107,24 +108,29 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID
+	if canForkToUser {
+		_, has := models.HasForkedRepo(ctx.User.ID, forkRepo.ID)
+		canForkToUser = !has
+	}
 
 	ctx.Data["ForkFrom"] = forkRepo.Owner.Name + "/" + forkRepo.Name
 	ctx.Data["ForkFromOwnerID"] = forkRepo.Owner.ID
 
-	if err := ctx.User.GetOwnedOrganizations(); err != nil {
+	ownedOrgs, err := models.GetOwnedOrgsByUserID(ctx.User.ID)
+	if err != nil {
 		ctx.ServerError("GetOwnedOrganizations", err)
 		return nil
 	}
-	var orgs []*models.User
-	for _, org := range ctx.User.OwnedOrgs {
-		if forkRepo.OwnerID != org.ID && !org.HasForkedRepo(forkRepo.ID) {
+	var orgs []*models.Organization
+	for _, org := range ownedOrgs {
+		_, has := models.HasForkedRepo(org.ID, forkRepo.ID)
+		if forkRepo.OwnerID != org.ID && !has {
 			orgs = append(orgs, org)
 		}
 	}
 
 	var traverseParentRepo = forkRepo
-	var err error
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
@@ -217,7 +223,7 @@ func ForkPost(ctx *context.Context) {
 
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
-		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+		isOwner, err := (*models.Organization)(ctxUser).IsOwnedBy(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -237,10 +243,10 @@ func ForkPost(ctx *context.Context) {
 		switch {
 		case models.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
-		case models.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplFork, &form)
-		case models.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
+		case db.IsErrNameReserved(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
@@ -1011,14 +1017,12 @@ func MergePullRequest(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/pulls/" + fmt.Sprint(pr.Index))
 }
 
-func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
-
+func stopTimerIfAvailable(user *user_model.User, issue *models.Issue) error {
 	if models.StopwatchExists(user.ID, issue.ID) {
 		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -1171,9 +1175,9 @@ func TriggerTask(ctx *context.Context) {
 		return
 	}
 
-	pusher, err := models.GetUserByID(pusherID)
+	pusher, err := user_model.GetUserByID(pusherID)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetUserByID", err)

@@ -39,23 +39,23 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		repos   []*models.Repository
 		count   int64
 		err     error
-		orderBy models.SearchOrderBy
+		orderBy db.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = models.SearchOrderByNewest
+		orderBy = db.SearchOrderByNewest
 	case "oldest":
-		orderBy = models.SearchOrderByOldest
+		orderBy = db.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
+		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
+		orderBy = db.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = db.SearchOrderByAlphabetically
 	case "reversesize":
 		orderBy = models.SearchOrderBySizeReverse
 	case "size":
@@ -70,7 +70,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	}
 
 	keyword := ctx.FormTrim("q")

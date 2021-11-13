@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -58,7 +59,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := models.IsUserExist(org.ID, form.Name)
+		isExist, err := user_model.IsUserExist(org.ID, form.Name)
 		if err != nil {
 			ctx.ServerError("IsUserExist", err)
 			return
@@ -66,8 +67,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = models.ChangeUserName(org, form.Name); err != nil {
-			if err == models.ErrUserNameIllegal {
+		} else if err = user_model.ChangeUserName((*user_model.User)(org), form.Name); err != nil {
+			if err == user_model.ErrUserNameIllegal {
 				ctx.Data["OrgName"] = true
 				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
@@ -98,18 +99,19 @@ func SettingsPost(ctx *context.Context) {
 	visibilityChanged := form.Visibility != org.Visibility
 	org.Visibility = form.Visibility
 
-	if err := models.UpdateUser(org); err != nil {
+	if err := user_model.UpdateUser(org.AsUser()); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
 
 	// update forks visibility
 	if visibilityChanged {
-		if err := org.GetRepositories(db.ListOptions{Page: 1, PageSize: org.NumRepos}); err != nil {
+		repos, err := models.GetRepositories(org.AsUser(), db.ListOptions{Page: 1, PageSize: org.NumRepos})
+		if err != nil {
 			ctx.ServerError("GetRepositories", err)
 			return
 		}
-		for _, repo := range org.Repos {
+		for _, repo := range repos {
 			repo.OwnerName = org.Name
 			if err := models.UpdateRepository(repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
@@ -132,7 +134,7 @@ func SettingsPost(ctx *context.Context) {
 func SettingsAvatar(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AvatarForm)
 	form.Source = forms.AvatarLocal
-	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization); err != nil {
+	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("org.settings.update_avatar_success"))
@@ -143,7 +145,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := ctx.Org.Organization.DeleteAvatar(); err != nil {
+	if err := ctx.Org.Organization.AsUser().DeleteAvatar(); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

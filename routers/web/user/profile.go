@@ -24,10 +24,10 @@ import (
 )
 
 // GetUserByName get user by name
-func GetUserByName(ctx *context.Context, name string) *models.User {
-	user, err := models.GetUserByName(name)
+func GetUserByName(ctx *context.Context, name string) *user_model.User {
+	user, err := user_model.GetUserByName(name)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			if redirectUserID, err := user_model.LookupUserRedirect(name); err == nil {
 				context.RedirectToUser(ctx, name, redirectUserID)
 			} else {
@@ -42,7 +42,7 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 }
 
 // GetUserByParams returns user whose name is presented in URL paramenter.
-func GetUserByParams(ctx *context.Context) *models.User {
+func GetUserByParams(ctx *context.Context) *user_model.User {
 	return GetUserByName(ctx, ctx.Params(":username"))
 }
 
@@ -190,23 +190,23 @@ func Profile(ctx *context.Context) {
 		repos   []*models.Repository
 		count   int64
 		total   int
-		orderBy models.SearchOrderBy
+		orderBy db.SearchOrderBy
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
 	switch ctx.FormString("sort") {
 	case "newest":
-		orderBy = models.SearchOrderByNewest
+		orderBy = db.SearchOrderByNewest
 	case "oldest":
-		orderBy = models.SearchOrderByOldest
+		orderBy = db.SearchOrderByOldest
 	case "recentupdate":
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
-		orderBy = models.SearchOrderByLeastUpdated
+		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
-		orderBy = models.SearchOrderByAlphabeticallyReverse
+		orderBy = db.SearchOrderByAlphabeticallyReverse
 	case "alphabetically":
-		orderBy = models.SearchOrderByAlphabetically
+		orderBy = db.SearchOrderByAlphabetically
 	case "moststars":
 		orderBy = models.SearchOrderByStarsReverse
 	case "feweststars":
@@ -217,7 +217,7 @@ func Profile(ctx *context.Context) {
 		orderBy = models.SearchOrderByForks
 	default:
 		ctx.Data["SortType"] = "recentupdate"
-		orderBy = models.SearchOrderByRecentUpdated
+		orderBy = db.SearchOrderByRecentUpdated
 	}
 
 	keyword := ctx.FormTrim("q")

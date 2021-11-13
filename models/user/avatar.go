@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package user
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"image/png"
@@ -26,10 +27,11 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func (u *User) GenerateRandomAvatar() error {
-	return u.generateRandomAvatar(db.GetEngine(db.DefaultContext))
+	return u.GenerateRandomAvatarCtx(db.DefaultContext)
 }
 
-func (u *User) generateRandomAvatar(e db.Engine) error {
+// GenerateRandomAvatarCtx generates a random avatar for user.
+func (u *User) GenerateRandomAvatarCtx(ctx context.Context) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -52,7 +54,7 @@ func (u *User) generateRandomAvatar(e db.Engine) error {
 		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
 	}
 
-	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
+	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar").Update(u); err != nil {
 		return err
 	}
 
@@ -99,42 +101,6 @@ func (u *User) AvatarLink() string {
 		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL+"/")
 	}
 	return link
-}
-
-// UploadAvatar saves custom avatar for user.
-// FIXME: split uploads to different subdirs in case we have massive users.
-func (u *User) UploadAvatar(data []byte) error {
-	m, err := avatar.Prepare(data)
-	if err != nil {
-		return err
-	}
-
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	u.UseCustomAvatar = true
-	// Different users can upload same image as avatar
-	// If we prefix it with u.ID, it will be separated
-	// Otherwise, if any of the users delete his avatar
-	// Other users will lose their avatars too.
-	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
-	if err = updateUserCols(sess, u, "use_custom_avatar", "avatar"); err != nil {
-		return fmt.Errorf("updateUser: %v", err)
-	}
-
-	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
-		if err := png.Encode(w, *m); err != nil {
-			log.Error("Encode: %v", err)
-		}
-		return err
-	}); err != nil {
-		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
-	}
-
-	return sess.Commit()
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data

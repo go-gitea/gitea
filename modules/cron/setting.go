@@ -7,7 +7,8 @@ package cron
 import (
 	"time"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/unknwon/i18n"
 )
 
@@ -16,7 +17,7 @@ type Config interface {
 	IsEnabled() bool
 	DoRunAtStart() bool
 	GetSchedule() string
-	FormatMessage(name, status string, doer *models.User, args ...interface{}) string
+	FormatMessage(name, status string, doer *user_model.User, args ...interface{}) string
 	DoNoticeOnSuccess() bool
 }
 
@@ -69,7 +70,7 @@ func (b *BaseConfig) DoNoticeOnSuccess() bool {
 }
 
 // FormatMessage returns a message for the task
-func (b *BaseConfig) FormatMessage(name, status string, doer *models.User, args ...interface{}) string {
+func (b *BaseConfig) FormatMessage(name, status string, doer *user_model.User, args ...interface{}) string {
 	realArgs := make([]interface{}, 0, len(args)+2)
 	realArgs = append(realArgs, i18n.Tr("en-US", "admin.dashboard."+name))
 	if doer == nil {

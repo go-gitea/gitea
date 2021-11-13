@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
 
 	"github.com/stretchr/testify/assert"
@@ -78,7 +79,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
-	d := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	i.Title = "title2, no mentions"
 	assert.NoError(t, i.ChangeTitle(d, title))
 
@@ -90,7 +91,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 func TestXRef_ResolveCrossReferences(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	d := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
@@ -125,7 +126,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *Issue {
 	r := db.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
-	d := db.AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 
 	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
 	assert.NoError(t, err)
@@ -139,25 +140,24 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Index:    idx,
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	assert.NoError(t, sess.Begin())
-	err = newIssue(sess, d, NewIssueOptions{
+	ctx, committer, err := db.TxContext()
+	assert.NoError(t, err)
+	defer committer.Close()
+	err = newIssue(ctx, d, NewIssueOptions{
 		Repo:  r,
 		Issue: i,
 	})
 	assert.NoError(t, err)
-	i, err = getIssueByID(sess, i.ID)
+	i, err = getIssueByID(db.GetEngine(ctx), i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.addCrossReferences(sess, d, false))
-	assert.NoError(t, sess.Commit())
+	assert.NoError(t, i.addCrossReferences(ctx, d, false))
+	assert.NoError(t, committer.Commit())
 	return i
 }
 
 func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRequest {
 	r := db.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
-	d := db.AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}
 	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr))
@@ -166,16 +166,16 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRe
 }
 
 func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *Comment {
-	d := db.AssertExistsAndLoadBean(t, &User{ID: doer}).(*User)
+	d := db.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 	i := db.AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
 	c := &Comment{Type: CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	assert.NoError(t, sess.Begin())
-	_, err := sess.Insert(c)
+	ctx, committer, err := db.TxContext()
 	assert.NoError(t, err)
-	assert.NoError(t, c.addCrossReferences(sess, d, false))
-	assert.NoError(t, sess.Commit())
+	defer committer.Close()
+	err = db.Insert(ctx, c)
+	assert.NoError(t, err)
+	assert.NoError(t, c.addCrossReferences(ctx, d, false))
+	assert.NoError(t, committer.Commit())
 	return c
 }

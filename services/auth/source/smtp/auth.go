@@ -12,7 +12,7 @@ import (
 	"os"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 )
 
 //   _________   __________________________
@@ -101,5 +101,5 @@ func Authenticate(a smtp.Auth, source *Source) error {
 		return client.Auth(a)
 	}
 
-	return models.ErrUnsupportedLoginType
+	return login.ErrUnsupportedLoginType
 }

@@ -5,8 +5,9 @@
 package db
 
 import (
-	"code.gitea.io/gitea/modules/setting"
+	"context"
 
+	"code.gitea.io/gitea/modules/setting"
 	"xorm.io/xorm"
 )
 
@@ -17,10 +18,19 @@ type Paginator interface {
 }
 
 // GetPaginatedSession creates a paginated database session
-func GetPaginatedSession(p Paginator) *xorm.Session {
-	skip, take := p.GetSkipTake()
+func GetPaginated(p Paginator) *Context {
+	return WithPagination(DefaultContext, p)
+}
 
-	return x.Limit(take, skip)
+// WithPagination sets pagination for a database session
+func WithPagination(ctx context.Context, p Paginator) *Context {
+	skip, take := p.GetSkipTake()
+	e := GetEngine(ctx)
+	e.Limit(take, skip)
+	return &Context{
+		Context: DefaultContext,
+		e:       e,
+	}
 }
 
 // SetSessionPagination sets pagination for a database session

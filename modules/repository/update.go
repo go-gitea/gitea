@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -48,7 +49,7 @@ func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *gi
 
 	newReleases := make([]*models.Release, 0, len(lowerTags)-len(relMap))
 
-	emailToUser := make(map[string]*models.User)
+	emailToUser := make(map[string]*user_model.User)
 
 	for i, lowerTag := range lowerTags {
 		tag, err := gitRepo.GetTag(tags[i])
@@ -67,15 +68,15 @@ func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *gi
 		if sig == nil {
 			sig = commit.Committer
 		}
-		var author *models.User
+		var author *user_model.User
 		var createdAt = time.Unix(1, 0)
 
 		if sig != nil {
 			var ok bool
 			author, ok = emailToUser[sig.Email]
 			if !ok {
-				author, err = models.GetUserByEmailContext(ctx, sig.Email)
-				if err != nil && !models.IsErrUserNotExist(err) {
+				author, err = user_model.GetUserByEmailContext(ctx, sig.Email)
+				if err != nil && !user_model.IsErrUserNotExist(err) {
 					return fmt.Errorf("GetUserByEmail: %v", err)
 				}
 				if author != nil {

@@ -13,15 +13,17 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/gobwas/glob"
 )
 
 // AdoptRepository adopts a repository for the user/organization.
-func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, models.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -94,7 +96,7 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 }
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
-func DeleteUnadoptedRepository(doer, u *models.User, repoName string) error {
+func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error {
 	if err := models.IsUsableRepoName(repoName); err != nil {
 		return err
 	}
@@ -149,7 +151,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 	repoNamesToCheck := make([]string, 0, opts.PageSize)
 
 	repoNames := make([]string, 0, opts.PageSize)
-	var ctxUser *models.User
+	var ctxUser *user_model.User
 
 	count := 0
 
@@ -202,9 +204,9 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 				return filepath.SkipDir
 			}
 
-			ctxUser, err = models.GetUserByName(info.Name())
+			ctxUser, err = user_model.GetUserByName(info.Name())
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
+				if user_model.IsErrUserNotExist(err) {
 					log.Debug("Missing user: %s", info.Name())
 					return filepath.SkipDir
 				}

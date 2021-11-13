@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -144,13 +145,13 @@ func DeleteNoticesByIDs(ids []int64) error {
 }
 
 // GetAdminUser returns the first administrator
-func GetAdminUser() (*User, error) {
-	var admin User
+func GetAdminUser() (*user_model.User, error) {
+	var admin user_model.User
 	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrUserNotExist{}
+		return nil, user_model.ErrUserNotExist{}
 	}
 
 	return &admin, nil

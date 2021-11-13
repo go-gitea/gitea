@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -102,7 +103,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	for i := range teams {
 		apiOrg, ok := cache[teams[i].OrgID]
 		if !ok {
-			org, err := models.GetUserByID(teams[i].OrgID)
+			org, err := user_model.GetUserByID(teams[i].OrgID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return

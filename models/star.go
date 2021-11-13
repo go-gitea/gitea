@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -74,22 +75,41 @@ func isStaring(e db.Engine, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func (repo *Repository) GetStargazers(opts db.ListOptions) ([]*User, error) {
+func (repo *Repository) GetStargazers(opts db.ListOptions) ([]*user_model.User, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 
-		users := make([]*User, 0, opts.PageSize)
+		users := make([]*user_model.User, 0, opts.PageSize)
 		return users, sess.Find(&users)
 	}
 
-	users := make([]*User, 0, 8)
+	users := make([]*user_model.User, 0, 8)
 	return users, sess.Find(&users)
 }
 
-// GetStarredRepos returns the repos the user starred.
-func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string) (repos RepositoryList, err error) {
+// GetStarredRepos returns the repos starred by a particular user
+func GetStarredRepos(userID int64, private bool, listOptions db.ListOptions) ([]*Repository, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("star.uid=?", userID).
+		Join("LEFT", "star", "`repository`.id=`star`.repo_id")
+	if !private {
+		sess = sess.And("is_private=?", false)
+	}
+
+	if listOptions.Page != 0 {
+		sess = db.SetSessionPagination(sess, &listOptions)
+
+		repos := make([]*Repository, 0, listOptions.PageSize)
+		return repos, sess.Find(&repos)
+	}
+
+	repos := make([]*Repository, 0, 10)
+	return repos, sess.Find(&repos)
+}
+
+// GetStarredReposWithAttrs returns the repos the user starred.
+func GetStarredReposWithAttrs(u *user_model.User, private bool, page, pageSize int, orderBy string) (repos RepositoryList, err error) {
 	if len(orderBy) == 0 {
 		orderBy = "updated_unix DESC"
 	}
@@ -121,7 +141,7 @@ func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string)
 }
 
 // GetStarredRepoCount returns the numbers of repo the user starred.
-func (u *User) GetStarredRepoCount(private bool) (int64, error) {
+func GetStarredRepoCount(u *user_model.User, private bool) (int64, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Join("INNER", "star", "star.repo_id = repository.id").
 		Where("star.uid = ?", u.ID)

@@ -4,7 +4,10 @@
 
 package models
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+)
 
 // CommentList defines a list of comments
 type CommentList []*Comment
@@ -25,7 +28,7 @@ func (comments CommentList) loadPosters(e db.Engine) error {
 	}
 
 	posterIDs := comments.getPosterIDs()
-	posterMaps := make(map[int64]*User, len(posterIDs))
+	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -48,7 +51,7 @@ func (comments CommentList) loadPosters(e db.Engine) error {
 		}
 		var ok bool
 		if comment.Poster, ok = posterMaps[comment.PosterID]; !ok {
-			comment.Poster = NewGhostUser()
+			comment.Poster = user_model.NewGhostUser()
 		}
 	}
 	return nil
@@ -214,7 +217,7 @@ func (comments CommentList) loadAssignees(e db.Engine) error {
 	}
 
 	assigneeIDs := comments.getAssigneeIDs()
-	assignees := make(map[int64]*User, len(assigneeIDs))
+	assignees := make(map[int64]*user_model.User, len(assigneeIDs))
 	left := len(assigneeIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -223,13 +226,13 @@ func (comments CommentList) loadAssignees(e db.Engine) error {
 		}
 		rows, err := e.
 			In("id", assigneeIDs[:limit]).
-			Rows(new(User))
+			Rows(new(user_model.User))
 		if err != nil {
 			return err
 		}
 
 		for rows.Next() {
-			var user User
+			var user user_model.User
 			err = rows.Scan(&user)
 			if err != nil {
 				rows.Close()

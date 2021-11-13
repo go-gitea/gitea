@@ -9,12 +9,25 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // UserList is a list of user.
 // This type provide valuable methods to retrieve information for a group of users efficiently.
-type UserList []*User
+type UserList []*user_model.User
+
+// GetUsersByIDs returns all resolved users from a list of Ids.
+func GetUsersByIDs(ids []int64) (UserList, error) {
+	ous := make([]*user_model.User, 0, len(ids))
+	if len(ids) == 0 {
+		return ous, nil
+	}
+	err := db.GetEngine(db.DefaultContext).In("id", ids).
+		Asc("name").
+		Find(&ous)
+	return ous, err
+}
 
 func (users UserList) getUserIDs() []int64 {
 	userIDs := make([]int64, len(users))

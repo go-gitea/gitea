@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -23,12 +24,12 @@ import (
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64       `xorm:"pk autoincr"`
-	RepoID           int64       `xorm:"INDEX UNIQUE(n)"`
-	Repo             *Repository `xorm:"-"`
-	PublisherID      int64       `xorm:"INDEX"`
-	Publisher        *User       `xorm:"-"`
-	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	ID               int64            `xorm:"pk autoincr"`
+	RepoID           int64            `xorm:"INDEX UNIQUE(n)"`
+	Repo             *Repository      `xorm:"-"`
+	PublisherID      int64            `xorm:"INDEX"`
+	Publisher        *user_model.User `xorm:"-"`
+	TagName          string           `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
@@ -50,30 +51,30 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-func (r *Release) loadAttributes(e db.Engine) error {
+func (r *Release) loadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(r.RepoID)
+		r.Repo, err = GetRepositoryByIDCtx(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = getUserByID(e, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByIDCtx(ctx, r.PublisherID)
 		if err != nil {
-			if IsErrUserNotExist(err) {
-				r.Publisher = NewGhostUser()
+			if user_model.IsErrUserNotExist(err) {
+				r.Publisher = user_model.NewGhostUser()
 			} else {
 				return err
 			}
 		}
 	}
-	return getReleaseAttachments(e, r)
+	return getReleaseAttachments(db.GetEngine(ctx), r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(db.GetEngine(db.DefaultContext))
+	return r.loadAttributes(db.DefaultContext)
 }
 
 // APIURL the api url for a release. release must have attributes loaded

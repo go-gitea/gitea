@@ -6,12 +6,14 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -78,7 +80,7 @@ type PullRequest struct {
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
 	MergerID       int64              `xorm:"INDEX"`
-	Merger         *User              `xorm:"-"`
+	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
@@ -107,12 +109,12 @@ func (pr *PullRequest) MustHeadUserName() string {
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
+func (pr *PullRequest) loadAttributes(ctx context.Context) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = getUserByID(e, pr.MergerID)
-		if IsErrUserNotExist(err) {
+		pr.Merger, err = user_model.GetUserByIDCtx(ctx, pr.MergerID)
+		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
-			pr.Merger = NewGhostUser()
+			pr.Merger = user_model.NewGhostUser()
 		} else if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", pr.MergerID, err)
 		}
@@ -123,7 +125,7 @@ func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
 
 // LoadAttributes loads pull request attributes from database
 func (pr *PullRequest) LoadAttributes() error {
-	return pr.loadAttributes(db.GetEngine(db.DefaultContext))
+	return pr.loadAttributes(db.DefaultContext)
 }
 
 func (pr *PullRequest) loadHeadRepo(e db.Engine) (err error) {
@@ -285,11 +287,12 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
 	reviews, err := findReviews(sess, FindReviewOptions{
@@ -309,7 +312,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 			break
 		}
 
-		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
+		if err := review.loadReviewer(ctx); err != nil && !user_model.IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
@@ -326,7 +329,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		}
 		reviewersWritten++
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
@@ -394,11 +397,12 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 
 	pr.HasMerged = true
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return false, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
 		return false, err
@@ -413,7 +417,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if tmpPr, err := getPullRequestByID(sess, pr.ID); err != nil {
+	if tmpPr, err := getPullRequestByID(ctx, pr.ID); err != nil {
 		return false, err
 	} else if tmpPr.HasMerged {
 		if pr.Issue.IsClosed {
@@ -428,11 +432,11 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if err := pr.Issue.Repo.getOwner(sess); err != nil {
+	if err := pr.Issue.Repo.getOwner(ctx); err != nil {
 		return false, err
 	}
 
-	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true, true); err != nil {
+	if _, err := pr.Issue.changeStatus(ctx, pr.Merger, true, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
@@ -441,7 +445,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return false, fmt.Errorf("Commit: %v", err)
 	}
 	return true, nil
@@ -456,13 +460,13 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 
 	issue.Index = idx
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = newIssue(sess, issue.Poster, NewIssueOptions{
+	if err = newIssue(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
@@ -478,11 +482,11 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 	pr.Index = issue.Index
 	pr.BaseRepo = repo
 	pr.IssueID = issue.ID
-	if _, err = sess.Insert(pr); err != nil {
+	if err = db.Insert(ctx, pr); err != nil {
 		return fmt.Errorf("insert pull repo: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
@@ -548,20 +552,20 @@ func GetPullRequestByIndex(repoID, index int64) (*PullRequest, error) {
 	return pr, nil
 }
 
-func getPullRequestByID(e db.Engine, id int64) (*PullRequest, error) {
+func getPullRequestByID(ctx context.Context, id int64) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := e.ID(id).Get(pr)
+	has, err := db.GetEngine(ctx).ID(id).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{id, 0, 0, 0, "", ""}
 	}
-	return pr, pr.loadAttributes(e)
+	return pr, pr.loadAttributes(ctx)
 }
 
 // GetPullRequestByID returns a pull request by given ID.
 func GetPullRequestByID(id int64) (*PullRequest, error) {
-	return getPullRequestByID(db.GetEngine(db.DefaultContext), id)
+	return getPullRequestByID(db.DefaultContext, id)
 }
 
 // GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
@@ -577,17 +581,17 @@ func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error
 	return &pr, nil
 }
 
-func getPullRequestByIssueID(e db.Engine, issueID int64) (*PullRequest, error) {
+func getPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,
 	}
-	has, err := e.Get(pr)
+	has, err := db.GetEngine(ctx).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
-	return pr, pr.loadAttributes(e)
+	return pr, pr.loadAttributes(ctx)
 }
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
@@ -606,7 +610,7 @@ func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
-	return getPullRequestByIssueID(db.GetEngine(db.DefaultContext), issueID)
+	return getPullRequestByIssueID(db.DefaultContext, issueID)
 }
 
 // Update updates all fields of pull request.

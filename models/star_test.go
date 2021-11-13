@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,14 +55,14 @@ func TestUser_GetStarredRepos(t *testing.T) {
 	// user who has starred repos
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	starred, err := user.GetStarredRepos(false, 1, 10, "")
+	user := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	starred, err := GetStarredReposWithAttrs(user, false, 1, 10, "")
 	assert.NoError(t, err)
 	if assert.Len(t, starred, 1) {
 		assert.Equal(t, int64(4), starred[0].ID)
 	}
 
-	starred, err = user.GetStarredRepos(true, 1, 10, "")
+	starred, err = GetStarredReposWithAttrs(user, true, 1, 10, "")
 	assert.NoError(t, err)
 	if assert.Len(t, starred, 2) {
 		assert.Equal(t, int64(2), starred[0].ID)
@@ -73,12 +74,12 @@ func TestUser_GetStarredRepos2(t *testing.T) {
 	// user who has no starred repos
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	starred, err := user.GetStarredRepos(false, 1, 10, "")
+	user := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	starred, err := GetStarredReposWithAttrs(user, false, 1, 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, starred, 0)
 
-	starred, err = user.GetStarredRepos(true, 1, 10, "")
+	starred, err = GetStarredReposWithAttrs(user, true, 1, 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, starred, 0)
 }
@@ -86,12 +87,12 @@ func TestUser_GetStarredRepos2(t *testing.T) {
 func TestUserGetStarredRepoCount(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	counts, err := user.GetStarredRepoCount(false)
+	user := db.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	counts, err := GetStarredRepoCount(user, false)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), counts)
 
-	counts, err = user.GetStarredRepoCount(true)
+	counts, err = GetStarredRepoCount(user, true)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), counts)
 }

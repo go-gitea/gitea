@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -69,7 +70,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 	}
 
 	if !protectBranch.EnableWhitelist {
-		if user, err := GetUserByID(userID); err != nil {
+		if user, err := user_model.GetUserByID(userID); err != nil {
 			log.Error("GetUserByID: %v", err)
 			return false
 		} else if repo, err := GetRepositoryByID(protectBranch.RepoID); err != nil {
@@ -123,11 +124,12 @@ func (protectBranch *ProtectedBranch) IsUserMergeWhitelisted(userID int64, permi
 }
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
-func (protectBranch *ProtectedBranch) IsUserOfficialReviewer(user *User) (bool, error) {
-	return protectBranch.isUserOfficialReviewer(db.GetEngine(db.DefaultContext), user)
+func (protectBranch *ProtectedBranch) IsUserOfficialReviewer(user *user_model.User) (bool, error) {
+	return protectBranch.isUserOfficialReviewer(db.DefaultContext, user)
 }
 
-func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e db.Engine, user *User) (bool, error) {
+func (protectBranch *ProtectedBranch) isUserOfficialReviewer(ctx context.Context, user *user_model.User) (bool, error) {
+	e := db.GetEngine(ctx)
 	repo, err := getRepositoryByID(e, protectBranch.RepoID)
 	if err != nil {
 		return false, err
@@ -135,7 +137,7 @@ func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e db.Engine, user *
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := hasAccessUnit(e, user, repo, unit.TypeCode, AccessModeWrite)
+		writeAccess, err := hasAccessUnit(ctx, user, repo, unit.TypeCode, AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -446,7 +448,7 @@ func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		user, err := GetUserByID(userID)
+		user, err := user_model.GetUserByID(userID)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
@@ -511,7 +513,7 @@ type DeletedBranch struct {
 	Name        string             `xorm:"UNIQUE(s) NOT NULL"`
 	Commit      string             `xorm:"UNIQUE(s) NOT NULL"`
 	DeletedByID int64              `xorm:"INDEX"`
-	DeletedBy   *User              `xorm:"-"`
+	DeletedBy   *user_model.User   `xorm:"-"`
 	DeletedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
@@ -566,9 +568,9 @@ func (repo *Repository) RemoveDeletedBranch(id int64) (err error) {
 // LoadUser loads the user that deleted the branch
 // When there's no user found it returns a NewGhostUser
 func (deletedBranch *DeletedBranch) LoadUser() {
-	user, err := GetUserByID(deletedBranch.DeletedByID)
+	user, err := user_model.GetUserByID(deletedBranch.DeletedByID)
 	if err != nil {
-		user = NewGhostUser()
+		user = user_model.NewGhostUser()
 	}
 	deletedBranch.DeletedBy = user
 }

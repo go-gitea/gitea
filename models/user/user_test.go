@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package user
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
-	user_model "code.gitea.io/gitea/models/user"
+
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -359,7 +359,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	err := CreateUser(user)
 	assert.Error(t, err)
-	assert.True(t, user_model.IsErrEmailInvalid(err))
+	assert.True(t, IsErrEmailInvalid(err))
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
@@ -518,13 +518,13 @@ func TestNewUserRedirect(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
+	assert.NoError(t, NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	db.AssertExistsAndLoadBean(t, &Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	db.AssertExistsAndLoadBean(t, &Redirect{
 		LowerName:      "olduser1",
 		RedirectUserID: user.ID,
 	})
@@ -535,13 +535,13 @@ func TestNewUserRedirect2(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
+	assert.NoError(t, NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	db.AssertExistsAndLoadBean(t, &Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-	db.AssertNotExistsBean(t, &user_model.Redirect{
+	db.AssertNotExistsBean(t, &Redirect{
 		LowerName:      "olduser1",
 		RedirectUserID: user.ID,
 	})
@@ -552,9 +552,9 @@ func TestNewUserRedirect3(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
+	assert.NoError(t, NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	db.AssertExistsAndLoadBean(t, &Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
@@ -564,13 +564,13 @@ func TestFollowUser(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, user_model.FollowUser(followerID, followedID))
-		db.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+		assert.NoError(t, FollowUser(followerID, followedID))
+		db.AssertExistsAndLoadBean(t, &Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)
 	testSuccess(5, 2)
 
-	assert.NoError(t, user_model.FollowUser(2, 2))
+	assert.NoError(t, FollowUser(2, 2))
 
 	CheckConsistencyFor(t, &User{})
 }
@@ -579,8 +579,8 @@ func TestUnfollowUser(t *testing.T) {
 	assert.NoError(t, db.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, user_model.UnfollowUser(followerID, followedID))
-		db.AssertNotExistsBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+		assert.NoError(t, UnfollowUser(followerID, followedID))
+		db.AssertNotExistsBean(t, &Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)
 	testSuccess(5, 2)

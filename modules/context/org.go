@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -18,7 +19,7 @@ type Organization struct {
 	IsMember         bool
 	IsTeamMember     bool // Is member of team.
 	IsTeamAdmin      bool // In owner team or team that has admin permission level.
-	Organization     *models.User
+	Organization     *models.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
 
@@ -49,9 +50,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	orgName := ctx.Params(":org")
 
 	var err error
-	ctx.Org.Organization, err = models.GetUserByName(orgName)
+	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if models.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
@@ -68,12 +69,6 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	org := ctx.Org.Organization
 	ctx.Data["Org"] = org
 
-	// Force redirection when username is actually a user.
-	if !org.IsOrganization() {
-		ctx.Redirect(org.HomeLink())
-		return
-	}
-
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
 		ctx.Org.IsOwner = true
@@ -82,7 +77,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
-		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
+		ctx.Org.IsOwner, err = (*models.Organization)(org).IsOwnedBy(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -94,12 +89,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx.User.ID)
+			ctx.Org.IsMember, err = (*models.Organization)(org).IsOrgMember(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.User.ID)
+			ctx.Org.CanCreateOrgRepo, err = (*models.Organization)(org).CanCreateOrgRepo(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -107,7 +102,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		}
 	} else {
 		// Fake data.
-		ctx.Data["SignedUser"] = &models.User{}
+		ctx.Data["SignedUser"] = &user_model.User{}
 	}
 	if (requireMember && !ctx.Org.IsMember) ||
 		(requireOwner && !ctx.Org.IsOwner) {
@@ -121,15 +116,17 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Org.OrgLink = org.OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
+	var teams []*models.Team
 	// Team.
 	if ctx.Org.IsMember {
 		if ctx.Org.IsOwner {
-			if err := org.LoadTeams(); err != nil {
+			teams, err = models.FindTeamsCtx(db.DefaultContext, org.ID)
+			if err != nil {
 				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {
-			org.Teams, err = org.GetUserTeams(ctx.User.ID)
+			teams, err = (*models.Organization)(org).GetUserTeams(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -140,7 +137,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	teamName := ctx.Params(":team")
 	if len(teamName) > 0 {
 		teamExists := false
-		for _, team := range org.Teams {
+		for _, team := range teams {
 			if team.LowerName == strings.ToLower(teamName) {
 				teamExists = true
 				ctx.Org.Team = team

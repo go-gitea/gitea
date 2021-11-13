@@ -6,10 +6,12 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -30,13 +32,13 @@ func init() {
 	db.RegisterModel(new(Collaboration))
 }
 
-func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
+func (repo *Repository) addCollaborator(ctx context.Context, u *user_model.User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: u.ID,
 	}
 
-	has, err := e.Get(collaboration)
+	has, err := db.GetEngine(ctx).Get(collaboration)
 	if err != nil {
 		return err
 	} else if has {
@@ -44,26 +46,26 @@ func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
 	}
 	collaboration.Mode = AccessModeWrite
 
-	if _, err = e.InsertOne(collaboration); err != nil {
+	if err = db.Insert(ctx, collaboration); err != nil {
 		return err
 	}
 
-	return repo.recalculateUserAccess(e, u.ID)
+	return repo.recalculateUserAccess(ctx, u.ID)
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
-func (repo *Repository) AddCollaborator(u *User) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func (repo *Repository) AddCollaborator(u *user_model.User) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := repo.addCollaborator(ctx, u); err != nil {
 		return err
 	}
 
-	if err := repo.addCollaborator(sess, u); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOptions) ([]*Collaboration, error) {
@@ -80,23 +82,23 @@ func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOption
 
 // Collaborator represents a user with collaboration details.
 type Collaborator struct {
-	*User
+	*user_model.User
 	Collaboration *Collaboration
 }
 
-func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions) ([]*Collaborator, error) {
-	collaborations, err := repo.getCollaborations(e, listOptions)
+func (repo *Repository) getCollaborators(ctx context.Context, listOptions db.ListOptions) ([]*Collaborator, error) {
+	collaborations, err := repo.getCollaborations(db.GetEngine(ctx), listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := getUserByID(e, c.UserID)
+		user, err := user_model.GetUserByIDCtx(ctx, c.UserID)
 		if err != nil {
-			if IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
-				user = NewGhostUser()
+				user = user_model.NewGhostUser()
 			} else {
 				return nil, err
 			}
@@ -111,7 +113,7 @@ func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions
 
 // GetCollaborators returns the collaborators for a repository
 func (repo *Repository) GetCollaborators(listOptions db.ListOptions) ([]*Collaborator, error) {
-	return repo.getCollaborators(db.GetEngine(db.DefaultContext), listOptions)
+	return repo.getCollaborators(db.DefaultContext, listOptions)
 }
 
 // CountCollaborators returns total number of collaborators for a repository
@@ -196,15 +198,16 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		UserID: uid,
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
 		return err
-	} else if err = repo.recalculateAccesses(sess); err != nil {
+	} else if err = repo.recalculateAccesses(ctx); err != nil {
 		return err
 	}
 
@@ -212,29 +215,29 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	if err = repo.reconsiderWatches(sess, uid); err != nil {
+	if err = repo.reconsiderWatches(ctx, uid); err != nil {
 		return err
 	}
 
 	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := repo.reconsiderIssueAssignees(sess, uid); err != nil {
+	if err := repo.reconsiderIssueAssignees(ctx, uid); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func (repo *Repository) reconsiderIssueAssignees(e db.Engine, uid int64) error {
-	user, err := getUserByID(e, uid)
+func (repo *Repository) reconsiderIssueAssignees(ctx context.Context, uid int64) error {
+	user, err := user_model.GetUserByIDCtx(ctx, uid)
 	if err != nil {
 		return err
 	}
 
-	if canAssigned, err := canBeAssigned(e, user, repo, true); err != nil || canAssigned {
+	if canAssigned, err := canBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
 		return err
 	}
 
-	if _, err := e.Where(builder.Eq{"assignee_id": uid}).
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
 		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
 		Delete(&IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
@@ -242,10 +245,12 @@ func (repo *Repository) reconsiderIssueAssignees(e db.Engine, uid int64) error {
 	return nil
 }
 
-func (repo *Repository) reconsiderWatches(e db.Engine, uid int64) error {
-	if has, err := hasAccess(e, uid, repo); err != nil || has {
+func (repo *Repository) reconsiderWatches(ctx context.Context, uid int64) error {
+	if has, err := hasAccess(ctx, uid, repo); err != nil || has {
 		return err
 	}
+
+	e := db.GetEngine(ctx)
 
 	if err := watchRepo(e, uid, repo.ID, false); err != nil {
 		return err

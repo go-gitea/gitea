@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -24,7 +25,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 )
 
-func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
+func parseLoginSource(ctx *context.APIContext, u *user_model.User, sourceID int64, loginName string) {
 	if sourceID == 0 {
 		return
 	}
@@ -69,7 +70,7 @@ func CreateUser(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateUserOption)
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:               form.Username,
 		FullName:           form.FullName,
 		Email:              form.Email,
@@ -101,20 +102,20 @@ func CreateUser(ctx *context.APIContext) {
 		return
 	}
 
-	var overwriteDefault *models.CreateUserOverwriteOptions
+	var overwriteDefault *user_model.CreateUserOverwriteOptions
 	if form.Visibility != "" {
-		overwriteDefault = &models.CreateUserOverwriteOptions{
+		overwriteDefault = &user_model.CreateUserOverwriteOptions{
 			Visibility: api.VisibilityModes[form.Visibility],
 		}
 	}
 
-	if err := models.CreateUser(u, overwriteDefault); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
+		if user_model.IsErrUserAlreadyExist(err) ||
 			user_model.IsErrEmailAlreadyUsed(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
 			user_model.IsErrEmailInvalid(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateUser", err)
@@ -182,7 +183,7 @@ func EditUser(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "PasswordPwned", errors.New("PasswordPwned"))
 			return
 		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
+		if u.Salt, err = user_model.GetUserSalt(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
 			return
 		}
@@ -245,7 +246,7 @@ func EditUser(ctx *context.APIContext) {
 		u.IsRestricted = *form.Restricted
 	}
 
-	if err := models.UpdateUser(u); err != nil {
+	if err := user_model.UpdateUser(u); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) || user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -408,10 +409,10 @@ func GetAllUsers(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.User,
-		Type:        models.UserTypeIndividual,
-		OrderBy:     models.SearchOrderByAlphabetically,
+		Type:        user_model.UserTypeIndividual,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 	})
 	if err != nil {

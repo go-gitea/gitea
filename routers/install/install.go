@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/generate"
@@ -72,7 +72,7 @@ func Init(next http.Handler) http.Handler {
 				"TmplLoadTimes": func() string {
 					return time.Since(startTime).String()
 				},
-				"PasswordHashAlgorithms": models.AvailableHashAlgorithms,
+				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
 		for _, lang := range translation.AllLangs() {
@@ -264,13 +264,13 @@ func SubmitInstall(ctx *context.Context) {
 	// Check admin user creation
 	if len(form.AdminName) > 0 {
 		// Ensure AdminName is valid
-		if err := models.IsUsableUsername(form.AdminName); err != nil {
+		if err := user_model.IsUsableUsername(form.AdminName); err != nil {
 			ctx.Data["Err_Admin"] = true
 			ctx.Data["Err_AdminName"] = true
-			if models.IsErrNameReserved(err) {
+			if db.IsErrNameReserved(err) {
 				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_is_reserved"), tplInstall, form)
 				return
-			} else if models.IsErrNamePatternNotAllowed(err) {
+			} else if db.IsErrNamePatternNotAllowed(err) {
 				ctx.RenderWithErr(ctx.Tr("install.err_admin_name_pattern_not_allowed"), tplInstall, form)
 				return
 			}
@@ -416,15 +416,15 @@ func SubmitInstall(ctx *context.Context) {
 
 	// Create admin account
 	if len(form.AdminName) > 0 {
-		u := &models.User{
+		u := &user_model.User{
 			Name:     form.AdminName,
 			Email:    form.AdminEmail,
 			Passwd:   form.AdminPasswd,
 			IsAdmin:  true,
 			IsActive: true,
 		}
-		if err = models.CreateUser(u); err != nil {
-			if !models.IsErrUserAlreadyExist(err) {
+		if err = user_model.CreateUser(u); err != nil {
+			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
 				ctx.Data["Err_AdminEmail"] = true
@@ -432,7 +432,7 @@ func SubmitInstall(ctx *context.Context) {
 				return
 			}
 			log.Info("Admin account already exist")
-			u, _ = models.GetUserByName(u.Name)
+			u, _ = user_model.GetUserByName(u.Name)
 		}
 
 		days := 86400 * setting.LogInRememberDays

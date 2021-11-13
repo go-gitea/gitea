@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -19,13 +20,13 @@ import (
 
 // LFSLock represents a git lfs lock of repository.
 type LFSLock struct {
-	ID      int64       `xorm:"pk autoincr"`
-	Repo    *Repository `xorm:"-"`
-	RepoID  int64       `xorm:"INDEX NOT NULL"`
-	Owner   *User       `xorm:"-"`
-	OwnerID int64       `xorm:"INDEX NOT NULL"`
-	Path    string      `xorm:"TEXT"`
-	Created time.Time   `xorm:"created"`
+	ID      int64            `xorm:"pk autoincr"`
+	Repo    *Repository      `xorm:"-"`
+	RepoID  int64            `xorm:"INDEX NOT NULL"`
+	Owner   *user_model.User `xorm:"-"`
+	OwnerID int64            `xorm:"INDEX NOT NULL"`
+	Path    string           `xorm:"TEXT"`
+	Created time.Time        `xorm:"created"`
 }
 
 func init() {
@@ -41,8 +42,9 @@ func (l *LFSLock) BeforeInsert() {
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (l *LFSLock) AfterLoad(session *xorm.Session) {
+	ctx := db.WithEngine(db.DefaultContext, session)
 	var err error
-	l.Owner, err = getUserByID(session, l.OwnerID)
+	l.Owner, err = user_model.GetUserByIDCtx(ctx, l.OwnerID)
 	if err != nil {
 		log.Error("LFS lock AfterLoad failed OwnerId[%d] not found: %v", l.OwnerID, err)
 	}
@@ -125,7 +127,7 @@ func CountLFSLockByRepoID(repoID int64) (int64, error) {
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(id int64, u *User, force bool) (*LFSLock, error) {
+func DeleteLFSLockByID(id int64, u *user_model.User, force bool) (*LFSLock, error) {
 	lock, err := GetLFSLockByID(id)
 	if err != nil {
 		return nil, err
@@ -145,7 +147,7 @@ func DeleteLFSLockByID(id int64, u *User, force bool) (*LFSLock, error) {
 }
 
 // CheckLFSAccessForRepo check needed access mode base on action
-func CheckLFSAccessForRepo(u *User, repo *Repository, mode AccessMode) error {
+func CheckLFSAccessForRepo(u *user_model.User, repo *Repository, mode AccessMode) error {
 	if u == nil {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}

@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -505,7 +506,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	return true
 }
 
-func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -532,7 +533,7 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	u, err := models.GetUserByID(claims.UserID)
+	u, err := user_model.GetUserByID(claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
@@ -540,7 +541,7 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 	return u, nil
 }
 
-func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}

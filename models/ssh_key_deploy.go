@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -210,7 +211,7 @@ func UpdateDeployKey(key *DeployKey) error {
 }
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(doer *User, id int64) error {
+func DeleteDeployKey(doer *user_model.User, id int64) error {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -222,7 +223,7 @@ func DeleteDeployKey(doer *User, id int64) error {
 	return sess.Commit()
 }
 
-func deleteDeployKey(sess db.Engine, doer *User, id int64) error {
+func deleteDeployKey(sess db.Engine, doer *user_model.User, id int64) error {
 	key, err := getDeployKeyByID(sess, id)
 	if err != nil {
 		if IsErrDeployKeyNotExist(err) {

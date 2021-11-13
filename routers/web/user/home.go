@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -43,12 +44,17 @@ const (
 )
 
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
-func getDashboardContextUser(ctx *context.Context) *models.User {
+func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.User
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
-		ctxUser = ctx.Org.Organization
-		ctx.Data["Teams"] = ctx.Org.Organization.Teams
+		ctxUser = ctx.Org.Organization.AsUser()
+		teams, err := models.FindTeamsCtx(db.DefaultContext, ctx.Org.Organization.ID)
+		if err != nil {
+			ctx.ServerError("FindTeamsCtx", err)
+			return nil
+		}
+		ctx.Data["Teams"] = teams
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
@@ -97,9 +103,9 @@ func Dashboard(ctx *context.Context) {
 	if ctxUser.IsOrganization() {
 		var env models.AccessibleReposEnvironment
 		if ctx.Org.Team != nil {
-			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+			env = (*models.Organization)(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
 		} else {
-			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			env, err = (*models.Organization)(ctxUser).AccessibleReposEnv(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("AccessibleReposEnv", err)
 				return
@@ -111,7 +117,7 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		mirrors, err = ctxUser.GetMirrorRepositories()
+		mirrors, err = models.GetUserMirrorRepositories(ctxUser.ID)
 		if err != nil {
 			ctx.ServerError("GetMirrorRepositories", err)
 			return
@@ -725,17 +731,17 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit.Type) ([]int64, error) {
+func getActiveUserRepoIDs(ctxUser *user_model.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var userRepoIDs []int64
 	var err error
 
 	if ctxUser.IsOrganization() {
-		userRepoIDs, err = getActiveTeamOrOrgRepoIds(ctxUser, team, unitType)
+		userRepoIDs, err = getActiveTeamOrOrgRepoIds((*models.Organization)(ctxUser), team, unitType)
 		if err != nil {
 			return nil, fmt.Errorf("orgRepoIds: %v", err)
 		}
 	} else {
-		userRepoIDs, err = ctxUser.GetActiveAccessRepoIDs(unitType)
+		userRepoIDs, err = models.GetActiveAccessRepoIDs(ctxUser, unitType)
 		if err != nil {
 			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
 		}
@@ -750,7 +756,7 @@ func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType unit
 
 // getActiveTeamOrOrgRepoIds gets RepoIDs for ctxUser as Organization.
 // Should be called if and only if ctxUser.IsOrganization == true.
-func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType unit.Type) ([]int64, error) {
+func getActiveTeamOrOrgRepoIds(ctxUser *models.Organization, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 	var env models.AccessibleReposEnvironment
@@ -767,7 +773,7 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 	if err != nil {
 		return nil, fmt.Errorf("env.RepoIDs: %v", err)
 	}
-	orgRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctxUser, orgRepoIDs, unitType)
+	orgRepoIDs, err = models.FilterOutRepoIdsWithoutUnitAccess(ctxUser.AsUser(), orgRepoIDs, unitType)
 	if err != nil {
 		return nil, fmt.Errorf("FilterOutRepoIdsWithoutUnitAccess: %v", err)
 	}
@@ -775,7 +781,7 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 	return orgRepoIDs, nil
 }
 
-func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
+func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
 	if len(keyword) == 0 {
 		return []int64{}, nil
 	}
@@ -792,7 +798,7 @@ func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.Issue
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*models.Repository, error) {
+func repoIDMap(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*models.Repository, error) {
 	repoByID := make(map[int64]*models.Repository, len(issueCountByRepo))
 	for id := range issueCountByRepo {
 		if id <= 0 {
@@ -878,9 +884,9 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 
 // Email2User show user page via email
 func Email2User(ctx *context.Context) {
-	u, err := models.GetUserByEmail(ctx.FormString("email"))
+	u, err := user_model.GetUserByEmail(ctx.FormString("email"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound("GetUserByEmail", err)
 		} else {
 			ctx.ServerError("GetUserByEmail", err)

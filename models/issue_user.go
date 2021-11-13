@@ -24,8 +24,8 @@ func init() {
 	db.RegisterModel(new(IssueUser))
 }
 
-func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
-	assignees, err := repo.getAssignees(e)
+func newIssueUsers(ctx context.Context, repo *Repository, issue *Issue) error {
+	assignees, err := repo.getAssignees(ctx)
 	if err != nil {
 		return fmt.Errorf("getAssignees: %v", err)
 	}
@@ -50,7 +50,7 @@ func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
 		})
 	}
 
-	if _, err = e.Insert(issueUsers); err != nil {
+	if err = db.Insert(ctx, issueUsers); err != nil {
 		return err
 	}
 	return nil

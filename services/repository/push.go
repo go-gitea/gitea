@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -90,7 +91,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	addTags := make([]string, 0, len(optsList))
 	delTags := make([]string, 0, len(optsList))
-	var pusher *models.User
+	var pusher *user_model.User
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
@@ -99,7 +100,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
+				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
 					return err
 				}
 			}
@@ -130,7 +131,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
 				var err error
-				if pusher, err = models.GetUserByID(opts.PusherID); err != nil {
+				if pusher, err = user_model.GetUserByID(opts.PusherID); err != nil {
 					return err
 				}
 			}
