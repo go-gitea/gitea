@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -60,7 +61,7 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 			switch {
 			case models.IsErrUserAlreadyExist(err):
 				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
-			case models.IsErrEmailAlreadyUsed(err):
+			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			case models.IsErrNameReserved(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
@@ -120,7 +121,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
 	ctx.User.Visibility = form.Visibility
 	if err := models.UpdateUserSetting(ctx.User); err != nil {
-		if _, ok := err.(models.ErrEmailAlreadyUsed); ok {
+		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
 			return

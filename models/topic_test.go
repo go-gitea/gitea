@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +17,7 @@ func TestAddTopic(t *testing.T) {
 	repo1NrOfTopics := 3
 	repo2NrOfTopics := 2
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	topics, _, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)

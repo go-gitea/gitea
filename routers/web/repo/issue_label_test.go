@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -30,7 +31,7 @@ func int64SliceToCommaSeparated(a []int64) string {
 }
 
 func TestInitializeLabels(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/initialize")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 2)
@@ -46,7 +47,7 @@ func TestInitializeLabels(t *testing.T) {
 }
 
 func TestRetrieveLabels(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	for _, testCase := range []struct {
 		RepoID           int64
 		Sort             string
@@ -73,7 +74,7 @@ func TestRetrieveLabels(t *testing.T) {
 }
 
 func TestNewLabel(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -91,7 +92,7 @@ func TestNewLabel(t *testing.T) {
 }
 
 func TestUpdateLabel(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/edit")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -111,7 +112,7 @@ func TestUpdateLabel(t *testing.T) {
 }
 
 func TestDeleteLabel(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/labels/delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -124,7 +125,7 @@ func TestDeleteLabel(t *testing.T) {
 }
 
 func TestUpdateIssueLabel_Clear(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -149,7 +150,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		{"toggle", []int64{1, 3}, 1, false},
 		{"toggle", []int64{1, 2}, 2, true},
 	} {
-		db.PrepareTestEnv(t)
+		unittest.PrepareTestEnv(t)
 		ctx := test.MockContext(t, "user2/repo1/issues/labels")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)

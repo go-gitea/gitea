@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -43,7 +44,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	} else {
 		return
 	}
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
 
@@ -72,7 +73,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 		return
 	}
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1/settings/keys")
 
@@ -97,7 +98,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 
 func TestCollaborationPost(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 4)
@@ -133,7 +134,7 @@ func TestCollaborationPost(t *testing.T) {
 
 func TestCollaborationPost_InactiveUser(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 9)
@@ -157,7 +158,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 
 func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadUser(t, ctx, 4)
@@ -199,7 +200,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 func TestCollaborationPost_NonExistentUser(t *testing.T) {
 
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1/issues/labels")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
@@ -221,7 +222,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 }
 
 func TestAddTeamPost(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
@@ -261,7 +262,7 @@ func TestAddTeamPost(t *testing.T) {
 }
 
 func TestAddTeamPost_NotAllowed(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
@@ -302,7 +303,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 }
 
 func TestAddTeamPost_AddTeamTwice(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team11")
@@ -343,7 +344,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 }
 
 func TestAddTeamPost_NonExistentTeam(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org26/repo43")
 
 	ctx.Req.Form.Set("team", "team-non-existent")
@@ -376,7 +377,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 }
 
 func TestDeleteTeam(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "org3/team1/repo3")
 
 	ctx.Req.Form.Set("id", "2")

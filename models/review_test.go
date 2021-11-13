@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetReviewByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	review, err := GetReviewByID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, "Demo Review", review.Content)
@@ -24,7 +25,7 @@ func TestGetReviewByID(t *testing.T) {
 }
 
 func TestReview_LoadAttributes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	review := db.AssertExistsAndLoadBean(t, &Review{ID: 1}).(*Review)
 	assert.NoError(t, review.LoadAttributes())
 	assert.NotNil(t, review.Issue)
@@ -38,7 +39,7 @@ func TestReview_LoadAttributes(t *testing.T) {
 }
 
 func TestReview_LoadCodeComments(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	review := db.AssertExistsAndLoadBean(t, &Review{ID: 4}).(*Review)
 	assert.NoError(t, review.LoadAttributes())
@@ -57,7 +58,7 @@ func TestReviewType_Icon(t *testing.T) {
 }
 
 func TestFindReviews(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	reviews, err := FindReviews(FindReviewOptions{
 		Type:       ReviewTypeApprove,
 		IssueID:    2,
@@ -69,7 +70,7 @@ func TestFindReviews(t *testing.T) {
 }
 
 func TestGetCurrentReview(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 
@@ -87,7 +88,7 @@ func TestGetCurrentReview(t *testing.T) {
 }
 
 func TestCreateReview(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
@@ -104,7 +105,7 @@ func TestCreateReview(t *testing.T) {
 }
 
 func TestGetReviewersByIssueID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 3}).(*Issue)
 	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
@@ -144,7 +145,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 }
 
 func TestDismissReview(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	rejectReviewExample := db.AssertExistsAndLoadBean(t, &Review{ID: 9}).(*Review)
 	requestReviewExample := db.AssertExistsAndLoadBean(t, &Review{ID: 11}).(*Review)

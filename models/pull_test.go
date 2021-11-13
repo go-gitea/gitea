@@ -9,11 +9,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPullRequest_LoadAttributes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NotNil(t, pr.Merger)
@@ -21,7 +22,7 @@ func TestPullRequest_LoadAttributes(t *testing.T) {
 }
 
 func TestPullRequest_LoadIssue(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadIssue())
 	assert.NotNil(t, pr.Issue)
@@ -32,7 +33,7 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 }
 
 func TestPullRequest_LoadBaseRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
@@ -43,7 +44,7 @@ func TestPullRequest_LoadBaseRepo(t *testing.T) {
 }
 
 func TestPullRequest_LoadHeadRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadHeadRepo())
 	assert.NotNil(t, pr.HeadRepo)
@@ -55,7 +56,7 @@ func TestPullRequest_LoadHeadRepo(t *testing.T) {
 // TODO TestNewPullRequest
 
 func TestPullRequestsNewest(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
@@ -74,7 +75,7 @@ func TestPullRequestsNewest(t *testing.T) {
 }
 
 func TestPullRequestsOldest(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, count, err := PullRequests(1, &PullRequestsOptions{
 		ListOptions: db.ListOptions{
 			Page: 1,
@@ -93,7 +94,7 @@ func TestPullRequestsOldest(t *testing.T) {
 }
 
 func TestGetUnmergedPullRequest(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr, err := GetUnmergedPullRequest(1, 1, "branch2", "master", PullRequestFlowGithub)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.ID)
@@ -104,7 +105,7 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 }
 
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, err := GetUnmergedPullRequestsByHeadInfo(1, "branch2")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
@@ -115,7 +116,7 @@ func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 }
 
 func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, err := GetUnmergedPullRequestsByBaseInfo(1, "master")
 	assert.NoError(t, err)
 	assert.Len(t, prs, 1)
@@ -126,7 +127,7 @@ func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 }
 
 func TestGetPullRequestByIndex(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr, err := GetPullRequestByIndex(1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.BaseRepoID)
@@ -142,7 +143,7 @@ func TestGetPullRequestByIndex(t *testing.T) {
 }
 
 func TestGetPullRequestByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr, err := GetPullRequestByID(1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.ID)
@@ -154,7 +155,7 @@ func TestGetPullRequestByID(t *testing.T) {
 }
 
 func TestGetPullRequestByIssueID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr, err := GetPullRequestByIssueID(2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
@@ -165,7 +166,7 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 }
 
 func TestPullRequest_Update(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	pr.BaseBranch = "baseBranch"
 	pr.HeadBranch = "headBranch"
@@ -178,7 +179,7 @@ func TestPullRequest_Update(t *testing.T) {
 }
 
 func TestPullRequest_UpdateCols(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := &PullRequest{
 		ID:         1,
 		BaseBranch: "baseBranch",
@@ -193,7 +194,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 }
 
 func TestPullRequestList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	prs := []*PullRequest{
 		db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest),
@@ -211,7 +212,7 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 // TODO TestAddTestPullRequestTask
 
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
 	pr.LoadIssue()
@@ -226,7 +227,7 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 }
 
 func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
 	pr.LoadIssue()
@@ -242,7 +243,7 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 }
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
 
 	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", pr.GetDefaultMergeMessage())
@@ -253,7 +254,7 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 }
 
 func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	externalTracker := RepoUnit{
 		Type: unit.TypeExternalTracker,
