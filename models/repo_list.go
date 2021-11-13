@@ -421,9 +421,9 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db
 		}
 	}
 
-	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	if opts.PageSize > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	return sess, count, nil
 }
