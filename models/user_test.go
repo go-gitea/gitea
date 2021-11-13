@@ -23,7 +23,7 @@ import (
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := db.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: 1}).(*login.OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: 1}).(*login.OAuth2Application)
 	user, err := GetUserByID(app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
@@ -94,10 +94,10 @@ func TestGetUserEmailsByNames(t *testing.T) {
 func TestCanCreateOrganization(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	admin := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	assert.True(t, admin.CanCreateOrganization())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.CanCreateOrganization())
 	// Disable user create organization permission.
 	user.AllowCreateOrganization = false
@@ -180,7 +180,7 @@ func TestSearchUsers(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	test := func(userID int64) {
 		assert.NoError(t, unittest.PrepareTestDatabase())
-		user := db.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
+		user := unittest.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
 
 		ownedRepos := make([]*Repository, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&ownedRepos, &Repository{OwnerID: userID}))
@@ -200,7 +200,7 @@ func TestDeleteUser(t *testing.T) {
 			}
 		}
 		assert.NoError(t, DeleteUser(user))
-		db.AssertNotExistsBean(t, &User{ID: userID})
+		unittest.AssertNotExistsBean(t, &User{ID: userID})
 		CheckConsistencyFor(t, &User{}, &Repository{})
 	}
 	test(2)
@@ -208,7 +208,7 @@ func TestDeleteUser(t *testing.T) {
 	test(8)
 	test(11)
 
-	org := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	org := unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	assert.Error(t, DeleteUser(org))
 }
 
@@ -229,7 +229,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		{EmailNotificationsEnabled, 8},
 		{EmailNotificationsOnMention, 9},
 	} {
-		user := db.AssertExistsAndLoadBean(t, &User{ID: test.userID}).(*User)
+		user := unittest.AssertExistsAndLoadBean(t, &User{ID: test.userID}).(*User)
 		assert.Equal(t, test.expected, user.EmailNotifications())
 
 		// Try all possible settings
@@ -282,9 +282,9 @@ func BenchmarkHashPassword(b *testing.B) {
 
 func TestGetOrgRepositoryIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user4 := db.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
-	user5 := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user4 := unittest.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user5 := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 
 	accessibleRepos, err := user2.GetOrgRepositoryIDs()
 	assert.NoError(t, err)
@@ -429,7 +429,7 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 func TestAddLdapSSHPublicKeys(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	s := &login.Source{ID: 1}
 
 	testCases := []struct {
@@ -496,18 +496,18 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 
 func TestUpdateUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	user.KeepActivityPrivate = true
 	assert.NoError(t, UpdateUser(user))
-	user = db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user = unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
 	assert.Error(t, UpdateUser(user))
-	user = db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user = unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	user.Email = "no mail@mail.org"
@@ -518,14 +518,14 @@ func TestNewUserRedirect(t *testing.T) {
 	// redirect to a completely new name
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      "olduser1",
 		RedirectUserID: user.ID,
 	})
@@ -535,14 +535,14 @@ func TestNewUserRedirect2(t *testing.T) {
 	// redirect to previously used name
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-	db.AssertNotExistsBean(t, &user_model.Redirect{
+	unittest.AssertNotExistsBean(t, &user_model.Redirect{
 		LowerName:      "olduser1",
 		RedirectUserID: user.ID,
 	})
@@ -552,10 +552,10 @@ func TestNewUserRedirect3(t *testing.T) {
 	// redirect for a previously-unredirected user
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
-	db.AssertExistsAndLoadBean(t, &user_model.Redirect{
+	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})

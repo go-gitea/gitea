@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/unittestbridge"
 
 	"xorm.io/builder"
@@ -89,7 +90,7 @@ func checkForRepoConsistency(repo *Repository, ta unittestbridge.Asserter) {
 	assertCount(ta, &Milestone{RepoID: repo.ID}, repo.NumMilestones)
 	assertCount(ta, &Repository{ForkID: repo.ID}, repo.NumForks)
 	if repo.IsFork {
-		db.AssertExistsAndLoadBean(ta, &Repository{ID: repo.ForkID})
+		unittest.AssertExistsAndLoadBean(ta, &Repository{ID: repo.ForkID})
 	}
 
 	actual := getCount(ta, db.GetEngine(db.DefaultContext).Where("Mode<>?", RepoWatchModeDont), &Watch{RepoID: repo.ID})
@@ -122,13 +123,13 @@ func checkForIssueConsistency(issue *Issue, ta unittestbridge.Asserter) {
 	ta.EqualValues(issue.NumComments, actual,
 		"Unexpected number of comments for issue %+v", issue)
 	if issue.IsPull {
-		pr := db.AssertExistsAndLoadBean(ta, &PullRequest{IssueID: issue.ID}).(*PullRequest)
+		pr := unittest.AssertExistsAndLoadBean(ta, &PullRequest{IssueID: issue.ID}).(*PullRequest)
 		ta.EqualValues(pr.Index, issue.Index)
 	}
 }
 
 func checkForPullRequestConsistency(pr *PullRequest, ta unittestbridge.Asserter) {
-	issue := db.AssertExistsAndLoadBean(ta, &Issue{ID: pr.IssueID}).(*Issue)
+	issue := unittest.AssertExistsAndLoadBean(ta, &Issue{ID: pr.IssueID}).(*Issue)
 	ta.True(issue.IsPull)
 	ta.EqualValues(issue.Index, pr.Index)
 }
@@ -172,7 +173,7 @@ func checkForTeamConsistency(team *Team, ta unittestbridge.Asserter) {
 }
 
 func checkForActionConsistency(action *Action, ta unittestbridge.Asserter) {
-	repo := db.AssertExistsAndLoadBean(ta, &Repository{ID: action.RepoID}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(ta, &Repository{ID: action.RepoID}).(*Repository)
 	ta.Equal(repo.IsPrivate, action.IsPrivate, "action: %+v", action)
 }
 

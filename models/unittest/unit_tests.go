@@ -2,15 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package db
+package unittest
 
 import (
-	"context"
 	"math"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/unittestbridge"
-
-	"xorm.io/xorm"
 )
 
 // Code in this file is mainly used by models.CheckConsistencyFor, which is not in the unit test for various reasons.
@@ -18,15 +16,6 @@ import (
 
 // NonexistentID an ID that will never exist
 const NonexistentID = int64(math.MaxInt64)
-
-//SetUnitTestEngine is used by unit test code
-func SetUnitTestEngine(eng *xorm.Engine) {
-	x = eng
-	DefaultContext = &Context{
-		Context: context.Background(),
-		e:       x,
-	}
-}
 
 type testCond struct {
 	query interface{}
@@ -38,23 +27,22 @@ func Cond(query interface{}, args ...interface{}) interface{} {
 	return &testCond{query: query, args: args}
 }
 
-func whereConditions(sess *xorm.Session, conditions []interface{}) {
+func whereConditions(e db.Engine, conditions []interface{}) db.Engine {
 	for _, condition := range conditions {
 		switch cond := condition.(type) {
 		case *testCond:
-			sess.Where(cond.query, cond.args...)
+			e = e.Where(cond.query, cond.args...)
 		default:
-			sess.Where(cond)
+			e = e.Where(cond)
 		}
 	}
+	return e
 }
 
 // LoadBeanIfExists loads beans from fixture database if exist
 func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	whereConditions(sess, conditions)
-	return sess.Get(bean)
+	e := db.GetEngine(db.DefaultContext)
+	return whereConditions(e, conditions).Get(bean)
 }
 
 // BeanExists for testing, check if a bean exists
@@ -79,10 +67,8 @@ func AssertExistsAndLoadBean(t unittestbridge.Tester, bean interface{}, conditio
 // GetCount get the count of a bean
 func GetCount(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) int {
 	ta := unittestbridge.NewAsserter(t)
-	sess := x.NewSession()
-	defer sess.Close()
-	whereConditions(sess, conditions)
-	count, err := sess.Count(bean)
+	e := db.GetEngine(db.DefaultContext)
+	count, err := whereConditions(e, conditions).Count(bean)
 	ta.NoError(err)
 	return int(count)
 }
@@ -107,7 +93,7 @@ func AssertExistsIf(t unittestbridge.Tester, expected bool, bean interface{}, co
 // AssertSuccessfulInsert assert that beans is successfully inserted
 func AssertSuccessfulInsert(t unittestbridge.Tester, beans ...interface{}) {
 	ta := unittestbridge.NewAsserter(t)
-	_, err := x.Insert(beans...)
+	err := db.Insert(db.DefaultContext, beans...)
 	ta.NoError(err)
 }
 

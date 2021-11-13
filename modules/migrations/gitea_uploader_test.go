@@ -27,7 +27,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 
 	unittest.PrepareTestEnv(t)
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	var (
 		downloader = NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", "", "go-xorm", "builder")
@@ -52,7 +52,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	}, nil)
 	assert.NoError(t, err)
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{OwnerID: user.ID, Name: repoName}).(*models.Repository)
 	assert.True(t, repo.HasWiki())
 	assert.EqualValues(t, models.RepositoryReady, repo.Status)
 
