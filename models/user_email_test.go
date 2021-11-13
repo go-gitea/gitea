@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 
@@ -15,7 +16,7 @@ import (
 )
 
 func TestMakeEmailPrimary(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	email := &user_model.EmailAddress{
 		Email: "user567890@example.com",
@@ -49,7 +50,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 }
 
 func TestActivate(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	email := &user_model.EmailAddress{
 		ID:    int64(1),
@@ -68,7 +69,7 @@ func TestActivate(t *testing.T) {
 }
 
 func TestListEmails(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Must find all users and their emails
 	opts := &SearchEmailOptions{

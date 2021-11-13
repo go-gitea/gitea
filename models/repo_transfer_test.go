@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepositoryTransfer(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	doer := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)

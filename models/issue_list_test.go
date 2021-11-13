@@ -8,13 +8,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIssueList_LoadRepositories(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issueList := IssueList{
 		db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
@@ -31,7 +32,7 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 }
 
 func TestIssueList_LoadAttributes(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Service.EnableTimetracking = true
 	issueList := IssueList{
 		db.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
