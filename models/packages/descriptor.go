@@ -55,7 +55,7 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 	if err != nil {
 		return nil, err
 	}
-	o, err := models.GetUserByID(p.OwnerID)
+	o, err := models.GetUserByIDCtx(ctx, p.OwnerID)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 	if err != nil && !models.IsErrRepoNotExist(err) {
 		return nil, err
 	}
-	creator, err := models.GetUserByID(pv.CreatorID)
+	creator, err := models.GetUserByIDCtx(ctx, pv.CreatorID)
 	if err != nil {
 		return nil, err
 	}
