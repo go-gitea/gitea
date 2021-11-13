@@ -488,7 +488,7 @@ func getOwnedOrgsByUserID(sess *xorm.Session, userID int64) ([]*User, error) {
 }
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
-func HasOrgOrUserVisible(org *User, user *User) bool {
+func HasOrgOrUserVisible(org, user *User) bool {
 	return hasOrgOrUserVisible(db.GetEngine(db.DefaultContext), org, user)
 }
 
