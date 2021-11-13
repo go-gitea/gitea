@@ -6,6 +6,7 @@ package user
 
 import (
 	"net/http"
+	"strconv"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -16,6 +17,12 @@ import (
 func TaskStatus(ctx *context.Context) {
 	task, opts, err := models.GetMigratingTaskByID(ctx.ParamsInt64("task"), ctx.User.ID)
 	if err != nil {
+		if models.IsErrTaskDoesNotExist(err) {
+			ctx.JSON(http.StatusNotFound, map[string]interface{}{
+				"error": "task `" + strconv.FormatInt(ctx.ParamsInt64("task"), 10) + "` does not exist",
+			})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"err": err,
 		})
