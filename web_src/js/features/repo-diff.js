@@ -104,36 +104,3 @@ export function initRepoDiffShowMore() {
     });
   });
 }
-
-export function initShowEscapeCharacters() {
-  $('a.code-has-escaped').on('click', (e) => {
-    e.preventDefault();
-
-    $('a.code-has-escaped').each((_, target) => {
-      const inner = $(target).siblings().closest('.code-inner');
-      const escaped = inner.data('escaped');
-      let original = inner.data('original');
-
-      if (escaped) {
-        inner.html(original);
-        inner.data('escaped', '');
-      } else {
-        if (!original) {
-          original = $(inner).html();
-          inner.data('original', original);
-        }
-
-        inner.html(original.replaceAll(/(?![ \n\t])p{S}|p{C}|p{M}/g, (match) => {
-          const value = match.charCodeAt(0).toString(16);
-          return `<span class="escaped-code-point">[U+${value}]</span>`;
-        }));
-
-        inner.html(original.replaceAll(/([\u202A\u202B\u202C\u202D\u202E\u2066\u2067\u2068\u2069])/g, (match) => {
-          const value = match.charCodeAt(0).toString(16);
-          return `<span class="escaped-char">&amp;#${value};</span>`;
-        }));
-        inner.data('escaped', 'escaped');
-      }
-    });
-  });
-}

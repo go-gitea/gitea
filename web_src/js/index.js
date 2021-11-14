@@ -26,7 +26,6 @@ import {
   initRepoDiffConversationForm,
   initRepoDiffFileViewToggle,
   initRepoDiffReviewButton, initRepoDiffShowMore,
-  initShowEscapeCharacters,
 } from './features/repo-diff.js';
 import {
   initRepoIssueDue,
@@ -139,7 +138,6 @@ $(document).ready(() => {
   initRepoDiffFileViewToggle();
   initRepoDiffReviewButton();
   initRepoDiffShowMore();
-  initShowEscapeCharacters();
   initRepoEditor();
   initRepoGraphGit();
   initRepoIssueContentHistory();

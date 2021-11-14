@@ -132,7 +132,7 @@ readingloop:
 						return
 					}
 				}
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -147,7 +147,7 @@ readingloop:
 					}
 				}
 				lineHasBIDI = true
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -161,7 +161,7 @@ readingloop:
 						return
 					}
 				}
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -175,7 +175,7 @@ readingloop:
 						return
 					}
 				}
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
 					escaped.HasError = true
 					return
 				}

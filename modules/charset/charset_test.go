@@ -300,7 +300,7 @@ var escapeControlTests = []escapeControlTest{
 	{
 		name:   "multi line western non-breaking space",
 		text:   "single line western\nmulti line western\n",
-		result: `single line<span class="escaped-code-point" escaped="[U+00A0]"><span class="char"> </span></span>western` + "\n" + `multi line<span class="escaped-code-point" escaped="[U+00A0]"><span class="char"> </span></span>western` + "\n",
+		result: `single line<span class="escaped-code-point" data-escaped="[U+00A0]"><span class="char"> </span></span>western` + "\n" + `multi line<span class="escaped-code-point" data-escaped="[U+00A0]"><span class="char"> </span></span>western` + "\n",
 		status: EscapeStatus{Escaped: true, HasLTRScript: true, HasSpaces: true},
 	},
 	{
@@ -354,7 +354,7 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 			For example, the Hebrew name Sarah ` + "\u2067" + `שרה` + "\u2066\n" +
 			`sin (ש) (which appears rightmost), then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		result: `Many computer programs fail to display bidirectional text correctly.
-			For example, the Hebrew name Sarah <span class="escaped-code-point" escaped="[U+2067]"><span class="char">` + "\u2067" + `</span></span>שרה<span class="escaped-code-point" escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>` + "\n" +
+			For example, the Hebrew name Sarah <span class="escaped-code-point" data-escaped="[U+2067]"><span class="char">` + "\u2067" + `</span></span>שרה<span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>` + "\n" +
 			`sin (ש) (which appears rightmost), then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 		status: EscapeStatus{
 			Escaped:      true,
@@ -378,7 +378,7 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	{
 		name:   "CVE testcase",
 		text:   "if access_level != \"user\u202E \u2066// Check if admin\u2069 \u2066\" {",
-		result: `if access_level != "user<span class="escaped-code-point" escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span> <span class="escaped-code-point" escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>// Check if admin<span class="escaped-code-point" escaped="[U+2069]"><span class="char">` + "\u2069" + `</span></span> <span class="escaped-code-point" escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>" {`,
+		result: `if access_level != "user<span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>// Check if admin<span class="escaped-code-point" data-escaped="[U+2069]"><span class="char">` + "\u2069" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>" {`,
 		status: EscapeStatus{Escaped: true, HasBIDI: true, BadBIDI: true, HasLTRScript: true},
 	},
 	{
@@ -388,9 +388,9 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 			`sin (ש) (which appears rightmost), then resh (ר), and finally heh (ה) (which should appear leftmost).` +
 			"\nif access_level != \"user\u202E \u2066// Check if admin\u2069 \u2066\" {\n",
 		result: `Many computer programs fail to display bidirectional text correctly.
-			For example, the Hebrew name Sarah <span class="escaped-code-point" escaped="[U+2067]"><span class="char">` + "\u2067" + `</span></span>שרה<span class="escaped-code-point" escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>` + "\n" +
+			For example, the Hebrew name Sarah <span class="escaped-code-point" data-escaped="[U+2067]"><span class="char">` + "\u2067" + `</span></span>שרה<span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>` + "\n" +
 			`sin (ש) (which appears rightmost), then resh (ר), and finally heh (ה) (which should appear leftmost).` +
-			"\n" + `if access_level != "user<span class="escaped-code-point" escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span> <span class="escaped-code-point" escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>// Check if admin<span class="escaped-code-point" escaped="[U+2069]"><span class="char">` + "\u2069" + `</span></span> <span class="escaped-code-point" escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>" {` + "\n",
+			"\n" + `if access_level != "user<span class="escaped-code-point" data-escaped="[U+202E]"><span class="char">` + "\u202e" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>// Check if admin<span class="escaped-code-point" data-escaped="[U+2069]"><span class="char">` + "\u2069" + `</span></span> <span class="escaped-code-point" data-escaped="[U+2066]"><span class="char">` + "\u2066" + `</span></span>" {` + "\n",
 		status: EscapeStatus{Escaped: true, HasBIDI: true, BadBIDI: true, HasLTRScript: true, HasRTLScript: true},
 	},
 }
@@ -430,7 +430,7 @@ func TestEscapeControlReader(t *testing.T) {
 	for _, test := range escapeControlTests {
 		test.name += " (+Control)"
 		test.text = "\u001E" + test.text
-		test.result = `<span class="escaped-code-point" escaped="[U+001E]"><span class="char">` + "\u001e" + `</span></span>` + test.result
+		test.result = `<span class="escaped-code-point" data-escaped="[U+001E]"><span class="char">` + "\u001e" + `</span></span>` + test.result
 		test.status.Escaped = true
 		test.status.HasControls = true
 		tests = append(tests, test)
@@ -439,7 +439,7 @@ func TestEscapeControlReader(t *testing.T) {
 	for _, test := range escapeControlTests {
 		test.name += " (+Mark)"
 		test.text = "\u0300" + test.text
-		test.result = `<span class="escaped-code-point" escaped="[U+0300]"><span class="char">` + "\u0300" + `</span></span>` + test.result
+		test.result = `<span class="escaped-code-point" data-escaped="[U+0300]"><span class="char">` + "\u0300" + `</span></span>` + test.result
 		test.status.Escaped = true
 		test.status.HasMarks = true
 		tests = append(tests, test)

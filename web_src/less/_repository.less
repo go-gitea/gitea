@@ -76,12 +76,12 @@
     }
   }
 
-  .escaped .escaped-code-point {
-    &[escaped]::before {
+  .unicode-escaped .escaped-code-point {
+    &[data-escaped]::before {
       visibility: visible;
-      content: attr(escaped);
+      content: attr(data-escaped);
       font-family: var(--fonts-monospace);
-      color: red;
+      color: var(--color-red);
     }
 
     .char {

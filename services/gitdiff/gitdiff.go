@@ -944,7 +944,6 @@ parsingLoop:
 				decoder := diffLineTypeDecoders[l.Type]
 				if decoder != nil {
 					if c, _, err := transform.String(decoder, l.Content[1:]); err == nil {
-
 						l.Content = l.Content[0:1] + c
 					}
 				}
