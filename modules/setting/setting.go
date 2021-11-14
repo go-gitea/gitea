@@ -419,16 +419,12 @@ var (
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
 	RunMode       string
+	IsProd        bool
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
 	InternalToken string // internal access token
 )
-
-// IsProd if it's a production mode
-func IsProd() bool {
-	return strings.EqualFold(RunMode, "prod")
-}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -687,6 +683,18 @@ func NewContext() {
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	if _, err = os.Stat(AppDataPath); err != nil {
+		// FIXME: There are too many calls to MkdirAll in old code. It is incorrect.
+		// For example, if someDir=/mnt/vol1/gitea-home/data, if the mount point /mnt/vol1 is not mounted when Gitea runs,
+		// then gitea will make new empty directories in /mnt/vol1, all are stored in the root filesystem.
+		// The correct behavior should be: creating parent directories is end users' duty. We only create sub-directories in existing parent directories.
+		// For quickstart, the parent directories should be created automatically for first startup (eg: a flag or a check of INSTALL_LOCK).
+		// Now we can take the first step to do correctly (using Mkdir) in other packages, and prepare the AppDataPath here, then make a refactor in future.
+		err = os.MkdirAll(AppDataPath, os.ModePerm)
+		if err != nil {
+			log.Fatal("Failed to create the directory for app data path '%s'", AppDataPath)
+		}
+	}
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
@@ -906,6 +914,7 @@ func NewContext() {
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
 	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
 	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)

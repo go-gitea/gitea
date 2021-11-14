@@ -10,18 +10,21 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"path"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
@@ -105,30 +108,36 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
 
-		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
+		csvReaderFromCommit := func(ctx *markup.RenderContext, c *git.Commit) (*csv.Reader, io.Closer, error) {
 			blob, err := c.GetBlobByPath(diffFile.Name)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
-				return nil, errTooLarge
+				return nil, nil, errTooLarge
 			}
 
 			reader, err := blob.DataAsync()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			defer reader.Close()
 
-			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader))
+			return csvReader, reader, err
 		}
 
-		baseReader, err := csvReaderFromCommit(baseCommit)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.OldName}, baseCommit)
+		if baseBlobCloser != nil {
+			defer baseBlobCloser.Close()
+		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
-		headReader, err := csvReaderFromCommit(headCommit)
+		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.Name}, headCommit)
+		if headBlobCloser != nil {
+			defer headBlobCloser.Close()
+		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
@@ -376,7 +385,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
 	}
-	if !permBase.CanRead(models.UnitTypeCode) {
+	if !permBase.CanRead(unit.TypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
 				ctx.User,
@@ -395,7 +404,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
 		}
-		if !permHead.CanRead(models.UnitTypeCode) {
+		if !permHead.CanRead(unit.TypeCode) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 					ctx.User,
@@ -414,7 +423,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := rootRepo.CheckUnitUser(ctx.User, models.UnitTypeCode)
+		canRead := rootRepo.CheckUnitUser(ctx.User, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -439,7 +448,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := ownForkRepo.CheckUnitUser(ctx.User, models.UnitTypeCode)
+		canRead := ownForkRepo.CheckUnitUser(ctx.User, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -534,7 +543,7 @@ func PrepareCompareDiff(
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
-		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+		if unit, err := repo.GetUnit(unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 
 			if !config.AutodetectManualMerge {
@@ -728,7 +737,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
 
 	ctx.HTML(http.StatusOK, tplCompare)
 }

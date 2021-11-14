@@ -12,12 +12,18 @@
 						{{if and (eq $i 0) (eq $j 0)}}
 							<th class="line-num">{{.RowIdx}}</th>
 							{{range $j, $cell := $row.Cells}}
-								{{if eq $cell.Type 2}}
+								{{if not $cell}}
+									<th></th>
+								{{else if eq $cell.Type 2}}
 									<th class="modified"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></th>
 								{{else if eq $cell.Type 3}}
-									<th class="added"><span class="added-code">{{.LeftCell}}</span></th>
+									<th class="added"><span class="added-code">{{.RightCell}}</span></th>
 								{{else if eq $cell.Type 4}}
 									<th class="removed"><span class="removed-code">{{.LeftCell}}</span></th>
+								{{else if eq $cell.Type 5}}
+									<th class="moved">{{.RightCell}}</th>
+								{{else if eq $cell.Type 6}}
+									<th class="moved"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></th>
 								{{else}}
 									<th>{{.RightCell}}</th>
 								{{end}}
@@ -25,12 +31,18 @@
 						{{else}}
 							<td class="line-num">{{if .RowIdx}}{{.RowIdx}}{{end}}</td>
 							{{range $j, $cell := $row.Cells}}
-								{{if eq $cell.Type 2}}
+								{{if not $cell}}
+									<td></td>
+								{{else if eq $cell.Type 2}}
 									<td class="modified"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></td>
 								{{else if eq $cell.Type 3}}
-									<td class="added"><span class="added-code">{{.LeftCell}}</span></td>
+									<td class="added"><span class="added-code">{{.RightCell}}</span></td>
 								{{else if eq $cell.Type 4}}
 									<td class="removed"><span class="removed-code">{{.LeftCell}}</span></td>
+								{{else if eq $cell.Type 5}}
+									<td class="moved">{{.RightCell}}</td>
+								{{else if eq $cell.Type 6}}
+									<td class="moved"><span class="removed-code">{{.LeftCell}}</span> <span class="added-code">{{.RightCell}}</span></td>
 								{{else}}
 									<td>{{.RightCell}}</td>
 								{{end}}

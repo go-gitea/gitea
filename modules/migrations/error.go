@@ -8,7 +8,7 @@ package migrations
 import (
 	"errors"
 
-	"github.com/google/go-github/v37/github"
+	"github.com/google/go-github/v39/github"
 )
 
 var (

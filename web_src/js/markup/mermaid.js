@@ -1,4 +1,4 @@
-const {MermaidMaxSourceCharacters} = window.config;
+const {mermaidMaxSourceCharacters} = window.config;
 
 function displayError(el, err) {
   el.closest('pre').classList.remove('is-loading');
@@ -26,8 +26,8 @@ export async function renderMermaid(els) {
   });
 
   for (const el of els) {
-    if (MermaidMaxSourceCharacters >= 0 && el.textContent.length > MermaidMaxSourceCharacters) {
-      displayError(el, new Error(`Mermaid source of ${el.textContent.length} characters exceeds the maximum allowed length of ${MermaidMaxSourceCharacters}.`));
+    if (mermaidMaxSourceCharacters >= 0 && el.textContent.length > mermaidMaxSourceCharacters) {
+      displayError(el, new Error(`Mermaid source of ${el.textContent.length} characters exceeds the maximum allowed length of ${mermaidMaxSourceCharacters}.`));
       continue;
     }
 

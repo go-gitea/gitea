@@ -21,6 +21,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
@@ -33,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -250,7 +252,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		defer dataRc.Close()
 
 		buf := make([]byte, 1024)
-		n, _ := dataRc.Read(buf)
+		n, _ := util.ReadAtMost(dataRc, buf)
 		buf = buf[:n]
 
 		st := typesniffer.DetectContentType(buf)
@@ -285,7 +287,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					defer dataRc.Close()
 
 					buf = make([]byte, 1024)
-					n, err = dataRc.Read(buf)
+					n, err = util.ReadAtMost(dataRc, buf)
 					if err != nil {
 						ctx.ServerError("Data", err)
 						return
@@ -352,7 +354,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
+	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
@@ -377,7 +379,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
 
 	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
+	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
@@ -409,10 +411,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				defer dataRc.Close()
 
 				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
-				// Error EOF don't mean there is an error, it just means we read to
-				// the end
-				if err != nil && err != io.EOF {
+				n, err = util.ReadAtMost(dataRc, buf)
+				if err != nil {
 					ctx.ServerError("Data", err)
 					return
 				}
@@ -515,7 +515,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+			} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			}
 		}
@@ -564,7 +564,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+	} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
@@ -583,6 +583,13 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
 			if err != nil {
+				if models.IsErrTaskDoesNotExist(err) {
+					ctx.Data["Repo"] = ctx.Repo
+					ctx.Data["CloneAddr"] = ""
+					ctx.Data["Failed"] = true
+					ctx.HTML(http.StatusOK, tplMigrating)
+					return
+				}
 				ctx.ServerError("models.GetMigratingTask", err)
 				return
 			}
@@ -608,13 +615,13 @@ func checkHomeCodeViewable(ctx *context.Context) {
 			}
 		}
 
-		var firstUnit *models.Unit
+		var firstUnit *unit_model.Unit
 		for _, repoUnit := range ctx.Repo.Units {
-			if repoUnit.Type == models.UnitTypeCode {
+			if repoUnit.Type == unit_model.TypeCode {
 				return
 			}
 
-			unit, ok := models.Units[repoUnit.Type]
+			unit, ok := unit_model.Units[repoUnit.Type]
 			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}

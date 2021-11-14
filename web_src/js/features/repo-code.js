@@ -131,9 +131,8 @@ export function initRepoCodeView() {
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     const box = currentTarget.closest('.file-content');
-    const chevron = currentTarget.querySelector('a.chevron');
     const folded = box.dataset.folded !== 'true';
-    chevron.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
+    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
     box.dataset.folded = String(folded);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {

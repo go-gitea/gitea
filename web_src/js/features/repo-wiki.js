@@ -1,14 +1,16 @@
 import {initMarkupContent} from '../markup/content.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 export function initRepoWikiForm() {
   const $editArea = $('.repository.wiki textarea#edit_area');
   let sideBySideChanges = 0;
   let sideBySideTimeout = null;
   let hasSimpleMDE = true;
+
   if ($editArea.length > 0) {
+    const $form = $('.repository.wiki.new .ui.form');
     const simplemde = new SimpleMDE({
       autoDownloadFontAwesome: false,
       element: $editArea[0],
@@ -22,7 +24,7 @@ export function initRepoWikiForm() {
             sideBySideTimeout = null;
           }
           $.post($editArea.data('url'), {
-            _csrf: csrf,
+            _csrf: csrfToken,
             mode: 'gfm',
             context: $editArea.data('context'),
             text: plainText,
@@ -105,7 +107,6 @@ export function initRepoWikiForm() {
           action(e) {
             e.toTextArea();
             hasSimpleMDE = false;
-            const $form = $('.repository.wiki.new .ui.form');
             const $root = $form.find('.field.content');
             const loading = $root.data('loading');
             $root.append(`<div class="ui bottom tab markup" data-tab="preview">${loading}</div>`);
@@ -116,7 +117,24 @@ export function initRepoWikiForm() {
         },
       ]
     });
-    $(simplemde.codemirror.getInputField()).addClass('js-quick-submit');
+
+    const $markdownEditorTextArea = $(simplemde.codemirror.getInputField());
+    $markdownEditorTextArea.addClass('js-quick-submit');
+
+    $form.on('submit', function (e) {
+      // The original edit area HTML element is hidden and replaced by the
+      // SimpleMDE editor, breaking HTML5 input validation if the text area is empty.
+      // This is a workaround for this upstream bug.
+      // See https://github.com/sparksuite/simplemde-markdown-editor/issues/324
+      const input = $editArea.val();
+      if (!input.length) {
+        e.preventDefault();
+        $markdownEditorTextArea.prop('required', true);
+        this.reportValidity();
+      } else {
+        $markdownEditorTextArea.prop('required', false);
+      }
+    });
 
     setTimeout(() => {
       const $bEdit = $('.repository.wiki.new .previewtabs a[data-tab="write"]');

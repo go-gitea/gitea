@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -93,12 +94,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// The default unit we're trying to look at is code
-	unitType := models.UnitTypeCode
+	unitType := unit.TypeCode
 
 	// Unless we're a wiki...
 	if strings.HasSuffix(repoName, ".wiki") {
 		// in which case we need to look at the wiki
-		unitType = models.UnitTypeWiki
+		unitType = unit.TypeWiki
 		// And we'd better munge the reponame and tell downstream we're looking at a wiki
 		results.IsWiki = true
 		results.RepoName = repoName[:len(repoName)-5]
@@ -279,7 +280,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Permissions checking:
-	if repoExist && (mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView) {
+	if repoExist &&
+		(mode > models.AccessModeRead ||
+			repo.IsPrivate ||
+			owner.Visibility.IsPrivate() ||
+			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
+			setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
@@ -289,8 +295,8 @@ func ServCommand(ctx *context.PrivateContext) {
 				return
 			}
 		} else {
-			// Because of special ref "refs/for" .. , need delay write permission check
-			if git.SupportProcReceive && unitType == models.UnitTypeCode {
+			// Because of the special ref "refs/for" we will need to delay write permission check
+			if git.SupportProcReceive && unitType == unit.TypeCode {
 				mode = models.AccessModeRead
 			}
 
@@ -357,7 +363,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	if results.IsWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if models.IsErrUnitTypeNotExist(err) {
 				ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 					Results: results,

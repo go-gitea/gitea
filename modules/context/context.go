@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/json"
@@ -90,7 +91,7 @@ func (ctx *Context) IsUserRepoAdmin() bool {
 }
 
 // IsUserRepoWriter returns true if current user has write privilege in current repo
-func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
+func (ctx *Context) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	for _, unitType := range unitTypes {
 		if ctx.Repo.CanWrite(unitType) {
 			return true
@@ -101,7 +102,7 @@ func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
 }
 
 // IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
-func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
+func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.Type) bool {
 	return ctx.Repo.CanRead(unitType)
 }
 
@@ -225,7 +226,7 @@ func (ctx *Context) NotFound(title string, err error) {
 func (ctx *Context) notFoundInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -261,7 +262,7 @@ func (ctx *Context) ServerError(title string, err error) {
 func (ctx *Context) serverErrorInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -645,7 +646,7 @@ func Contexter() func(next http.Handler) http.Handler {
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"Link":          link,
-					"IsProd":        setting.IsProd(),
+					"RunModeIsProd": setting.IsProd,
 				},
 			}
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
@@ -733,10 +734,10 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
-			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

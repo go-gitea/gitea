@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -128,7 +129,7 @@ func ActivateEmail(ctx *context.Context) {
 
 	if err := models.ActivateUserEmail(uid, email, activate); err != nil {
 		log.Error("ActivateUserEmail(%v,%v,%v): %v", uid, email, activate, err)
-		if models.IsErrEmailAlreadyUsed(err) {
+		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Flash.Error(ctx.Tr("admin.emails.duplicate_active"))
 		} else {
 			ctx.Flash.Error(ctx.Tr("admin.emails.not_updated", err))

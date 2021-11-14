@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -38,9 +39,9 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
-		log.Error("pr.BaseRepo.GetUnit(models.UnitTypePullRequests): %v", err)
+		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 		return err
 	}
 	prConfig := prUnit.PullRequestsConfig()
@@ -565,7 +566,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 		return false, err
 	}
 
-	if (p.CanWrite(models.UnitTypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID, p)) {
 		return true, nil
 	}
 
@@ -632,7 +633,7 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 
 // MergedManually mark pr as merged manually
 func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (err error) {
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return
 	}

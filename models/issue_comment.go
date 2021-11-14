@@ -105,16 +105,42 @@ const (
 	CommentTypeDismissReview
 )
 
-// CommentTag defines comment tag type
-type CommentTag int
+// RoleDescriptor defines comment tag type
+type RoleDescriptor int
 
-// Enumerate all the comment tag types
+// Enumerate all the role tags.
 const (
-	CommentTagNone CommentTag = iota
-	CommentTagPoster
-	CommentTagWriter
-	CommentTagOwner
+	RoleDescriptorNone RoleDescriptor = iota
+	RoleDescriptorPoster
+	RoleDescriptorWriter
+	RoleDescriptorOwner
 )
+
+// WithRole enable a specific tag on the RoleDescriptor.
+func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
+	rd |= (1 << role)
+	return rd
+}
+
+func stringToRoleDescriptor(role string) RoleDescriptor {
+	switch role {
+	case "Poster":
+		return RoleDescriptorPoster
+	case "Writer":
+		return RoleDescriptorWriter
+	case "Owner":
+		return RoleDescriptorOwner
+	default:
+		return RoleDescriptorNone
+	}
+}
+
+// HasRole returns if a certain role is enabled on the RoleDescriptor.
+func (rd RoleDescriptor) HasRole(role string) bool {
+	roleDescriptor := stringToRoleDescriptor(role)
+	bitValue := rd & (1 << roleDescriptor)
+	return (bitValue > 0)
+}
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
@@ -174,7 +200,7 @@ type Comment struct {
 	Reactions   ReactionList  `xorm:"-"`
 
 	// For view issue page.
-	ShowTag CommentTag `xorm:"-"`
+	ShowRole RoleDescriptor `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
@@ -488,7 +514,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = getUserByID(db.GetEngine(db.DefaultContext), c.AssigneeID)
+		c.Assignee, err = GetUserByIDCtx(db.DefaultContext, c.AssigneeID)
 		if err != nil {
 			if !IsErrUserNotExist(err) {
 				return err
@@ -523,7 +549,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = getUserByID(db.GetEngine(db.DefaultContext), c.ResolveDoerID)
+	c.ResolveDoer, err = GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
 	if err != nil {
 		if IsErrUserNotExist(err) {
 			c.ResolveDoer = NewGhostUser()

@@ -1,11 +1,11 @@
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrfToken} = window.config;
 
 export function initUserAuthU2fAuth() {
   if ($('#wait-for-key').length === 0) {
     return;
   }
   u2fApi.ensureSupport().then(() => {
-    $.getJSON(`${AppSubUrl}/user/u2f/challenge`).done((req) => {
+    $.getJSON(`${appSubUrl}/user/u2f/challenge`).done((req) => {
       u2fApi.sign(req.appId, req.challenge, req.registeredKeys, 30)
         .then(u2fSigned)
         .catch((err) => {
@@ -18,15 +18,15 @@ export function initUserAuthU2fAuth() {
     });
   }).catch(() => {
     // Fallback in case browser do not support U2F
-    window.location.href = `${AppSubUrl}/user/two_factor`;
+    window.location.href = `${appSubUrl}/user/two_factor`;
   });
 }
 
 function u2fSigned(resp) {
   $.ajax({
-    url: `${AppSubUrl}/user/u2f/sign`,
+    url: `${appSubUrl}/user/u2f/sign`,
     type: 'POST',
-    headers: {'X-Csrf-Token': csrf},
+    headers: {'X-Csrf-Token': csrfToken},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
   }).done((res) => {
@@ -41,9 +41,9 @@ function u2fRegistered(resp) {
     return;
   }
   $.ajax({
-    url: `${AppSubUrl}/user/settings/security/u2f/register`,
+    url: `${appSubUrl}/user/settings/security/u2f/register`,
     type: 'POST',
-    headers: {'X-Csrf-Token': csrf},
+    headers: {'X-Csrf-Token': csrfToken},
     data: JSON.stringify(resp),
     contentType: 'application/json; charset=utf-8',
     success() {
@@ -99,8 +99,8 @@ export function initUserAuthU2fRegister() {
 }
 
 function u2fRegisterRequest() {
-  $.post(`${AppSubUrl}/user/settings/security/u2f/request_register`, {
-    _csrf: csrf,
+  $.post(`${appSubUrl}/user/settings/security/u2f/request_register`, {
+    _csrf: csrfToken,
     name: $('#nickname').val()
   }).done((req) => {
     $('#nickname').closest('div.field').removeClass('error');

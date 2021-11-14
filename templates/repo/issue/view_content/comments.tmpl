@@ -44,18 +44,19 @@
 					</div>
 					<div class="comment-header-right actions df ac">
 						{{if not $.Repository.IsArchived}}
-							{{if or (and (eq .PosterID .Issue.PosterID) (eq .Issue.OriginalAuthorID 0)) (and (eq .Issue.OriginalAuthorID .OriginalAuthorID) (not (eq .OriginalAuthorID 0))) }}
+							{{if (.ShowRole.HasRole "Poster")}}
 								<div class="ui basic label">
 									{{$.i18n.Tr "repo.issues.poster"}}
 								</div>
 							{{end}}
-							{{if gt .ShowTag 0}}
+							{{if (.ShowRole.HasRole "Writer")}}
 								<div class="ui basic label">
-									{{if eq .ShowTag 2}}
-										{{$.i18n.Tr "repo.issues.collaborator"}}
-									{{else if eq .ShowTag 3}}
-										{{$.i18n.Tr "repo.issues.owner"}}
-									{{end}}
+									{{$.i18n.Tr "repo.issues.collaborator"}}
+								</div>
+							{{end}}
+							{{if (.ShowRole.HasRole "Owner")}}
+								<div class="ui basic label">
+									{{$.i18n.Tr "repo.issues.owner"}}
 								</div>
 							{{end}}
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
@@ -158,7 +159,7 @@
 			{{if eq .RefAction 3}}</del>{{end}}
 
 			<div class="detail">
-				<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle | Str2html}}</b> {{.RefIssueIdent | Str2html}}</a></span>
+				<span class="text grey"><a href="{{.RefIssueHTMLURL}}"><b>{{.RefIssueTitle}}</b> {{.RefIssueIdent}}</a></span>
 			</div>
 		</div>
 	{{else if eq .Type 4}}
@@ -549,24 +550,23 @@
 															</span>
 														</div>
 														<div class="comment-header-right actions df ac">
-															{{if not $.Repository.IsArchived}}
-																{{if or (and (eq .PosterID $.Issue.PosterID) (eq $.Issue.OriginalAuthorID 0)) (eq $.Issue.OriginalAuthorID .OriginalAuthorID) }}
-																	<div class="ui basic label">
-																		{{$.i18n.Tr "repo.issues.poster"}}
-																	</div>
-																{{end}}
-																{{if gt .ShowTag 0}}
-																	<div class="ui basic label">
-																		{{if eq .ShowTag 2}}
-																			{{$.i18n.Tr "repo.issues.collaborator"}}
-																		{{else if eq .ShowTag 3}}
-																			{{$.i18n.Tr "repo.issues.owner"}}
-																		{{end}}
-																	</div>
-																{{end}}
-																{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-																{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+															{{if (.ShowRole.HasRole "Poster")}}
+																<div class="ui basic label">
+																	{{$.i18n.Tr "repo.issues.poster"}}
+																</div>
 															{{end}}
+															{{if (.ShowRole.HasRole "Writer")}}
+																<div class="ui basic label">
+																	{{$.i18n.Tr "repo.issues.collaborator"}}
+																</div>
+															{{end}}
+															{{if (.ShowRole.HasRole "Owner")}}
+																<div class="ui basic label">
+																	{{$.i18n.Tr "repo.issues.owner"}}
+																</div>
+															{{end}}
+															{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+															{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 														</div>
 													</div>
 													<div class="text comment-content">

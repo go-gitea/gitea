@@ -27,7 +27,7 @@ import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
 
-const {csrf} = window.config;
+const {csrfToken} = window.config;
 
 const commentMDEditors = {};
 
@@ -54,7 +54,7 @@ export function initRepoCommentForm() {
 
       if (editMode === 'true') {
         const form = $('#update_issueref_form');
-        $.post(form.attr('action'), {_csrf: csrf, ref: selectedValue}, () => window.location.reload());
+        $.post(form.attr('action'), {_csrf: csrfToken, ref: selectedValue}, () => window.location.reload());
       } else if (editMode === '') {
         $selectBranch.find('.ui .branch-name').text(selectedValue);
       }
@@ -259,7 +259,7 @@ export function initRepoCommentForm() {
 }
 
 
-export async function initRepository() {
+export function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -267,10 +267,13 @@ export async function initRepository() {
 
   // Commit statuses
   $('.commit-statuses-trigger').each(function () {
+    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
+    const popupPosition = positionRight ? 'right center' : 'left center';
     $(this)
       .popup({
         on: 'click',
-        position: ($('.repository.file.list').length > 0 ? 'right center' : 'left center'),
+        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
+        position: popupPosition,
       });
   });
 
@@ -348,6 +351,7 @@ export async function initRepository() {
 
     // Edit issue or comment content
     $(document).on('click', '.edit-content', async function (event) {
+      event.preventDefault();
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -360,7 +364,7 @@ export async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        await attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -370,7 +374,7 @@ export async function initRepository() {
           const fileUuidDict = {};
           dz = await createDropzone($dropzone[0], {
             url: $dropzone.data('upload-url'),
-            headers: {'X-Csrf-Token': csrf},
+            headers: {'X-Csrf-Token': csrfToken},
             maxFiles: $dropzone.data('max-file'),
             maxFilesize: $dropzone.data('max-size'),
             acceptedFiles: (['*/*', ''].includes($dropzone.data('accepts'))) ? null : $dropzone.data('accepts'),
@@ -396,7 +400,7 @@ export async function initRepository() {
                 if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
                   $.post($dropzone.data('remove-url'), {
                     file: file.uuid,
-                    _csrf: csrf,
+                    _csrf: csrfToken,
                   });
                 }
               });
@@ -458,7 +462,7 @@ export async function initRepository() {
             return $(this).val();
           }).get();
           $.post($editContentZone.data('update-url'), {
-            _csrf: csrf,
+            _csrf: csrfToken,
             content: $textarea.val(),
             context: $editContentZone.data('context'),
             files: $attachments,
@@ -508,7 +512,6 @@ export async function initRepository() {
         $textarea.focus();
         $simplemde.codemirror.focus();
       });
-      event.preventDefault();
     });
 
     initRepoIssueCommentDelete();
