@@ -11,6 +11,12 @@
   animation: fadeout .2s both;
 }
 
+/* comment content has 14px font size, reduce padding to make the button appear
+   vertically centered on single-line content, like it does elsewhere */
+.repository.view.issue .comment-list .comment .markup .code-copy {
+  padding: 9px;
+}
+
 .markup .code-copy:hover {
   background: var(--color-secondary) !important;
 }
