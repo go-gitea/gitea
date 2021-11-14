@@ -3,7 +3,7 @@ const {copied, copy_link_error} = window.i18n;
 
 export function renderCodeCopy() {
   const els = document.querySelectorAll('.markup .code-block code');
-  if (!els?.length) return;
+  if (!els.length) return;
 
   const button = document.createElement('button');
   button.classList.add('code-copy', 'ui', 'button');
