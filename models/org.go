@@ -116,6 +116,16 @@ func (org *Organization) OrganisationLink() string {
 	return org.AsUser().OrganisationLink()
 }
 
+// ShortName ellipses username to length
+func (org *Organization) ShortName(length int) string {
+	return org.AsUser().ShortName(length)
+}
+
+// HomeLink returns the user or organization home page link.
+func (org *Organization) HomeLink() string {
+	return org.AsUser().HomeLink()
+}
+
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
