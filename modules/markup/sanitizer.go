@@ -53,11 +53,10 @@ func InitializeSanitizer() {
 func createDefaultPolicy() *bluemonday.Policy {
 	policy := bluemonday.UGCPolicy()
 
-	// For JS code copy
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block$`)).OnElements("pre")
+	// For JS code copy and Mermaid loading state
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
 
 	// For Chroma markdown plugin
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^is-loading$`)).OnElements("pre")
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+$`)).OnElements("code")
 
 	// Checkboxes
