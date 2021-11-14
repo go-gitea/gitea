@@ -9,11 +9,12 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIncreaseDownloadCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	attachment, err := GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
@@ -29,7 +30,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 }
 
 func TestGetByCommentOrIssueID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// count of attachments from issue ID
 	attachments, err := GetAttachmentsByIssueID(1)
@@ -42,7 +43,7 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 }
 
 func TestDeleteAttachments(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	count, err := DeleteAttachmentsByIssue(4, false)
 	assert.NoError(t, err)
@@ -62,7 +63,7 @@ func TestDeleteAttachments(t *testing.T) {
 }
 
 func TestGetAttachmentByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	attach, err := GetAttachmentByID(1)
 	assert.NoError(t, err)
@@ -78,7 +79,7 @@ func TestAttachment_DownloadURL(t *testing.T) {
 }
 
 func TestUpdateAttachment(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	attach, err := GetAttachmentByID(1)
 	assert.NoError(t, err)
@@ -91,7 +92,7 @@ func TestUpdateAttachment(t *testing.T) {
 }
 
 func TestGetAttachmentsByUUIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	attachList, err := GetAttachmentsByUUIDs(db.DefaultContext, []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
 	assert.NoError(t, err)
@@ -103,7 +104,7 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 }
 
 func TestLinkedRepository(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	testCases := []struct {
 		name             string
 		attachID         int64

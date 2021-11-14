@@ -124,7 +124,8 @@ func NewEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
-func syncTables() error {
+//SyncAllTables sync the schemas of all tables, is required by unit test code
+func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
@@ -176,7 +177,7 @@ func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine)
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	if err = syncTables(); err != nil {
+	if err = SyncAllTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 

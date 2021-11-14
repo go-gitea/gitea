@@ -10,13 +10,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestIncludesAllRepositoriesTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
 		team := db.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
