@@ -118,8 +118,8 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err2 := w.WriteString(`<code class="chroma language-` + string(language) + `">`)
-							if err2 != nil {
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							if err != nil {
 								return
 							}
 						} else {
