@@ -17,10 +17,11 @@
   padding: 9px;
 }
 
+/* can not use regular transparent button colors for hover and active states because
+   we need opaque colors here as code can appear behind the button */
 .markup .code-copy:hover {
   background: var(--color-secondary) !important;
 }
-
 .markup .code-copy:active {
   background: var(--color-secondary-dark-1) !important;
 }
