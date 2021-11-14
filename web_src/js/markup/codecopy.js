@@ -1,5 +1,4 @@
-import {svgNode} from '../svg.js';
-const {copied, copy_link_error} = window.i18n;
+import {svg} from '../svg.js';
 
 export function renderCodeCopy() {
   const els = document.querySelectorAll('.markup .code-block code');
@@ -7,10 +6,8 @@ export function renderCodeCopy() {
 
   const button = document.createElement('button');
   button.classList.add('code-copy', 'ui', 'button');
-  button.setAttribute('data-success', copied);
-  button.setAttribute('data-error', copy_link_error);
   button.setAttribute('data-variation', 'inverted tiny');
-  button.appendChild(svgNode('octicon-copy'));
+  button.innerHTML = svg('octicon-copy');
 
   for (const el of els) {
     const btn = button.cloneNode(true);

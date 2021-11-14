@@ -41,20 +41,17 @@ export const svgs = {
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
 
-// returns a SVG node for given SVG icon name, size and additional classes
-export function svgNode(name, size = 16, className = '') {
-  const node = parser.parseFromString(svgs[name], 'text/html').querySelector('svg');
-  if (size !== 16) node.setAttribute('width', String(size));
-  if (size !== 16) node.setAttribute('height', String(size));
-  if (className) node.classList.add(...className.split(/\s+/));
-  return node;
-}
-
-// returns a HTML string for given SVG icon name, size and additional classes
-export function svg(name, size, className) {
+// retrieve a HTML string for given SVG icon name, size and additional classes
+export function svg(name, size = 16, className = '') {
   if (!(name in svgs)) return '';
   if (size === 16 && !className) return svgs[name];
-  return serializer.serializeToString(svgNode(name, size, className));
+
+  const document = parser.parseFromString(svgs[name], 'image/svg+xml');
+  const svgNode = document.firstChild;
+  if (size !== 16) svgNode.setAttribute('width', String(size));
+  if (size !== 16) svgNode.setAttribute('height', String(size));
+  if (className) svgNode.classList.add(...className.split(/\s+/));
+  return serializer.serializeToString(svgNode);
 }
 
 export const SvgIcon = Vue.component('SvgIcon', {

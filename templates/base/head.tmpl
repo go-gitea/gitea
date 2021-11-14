@@ -46,11 +46,11 @@
 			]).values()),
 			{{end}}
 			mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
-		};
-
-		window.i18n = {
-			copied: '{{.i18n.Tr "repo.copied"}}',
-			copy_link_error: '{{.i18n.Tr "repo.copy_link_error"}}',
+			i18n: {
+				copy: '{{.i18n.Tr "copy"}}',
+				copy_success: '{{.i18n.Tr "copy_success"}}',
+				copy_error: '{{.i18n.Tr "copy_error"}}',
+			}
 		};
 	</script>
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
