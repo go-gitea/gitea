@@ -4,15 +4,15 @@
 		<div class="ui form">
 			<div class="field">
 				<label for="registry-input">{{svg "octicon-code"}} {{.i18n.Tr "packages.npm.registry" | Safe}}</label>
-				<input id="registry-input" type="text" readonly="readonly" value="{{.PackageDescriptor.Metadata.Scope}}:registry={{AppUrl}}api/v1/packages/{{.PackageDescriptor.Owner.Name}}/npm">
+				<input id="registry-input" type="text" readonly="readonly" value="{{if .PackageDescriptor.Metadata.Scope}}{{.PackageDescriptor.Metadata.Scope}}:{{end}}registry={{AppUrl}}api/v1/packages/{{.PackageDescriptor.Owner.Name}}/npm/">
 			</div>
 			<div class="field">
 				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.npm.install"}}</label>
 				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.PackageDescriptor.Package.Name}}@{{.PackageDescriptor.Version.Version}}">
 			</div>
 			<div class="field">
-				<label for="installation-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.npm.install2"}}</label>
-				<input id="installation-input" type="text" readonly="readonly" value="&quot;{{.PackageDescriptor.Package.Name}}&quot;: &quot;{{.PackageDescriptor.Version.Version}}&quot;">
+				<label for="installation2-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.npm.install2"}}</label>
+				<input id="installation2-input" type="text" readonly="readonly" value="&quot;{{.PackageDescriptor.Package.Name}}&quot;: &quot;{{.PackageDescriptor.Version.Version}}&quot;">
 			</div>
 			<div class="field">
 				<label>{{.i18n.Tr "packages.npm.documentation" | Safe}}</label>

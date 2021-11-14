@@ -1039,6 +1039,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, reqBasicAuth(), reqPackageAccess(models.AccessModeWrite))
 			})
 			m.Group("/npm", func() {
+				m.Group("/@{scope}/{id}", func() {
+					m.Get("", npm.PackageMetadata)
+					m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), npm.UploadPackage)
+					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				})
 				m.Group("/{id}", func() {
 					m.Get("", npm.PackageMetadata)
 					m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), npm.UploadPackage)

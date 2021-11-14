@@ -35,7 +35,7 @@ var (
 	ErrInvalidIntegrity = errors.New("Failed to validate integrity")
 )
 
-var nameMatch = regexp.MustCompile(`\A(@[^\/~'!\(\)\*]+?)[\/]([^_.][^\/~'!\(\)\*]+)\z`)
+var nameMatch = regexp.MustCompile(`\A((@[^\s\/~'!\(\)\*]+?)[\/])?([^_.][^\s\/~'!\(\)\*]+)\z`)
 
 // Package represents a npm package
 type Package struct {
@@ -153,17 +153,23 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		return nil, err
 	}
 
-	for key, meta := range upload.Versions {
+	for _, meta := range upload.Versions {
 		if !validateName(meta.Name) {
 			return nil, ErrInvalidPackageName
 		}
 
-		_, err := version.NewSemver(key)
+		v, err := version.NewSemver(meta.Version)
 		if err != nil {
 			return nil, ErrInvalidPackageVersion
 		}
 
+		scope := ""
+		name := meta.Name
 		nameParts := strings.SplitN(meta.Name, "/", 2)
+		if len(nameParts) == 2 {
+			scope = nameParts[0]
+			name = nameParts[1]
+		}
 
 		if !validation.IsValidURL(meta.Homepage) {
 			meta.Homepage = ""
@@ -171,10 +177,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 
 		p := &Package{
 			Name:    meta.Name,
-			Version: meta.Version,
+			Version: v.String(),
 			Metadata: Metadata{
-				Scope:                   nameParts[0],
-				Name:                    nameParts[1],
+				Scope:                   scope,
+				Name:                    name,
 				Description:             meta.Description,
 				Author:                  meta.Author.Name,
 				License:                 meta.License,
@@ -188,11 +194,6 @@ func ParsePackage(r io.Reader) (*Package, error) {
 			},
 		}
 
-		names := strings.SplitN(p.Name, "/", 2)
-		name := names[0]
-		if len(names) == 2 {
-			name = names[1]
-		}
 		p.Filename = strings.ToLower(fmt.Sprintf("%s-%s.tgz", name, p.Version))
 
 		attachment := func() *PackageAttachment {

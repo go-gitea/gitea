@@ -17,7 +17,9 @@ import (
 )
 
 func TestParsePackage(t *testing.T) {
-	packageName := "@scope/test-package"
+	packageScope := "@scope"
+	packageName := "test-package"
+	packageFullName := packageScope+"/"+packageName
 	packageVersion := "1.0.1-pre"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
@@ -57,20 +59,48 @@ func TestParsePackage(t *testing.T) {
 		}
 
 		test(t, " test ")
+		test(t, " test")
+		test(t, "test ")
+		test(t, "te st")
 		test(t, "invalid/scope")
 		test(t, "@invalid/_name")
 		test(t, "@invalid/.name")
+	})
+
+	t.Run("ValidPackageName", func(t *testing.T) {
+		test := func(t *testing.T, name string) {
+			b, _ := json.Marshal(packageUpload{
+				PackageMetadata: PackageMetadata{
+					ID:   name,
+					Name: name,
+					Versions: map[string]*PackageMetadataVersion{
+						packageVersion: {
+							Name: name,
+						},
+					},
+				},
+			})
+
+			p, err := ParsePackage(bytes.NewReader(b))
+			assert.Nil(t, p)
+			assert.ErrorIs(t, err, ErrInvalidPackageVersion)
+		}
+
+		test(t, "test")
+		test(t, "@scope/name")
+		test(t, packageFullName)
 	})
 
 	t.Run("InvalidPackageVersion", func(t *testing.T) {
 		version := "first-version"
 		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
-				ID:   packageName,
-				Name: packageName,
+				ID:   packageFullName,
+				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					version: {
-						Name: packageName,
+						Name: packageFullName,
+						Version: version,
 					},
 				},
 			},
@@ -84,11 +114,12 @@ func TestParsePackage(t *testing.T) {
 	t.Run("InvalidAttachment", func(t *testing.T) {
 		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
-				ID:   packageName,
-				Name: packageName,
+				ID:   packageFullName,
+				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageName,
+						Name: packageFullName,
+						Version: packageVersion,
 					},
 				},
 			},
@@ -103,14 +134,15 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidData", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
+		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
 		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
-				ID:   packageName,
-				Name: packageName,
+				ID:   packageFullName,
+				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageName,
+						Name: packageFullName,
+						Version: packageVersion,
 					},
 				},
 			},
@@ -127,14 +159,15 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidIntegrity", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
+		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
 		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
-				ID:   packageName,
-				Name: packageName,
+				ID:   packageFullName,
+				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageName,
+						Name: packageFullName,
+						Version: packageVersion,
 						Dist: PackageDistribution{
 							Integrity: "sha512-test==",
 						},
@@ -154,14 +187,15 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("InvalidIntegrity2", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
+		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
 		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
-				ID:   packageName,
-				Name: packageName,
+				ID:   packageFullName,
+				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageName,
+						Name: packageFullName,
+						Version: packageVersion,
 						Dist: PackageDistribution{
 							Integrity: integrity,
 						},
@@ -181,14 +215,14 @@ func TestParsePackage(t *testing.T) {
 	})
 
 	t.Run("Valid", func(t *testing.T) {
-		filename := fmt.Sprintf("%s-%s.tgz", packageName, packageVersion)
+		filename := fmt.Sprintf("%s-%s.tgz", packageFullName, packageVersion)
 		b, _ := json.Marshal(packageUpload{
 			PackageMetadata: PackageMetadata{
-				ID:   packageName,
-				Name: packageName,
+				ID:   packageFullName,
+				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name:        packageName,
+						Name:        packageFullName,
 						Version:     packageVersion,
 						Description: packageDescription,
 						Author:      User{Name: packageAuthor},
@@ -215,11 +249,13 @@ func TestParsePackage(t *testing.T) {
 		assert.NotNil(t, p)
 		assert.NoError(t, err)
 
-		assert.Equal(t, packageName, p.Name)
+		assert.Equal(t, packageFullName, p.Name)
 		assert.Equal(t, packageVersion, p.Version)
-		assert.Equal(t, fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion), p.Filename)
+		assert.Equal(t, fmt.Sprintf("%s-%s.tgz", strings.Split(packageFullName, "/")[1], packageVersion), p.Filename)
 		b, _ = base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, p.Data)
+		assert.Equal(t, packageName, p.Metadata.Name)
+		assert.Equal(t, packageScope, p.Metadata.Scope)
 		assert.Equal(t, packageDescription, p.Metadata.Description)
 		assert.Equal(t, packageDescription, p.Metadata.Readme)
 		assert.Equal(t, packageAuthor, p.Metadata.Author)

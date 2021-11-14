@@ -24,7 +24,7 @@ Publish [npm](https://www.npmjs.com/) packages for your user or organization.
 
 To work with the npm package registry, you need [Node.js and npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm/) or an other tool like [Yarn](https://classic.yarnpkg.com/en/docs/install).
 
-Only [scoped](https://docs.npmjs.com/misc/scope/) packages are supported.
+The registry supprots [scoped](https://docs.npmjs.com/misc/scope/) and unscoped packages.
 
 The following examples use the `npm` tool with the scope `@test`.
 
@@ -47,6 +47,13 @@ For example:
 
 ```shell
 npm config set @test:registry https://gitea.example.com/api/v1/packages/testuser/npm/
+npm config set -- '//gitea.example.com/api/v1/packages/testuser/npm/:_authToken' "personal_access_token"
+```
+
+or without scope:
+
+```shell
+npm config set registry https://gitea.example.com/api/v1/packages/testuser/npm/
 npm config set -- '//gitea.example.com/api/v1/packages/testuser/npm/:_authToken' "personal_access_token"
 ```
 

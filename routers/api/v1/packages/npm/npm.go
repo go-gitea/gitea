@@ -6,6 +6,7 @@ package npm
 
 import (
 	"bytes"
+	"fmt"
 	"net/http"
 	"net/url"
 
@@ -26,9 +27,20 @@ func apiError(ctx *context.APIContext, status int, obj interface{}) {
 	})
 }
 
+// packageNameFromParams gets the package name from the url parameters
+// Variations: /name/, /@scope/name/, /@scope%2Fname/
+func packageNameFromParams(ctx *context.APIContext) (string, error) {
+	scope := ctx.Params("scope")
+	id := ctx.Params("id")
+	if scope != "" {
+		return fmt.Sprintf("@%s/%s", scope, id), nil
+	}
+	return url.QueryUnescape(id)
+}
+
 // PackageMetadata returns the metadata for a single package
 func PackageMetadata(ctx *context.APIContext) {
-	packageName, err := url.QueryUnescape(ctx.Params("id"))
+	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return
@@ -60,7 +72,7 @@ func PackageMetadata(ctx *context.APIContext) {
 
 // DownloadPackageFile serves the content of a package
 func DownloadPackageFile(ctx *context.APIContext) {
-	packageName, err := url.QueryUnescape(ctx.Params("id"))
+	packageName, err := packageNameFromParams(ctx)
 	if err != nil {
 		apiError(ctx, http.StatusBadRequest, err)
 		return

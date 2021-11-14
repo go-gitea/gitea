@@ -91,6 +91,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 
 	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
 
+	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
