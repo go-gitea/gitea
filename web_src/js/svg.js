@@ -40,26 +40,14 @@ export const svgs = {
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
-const parsedSvgs = new Map();
 
-function getParsedSvg(name) {
-  if (parsedSvgs.has(name)) return parsedSvgs.get(name).cloneNode(true);
-  const root = parser.parseFromString(svgs[name], 'text/html');
-  const svgNode = root.querySelector('svg');
-  parsedSvgs.set(name, svgNode);
-  return svgNode;
-}
-
-function applyAttributes(node, size, className) {
+// returns a SVG node for given SVG icon name, size and additional classes
+export function svgNode(name, size = 16, className = '') {
+  const node = parser.parseFromString(svgs[name], 'text/html').querySelector('svg');
   if (size !== 16) node.setAttribute('width', String(size));
   if (size !== 16) node.setAttribute('height', String(size));
   if (className) node.classList.add(...className.split(/\s+/));
   return node;
-}
-
-// returns a SVG node for given SVG icon name, size and additional classes
-export function svgNode(name, size = 16, className = '') {
-  return applyAttributes(getParsedSvg(name), size, className);
 }
 
 // returns a HTML string for given SVG icon name, size and additional classes
