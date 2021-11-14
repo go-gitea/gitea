@@ -82,8 +82,8 @@ export function initStopwatch() {
   }
 
   const fn = (timeout) => {
-    setTimeout(async () => {
-      await updateStopwatchWithCallback(fn, timeout);
+    setTimeout(() => {
+      const _promise = updateStopwatchWithCallback(fn, timeout);
     }, timeout);
   };
 
@@ -122,7 +122,7 @@ async function updateStopwatch() {
   return updateStopwatchData(data);
 }
 
-async function updateStopwatchData(data) {
+function updateStopwatchData(data) {
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
@@ -135,14 +135,14 @@ async function updateStopwatchData(data) {
     $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
     $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
     $('.stopwatch-time').text(prettyMilliseconds(seconds * 1000));
-    await updateStopwatchTime(seconds);
+    updateStopwatchTime(seconds);
     btnEl.removeClass('hidden');
   }
 
   return !!data.length;
 }
 
-async function updateStopwatchTime(seconds) {
+function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
   if (!Number.isFinite(secs)) return;
 
