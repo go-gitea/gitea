@@ -1,5 +1,6 @@
 import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
+import octiconCopy from '../../public/img/svg/octicon-copy.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
 import octiconIssueClosed from '../../public/img/svg/octicon-issue-closed.svg';
@@ -20,6 +21,7 @@ import Vue from 'vue';
 export const svgs = {
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
+  'octicon-copy': octiconCopy,
   'octicon-git-merge': octiconGitMerge,
   'octicon-git-pull-request': octiconGitPullRequest,
   'octicon-issue-closed': octiconIssueClosed,
@@ -38,18 +40,33 @@ export const svgs = {
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
+const parsedSvgs = new Map();
 
-// retrieve a HTML string for given SVG icon name, size and additional classes
-export function svg(name, size = 16, className = '') {
+function getParsedSvg(name) {
+  if (parsedSvgs.has(name)) return parsedSvgs.get(name);
+  const root = parser.parseFromString(svgs[name], 'text/html');
+  const svgNode = root.querySelector('svg');
+  parsedSvgs.set(name, svgNode);
+  return svgNode;
+}
+
+function applyAttributes(node, size, className) {
+  if (size !== 16) node.setAttribute('width', String(size));
+  if (size !== 16) node.setAttribute('height', String(size));
+  if (className) node.classList.add(...className.split(/\s+/));
+  return node;
+}
+
+// returns a SVG node for given SVG icon name, size and additional classes
+export function svgNode(name, size = 16, className = '') {
+  return applyAttributes(getParsedSvg(name), size, className);
+}
+
+// returns a HTML string for given SVG icon name, size and additional classes
+export function svg(name, size, className) {
   if (!(name in svgs)) return '';
   if (size === 16 && !className) return svgs[name];
-
-  const document = parser.parseFromString(svgs[name], 'image/svg+xml');
-  const svgNode = document.firstChild;
-  if (size !== 16) svgNode.setAttribute('width', String(size));
-  if (size !== 16) svgNode.setAttribute('height', String(size));
-  if (className) svgNode.classList.add(...className.split(/\s+/));
-  return serializer.serializeToString(svgNode);
+  return serializer.serializeToString(svgNode(name, size, className));
 }
 
 export const SvgIcon = Vue.component('SvgIcon', {
