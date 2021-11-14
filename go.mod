@@ -32,8 +32,8 @@ require (
 	github.com/djherbis/nio/v3 v3.0.1
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.2
-	github.com/emersion/go-imap v1.0.6
-	github.com/emersion/go-message v0.13.0
+	github.com/emersion/go-imap v1.2.0
+	github.com/emersion/go-message v0.15.0
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v1.0.0
 	github.com/gliderlabs/ssh v0.3.3

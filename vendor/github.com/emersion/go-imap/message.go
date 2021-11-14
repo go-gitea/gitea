@@ -21,6 +21,10 @@ const (
 	RecentFlag   = "\\Recent"
 )
 
+// ImportantFlag is a message flag to signal that a message is likely important
+// to the user. This flag is defined in RFC 8457 section 2.
+const ImportantFlag = "$Important"
+
 // TryCreateFlag is a special flag in MailboxStatus.PermanentFlags indicating
 // that it is possible to create new keywords by attempting to store those
 // flags in the mailbox.

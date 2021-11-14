@@ -38,6 +38,41 @@ const (
 	UnmarkedAttr = "\\Unmarked"
 )
 
+// Mailbox attributes defined in RFC 6154 section 2 (SPECIAL-USE extension).
+const (
+	// This mailbox presents all messages in the user's message store.
+	AllAttr = "\\All"
+	// This mailbox is used to archive messages.
+	ArchiveAttr = "\\Archive"
+	// This mailbox is used to hold draft messages -- typically, messages that are
+	// being composed but have not yet been sent.
+	DraftsAttr = "\\Drafts"
+	// This mailbox presents all messages marked in some way as "important".
+	FlaggedAttr = "\\Flagged"
+	// This mailbox is where messages deemed to be junk mail are held.
+	JunkAttr = "\\Junk"
+	// This mailbox is used to hold copies of messages that have been sent.
+	SentAttr = "\\Sent"
+	// This mailbox is used to hold messages that have been deleted or marked for
+	// deletion.
+	TrashAttr = "\\Trash"
+)
+
+// Mailbox attributes defined in RFC 3348 (CHILDREN extension)
+const (
+	// The presence of this attribute indicates that the mailbox has child
+	// mailboxes.
+	HasChildrenAttr = "\\HasChildren"
+	// The presence of this attribute indicates that the mailbox has no child
+	// mailboxes.
+	HasNoChildrenAttr = "\\HasNoChildren"
+)
+
+// This mailbox attribute is a signal that the mailbox contains messages that
+// are likely important to the user. This attribute is defined in RFC 8457
+// section 3.
+const ImportantAttr = "\\Important"
+
 // Basic mailbox info.
 type MailboxInfo struct {
 	// The mailbox attributes.
@@ -186,6 +221,10 @@ type MailboxStatus struct {
 	// Together with a UID, it is a unique identifier for a message.
 	// Must be greater than or equal to 1.
 	UidValidity uint32
+
+	// Per-mailbox limit of message size. Set only if server supports the
+	// APPENDLIMIT extension.
+	AppendLimit uint32
 }
 
 // Create a new mailbox status that will contain the specified items.
@@ -228,6 +267,8 @@ func (status *MailboxStatus) Parse(fields []interface{}) error {
 				status.UidNext, err = ParseNumber(f)
 			case StatusUidValidity:
 				status.UidValidity, err = ParseNumber(f)
+			case StatusAppendLimit:
+				status.AppendLimit, err = ParseNumber(f)
 			default:
 				status.Items[k] = f
 			}
@@ -255,6 +296,8 @@ func (status *MailboxStatus) Format() []interface{} {
 			v = status.UidNext
 		case StatusUidValidity:
 			v = status.UidValidity
+		case StatusAppendLimit:
+			v = status.AppendLimit
 		}
 
 		fields = append(fields, RawString(k), v)

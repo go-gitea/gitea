@@ -2,7 +2,9 @@ package message
 
 import (
 	"bufio"
+	"errors"
 	"io"
+	"math"
 	"strings"
 
 	"github.com/emersion/go-message/textproto"
@@ -77,6 +79,28 @@ func NewMultipart(header Header, parts []*Entity) (*Entity, error) {
 	return New(header, r)
 }
 
+const maxHeaderBytes = 1 << 20 // 1 MB
+
+var errHeaderTooBig = errors.New("message: header exceeds maximum size")
+
+// limitedReader is the same as io.LimitedReader, but returns a custom error.
+type limitedReader struct {
+	R io.Reader
+	N int64
+}
+
+func (lr *limitedReader) Read(p []byte) (int, error) {
+	if lr.N <= 0 {
+		return 0, errHeaderTooBig
+	}
+	if int64(len(p)) > lr.N {
+		p = p[0:lr.N]
+	}
+	n, err := lr.R.Read(p)
+	lr.N -= int64(n)
+	return n, err
+}
+
 // Read reads a message from r. The message's encoding and charset are
 // automatically decoded to raw UTF-8. Note that this function only reads the
 // message header.
@@ -85,11 +109,15 @@ func NewMultipart(header Header, parts []*Entity) (*Entity, error) {
 // error that verifies IsUnknownCharset or IsUnknownEncoding, but also returns
 // an Entity that can be read.
 func Read(r io.Reader) (*Entity, error) {
-	br := bufio.NewReader(r)
+	lr := &limitedReader{R: r, N: maxHeaderBytes}
+	br := bufio.NewReader(lr)
+
 	h, err := textproto.ReadHeader(br)
 	if err != nil {
 		return nil, err
 	}
+
+	lr.N = math.MaxInt64
 
 	return New(Header{h}, br)
 }
@@ -126,4 +154,71 @@ func (e *Entity) WriteTo(w io.Writer) error {
 	defer ew.Close()
 
 	return e.writeBodyTo(ew)
+}
+
+// WalkFunc is the type of the function called for each part visited by Walk.
+//
+// The path argument is a list of multipart indices leading to the part. The
+// root part has a nil path.
+//
+// If there was an encoding error walking to a part, the incoming error will
+// describe the problem and the function can decide how to handle that error.
+//
+// Unlike IMAP part paths, indices start from 0 (instead of 1) and a
+// non-multipart message has a nil path (instead of {1}).
+//
+// If an error is returned, processing stops.
+type WalkFunc func(path []int, entity *Entity, err error) error
+
+// Walk walks the entity's multipart tree, calling walkFunc for each part in
+// the tree, including the root entity.
+//
+// Walk consumes the entity.
+func (e *Entity) Walk(walkFunc WalkFunc) error {
+	var multipartReaders []MultipartReader
+	var path []int
+	part := e
+	for {
+		var err error
+		if part == nil {
+			if len(multipartReaders) == 0 {
+				break
+			}
+
+			// Get the next part from the last multipart reader
+			mr := multipartReaders[len(multipartReaders)-1]
+			part, err = mr.NextPart()
+			if err == io.EOF {
+				multipartReaders = multipartReaders[:len(multipartReaders)-1]
+				path = path[:len(path)-1]
+				continue
+			} else if IsUnknownEncoding(err) || IsUnknownCharset(err) {
+				// Forward the error to walkFunc
+			} else if err != nil {
+				return err
+			}
+
+			path[len(path)-1]++
+		}
+
+		// Copy the path since we'll mutate it on the next iteration
+		var pathCopy []int
+		if len(path) > 0 {
+			pathCopy = make([]int, len(path))
+			copy(pathCopy, path)
+		}
+
+		if err := walkFunc(pathCopy, part, err); err != nil {
+			return err
+		}
+
+		if mr := part.MultipartReader(); mr != nil {
+			multipartReaders = append(multipartReaders, mr)
+			path = append(path, -1)
+		}
+
+		part = nil
+	}
+
+	return nil
 }

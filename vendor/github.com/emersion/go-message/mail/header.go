@@ -1,20 +1,18 @@
 package mail
 
 import (
-	"bytes"
 	"crypto/rand"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"net/mail"
 	"os"
-	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/emersion/go-message"
-	"github.com/martinlindhe/base36"
 )
 
 const dateLayout = "Mon, 02 Jan 2006 15:04:05 -0700"
@@ -213,14 +211,19 @@ func (p *headerParser) parseMsgID() (string, error) {
 	return left + "@" + right, nil
 }
 
-// TODO: this is a blunt way to strip any trailing CFWS (comment). A sharper
-// one would strip multiple CFWS, and only if really valid according to
-// RFC 5322.
-var commentRE = regexp.MustCompile(`[ \t]+\(.*\)$`)
-
 // A Header is a mail header.
 type Header struct {
 	message.Header
+}
+
+// HeaderFromMap creates a header from a map of header fields.
+//
+// This function is provided for interoperability with the standard library.
+// If possible, ReadHeader should be used instead to avoid loosing information.
+// The map representation looses the ordering of the fields, the capitalization
+// of the header keys, and the whitespace of the original header.
+func HeaderFromMap(m map[string][]string) Header {
+	return Header{message.HeaderFromMap(m)}
 }
 
 // AddressList parses the named header field as a list of addresses. If the
@@ -232,7 +235,7 @@ func (h *Header) AddressList(key string) ([]*Address, error) {
 	if v == "" {
 		return nil, nil
 	}
-	return parseAddressList(v)
+	return ParseAddressList(v)
 }
 
 // SetAddressList formats the named header field to the provided list of
@@ -245,10 +248,7 @@ func (h *Header) SetAddressList(key string, addrs []*Address) {
 
 // Date parses the Date header field.
 func (h *Header) Date() (time.Time, error) {
-	// TODO: remove this once https://go-review.googlesource.com/c/go/+/117596/
-	// is released (Go 1.14)
-	date := commentRE.ReplaceAllString(h.Get("Date"), "")
-	return mail.ParseDate(date)
+	return mail.ParseDate(h.Get("Date"))
 }
 
 // SetDate formats the Date header field.
@@ -308,22 +308,32 @@ func (h *Header) MsgIDList(key string) ([]string, error) {
 // informational draft "Recommendations for generating Message IDs", for lack
 // of a better authoritative source.
 func (h *Header) GenerateMessageID() error {
-	now := bytes.NewBuffer(make([]byte, 0, 8))
-	binary.Write(now, binary.BigEndian, time.Now().UnixNano())
+	now := uint64(time.Now().UnixNano())
 
-	nonce := make([]byte, 8)
-	if _, err := rand.Read(nonce); err != nil {
+	nonceByte := make([]byte, 8)
+	if _, err := rand.Read(nonceByte); err != nil {
 		return err
 	}
+	nonce := binary.BigEndian.Uint64(nonceByte)
 
 	hostname, err := os.Hostname()
 	if err != nil {
 		return err
 	}
 
-	msgID := fmt.Sprintf("<%s.%s@%s>", base36.EncodeBytes(now.Bytes()), base36.EncodeBytes(nonce), hostname)
-	h.Set("Message-Id", msgID)
+	msgID := fmt.Sprintf("%s.%s@%s", base36(now), base36(nonce), hostname)
+	h.SetMessageID(msgID)
 	return nil
+}
+
+func base36(input uint64) string {
+	return strings.ToUpper(strconv.FormatUint(input, 36))
+}
+
+// SetMessageID sets the Message-ID field. id is the message identifier,
+// without the angle brackets.
+func (h *Header) SetMessageID(id string) {
+	h.Set("Message-Id", "<"+id+">")
 }
 
 // SetMsgIDList formats a list of message identifiers. Message identifiers
@@ -336,4 +346,9 @@ func (h *Header) SetMsgIDList(key string, l []string) {
 		v = "<" + strings.Join(l, "> <") + ">"
 	}
 	h.Set(key, v)
+}
+
+// Copy creates a stand-alone copy of the header.
+func (h *Header) Copy() Header {
+	return Header{h.Header.Copy()}
 }

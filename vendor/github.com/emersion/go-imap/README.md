@@ -1,19 +1,14 @@
 # go-imap
 
-[![GoDoc](https://godoc.org/github.com/emersion/go-imap?status.svg)](https://godoc.org/github.com/emersion/go-imap)
+[![godocs.io](https://godocs.io/github.com/emersion/go-imap?status.svg)](https://godocs.io/github.com/emersion/go-imap)
 [![builds.sr.ht status](https://builds.sr.ht/~emersion/go-imap/commits.svg)](https://builds.sr.ht/~emersion/go-imap/commits?)
-[![Codecov](https://codecov.io/gh/emersion/go-imap/branch/master/graph/badge.svg)](https://codecov.io/gh/emersion/go-imap)
 
 An [IMAP4rev1](https://tools.ietf.org/html/rfc3501) library written in Go. It
 can be used to build a client and/or a server.
 
-```shell
-go get github.com/emersion/go-imap/...
-```
-
 ## Usage
 
-### Client [![GoDoc](https://godoc.org/github.com/emersion/go-imap/client?status.svg)](https://godoc.org/github.com/emersion/go-imap/client)
+### Client [![godocs.io](https://godocs.io/github.com/emersion/go-imap/client?status.svg)](https://godocs.io/github.com/emersion/go-imap/client)
 
 ```go
 package main
@@ -71,7 +66,7 @@ func main() {
 	from := uint32(1)
 	to := mbox.Messages
 	if mbox.Messages > 3 {
-		// We're using unsigned integers here, only substract if the result is > 0
+		// We're using unsigned integers here, only subtract if the result is > 0
 		from = mbox.Messages - 3
 	}
 	seqset := new(imap.SeqSet)
@@ -96,7 +91,7 @@ func main() {
 }
 ```
 
-### Server [![GoDoc](https://godoc.org/github.com/emersion/go-imap/server?status.svg)](https://godoc.org/github.com/emersion/go-imap/server)
+### Server [![godocs.io](https://godocs.io/github.com/emersion/go-imap/server?status.svg)](https://godocs.io/github.com/emersion/go-imap/server)
 
 ```go
 package main
@@ -128,6 +123,24 @@ func main() {
 
 You can now use `telnet localhost 1143` to manually connect to the server.
 
+## Extensions
+
+Support for several IMAP extensions is included in go-imap itself. This
+includes:
+
+* [APPENDLIMIT](https://tools.ietf.org/html/rfc7889)
+* [CHILDREN](https://tools.ietf.org/html/rfc3348)
+* [ENABLE](https://tools.ietf.org/html/rfc5161)
+* [IDLE](https://tools.ietf.org/html/rfc2177)
+* [IMPORTANT](https://tools.ietf.org/html/rfc8457)
+* [LITERAL+](https://tools.ietf.org/html/rfc7888)
+* [MOVE](https://tools.ietf.org/html/rfc6851)
+* [SASL-IR](https://tools.ietf.org/html/rfc4959)
+* [SPECIAL-USE](https://tools.ietf.org/html/rfc6154)
+* [UNSELECT](https://tools.ietf.org/html/rfc3691)
+
+Support for other extensions is provided via separate packages. See below.
+
 ## Extending go-imap
 
 ### Extensions
@@ -136,18 +149,12 @@ Commands defined in IMAP extensions are available in other packages. See [the
 wiki](https://github.com/emersion/go-imap/wiki/Using-extensions#using-client-extensions)
 to learn how to use them.
 
-* [APPENDLIMIT](https://github.com/emersion/go-imap-appendlimit)
 * [COMPRESS](https://github.com/emersion/go-imap-compress)
-* [ENABLE](https://github.com/emersion/go-imap-enable)
 * [ID](https://github.com/ProtonMail/go-imap-id)
-* [IDLE](https://github.com/emersion/go-imap-idle)
 * [METADATA](https://github.com/emersion/go-imap-metadata)
-* [MOVE](https://github.com/emersion/go-imap-move)
 * [NAMESPACE](https://github.com/foxcpp/go-imap-namespace)
 * [QUOTA](https://github.com/emersion/go-imap-quota)
 * [SORT and THREAD](https://github.com/emersion/go-imap-sortthread)
-* [SPECIAL-USE](https://github.com/emersion/go-imap-specialuse)
-* [UNSELECT](https://github.com/emersion/go-imap-unselect)
 * [UIDPLUS](https://github.com/emersion/go-imap-uidplus)
 
 ### Server backends

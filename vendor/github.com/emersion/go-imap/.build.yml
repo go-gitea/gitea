@@ -1,19 +1,17 @@
 image: alpine/edge
 packages:
   - go
-  # Required by codecov
-  - bash
-  - findutils
 sources:
   - https://github.com/emersion/go-imap
+artifacts:
+  - coverage.html
 tasks:
   - build: |
       cd go-imap
-      go build -v ./...
+      go build -race -v ./...
   - test: |
       cd go-imap
       go test -coverprofile=coverage.txt -covermode=atomic ./...
-  - upload-coverage: |
+  - coverage: |
       cd go-imap
-      export CODECOV_TOKEN=8c0f7014-fcfa-4ed9-8972-542eb5958fb3
-      curl -s https://codecov.io/bash | bash
+      go tool cover -html=coverage.txt -o ~/coverage.html

@@ -1,0 +1,19 @@
+image: alpine/latest
+packages:
+  - go
+  # Required by codecov
+  - bash
+  - findutils
+sources:
+  - https://github.com/emersion/go-sasl
+tasks:
+  - build: |
+      cd go-sasl
+      go build -v ./...
+  - test: |
+      cd go-sasl
+      go test -coverprofile=coverage.txt -covermode=atomic ./...
+  - upload-coverage: |
+      cd go-sasl
+      export CODECOV_TOKEN=3f257f71-a128-4834-8f68-2b534e9f4cb1
+      curl -s https://codecov.io/bash | bash

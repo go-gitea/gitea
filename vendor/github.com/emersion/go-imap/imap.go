@@ -17,6 +17,8 @@ const (
 	StatusUidNext     StatusItem = "UIDNEXT"
 	StatusUidValidity StatusItem = "UIDVALIDITY"
 	StatusUnseen      StatusItem = "UNSEEN"
+
+	StatusAppendLimit StatusItem = "APPENDLIMIT"
 )
 
 // A FetchItem is a message data item that can be fetched.

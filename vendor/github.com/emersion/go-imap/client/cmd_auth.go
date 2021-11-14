@@ -233,7 +233,7 @@ func (c *Client) Status(name string, items []imap.StatusItem) (*imap.MailboxStat
 // Append appends the literal argument as a new message to the end of the
 // specified destination mailbox. This argument SHOULD be in the format of an
 // RFC 2822 message. flags and date are optional arguments and can be set to
-// nil.
+// nil and the empty struct.
 func (c *Client) Append(mbox string, flags []string, date time.Time, msg imap.Literal) error {
 	if err := c.ensureAuthenticated(); err != nil {
 		return err
@@ -251,4 +251,130 @@ func (c *Client) Append(mbox string, flags []string, date time.Time, msg imap.Li
 		return err
 	}
 	return status.Err()
+}
+
+// Enable requests the server to enable the named extensions. The extensions
+// which were successfully enabled are returned.
+//
+// See RFC 5161 section 3.1.
+func (c *Client) Enable(caps []string) ([]string, error) {
+	if ok, err := c.Support("ENABLE"); !ok || err != nil {
+		return nil, ErrExtensionUnsupported
+	}
+
+	// ENABLE is invalid if a mailbox has been selected.
+	if c.State() != imap.AuthenticatedState {
+		return nil, ErrNotLoggedIn
+	}
+
+	cmd := &commands.Enable{Caps: caps}
+	res := &responses.Enabled{}
+
+	if status, err := c.Execute(cmd, res); err != nil {
+		return nil, err
+	} else {
+		return res.Caps, status.Err()
+	}
+}
+
+func (c *Client) idle(stop <-chan struct{}) error {
+	cmd := &commands.Idle{}
+
+	res := &responses.Idle{
+		Stop:      stop,
+		RepliesCh: make(chan []byte, 10),
+	}
+
+	if status, err := c.Execute(cmd, res); err != nil {
+		return err
+	} else {
+		return status.Err()
+	}
+}
+
+// IdleOptions holds options for Client.Idle.
+type IdleOptions struct {
+	// LogoutTimeout is used to avoid being logged out by the server when
+	// idling. Each LogoutTimeout, the IDLE command is restarted. If set to
+	// zero, a default is used. If negative, this behavior is disabled.
+	LogoutTimeout time.Duration
+	// Poll interval when the server doesn't support IDLE. If zero, a default
+	// is used. If negative, polling is always disabled.
+	PollInterval time.Duration
+}
+
+// Idle indicates to the server that the client is ready to receive unsolicited
+// mailbox update messages. When the client wants to send commands again, it
+// must first close stop.
+//
+// If the server doesn't support IDLE, go-imap falls back to polling.
+func (c *Client) Idle(stop <-chan struct{}, opts *IdleOptions) error {
+	if ok, err := c.Support("IDLE"); err != nil {
+		return err
+	} else if !ok {
+		return c.idleFallback(stop, opts)
+	}
+
+	logoutTimeout := 25 * time.Minute
+	if opts != nil {
+		if opts.LogoutTimeout > 0 {
+			logoutTimeout = opts.LogoutTimeout
+		} else if opts.LogoutTimeout < 0 {
+			return c.idle(stop)
+		}
+	}
+
+	t := time.NewTicker(logoutTimeout)
+	defer t.Stop()
+
+	for {
+		stopOrRestart := make(chan struct{})
+		done := make(chan error, 1)
+		go func() {
+			done <- c.idle(stopOrRestart)
+		}()
+
+		select {
+		case <-t.C:
+			close(stopOrRestart)
+			if err := <-done; err != nil {
+				return err
+			}
+		case <-stop:
+			close(stopOrRestart)
+			return <-done
+		case err := <-done:
+			close(stopOrRestart)
+			if err != nil {
+				return err
+			}
+		}
+	}
+}
+
+func (c *Client) idleFallback(stop <-chan struct{}, opts *IdleOptions) error {
+	pollInterval := time.Minute
+	if opts != nil {
+		if opts.PollInterval > 0 {
+			pollInterval = opts.PollInterval
+		} else if opts.PollInterval < 0 {
+			return ErrExtensionUnsupported
+		}
+	}
+
+	t := time.NewTicker(pollInterval)
+	defer t.Stop()
+
+	for {
+		select {
+		case <-t.C:
+			if err := c.Noop(); err != nil {
+				return err
+			}
+		case <-stop:
+			return nil
+		case <-c.LoggedOut():
+			return errors.New("disconnected while idling")
+		}
+	}
 }

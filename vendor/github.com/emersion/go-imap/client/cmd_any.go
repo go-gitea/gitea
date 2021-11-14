@@ -49,6 +49,7 @@ func (c *Client) Support(cap string) (bool, error) {
 	c.locker.Lock()
 	supported := c.caps[cap]
 	c.locker.Unlock()
+
 	return supported, nil
 }
 

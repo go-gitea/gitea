@@ -9,33 +9,9 @@ import (
 )
 
 // Address represents a single mail address.
-type Address mail.Address
-
-// String formats the address as a valid RFC 5322 address. If the address's name
-// contains non-ASCII characters the name will be rendered according to
-// RFC 2047.
-//
-// Don't use this function to set a message header field, instead use
-// Header.SetAddressList.
-func (a *Address) String() string {
-	return ((*mail.Address)(a)).String()
-}
-
-func parseAddressList(s string) ([]*Address, error) {
-	parser := mail.AddressParser{
-		&mime.WordDecoder{message.CharsetReader},
-	}
-	list, err := parser.ParseList(s)
-	if err != nil {
-		return nil, err
-	}
-
-	addrs := make([]*Address, len(list))
-	for i, a := range list {
-		addrs[i] = (*Address)(a)
-	}
-	return addrs, nil
-}
+// The type alias ensures that a net/mail.Address can be used wherever an
+// Address is expected
+type Address = mail.Address
 
 func formatAddressList(l []*Address) string {
 	formatted := make([]string, len(l))
@@ -43,4 +19,24 @@ func formatAddressList(l []*Address) string {
 		formatted[i] = a.String()
 	}
 	return strings.Join(formatted, ", ")
+}
+
+// ParseAddress parses a single RFC 5322 address, e.g. "Barry Gibbs <bg@example.com>"
+// Use this function only if you parse from a string, if you have a Header use
+// Header.AddressList instead
+func ParseAddress(address string) (*Address, error) {
+	parser := mail.AddressParser{
+		&mime.WordDecoder{message.CharsetReader},
+	}
+	return parser.Parse(address)
+}
+
+// ParseAddressList parses the given string as a list of addresses.
+// Use this function only if you parse from a string, if you have a Header use
+// Header.AddressList instead
+func ParseAddressList(list string) ([]*Address, error) {
+	parser := mail.AddressParser{
+		&mime.WordDecoder{message.CharsetReader},
+	}
+	return parser.ParseList(list)
 }

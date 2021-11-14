@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/textproto"
+	"sort"
 	"strings"
 )
 
@@ -74,10 +75,28 @@ func newHeader(fs []*headerField) Header {
 		fs[i], fs[opp] = fs[opp], fs[i]
 	}
 
-	// Populate map
-	m := makeHeaderMap(fs)
+	return Header{l: fs, m: makeHeaderMap(fs)}
+}
 
-	return Header{l: fs, m: m}
+// HeaderFromMap creates a header from a map of header fields.
+//
+// This function is provided for interoperability with the standard library.
+// If possible, ReadHeader should be used instead to avoid loosing information.
+// The map representation looses the ordering of the fields, the capitalization
+// of the header keys, and the whitespace of the original header.
+func HeaderFromMap(m map[string][]string) Header {
+	fs := make([]*headerField, 0, len(m))
+	for k, vs := range m {
+		for _, v := range vs {
+			fs = append(fs, newHeaderField(k, v, nil))
+		}
+	}
+
+	sort.SliceStable(fs, func(i, j int) bool {
+		return fs[i].k < fs[j].k
+	})
+
+	return newHeader(fs)
 }
 
 // AddRaw adds the raw key, value pair to the header.
@@ -110,7 +129,7 @@ func (h *Header) AddRaw(kv []byte) {
 // fields associated with key.
 //
 // Key and value should obey character requirements of RFC 6532.
-// If you need to format/fold lines manually, use AddRaw
+// If you need to format or fold lines manually, use AddRaw.
 func (h *Header) Add(k, v string) {
 	k = textproto.CanonicalMIMEHeaderKey(k)
 
@@ -141,13 +160,30 @@ func (h *Header) Get(k string) string {
 // The returned slice should not be modified and becomes invalid when the
 // header is updated.
 //
-// Error is returned if header contains incorrect characters (RFC 6532)
+// An error is returned if the header field contains incorrect characters (see
+// RFC 6532).
 func (h *Header) Raw(k string) ([]byte, error) {
 	fields := h.m[textproto.CanonicalMIMEHeaderKey(k)]
 	if len(fields) == 0 {
 		return nil, nil
 	}
 	return fields[len(fields)-1].raw()
+}
+
+// Values returns all values associated with the given key.
+//
+// The returned slice should not be modified and becomes invalid when the
+// header is updated.
+func (h *Header) Values(k string) []string {
+	fields := h.m[textproto.CanonicalMIMEHeaderKey(k)]
+	if len(fields) == 0 {
+		return nil
+	}
+	l := make([]string, len(fields))
+	for i, field := range fields {
+		l[len(fields)-i-1] = field.v
+	}
+	return l
 }
 
 // Set sets the header fields associated with key to the single field value.
@@ -188,6 +224,21 @@ func (h *Header) Copy() Header {
 // Len returns the number of fields in the header.
 func (h *Header) Len() int {
 	return len(h.l)
+}
+
+// Map returns all header fields as a map.
+//
+// This function is provided for interoperability with the standard library.
+// If possible, Fields should be used instead to avoid loosing information.
+// The map representation looses the ordering of the fields, the capitalization
+// of the header keys, and the whitespace of the original header.
+func (h *Header) Map() map[string][]string {
+	m := make(map[string][]string, h.Len())
+	fields := h.Fields()
+	for fields.Next() {
+		m[fields.Key()] = append(m[fields.Key()], fields.Value())
+	}
+	return m
 }
 
 // HeaderFields iterates over header fields. Its cursor starts before the first
@@ -351,27 +402,12 @@ func (h *Header) FieldsByKey(k string) HeaderFields {
 	return &headerFieldsByKey{h, textproto.CanonicalMIMEHeaderKey(k), -1}
 }
 
-// TooBigError is returned by ReadHeader if one of header components are larger
-// than allowed.
-type TooBigError struct {
-	desc string
-}
-
-func (err TooBigError) Error() string {
-	return "textproto: length limit exceeded: " + err.desc
-}
-
 func readLineSlice(r *bufio.Reader, line []byte) ([]byte, error) {
 	for {
 		l, more, err := r.ReadLine()
-		if err != nil {
-			return nil, err
-		}
-
 		line = append(line, l...)
-
-		if len(line) > maxLineOctets {
-			return nil, TooBigError{"line"}
+		if err != nil {
+			return line, err
 		}
 
 		if !more {
@@ -414,21 +450,19 @@ func hasContinuationLine(r *bufio.Reader) bool {
 	return isSpace(c)
 }
 
-func readContinuedLineSlice(r *bufio.Reader, maxLines int) (int, []byte, error) {
+func readContinuedLineSlice(r *bufio.Reader) ([]byte, error) {
 	// Read the first line. We preallocate slice that it enough
 	// for most fields.
 	line, err := readLineSlice(r, make([]byte, 0, 256))
-	if err != nil {
-		return 0, nil, err
-	}
-
-	maxLines--
-	if maxLines <= 0 {
-		return 0, nil, TooBigError{"lines"}
+	if err == io.EOF && len(line) == 0 {
+		// Header without a body
+		return nil, nil
+	} else if err != nil {
+		return nil, err
 	}
 
 	if len(line) == 0 { // blank line - no continuation
-		return maxLines, line, nil
+		return line, nil
 	}
 
 	line = append(line, '\r', '\n')
@@ -440,15 +474,10 @@ func readContinuedLineSlice(r *bufio.Reader, maxLines int) (int, []byte, error) 
 			break // bufio will keep err until next read.
 		}
 
-		maxLines--
-		if maxLines <= 0 {
-			return 0, nil, TooBigError{"lines"}
-		}
-
 		line = append(line, '\r', '\n')
 	}
 
-	return maxLines, line, nil
+	return line, nil
 }
 
 func writeContinued(b *strings.Builder, l []byte) {
@@ -483,13 +512,12 @@ func trimAroundNewlines(v []byte) string {
 	return b.String()
 }
 
-const (
-	maxHeaderLines = 1000
-	maxLineOctets  = 4000
-)
-
 // ReadHeader reads a MIME header from r. The header is a sequence of possibly
-// continued Key: Value lines ending in a blank line.
+// continued "Key: Value" lines ending in a blank line.
+//
+// To avoid denial of service attacks, the provided bufio.Reader should be
+// reading from an io.LimitedReader or a similar Reader to bound the size of
+// headers.
 func ReadHeader(r *bufio.Reader) (Header, error) {
 	fs := make([]*headerField, 0, 32)
 
@@ -503,18 +531,9 @@ func ReadHeader(r *bufio.Reader) (Header, error) {
 		return newHeader(fs), fmt.Errorf("message: malformed MIME header initial line: %v", string(line))
 	}
 
-	maxLines := maxHeaderLines
-
 	for {
-		var (
-			kv  []byte
-			err error
-		)
-		maxLines, kv, err = readContinuedLineSlice(r, maxLines)
+		kv, err := readContinuedLineSlice(r)
 		if len(kv) == 0 {
-			if err == io.EOF {
-				err = nil
-			}
 			return newHeader(fs), err
 		}
 

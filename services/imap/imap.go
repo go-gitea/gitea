@@ -20,14 +20,9 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message"
-	"github.com/emersion/go-message/charset"
+	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
-	"golang.org/x/text/encoding/simplifiedchinese"
 )
-
-func init() {
-	charset.RegisterEncoding("gb18030", simplifiedchinese.GB18030)
-}
 
 // Client is an imap client
 type Client struct {
