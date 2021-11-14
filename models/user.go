@@ -513,20 +513,6 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return isOwner
 }
 
-// HasMemberWithUserID returns true if user with userID is part of the u organisation.
-func (u *User) HasMemberWithUserID(userID int64) bool {
-	return u.hasMemberWithUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-func (u *User) hasMemberWithUserID(e db.Engine, userID int64) bool {
-	isMember, err := isOrganizationMember(e, u.ID, userID)
-	if err != nil {
-		log.Error("IsOrganizationMember: %v", err)
-		return false
-	}
-	return isMember
-}
-
 // IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
 	isMember, err := IsPublicMembership(orgID, u.ID)

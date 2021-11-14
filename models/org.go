@@ -87,6 +87,20 @@ func (org *Organization) GetMembers() (UserList, map[int64]bool, error) {
 	})
 }
 
+// HasMemberWithUserID returns true if user with userID is part of the u organisation.
+func (org *Organization) HasMemberWithUserID(userID int64) bool {
+	return org.hasMemberWithUserID(db.GetEngine(db.DefaultContext), userID)
+}
+
+func (org *Organization) hasMemberWithUserID(e db.Engine, userID int64) bool {
+	isMember, err := isOrganizationMember(e, org.ID, userID)
+	if err != nil {
+		log.Error("IsOrganizationMember: %v", err)
+		return false
+	}
+	return isMember
+}
+
 // AvatarLink returns the full avatar link with http host
 func (org *Organization) AvatarLink() string {
 	return org.AsUser().AvatarLink()
@@ -95,6 +109,11 @@ func (org *Organization) AvatarLink() string {
 // HTMLURL returns the organization's full link.
 func (org *Organization) HTMLURL() string {
 	return org.AsUser().HTMLURL()
+}
+
+// OrganisationLink returns the organization sub page link.
+func (org *Organization) OrganisationLink() string {
+	return org.AsUser().OrganisationLink()
 }
 
 // FindOrgMembersOpts represensts find org members conditions
@@ -512,7 +531,7 @@ func hasOrgOrUserVisible(e db.Engine, orgOrUser, user *User) bool {
 		return true
 	}
 
-	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !orgOrUser.hasMemberWithUserID(e, user.ID) {
+	if (orgOrUser.Visibility == structs.VisibleTypePrivate || user.IsRestricted) && !OrgFromUser(orgOrUser).hasMemberWithUserID(e, user.ID) {
 		return false
 	}
 	return true
