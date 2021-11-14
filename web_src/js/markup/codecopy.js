@@ -1,7 +1,6 @@
 import {svgNode} from '../svg.js';
 const {copied, copy_link_error} = window.i18n;
 
-// els refers to the code elements
 export function renderCodeCopy() {
   const els = document.querySelectorAll('.markup .code-block code');
   if (!els?.length) return;
