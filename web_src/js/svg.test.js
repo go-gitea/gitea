@@ -13,4 +13,6 @@ test('svgNode', () => {
   expect(node1.getAttribute('width')).toEqual('16');
   expect(node2.getAttribute('width')).toEqual('32');
   expect(node1).not.toEqual(node2);
+  expect(node1.childNodes.length).toBeGreaterThan(0);
+  expect(node2.childNodes.length).toBeGreaterThan(0);
 });
