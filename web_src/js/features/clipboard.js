@@ -3,14 +3,14 @@
 function onSuccess(btn) {
   $(btn).popup('destroy');
   const oldContent = btn.dataset.content;
-  btn.dataset.content = btn.dataset.success;
+  btn.dataset.content = btn.dataset.success || '';
   $(btn).popup('show');
   btn.dataset.content = oldContent || '';
 }
 function onError(btn) {
   const oldContent = btn.dataset.content;
   $(btn).popup('destroy');
-  btn.dataset.content = btn.dataset.error;
+  btn.dataset.content = btn.dataset.error || '';
   $(btn).popup('show');
   btn.dataset.content = oldContent || '';
 }
