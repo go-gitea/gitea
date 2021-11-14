@@ -81,7 +81,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	assert.Equal(t, "Re: ", subject[0][:4], "Comment reply subject should contain Re:")
 	assert.Equal(t, "Re: [user2/repo1] @user2 #1 - issue1", subject[0])
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", inReplyTo[0], "In-Reply-To header doesn't match")
-	assert.Equal(t, "<user2/repo1/issues/1@localhost>", references[0], "References header doesn't match")
+	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", references[0], "References header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1/comment/2@localhost>", messageID[0], "Message-ID header doesn't match")
 }
 
@@ -102,12 +102,10 @@ func TestComposeIssueMessage(t *testing.T) {
 	mailto := gomailMsg.GetHeader("To")
 	subject := gomailMsg.GetHeader("Subject")
 	messageID := gomailMsg.GetHeader("Message-ID")
-	inReplyTo := gomailMsg.GetHeader("In-Reply-To")
 	references := gomailMsg.GetHeader("References")
 
 	assert.Len(t, mailto, 1, "exactly one recipient is expected in the To field")
 	assert.Equal(t, "[user2/repo1] @user2 #1 - issue1", subject[0])
-	assert.Equal(t, "<user2/repo1/issues/1@localhost>", inReplyTo[0], "In-Reply-To header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", references[0], "References header doesn't match")
 	assert.Equal(t, "<user2/repo1/issues/1@localhost>", messageID[0], "Message-ID header doesn't match")
 }

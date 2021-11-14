@@ -57,6 +57,44 @@ func NewContext() {
 	go graceful.GetManager().RunWithShutdownFns(mailReadQueue.Run)
 }
 
+type msgIDStruct struct {
+	RepoOwner  string
+	RepoName   string
+	IssueIndex int64
+	CheckKey   string
+}
+
+func loadMsgIDFromURL(url string) *msgIDStruct {
+	// format:
+	// issue: {repo_owner}/{repo_name}/[pulls/issues]/{issue_index}/{check_key}
+	// comment: {repo_owner}/{repo_name}/[pulls/issues]/{issue_index}/comment/{comment_id}/{check_key}
+
+	splitLink := strings.Split(url, "/")
+	if len(splitLink) != 5 && len(splitLink) != 7 {
+		return nil
+	}
+
+	if splitLink[2] != "pulls" && splitLink[2] != "issues" {
+		return nil
+	}
+
+	if len(splitLink) == 7 && splitLink[4] != "comment" {
+		return nil
+	}
+
+	issueIndex, err := strconv.ParseInt(splitLink[3], 0, 64)
+	if err != nil {
+		return nil
+	}
+
+	return &msgIDStruct{
+		RepoOwner:  splitLink[0],
+		RepoName:   splitLink[1],
+		IssueIndex: issueIndex,
+		CheckKey:   splitLink[len(splitLink)-1],
+	}
+}
+
 func handleReceiveEmail(m *Mail) error {
 	fromEmail, ok := m.Heads["From"]
 	if !ok || len(fromEmail) < 1 {
@@ -106,52 +144,21 @@ func handleReceiveEmail(m *Mail) error {
 		return nil
 	}
 
-	splitLink = strings.SplitN(splitLink[0], "?", 2)
-	if len(splitLink) != 2 {
+	msgID := loadMsgIDFromURL(splitLink[0])
+	if msgID == nil {
 		_ = m.SetRead(true)
 		return nil
 	}
 
-	checkKey := splitLink[1]
-
-	splitLink = strings.SplitN(splitLink[0], "#", 2)
-	if len(splitLink) == 0 {
-		_ = m.SetRead(true)
-		return nil
-	}
-
-	splitLink = strings.SplitN(splitLink[0], "/", 4)
-	if len(splitLink) != 4 {
-		_ = m.SetRead(true)
-		return nil
-	}
-
-	if len(splitLink) != 4 ||
-		(splitLink[2] != "pulls" && splitLink[2] != "issues") {
-		_ = m.SetRead(true)
-		return nil
-	}
-
-	repoOwner := splitLink[0]
-	repoName := splitLink[1]
-	issueIndex, err := strconv.ParseInt(splitLink[3], 0, 64)
-	if err != nil {
-		_ = m.SetRead(true)
-		return nil
-	}
-	if issueIndex <= 0 {
-		_ = m.SetRead(true)
-		return nil
-	}
-
-	repo, err := models.GetRepositoryByOwnerAndName(repoOwner, repoName)
+	repo, err := models.GetRepositoryByOwnerAndName(msgID.RepoOwner, msgID.RepoName)
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			_ = m.SetRead(true)
 			return nil
 		}
 
-		return fmt.Errorf("models.GetRepositoryByOwnerAndName(%v,%v): %v", repoOwner, repoName, err)
+		return fmt.Errorf("models.GetRepositoryByOwnerAndName(%v,%v): %v",
+			msgID.RepoOwner, msgID.RepoName, err)
 	}
 
 	if repo.IsArchived {
@@ -164,19 +171,19 @@ func handleReceiveEmail(m *Mail) error {
 		return fmt.Errorf("models.GetUserRepoPermission(): %v", err)
 	}
 
-	issue, err := models.GetIssueWithAttrsByIndex(repo.ID, issueIndex)
+	issue, err := models.GetIssueWithAttrsByIndex(repo.ID, msgID.IssueIndex)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			_ = m.SetRead(true)
 			return nil
 		}
 
-		return fmt.Errorf("models.GetIssueWithAttrsByIndex(%v,%v): %v", repo.ID, issueIndex, err)
+		return fmt.Errorf("models.GetIssueWithAttrsByIndex(%v,%v): %v", repo.ID, msgID.IssueIndex, err)
 	}
 
 	// check key
 	cmp := base.EncodeSha256(fmt.Sprintf("%d:%s/%s", issue.ID, from, doer.Rands))
-	if cmp != checkKey {
+	if cmp != msgID.CheckKey {
 		_ = m.SetRead(true)
 		return nil
 	}

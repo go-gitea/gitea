@@ -426,7 +426,7 @@ func (issue *Issue) ReplyReference(key string) string {
 	}
 
 	if len(key) > 0 {
-		return fmt.Sprintf("%s/%s/%d?%s@%s", issue.Repo.FullName(), path, issue.Index, key, setting.Domain)
+		return fmt.Sprintf("%s/%s/%d/%s@%s", issue.Repo.FullName(), path, issue.Index, key, setting.Domain)
 	}
 
 	return fmt.Sprintf("%s/%s/%d@%s", issue.Repo.FullName(), path, issue.Index, setting.Domain)

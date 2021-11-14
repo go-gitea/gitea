@@ -251,15 +251,9 @@ func (c *Client) FetchMail(id uint32, box string, requestBody bool) (*mail.Reade
 		select {
 		case msg = <-messages:
 			if msg != nil {
-				if !finished {
-					close(messages)
-				}
 				goto _exit
 			}
 		case <-ctx.Done():
-			if !finished {
-				close(messages)
-			}
 			goto _exit
 		}
 	}

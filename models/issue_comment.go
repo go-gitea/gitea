@@ -734,20 +734,20 @@ func (c *Comment) ReplyReference(key string) string {
 	}
 
 	if len(key) > 0 {
-		return fmt.Sprintf("%s/%s/%d#%s?%s@%s",
+		return fmt.Sprintf("%s/%s/%d/comment/%d/%s@%s",
 			c.Issue.Repo.FullName(),
 			path,
 			c.Issue.Index,
-			c.HashTag(),
+			c.ID,
 			key,
 			setting.Domain)
 	}
 
-	return fmt.Sprintf("%s/%s/%d#%s@%s",
+	return fmt.Sprintf("%s/%s/%d/comment/%d@%s",
 		c.Issue.Repo.FullName(),
 		path,
 		c.Issue.Index,
-		c.HashTag(),
+		c.ID,
 		setting.Domain)
 }
 
