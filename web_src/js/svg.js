@@ -43,7 +43,7 @@ const serializer = new XMLSerializer();
 const parsedSvgs = new Map();
 
 function getParsedSvg(name) {
-  if (parsedSvgs.has(name)) return parsedSvgs.get(name);
+  if (parsedSvgs.has(name)) return parsedSvgs.get(name).cloneNode();
   const root = parser.parseFromString(svgs[name], 'text/html');
   const svgNode = root.querySelector('svg');
   parsedSvgs.set(name, svgNode);
