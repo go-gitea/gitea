@@ -27,7 +27,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	action := ctx.FormString("action")
 
 	ctxUser := ctx.User
-	root := filepath.Join(models.UserPath(ctxUser.LowerName))
+	root := models.UserPath(ctxUser.LowerName)
 
 	// check not a repo
 	has, err := models.IsRepositoryExist(ctxUser, dir)
