@@ -10,12 +10,31 @@ import (
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *models.Issue, doer *models.User, isClosed bool) (err error) {
-	comment, err := issue.ChangeStatus(doer, isClosed)
-	if err != nil {
-		return
+func ChangeStatus(issue *models.Issue, doer *models.User, closed bool) error {
+	stopTimerIfAvailable := func(doer *models.User, issue *models.Issue) error {
+		if models.StopwatchExists(doer.ID, issue.ID) {
+			if err := models.CreateOrStopIssueStopwatch(doer, issue); err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 
-	notification.NotifyIssueChangeStatus(doer, issue, comment, isClosed)
+	comment, err := issue.ChangeStatus(doer, closed)
+	if err != nil {
+		// Don't return an error when dependencies are open as this would let the push fail
+		if models.IsErrDependenciesLeft(err) {
+			return stopTimerIfAvailable(doer, issue)
+		}
+		return err
+	}
+
+	if err := stopTimerIfAvailable(doer, issue); err != nil {
+		return err
+	}
+
+	notification.NotifyIssueChangeStatus(doer, issue, comment, closed)
+
 	return nil
 }
