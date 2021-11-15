@@ -275,5 +275,16 @@ func GenerateRepository(ctx context.Context, doer, owner *models.User, templateR
 		return generateRepo, err
 	}
 
+	if err = generateRepo.CheckDaemonExportOK(ctx); err != nil {
+		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
+	}
+
+	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		SetDescription(fmt.Sprintf("GenerateRepository(git update-server-info): %s", repoPath)).
+		RunInDir(repoPath); err != nil {
+		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
+		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %v", err)
+	}
+
 	return generateRepo, nil
 }

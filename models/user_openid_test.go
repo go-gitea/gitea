@@ -7,12 +7,13 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUserOpenIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	oids, err := GetUserOpenIDs(int64(1))
 	if assert.NoError(t, err) && assert.Len(t, oids, 2) {
@@ -30,7 +31,7 @@ func TestGetUserOpenIDs(t *testing.T) {
 }
 
 func TestGetUserByOpenID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	_, err := GetUserByOpenID("https://unknown")
 	if assert.Error(t, err) {
@@ -49,7 +50,7 @@ func TestGetUserByOpenID(t *testing.T) {
 }
 
 func TestToggleUserOpenIDVisibility(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	oids, err := GetUserOpenIDs(int64(2))
 	if !assert.NoError(t, err) || !assert.Len(t, oids, 1) {
 		return

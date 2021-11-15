@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations/base"
-	"code.gitea.io/gitea/modules/repository"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -111,7 +110,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 	}
 	r.DefaultBranch = repo.DefaultBranch
 
-	r, err = repository.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
+	r, err = repo_module.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
 		Description:    repo.Description,
 		OriginalURL:    repo.OriginalURL,
@@ -341,7 +340,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 // SyncTags syncs releases with tags in the database
 func (g *GiteaLocalUploader) SyncTags() error {
-	return repository.SyncReleasesWithTags(g.repo, g.gitRepo)
+	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
 // CreateIssues creates issues
@@ -690,6 +689,23 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		}
 	} else {
 		head = pr.Head.Ref
+		// Ensure the closed PR SHA still points to an existing ref
+		_, err = git.NewCommand("rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		if err != nil {
+			if pr.Head.SHA != "" {
+				// Git update-ref remove bad references with a relative path
+				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
+				relPath := pr.GetGitRefName()
+				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+			} else {
+				// The SHA is empty, remove the head file
+				log.Warn("Empty reference, removing : %v", pullHead)
+				err = os.Remove(filepath.Join(pullHead, "head"))
+			}
+			if err != nil {
+				log.Error("Cannot remove local head ref, %v", err)
+			}
+		}
 	}
 
 	if pr.Created.IsZero() {

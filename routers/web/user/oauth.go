@@ -207,6 +207,17 @@ func newAccessTokenResponse(grant *login.OAuth2Grant, serverKey, clientKey oauth
 			idToken.Email = user.Email
 			idToken.EmailVerified = user.IsActive
 		}
+		if grant.ScopeContains("groups") {
+			groups, err := getOAuthGroupsForUser(user)
+			if err != nil {
+				log.Error("Error getting groups: %v", err)
+				return nil, &AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "server error",
+				}
+			}
+			idToken.Groups = groups
+		}
 
 		signedIDToken, err = idToken.SignToken(clientKey)
 		if err != nil {
@@ -227,11 +238,12 @@ func newAccessTokenResponse(grant *login.OAuth2Grant, serverKey, clientKey oauth
 }
 
 type userInfoResponse struct {
-	Sub      string `json:"sub"`
-	Name     string `json:"name"`
-	Username string `json:"preferred_username"`
-	Email    string `json:"email"`
-	Picture  string `json:"picture"`
+	Sub      string   `json:"sub"`
+	Name     string   `json:"name"`
+	Username string   `json:"preferred_username"`
+	Email    string   `json:"email"`
+	Picture  string   `json:"picture"`
+	Groups   []string `json:"groups"`
 }
 
 // InfoOAuth manages request for userinfo endpoint
@@ -241,6 +253,7 @@ func InfoOAuth(ctx *context.Context) {
 		ctx.HandleText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
+
 	response := &userInfoResponse{
 		Sub:      fmt.Sprint(ctx.User.ID),
 		Name:     ctx.User.FullName,
@@ -248,7 +261,39 @@ func InfoOAuth(ctx *context.Context) {
 		Email:    ctx.User.Email,
 		Picture:  ctx.User.AvatarLink(),
 	}
+
+	groups, err := getOAuthGroupsForUser(ctx.User)
+	if err != nil {
+		ctx.ServerError("Oauth groups for user", err)
+		return
+	}
+	response.Groups = groups
+
 	ctx.JSON(http.StatusOK, response)
+}
+
+// returns a list of "org" and "org:team" strings,
+// that the given user is a part of.
+func getOAuthGroupsForUser(user *models.User) ([]string, error) {
+	orgs, err := models.GetUserOrgsList(user)
+	if err != nil {
+		return nil, fmt.Errorf("GetUserOrgList: %v", err)
+	}
+
+	var groups []string
+	for _, org := range orgs {
+		groups = append(groups, org.Name)
+
+		if err := org.LoadTeams(); err != nil {
+			return nil, fmt.Errorf("LoadTeams: %v", err)
+		}
+		for _, team := range org.Teams {
+			if team.IsMember(user.ID) {
+				groups = append(groups, org.Name+":"+team.LowerName)
+			}
+		}
+	}
+	return groups, nil
 }
 
 // IntrospectOAuth introspects an oauth token

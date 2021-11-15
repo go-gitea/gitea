@@ -13,11 +13,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 )
 
@@ -26,7 +28,7 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
+			if redirectUserID, err := user_model.LookupUserRedirect(name); err == nil {
 				context.RedirectToUser(ctx, name, redirectUserID)
 			} else {
 				ctx.NotFound("GetUserByName", err)
@@ -71,12 +73,35 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
+	showFeedType := ""
+	if strings.HasSuffix(uname, ".rss") {
+		showFeedType = "rss"
+		uname = strings.TrimSuffix(uname, ".rss")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
+		showFeedType = "rss"
+	}
+	if strings.HasSuffix(uname, ".atom") {
+		showFeedType = "atom"
+		uname = strings.TrimSuffix(uname, ".atom")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
+		showFeedType = "atom"
+	}
+
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
 		return
 	}
 
 	if ctxUser.IsOrganization() {
+		/*
+			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
+			// Show Org RSS feed
+			if len(showFeedType) != 0 {
+				rss.ShowUserFeed(ctx, ctxUser, showFeedType)
+				return
+			}
+		*/
+
 		org.Home(ctx)
 		return
 	}
@@ -96,6 +121,12 @@ func Profile(ctx *context.Context) {
 	// Show GPG keys.
 	if isShowGPG {
 		ShowGPGKeys(ctx, ctxUser.ID)
+		return
+	}
+
+	// Show User RSS feed
+	if len(showFeedType) != 0 {
+		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
 		return
 	}
 
@@ -217,7 +248,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,

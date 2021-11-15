@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewAccessToken(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	token := &AccessToken{
 		UID:  3,
 		Name: "Token C",
@@ -31,7 +32,7 @@ func TestNewAccessToken(t *testing.T) {
 func TestAccessTokenByNameExists(t *testing.T) {
 	name := "Token Gitea"
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	token := &AccessToken{
 		UID:  3,
 		Name: name,
@@ -64,7 +65,7 @@ func TestAccessTokenByNameExists(t *testing.T) {
 }
 
 func TestGetAccessTokenBySHA(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	token, err := GetAccessTokenBySHA("d2c6c1ba3890b309189a8e618c72a162e4efbf36")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), token.UID)
@@ -82,7 +83,7 @@ func TestGetAccessTokenBySHA(t *testing.T) {
 }
 
 func TestListAccessTokens(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	tokens, err := ListAccessTokens(ListAccessTokensOptions{UserID: 1})
 	assert.NoError(t, err)
 	if assert.Len(t, tokens, 2) {
@@ -105,7 +106,7 @@ func TestListAccessTokens(t *testing.T) {
 }
 
 func TestUpdateAccessToken(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	token, err := GetAccessTokenBySHA("4c6f36e6cf498e2a448662f915d932c09c5a146c")
 	assert.NoError(t, err)
 	token.Name = "Token Z"
@@ -115,7 +116,7 @@ func TestUpdateAccessToken(t *testing.T) {
 }
 
 func TestDeleteAccessTokenByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	token, err := GetAccessTokenBySHA("4c6f36e6cf498e2a448662f915d932c09c5a146c")
 	assert.NoError(t, err)

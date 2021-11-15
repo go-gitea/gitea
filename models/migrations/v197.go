@@ -8,11 +8,13 @@ import (
 	"xorm.io/xorm"
 )
 
-func addProjectIssueSorting(x *xorm.Engine) error {
-	// ProjectIssue saves relation from issue to a project
-	type ProjectIssue struct {
-		Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
+func addRenamedBranchTable(x *xorm.Engine) error {
+	type RenamedBranch struct {
+		ID          int64 `xorm:"pk autoincr"`
+		RepoID      int64 `xorm:"INDEX NOT NULL"`
+		From        string
+		To          string
+		CreatedUnix int64 `xorm:"created"`
 	}
-
-	return x.Sync2(new(ProjectIssue))
+	return x.Sync2(new(RenamedBranch))
 }

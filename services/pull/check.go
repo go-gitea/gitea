@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -139,13 +140,13 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests); err == nil {
+	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		if !config.AutodetectManualMerge {
 			return false
 		}
 	} else {
-		log.Error("PullRequest[%d].BaseRepo.GetUnit(models.UnitTypePullRequests): %v", pr.ID, err)
+		log.Error("PullRequest[%d].BaseRepo.GetUnit(unit.TypePullRequests): %v", pr.ID, err)
 		return false
 	}
 
@@ -253,7 +254,7 @@ func CheckPrsForBaseBranch(baseRepo *models.Repository, baseBranchName string) e
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "").(queue.UniqueQueue)
+	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
 
 	if prQueue == nil {
 		return fmt.Errorf("Unable to create pr_patch_checker Queue")

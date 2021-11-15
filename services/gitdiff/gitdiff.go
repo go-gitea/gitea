@@ -653,6 +653,7 @@ func getCommitFileLineCount(commit *git.Commit, filePath string) int {
 
 // Diff represents a difference between two git trees.
 type Diff struct {
+	Start, End                             string
 	NumFiles, TotalAddition, TotalDeletion int
 	Files                                  []*DiffFile
 	IsIncomplete                           bool
@@ -719,6 +720,9 @@ parsingLoop:
 
 		// TODO: Handle skipping first n files
 		if len(diff.Files) >= maxFiles {
+
+			lastFile := createDiffFile(diff, line)
+			diff.End = lastFile.Name
 			diff.IsIncomplete = true
 			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
@@ -835,7 +839,12 @@ parsingLoop:
 			case strings.HasPrefix(line, "--- "):
 				// Handle ambiguous filenames
 				if curFile.IsAmbiguous {
-					if len(line) > 6 && line[4] == 'a' {
+					// The shortest string that can end up here is:
+					// "--- a\t\n" without the qoutes.
+					// This line has a len() of 7 but doesn't contain a oldName.
+					// So the amount that the line need is at least 8 or more.
+					// The code will otherwise panic for a out-of-bounds.
+					if len(line) > 7 && line[4] == 'a' {
 						curFile.OldName = line[6 : len(line)-1]
 						if line[len(line)-2] == '\t' {
 							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
@@ -1190,6 +1199,11 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	_ = rd.UnreadByte()
 	if char == '"' {
 		fmt.Fscanf(rd, "%q ", &name)
+		if len(name) == 0 {
+			log.Error("Reader has no file name: %v", rd)
+			return "", true
+		}
+
 		if name[0] == '\\' {
 			name = name[1:]
 		}
@@ -1217,7 +1231,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 // GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
 	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(afterCommitID)
@@ -1228,31 +1242,42 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	ctx, cancel := context.WithTimeout(git.DefaultContext, time.Duration(setting.Git.Timeout.Default)*time.Second)
 	defer cancel()
 
-	var cmd *exec.Cmd
+	argsLength := 6
+	if len(whitespaceBehavior) > 0 {
+		argsLength++
+	}
+	if len(skipTo) > 0 {
+		argsLength++
+	}
+
+	diffArgs := make([]string, 0, argsLength)
 	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
 		// append empty tree ref
 		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 	} else {
 		actualBeforeCommitID := beforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
-		diffArgs := []string{"diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M"}
+		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
 		if len(whitespaceBehavior) != 0 {
 			diffArgs = append(diffArgs, whitespaceBehavior)
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
 		diffArgs = append(diffArgs, afterCommitID)
-		cmd = exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 		beforeCommitID = actualBeforeCommitID
 	}
+	if skipTo != "" {
+		diffArgs = append(diffArgs, "--skip-to="+skipTo)
+	}
+	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
+
 	cmd.Dir = repoPath
 	cmd.Stderr = os.Stderr
 
@@ -1272,6 +1297,7 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
+	diff.Start = skipTo
 
 	var checker *git.CheckAttributeReader
 
@@ -1299,7 +1325,7 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 				log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
 			} else {
 				go func() {
-					err = checker.Run()
+					err := checker.Run()
 					if err != nil && err != ctx.Err() {
 						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
 					}
@@ -1382,8 +1408,8 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 
 // GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior, directComparison)
+func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, skipTo, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior, directComparison)
 }
 
 // CommentAsDiff returns c.Patch as *Diff

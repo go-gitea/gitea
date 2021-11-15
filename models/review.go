@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -444,7 +445,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	// try to remove team review request if need
 	if issue.Repo.Owner.IsOrganization() && (reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject) {
 		teamReviewRequests := make([]*Review, 0, 10)
-		if err := sess.SQL("SELECT * FROM review WHERE reviewer_team_id > 0 AND type = ?", ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
+		if err := sess.SQL("SELECT * FROM review WHERE issue_id = ? AND reviewer_team_id > 0 AND type = ?", issue.ID, ReviewTypeRequest).Find(&teamReviewRequests); err != nil {
 			return nil, nil, err
 		}
 
@@ -897,7 +898,7 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 			return false, err
 		}
 
-		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
+		permResult = perm.CanAccess(AccessModeWrite, unit.TypePullRequests)
 		if !permResult {
 			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
 				return false, err

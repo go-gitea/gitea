@@ -1,8 +1,8 @@
 import {joinPaths} from '../utils.js';
 
-const {UseServiceWorker, AssetUrlPrefix, AppVer} = window.config;
+const {useServiceWorker, assetUrlPrefix, appVer} = window.config;
 const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
-const workerAssetPath = joinPaths(AssetUrlPrefix, 'serviceworker.js');
+const workerAssetPath = joinPaths(assetUrlPrefix, 'serviceworker.js');
 
 async function unregisterAll() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
@@ -24,7 +24,7 @@ async function invalidateCache() {
 }
 
 async function checkCacheValidity() {
-  const cacheKey = AppVer;
+  const cacheKey = appVer;
   const storedCacheKey = localStorage.getItem('staticCacheKey');
 
   // invalidate cache if it belongs to a different gitea version
@@ -37,7 +37,7 @@ async function checkCacheValidity() {
 export default async function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  if (UseServiceWorker) {
+  if (useServiceWorker) {
     // unregister all service workers where scriptURL does not match the current one
     await unregisterOtherWorkers();
     try {

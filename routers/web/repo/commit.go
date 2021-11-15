@@ -264,6 +264,8 @@ func Diff(ctx *context.Context) {
 		err     error
 	)
 
+	fileOnly := ctx.FormBool("file-only")
+
 	if ctx.Data["PageIsWiki"] != nil {
 		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
 		if err != nil {
@@ -288,16 +290,8 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, db.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
-
-	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
-	ctx.Data["CommitStatuses"] = statuses
-
 	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(gitRepo,
-		commitID, setting.Git.MaxGitDiffLines,
+		commitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
 		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 		false)
@@ -333,10 +327,23 @@ func Diff(ctx *context.Context) {
 	setCompareContext(ctx, parentCommit, commit, headTarget)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
+	ctx.Data["Diff"] = diff
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
+	}
+
+	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, db.ListOptions{})
+	if err != nil {
+		log.Error("GetLatestCommitStatus: %v", err)
+	}
+
+	ctx.Data["CommitStatus"] = models.CalcCommitStatus(statuses)
+	ctx.Data["CommitStatuses"] = statuses
+
 	verification := models.ParseCommitWithSignature(commit)
 	ctx.Data["Verification"] = verification
 	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
-	ctx.Data["Diff"] = diff
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 

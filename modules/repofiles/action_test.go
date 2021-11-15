@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -16,7 +17,7 @@ import (
 )
 
 func TestUpdateIssuesCommit(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pushCommits := []*repository.PushCommit{
 		{
 			Sha1:           "abcdef1",
@@ -118,7 +119,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	pushCommits := []*repository.PushCommit{
 		{
 			Sha1:           "abcdef2",
@@ -143,7 +144,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that push to a non-default branch closes an issue.
@@ -177,7 +178,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that a push to default branch closes issue in another repo
@@ -212,7 +213,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that a push to default branch closes issue in another repo
@@ -247,7 +248,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 }
 
 func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 10}).(*models.User)
 
 	// Test that a push with close reference *can not* close issue

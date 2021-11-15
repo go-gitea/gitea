@@ -9,18 +9,20 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUser_ToUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &models.User{ID: 1, IsAdmin: true}).(*models.User)
 
 	apiUser := toUser(user1, true, true)
 	assert.True(t, apiUser.IsAdmin)
+	assert.Contains(t, apiUser.AvatarURL, "://")
 
 	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2, IsAdmin: false}).(*models.User)
 
