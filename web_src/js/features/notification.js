@@ -3,21 +3,22 @@ const {appSubUrl, csrfToken, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
-  $('#notification_table .button').on('click', async function () {
-    const data = await updateNotification(
-      $(this).data('url'),
-      $(this).data('status'),
-      $(this).data('page'),
-      $(this).data('q'),
-      $(this).data('notification-id'),
-    );
+  $('#notification_table .button').on('click', function () {
+    (async () => {
+      const data = await updateNotification(
+        $(this).data('url'),
+        $(this).data('status'),
+        $(this).data('page'),
+        $(this).data('q'),
+        $(this).data('notification-id'),
+      );
 
-    if ($(data).data('sequence-number') === notificationSequenceNumber) {
-      $('#notification_div').replaceWith(data);
-      initNotificationsTable();
-    }
-    await updateNotificationCount();
-
+      if ($(data).data('sequence-number') === notificationSequenceNumber) {
+        $('#notification_div').replaceWith(data);
+        initNotificationsTable();
+      }
+      await updateNotificationCount();
+    })();
     return false;
   });
 }
@@ -104,8 +105,8 @@ export function initNotificationCount() {
   }
 
   const fn = (timeout, lastCount) => {
-    setTimeout(async () => {
-      await updateNotificationCountWithCallback(fn, timeout, lastCount);
+    setTimeout(() => {
+      const _promise = updateNotificationCountWithCallback(fn, timeout, lastCount);
     }, timeout);
   };
 

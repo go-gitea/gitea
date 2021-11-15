@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -82,13 +83,13 @@ func MustAllowUserComment(ctx *context.Context) {
 
 // MustEnableIssues check if repository enable internal issues
 func MustEnableIssues(ctx *context.Context) {
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
-		!ctx.Repo.CanRead(models.UnitTypeExternalTracker) {
+	if !ctx.Repo.CanRead(unit.TypeIssues) &&
+		!ctx.Repo.CanRead(unit.TypeExternalTracker) {
 		ctx.NotFound("MustEnableIssues", nil)
 		return
 	}
 
-	unit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+	unit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
 	if err == nil {
 		ctx.Redirect(unit.ExternalTrackerConfig().ExternalTrackerURL)
 		return
@@ -97,7 +98,7 @@ func MustEnableIssues(ctx *context.Context) {
 
 // MustAllowPulls check if repository enable pull requests and user have right to do that
 func MustAllowPulls(ctx *context.Context) {
-	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(models.UnitTypePullRequests) {
+	if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
 		ctx.NotFound("MustAllowPulls", nil)
 		return
 	}
@@ -790,7 +791,7 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -828,7 +829,7 @@ func NewIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeIssues)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
 
 	ctx.HTML(http.StatusOK, tplIssueNew)
 }
@@ -1014,38 +1015,46 @@ func NewIssuePost(ctx *context.Context) {
 	}
 }
 
-// commentTag returns the CommentTag for a comment in/with the given repo, poster and issue
-func commentTag(repo *models.Repository, poster *models.User, issue *models.Issue) (models.CommentTag, error) {
+// roleDescriptor returns the Role Decriptor for a comment in/with the given repo, poster and issue
+func roleDescriptor(repo *models.Repository, poster *models.User, issue *models.Issue) (models.RoleDescriptor, error) {
 	perm, err := models.GetUserRepoPermission(repo, poster)
 	if err != nil {
-		return models.CommentTagNone, err
+		return models.RoleDescriptorNone, err
 	}
+
+	// By default the poster has no roles on the comment.
+	roleDescriptor := models.RoleDescriptorNone
+
+	// Check if the poster is owner of the repo.
 	if perm.IsOwner() {
+		// If the poster isn't a admin, enable the owner role.
 		if !poster.IsAdmin {
-			return models.CommentTagOwner, nil
-		}
+			roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorOwner)
+		} else {
 
-		ok, err := models.IsUserRealRepoAdmin(repo, poster)
-		if err != nil {
-			return models.CommentTagNone, err
+			// Otherwise check if poster is the real repo admin.
+			ok, err := models.IsUserRealRepoAdmin(repo, poster)
+			if err != nil {
+				return models.RoleDescriptorNone, err
+			}
+			if ok {
+				roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorOwner)
+			}
 		}
-
-		if ok {
-			return models.CommentTagOwner, nil
-		}
-
-		if ok, err = repo.IsCollaborator(poster.ID); ok && err == nil {
-			return models.CommentTagWriter, nil
-		}
-
-		return models.CommentTagNone, err
 	}
 
-	if perm.CanWriteIssuesOrPulls(issue.IsPull) {
-		return models.CommentTagWriter, nil
+	// Is the poster can write issues or pulls to the repo, enable the Writer role.
+	// Only enable this if the poster doesn't have the owner role already.
+	if !roleDescriptor.HasRole("Owner") && perm.CanWriteIssuesOrPulls(issue.IsPull) {
+		roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorWriter)
 	}
 
-	return models.CommentTagNone, nil
+	// If the poster is the actual poster of the issue, enable Poster role.
+	if issue.IsPoster(poster.ID) {
+		roleDescriptor = roleDescriptor.WithRole(models.RoleDescriptorPoster)
+	}
+
+	return roleDescriptor, nil
 }
 
 func getBranchData(ctx *context.Context, issue *models.Issue) {
@@ -1065,7 +1074,7 @@ func getBranchData(ctx *context.Context, issue *models.Issue) {
 func ViewIssue(ctx *context.Context) {
 	if ctx.Params(":type") == "issues" {
 		// If issue was requested we check if repo has external tracker and redirect
-		extIssueUnit, err := ctx.Repo.Repository.GetUnit(models.UnitTypeExternalTracker)
+		extIssueUnit, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
 		if err == nil && extIssueUnit != nil {
 			if extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == markup.IssueNameStyleNumeric || extIssueUnit.ExternalTrackerConfig().ExternalTrackerStyle == "" {
 				metas := ctx.Repo.Repository.ComposeMetas()
@@ -1114,9 +1123,9 @@ func ViewIssue(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
-	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
 		ctx.Data["IssueType"] = "pulls"
-	} else if !issue.IsPull && !ctx.Repo.CanRead(models.UnitTypePullRequests) {
+	} else if !issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) {
 		ctx.Data["IssueType"] = "issues"
 	} else {
 		ctx.Data["IssueType"] = "all"
@@ -1125,7 +1134,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["RequireSimpleMDE"] = true
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(models.UnitTypeProjects)
+	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -1224,7 +1233,7 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	if issue.IsPull {
-		canChooseReviewer := ctx.Repo.CanWrite(models.UnitTypePullRequests)
+		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
 		if !canChooseReviewer && ctx.User != nil && ctx.IsSigned {
 			canChooseReviewer, err = models.IsOfficialReviewer(issue, ctx.User)
 			if err != nil {
@@ -1248,9 +1257,9 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	var (
-		tag          models.CommentTag
+		role         models.RoleDescriptor
 		ok           bool
-		marked       = make(map[int64]models.CommentTag)
+		marked       = make(map[int64]models.RoleDescriptor)
 		comment      *models.Comment
 		participants = make([]*models.User, 1, 10)
 	)
@@ -1297,11 +1306,11 @@ func ViewIssue(ctx *context.Context) {
 	// check if dependencies can be created across repositories
 	ctx.Data["AllowCrossRepositoryDependencies"] = setting.Service.AllowCrossRepositoryDependencies
 
-	if issue.ShowTag, err = commentTag(repo, issue.Poster, issue); err != nil {
-		ctx.ServerError("commentTag", err)
+	if issue.ShowRole, err = roleDescriptor(repo, issue.Poster, issue); err != nil {
+		ctx.ServerError("roleDescriptor", err)
 		return
 	}
-	marked[issue.PosterID] = issue.ShowTag
+	marked[issue.PosterID] = issue.ShowRole
 
 	// Render comments and and fetch participants.
 	participants[0] = issue.Poster
@@ -1330,18 +1339,18 @@ func ViewIssue(ctx *context.Context) {
 				return
 			}
 			// Check tag.
-			tag, ok = marked[comment.PosterID]
+			role, ok = marked[comment.PosterID]
 			if ok {
-				comment.ShowTag = tag
+				comment.ShowRole = role
 				continue
 			}
 
-			comment.ShowTag, err = commentTag(repo, comment.Poster, issue)
+			comment.ShowRole, err = roleDescriptor(repo, comment.Poster, issue)
 			if err != nil {
-				ctx.ServerError("commentTag", err)
+				ctx.ServerError("roleDescriptor", err)
 				return
 			}
-			marked[comment.PosterID] = comment.ShowTag
+			marked[comment.PosterID] = comment.ShowRole
 			participants = addParticipant(comment.Poster, participants)
 		} else if comment.Type == models.CommentTypeLabel {
 			if err = comment.LoadLabel(); err != nil {
@@ -1429,18 +1438,18 @@ func ViewIssue(ctx *context.Context) {
 				for _, lineComments := range codeComments {
 					for _, c := range lineComments {
 						// Check tag.
-						tag, ok = marked[c.PosterID]
+						role, ok = marked[c.PosterID]
 						if ok {
-							c.ShowTag = tag
+							c.ShowRole = role
 							continue
 						}
 
-						c.ShowTag, err = commentTag(repo, c.Poster, issue)
+						c.ShowRole, err = roleDescriptor(repo, c.Poster, issue)
 						if err != nil {
-							ctx.ServerError("commentTag", err)
+							ctx.ServerError("roleDescriptor", err)
 							return
 						}
-						marked[c.PosterID] = c.ShowTag
+						marked[c.PosterID] = c.ShowRole
 						participants = addParticipant(c.Poster, participants)
 					}
 				}
@@ -1481,7 +1490,7 @@ func ViewIssue(ctx *context.Context) {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
 				}
-				if perm.CanWrite(models.UnitTypeCode) {
+				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
 					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
 						log.Error("IsProtectedBranch: %v", err)
@@ -1512,7 +1521,7 @@ func ViewIssue(ctx *context.Context) {
 			}
 		}
 
-		prUnit, err := repo.GetUnit(models.UnitTypePullRequests)
+		prUnit, err := repo.GetUnit(unit.TypePullRequests)
 		if err != nil {
 			ctx.ServerError("GetUnit", err)
 			return
@@ -1545,6 +1554,10 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["ShowMergeInstructions"] = true
 		if pull.ProtectedBranch != nil {
+			var showMergeInstructions bool
+			if ctx.User != nil {
+				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx.User.ID)
+			}
 			cnt := pull.ProtectedBranch.GetGrantedApprovalsCount(pull)
 			ctx.Data["IsBlockedByApprovals"] = !pull.ProtectedBranch.HasEnoughApprovals(pull)
 			ctx.Data["IsBlockedByRejection"] = pull.ProtectedBranch.MergeBlockedByRejectedReview(pull)
@@ -1555,7 +1568,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)
-			ctx.Data["ShowMergeInstructions"] = pull.ProtectedBranch.CanUserPush(ctx.User.ID)
+			ctx.Data["ShowMergeInstructions"] = showMergeInstructions
 		}
 		ctx.Data["WillSign"] = false
 		if ctx.User != nil {
@@ -1614,7 +1627,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["SignInLink"] = setting.AppSubURL + "/user/login?redirect_to=" + ctx.Data["Link"].(string)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.User.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
-	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypeProjects)
+	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
@@ -1641,8 +1654,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
-	if issue.IsPull && !ctx.Repo.CanRead(models.UnitTypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
+		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -1667,8 +1680,8 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		return nil
 	}
 	// Check access rights for all issues
-	issueUnitEnabled := ctx.Repo.CanRead(models.UnitTypeIssues)
-	prUnitEnabled := ctx.Repo.CanRead(models.UnitTypePullRequests)
+	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
+	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)

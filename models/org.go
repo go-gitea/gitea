@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -162,25 +164,25 @@ func CreateOrganization(org, owner *User) (err error) {
 	org.NumMembers = 1
 	org.Type = UserTypeOrganization
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = user_model.DeleteUserRedirect(ctx, org.Name); err != nil {
 		return err
 	}
 
-	if err = deleteUserRedirect(sess, org.Name); err != nil {
-		return err
-	}
-
-	if _, err = sess.Insert(org); err != nil {
+	if err = db.Insert(ctx, org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
-	if err = org.generateRandomAvatar(sess); err != nil {
+	if err = org.generateRandomAvatar(db.GetEngine(ctx)); err != nil {
 		return fmt.Errorf("generate random avatar: %v", err)
 	}
 
 	// Add initial creator to organization and owner team.
-	if _, err = sess.Insert(&OrgUser{
+	if err = db.Insert(ctx, &OrgUser{
 		UID:   owner.ID,
 		OrgID: org.ID,
 	}); err != nil {
@@ -197,13 +199,13 @@ func CreateOrganization(org, owner *User) (err error) {
 		IncludesAllRepositories: true,
 		CanCreateOrgRepo:        true,
 	}
-	if _, err = sess.Insert(t); err != nil {
+	if err = db.Insert(ctx, t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)
 	}
 
 	// insert units for team
-	units := make([]TeamUnit, 0, len(AllRepoUnitTypes))
-	for _, tp := range AllRepoUnitTypes {
+	units := make([]TeamUnit, 0, len(unit.AllRepoUnitTypes))
+	for _, tp := range unit.AllRepoUnitTypes {
 		units = append(units, TeamUnit{
 			OrgID:  org.ID,
 			TeamID: t.ID,
@@ -211,14 +213,11 @@ func CreateOrganization(org, owner *User) (err error) {
 		})
 	}
 
-	if _, err = sess.Insert(&units); err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("CreateOrganization: sess.Rollback: %v", err)
-		}
+	if err = db.Insert(ctx, &units); err != nil {
 		return err
 	}
 
-	if _, err = sess.Insert(&TeamUser{
+	if err = db.Insert(ctx, &TeamUser{
 		UID:    owner.ID,
 		OrgID:  org.ID,
 		TeamID: t.ID,
@@ -226,7 +225,7 @@ func CreateOrganization(org, owner *User) (err error) {
 		return fmt.Errorf("insert team-user relation: %v", err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetOrgByName returns organization by given name.

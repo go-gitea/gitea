@@ -9,11 +9,12 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateComment(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := db.AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
 	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
@@ -42,7 +43,7 @@ func TestCreateComment(t *testing.T) {
 }
 
 func TestFetchCodeComments(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
 	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)

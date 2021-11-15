@@ -39,6 +39,65 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`
 7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
 
+
+### `async` Functions
+
+Only mark a function as `async` if and only if there are `await` calls 
+or `Promise` returns inside the function.
+
+It's not recommended to use `async` event listeners, which may lead to problems. 
+The reason is that the code after await is executed outside the event dispatch. 
+Reference: https://github.com/github/eslint-plugin-github/blob/main/docs/rules/async-preventdefault.md
+
+If we want to call an `async` function in a non-async context,
+it's recommended to use `const _promise = asyncFoo()` to tell readers
+that this is done by purpose, we want to call the async function and ignore the Promise.
+Some lint rules and IDEs also have warnings if the returned Promise is not handled.
+
+#### DOM Event Listener
+
+```js
+el.addEventListener('click', (e) => {
+  (async () => {
+    await asyncFoo(); // recommended
+    // then we shound't do e.preventDefault() after await, no effect
+  })(); 
+  
+  const _promise = asyncFoo(); // recommended
+
+  e.preventDefault(); // correct
+});
+
+el.addEventListener('async', async (e) => { // not recommended but acceptable
+  e.preventDefault(); // acceptable
+  await asyncFoo();   // skip out event dispath 
+  e.preventDefault(); // WRONG
+});
+```
+
+#### jQuery Event Listener
+
+```js
+$('#el').on('click', (e) => {
+  (async () => {
+    await asyncFoo(); // recommended
+    // then we shound't do e.preventDefault() after await, no effect
+  })();
+
+  const _promise = asyncFoo(); // recommended
+
+  e.preventDefault();  // correct
+  return false;        // correct
+});
+
+$('#el').on('click', async (e) => {  // not recommended but acceptable
+  e.preventDefault();  // acceptable
+  return false;        // WRONG, jQuery expects the returned value is a boolean, not a Promise
+  await asyncFoo();    // skip out event dispath
+  return false;        // WRONG
+});
+```
+
 ### Vue2/Vue3 and JSX
 
 Gitea is using Vue2 now, we plan to upgrade to Vue3. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.

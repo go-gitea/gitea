@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -86,8 +87,8 @@ func (t *Task) RunWithUser(doer *models.User, config Config) {
 		pid := pm.Add(config.FormatMessage(t.Name, "process", doer), cancel)
 		defer pm.Remove(pid)
 		if err := t.fun(ctx, doer, config); err != nil {
-			if models.IsErrCancelled(err) {
-				message := err.(models.ErrCancelled).Message
+			if db.IsErrCancelled(err) {
+				message := err.(db.ErrCancelled).Message
 				if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message)); err != nil {
 					log.Error("CreateNotice: %v", err)
 				}

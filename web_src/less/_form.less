@@ -18,7 +18,7 @@ textarea,
 .ui.selection.dropdown,
 .ui.checkbox label::before,
 .ui.checkbox input:checked ~ label::before,
-.ui.checkbox input:not([type=radio]):indeterminate ~ label::before {
+.ui.checkbox input:not([type="radio"]):indeterminate ~ label::before {
   background: var(--color-input-background);
   border-color: var(--color-input-border);
   color: var(--color-input-text);
@@ -98,8 +98,8 @@ textarea:focus,
 .ui.checkbox input:focus ~ label::after,
 .ui.checkbox input:checked ~ label::after,
 .ui.checkbox label:active::after,
-.ui.checkbox input:not([type=radio]):indeterminate ~ label::after,
-.ui.checkbox input:not([type=radio]):indeterminate:focus ~ label::after,
+.ui.checkbox input:not([type="radio"]):indeterminate ~ label::after,
+.ui.checkbox input:not([type="radio"]):indeterminate:focus ~ label::after,
 .ui.checkbox input:checked:focus ~ label::after,
 .ui.disabled.checkbox label,
 .ui.checkbox input[disabled] ~ label {
@@ -265,7 +265,7 @@ textarea:focus,
       }
     }
 
-    input[type=number] {
+    input[type="number"] {
       -moz-appearance: textfield;
     }
 
