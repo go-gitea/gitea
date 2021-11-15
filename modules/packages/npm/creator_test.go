@@ -21,6 +21,7 @@ func TestParsePackage(t *testing.T) {
 	packageName := "test-package"
 	packageFullName := packageScope + "/" + packageName
 	packageVersion := "1.0.1-pre"
+	packageTag := "latest"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
@@ -220,6 +221,9 @@ func TestParsePackage(t *testing.T) {
 			PackageMetadata: PackageMetadata{
 				ID:   packageFullName,
 				Name: packageFullName,
+				DistTags: map[string]string{
+					packageTag: packageVersion,
+				},
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
 						Name:        packageFullName,
@@ -251,6 +255,7 @@ func TestParsePackage(t *testing.T) {
 
 		assert.Equal(t, packageFullName, p.Name)
 		assert.Equal(t, packageVersion, p.Version)
+		assert.Equal(t, []string{packageTag}, p.DistTags)
 		assert.Equal(t, fmt.Sprintf("%s-%s.tgz", strings.Split(packageFullName, "/")[1], packageVersion), p.Filename)
 		b, _ = base64.StdEncoding.DecodeString(data)
 		assert.Equal(t, b, p.Data)

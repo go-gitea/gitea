@@ -27,6 +27,8 @@ func TestPackageNpm(t *testing.T) {
 
 	packageName := "@scope/test-package"
 	packageVersion := "1.0.1-pre"
+	packageTag := "latest"
+	packageTag2 := "release"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
 
@@ -35,6 +37,9 @@ func TestPackageNpm(t *testing.T) {
 		"_id": "` + packageName + `",
 		"name": "` + packageName + `",
 		"description": "` + packageDescription + `",
+		"dist-tags": {
+		  "` + packageTag + `": "` + packageVersion + `"
+		},
 		"versions": {
 		  "` + packageVersion + `": {
 			"name": "` + packageName + `",
@@ -57,6 +62,7 @@ func TestPackageNpm(t *testing.T) {
 	  }`
 
 	root := fmt.Sprintf("/api/v1/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
+	tagsRoot := fmt.Sprintf("/api/v1/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
@@ -76,6 +82,9 @@ func TestPackageNpm(t *testing.T) {
 		assert.IsType(t, &npm.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
+		assert.Len(t, pd.Properties, 1)
+		assert.Equal(t, npm.TagProperty, pd.Properties[0].Name)
+		assert.Equal(t, packageTag, pd.Properties[0].Value)
 
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
@@ -125,8 +134,8 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageName, result.ID)
 		assert.Equal(t, packageName, result.Name)
 		assert.Equal(t, packageDescription, result.Description)
-		assert.Contains(t, result.DistTags, "latest")
-		assert.Equal(t, packageVersion, result.DistTags["latest"])
+		assert.Contains(t, result.DistTags, packageTag)
+		assert.Equal(t, packageVersion, result.DistTags[packageTag])
 		assert.Equal(t, packageAuthor, result.Author.Name)
 		assert.Contains(t, result.Versions, packageVersion)
 		pmv := result.Versions[packageVersion]
@@ -137,5 +146,68 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==", pmv.Dist.Integrity)
 		assert.Equal(t, "aaa7eaf852a948b0aa05afeda35b1badca155d90", pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
+	})
+
+	t.Run("AddTag", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		test := func(t *testing.T, status int, tag, version string) {
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", tagsRoot, tag), strings.NewReader(`"`+version+`"`))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, status)
+		}
+
+		test(t, http.StatusBadRequest, "1.0", packageVersion)
+		test(t, http.StatusBadRequest, "v1.0", packageVersion)
+		test(t, http.StatusNotFound, packageTag2, "1.2")
+		test(t, http.StatusOK, packageTag, packageVersion)
+		test(t, http.StatusOK, packageTag2, packageVersion)
+	})
+
+	t.Run("ListTags", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", tagsRoot)
+		req = AddBasicAuthHeader(req, user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var result map[string]string
+		DecodeJSON(t, resp, &result)
+
+		assert.Len(t, result, 2)
+		assert.Contains(t, result, packageTag)
+		assert.Equal(t, packageVersion, result[packageTag])
+		assert.Contains(t, result, packageTag2)
+		assert.Equal(t, packageVersion, result[packageTag2])
+	})
+
+	t.Run("PackageMetadataDistTags", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", root)
+		req = AddBasicAuthHeader(req, user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		var result npm.PackageMetadata
+		DecodeJSON(t, resp, &result)
+
+		assert.Len(t, result.DistTags, 2)
+		assert.Contains(t, result.DistTags, packageTag)
+		assert.Equal(t, packageVersion, result.DistTags[packageTag])
+		assert.Contains(t, result.DistTags, packageTag2)
+		assert.Equal(t, packageVersion, result.DistTags[packageTag2])
+	})
+
+	t.Run("DeleteTag", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		test := func(t *testing.T, status int, tag string) {
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s", tagsRoot, tag))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, status)
+		}
+
+		test(t, http.StatusOK, "dummy")
+		test(t, http.StatusOK, packageTag2)
 	})
 }
