@@ -84,6 +84,7 @@ export function initRepoCommentForm() {
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if (hasUpdateAction) {
+        // TODO: Add batch functionality and make this 1 network request.
         (async function() {
           for (const [elementId, item] of Object.entries(items)) {
             await updateIssuesMeta(
