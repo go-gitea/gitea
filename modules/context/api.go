@@ -95,7 +95,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
 
-		if setting.IsProd() && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd && !(ctx.User != nil && ctx.User.IsAdmin) {
 			message = ""
 		}
 	}
@@ -112,7 +112,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if !setting.IsProd() || (ctx.User != nil && ctx.User.IsAdmin) {
+	if !setting.IsProd || (ctx.User != nil && ctx.User.IsAdmin) {
 		message = err.Error()
 	}
 

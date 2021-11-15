@@ -22,6 +22,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -35,7 +37,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
+
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // UserType defines the user type
@@ -74,9 +78,6 @@ const (
 )
 
 var (
-	// ErrEmailNotActivated e-mail address has not been activated error
-	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
-
 	// ErrUserNameIllegal user name contains illegal characters error
 	ErrUserNameIllegal = errors.New("User name contains illegal characters")
 
@@ -129,14 +130,21 @@ type User struct {
 	// Maximum repository creation limit, -1 means use global default
 	MaxRepoCreation int `xorm:"NOT NULL DEFAULT -1"`
 
-	// Permissions
-	IsActive                bool `xorm:"INDEX"` // Activate primary email
-	IsAdmin                 bool
-	IsRestricted            bool `xorm:"NOT NULL DEFAULT false"`
+	// IsActive true: primary email is activated, user can access Web UI and Git SSH.
+	// false: an inactive user can only log in Web UI for account operations (ex: activate the account by email), no other access.
+	IsActive bool `xorm:"INDEX"`
+	// the user is a Gitea admin, who can access all repositories and the admin pages.
+	IsAdmin bool
+	// true: the user is only allowed to see organizations/repositories that they has explicit rights to.
+	// (ex: in private Gitea instances user won't be allowed to see even organizations/repositories that are set as public)
+	IsRestricted bool `xorm:"NOT NULL DEFAULT false"`
+
 	AllowGitHook            bool
 	AllowImportLocal        bool // Allow migrate repository by local path
 	AllowCreateOrganization bool `xorm:"DEFAULT true"`
-	ProhibitLogin           bool `xorm:"NOT NULL DEFAULT false"`
+
+	// true: the user is not allowed to log in Web UI. Git/SSH access could still be allowed (please refer to Git/SSH access related code/documents)
+	ProhibitLogin bool `xorm:"NOT NULL DEFAULT false"`
 
 	// Avatar
 	Avatar          string `xorm:"VARCHAR(2048) NOT NULL"`
@@ -300,7 +308,7 @@ func (u *User) CanImportLocal() bool {
 // DashboardLink returns the user dashboard page link.
 func (u *User) DashboardLink() string {
 	if u.IsOrganization() {
-		return u.OrganisationLink() + "/dashboard/"
+		return u.OrganisationLink() + "/dashboard"
 	}
 	return setting.AppSubURL + "/"
 }
@@ -466,7 +474,7 @@ func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
 		}
 
 		// Now we need to check if they in some organization together
-		count, err := db.GetEngine(db.DefaultContext).Table("team_user").
+		count, err := e.Table("team_user").
 			Where(
 				builder.And(
 					builder.Eq{"uid": viewer.ID},
@@ -550,7 +558,7 @@ func (u *User) GetRepositories(listOpts db.ListOptions, names ...string) (err er
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
+func (u *User) GetRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	sess := db.GetEngine(db.DefaultContext).Table("repository").Cols("repository.id")
@@ -565,7 +573,7 @@ func (u *User) GetRepositoryIDs(units ...UnitType) ([]int64, error) {
 
 // GetActiveRepositoryIDs returns non-archived repositories IDs where user owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetActiveRepositoryIDs(units ...UnitType) ([]int64, error) {
+func (u *User) GetActiveRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	sess := db.GetEngine(db.DefaultContext).Table("repository").Cols("repository.id")
@@ -582,7 +590,7 @@ func (u *User) GetActiveRepositoryIDs(units ...UnitType) ([]int64, error) {
 
 // GetOrgRepositoryIDs returns repositories IDs where user's team owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
+func (u *User) GetOrgRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	if err := db.GetEngine(db.DefaultContext).Table("repository").
@@ -603,7 +611,7 @@ func (u *User) GetOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 
 // GetActiveOrgRepositoryIDs returns non-archived repositories IDs where user's team owned and has unittypes
 // Caller shall check that units is not globally disabled
-func (u *User) GetActiveOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
+func (u *User) GetActiveOrgRepositoryIDs(units ...unit.Type) ([]int64, error) {
 	var ids []int64
 
 	if err := db.GetEngine(db.DefaultContext).Table("repository").
@@ -625,7 +633,7 @@ func (u *User) GetActiveOrgRepositoryIDs(units ...UnitType) ([]int64, error) {
 
 // GetAccessRepoIDs returns all repositories IDs where user's or user is a team member organizations
 // Caller shall check that units is not globally disabled
-func (u *User) GetAccessRepoIDs(units ...UnitType) ([]int64, error) {
+func (u *User) GetAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 	ids, err := u.GetRepositoryIDs(units...)
 	if err != nil {
 		return nil, err
@@ -639,7 +647,7 @@ func (u *User) GetAccessRepoIDs(units ...UnitType) ([]int64, error) {
 
 // GetActiveAccessRepoIDs returns all non-archived repositories IDs where user's or user is a team member organizations
 // Caller shall check that units is not globally disabled
-func (u *User) GetActiveAccessRepoIDs(units ...UnitType) ([]int64, error) {
+func (u *User) GetActiveAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 	ids, err := u.GetActiveRepositoryIDs(units...)
 	if err != nil {
 		return nil, err
@@ -880,14 +888,15 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		u.Visibility = overwriteDefault[0].Visibility
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	// validate data
-
 	if err := validateUser(u); err != nil {
 		return err
 	}
@@ -899,11 +908,13 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return ErrUserAlreadyExist{u.Name}
 	}
 
-	isExist, err = isEmailUsed(sess, u.Email)
+	isExist, err = user_model.IsEmailUsed(ctx, u.Email)
 	if err != nil {
 		return err
 	} else if isExist {
-		return ErrEmailAlreadyUsed{u.Email}
+		return user_model.ErrEmailAlreadyUsed{
+			Email: u.Email,
+		}
 	}
 
 	// prepare for database
@@ -919,16 +930,16 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 
 	// save changes to database
 
-	if err = deleteUserRedirect(sess, u.Name); err != nil {
+	if err = user_model.DeleteUserRedirect(ctx, u.Name); err != nil {
 		return err
 	}
 
-	if _, err = sess.Insert(u); err != nil {
+	if err = db.Insert(ctx, u); err != nil {
 		return err
 	}
 
 	// insert email address
-	if _, err := sess.Insert(&EmailAddress{
+	if err := db.Insert(ctx, &user_model.EmailAddress{
 		UID:         u.ID,
 		Email:       u.Email,
 		LowerEmail:  strings.ToLower(u.Email),
@@ -938,7 +949,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func countUsers(e db.Engine) int64 {
@@ -988,7 +999,7 @@ func VerifyUserActiveCode(code string) (user *User) {
 }
 
 // VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *EmailAddress {
+func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
 	minutes := setting.Service.ActiveCodeLives
 
 	if user := getVerifyUser(code); user != nil {
@@ -997,7 +1008,7 @@ func VerifyActiveEmailCode(code, email string) *EmailAddress {
 		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &EmailAddress{UID: user.ID, Email: email}
+			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
 			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
 				return emailAddress
 			}
@@ -1013,11 +1024,12 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	isExist, err := isUserExist(sess, 0, newUserName)
 	if err != nil {
@@ -1035,11 +1047,11 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return fmt.Errorf("Rename user directory: %v", err)
 	}
 
-	if err = newUserRedirect(sess, u.ID, oldUserName, newUserName); err != nil {
+	if err = user_model.NewUserRedirect(ctx, u.ID, oldUserName, newUserName); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		if err2 := util.Rename(UserPath(newUserName), UserPath(oldUserName)); err2 != nil && !os.IsNotExist(err2) {
 			log.Critical("Unable to rollback directory change during failed username change from: %s to: %s. DB Error: %v. Filesystem Error: %v", oldUserName, newUserName, err, err2)
 			return fmt.Errorf("failed to rollback directory change during failed username change from: %s to: %s. DB Error: %w. Filesystem Error: %v", oldUserName, newUserName, err, err2)
@@ -1061,7 +1073,9 @@ func checkDupEmail(e db.Engine, u *User) error {
 	if err != nil {
 		return err
 	} else if has {
-		return ErrEmailAlreadyUsed{u.Email}
+		return user_model.ErrEmailAlreadyUsed{
+			Email: u.Email,
+		}
 	}
 	return nil
 }
@@ -1073,7 +1087,7 @@ func validateUser(u *User) error {
 	}
 
 	u.Email = strings.ToLower(u.Email)
-	return ValidateEmail(u.Email)
+	return user_model.ValidateEmail(u.Email)
 }
 
 func updateUser(e db.Engine, u *User) error {
@@ -1201,7 +1215,7 @@ func deleteUser(e db.Engine, u *User) error {
 		&Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
-		&EmailAddress{UID: u.ID},
+		&user_model.EmailAddress{UID: u.ID},
 		&UserOpenID{UID: u.ID},
 		&Reaction{UserID: u.ID},
 		&TeamUser{UID: u.ID},
@@ -1346,7 +1360,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 	for _, u := range users {
 		select {
 		case <-ctx.Done():
-			return ErrCancelledf("Before delete inactive user %s", u.Name)
+			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
 		if err = DeleteUser(u); err != nil {
@@ -1360,7 +1374,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 
 	_, err = db.GetEngine(db.DefaultContext).
 		Where("is_activated = ?", false).
-		Delete(new(EmailAddress))
+		Delete(new(user_model.EmailAddress))
 	return err
 }
 
@@ -1382,7 +1396,12 @@ func getUserByID(e db.Engine, id int64) (*User, error) {
 
 // GetUserByID returns the user object by given ID if exists.
 func GetUserByID(id int64) (*User, error) {
-	return getUserByID(db.GetEngine(db.DefaultContext), id)
+	return GetUserByIDCtx(db.DefaultContext, id)
+}
+
+// GetUserByIDCtx returns the user object by given ID if exists.
+func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
+	return getUserByID(db.GetEngine(ctx), id)
 }
 
 // GetUserByName returns user by given name.
@@ -1561,13 +1580,13 @@ func GetUserByEmailContext(ctx context.Context, email string) (*User, error) {
 	}
 
 	// Otherwise, check in alternative list for activated email addresses
-	emailAddress := &EmailAddress{Email: email, IsActivated: true}
+	emailAddress := &user_model.EmailAddress{Email: email, IsActivated: true}
 	has, err = db.GetEngine(ctx).Get(emailAddress)
 	if err != nil {
 		return nil, err
 	}
 	if has {
-		return getUserByID(db.GetEngine(ctx), emailAddress.UID)
+		return GetUserByIDCtx(ctx, emailAddress.UID)
 	}
 
 	// Finally, if email address is the protected email address:
@@ -1600,11 +1619,16 @@ type SearchUserOptions struct {
 	OrderBy       SearchOrderBy
 	Visible       []structs.VisibleType
 	Actor         *User // The user doing the search
-	IsActive      util.OptionalBool
-	SearchByEmail bool // Search by email as well as username/full name
+	SearchByEmail bool  // Search by email as well as username/full name
+
+	IsActive           util.OptionalBool
+	IsAdmin            util.OptionalBool
+	IsRestricted       util.OptionalBool
+	IsTwoFactorEnabled util.OptionalBool
+	IsProhibitLogin    util.OptionalBool
 }
 
-func (opts *SearchUserOptions) toConds() builder.Cond {
+func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1658,14 +1682,39 @@ func (opts *SearchUserOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"is_active": opts.IsActive.IsTrue()})
 	}
 
-	return cond
+	if !opts.IsAdmin.IsNone() {
+		cond = cond.And(builder.Eq{"is_admin": opts.IsAdmin.IsTrue()})
+	}
+
+	if !opts.IsRestricted.IsNone() {
+		cond = cond.And(builder.Eq{"is_restricted": opts.IsRestricted.IsTrue()})
+	}
+
+	if !opts.IsProhibitLogin.IsNone() {
+		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
+	}
+
+	sess = db.NewSession(db.DefaultContext)
+	if !opts.IsTwoFactorEnabled.IsNone() {
+		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+		if opts.IsTwoFactorEnabled.IsTrue() {
+			cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+		} else {
+			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+		}
+		sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
+	}
+	sess = sess.Where(cond)
+	return sess
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,
 // it returns results in given range and number of total results.
 func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
-	cond := opts.toConds()
-	count, err := db.GetEngine(db.DefaultContext).Where(cond).Count(new(User))
+	sessCount := opts.toSearchQueryBase()
+	defer sessCount.Close()
+	count, err := sessCount.Count(new(User))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
@@ -1674,13 +1723,16 @@ func SearchUsers(opts *SearchUserOptions) (users []*User, _ int64, _ error) {
 		opts.OrderBy = SearchOrderByAlphabetically
 	}
 
-	sess := db.GetEngine(db.DefaultContext).Where(cond).OrderBy(opts.OrderBy.String())
+	sessQuery := opts.toSearchQueryBase().OrderBy(opts.OrderBy.String())
+	defer sessQuery.Close()
 	if opts.Page != 0 {
-		sess = db.SetSessionPagination(sess, opts)
+		sessQuery = db.SetSessionPagination(sessQuery, opts)
 	}
 
+	// the sql may contain JOIN, so we must only select User related columns
+	sessQuery = sessQuery.Select("`user`.*")
 	users = make([]*User, 0, opts.PageSize)
-	return users, count, sess.Find(&users)
+	return users, count, sessQuery.Find(&users)
 }
 
 // GetStarredRepos returns the repos starred by a particular user

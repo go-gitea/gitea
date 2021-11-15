@@ -30,7 +30,6 @@
 		<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
 		<input id="bind_dn" name="bind_dn" value="{{.bind_dn}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
 	</div>
-	<input class="fake" type="password">
 	<div class="ldap field {{if not (eq .type 2)}}hide{{end}}">
 		<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 		<input id="bind_password" name="bind_password" type="password" autocomplete="off" value="{{.bind_password}}">
@@ -75,6 +74,10 @@
 	<div class="field">
 		<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
 		<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{.attribute_ssh_public_key}}" placeholder="e.g. SshPublicKey">
+	</div>
+	<div class="field">
+		<label for="attribute_avatar">{{.i18n.Tr "admin.auths.attribute_avatar"}}</label>
+		<input id="attribute_avatar" name="attribute_avatar" value="{{.attribute_avatar}}" placeholder="e.g. jpegPhoto">
 	</div>
 	<div class="inline field">
 		<div class="ui checkbox">

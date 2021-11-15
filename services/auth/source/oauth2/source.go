@@ -25,7 +25,7 @@ type Source struct {
 	OpenIDConnectAutoDiscoveryURL string
 	CustomURLMapping              *CustomURLMapping
 	IconURL                       string
-	SkipLocalTwoFA                bool
+	SkipLocalTwoFA                bool `json:",omitempty"`
 
 	// reference to the loginSource
 	loginSource *login.Source

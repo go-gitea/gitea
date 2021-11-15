@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -88,16 +90,21 @@ func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
 
-	collaborators := make([]*Collaborator, len(collaborations))
-	for i, c := range collaborations {
+	collaborators := make([]*Collaborator, 0, len(collaborations))
+	for _, c := range collaborations {
 		user, err := getUserByID(e, c.UserID)
 		if err != nil {
-			return nil, err
+			if IsErrUserNotExist(err) {
+				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
+				user = NewGhostUser()
+			} else {
+				return nil, err
+			}
 		}
-		collaborators[i] = &Collaborator{
+		collaborators = append(collaborators, &Collaborator{
 			User:          user,
 			Collaboration: c,
-		}
+		})
 	}
 	return collaborators, nil
 }
@@ -270,7 +277,7 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
 		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).
-		And("team_unit.`type` = ?", UnitTypeCode).
+		And("team_unit.`type` = ?", unit.TypeCode).
 		And("team_user.uid = ?", userID).Table("team_user").Exist(&TeamUser{})
 	if err != nil {
 		return false, err

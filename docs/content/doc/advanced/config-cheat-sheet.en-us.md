@@ -23,8 +23,8 @@ or any corresponding location. When installing from a distribution, this will
 typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
-accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
-(s/master/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
+accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
+(s/main/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
 by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
@@ -54,10 +54,10 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_PUSH_CREATE_PRIVATE`: **true**: Default private when creating a new repository with push-to-create.
 - `MAX_CREATION_LIMIT`: **-1**: Global maximum creation limit of repositories per user,
    `-1` means no limit.
-- `PULL_REQUEST_QUEUE_LENGTH`: **1000**: Length of pull request patch test queue, make it
+- `PULL_REQUEST_QUEUE_LENGTH`: **1000**: Length of pull request patch test queue, make it. **DEPRECATED** use `LENGTH` in `[queue.pr_patch_checker]`.
    as large as possible. Use caution when editing this value.
 - `MIRROR_QUEUE_LENGTH`: **1000**: Patch test queue length, increase if pull request patch
-   testing starts hanging.
+   testing starts hanging. **DEPRECATED** use `LENGTH` in `[queue.mirror]`.
 - `PREFERRED_LICENSES`: **Apache License 2.0,MIT License**: Preferred Licenses to place at
    the top of the list. Name must match file name in options/license or custom/options/license.
 - `DISABLE_HTTP_GIT`: **false**: Disable the ability to interact with repositories over the
@@ -115,6 +115,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 - `ALLOWED_TYPES`: **\<empty\>**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
 - `DEFAULT_PAGING_NUM`: **10**: The default paging number of releases user interface
+- For settings related to file attachments on releases, see the `attachment` section.
 
 ### Repository - Signing (`repository.signing`)
 
@@ -173,9 +174,9 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
-- `DEFAULT_THEME`: **gitea**: \[gitea, arc-green\]: Set the default theme for the Gitea install.
+- `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: Set the default theme for the Gitea install.
 - `SHOW_USER_EMAIL`: **true**: Whether the email of the user should be shown in the Explore Users page.
-- `THEMES`:  **gitea,arc-green**: All available themes. Allow users select personalized themes.
+- `THEMES`:  **auto,gitea,arc-green**: All available themes. Allow users select personalized themes.
   regardless of the value of `DEFAULT_THEME`.
 - `THEME_COLOR_META_TAG`: **#6cc644**:  Value of `theme-color` meta tag, used by Android >= 5.0. An invalid color like "none" or "disable" will have the default style.  More info: https://developers.google.com/web/updates/2014/11/Support-for-theme-color-in-Chrome-39-for-Android
 - `MAX_DISPLAY_FILE_SIZE`: **8388608**: Max size of files to be displayed (default is 8MiB)
@@ -381,6 +382,8 @@ relation to port exhaustion.
 
 ## Queue (`queue` and `queue.*`)
 
+Configuration at `[queue]` will set defaults for queues with overrides for individual queues at `[queue.*]`. (However see below.)
+
 - `TYPE`: **persistable-channel**: General queue type, currently support: `persistable-channel` (uses a LevelDB internally), `channel`, `level`, `redis`, `dummy`
 - `DATADIR`: **queues/**: Base DataDir for storing persistent and level queues. `DATADIR` for individual queues can be set in `queue.name` sections but will default to `DATADIR/`**`common`**. (Previously each queue would default to `DATADIR/`**`name`**.)
 - `LENGTH`: **20**: Maximal queue size before channel queues block
@@ -398,6 +401,37 @@ relation to port exhaustion.
 - `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
 - `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
 - `BOOST_WORKERS`: **1** (v1.14 and before: **5**): This many workers will be added to the worker pool if there is a boost.
+
+Gitea creates the following non-unique queues:
+
+- `code_indexer`
+- `issue_indexer`
+- `notification-service`
+- `task`
+- `mail`
+- `push_update`
+
+And the following unique queues:
+
+- `repo_stats_update`
+- `repo-archive`
+- `mirror`
+- `pr_patch_checker`
+
+Certain queues have defaults that override the defaults set in `[queue]` (this occurs mostly to support older configuration):
+
+- `[queue.issue_indexer]`
+  - `TYPE` this will default to `[queue]` `TYPE` if it is set but if not it will appropriately convert `[indexer]` `ISSUE_INDEXER_QUEUE_TYPE` if that is set.
+  - `LENGTH` will default to `[indexer]` `UPDATE_BUFFER_LEN` if that is set.
+  - `BATCH_LENGTH` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_BATCH_NUMBER` if that is set.
+  - `DATADIR` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_DIR` if that is set.
+  - `CONN_STR` will default to `[indexer]` `ISSUE_INDEXER_QUEUE_CONN_STR` if that is set.
+- `[queue.mailer]`
+  - `LENGTH` will default to **100** or whatever `[mailer]` `SEND_BUFFER_LEN` is.
+- `[queue.pr_patch_checker]`
+  - `LENGTH` will default to **1000** or whatever `[repository]` `PULL_REQUEST_QUEUE_LENGTH` is.
+- `[queue.mirror]`
+  - `LENGTH` will default to **1000** or whatever `[repository]` `MIRROR_QUEUE_LENGTH` is.
 
 ## Admin (`admin`)
 
@@ -547,6 +581,14 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
+- `ALLOWED_HOST_LIST`: **external**: Since 1.15.7. Default to `*` for 1.15.x, `external` for 1.16 and later. Webhook can only call allowed hosts for security reasons. Comma separated list.
+  - Built-in networks:
+    - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
+    - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
+    - `external`: A valid non-private unicast IP, you can access all hosts on public internet. 
+    - `*`: All hosts are allowed.
+  - CIDR list: `1.2.3.0/8` for IPv4 and `2001:db8::/32` for IPv6
+  - Wildcard hosts: `*.mydomain.com`, `192.168.100.*`
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
 - `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
@@ -587,7 +629,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
    command or full path).
 - `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments.
 - `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
-- `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue.
+- `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
 
 ## Cache (`cache`)
 
@@ -823,8 +865,15 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
-- `SCHEDULE`: **@every 128h**: Cron syntax for scheduling a work, e.g. `@every 128h`.
+- `SCHEDULE`: **@every 168h**: Cron syntax to set how often to check.
 - `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
+
+#### Cron -  Check for new Gitea versions ('cron.update_checker')
+- `ENABLED`: **false**: Enable service.
+- `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
+- `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
+- `SCHEDULE`: **@every 168h**: Cron syntax for scheduling a work, e.g. `@every 168h`.
+- `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
 ## Git (`git`)
 
@@ -841,6 +890,7 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
 - `LARGE_OBJECT_THRESHOLD`: **1048576**: (Go-Git only), don't cache objects greater than this in memory. (Set to 0 to disable.)
+- `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
 ## Git - Timeout settings (`git.timeout`)
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
@@ -852,6 +902,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 ## Metrics (`metrics`)
 
 - `ENABLED`: **false**: Enables /metrics endpoint for prometheus.
+- `ENABLED_ISSUE_BY_LABEL`: **false**: Enable issue by label metrics with format `gitea_issues_by_label{label="bug"} 2`.
+- `ENABLED_ISSUE_BY_REPOSITORY`: **false**: Enable issue by repository metrics with format `gitea_issues_by_repository{repository="org/repo"} 5`.
 - `TOKEN`: **\<empty\>**: You need to specify the token, if you want to include in the authorization the metrics . The same token need to be used in prometheus parameters `bearer_token` or `bearer_token_file`.
 
 ## API (`api`)
@@ -951,6 +1003,10 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
+
+## Federation (`federation`)
+
+- `ENABLED`: **true**: Enable/Disable federation capabilities
 
 ## Mirror (`mirror`)
 

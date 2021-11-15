@@ -26,7 +26,13 @@ export function isObject(obj) {
 
 // returns whether a dark theme is enabled
 export function isDarkTheme() {
-  return document.documentElement.classList.contains('theme-arc-green');
+  if (document.documentElement.classList.contains('theme-auto')) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  }
+  if (document.documentElement.classList.contains('theme-arc-green')) {
+    return true;
+  }
+  return false;
 }
 
 // removes duplicate elements in an array
@@ -50,4 +56,10 @@ export function mqBinarySearch(feature, minValue, maxValue, step, unit) {
     return mqBinarySearch(feature, mid, maxValue, step, unit); // feature is >= mid
   }
   return mqBinarySearch(feature, minValue, mid - step, step, unit); // feature is < mid
+}
+
+export function parseIssueHref(href) {
+  const path = (href || '').replace(/[#?].*$/, '');
+  const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
+  return {owner, repo, type, index};
 }

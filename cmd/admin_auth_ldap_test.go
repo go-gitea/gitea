@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 
 	"code.gitea.io/gitea/models/login"
@@ -45,6 +46,7 @@ func TestAddLdapBindDn(t *testing.T) {
 				"--surname-attribute", "sn-bind full",
 				"--email-attribute", "mail-bind full",
 				"--public-ssh-key-attribute", "publickey-bind full",
+				"--avatar-attribute", "avatar-bind full",
 				"--bind-dn", "cn=readonly,dc=full-domain-bind,dc=org",
 				"--bind-password", "secret-bind-full",
 				"--attributes-in-bind",
@@ -71,6 +73,7 @@ func TestAddLdapBindDn(t *testing.T) {
 					AttributeMail:         "mail-bind full",
 					AttributesInBind:      true,
 					AttributeSSHPublicKey: "publickey-bind full",
+					AttributeAvatar:       "avatar-bind full",
 					SearchPageSize:        99,
 					Filter:                "(memberOf=cn=user-group,ou=example,dc=full-domain-bind,dc=org)",
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
@@ -205,7 +208,7 @@ func TestAddLdapBindDn(t *testing.T) {
 		// Mock functions.
 		var createdLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
@@ -269,6 +272,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				"--surname-attribute", "sn-simple full",
 				"--email-attribute", "mail-simple full",
 				"--public-ssh-key-attribute", "publickey-simple full",
+				"--avatar-attribute", "avatar-simple full",
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 			},
 			loginSource: &login.Source{
@@ -288,6 +292,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 					AttributeSurname:      "sn-simple full",
 					AttributeMail:         "mail-simple full",
 					AttributeSSHPublicKey: "publickey-simple full",
+					AttributeAvatar:       "avatar-simple full",
 					Filter:                "(&(objectClass=posixAccount)(full-simple-cn=%s))",
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-simple,dc=org)",
 					RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-simple,dc=org)",
@@ -434,7 +439,7 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 		// Mock functions.
 		var createdLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
@@ -501,6 +506,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 				"--surname-attribute", "sn-bind full",
 				"--email-attribute", "mail-bind full",
 				"--public-ssh-key-attribute", "publickey-bind full",
+				"--avatar-attribute", "avatar-bind full",
 				"--bind-dn", "cn=readonly,dc=full-domain-bind,dc=org",
 				"--bind-password", "secret-bind-full",
 				"--synchronize-users",
@@ -534,6 +540,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 					AttributeMail:         "mail-bind full",
 					AttributesInBind:      false,
 					AttributeSSHPublicKey: "publickey-bind full",
+					AttributeAvatar:       "avatar-bind full",
 					SearchPageSize:        99,
 					Filter:                "(memberOf=cn=user-group,ou=example,dc=full-domain-bind,dc=org)",
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-bind,dc=org)",
@@ -857,7 +864,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 		// Mock functions.
 		var updatedLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {
@@ -932,6 +939,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 				"--surname-attribute", "sn-simple full",
 				"--email-attribute", "mail-simple full",
 				"--public-ssh-key-attribute", "publickey-simple full",
+				"--avatar-attribute", "avatar-simple full",
 				"--user-dn", "cn=%s,ou=Users,dc=full-domain-simple,dc=org",
 			},
 			id: 7,
@@ -952,6 +960,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 					AttributeSurname:      "sn-simple full",
 					AttributeMail:         "mail-simple full",
 					AttributeSSHPublicKey: "publickey-simple full",
+					AttributeAvatar:       "avatar-simple full",
 					Filter:                "(&(objectClass=posixAccount)(full-simple-cn=%s))",
 					AdminFilter:           "(memberOf=cn=admin-group,ou=example,dc=full-domain-simple,dc=org)",
 					RestrictedFilter:      "(memberOf=cn=restricted-group,ou=example,dc=full-domain-simple,dc=org)",
@@ -1219,7 +1228,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 		// Mock functions.
 		var updatedLoginSource *login.Source
 		service := &authService{
-			initDB: func() error {
+			initDB: func(context.Context) error {
 				return nil
 			},
 			createLoginSource: func(loginSource *login.Source) error {

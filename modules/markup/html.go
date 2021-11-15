@@ -94,7 +94,7 @@ var issueFullPatternOnce sync.Once
 func getIssueFullPattern() *regexp.Regexp {
 	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
+			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
 	})
 	return issueFullPattern
 }

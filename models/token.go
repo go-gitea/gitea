@@ -161,7 +161,7 @@ func ListAccessTokens(opts ListAccessTokensOptions) ([]*AccessToken, error) {
 		sess = sess.Where("name=?", opts.Name)
 	}
 
-	sess = sess.Desc("id")
+	sess = sess.Desc("created_unix")
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts)

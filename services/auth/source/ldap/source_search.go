@@ -27,6 +27,7 @@ type SearchResult struct {
 	IsAdmin      bool     // if user is administrator
 	IsRestricted bool     // if user is restricted
 	LowerName    string   // Lowername
+	Avatar       []byte
 }
 
 func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
@@ -266,7 +267,8 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		return nil
 	}
 
-	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAtributeAvatarSet := len(strings.TrimSpace(ls.AttributeAvatar)) > 0
 
 	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
 	if len(strings.TrimSpace(ls.UserUID)) > 0 {
@@ -275,8 +277,11 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
+	if isAtributeAvatarSet {
+		attribs = append(attribs, ls.AttributeAvatar)
+	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.UserUID, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, ls.UserUID, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -296,6 +301,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	var sshPublicKey []string
+	var Avatar []byte
 
 	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
 	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
@@ -363,6 +369,10 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		}
 	}
 
+	if isAtributeAvatarSet {
+		Avatar = sr.Entries[0].GetRawAttributeValue(ls.AttributeAvatar)
+	}
+
 	return &SearchResult{
 		LowerName:    strings.ToLower(username),
 		Username:     username,
@@ -372,6 +382,7 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		SSHPublicKey: sshPublicKey,
 		IsAdmin:      isAdmin,
 		IsRestricted: isRestricted,
+		Avatar:       Avatar,
 	}
 }
 
@@ -403,14 +414,18 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 
 	userFilter := fmt.Sprintf(ls.Filter, "*")
 
-	var isAttributeSSHPublicKeySet = len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
+	isAtributeAvatarSet := len(strings.TrimSpace(ls.AttributeAvatar)) > 0
 
 	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
 	if isAttributeSSHPublicKeySet {
 		attribs = append(attribs, ls.AttributeSSHPublicKey)
 	}
+	if isAtributeAvatarSet {
+		attribs = append(attribs, ls.AttributeAvatar)
+	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, userFilter, ls.UserBase)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, userFilter, ls.UserBase)
 	search := ldap.NewSearchRequest(
 		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -442,8 +457,10 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 		if isAttributeSSHPublicKeySet {
 			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
 		}
+		if isAtributeAvatarSet {
+			result[i].Avatar = v.GetRawAttributeValue(ls.AttributeAvatar)
+		}
 		result[i].LowerName = strings.ToLower(result[i].Username)
-
 	}
 
 	return result, nil

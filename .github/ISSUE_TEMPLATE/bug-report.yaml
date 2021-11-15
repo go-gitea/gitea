@@ -26,7 +26,7 @@ body:
   id: git-ver
   attributes:
     label: Git Version
-    description: The version of git running on the server's systemm
+    description: The version of git running on the server
 - type: input
   id: os-ver
   attributes:

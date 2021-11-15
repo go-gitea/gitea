@@ -5,100 +5,50 @@
 package user
 
 import (
-	"errors"
-	"net/url"
-	"path"
-	"strconv"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 )
 
 func cacheableRedirect(ctx *context.Context, location string) {
-	ctx.Resp.Header().Set("Cache-Control", httpcache.GetCacheControl())
+	// here we should not use `setting.StaticCacheTime`, it is pretty long (default: 6 hours)
+	// we must make sure the redirection cache time is short enough, otherwise a user won't see the updated avatar in 6 hours
+	// it's OK to make the cache time short, it is only a redirection, and doesn't cost much to make a new request
+	httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 5*time.Minute)
 	ctx.Redirect(location)
 }
 
-// Avatar redirect browser to user avatar of requested size
-func Avatar(ctx *context.Context) {
+// AvatarByUserName redirect browser to user avatar of requested size
+func AvatarByUserName(ctx *context.Context) {
 	userName := ctx.Params(":username")
-	size, err := strconv.Atoi(ctx.Params(":size"))
-	if err != nil {
-		ctx.ServerError("Invalid avatar size", err)
-		return
-	}
-
-	log.Debug("Asked avatar for user %v and size %v", userName, size)
+	size := int(ctx.ParamsInt64(":size"))
 
 	var user *models.User
 	if strings.ToLower(userName) != "ghost" {
-		user, err = models.GetUserByName(userName)
-		if err != nil {
-			if models.IsErrUserNotExist(err) {
-				ctx.ServerError("Requested avatar for invalid user", err)
-			} else {
-				ctx.ServerError("Retrieving user by name", err)
-			}
+		var err error
+		if user, err = models.GetUserByName(userName); err != nil {
+			ctx.ServerError("Invalid user: "+userName, err)
 			return
 		}
 	} else {
 		user = models.NewGhostUser()
 	}
 
-	cacheableRedirect(ctx, user.RealSizedAvatarLink(size))
+	cacheableRedirect(ctx, user.AvatarLinkWithSize(size))
 }
 
-// AvatarByEmailHash redirects the browser to the appropriate Avatar link
+// AvatarByEmailHash redirects the browser to the email avatar link
 func AvatarByEmailHash(ctx *context.Context) {
-	var err error
-
 	hash := ctx.Params(":hash")
-	if len(hash) == 0 {
-		ctx.ServerError("invalid avatar hash", errors.New("hash cannot be empty"))
-		return
-	}
-
-	var email string
-	email, err = models.GetEmailForHash(hash)
+	email, err := avatars.GetEmailForHash(hash)
 	if err != nil {
-		ctx.ServerError("invalid avatar hash", err)
-		return
-	}
-	if len(email) == 0 {
-		cacheableRedirect(ctx, models.DefaultAvatarLink())
+		ctx.ServerError("invalid avatar hash: "+hash, err)
 		return
 	}
 	size := ctx.FormInt("size")
-	if size == 0 {
-		size = models.DefaultAvatarSize
-	}
-
-	var avatarURL *url.URL
-
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
-		avatarURL, err = models.LibravatarURL(email)
-		if err != nil {
-			avatarURL, err = url.Parse(models.DefaultAvatarLink())
-			if err != nil {
-				ctx.ServerError("invalid default avatar url", err)
-				return
-			}
-		}
-	} else if !setting.DisableGravatar {
-		copyOfGravatarSourceURL := *setting.GravatarSourceURL
-		avatarURL = &copyOfGravatarSourceURL
-		avatarURL.Path = path.Join(avatarURL.Path, hash)
-	} else {
-		avatarURL, err = url.Parse(models.DefaultAvatarLink())
-		if err != nil {
-			ctx.ServerError("invalid default avatar url", err)
-			return
-		}
-	}
-
-	cacheableRedirect(ctx, models.MakeFinalAvatarURL(avatarURL, size))
+	cacheableRedirect(ctx, avatars.GenerateEmailAvatarFinalLink(email, size))
 }

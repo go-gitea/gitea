@@ -48,6 +48,7 @@
 				{{end}}
 				<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
 			</div>
+			<a download href="{{EscapePound $.RawFileLink}}"><span class="btn-octicon poping up" data-content="{{.i18n.Tr "repo.download_file"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-download"}}</span></a>
 			{{if .Repository.CanEnableEditor}}
 				{{if .CanEditFile}}
 					<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
@@ -112,29 +113,22 @@
 						{{end}}
 					</tbody>
 				</table>
-					{{if $.Permission.CanRead $.UnitTypeIssues}}
-						<div class="code-line-menu ui fluid popup transition hidden">
-							<div class="ui column relaxed equal height">
-								<div class="column">
-									<div class="ui link list">
-										<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
-									</div>
+				<div class="code-line-menu ui fluid popup transition hidden">
+					<div class="ui column relaxed equal height">
+						<div class="column">
+							{{if $.Permission.CanRead $.UnitTypeIssues}}
+								<div class="ui link list">
+									<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
 								</div>
+							{{end}}
+							<div class="ui link list">
+								<a data-clipboard-text="{{URLJoin AppUrl .RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}" class="item copy-line-permalink">{{.i18n.Tr "repo.file_copy_permalink"}}</a>
 							</div>
 						</div>
-					{{end}}
+					</div>
+				</div>
 				{{end}}
 			{{end}}
 		</div>
 	</div>
 </div>
-
-<script>
-function submitDeleteForm() {
-	var message = prompt("{{.i18n.Tr "repo.delete_confirm_message"}}\n\n{{.i18n.Tr "repo.delete_commit_summary"}}", "Delete '{{.TreeName}}'");
-	if (message != null) {
-		$("#delete-message").val(message);
-		$("#delete-file-form").submit()
-	}
-}
-</script>

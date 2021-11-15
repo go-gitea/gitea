@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"regexp"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/auth/pam"
 	"code.gitea.io/gitea/modules/base"
@@ -136,6 +135,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 		AttributeMail:         form.AttributeMail,
 		AttributesInBind:      form.AttributesInBind,
 		AttributeSSHPublicKey: form.AttributeSSHPublicKey,
+		AttributeAvatar:       form.AttributeAvatar,
 		SearchPageSize:        pageSize,
 		Filter:                form.Filter,
 		GroupsEnabled:         form.GroupsEnabled,
@@ -161,6 +161,7 @@ func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 		SkipVerify:     form.SkipVerify,
 		HeloHostname:   form.HeloHostname,
 		DisableHelo:    form.DisableHelo,
+		SkipLocalTwoFA: form.SkipLocalTwoFA,
 	}
 }
 
@@ -244,8 +245,9 @@ func NewAuthSourcePost(ctx *context.Context) {
 		hasTLS = true
 	case login.PAM:
 		config = &pamService.Source{
-			ServiceName: form.PAMServiceName,
-			EmailDomain: form.PAMEmailDomain,
+			ServiceName:    form.PAMServiceName,
+			EmailDomain:    form.PAMEmailDomain,
+			SkipLocalTwoFA: form.SkipLocalTwoFA,
 		}
 	case login.OAuth2:
 		config = parseOAuth2Config(form)
@@ -383,7 +385,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	source.IsSyncEnabled = form.IsSyncEnabled
 	source.Cfg = config
 	if err := login.UpdateSource(source); err != nil {
-		if models.IsErrOpenIDConnectInitialize(err) {
+		if oauth2.IsErrOpenIDConnectInitialize(err) {
 			ctx.Flash.Error(err.Error(), true)
 			ctx.HTML(http.StatusOK, tplAuthEdit)
 		} else {

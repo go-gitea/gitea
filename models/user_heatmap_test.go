@@ -7,9 +7,12 @@ package models
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -37,7 +40,11 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		{10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
 	}
 	// Prepare
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Mock time
+	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer timeutil.Unset()
 
 	for i, tc := range testCases {
 		user := db.AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)

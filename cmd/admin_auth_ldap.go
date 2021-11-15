@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -16,7 +17,7 @@ import (
 
 type (
 	authService struct {
-		initDB             func() error
+		initDB             func(ctx context.Context) error
 		createLoginSource  func(loginSource *login.Source) error
 		updateLoginSource  func(loginSource *login.Source) error
 		getLoginSourceByID func(id int64) (*login.Source, error)
@@ -92,6 +93,10 @@ var (
 		cli.BoolFlag{
 			Name:  "skip-local-2fa",
 			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
+		cli.StringFlag{
+			Name:  "avatar-attribute",
+			Usage: "The attribute of the user’s LDAP record containing the user’s avatar.",
 		},
 	}
 
@@ -234,6 +239,9 @@ func parseLdapConfig(c *cli.Context, config *ldap.Source) error {
 	if c.IsSet("public-ssh-key-attribute") {
 		config.AttributeSSHPublicKey = c.String("public-ssh-key-attribute")
 	}
+	if c.IsSet("avatar-attribute") {
+		config.AttributeAvatar = c.String("avatar-attribute")
+	}
 	if c.IsSet("page-size") {
 		config.SearchPageSize = uint32(c.Uint("page-size"))
 	}
@@ -292,7 +300,10 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 		return err
 	}
 
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -314,7 +325,10 @@ func (a *authService) addLdapBindDn(c *cli.Context) error {
 
 // updateLdapBindDn updates a new LDAP via Bind DN authentication source.
 func (a *authService) updateLdapBindDn(c *cli.Context) error {
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -337,7 +351,10 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 		return err
 	}
 
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 
@@ -359,7 +376,10 @@ func (a *authService) addLdapSimpleAuth(c *cli.Context) error {
 
 // updateLdapBindDn updates a new LDAP (simple auth) authentication source.
 func (a *authService) updateLdapSimpleAuth(c *cli.Context) error {
-	if err := a.initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := a.initDB(ctx); err != nil {
 		return err
 	}
 

@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -73,11 +74,11 @@ func getRepository(ctx *context.Context, repoID int64) *models.Repository {
 		return nil
 	}
 
-	if !perm.CanRead(models.UnitTypeCode) {
+	if !perm.CanRead(unit.TypeCode) {
 		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
 			"User in repo has Permissions: %-+v",
 			ctx.User,
-			models.UnitTypeCode,
+			unit.TypeCode,
 			ctx.Repo,
 			perm)
 		ctx.NotFound("getRepository", nil)
@@ -318,7 +319,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 	ctx.Data["HasMerged"] = true
 
 	compareInfo, err := ctx.Repo.GitRepo.GetCompareInfo(ctx.Repo.Repository.RepoPath(),
-		pull.MergeBase, pull.GetGitRefName())
+		pull.MergeBase, pull.GetGitRefName(), true, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") || strings.Contains(err.Error(), "unknown revision or path not in the working tree") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -401,7 +402,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		}
 
 		compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-			pull.MergeBase, pull.GetGitRefName())
+			pull.MergeBase, pull.GetGitRefName(), true, false)
 		if err != nil {
 			if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 				ctx.Data["IsPullRequestBroken"] = true
@@ -517,7 +518,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 	}
 
 	compareInfo, err := baseGitRepo.GetCompareInfo(pull.BaseRepo.RepoPath(),
-		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName())
+		git.BranchPrefix+pull.BaseBranch, pull.GetGitRefName(), true, false)
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: Not a valid object name") {
 			ctx.Data["IsPullRequestBroken"] = true
@@ -633,9 +634,9 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["AfterCommitID"] = endCommitID
 
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(gitRepo,
-		startCommitID, endCommitID, setting.Git.MaxGitDiffLines,
+		startCommitID, endCommitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
+		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)), false)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return
@@ -1034,17 +1035,17 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
 
 	var (
 		repo        = ctx.Repo.Repository
 		attachments []string
 	)
 
-	headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch := ParseCompareInfo(ctx)
+	ci := ParseCompareInfo(ctx)
 	defer func() {
-		if headGitRepo != nil {
-			headGitRepo.Close()
+		if ci != nil && ci.HeadGitRepo != nil {
+			ci.HeadGitRepo.Close()
 		}
 	}()
 	if ctx.Written() {
@@ -1065,7 +1066,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 
 		// This stage is already stop creating new pull request, so it does not matter if it has
 		// something to compare or not.
-		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch,
+		PrepareCompareDiff(ctx, ci,
 			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 		if ctx.Written() {
 			return
@@ -1084,7 +1085,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	if util.IsEmptyString(form.Title) {
-		PrepareCompareDiff(ctx, headUser, headRepo, headGitRepo, prInfo, baseBranch, headBranch,
+		PrepareCompareDiff(ctx, ci,
 			gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)))
 		if ctx.Written() {
 			return
@@ -1104,13 +1105,13 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Content:     form.Content,
 	}
 	pullRequest := &models.PullRequest{
-		HeadRepoID: headRepo.ID,
+		HeadRepoID: ci.HeadRepo.ID,
 		BaseRepoID: repo.ID,
-		HeadBranch: headBranch,
-		BaseBranch: baseBranch,
-		HeadRepo:   headRepo,
+		HeadBranch: ci.HeadBranch,
+		BaseBranch: ci.BaseBranch,
+		HeadRepo:   ci.HeadRepo,
 		BaseRepo:   repo,
-		MergeBase:  prInfo.MergeBase,
+		MergeBase:  ci.CompareInfo.MergeBase,
 		Type:       models.PullRequestGitea,
 	}
 	// FIXME: check error in the case two people send pull request at almost same time, give nice error prompt
@@ -1221,7 +1222,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
 	}
-	if !perm.CanWrite(models.UnitTypeCode) {
+	if !perm.CanWrite(unit.TypeCode) {
 		ctx.NotFound("CleanUpPullRequest", nil)
 		return
 	}
@@ -1322,31 +1323,19 @@ func DownloadPullPatch(ctx *context.Context) {
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
 func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound("GetIssueByIndex", err)
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound("GetPullRequestByIndex", err)
 		} else {
-			ctx.ServerError("GetIssueByIndex", err)
+			ctx.ServerError("GetPullRequestByIndex", err)
 		}
 		return
 	}
 
-	// Return not found if it's not a pull request
-	if !issue.IsPull {
-		ctx.NotFound("DownloadPullDiff",
-			fmt.Errorf("Issue is not a pull request"))
-		return
-	}
+	binary := ctx.FormBool("binary")
 
-	if err = issue.LoadPullRequest(); err != nil {
-		ctx.ServerError("LoadPullRequest", err)
-		return
-	}
-
-	pr := issue.PullRequest
-
-	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch); err != nil {
+	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch, binary); err != nil {
 		ctx.ServerError("DownloadDiffOrPatch", err)
 		return
 	}

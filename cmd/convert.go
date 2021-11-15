@@ -23,7 +23,10 @@ var CmdConvert = cli.Command{
 }
 
 func runConvert(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 

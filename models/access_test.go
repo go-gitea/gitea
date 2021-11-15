@@ -8,11 +8,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAccessLevel(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	user5 := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
@@ -63,7 +64,7 @@ func TestAccessLevel(t *testing.T) {
 }
 
 func TestHasAccess(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
@@ -89,7 +90,7 @@ func TestHasAccess(t *testing.T) {
 }
 
 func TestUser_GetRepositoryAccesses(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	accesses, err := user1.GetRepositoryAccesses()
@@ -103,7 +104,7 @@ func TestUser_GetRepositoryAccesses(t *testing.T) {
 }
 
 func TestUser_GetAccessibleRepositories(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	user1 := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	repos, err := user1.GetAccessibleRepositories(0)
@@ -123,7 +124,7 @@ func TestUser_GetAccessibleRepositories(t *testing.T) {
 
 func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
@@ -140,7 +141,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 
 func TestRepository_RecalculateAccesses2(t *testing.T) {
 	// test with non-organization repo
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo1.GetOwner())
 
@@ -154,7 +155,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 }
 
 func TestRepository_RecalculateAccesses3(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	team5 := db.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
 	user29 := db.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
 

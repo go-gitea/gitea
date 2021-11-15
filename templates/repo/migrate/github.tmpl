@@ -14,7 +14,7 @@
 						<label for="clone_addr">{{.i18n.Tr "repo.migrate.clone_address"}}</label>
 						<input id="clone_addr" name="clone_addr" value="{{.clone_addr}}" autofocus required>
 						<span class="help">
-						{{.i18n.Tr "repo.migrate.clone_address_desc"}}{{if .ContextUser.CanImportLocal}} {{.i18n.Tr "repo.migrate.clone_local_path"}}{{end}}
+						{{.i18n.Tr "repo.migrate.clone_address_desc"}}
 						</span>
 					</div>
 
@@ -22,6 +22,9 @@
 						<label for="auth_token">{{.i18n.Tr "access_token"}}</label>
 						<input id="auth_token" name="auth_token" value="{{.auth_token}}" {{if not .auth_token}}data-need-clear="true"{{end}}>
 						<a target="_blank" href="https://docs.github.com/en/github/authenticating-to-github/creating-a-personal-access-token">{{svg "octicon-question"}}</a>
+						<span class="help">
+						{{.i18n.Tr "repo.migrate.github_token_desc"}}
+						</span>
 					</div>
 
 					{{template "repo/migrate/options" .}}

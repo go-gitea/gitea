@@ -16,6 +16,7 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
@@ -112,7 +113,7 @@ func SendResetPasswordMail(u *models.User) {
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(u *models.User, email *models.EmailAddress) {
+func SendActivateEmailMail(u *models.User, email *user_model.EmailAddress) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return
@@ -305,13 +306,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		// Set Message-ID on first message so replies know what to reference
-		if actName == "new" {
-			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
-		} else {
-			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
-			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference()+">")
-		}
+		msg.SetHeader("Message-ID", "<"+createReference(ctx.Issue, ctx.Comment)+">")
+		reference := createReference(ctx.Issue, nil)
+		msg.SetHeader("In-Reply-To", "<"+reference+">")
+		msg.SetHeader("References", "<"+reference+">")
 
 		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
 			msg.SetHeader(key, value)
@@ -321,6 +319,22 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	return msgs, nil
+}
+
+func createReference(issue *models.Issue, comment *models.Comment) string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	var extra string
+	if comment != nil {
+		extra = fmt.Sprintf("/comment/%d", comment.ID)
+	}
+
+	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
 }
 
 func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *models.User) map[string]string {
@@ -372,6 +386,12 @@ func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content strin
 		// No mail service configured
 		return nil
 	}
+
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		return err
+	}
+
 	langMap := make(map[string][]*models.User)
 	for _, user := range recipients {
 		langMap[user.Language] = append(langMap[user.Language], user)

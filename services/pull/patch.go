@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -22,7 +23,7 @@ import (
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
-func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
+func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch, binary bool) error {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
@@ -33,7 +34,7 @@ func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error 
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 	defer gitRepo.Close()
-	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch); err != nil {
+	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
@@ -108,7 +109,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		_ = util.Remove(tmpPatchFile.Name())
 	}()
 
-	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
+	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
@@ -142,7 +143,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	// 4. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}

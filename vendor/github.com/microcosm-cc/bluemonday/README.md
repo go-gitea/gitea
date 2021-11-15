@@ -180,7 +180,7 @@ p.AllowElementsMatching(regex.MustCompile(`^my-element-`))
 
 Or add elements as a virtue of adding an attribute:
 ```go
-// Not the recommended pattern, see the recommendation on using .Matching() below
+// Note the recommended pattern, see the recommendation on using .Matching() below
 p.AllowAttrs("nowrap").OnElements("td", "th")
 ```
 
@@ -222,7 +222,7 @@ p.AllowElements("fieldset", "select", "option")
 
 Although it's possible to handle inline CSS using `AllowAttrs` with a `Matching` rule, writing a single monolithic regular expression to safely process all inline CSS which you wish to allow is not a trivial task.  Instead of attempting to do so, you can allow the `style` attribute on whichever element(s) you desire and use style policies to control and sanitize inline styles.
 
-It is suggested that you use `Matching` (with a suitable regular expression)
+It is strongly recommended that you use `Matching` (with a suitable regular expression)
 `MatchingEnum`, or `MatchingHandler` to ensure each style matches your needs,
 but default handlers are supplied for most widely used styles.
 
@@ -378,6 +378,8 @@ Both examples exhibit the same issue, they declare attributes but do not then sp
 ## Limitations
 
 We are not yet including any tools to help allow and sanitize CSS. Which means that unless you wish to do the heavy lifting in a single regular expression (inadvisable), **you should not allow the "style" attribute anywhere**.
+
+In the same theme, both `<script>` and `<style>` are considered harmful. These elements (and their content) will not be rendered by default, and require you to explicitly set `p.AllowUnsafe(true)`. You should be aware that allowing these elements defeats the purpose of using a HTML sanitizer as you would be explicitly allowing either JavaScript (and any plainly written XSS) and CSS (which can modify a DOM to insert JS), and additionally but limitations in this library mean it is not aware of whether HTML is validly structured and that can allow these elements to bypass some of the safety mechanisms built into the [WhatWG HTML parser standard](https://html.spec.whatwg.org/multipage/parsing.html#parsing-main-inselect).
 
 It is not the job of bluemonday to fix your bad HTML, it is merely the job of bluemonday to prevent malicious HTML getting through. If you have mismatched HTML elements, or non-conforming nesting of elements, those will remain. But if you have well-structured HTML bluemonday will not break it.
 

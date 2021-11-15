@@ -68,6 +68,9 @@ func AdoptRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mode
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
 
 		// Initialize Issue Labels if selected
 		if len(opts.IssueLabels) > 0 {
@@ -151,7 +154,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 	count := 0
 
 	// We're going to iterate by pagesize.
-	root := filepath.Join(setting.RepoRootPath)
+	root := filepath.Clean(setting.RepoRootPath)
 	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
