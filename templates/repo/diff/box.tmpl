@@ -118,7 +118,7 @@
 									{{end}}
 								</div>
 							{{else}}
-								<table class="chroma">
+								<table class="chroma" data-new-comment-url="{{$.Issue.HTMLURL}}/files/reviews/new_comment">
 									{{if $.IsSplitStyle}}
 										{{template "repo/diff/section_split" dict "file" . "root" $}}
 									{{else}}
