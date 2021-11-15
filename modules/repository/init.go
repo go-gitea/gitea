@@ -172,7 +172,8 @@ func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, def
 	return nil
 }
 
-func checkInitRepository(owner, name string) (err error) {
+// CheckInitRepository check and init git repository
+func CheckInitRepository(owner, name string) (err error) {
 	// Somehow the directory could exist.
 	repoPath := models.RepoPath(owner, name)
 	isExist, err := util.IsExist(repoPath)
@@ -198,7 +199,7 @@ func checkInitRepository(owner, name string) (err error) {
 
 // InitRepository initializes README and .gitignore if needed.
 func initRepository(ctx context.Context, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
-	if err = checkInitRepository(repo.OwnerName, repo.Name); err != nil {
+	if err = CheckInitRepository(repo.OwnerName, repo.Name); err != nil {
 		return err
 	}
 

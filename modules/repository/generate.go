@@ -271,7 +271,7 @@ func GenerateRepository(ctx context.Context, doer, owner *models.User, templateR
 		}
 	}
 
-	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
+	if err = CheckInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 

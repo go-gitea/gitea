@@ -155,8 +155,6 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 
-	fmt.Println("2-------")
-
 	// If FromTreePath is not set, set it to the opts.TreePath
 	if opts.TreePath != "" && opts.FromTreePath == "" {
 		opts.FromTreePath = opts.TreePath
@@ -180,6 +178,19 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 	message := strings.TrimSpace(opts.Message)
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
+
+	if repo.IsEmpty {
+		err := repo_module.CheckInitRepository(repo.OwnerName, repo.Name)
+		if err != nil && !models.IsErrRepoFilesAlreadyExist(err) {
+			return nil, err
+		}
+
+		repo.IsEmpty = false
+		repo.DefaultBranch = opts.OldBranch
+		if err := models.UpdateRepository(repo, false); err != nil {
+			return nil, err
+		}
+	}
 
 	t, err := NewTemporaryUploadRepository(repo)
 	if err != nil {
