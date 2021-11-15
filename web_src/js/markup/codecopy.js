@@ -6,7 +6,6 @@ export function renderCodeCopy() {
 
   const button = document.createElement('button');
   button.classList.add('code-copy', 'ui', 'button');
-  button.setAttribute('data-variation', 'inverted tiny');
   button.innerHTML = svg('octicon-copy');
 
   for (const el of els) {
