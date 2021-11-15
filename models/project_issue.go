@@ -183,26 +183,36 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 //               |__/
 
 // MoveIssuesOnProjectBoard moves or keeps issuses in a column and sorts them inside of that column
-func MoveIssuesOnProjectBoard(board *ProjectBoard, issues map[int64]*Issue) error {
+func MoveIssuesOnProjectBoard(board *ProjectBoard, issueIDs map[int64]int64) error {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	for sorting, issue := range issues {
-		var pis ProjectIssue
-		has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
+	ids := make([]int64, len(issueIDs))
+	for _, id := range issueIDs {
+		ids = append(ids, id)
+	}
+	count, err := sess.Where("project_board_id=?", board.ID, issueIDs).In("issue_id", ids).Count()
+	if err != nil {
+		return err
+	}
+
+	if int(count) != len(issueIDs) {
+		return fmt.Errorf("all issues have to be added to a project first")
+	}
+
+	for sorting, id := range issueIDs {
+		// var pis ProjectIssue
+		// pis.IssueID = id
+		// pis.ProjectBoardID = board.ID
+		// pis.Sorting = sorting
+		_, err := sess.Exec("UPDATE `project_issue` SET project_board_id = ?, sorting = ? WHERE issue_id = ?", board.ID, sorting, id)
 		if err != nil {
 			return err
 		}
 
-		if !has {
-			return fmt.Errorf("issue has to be added to a project first")
-		}
-
-		pis.ProjectBoardID = board.ID
-		pis.Sorting = sorting
 		if _, err := sess.ID(pis.ID).Cols("project_board_id", "sorting").Update(&pis); err != nil {
 			return err
 		}

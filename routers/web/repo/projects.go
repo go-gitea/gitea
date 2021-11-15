@@ -606,23 +606,32 @@ func MoveIssues(ctx *context.Context) {
 
 	form := web.GetForm(ctx).(*forms.MoveProjectIssuesForm)
 
-	issues := make(map[int64]*models.Issue)
-	for _, i := range form.Issues {
-		issue, err := models.GetIssueByID(i.IssueID)
-		if err != nil {
-			if models.IsErrIssueNotExist(err) {
-				ctx.NotFound("", nil)
-			} else {
-				ctx.ServerError("GetIssueByID", err)
-			}
-
-			return
+	issueIDs := make([]int64, len(form.Issues))
+	for _, issue := range form.Issues {
+		issueIDs = append(issueIDs, issue.IssueID)
+	}
+	issues, err := models.GetIssuesByIDs(issueIDs)
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("", nil)
+		} else {
+			ctx.ServerError("GetIssueByID", err)
 		}
 
-		issues[i.Sorting] = issue
+		return
 	}
 
-	if err := models.MoveIssuesOnProjectBoard(board, issues); err != nil {
+	if len(issues) != len(form.Issues) {
+		ctx.ServerError("IssusesNotFound", err)
+		return
+	}
+
+	sortedIssueIDs := make(map[int64]int64)
+	for _, i := range form.Issues {
+		sortedIssueIDs[i.Sorting] = i.Sorting
+	}
+
+	if err := models.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {
 		ctx.ServerError("MoveIssuesOnProjectBoard", err)
 		return
 	}
