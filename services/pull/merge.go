@@ -275,8 +275,8 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 					filepath.Join(tmpBasePath, ".git", "rebase-merge", "stopped-sha"),     // Git >= 2.26
 				}
 				for _, failingCommitPath := range failingCommitPaths {
-					if _, statErr := os.Stat(filepath.Join(failingCommitPath)); statErr == nil {
-						commitShaBytes, readErr := os.ReadFile(filepath.Join(failingCommitPath))
+					if _, statErr := os.Stat(failingCommitPath); statErr == nil {
+						commitShaBytes, readErr := os.ReadFile(failingCommitPath)
 						if readErr != nil {
 							// Abandon this attempt to handle the error
 							log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
