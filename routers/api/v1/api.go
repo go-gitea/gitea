@@ -1049,6 +1049,20 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), npm.UploadPackage)
 					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
 				})
+				m.Group("/-/package/@{scope}/{id}/dist-tags", func() {
+					m.Get("", npm.ListPackageTags)
+					m.Group("/{tag}", func() {
+						m.Put("", npm.AddPackageTag)
+						m.Delete("", npm.DeletePackageTag)
+					}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+				})
+				m.Group("/-/package/{id}/dist-tags", func() {
+					m.Get("", npm.ListPackageTags)
+					m.Group("/{tag}", func() {
+						m.Put("", npm.AddPackageTag)
+						m.Delete("", npm.DeletePackageTag)
+					}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+				})
 			})
 			m.Group("/pypi", func() {
 				m.Post("/", reqBasicAuth(), reqPackageAccess(models.AccessModeWrite), pypi.UploadPackageFile)

@@ -4,6 +4,9 @@
 
 package npm
 
+// TagProperty is the name of the property for tag management
+const TagProperty = "npm.tag"
+
 // Metadata represents the metadata of a npm package
 type Metadata struct {
 	Scope                   string            `json:"scope"`

@@ -19,7 +19,7 @@ import (
 func TestParsePackage(t *testing.T) {
 	packageScope := "@scope"
 	packageName := "test-package"
-	packageFullName := packageScope+"/"+packageName
+	packageFullName := packageScope + "/" + packageName
 	packageVersion := "1.0.1-pre"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
@@ -99,7 +99,7 @@ func TestParsePackage(t *testing.T) {
 				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					version: {
-						Name: packageFullName,
+						Name:    packageFullName,
 						Version: version,
 					},
 				},
@@ -118,7 +118,7 @@ func TestParsePackage(t *testing.T) {
 				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageFullName,
+						Name:    packageFullName,
 						Version: packageVersion,
 					},
 				},
@@ -141,7 +141,7 @@ func TestParsePackage(t *testing.T) {
 				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageFullName,
+						Name:    packageFullName,
 						Version: packageVersion,
 					},
 				},
@@ -166,7 +166,7 @@ func TestParsePackage(t *testing.T) {
 				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageFullName,
+						Name:    packageFullName,
 						Version: packageVersion,
 						Dist: PackageDistribution{
 							Integrity: "sha512-test==",
@@ -194,7 +194,7 @@ func TestParsePackage(t *testing.T) {
 				Name: packageFullName,
 				Versions: map[string]*PackageMetadataVersion{
 					packageVersion: {
-						Name: packageFullName,
+						Name:    packageFullName,
 						Version: packageVersion,
 						Dist: PackageDistribution{
 							Integrity: integrity,

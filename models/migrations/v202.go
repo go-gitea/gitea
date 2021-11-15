@@ -44,7 +44,7 @@ func addPackageTables(x *xorm.Engine) error {
 		ID        int64  `xorm:"pk autoincr"`
 		VersionID int64  `xorm:"INDEX NOT NULL"`
 		Name      string `xorm:"INDEX NOT NULL"`
-		Value     string
+		Value     string `xorm:"INDEX NOT NULL"`
 	}
 
 	if err := x.Sync2(new(PackageVersionProperty)); err != nil {

@@ -72,12 +72,11 @@ You cannot publish a package if a package of the same name and version already e
 To install a package from the package registry, execute the following command:
 
 ```shell
-npm install {scope}/{package_name}
+npm install {package_name}
 ```
 
 | Parameter      | Description |
 | -------------- | ----------- |
-| `scope`        | The scope of the packages. |
 | `package_name` | The package name. |
 
 For example:
@@ -85,3 +84,25 @@ For example:
 ```shell
 npm install @test/test_package
 ```
+
+## Tag a package
+
+The registry supports [version tags](https://docs.npmjs.com/adding-dist-tags-to-packages/) which can be managed by `npm dist-tag`:
+
+```shell
+npm dist-tag add {package_name}@{version} {tag}
+```
+
+| Parameter      | Description |
+| -------------- | ----------- |
+| `package_name` | The package name. |
+| `version`      | The version of the package. |
+| `tag`          | The tag name. |
+
+For example:
+
+```shell
+npm dist-tag add test_package@1.0.2 release
+```
+
+The tag name must not be a valid version. All tag names which are parsable as a version are rejected.

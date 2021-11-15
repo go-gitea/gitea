@@ -21,14 +21,18 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_models.Pa
 	})
 
 	versions := make(map[string]*npm_module.PackageMetadataVersion)
+	distTags := make(map[string]string)
 	for _, pd := range pds {
 		versions[pd.SemVer.String()] = createPackageMetadataVersion(registryURL, pd)
+
+		for _, pvp := range pd.Properties {
+			if pvp.Name == npm_module.TagProperty {
+				distTags[pvp.Value] = pd.Version.Version
+			}
+		}
 	}
 
 	latest := pds[len(pds)-1]
-
-	distTags := make(map[string]string)
-	distTags["latest"] = latest.Version.Version
 
 	metadata := latest.Metadata.(*npm_module.Metadata)
 

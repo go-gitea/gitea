@@ -41,6 +41,7 @@ var nameMatch = regexp.MustCompile(`\A((@[^\s\/~'!\(\)\*]+?)[\/])?([^_.][^\s\/~'
 type Package struct {
 	Name     string
 	Version  string
+	DistTags []string
 	Metadata Metadata
 	Filename string
 	Data     []byte
@@ -176,8 +177,9 @@ func ParsePackage(r io.Reader) (*Package, error) {
 		}
 
 		p := &Package{
-			Name:    meta.Name,
-			Version: v.String(),
+			Name:     meta.Name,
+			Version:  v.String(),
+			DistTags: make([]string, 0, 1),
 			Metadata: Metadata{
 				Scope:                   scope,
 				Name:                    name,
@@ -192,6 +194,10 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				OptionalDependencies:    meta.OptionalDependencies,
 				Readme:                  meta.Readme,
 			},
+		}
+
+		for tag := range upload.DistTags {
+			p.DistTags = append(p.DistTags, tag)
 		}
 
 		p.Filename = strings.ToLower(fmt.Sprintf("%s-%s.tgz", name, p.Version))

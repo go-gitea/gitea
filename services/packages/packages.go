@@ -138,9 +138,11 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		}
 	}
 
-	if err := packages_models.SetVersionProperties(ctx, pv.ID, pvci.Properties); err != nil {
-		log.Error("Error setting package version properties: %v", err)
-		return nil, false, err
+	for name, value := range pvci.Properties {
+		if _, err := packages_models.InsertVersionProperty(ctx, pv.ID, name, value); err != nil {
+			log.Error("Error setting package version property: %v", err)
+			return nil, false, err
+		}
 	}
 
 	return pv, created, nil

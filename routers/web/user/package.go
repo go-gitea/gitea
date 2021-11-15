@@ -98,7 +98,7 @@ func ViewPackage(ctx *context.Context) {
 		return
 	}
 	sort.Slice(otherVersions, func(i, j int) bool {
-		return otherVersions[i].Version > otherVersions[j].Version
+		return otherVersions[i].CreatedUnix > otherVersions[j].CreatedUnix
 	})
 	ctx.Data["OtherVersions"] = otherVersions
 

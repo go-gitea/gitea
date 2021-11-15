@@ -6,10 +6,14 @@ package npm
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
 	package_module "code.gitea.io/gitea/modules/packages"
@@ -17,6 +21,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	package_router "code.gitea.io/gitea/routers/api/v1/packages"
 	packages_service "code.gitea.io/gitea/services/packages"
+
+	"github.com/hashicorp/go-version"
+)
+
+var (
+	// errInvalidTagName indicates an invalid tag name
+	errInvalidTagName = errors.New("The tag name is invalid")
 )
 
 func apiError(ctx *context.APIContext, status int, obj interface{}) {
@@ -117,7 +128,7 @@ func UploadPackage(ctx *context.APIContext) {
 	}
 	defer buf.Close()
 
-	_, _, err = packages_service.CreatePackageAndAddFile(
+	pv, _, err := packages_service.CreatePackageAndAddFile(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -144,5 +155,152 @@ func UploadPackage(ctx *context.APIContext) {
 		return
 	}
 
+	for _, tag := range npmPackage.DistTags {
+		if err := setPackageTag(tag, pv, false); err != nil {
+			if err == errInvalidTagName {
+				apiError(ctx, http.StatusBadRequest, err)
+				return
+			}
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	ctx.PlainText(http.StatusCreated, nil)
+}
+
+// ListPackageTags returns all tags for a package
+func ListPackageTags(ctx *context.APIContext) {
+	packageName, err := packageNameFromParams(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	pvs, err := packages.GetVersionsByPackageName(ctx.Package.Owner.ID, packages.TypeNpm, packageName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	tags := make(map[string]string)
+	for _, pv := range pvs {
+		pvps, err := packages.GetVersionPropertiesByName(ctx, pv.ID, npm_module.TagProperty)
+		if err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+		for _, pvp := range pvps {
+			tags[pvp.Value] = pv.Version
+		}
+	}
+
+	ctx.JSON(http.StatusOK, tags)
+}
+
+// AddPackageTag adds a tag to the package
+func AddPackageTag(ctx *context.APIContext) {
+	packageName, err := packageNameFromParams(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	body, err := ioutil.ReadAll(ctx.Req.Body)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+	version := strings.Trim(string(body), "\"") // is as "version" in the body
+
+	pv, err := packages.GetVersionByNameAndVersion(ctx, ctx.ContextUser.ID, packages.TypeNpm, packageName, version)
+	if err != nil {
+		if err == packages.ErrPackageNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := setPackageTag(ctx.Params("tag"), pv, false); err != nil {
+		if err == errInvalidTagName {
+			apiError(ctx, http.StatusBadRequest, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+}
+
+// DeletePackageTag deletes a package tag
+func DeletePackageTag(ctx *context.APIContext) {
+	packageName, err := packageNameFromParams(ctx)
+	if err != nil {
+		apiError(ctx, http.StatusBadRequest, err)
+		return
+	}
+
+	pvs, err := packages.GetVersionsByPackageName(ctx.ContextUser.ID, packages.TypeNpm, packageName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if len(pvs) != 0 {
+		if err := setPackageTag(ctx.Params("tag"), pvs[0], true); err != nil {
+			if err == errInvalidTagName {
+				apiError(ctx, http.StatusBadRequest, err)
+				return
+			}
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+}
+
+func setPackageTag(tag string, pv *packages.PackageVersion, deleteOnly bool) error {
+	if tag == "" {
+		return errInvalidTagName
+	}
+	_, err := version.NewVersion(tag)
+	if err == nil {
+		return errInvalidTagName
+	}
+
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	pvs, err := packages.FindVersionsByPropertyNameAndValue(ctx, pv.PackageID, npm_module.TagProperty, tag)
+	if err != nil {
+		return err
+	}
+
+	if len(pvs) == 1 {
+		pvps, err := packages.GetVersionPropertiesByName(ctx, pvs[0].ID, npm_module.TagProperty)
+		if err != nil {
+			return err
+		}
+
+		for _, pvp := range pvps {
+			if pvp.Value == tag {
+				if err := packages.DeleteVersionPropertyByID(ctx, pvp.ID); err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
+
+	if !deleteOnly {
+		_, err = packages.InsertVersionProperty(ctx, pv.ID, npm_module.TagProperty, tag)
+		if err != nil {
+			return err
+		}
+	}
+
+	return committer.Commit()
 }
