@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
+	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -400,4 +401,35 @@ func DeleteUser(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/users",
 	})
+}
+
+// AvatarPost response for change user's avatar request
+func AvatarPost(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.update_avatar_success"))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
+}
+
+// DeleteAvatar render delete avatar page
+func DeleteAvatar(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := u.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(err.Error())
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
 }
