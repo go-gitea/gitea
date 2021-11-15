@@ -132,3 +132,20 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 		resp.Body.String())
 
 }
+
+func TestGetFileHistory(t *testing.T) {
+	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	// Login as User2.
+	session := loginUser(t, user.Name)
+	token := getTokenForLoggedInUser(t, session)
+
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo16/git/history/readme.md?token="+token+"&sha=good-sign", user.Name)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	var apiData []api.Commit
+	DecodeJSON(t, resp, &apiData)
+
+	assert.Len(t, apiData, 3)
+	assert.Equal(t, "69554a64c1e6030f051e5c3f94bfbd773cd6a324", apiData[0].CommitMeta.SHA)
+	compareCommitFiles(t, []string{"readme.md"}, apiData[0].Files)
+}
