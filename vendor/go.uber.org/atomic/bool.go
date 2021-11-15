@@ -36,10 +36,10 @@ type Bool struct {
 var _zeroBool bool
 
 // NewBool creates a new Bool.
-func NewBool(v bool) *Bool {
+func NewBool(val bool) *Bool {
 	x := &Bool{}
-	if v != _zeroBool {
-		x.Store(v)
+	if val != _zeroBool {
+		x.Store(val)
 	}
 	return x
 }
@@ -50,19 +50,19 @@ func (x *Bool) Load() bool {
 }
 
 // Store atomically stores the passed bool.
-func (x *Bool) Store(v bool) {
-	x.v.Store(boolToInt(v))
+func (x *Bool) Store(val bool) {
+	x.v.Store(boolToInt(val))
 }
 
 // CAS is an atomic compare-and-swap for bool values.
-func (x *Bool) CAS(o, n bool) bool {
-	return x.v.CAS(boolToInt(o), boolToInt(n))
+func (x *Bool) CAS(old, new bool) (swapped bool) {
+	return x.v.CAS(boolToInt(old), boolToInt(new))
 }
 
 // Swap atomically stores the given bool and returns the old
 // value.
-func (x *Bool) Swap(o bool) bool {
-	return truthy(x.v.Swap(boolToInt(o)))
+func (x *Bool) Swap(val bool) (old bool) {
+	return truthy(x.v.Swap(boolToInt(val)))
 }
 
 // MarshalJSON encodes the wrapped bool into JSON.

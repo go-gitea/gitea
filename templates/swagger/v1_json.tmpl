@@ -615,6 +615,23 @@
         }
       }
     },
+    "/nodeinfo": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "miscellaneous"
+        ],
+        "summary": "Returns the nodeinfo of the Gitea application",
+        "operationId": "getNodeInfo",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/NodeInfo"
+          }
+        }
+      }
+    },
     "/notifications": {
       "get": {
         "consumes": [
@@ -739,7 +756,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -822,7 +839,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThread"
           },
           "403": {
             "$ref": "#/responses/forbidden"
@@ -1937,6 +1954,18 @@
             "type": "boolean",
             "description": "filter pulls requesting your review, default is false",
             "name": "review_requested",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by owner",
+            "name": "owner",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "filter by team (requires organization owner parameter to be provided)",
+            "name": "team",
             "in": "query"
           },
           {
@@ -3569,6 +3598,106 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/git/commits/{sha}.{diffType}": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a commit's diff or patch",
+        "operationId": "repoDownloadCommitDiffOrPatch",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "SHA of the commit to get",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "diff",
+              "patch"
+            ],
+            "type": "string",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/git/notes/{sha}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a note corresponding to a single commit from a repository",
+        "operationId": "repoGetNote",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "a git ref or commit sha",
+            "name": "sha",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/Note"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/git/refs": {
       "get": {
         "produces": [
@@ -4276,32 +4405,32 @@
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated after the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated after the given time. This is a timestamp in RFC 3339 format",
             "name": "since",
             "in": "query"
           },
           {
             "type": "string",
             "format": "date-time",
-            "description": "Only show notifications updated before the given time. This is a timestamp in RFC 3339 format",
+            "description": "Only show items updated before the given time. This is a timestamp in RFC 3339 format",
             "name": "before",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) created to",
+            "description": "Only show items which were created by the the given user",
             "name": "created_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) assigned to",
+            "description": "Only show items for which the given user is assigned",
             "name": "assigned_by",
             "in": "query"
           },
           {
             "type": "string",
-            "description": "filter (issues / pulls) mentioning to",
+            "description": "Only show items in which the given user was mentioned",
             "name": "mentioned_by",
             "in": "query"
           },
@@ -7000,7 +7129,7 @@
         ],
         "responses": {
           "205": {
-            "$ref": "#/responses/empty"
+            "$ref": "#/responses/NotificationThreadList"
           }
         }
       }
@@ -7245,7 +7374,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/pulls/{index}.diff": {
+    "/repos/{owner}/{repo}/pulls/{index}.{diffType}": {
       "get": {
         "produces": [
           "text/plain"
@@ -7253,8 +7382,8 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a pull request diff",
-        "operationId": "repoDownloadPullDiff",
+        "summary": "Get a pull request diff or patch",
+        "operationId": "repoDownloadPullDiffOrPatch",
         "parameters": [
           {
             "type": "string",
@@ -7277,50 +7406,23 @@
             "name": "index",
             "in": "path",
             "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/string"
           },
-          "404": {
-            "$ref": "#/responses/notFound"
-          }
-        }
-      }
-    },
-    "/repos/{owner}/{repo}/pulls/{index}.patch": {
-      "get": {
-        "produces": [
-          "text/plain"
-        ],
-        "tags": [
-          "repository"
-        ],
-        "summary": "Get a pull request patch file",
-        "operationId": "repoDownloadPullPatch",
-        "parameters": [
           {
+            "enum": [
+              "diff",
+              "patch"
+            ],
             "type": "string",
-            "description": "owner of the repo",
-            "name": "owner",
+            "description": "whether the output is diff or patch",
+            "name": "diffType",
             "in": "path",
             "required": true
           },
           {
-            "type": "string",
-            "description": "name of the repo",
-            "name": "repo",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "integer",
-            "format": "int64",
-            "description": "index of the pull request to get",
-            "name": "index",
-            "in": "path",
-            "required": true
+            "type": "boolean",
+            "description": "whether to include binary file changes. if true, the diff is applicable with `git apply`",
+            "name": "binary",
+            "in": "query"
           }
         ],
         "responses": {
@@ -8070,6 +8172,16 @@
             "name": "index",
             "in": "path",
             "required": true
+          },
+          {
+            "enum": [
+              "merge",
+              "rebase"
+            ],
+            "type": "string",
+            "description": "how to update pull request",
+            "name": "style",
+            "in": "query"
           }
         ],
         "responses": {
@@ -9651,7 +9763,7 @@
           "repository"
         ],
         "summary": "Add a topic to a repository",
-        "operationId": "repoAddTopíc",
+        "operationId": "repoAddTopic",
         "parameters": [
           {
             "type": "string",
@@ -9773,6 +9885,284 @@
           },
           "422": {
             "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/new": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a wiki page",
+        "operationId": "repoCreateWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateWikiPageOptions"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/WikiPage"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/page/{pageName}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a wiki page",
+        "operationId": "repoGetWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiPage"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a wiki page",
+        "operationId": "repoDeleteWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a wiki page",
+        "operationId": "repoEditWikiPage",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateWikiPageOptions"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiPage"
+          },
+          "400": {
+            "$ref": "#/responses/error"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/pages": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get all wiki pages",
+        "operationId": "repoGetWikiPages",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiPageList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/wiki/revisions/{pageName}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get revisions of a wiki page",
+        "operationId": "repoGetWikiPageRevisions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the page",
+            "name": "pageName",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/WikiCommitList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -10714,6 +11104,52 @@
         }
       }
     },
+    "/user/gpg_key_token": {
+      "get": {
+        "produces": [
+          "text/plain"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Get a Token to verify",
+        "operationId": "getVerificationToken",
+        "responses": {
+          "200": {
+            "$ref": "#/responses/string"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
+    "/user/gpg_key_verify": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "user"
+        ],
+        "summary": "Verify a GPG key",
+        "operationId": "userVerifyGPGKey",
+        "responses": {
+          "201": {
+            "$ref": "#/responses/GPGKey"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/user/gpg_keys": {
       "get": {
         "produces": [
@@ -11006,7 +11442,7 @@
         "tags": [
           "user"
         ],
-        "summary": "List the repos that the authenticated user owns or has access to",
+        "summary": "List the repos that the authenticated user owns",
         "operationId": "userCurrentListRepos",
         "parameters": [
           {
@@ -11698,6 +12134,45 @@
         }
       }
     },
+    "/users/{username}/orgs/{org}/permissions": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "organization"
+        ],
+        "summary": "Get user permissions in organization",
+        "operationId": "orgGetUserPermissions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the organization",
+            "name": "org",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/OrganizationPermissions"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/users/{username}/repos": {
       "get": {
         "produces": [
@@ -11871,18 +12346,10 @@
             "required": true
           },
           {
-            "name": "accessToken",
+            "name": "userCreateToken",
             "in": "body",
             "schema": {
-              "type": "object",
-              "required": [
-                "name"
-              ],
-              "properties": {
-                "name": {
-                  "type": "string"
-                }
-              }
+              "$ref": "#/definitions/CreateAccessTokenOption"
             }
           }
         ],
@@ -12281,6 +12748,10 @@
           },
           "x-go-name": "StatusCheckContexts"
         },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
+        },
         "updated_at": {
           "type": "string",
           "format": "date-time",
@@ -12608,6 +13079,17 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateAccessTokenOption": {
+      "description": "CreateAccessTokenOption options when create access token",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CreateBranchProtectionOption": {
       "description": "CreateBranchProtectionOption options for creating a branch protection",
       "type": "object",
@@ -12717,6 +13199,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -12826,6 +13312,10 @@
           "type": "string",
           "uniqueItems": true,
           "x-go-name": "ArmoredKey"
+        },
+        "armored_signature": {
+          "type": "string",
+          "x-go-name": "Signature"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -12867,7 +13357,8 @@
             "msteams",
             "slack",
             "telegram",
-            "feishu"
+            "feishu",
+            "wechatwork"
           ],
           "x-go-name": "Type"
         }
@@ -13453,6 +13944,28 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "CreateWikiPageOptions": {
+      "description": "CreateWikiPageOptions form for creating wiki",
+      "type": "object",
+      "properties": {
+        "content_base64": {
+          "description": "content must be base64 encoded",
+          "type": "string",
+          "x-go-name": "ContentBase64"
+        },
+        "message": {
+          "description": "optional commit message summarizing the change",
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "title": {
+          "description": "page title. leave empty to keep unchanged",
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "Cron": {
       "description": "Cron represents a Cron task",
       "type": "object",
@@ -13714,6 +14227,10 @@
             "type": "string"
           },
           "x-go-name": "StatusCheckContexts"
+        },
+        "unprotected_file_patterns": {
+          "type": "string",
+          "x-go-name": "UnprotectedFilePatterns"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -14057,6 +14574,11 @@
           "description": "sets the default branch for this repository.",
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_delete_branch_after_merge": {
+          "description": "set to `true` to delete pr branch after merge by default",
+          "type": "boolean",
+          "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
           "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
@@ -14479,6 +15001,10 @@
             "$ref": "#/definitions/GPGKey"
           },
           "x-go-name": "SubsKey"
+        },
+        "verified": {
+          "type": "boolean",
+          "x-go-name": "Verified"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -15137,6 +15663,10 @@
         "MergeTitleField": {
           "type": "string"
         },
+        "delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DeleteBranchAfterMerge"
+        },
         "force_merge": {
           "type": "boolean",
           "x-go-name": "ForceMerge"
@@ -15386,6 +15916,141 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NodeInfo": {
+      "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
+      "type": "object",
+      "properties": {
+        "metadata": {
+          "type": "object",
+          "x-go-name": "Metadata"
+        },
+        "openRegistrations": {
+          "type": "boolean",
+          "x-go-name": "OpenRegistrations"
+        },
+        "protocols": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Protocols"
+        },
+        "services": {
+          "$ref": "#/definitions/NodeInfoServices"
+        },
+        "software": {
+          "$ref": "#/definitions/NodeInfoSoftware"
+        },
+        "usage": {
+          "$ref": "#/definitions/NodeInfoUsage"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoServices": {
+      "description": "NodeInfoServices contains the third party sites this server can connect to via their application API",
+      "type": "object",
+      "properties": {
+        "inbound": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Inbound"
+        },
+        "outbound": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-name": "Outbound"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoSoftware": {
+      "description": "NodeInfoSoftware contains Metadata about server software in use",
+      "type": "object",
+      "properties": {
+        "homepage": {
+          "type": "string",
+          "x-go-name": "Homepage"
+        },
+        "name": {
+          "type": "string",
+          "x-go-name": "Name"
+        },
+        "repository": {
+          "type": "string",
+          "x-go-name": "Repository"
+        },
+        "version": {
+          "type": "string",
+          "x-go-name": "Version"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoUsage": {
+      "description": "NodeInfoUsage contains usage statistics for this server",
+      "type": "object",
+      "properties": {
+        "localComments": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LocalComments"
+        },
+        "localPosts": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "LocalPosts"
+        },
+        "users": {
+          "$ref": "#/definitions/NodeInfoUsageUsers"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NodeInfoUsageUsers": {
+      "description": "NodeInfoUsageUsers contains statistics about the users of this server",
+      "type": "object",
+      "properties": {
+        "activeHalfyear": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActiveHalfyear"
+        },
+        "activeMonth": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ActiveMonth"
+        },
+        "total": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Total"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "Note": {
+      "description": "Note contains information related to a git note",
+      "type": "object",
+      "properties": {
+        "commit": {
+          "$ref": "#/definitions/Commit"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NotificationCount": {
       "description": "NotificationCount number of unread notifications",
       "type": "object",
@@ -15402,6 +16067,14 @@
       "description": "NotificationSubject contains the notification subject (Issue/Pull/Commit)",
       "type": "object",
       "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "latest_comment_html_url": {
+          "type": "string",
+          "x-go-name": "LatestCommentHTMLURL"
+        },
         "latest_comment_url": {
           "type": "string",
           "x-go-name": "LatestCommentURL"
@@ -15539,6 +16212,33 @@
         "website": {
           "type": "string",
           "x-go-name": "Website"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "OrganizationPermissions": {
+      "description": "OrganizationPermissions list differents users permissions on an organization",
+      "type": "object",
+      "properties": {
+        "can_create_repository": {
+          "type": "boolean",
+          "x-go-name": "CanCreateRepository"
+        },
+        "can_read": {
+          "type": "boolean",
+          "x-go-name": "CanRead"
+        },
+        "can_write": {
+          "type": "boolean",
+          "x-go-name": "CanWrite"
+        },
+        "is_admin": {
+          "type": "boolean",
+          "x-go-name": "IsAdmin"
+        },
+        "is_owner": {
+          "type": "boolean",
+          "x-go-name": "IsOwner"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -16976,25 +17676,115 @@
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiCommit": {
+      "description": "WikiCommit page commit/revision",
+      "type": "object",
+      "properties": {
+        "author": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "commiter": {
+          "$ref": "#/definitions/CommitUser"
+        },
+        "message": {
+          "type": "string",
+          "x-go-name": "Message"
+        },
+        "sha": {
+          "type": "string",
+          "x-go-name": "ID"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiCommitList": {
+      "description": "WikiCommitList commit/revision list",
+      "type": "object",
+      "properties": {
+        "commits": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/WikiCommit"
+          },
+          "x-go-name": "WikiCommits"
+        },
+        "count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Count"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiPage": {
+      "description": "WikiPage a wiki page",
+      "type": "object",
+      "properties": {
+        "commit_count": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "CommitCount"
+        },
+        "content_base64": {
+          "description": "Page content, base64 encoded",
+          "type": "string",
+          "x-go-name": "ContentBase64"
+        },
+        "footer": {
+          "type": "string",
+          "x-go-name": "Footer"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/WikiCommit"
+        },
+        "sidebar": {
+          "type": "string",
+          "x-go-name": "Sidebar"
+        },
+        "sub_url": {
+          "type": "string",
+          "x-go-name": "SubURL"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "WikiPageMetaData": {
+      "description": "WikiPageMetaData wiki page meta information",
+      "type": "object",
+      "properties": {
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "last_commit": {
+          "$ref": "#/definitions/WikiCommit"
+        },
+        "sub_url": {
+          "type": "string",
+          "x-go-name": "SubURL"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
     }
   },
   "responses": {
     "AccessToken": {
       "description": "AccessToken represents an API access token.",
-      "headers": {
-        "id": {
-          "type": "integer",
-          "format": "int64"
-        },
-        "name": {
-          "type": "string"
-        },
-        "sha1": {
-          "type": "string"
-        },
-        "token_last_eight": {
-          "type": "string"
-        }
+      "schema": {
+        "$ref": "#/definitions/AccessToken"
       }
     },
     "AccessTokenList": {
@@ -17357,6 +18147,18 @@
         }
       }
     },
+    "NodeInfo": {
+      "description": "NodeInfo",
+      "schema": {
+        "$ref": "#/definitions/NodeInfo"
+      }
+    },
+    "Note": {
+      "description": "Note",
+      "schema": {
+        "$ref": "#/definitions/Note"
+      }
+    },
     "NotificationCount": {
       "description": "Number of unread notifications",
       "schema": {
@@ -17406,6 +18208,12 @@
         "items": {
           "$ref": "#/definitions/Organization"
         }
+      }
+    },
+    "OrganizationPermissions": {
+      "description": "OrganizationPermissions",
+      "schema": {
+        "$ref": "#/definitions/OrganizationPermissions"
       }
     },
     "PublicKey": {
@@ -17663,6 +18471,27 @@
         "$ref": "#/definitions/WatchInfo"
       }
     },
+    "WikiCommitList": {
+      "description": "WikiCommitList",
+      "schema": {
+        "$ref": "#/definitions/WikiCommitList"
+      }
+    },
+    "WikiPage": {
+      "description": "WikiPage",
+      "schema": {
+        "$ref": "#/definitions/WikiPage"
+      }
+    },
+    "WikiPageList": {
+      "description": "WikiPageList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/WikiPageMetaData"
+        }
+      }
+    },
     "conflict": {
       "description": "APIConflict is a conflict empty response"
     },
@@ -17711,7 +18540,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UserSettingsOptions"
+        "$ref": "#/definitions/CreateWikiPageOptions"
       }
     },
     "redirect": {

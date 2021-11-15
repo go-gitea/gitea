@@ -21,6 +21,8 @@ const (
 	ZIP ArchiveType = iota + 1
 	// TARGZ tar gz archive type
 	TARGZ
+	// BUNDLE bundle archive type
+	BUNDLE
 )
 
 // String converts an ArchiveType to string
@@ -30,6 +32,8 @@ func (a ArchiveType) String() string {
 		return "zip"
 	case TARGZ:
 		return "tar.gz"
+	case BUNDLE:
+		return "bundle"
 	}
 	return "unknown"
 }

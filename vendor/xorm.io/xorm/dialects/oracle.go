@@ -6,6 +6,7 @@ package dialects
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"regexp"
@@ -524,6 +525,9 @@ func (db *oracle) Version(ctx context.Context, queryer core.Queryer) (*schemas.V
 
 	var version string
 	if !rows.Next() {
+		if rows.Err() != nil {
+			return nil, rows.Err()
+		}
 		return nil, errors.New("unknow version")
 	}
 
@@ -565,6 +569,21 @@ func (db *oracle) SQLType(c *schemas.Column) string {
 		res += "(" + strconv.Itoa(c.Length) + ")"
 	}
 	return res
+}
+
+func (db *oracle) ColumnTypeKind(t string) int {
+	switch strings.ToUpper(t) {
+	case "DATE":
+		return schemas.TIME_TYPE
+	case "CHAR", "NCHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "LONG", "CLOB", "NCLOB":
+		return schemas.TEXT_TYPE
+	case "NUMBER":
+		return schemas.NUMERIC_TYPE
+	case "BLOB":
+		return schemas.BLOB_TYPE
+	default:
+		return schemas.UNKNOW_TYPE
+	}
 }
 
 func (db *oracle) AutoIncrStr() string {
@@ -740,6 +759,9 @@ func (db *oracle) GetColumns(queryer core.Queryer, ctx context.Context, tableNam
 		cols[col.Name] = col
 		colSeq = append(colSeq, col.Name)
 	}
+	if rows.Err() != nil {
+		return nil, nil, rows.Err()
+	}
 
 	return colSeq, cols, nil
 }
@@ -764,6 +786,9 @@ func (db *oracle) GetTables(queryer core.Queryer, ctx context.Context) ([]*schem
 
 		tables = append(tables, table)
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 	return tables, nil
 }
 
@@ -778,7 +803,7 @@ func (db *oracle) GetIndexes(queryer core.Queryer, ctx context.Context, tableNam
 	}
 	defer rows.Close()
 
-	indexes := make(map[string]*schemas.Index, 0)
+	indexes := make(map[string]*schemas.Index)
 	for rows.Next() {
 		var indexType int
 		var indexName, colName, uniqueness string
@@ -813,6 +838,9 @@ func (db *oracle) GetIndexes(queryer core.Queryer, ctx context.Context, tableNam
 		}
 		index.AddColumn(colName)
 	}
+	if rows.Err() != nil {
+		return nil, rows.Err()
+	}
 	return indexes, nil
 }
 
@@ -823,9 +851,16 @@ func (db *oracle) Filters() []Filter {
 }
 
 type godrorDriver struct {
+	baseDriver
 }
 
-func (cfg *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) {
+func (g *godrorDriver) Features() *DriverFeatures {
+	return &DriverFeatures{
+		SupportReturnInsertedID: false,
+	}
+}
+
+func (g *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) {
 	db := &URI{DBType: schemas.ORACLE}
 	dsnPattern := regexp.MustCompile(
 		`^(?:(?P<user>.*?)(?::(?P<passwd>.*))?@)?` + // [user[:password]@]
@@ -837,8 +872,7 @@ func (cfg *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) 
 	names := dsnPattern.SubexpNames()
 
 	for i, match := range matches {
-		switch names[i] {
-		case "dbname":
+		if names[i] == "dbname" {
 			db.DBName = match
 		}
 	}
@@ -848,12 +882,33 @@ func (cfg *godrorDriver) Parse(driverName, dataSourceName string) (*URI, error) 
 	return db, nil
 }
 
+func (g *godrorDriver) GenScanResult(colType string) (interface{}, error) {
+	switch colType {
+	case "CHAR", "NCHAR", "VARCHAR", "VARCHAR2", "NVARCHAR2", "LONG", "CLOB", "NCLOB":
+		var s sql.NullString
+		return &s, nil
+	case "NUMBER":
+		var s sql.NullString
+		return &s, nil
+	case "DATE":
+		var s sql.NullTime
+		return &s, nil
+	case "BLOB":
+		var r sql.RawBytes
+		return &r, nil
+	default:
+		var r sql.RawBytes
+		return &r, nil
+	}
+}
+
 type oci8Driver struct {
+	godrorDriver
 }
 
 // dataSourceName=user/password@ipv4:port/dbname
 // dataSourceName=user/password@[ipv6]:port/dbname
-func (p *oci8Driver) Parse(driverName, dataSourceName string) (*URI, error) {
+func (o *oci8Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	db := &URI{DBType: schemas.ORACLE}
 	dsnPattern := regexp.MustCompile(
 		`^(?P<user>.*)\/(?P<password>.*)@` + // user:password@
@@ -862,8 +917,7 @@ func (p *oci8Driver) Parse(driverName, dataSourceName string) (*URI, error) {
 	matches := dsnPattern.FindStringSubmatch(dataSourceName)
 	names := dsnPattern.SubexpNames()
 	for i, match := range matches {
-		switch names[i] {
-		case "dbname":
+		if names[i] == "dbname" {
 			db.DBName = match
 		}
 	}

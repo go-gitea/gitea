@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net"
 	"net/url"
@@ -24,11 +23,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/generate"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	jsoniter "github.com/json-iterator/go"
 	shellquote "github.com/kballard/go-shellquote"
 	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
@@ -189,6 +188,7 @@ var (
 	PasswordComplexity                 []string
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
+	SuccessfulTokensCacheSize          int
 
 	// UI settings
 	UI = struct {
@@ -255,8 +255,8 @@ var (
 		ReactionMaxUserNum:  10,
 		ThemeColorMetaTag:   `#6cc644`,
 		MaxDisplayFileSize:  8388608,
-		DefaultTheme:        `gitea`,
-		Themes:              []string{`gitea`, `arc-green`},
+		DefaultTheme:        `auto`,
+		Themes:              []string{`auto`, `gitea`, `arc-green`},
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
@@ -347,12 +347,6 @@ var (
 
 	ManifestData string
 
-	// Mirror settings
-	Mirror struct {
-		DefaultInterval time.Duration
-		MinInterval     time.Duration
-	}
-
 	// API settings
 	API = struct {
 		EnableSwagger          bool
@@ -396,11 +390,15 @@ var (
 
 	// Metrics settings
 	Metrics = struct {
-		Enabled bool
-		Token   string
+		Enabled                  bool
+		Token                    string
+		EnabledIssueByLabel      bool
+		EnabledIssueByRepository bool
 	}{
-		Enabled: false,
-		Token:   "",
+		Enabled:                  false,
+		Token:                    "",
+		EnabledIssueByLabel:      false,
+		EnabledIssueByRepository: false,
 	}
 
 	// I18n settings
@@ -421,16 +419,12 @@ var (
 	PIDFile       = "/run/gitea.pid"
 	WritePIDFile  bool
 	RunMode       string
+	IsProd        bool
 	RunUser       string
 	IsWindows     bool
 	HasRobotsTxt  bool
 	InternalToken string // internal access token
 )
-
-// IsProd if it's a production mode
-func IsProd() bool {
-	return strings.EqualFold(RunMode, "prod")
-}
 
 func getAppPath() (string, error) {
 	var appPath string
@@ -689,6 +683,18 @@ func NewContext() {
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	if _, err = os.Stat(AppDataPath); err != nil {
+		// FIXME: There are too many calls to MkdirAll in old code. It is incorrect.
+		// For example, if someDir=/mnt/vol1/gitea-home/data, if the mount point /mnt/vol1 is not mounted when Gitea runs,
+		// then gitea will make new empty directories in /mnt/vol1, all are stored in the root filesystem.
+		// The correct behavior should be: creating parent directories is end users' duty. We only create sub-directories in existing parent directories.
+		// For quickstart, the parent directories should be created automatically for first startup (eg: a flag or a check of INSTALL_LOCK).
+		// Now we can take the first step to do correctly (using Mkdir) in other packages, and prepare the AppDataPath here, then make a refactor in future.
+		err = os.MkdirAll(AppDataPath, os.ModePerm)
+		if err != nil {
+			log.Fatal("Failed to create the directory for app data path '%s'", AppDataPath)
+		}
+	}
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))
@@ -769,7 +775,7 @@ func NewContext() {
 
 		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
 			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
-			if err := ioutil.WriteFile(fname,
+			if err := os.WriteFile(fname,
 				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0600); err != nil {
 				log.Fatal("Failed to create '%s': %v", fname, err)
 			}
@@ -840,6 +846,7 @@ func NewContext() {
 	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadInternalToken(sec)
 
@@ -903,13 +910,26 @@ func NewContext() {
 	}
 
 	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
+	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
+	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
+	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
 	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
 		currentUser, match := IsRunUserMatchCurrentUser(RunUser)
 		if !match {
 			log.Fatal("Expect user '%s' but current user is: %s", RunUser, currentUser)
 		}
+	}
+
+	// check if we run as root
+	if os.Getuid() == 0 {
+		if !unsafeAllowRunAsRoot {
+			// Special thanks to VLC which inspired the wording of this messaging.
+			log.Fatal("Gitea is not supposed to be run as root. Sorry. If you need to use privileged TCP ports please instead use setcap and the `cap_net_bind_service` permission")
+		}
+		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
 	}
 
 	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
@@ -936,31 +956,23 @@ func NewContext() {
 
 	newGit()
 
-	sec = Cfg.Section("mirror")
-	Mirror.MinInterval = sec.Key("MIN_INTERVAL").MustDuration(10 * time.Minute)
-	Mirror.DefaultInterval = sec.Key("DEFAULT_INTERVAL").MustDuration(8 * time.Hour)
-	if Mirror.MinInterval.Minutes() < 1 {
-		log.Warn("Mirror.MinInterval is too low")
-		Mirror.MinInterval = 1 * time.Minute
-	}
-	if Mirror.DefaultInterval < Mirror.MinInterval {
-		log.Warn("Mirror.DefaultInterval is less than Mirror.MinInterval")
-		Mirror.DefaultInterval = time.Hour * 8
-	}
+	newMirror()
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
 		Langs = []string{
 			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
 			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pt-PT", "pl-PL", "bg-BG",
-			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR"}
+			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR", "el-GR",
+			"fa-IR", "hu-HU", "id-ID", "ml-IN"}
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
 		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
 			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
 			"español", "português do Brasil", "Português de Portugal", "polski", "български",
-			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어"}
+			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어", "ελληνικά",
+			"فارسی", "magyar nyelv", "bahasa Indonesia", "മലയാളം"}
 	}
 
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
@@ -1042,7 +1054,7 @@ func loadInternalToken(sec *ini.Section) string {
 		}
 		defer fp.Close()
 
-		buf, err := ioutil.ReadAll(fp)
+		buf, err := io.ReadAll(fp)
 		if err != nil {
 			log.Fatal("Failed to read InternalTokenURI (%s): %v", uri, err)
 		}
@@ -1116,7 +1128,6 @@ func MakeManifestData(appName string, appURL string, absoluteAssetURL string) []
 		Icons     []manifestIcon `json:"icons"`
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	bytes, err := json.Marshal(&manifestJSON{
 		Name:      appName,
 		ShortName: appName,
@@ -1194,6 +1205,7 @@ func NewServices() {
 	newMailService()
 	newRegisterMailService()
 	newNotifyMailService()
+	newProxyService()
 	newWebhookService()
 	newMigrationsService()
 	newIndexerService()
@@ -1201,6 +1213,7 @@ func NewServices() {
 	NewQueueService()
 	newProject()
 	newMimeTypeMap()
+	newFederationService()
 }
 
 // NewServicesForInstall initializes the services for install

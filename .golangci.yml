@@ -9,7 +9,6 @@ linters:
     - unused
     - structcheck
     - varcheck
-    - golint
     - dupl
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
@@ -111,4 +110,3 @@ issues:
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
-

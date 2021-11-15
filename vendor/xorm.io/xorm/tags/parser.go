@@ -7,6 +7,7 @@ package tags
 import (
 	"encoding/gob"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -124,7 +125,27 @@ func addIndex(indexName string, table *schemas.Table, col *schemas.Column, index
 	}
 }
 
+// ErrIgnoreField represents an error to ignore field
 var ErrIgnoreField = errors.New("field will be ignored")
+
+func (parser *Parser) getSQLTypeByType(t reflect.Type) (schemas.SQLType, error) {
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	if t.Kind() == reflect.Struct {
+		v, ok := parser.tableCache.Load(t)
+		if ok {
+			pkCols := v.(*schemas.Table).PKColumns()
+			if len(pkCols) == 1 {
+				return pkCols[0].SQLType, nil
+			}
+			if len(pkCols) > 1 {
+				return schemas.SQLType{}, fmt.Errorf("unsupported mulitiple primary key on cascade")
+			}
+		}
+	}
+	return schemas.Type2SQLType(t), nil
+}
 
 func (parser *Parser) parseFieldWithNoTag(fieldIndex int, field reflect.StructField, fieldValue reflect.Value) (*schemas.Column, error) {
 	var sqlType schemas.SQLType
@@ -136,7 +157,11 @@ func (parser *Parser) parseFieldWithNoTag(fieldIndex int, field reflect.StructFi
 	if _, ok := fieldValue.Interface().(convert.Conversion); ok {
 		sqlType = schemas.SQLType{Name: schemas.Text}
 	} else {
-		sqlType = schemas.Type2SQLType(field.Type)
+		var err error
+		sqlType, err = parser.getSQLTypeByType(field.Type)
+		if err != nil {
+			return nil, err
+		}
 	}
 	col := schemas.NewColumn(parser.columnMapper.Obj2Table(field.Name),
 		field.Name, sqlType, sqlType.DefaultLength,
@@ -214,8 +239,16 @@ func (parser *Parser) parseFieldWithTags(table *schemas.Table, fieldIndex int, f
 	}
 
 	if col.SQLType.Name == "" {
-		col.SQLType = schemas.Type2SQLType(field.Type)
+		var err error
+		col.SQLType, err = parser.getSQLTypeByType(field.Type)
+		if err != nil {
+			return nil, err
+		}
 	}
+	if ctx.isUnsigned && col.SQLType.IsNumeric() && !strings.HasPrefix(col.SQLType.Name, "UNSIGNED") {
+		col.SQLType.Name = "UNSIGNED " + col.SQLType.Name
+	}
+
 	parser.dialect.SQLType(col)
 	if col.Length == 0 {
 		col.Length = col.SQLType.DefaultLength
@@ -241,6 +274,10 @@ func (parser *Parser) parseFieldWithTags(table *schemas.Table, fieldIndex int, f
 }
 
 func (parser *Parser) parseField(table *schemas.Table, fieldIndex int, field reflect.StructField, fieldValue reflect.Value) (*schemas.Column, error) {
+	if isNotTitle(field.Name) {
+		return nil, ErrIgnoreField
+	}
+
 	var (
 		tag       = field.Tag
 		ormTagStr = strings.TrimSpace(tag.Get(parser.identifier))
@@ -281,12 +318,7 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 	table.Name = names.GetTableName(parser.tableMapper, v)
 
 	for i := 0; i < t.NumField(); i++ {
-		var field = t.Field(i)
-		if isNotTitle(field.Name) {
-			continue
-		}
-
-		col, err := parser.parseField(table, i, field, v.Field(i))
+		col, err := parser.parseField(table, i, t.Field(i), v.Field(i))
 		if err == ErrIgnoreField {
 			continue
 		} else if err != nil {
@@ -295,12 +327,6 @@ func (parser *Parser) Parse(v reflect.Value) (*schemas.Table, error) {
 
 		table.AddColumn(col)
 	} // end for
-
-	deletedColumn := table.DeletedColumn()
-	// check columns
-	if deletedColumn != nil {
-		deletedColumn.Nullable = true
-	}
 
 	return table, nil
 }

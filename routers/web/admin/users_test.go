@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -19,10 +21,10 @@ import (
 
 func TestNewUserPost_MustChangePassword(t *testing.T) {
 
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
-	u := models.AssertExistsAndLoadBean(t, &models.User{
+	u := db.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
 		ID:      2,
 	}).(*models.User)
@@ -56,10 +58,10 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 }
 
 func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
-	u := models.AssertExistsAndLoadBean(t, &models.User{
+	u := db.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
 		ID:      2,
 	}).(*models.User)
@@ -93,10 +95,10 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 }
 
 func TestNewUserPost_InvalidEmail(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
-	u := models.AssertExistsAndLoadBean(t, &models.User{
+	u := db.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
 		ID:      2,
 	}).(*models.User)
@@ -122,11 +124,11 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 	assert.NotEmpty(t, ctx.Flash.ErrorMsg)
 }
 
-func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
-	models.PrepareTestEnv(t)
+func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
-	u := models.AssertExistsAndLoadBean(t, &models.User{
+	u := db.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
 		ID:      2,
 	}).(*models.User)
@@ -161,10 +163,10 @@ func TestNewUserPost_VisiblityDefaultPublic(t *testing.T) {
 }
 
 func TestNewUserPost_VisibilityPrivate(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "admin/users/new")
 
-	u := models.AssertExistsAndLoadBean(t, &models.User{
+	u := db.AssertExistsAndLoadBean(t, &models.User{
 		IsAdmin: true,
 		ID:      2,
 	}).(*models.User)

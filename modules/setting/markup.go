@@ -15,8 +15,9 @@ import (
 
 // ExternalMarkupRenderers represents the external markup renderers
 var (
-	ExternalMarkupRenderers []*MarkupRenderer
-	ExternalSanitizerRules  []MarkupSanitizerRule
+	ExternalMarkupRenderers    []*MarkupRenderer
+	ExternalSanitizerRules     []MarkupSanitizerRule
+	MermaidMaxSourceCharacters int
 )
 
 // MarkupRenderer defines the external parser configured in ini
@@ -40,6 +41,7 @@ type MarkupSanitizerRule struct {
 }
 
 func newMarkup() {
+	MermaidMaxSourceCharacters = Cfg.Section("markup").Key("MERMAID_MAX_SOURCE_CHARACTERS").MustInt(5000)
 	ExternalMarkupRenderers = make([]*MarkupRenderer, 0, 10)
 	ExternalSanitizerRules = make([]MarkupSanitizerRule, 0, 10)
 

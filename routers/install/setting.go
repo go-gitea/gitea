@@ -22,6 +22,7 @@ func PreloadSettings(ctx context.Context) bool {
 		log.Info("AppWorkPath: %s", setting.AppWorkPath)
 		log.Info("Custom path: %s", setting.CustomPath)
 		log.Info("Log path: %s", setting.LogRootPath)
+		log.Info("Configuration file: %s", setting.CustomConf)
 		log.Info("Preparing to run install page")
 		translation.InitLocales()
 		if setting.EnableSQLite3 {

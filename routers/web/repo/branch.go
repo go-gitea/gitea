@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -51,18 +52,18 @@ func Branches(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
-	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
+	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
-	ctx.Data["CanPull"] = ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
 
-	limit := ctx.QueryInt("limit")
+	limit := ctx.FormInt("limit")
 	if limit <= 0 || limit > setting.Git.BranchesRangeSize {
 		limit = setting.Git.BranchesRangeSize
 	}
@@ -84,7 +85,7 @@ func Branches(ctx *context.Context) {
 // DeleteBranchPost responses for delete merged branch
 func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
-	branchName := ctx.Query("name")
+	branchName := ctx.FormString("name")
 
 	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
@@ -112,8 +113,8 @@ func DeleteBranchPost(ctx *context.Context) {
 func RestoreBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 
-	branchID := ctx.QueryInt64("branch_id")
-	branchName := ctx.Query("name")
+	branchID := ctx.FormInt64("branch_id")
+	branchName := ctx.FormString("name")
 
 	deletedBranch, err := ctx.Repo.Repository.GetDeletedBranchByID(branchID)
 	if err != nil {
@@ -208,7 +209,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 	log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
 	branches = append(branches, loadOneBranch(ctx, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo))
 
-	if ctx.Repo.CanWrite(models.UnitTypeCode) {
+	if ctx.Repo.CanWrite(unit.TypeCode) {
 		deletedBranches, err := getDeletedBranches(ctx)
 		if err != nil {
 			ctx.ServerError("getDeletedBranches", err)
@@ -217,7 +218,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		branches = append(branches, deletedBranches...)
 	}
 
-	return branches, totalNumOfBranches - 1
+	return branches, totalNumOfBranches
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,

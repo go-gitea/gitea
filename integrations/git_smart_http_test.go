@@ -5,7 +5,7 @@
 package integrations
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"testing"
@@ -62,7 +62,7 @@ func testGitSmartHTTP(t *testing.T, u *url.URL) {
 			assert.NoError(t, err)
 			defer resp.Body.Close()
 			assert.EqualValues(t, kase.code, resp.StatusCode)
-			_, err = ioutil.ReadAll(resp.Body)
+			_, err = io.ReadAll(resp.Body)
 			assert.NoError(t, err)
 		})
 	}

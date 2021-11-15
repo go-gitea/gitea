@@ -25,9 +25,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
@@ -37,7 +39,6 @@ import (
 	"code.gitea.io/gitea/routers"
 
 	"github.com/PuerkitoBio/goquery"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -83,6 +84,7 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 func TestMain(m *testing.M) {
 	defer log.Close()
 
+	unittest.InitUnitTestBridge()
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
@@ -111,8 +113,10 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	err := models.InitFixtures(
-		path.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+	err := unittest.InitFixtures(
+		unittest.FixturesOptions{
+			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
+		},
 	)
 	if err != nil {
 		fmt.Printf("Error initializing test database: %v\n", err)
@@ -120,7 +124,7 @@ func TestMain(m *testing.M) {
 	}
 	exitCode := m.Run()
 
-	writerCloser.t = nil
+	writerCloser.Reset()
 
 	if err = util.RemoveAll(setting.Indexer.IssuePath); err != nil {
 		fmt.Printf("util.RemoveAll: %v\n", err)
@@ -247,7 +251,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 		ourSkip += skip[0]
 	}
 	deferFn := PrintCurrentTest(t, ourSkip)
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
@@ -416,7 +420,6 @@ func NewRequestWithValues(t testing.TB, method, urlStr string, values map[string
 func NewRequestWithJSON(t testing.TB, method, urlStr string, v interface{}) *http.Request {
 	t.Helper()
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonBytes, err := json.Marshal(v)
 	assert.NoError(t, err)
 	req := NewRequestWithBody(t, method, urlStr, bytes.NewBuffer(jsonBytes))
@@ -508,7 +511,6 @@ func logUnexpectedResponse(t testing.TB, recorder *httptest.ResponseRecorder) {
 func DecodeJSON(t testing.TB, resp *httptest.ResponseRecorder, v interface{}) {
 	t.Helper()
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	decoder := json.NewDecoder(resp.Body)
 	assert.NoError(t, decoder.Decode(v))
 }
@@ -526,7 +528,7 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 // within a single test this is required
 func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
-	assert.NoError(t, models.LoadFixtures())
+	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 }

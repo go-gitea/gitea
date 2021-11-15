@@ -11,7 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/setting"
@@ -76,7 +78,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
-	mode := models.AccessMode(ctx.QueryInt("mode"))
+	mode := models.AccessMode(ctx.FormInt("mode"))
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
@@ -92,12 +94,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// The default unit we're trying to look at is code
-	unitType := models.UnitTypeCode
+	unitType := unit.TypeCode
 
 	// Unless we're a wiki...
 	if strings.HasSuffix(repoName, ".wiki") {
 		// in which case we need to look at the wiki
-		unitType = models.UnitTypeWiki
+		unitType = unit.TypeWiki
 		// And we'd better munge the reponame and tell downstream we're looking at a wiki
 		results.IsWiki = true
 		results.RepoName = repoName[:len(repoName)-5]
@@ -126,7 +128,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repoExist = false
-			for _, verb := range ctx.QueryStrings("verb") {
+			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
 					// User is fetching/cloning a non-existent repository
 					log.Error("Failed authentication attempt (cannot find repository: %s/%s) from %s", results.OwnerName, results.RepoName, ctx.RemoteAddr())
@@ -278,7 +280,12 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Permissions checking:
-	if repoExist && (mode > models.AccessModeRead || repo.IsPrivate || setting.Service.RequireSignInView) {
+	if repoExist &&
+		(mode > models.AccessModeRead ||
+			repo.IsPrivate ||
+			owner.Visibility.IsPrivate() ||
+			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
+			setting.Service.RequireSignInView) {
 		if key.Type == models.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
@@ -288,6 +295,11 @@ func ServCommand(ctx *context.PrivateContext) {
 				return
 			}
 		} else {
+			// Because of the special ref "refs/for" we will need to delay write permission check
+			if git.SupportProcReceive && unitType == unit.TypeCode {
+				mode = models.AccessModeRead
+			}
+
 			perm, err := models.GetUserRepoPermission(repo, user)
 			if err != nil {
 				log.Error("Unable to get permissions for %-v with key %d in %-v Error: %v", user, key.ID, repo, err)
@@ -351,7 +363,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	if results.IsWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if models.IsErrUnitTypeNotExist(err) {
 				ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 					Results: results,

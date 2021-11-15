@@ -132,7 +132,14 @@ See `make help` for all available `make` targets. Also see [`.drone.yml`](https:
 To run and continuously rebuild when source files change:
 
 ```bash
+# for both frontend and backend
 make watch
+
+# or: watch frontend files (html/js/css) only
+make watch-frontend
+
+# or: watch backend files (go) only
+make watch-backend
 ```
 
 On macOS, watching all backend source files may hit the default open files limit which can be increased via `ulimit -n 12288` for the current shell or in your shell startup file for all future shells.
@@ -167,7 +174,9 @@ make revive vet misspell-check
 
 ### Working on JS and CSS
 
-Either use the `watch-frontend` target mentioned above or just build once:
+Frontend development should follow [Guidelines for Frontend Development](./guidelines-frontend.md)
+
+To build with frontend resources, either use the `watch-frontend` target mentioned above or just build once:
 
 ```bash
 make build && ./gitea
@@ -308,6 +317,19 @@ A `launch.json` and `tasks.json` are provided within `contrib/ide/vscode` for
 Visual Studio Code. Look at
 [`contrib/ide/README.md`](https://github.com/go-gitea/gitea/blob/main/contrib/ide/README.md)
 for more information.
+
+## GoLand
+
+Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
+can quickly start a debuggable gitea instance.
+
+The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
+gitea project directory (which contains `main.go` and `go.mod`), 
+otherwise, the started instance's working directory is a GoLand's temporary directory 
+and prevents gitea from loading dynamic resources (eg: templates) in a development environment.  
+
+To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
+in `Go tool arguments` of `Run/Debug Configuration`.
 
 ## Submitting PRs
 

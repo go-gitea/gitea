@@ -67,6 +67,9 @@
 			{{if .sidebarPresent}}
 			<div class="column" style="padding-top: 0;">
 				<div class="ui segment">
+					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					{{end}}
 					{{.sidebarContent | Str2html}}
 				</div>
 			</div>
@@ -74,6 +77,9 @@
 		</div>
 		{{if .footerPresent}}
 		<div class="ui segment">
+				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+				{{end}}
 			{{.footerContent | Str2html}}
 		</div>
 		{{end}}

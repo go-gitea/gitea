@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,7 +26,7 @@ func Security(ctx *context.Context) {
 	ctx.Data["PageIsSettingsSecurity"] = true
 	ctx.Data["RequireU2F"] = true
 
-	if ctx.Query("openid.return_to") != "" {
+	if ctx.FormString("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
 		return
 	}
@@ -37,7 +38,7 @@ func Security(ctx *context.Context) {
 
 // DeleteAccountLink delete a single account link
 func DeleteAccountLink(ctx *context.Context) {
-	id := ctx.QueryInt64("id")
+	id := ctx.FormInt64("id")
 	if id <= 0 {
 		ctx.Flash.Error("Account link id is not given")
 	} else {
@@ -54,23 +55,17 @@ func DeleteAccountLink(ctx *context.Context) {
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled := true
-	_, err := models.GetTwoFactorByUID(ctx.User.ID)
+	enrolled, err := login.HasTwoFactorByUID(ctx.User.ID)
 	if err != nil {
-		if models.IsErrTwoFactorNotEnrolled(err) {
-			enrolled = false
-		} else {
-			ctx.ServerError("SettingsTwoFactor", err)
-			return
-		}
+		ctx.ServerError("SettingsTwoFactor", err)
+		return
 	}
-	ctx.Data["TwofaEnrolled"] = enrolled
-	if enrolled {
-		ctx.Data["U2FRegistrations"], err = models.GetU2FRegistrationsByUID(ctx.User.ID)
-		if err != nil {
-			ctx.ServerError("GetU2FRegistrationsByUID", err)
-			return
-		}
+	ctx.Data["TOTPEnrolled"] = enrolled
+
+	ctx.Data["U2FRegistrations"], err = login.GetU2FRegistrationsByUID(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetU2FRegistrationsByUID", err)
+		return
 	}
 
 	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.User.ID})
@@ -87,13 +82,23 @@ func loadSecurityData(ctx *context.Context) {
 	}
 
 	// map the provider display name with the LoginSource
-	sources := make(map[*models.LoginSource]string)
+	sources := make(map[*login.Source]string)
 	for _, externalAccount := range accountLinks {
-		if loginSource, err := models.GetLoginSourceByID(externalAccount.LoginSourceID); err == nil {
+		if loginSource, err := login.GetSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
-			if loginSource.IsOAuth2() {
-				providerTechnicalName := loginSource.OAuth2().Provider
-				providerDisplayName = models.OAuth2Providers[providerTechnicalName].DisplayName
+
+			type DisplayNamed interface {
+				DisplayName() string
+			}
+
+			type Named interface {
+				Name() string
+			}
+
+			if displayNamed, ok := loginSource.Cfg.(DisplayNamed); ok {
+				providerDisplayName = displayNamed.DisplayName()
+			} else if named, ok := loginSource.Cfg.(Named); ok {
+				providerDisplayName = named.Name()
 			} else {
 				providerDisplayName = loginSource.Name
 			}

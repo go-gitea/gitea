@@ -93,6 +93,7 @@ type Context struct {
 	hasCacheTag     bool
 	hasNoCacheTag   bool
 	ignoreNext      bool
+	isUnsigned      bool
 }
 
 // Handler describes tag handler for XORM
@@ -101,11 +102,12 @@ type Handler func(ctx *Context) error
 var (
 	// defaultTagHandlers enumerates all the default tag handler
 	defaultTagHandlers = map[string]Handler{
+		"-":        IgnoreHandler,
 		"<-":       OnlyFromDBTagHandler,
 		"->":       OnlyToDBTagHandler,
 		"PK":       PKTagHandler,
 		"NULL":     NULLTagHandler,
-		"NOT":      IgnoreTagHandler,
+		"NOT":      NotTagHandler,
 		"AUTOINCR": AutoIncrTagHandler,
 		"DEFAULT":  DefaultTagHandler,
 		"CREATED":  CreatedTagHandler,
@@ -121,6 +123,7 @@ var (
 		"NOCACHE":  NoCacheTagHandler,
 		"COMMENT":  CommentTagHandler,
 		"EXTENDS":  ExtendsTagHandler,
+		"UNSIGNED": UnsignedTagHandler,
 	}
 )
 
@@ -130,9 +133,14 @@ func init() {
 	}
 }
 
-// IgnoreTagHandler describes ignored tag handler
-func IgnoreTagHandler(ctx *Context) error {
+// NotTagHandler describes ignored tag handler
+func NotTagHandler(ctx *Context) error {
 	return nil
+}
+
+// IgnoreHandler represetns the field should be ignored
+func IgnoreHandler(ctx *Context) error {
+	return ErrIgnoreField
 }
 
 // OnlyFromDBTagHandler describes mapping direction tag handler
@@ -259,6 +267,12 @@ func UniqueTagHandler(ctx *Context) error {
 	} else {
 		ctx.isUnique = true
 	}
+	return nil
+}
+
+// UnsignedTagHandler represents the column is unsigned
+func UnsignedTagHandler(ctx *Context) error {
+	ctx.isUnsigned = true
 	return nil
 }
 

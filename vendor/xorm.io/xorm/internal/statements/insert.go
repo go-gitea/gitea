@@ -5,6 +5,7 @@
 package statements
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -200,6 +201,58 @@ func (statement *Statement) GenInsertMapSQL(columns []string, args []interface{}
 		}
 		if _, err := buf.WriteString(")"); err != nil {
 			return "", nil, err
+		}
+	}
+
+	return buf.String(), buf.Args(), nil
+}
+
+func (statement *Statement) GenInsertMultipleMapSQL(columns []string, argss [][]interface{}) (string, []interface{}, error) {
+	var (
+		buf       = builder.NewWriter()
+		exprs     = statement.ExprColumns
+		tableName = statement.TableName()
+	)
+
+	if _, err := buf.WriteString(fmt.Sprintf("INSERT INTO %s (", statement.quote(tableName))); err != nil {
+		return "", nil, err
+	}
+
+	if err := statement.dialect.Quoter().JoinWrite(buf.Builder, append(columns, exprs.ColNames()...), ","); err != nil {
+		return "", nil, err
+	}
+
+	// if insert where
+	if statement.Conds().IsValid() {
+		return "", nil, errors.New("batch insert don't support with where")
+	}
+
+	if _, err := buf.WriteString(") VALUES "); err != nil {
+		return "", nil, err
+	}
+	for i, args := range argss {
+		if _, err := buf.WriteString("("); err != nil {
+			return "", nil, err
+		}
+		if err := statement.WriteArgs(buf, args); err != nil {
+			return "", nil, err
+		}
+
+		if len(exprs) > 0 {
+			if _, err := buf.WriteString(","); err != nil {
+				return "", nil, err
+			}
+			if err := exprs.WriteArgs(buf); err != nil {
+				return "", nil, err
+			}
+		}
+		if _, err := buf.WriteString(")"); err != nil {
+			return "", nil, err
+		}
+		if i < len(argss)-1 {
+			if _, err := buf.WriteString(","); err != nil {
+				return "", nil, err
+			}
 		}
 	}
 

@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/migrations"
 	migration "code.gitea.io/gitea/modules/migrations/base"
@@ -20,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func handleCreateError(owner *models.User, err error) error {
@@ -58,6 +58,9 @@ func runMigrateTask(t *models.Task) (err error) {
 		t.EndTime = timeutil.TimeStampNow()
 		t.Status = structs.TaskStatusFailed
 		t.Message = err.Error()
+		// Ensure that the repo loaded before we zero out the repo ID from the task - thus ensuring that we can delete it
+		_ = t.LoadRepo()
+
 		t.RepoID = 0
 		if err := t.UpdateCols("status", "errors", "repo_id", "end_time"); err != nil {
 			log.Error("Task UpdateCols failed: %v", err)
@@ -74,7 +77,7 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	// if repository is ready, then just finsih the task
+	// if repository is ready, then just finish the task
 	if t.Repo.Status == models.RepositoryReady {
 		return nil
 	}
@@ -93,7 +96,6 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	opts.MigrateToRepoID = t.RepoID
-	var repo *models.Repository
 
 	ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
 	defer cancel()
@@ -107,18 +109,17 @@ func runMigrateTask(t *models.Task) (err error) {
 		return
 	}
 
-	repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
+	t.Repo, err = migrations.MigrateRepository(ctx, t.Doer, t.Owner.Name, *opts, func(format string, args ...interface{}) {
 		message := models.TranslatableMessage{
 			Format: format,
 			Args:   args,
 		}
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		bs, _ := json.Marshal(message)
 		t.Message = string(bs)
 		_ = t.UpdateCols("message")
 	})
 	if err == nil {
-		log.Trace("Repository migrated [%d]: %s/%s", repo.ID, t.Owner.Name, repo.Name)
+		log.Trace("Repository migrated [%d]: %s/%s", t.Repo.ID, t.Owner.Name, t.Repo.Name)
 		return
 	}
 

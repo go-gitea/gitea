@@ -30,11 +30,7 @@
 
 				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
-				{{if eq .Comment.Commits.Len 1}}
-					{{.i18n.Tr "mail.issue.action.push_1" .Doer.Name .Comment.Issue.PullRequest.HeadBranch | Str2html}}
-				{{else}}
-					{{.i18n.Tr "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch .Comment.Commits.Len | Str2html}}
-				{{end}}
+				{{.i18n.Tr (TrN .i18n.Lang (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n") .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
 			{{end}}
 		</p>
 	{{end}}
@@ -66,16 +62,15 @@
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>
-			{{.i18n.Tr "mail.issue.in_tree_path" .TreePath}}
+			{{$.i18n.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent | Safe}}</div>
 			</div>
 		{{end -}}
 		{{if eq .ActionName "push"}}
-			{{ $r:= List .Comment.Commits}}
 			<ul>
-			{{range $r}}
+			{{range .Comment.Commits}}
 				<li>
 					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
 						{{ShortSha .ID.String}}

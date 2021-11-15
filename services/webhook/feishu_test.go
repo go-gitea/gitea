@@ -7,7 +7,7 @@ package webhook
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -125,7 +125,7 @@ func TestFeishuPayload(t *testing.T) {
 		p.Action = api.HookIssueReviewed
 
 		d := new(FeishuPayload)
-		pl, err := d.Review(p, models.HookEventPullRequestReviewApproved)
+		pl, err := d.Review(p, webhook_model.HookEventPullRequestReviewApproved)
 		require.NoError(t, err)
 		require.NotNil(t, pl)
 		require.IsType(t, &FeishuPayload{}, pl)

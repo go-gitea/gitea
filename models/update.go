@@ -5,16 +5,19 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
+
+	"code.gitea.io/gitea/models/db"
 )
 
 // PushUpdateDeleteTagsContext updates a number of delete tags with context
-func PushUpdateDeleteTagsContext(ctx DBContext, repo *Repository, tags []string) error {
-	return pushUpdateDeleteTags(ctx.e, repo, tags)
+func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []string) error {
+	return pushUpdateDeleteTags(db.GetEngine(ctx), repo, tags)
 }
 
-func pushUpdateDeleteTags(e Engine, repo *Repository, tags []string) error {
+func pushUpdateDeleteTags(e db.Engine, repo *Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -53,14 +56,14 @@ func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 		return fmt.Errorf("GetRelease: %v", err)
 	}
 	if rel.IsTag {
-		if _, err = x.ID(rel.ID).Delete(new(Release)); err != nil {
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
 			return fmt.Errorf("Delete: %v", err)
 		}
 	} else {
 		rel.IsDraft = true
 		rel.NumCommits = 0
 		rel.Sha1 = ""
-		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}
@@ -77,7 +80,7 @@ func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 
 	if rel == nil {
 		rel = newRel
-		if _, err = x.Insert(rel); err != nil {
+		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
 			return fmt.Errorf("InsertOne: %v", err)
 		}
 	} else {
@@ -88,7 +91,7 @@ func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 		if rel.IsTag && newRel.PublisherID > 0 {
 			rel.PublisherID = newRel.PublisherID
 		}
-		if _, err = x.ID(rel.ID).AllCols().Update(rel); err != nil {
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}

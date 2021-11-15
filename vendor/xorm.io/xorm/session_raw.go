@@ -6,7 +6,7 @@ package xorm
 
 import (
 	"database/sql"
-	"reflect"
+	"strings"
 
 	"xorm.io/xorm/core"
 )
@@ -33,7 +33,7 @@ func (session *Session) queryRows(sqlStr string, args ...interface{}) (*core.Row
 
 	if session.isAutoCommit {
 		var db *core.DB
-		if session.sessionType == groupSession {
+		if session.sessionType == groupSession && strings.EqualFold(sqlStr[:6], "select") {
 			db = session.engine.engineGroup.Slave().DB()
 		} else {
 			db = session.DB()
@@ -71,34 +71,6 @@ func (session *Session) queryRow(sqlStr string, args ...interface{}) *core.Row {
 	return core.NewRow(session.queryRows(sqlStr, args...))
 }
 
-func value2Bytes(rawValue *reflect.Value) ([]byte, error) {
-	str, err := value2String(rawValue)
-	if err != nil {
-		return nil, err
-	}
-	return []byte(str), nil
-}
-
-func (session *Session) rows2maps(rows *core.Rows) (resultsSlice []map[string][]byte, err error) {
-	fields, err := rows.Columns()
-	if err != nil {
-		return nil, err
-	}
-	types, err := rows.ColumnTypes()
-	if err != nil {
-		return nil, err
-	}
-	for rows.Next() {
-		result, err := session.engine.row2mapBytes(rows, types, fields)
-		if err != nil {
-			return nil, err
-		}
-		resultsSlice = append(resultsSlice, result)
-	}
-
-	return resultsSlice, nil
-}
-
 func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[string][]byte, error) {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
@@ -106,7 +78,7 @@ func (session *Session) queryBytes(sqlStr string, args ...interface{}) ([]map[st
 	}
 	defer rows.Close()
 
-	return session.rows2maps(rows)
+	return rows2maps(rows)
 }
 
 func (session *Session) exec(sqlStr string, args ...interface{}) (sql.Result, error) {

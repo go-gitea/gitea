@@ -6,9 +6,7 @@
 package user
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -56,15 +54,13 @@ func Search(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	opts := &models.SearchUserOptions{
+	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
 		Actor:       ctx.User,
-		Keyword:     strings.Trim(ctx.Query("q"), " "),
-		UID:         ctx.QueryInt64("uid"),
+		Keyword:     ctx.FormTrim("q"),
+		UID:         ctx.FormInt64("uid"),
 		Type:        models.UserTypeIndividual,
 		ListOptions: listOptions,
-	}
-
-	users, maxResults, err := models.SearchUsers(opts)
+	})
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 			"ok":    false,
@@ -74,8 +70,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,

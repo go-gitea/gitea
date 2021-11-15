@@ -6,12 +6,12 @@ package notify
 
 import (
 	"net/http"
-	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // ListNotifications list users's notification threads
@@ -69,6 +69,12 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	totalCount, err := models.CountNotifications(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	nl, err := models.GetNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -80,6 +86,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(totalCount)
 	ctx.JSON(http.StatusOK, convert.ToNotifications(nl))
 }
 
@@ -119,10 +126,10 @@ func ReadNotifications(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   "205":
-	//     "$ref": "#/responses/empty"
+	//     "$ref": "#/responses/NotificationThreadList"
 
 	lastRead := int64(0)
-	qLastRead := strings.Trim(ctx.Query("last_read_at"), " ")
+	qLastRead := ctx.FormTrim("last_read_at")
 	if len(qLastRead) > 0 {
 		tmpLastRead, err := time.Parse(time.RFC3339, qLastRead)
 		if err != nil {
@@ -137,8 +144,8 @@ func ReadNotifications(ctx *context.APIContext) {
 		UserID:            ctx.User.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
-	if !ctx.QueryBool("all") {
-		statuses := ctx.QueryStrings("status-types")
+	if !ctx.FormBool("all") {
+		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 	}
 	nl, err := models.GetNotifications(opts)
@@ -147,19 +154,22 @@ func ReadNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	targetStatus := statusStringToNotificationStatus(ctx.Query("to-status"))
+	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
 		targetStatus = models.NotificationStatusRead
 	}
 
+	changed := make([]*structs.NotificationThread, 0, len(nl))
+
 	for _, n := range nl {
-		err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+		notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
-		ctx.Status(http.StatusResetContent)
+		_ = notif.LoadAttributes()
+		changed = append(changed, convert.ToNotificationThread(notif))
 	}
 
-	ctx.Status(http.StatusResetContent)
+	ctx.JSON(http.StatusResetContent, changed)
 }

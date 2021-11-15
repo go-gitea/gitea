@@ -172,6 +172,8 @@ type EditRepoOption struct {
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// set to `true` to delete pr branch after merge by default
+	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash". `has_pull_requests` must be `true`.
 	DefaultMergeStyle *string `json:"default_merge_style,omitempty"`
 	// set to `true` to archive this repository.
@@ -240,12 +242,14 @@ type GitServiceType int
 
 // enumerate all GitServiceType
 const (
-	NotMigrated     GitServiceType = iota // 0 not migrated from external sites
-	PlainGitService                       // 1 plain git service
-	GithubService                         // 2 github.com
-	GiteaService                          // 3 gitea service
-	GitlabService                         // 4 gitlab service
-	GogsService                           // 5 gogs service
+	NotMigrated      GitServiceType = iota // 0 not migrated from external sites
+	PlainGitService                        // 1 plain git service
+	GithubService                          // 2 github.com
+	GiteaService                           // 3 gitea service
+	GitlabService                          // 4 gitlab service
+	GogsService                            // 5 gogs service
+	OneDevService                          // 6 onedev service
+	GitBucketService                       // 7 gitbucket service
 )
 
 // Name represents the service type's name
@@ -265,6 +269,10 @@ func (gt GitServiceType) Title() string {
 		return "GitLab"
 	case GogsService:
 		return "Gogs"
+	case OneDevService:
+		return "OneDev"
+	case GitBucketService:
+		return "GitBucket"
 	case PlainGitService:
 		return "Git"
 	}
@@ -320,5 +328,7 @@ var (
 		GitlabService,
 		GiteaService,
 		GogsService,
+		OneDevService,
+		GitBucketService,
 	}
 )

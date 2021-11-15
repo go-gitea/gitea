@@ -5,10 +5,10 @@
 package repo
 
 import (
-	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -109,16 +109,16 @@ func ListReleases(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ReleaseList"
 	listOptions := utils.GetListOptions(ctx)
-	if listOptions.PageSize == 0 && ctx.QueryInt("per_page") != 0 {
-		listOptions.PageSize = ctx.QueryInt("per_page")
+	if listOptions.PageSize == 0 && ctx.FormInt("per_page") != 0 {
+		listOptions.PageSize = ctx.FormInt("per_page")
 	}
 
 	opts := models.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite,
+		IncludeDrafts: ctx.Repo.AccessMode >= models.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= models.AccessModeWrite,
 		IncludeTags:   false,
-		IsDraft:       ctx.QueryOptionalBool("draft"),
-		IsPreRelease:  ctx.QueryOptionalBool("pre-release"),
+		IsDraft:       ctx.FormOptionalBool("draft"),
+		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
@@ -142,8 +142,7 @@ func ListReleases(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(filteredCount), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprint(filteredCount))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(filteredCount)
 	ctx.JSON(http.StatusOK, rels)
 }
 

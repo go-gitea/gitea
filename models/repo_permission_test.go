@@ -7,18 +7,21 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public non-organization repo
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo.getUnits(x))
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
-	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -36,7 +39,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// collaborator
-	collaborator := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	collaborator := db.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	perm, err = GetUserRepoPermission(repo, collaborator)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -45,7 +48,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// owner
-	owner := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -54,7 +57,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// admin
-	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -64,14 +67,14 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 }
 
 func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private non-organization repo
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	assert.NoError(t, repo.getUnits(x))
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
-	user := AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -97,7 +100,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	// owner
-	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -106,7 +109,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	// admin
-	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -116,14 +119,14 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 }
 
 func TestRepoPermissionPublicOrgRepo(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public organization repo
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 32}).(*Repository)
-	assert.NoError(t, repo.getUnits(x))
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 32}).(*Repository)
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
-	user := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -149,7 +152,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	// org member team owner
-	owner := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -158,17 +161,17 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	// org member team tester
-	member := AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
+	member := db.AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
 	perm, err = GetUserRepoPermission(repo, member)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
 		assert.True(t, perm.CanRead(unit.Type))
 	}
-	assert.True(t, perm.CanWrite(UnitTypeIssues))
-	assert.False(t, perm.CanWrite(UnitTypeCode))
+	assert.True(t, perm.CanWrite(unit.TypeIssues))
+	assert.False(t, perm.CanWrite(unit.TypeCode))
 
 	// admin
-	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -178,14 +181,14 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 }
 
 func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private organization repo
-	repo := AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)
-	assert.NoError(t, repo.getUnits(x))
+	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)
+	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
 
 	// plain user
-	user := AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user := db.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
 	perm, err := GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -211,7 +214,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// org member team owner
-	owner := AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
+	owner := db.AssertExistsAndLoadBean(t, &User{ID: 15}).(*User)
 	perm, err = GetUserRepoPermission(repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -220,7 +223,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// update team information and then check permission
-	team := AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
+	team := db.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
 	err = UpdateTeamUnits(team, nil)
 	assert.NoError(t, err)
 	perm, err = GetUserRepoPermission(repo, owner)
@@ -231,23 +234,23 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// org member team tester
-	tester := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	tester := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	perm, err = GetUserRepoPermission(repo, tester)
 	assert.NoError(t, err)
-	assert.True(t, perm.CanWrite(UnitTypeIssues))
-	assert.False(t, perm.CanWrite(UnitTypeCode))
-	assert.False(t, perm.CanRead(UnitTypeCode))
+	assert.True(t, perm.CanWrite(unit.TypeIssues))
+	assert.False(t, perm.CanWrite(unit.TypeCode))
+	assert.False(t, perm.CanRead(unit.TypeCode))
 
 	// org member team reviewer
-	reviewer := AssertExistsAndLoadBean(t, &User{ID: 20}).(*User)
+	reviewer := db.AssertExistsAndLoadBean(t, &User{ID: 20}).(*User)
 	perm, err = GetUserRepoPermission(repo, reviewer)
 	assert.NoError(t, err)
-	assert.False(t, perm.CanRead(UnitTypeIssues))
-	assert.False(t, perm.CanWrite(UnitTypeCode))
-	assert.True(t, perm.CanRead(UnitTypeCode))
+	assert.False(t, perm.CanRead(unit.TypeIssues))
+	assert.False(t, perm.CanWrite(unit.TypeCode))
+	assert.True(t, perm.CanRead(unit.TypeCode))
 
 	// admin
-	admin := AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	admin := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	perm, err = GetUserRepoPermission(repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
