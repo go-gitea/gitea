@@ -23,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
-	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
@@ -411,10 +410,10 @@ func AvatarPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AvatarForm)
-	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
+	if err := router_user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
-		ctx.Flash.Success(ctx.Tr("settings.update_avatar_success"))
+		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
 	}
 
 	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
