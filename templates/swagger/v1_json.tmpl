@@ -3660,7 +3660,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get a file's commit history",
+        "summary": "Get a file's or directory's commit history",
         "operationId": "repoGetFileHistory",
         "parameters": [
           {
@@ -3679,14 +3679,14 @@
           },
           {
             "type": "string",
-            "description": "filepath of the file to get",
+            "description": "filepath of the file/directory",
             "name": "filepath",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the branch. Default the repository’s default branch (usually master)",
             "name": "ref",
             "in": "query"
           },
