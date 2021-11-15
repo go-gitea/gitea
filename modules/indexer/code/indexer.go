@@ -185,9 +185,6 @@ func Init() {
 
 			rIndexer, populate, err = NewBleveIndexer(setting.Indexer.RepoPath)
 			if err != nil {
-				if rIndexer != nil {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
@@ -205,9 +202,6 @@ func Init() {
 
 			rIndexer, populate, err = NewElasticSearchIndexer(setting.Indexer.RepoConnStr, setting.Indexer.RepoIndexerName)
 			if err != nil {
-				if rIndexer != nil {
-					rIndexer.Close()
-				}
 				cancel()
 				indexer.Close()
 				close(waitChannel)
