@@ -8,14 +8,14 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	dir, err := os.MkdirTemp("", "bleve.index")
 	assert.NoError(t, err)

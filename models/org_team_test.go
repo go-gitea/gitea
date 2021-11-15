@@ -9,11 +9,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTeam_IsOwnerTeam(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := db.AssertExistsAndLoadBean(t, &Team{ID: 1}).(*Team)
 	assert.True(t, team.IsOwnerTeam())
@@ -23,7 +24,7 @@ func TestTeam_IsOwnerTeam(t *testing.T) {
 }
 
 func TestTeam_IsMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := db.AssertExistsAndLoadBean(t, &Team{ID: 1}).(*Team)
 	assert.True(t, team.IsMember(2))
@@ -37,7 +38,7 @@ func TestTeam_IsMember(t *testing.T) {
 }
 
 func TestTeam_GetRepositories(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -52,7 +53,7 @@ func TestTeam_GetRepositories(t *testing.T) {
 }
 
 func TestTeam_GetMembers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -67,7 +68,7 @@ func TestTeam_GetMembers(t *testing.T) {
 }
 
 func TestTeam_AddMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID, userID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -81,7 +82,7 @@ func TestTeam_AddMember(t *testing.T) {
 }
 
 func TestTeam_RemoveMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID, userID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -100,7 +101,7 @@ func TestTeam_RemoveMember(t *testing.T) {
 }
 
 func TestTeam_HasRepository(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID, repoID int64, expected bool) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -116,7 +117,7 @@ func TestTeam_HasRepository(t *testing.T) {
 }
 
 func TestTeam_AddRepository(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID, repoID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -135,7 +136,7 @@ func TestTeam_AddRepository(t *testing.T) {
 }
 
 func TestTeam_RemoveRepository(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID, repoID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -154,7 +155,7 @@ func TestIsUsableTeamName(t *testing.T) {
 }
 
 func TestNewTeam(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	const teamName = "newTeamName"
 	team := &Team{Name: teamName, OrgID: 3}
@@ -164,7 +165,7 @@ func TestNewTeam(t *testing.T) {
 }
 
 func TestGetTeam(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(orgID int64, name string) {
 		team, err := GetTeam(orgID, name)
@@ -182,7 +183,7 @@ func TestGetTeam(t *testing.T) {
 }
 
 func TestGetTeamByID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID int64) {
 		team, err := GetTeamByID(teamID)
@@ -200,7 +201,7 @@ func TestGetTeamByID(t *testing.T) {
 
 func TestUpdateTeam(t *testing.T) {
 	// successful update
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := db.AssertExistsAndLoadBean(t, &Team{ID: 2}).(*Team)
 	team.LowerName = "newname"
@@ -220,7 +221,7 @@ func TestUpdateTeam(t *testing.T) {
 
 func TestUpdateTeam2(t *testing.T) {
 	// update to already-existing team
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := db.AssertExistsAndLoadBean(t, &Team{ID: 2}).(*Team)
 	team.LowerName = "owners"
@@ -233,7 +234,7 @@ func TestUpdateTeam2(t *testing.T) {
 }
 
 func TestDeleteTeam(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := db.AssertExistsAndLoadBean(t, &Team{ID: 2}).(*Team)
 	assert.NoError(t, DeleteTeam(team))
@@ -250,7 +251,7 @@ func TestDeleteTeam(t *testing.T) {
 }
 
 func TestIsTeamMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, teamID, userID int64, expected bool) {
 		isMember, err := IsTeamMember(orgID, teamID, userID)
 		assert.NoError(t, err)
@@ -269,7 +270,7 @@ func TestIsTeamMember(t *testing.T) {
 }
 
 func TestGetTeamMembers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -285,7 +286,7 @@ func TestGetTeamMembers(t *testing.T) {
 }
 
 func TestGetUserTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(userID int64) {
 		teams, _, err := SearchTeam(&SearchTeamOptions{UserID: userID})
 		assert.NoError(t, err)
@@ -299,7 +300,7 @@ func TestGetUserTeams(t *testing.T) {
 }
 
 func TestGetUserOrgTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, userID int64) {
 		teams, err := GetUserOrgTeams(orgID, userID)
 		assert.NoError(t, err)
@@ -314,7 +315,7 @@ func TestGetUserOrgTeams(t *testing.T) {
 }
 
 func TestAddTeamMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID, userID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -328,7 +329,7 @@ func TestAddTeamMember(t *testing.T) {
 }
 
 func TestRemoveTeamMember(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID, userID int64) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -347,7 +348,7 @@ func TestRemoveTeamMember(t *testing.T) {
 }
 
 func TestHasTeamRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamID, repoID int64, expected bool) {
 		team := db.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
@@ -363,7 +364,7 @@ func TestHasTeamRepo(t *testing.T) {
 }
 
 func TestUsersInTeamsCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(teamIDs, userIDs []int64, expected int64) {
 		count, err := UsersInTeamsCount(teamIDs, userIDs)
