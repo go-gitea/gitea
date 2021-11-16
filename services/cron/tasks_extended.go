@@ -12,6 +12,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 func registerDeleteInactiveUsers() {
@@ -34,7 +35,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return repo_module.DeleteRepositoryArchives(ctx)
+		return repo_service.DeleteRepositoryArchives(ctx)
 	})
 }
 
