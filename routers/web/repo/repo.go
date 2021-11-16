@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
@@ -144,7 +145,7 @@ func Create(ctx *context.Context) {
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := models.GetRepositoryByID(templateID)
-		if err == nil && templateRepo.CheckUnitUser(ctxUser, models.UnitTypeCode) {
+		if err == nil && templateRepo.CheckUnitUser(ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -243,7 +244,7 @@ func CreatePost(ctx *context.Context) {
 		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
+			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
@@ -262,7 +263,7 @@ func CreatePost(ctx *context.Context) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
+			ctx.Redirect(repo.Link())
 			return
 		}
 	}

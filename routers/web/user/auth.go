@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -181,7 +182,7 @@ func SignInPost(ctx *context.Context) {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
-		} else if models.IsErrEmailAlreadyUsed(err) {
+		} else if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if models.IsErrUserProhibitLogin(err) {
@@ -211,38 +212,58 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// If this user is enrolled in 2FA, we can't sign the user in just yet.
+	// If this user is enrolled in 2FA TOTP, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err = login.GetTwoFactorByUID(u.ID)
+	hasTOTPtwofa, err := login.HasTwoFactorByUID(u.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
-			handleSignIn(ctx, u, form.Remember)
-		} else {
-			ctx.ServerError("UserSignIn", err)
-		}
+		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	// User needs to use 2FA, save data and redirect to 2FA page.
+	// Check if the user has u2f registration
+	hasU2Ftwofa, err := login.HasU2FRegistrationsByUID(u.ID)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+
+	if !hasTOTPtwofa && !hasU2Ftwofa {
+		// No two factor auth configured we can sign in the user
+		handleSignIn(ctx, u, form.Remember)
+		return
+	}
+
+	// User will need to use 2FA TOTP or U2F, save data
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
 		return
 	}
+
 	if err := ctx.Session.Set("twofaRemember", form.Remember); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaRemember in session", err)
 		return
 	}
+
+	if hasTOTPtwofa {
+		// User will need to use U2F, save data
+		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
+			ctx.ServerError("UserSignIn: Unable to set u2fEnrolled in session", err)
+			return
+		}
+	}
+
 	if err := ctx.Session.Release(); err != nil {
 		ctx.ServerError("UserSignIn: Unable to save session", err)
 		return
 	}
 
-	regs, err := login.GetU2FRegistrationsByUID(u.ID)
-	if err == nil && len(regs) > 0 {
+	// If we have U2F redirect there first
+	if hasU2Ftwofa {
 		ctx.Redirect(setting.AppSubURL + "/user/u2f")
 		return
 	}
 
+	// Fallback to 2FA
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
@@ -404,6 +425,11 @@ func U2F(ctx *context.Context) {
 	if ctx.Session.Get("twofaUid") == nil {
 		ctx.ServerError("UserSignIn", errors.New("not in U2F session"))
 		return
+	}
+
+	// See whether TOTP is also available.
+	if ctx.Session.Get("totpEnrolled") != nil {
+		ctx.Data["TOTPEnrolled"] = true
 	}
 
 	ctx.HTML(http.StatusOK, tplU2F)
@@ -789,7 +815,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.Us
 func oAuth2UserLoginCallback(loginSource *login.Source, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := loginSource.Cfg.(*oauth2.Source).Callback(request, response)
 	if err != nil {
-		if err.Error() == "securecookie: the value is too long" {
+		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", loginSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", loginSource.Name, setting.OAuth2.MaxTokenLength)
 		}
@@ -1248,7 +1274,7 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form int
 // Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User, allowLink bool) (ok bool) {
 	if err := models.CreateUser(u); err != nil {
-		if allowLink && (models.IsErrUserAlreadyExist(err) || models.IsErrEmailAlreadyUsed(err)) {
+		if allowLink && (models.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *models.User
 				user = &models.User{Name: u.Name}
@@ -1282,10 +1308,10 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tpl, form)
-		case models.IsErrEmailAlreadyUsed(err):
+		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tpl, form)
-		case models.IsErrEmailInvalid(err):
+		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tpl, form)
 		case models.IsErrNameReserved(err):
@@ -1474,7 +1500,7 @@ func ActivateEmail(ctx *context.Context) {
 
 	// Verify code.
 	if email := models.VerifyActiveEmailCode(code, emailStr); email != nil {
-		if err := email.Activate(); err != nil {
+		if err := models.ActivateEmail(email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
 		}
 

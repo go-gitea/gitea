@@ -7,7 +7,7 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,38 +20,38 @@ func TestNotice_TrStr(t *testing.T) {
 }
 
 func TestCreateNotice(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	noticeBean := &Notice{
 		Type:        NoticeRepository,
 		Description: "test description",
 	}
-	db.AssertNotExistsBean(t, noticeBean)
+	unittest.AssertNotExistsBean(t, noticeBean)
 	assert.NoError(t, CreateNotice(noticeBean.Type, noticeBean.Description))
-	db.AssertExistsAndLoadBean(t, noticeBean)
+	unittest.AssertExistsAndLoadBean(t, noticeBean)
 }
 
 func TestCreateRepositoryNotice(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	noticeBean := &Notice{
 		Type:        NoticeRepository,
 		Description: "test description",
 	}
-	db.AssertNotExistsBean(t, noticeBean)
+	unittest.AssertNotExistsBean(t, noticeBean)
 	assert.NoError(t, CreateRepositoryNotice(noticeBean.Description))
-	db.AssertExistsAndLoadBean(t, noticeBean)
+	unittest.AssertExistsAndLoadBean(t, noticeBean)
 }
 
 // TODO TestRemoveAllWithNotice
 
 func TestCountNotices(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.Equal(t, int64(3), CountNotices())
 }
 
 func TestNotices(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	notices, err := Notices(1, 2)
 	assert.NoError(t, err)
@@ -68,47 +68,47 @@ func TestNotices(t *testing.T) {
 }
 
 func TestDeleteNotice(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 3})
 	assert.NoError(t, DeleteNotice(3))
-	db.AssertNotExistsBean(t, &Notice{ID: 3})
+	unittest.AssertNotExistsBean(t, &Notice{ID: 3})
 }
 
 func TestDeleteNotices(t *testing.T) {
 	// delete a non-empty range
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 1})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 2})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 3})
 	assert.NoError(t, DeleteNotices(1, 2))
-	db.AssertNotExistsBean(t, &Notice{ID: 1})
-	db.AssertNotExistsBean(t, &Notice{ID: 2})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 3})
+	unittest.AssertNotExistsBean(t, &Notice{ID: 1})
+	unittest.AssertNotExistsBean(t, &Notice{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 3})
 }
 
 func TestDeleteNotices2(t *testing.T) {
 	// delete an empty range
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 1})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 2})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 3})
 	assert.NoError(t, DeleteNotices(3, 2))
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 1})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 2})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 3})
 }
 
 func TestDeleteNoticesByIDs(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 1})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 2})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 3})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 3})
 	assert.NoError(t, DeleteNoticesByIDs([]int64{1, 3}))
-	db.AssertNotExistsBean(t, &Notice{ID: 1})
-	db.AssertExistsAndLoadBean(t, &Notice{ID: 2})
-	db.AssertNotExistsBean(t, &Notice{ID: 3})
+	unittest.AssertNotExistsBean(t, &Notice{ID: 1})
+	unittest.AssertExistsAndLoadBean(t, &Notice{ID: 2})
+	unittest.AssertNotExistsBean(t, &Notice{ID: 3})
 }

@@ -12,7 +12,7 @@
 			{{range .Collaborators}}
 				<div class="item ui grid">
 					<div class="ui five wide column">
-						<a href="{{AppSubUrl}}/{{.Name}}">
+						<a href="{{.HomeLink}}">
 							{{avatar .}}
 							{{.DisplayName}}
 						</a>
@@ -62,7 +62,7 @@
 			{{range $t, $team := .Teams}}
 				<div class="item ui grid">
 					<div class="ui five wide column">
-						<a href="{{AppSubUrl}}/org/{{$.OrgName}}/teams/{{.LowerName}}">
+						<a href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
 							{{.Name}}
 						</a>
 					</div>

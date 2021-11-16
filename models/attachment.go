@@ -7,9 +7,11 @@ package models
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -58,29 +60,29 @@ func (a *Attachment) RelativePath() string {
 
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
-	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
+	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
 // LinkedRepository returns the linked repo if any
-func (a *Attachment) LinkedRepository() (*Repository, UnitType, error) {
+func (a *Attachment) LinkedRepository() (*Repository, unit.Type, error) {
 	if a.IssueID != 0 {
 		iss, err := GetIssueByID(a.IssueID)
 		if err != nil {
-			return nil, UnitTypeIssues, err
+			return nil, unit.TypeIssues, err
 		}
 		repo, err := GetRepositoryByID(iss.RepoID)
-		unitType := UnitTypeIssues
+		unitType := unit.TypeIssues
 		if iss.IsPull {
-			unitType = UnitTypePullRequests
+			unitType = unit.TypePullRequests
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
 		rel, err := GetReleaseByID(a.ReleaseID)
 		if err != nil {
-			return nil, UnitTypeReleases, err
+			return nil, unit.TypeReleases, err
 		}
 		repo, err := GetRepositoryByID(rel.RepoID)
-		return repo, UnitTypeReleases, err
+		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil
 }
