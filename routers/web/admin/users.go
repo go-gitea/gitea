@@ -401,3 +401,34 @@ func DeleteUser(ctx *context.Context) {
 		"redirect": setting.AppSubURL + "/admin/users",
 	})
 }
+
+// AvatarPost response for change user's avatar request
+func AvatarPost(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	if err := router_user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
+
+// DeleteAvatar render delete avatar page
+func DeleteAvatar(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := u.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(err.Error())
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
