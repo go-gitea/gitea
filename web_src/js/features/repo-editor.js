@@ -106,10 +106,10 @@ export function initRepoEditor() {
     if (e.keyCode === 191) {
       parts = $(this).val().split('/');
       for (let i = 0; i < parts.length; ++i) {
-        value = encodeURIComponent(parts[i]);
+        value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            $(`<span class="section"><a href="#">${value}</a></span>`).insertBefore($(this));
+            $(`<span class="section"><a href="#"></a></span>`).text(value).insertBefore($(this));
             $('<div class="divider"> / </div>').insertBefore($(this));
           }
         } else {
