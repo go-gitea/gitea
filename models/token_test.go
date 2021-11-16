@@ -7,7 +7,6 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
@@ -19,7 +18,7 @@ func TestNewAccessToken(t *testing.T) {
 		Name: "Token C",
 	}
 	assert.NoError(t, NewAccessToken(token))
-	db.AssertExistsAndLoadBean(t, token)
+	unittest.AssertExistsAndLoadBean(t, token)
 
 	invalidToken := &AccessToken{
 		ID:   token.ID, // duplicate
@@ -45,7 +44,7 @@ func TestAccessTokenByNameExists(t *testing.T) {
 
 	// Save it to the database
 	assert.NoError(t, NewAccessToken(token))
-	db.AssertExistsAndLoadBean(t, token)
+	unittest.AssertExistsAndLoadBean(t, token)
 
 	// This token must be found by name in the DB now
 	exist, err = AccessTokenByNameExists(token)
@@ -112,7 +111,7 @@ func TestUpdateAccessToken(t *testing.T) {
 	token.Name = "Token Z"
 
 	assert.NoError(t, UpdateAccessToken(token))
-	db.AssertExistsAndLoadBean(t, token)
+	unittest.AssertExistsAndLoadBean(t, token)
 }
 
 func TestDeleteAccessTokenByID(t *testing.T) {
@@ -123,7 +122,7 @@ func TestDeleteAccessTokenByID(t *testing.T) {
 	assert.Equal(t, int64(1), token.UID)
 
 	assert.NoError(t, DeleteAccessTokenByID(token.ID, 1))
-	db.AssertNotExistsBean(t, token)
+	unittest.AssertNotExistsBean(t, token)
 
 	err = DeleteAccessTokenByID(100, 100)
 	assert.Error(t, err)

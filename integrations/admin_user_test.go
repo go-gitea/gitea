@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -61,7 +61,7 @@ func makeRequest(t *testing.T, formData models.User, headerCode int) {
 	})
 
 	session.MakeRequest(t, req, headerCode)
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: formData.ID}).(*models.User)
 	assert.Equal(t, formData.Name, user.Name)
 	assert.Equal(t, formData.LoginName, user.LoginName)
 	assert.Equal(t, formData.Email, user.Email)
@@ -79,5 +79,5 @@ func TestAdminDeleteUser(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 
 	assertUserDeleted(t, 8)
-	models.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &models.User{})
 }
