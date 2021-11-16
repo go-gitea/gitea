@@ -416,7 +416,7 @@ func AvatarPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
 	}
 
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 // DeleteAvatar render delete avatar page
