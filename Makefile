@@ -773,7 +773,7 @@ golangci-lint: golangci-lint-check
 golangci-lint-check:
 	$(eval GOLANGCI_LINT_VERSION := $(shell printf "%03d%03d%03d" $(shell golangci-lint --version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
 	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		echo "Downloading golangci-lint"; \
+		echo "Downloading golangci-lint v${MIN_GOLANGCI_LINT_VERSION}"; \
 		export BINARY="golangci-lint"; \
 		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VERSION}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VERSION); \
 	elif [ "$(GOLANGCI_LINT_VERSION)" -lt "$(shell printf "%03d%03d%03d" $(shell echo $(MIN_GOLANGCI_LINT_VERSION) | tr '.' ' '))" ]; then \
