@@ -1,19 +1,17 @@
-{{template 'base/head' .}}
-<div class='page-content repository commits'>
-	{{template 'repo/header' .}}
-	<div class='ui container'>
+{{template "base/head" .}}
+<div class="page-content repository commits">
+	{{template "repo/header" .}}
+	<div class="ui container">
 		
-		<ul id='displayJobs'>
+		<ul id="displayJobs">
 
 		</ul>
 
 		<!-- display list of timeline -->
-		<div id='displayTimeline' >
+		<div id="displayTimeline" >
 
 		</div>	
 	</div>
-
-
 
 	<script>
 		const ghHostApiUrl = 'http://localhost:5000';
@@ -278,4 +276,4 @@
 	</style>
 
 </div>
-{{template 'base/footer' .}}
+{{template "base/footer" .}}
