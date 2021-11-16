@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	unit_model "code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -134,13 +134,13 @@ func TestAPIRepoEdit(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		bFalse, bTrue := false, true
 
-		user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
-		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-		repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-		repo15 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository) // empty repo
-		repo16 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
+		repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
+		repo15 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository) // empty repo
+		repo16 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
@@ -166,7 +166,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repoEditOption.Website, repo.Website)
 		assert.Equal(t, *repoEditOption.Archived, repo.Archived)
 		// check repo1 from database
-		repo1edited := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 		repo1editedOption := getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repoEditOption.Name, *repo1editedOption.Name)
 		assert.Equal(t, *repoEditOption.Description, *repo1editedOption.Description)
@@ -191,7 +191,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
-		repo1edited = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.HasIssues, true)
 		assert.Nil(t, repo1editedOption.ExternalTracker)
@@ -213,7 +213,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
-		repo1edited = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.HasIssues, true)
 		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
@@ -244,7 +244,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		DecodeJSON(t, resp, &repo)
 		assert.NotNil(t, repo)
 		// check repo1 was written to database
-		repo1edited = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
 		assert.Equal(t, *repo1editedOption.Description, *repoEditOption.Description)
 		assert.Equal(t, *repo1editedOption.HasIssues, true)
@@ -289,7 +289,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		_ = session.MakeRequest(t, req, http.StatusOK)
 
 		// Test making a repo public that is private
-		repo16 = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
+		repo16 = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 		assert.True(t, repo16.IsPrivate)
 		repoEditOption = &api.EditRepoOption{
 			Private: &bFalse,
@@ -297,7 +297,7 @@ func TestAPIRepoEdit(t *testing.T) {
 		url = fmt.Sprintf("/api/v1/repos/%s/%s?token=%s", user2.Name, repo16.Name, token2)
 		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
 		_ = session.MakeRequest(t, req, http.StatusOK)
-		repo16 = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
+		repo16 = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 		assert.False(t, repo16.IsPrivate)
 		// Make it private again
 		repoEditOption.Private = &bTrue
@@ -311,7 +311,7 @@ func TestAPIRepoEdit(t *testing.T) {
 			Archived: &bTrue,
 		})
 		_ = session.MakeRequest(t, req, http.StatusOK)
-		repo15 = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository)
+		repo15 = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository)
 		assert.True(t, repo15.IsArchived)
 		req = NewRequestWithJSON(t, "PATCH", url, &api.EditRepoOption{
 			Archived: &bFalse,

@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
@@ -53,7 +53,7 @@ func TestSignupAsRestricted(t *testing.T) {
 	req = NewRequest(t, "GET", "/restrictedUser")
 	MakeRequest(t, req, http.StatusOK)
 
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{Name: "restrictedUser"}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "restrictedUser"}).(*models.User)
 	assert.True(t, user2.IsRestricted)
 }
 

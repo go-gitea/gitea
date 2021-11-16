@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
@@ -29,10 +28,10 @@ func TestAddTime(t *testing.T) {
 	assert.Equal(t, int64(1), trackedTime.IssueID)
 	assert.Equal(t, int64(3661), trackedTime.Time)
 
-	tt := db.AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
+	tt := unittest.AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
 	assert.Equal(t, int64(3661), tt.Time)
 
-	comment := db.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
 	assert.Equal(t, comment.Content, "1h 1min 1s")
 }
 

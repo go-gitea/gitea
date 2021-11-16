@@ -78,7 +78,7 @@ func TestSearchRepository(t *testing.T) {
 	assert.Len(t, repos, 3)
 
 	// Test non existing owner
-	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{OwnerID: db.NonexistentID})
+	repos, count, err = SearchRepositoryByName(&SearchRepoOptions{OwnerID: unittest.NonexistentID})
 
 	assert.NoError(t, err)
 	assert.Empty(t, repos)
