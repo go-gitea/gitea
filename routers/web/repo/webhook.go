@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
@@ -414,7 +415,7 @@ func TelegramHooksNewPost(ctx *context.Context) {
 
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID),
+		URL:             fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
 		ContentType:     webhook.ContentTypeJSON,
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
@@ -468,7 +469,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID),
+		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
 		ContentType:     webhook.ContentTypeJSON,
 		HTTPMethod:      "PUT",
 		HookEvent:       ParseHookEvent(form.WebhookForm),
@@ -976,7 +977,7 @@ func TelegramHooksEditPost(ctx *context.Context) {
 		return
 	}
 	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", form.BotToken, form.ChatID)
+	w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID))
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
 	if err := w.UpdateEvent(); err != nil {
@@ -1020,7 +1021,7 @@ func MatrixHooksEditPost(ctx *context.Context) {
 		return
 	}
 	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, form.RoomID)
+	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID))
 
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
 	w.IsActive = form.Active
@@ -1162,7 +1163,7 @@ func TestWebhook(ctx *context.Context) {
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
 		Message: commit.Message(),
-		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + commit.ID.String(),
+		URL:     ctx.Repo.Repository.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
 		Author: &api.PayloadUser{
 			Name:  commit.Author.Name,
 			Email: commit.Author.Email,

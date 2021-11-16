@@ -7,15 +7,14 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	firstBranch := db.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	firstBranch := unittest.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
 
 	assert.Error(t, repo.AddDeletedBranch(firstBranch.Name, firstBranch.Commit, firstBranch.DeletedByID))
 	assert.NoError(t, repo.AddDeletedBranch("test", "5655464564554545466464656", int64(1)))
@@ -23,7 +22,7 @@ func TestAddDeletedBranch(t *testing.T) {
 
 func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	branches, err := repo.GetDeletedBranches()
 	assert.NoError(t, err)
@@ -32,7 +31,7 @@ func TestGetDeletedBranches(t *testing.T) {
 
 func TestGetDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	firstBranch := db.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
+	firstBranch := unittest.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
 
 	assert.NotNil(t, getDeletedBranch(t, firstBranch))
 }
@@ -40,8 +39,8 @@ func TestGetDeletedBranch(t *testing.T) {
 func TestDeletedBranchLoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	firstBranch := db.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
-	secondBranch := db.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 2}).(*DeletedBranch)
+	firstBranch := unittest.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
+	secondBranch := unittest.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 2}).(*DeletedBranch)
 
 	branch := getDeletedBranch(t, firstBranch)
 	assert.Nil(t, branch.DeletedBy)
@@ -58,18 +57,18 @@ func TestDeletedBranchLoadUser(t *testing.T) {
 
 func TestRemoveDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
-	firstBranch := db.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
+	firstBranch := unittest.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 1}).(*DeletedBranch)
 
 	err := repo.RemoveDeletedBranch(1)
 	assert.NoError(t, err)
-	db.AssertNotExistsBean(t, firstBranch)
-	db.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 2})
+	unittest.AssertNotExistsBean(t, firstBranch)
+	unittest.AssertExistsAndLoadBean(t, &DeletedBranch{ID: 2})
 }
 
 func getDeletedBranch(t *testing.T, branch *DeletedBranch) *DeletedBranch {
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	deletedBranch, err := repo.GetDeletedBranchByID(branch.ID)
 	assert.NoError(t, err)
@@ -95,7 +94,7 @@ func TestFindRenamedBranch(t *testing.T) {
 
 func TestRenameBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	_isDefault := false
 
 	err := UpdateProtectBranch(repo1, &ProtectedBranch{
@@ -110,21 +109,21 @@ func TestRenameBranch(t *testing.T) {
 	}))
 
 	assert.Equal(t, true, _isDefault)
-	repo1 = db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 = unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.Equal(t, "main", repo1.DefaultBranch)
 
-	pull := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest) // merged
+	pull := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest) // merged
 	assert.Equal(t, "master", pull.BaseBranch)
 
-	pull = db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest) // open
+	pull = unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest) // open
 	assert.Equal(t, "main", pull.BaseBranch)
 
-	renamedBranch := db.AssertExistsAndLoadBean(t, &RenamedBranch{ID: 2}).(*RenamedBranch)
+	renamedBranch := unittest.AssertExistsAndLoadBean(t, &RenamedBranch{ID: 2}).(*RenamedBranch)
 	assert.Equal(t, "master", renamedBranch.From)
 	assert.Equal(t, "main", renamedBranch.To)
 	assert.Equal(t, int64(1), renamedBranch.RepoID)
 
-	db.AssertExistsAndLoadBean(t, &ProtectedBranch{
+	unittest.AssertExistsAndLoadBean(t, &ProtectedBranch{
 		RepoID:     repo1.ID,
 		BranchName: "main",
 	})
@@ -136,7 +135,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// Get deletedBranch with ID of 1 on repo with ID 2.
 	// This should return a nil branch as this deleted branch
 	// is actually on repo with ID 1.
-	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 
 	deletedBranch, err := repo2.GetDeletedBranchByID(1)
 
@@ -146,7 +145,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 
 	// Now get the deletedBranch with ID of 1 on repo with ID 1.
 	// This should return the deletedBranch.
-	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	deletedBranch, err = repo1.GetDeletedBranchByID(1)
 

@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -61,9 +60,9 @@ func TestRepoEdit(t *testing.T) {
 	Edit(apiCtx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	db.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &models.Repository{
 		ID: 1,
-	}, db.Cond("name = ? AND is_archived = 1", *opts.Name))
+	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
 }
 
 func TestRepoEditNameChange(t *testing.T) {
@@ -83,7 +82,7 @@ func TestRepoEditNameChange(t *testing.T) {
 	Edit(apiCtx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &models.Repository{
 		ID: 1,
-	}, db.Cond("name = ?", opts.Name))
+	}, unittest.Cond("name = ?", opts.Name))
 }

@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
-
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )
@@ -43,7 +42,7 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	var err error
-	InitUnitTestBridge()
+
 	giteaRoot = pathToGiteaRoot
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
 
@@ -125,7 +124,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
-	db.SetUnitTestEngine(x)
+	db.SetEngine(x)
 
 	if err = db.SyncAllTables(); err != nil {
 		return err

@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -60,7 +60,7 @@ func TestGPGGit(t *testing.T) {
 	setting.Repository.Signing.SigningKey = rootKeyID
 	setting.Repository.Signing.SigningName = "gitea"
 	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
-	user := db.AssertExistsAndLoadBean(t, &models.User{Name: username}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{Name: username}).(*models.User)
 
 	setting.Repository.Signing.InitialCommit = []string{"never"}
 	setting.Repository.Signing.CRUDActions = []string{"never"}
