@@ -1,3 +1,4 @@
+//go:build pam
 // +build pam
 
 // Copyright 2014 The Gogs Authors. All rights reserved.
