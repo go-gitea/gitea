@@ -41,14 +41,17 @@ Drivers for Go's sql package which currently support database/sql includes:
 
 * [Postgres](https://github.com/postgres/postgres) / [Cockroach](https://github.com/cockroachdb/cockroach)
   - [github.com/lib/pq](https://github.com/lib/pq)
+  - [github.com/jackc/pgx](https://github.com/jackc/pgx)
 
 * [SQLite](https://sqlite.org)
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
+  - [modernc.org/sqlite](https://gitlab.com/cznic/sqlite) (windows unsupported)
 
 * MsSql
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 * Oracle
+  - [github.com/godror/godror](https://github.com/godror/godror) (experiment)
   - [github.com/mattn/go-oci8](https://github.com/mattn/go-oci8) (experiment)
 
 ## Installation
@@ -245,35 +248,38 @@ for rows.Next() {
 
 ```Go
 affected, err := engine.ID(1).Update(&user)
-// UPDATE user SET ... Where id = ?
+// UPDATE user SET ... WHERE id = ?
 
 affected, err := engine.Update(&user, &User{Name:name})
-// UPDATE user SET ... Where name = ?
+// UPDATE user SET ... WHERE name = ?
 
 var ids = []int64{1, 2, 3}
 affected, err := engine.In("id", ids).Update(&user)
-// UPDATE user SET ... Where id IN (?, ?, ?)
+// UPDATE user SET ... WHERE id IN (?, ?, ?)
 
 // force update indicated columns by Cols
 affected, err := engine.ID(1).Cols("age").Update(&User{Name:name, Age: 12})
-// UPDATE user SET age = ?, updated=? Where id = ?
+// UPDATE user SET age = ?, updated=? WHERE id = ?
 
 // force NOT update indicated columns by Omit
 affected, err := engine.ID(1).Omit("name").Update(&User{Name:name, Age: 12})
-// UPDATE user SET age = ?, updated=? Where id = ?
+// UPDATE user SET age = ?, updated=? WHERE id = ?
 
 affected, err := engine.ID(1).AllCols().Update(&user)
-// UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? Where id = ?
+// UPDATE user SET name=?,age=?,salt=?,passwd=?,updated=? WHERE id = ?
 ```
 
 * `Delete` delete one or more records, Delete MUST have condition
 
 ```Go
 affected, err := engine.Where(...).Delete(&user)
-// DELETE FROM user Where ...
+// DELETE FROM user WHERE ...
 
 affected, err := engine.ID(2).Delete(&user)
-// DELETE FROM user Where id = ?
+// DELETE FROM user WHERE id = ?
+
+affected, err := engine.Table("user").Where(...).Delete()
+// DELETE FROM user WHERE ...
 ```
 
 * `Count` count records

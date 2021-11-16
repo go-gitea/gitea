@@ -84,28 +84,6 @@ func (err ErrSSHDisabled) Error() string {
 	return "SSH is disabled"
 }
 
-// ErrCancelled represents an error due to context cancellation
-type ErrCancelled struct {
-	Message string
-}
-
-// IsErrCancelled checks if an error is a ErrCancelled.
-func IsErrCancelled(err error) bool {
-	_, ok := err.(ErrCancelled)
-	return ok
-}
-
-func (err ErrCancelled) Error() string {
-	return "Cancelled: " + err.Message
-}
-
-// ErrCancelledf returns an ErrCancelled for the provided format and args
-func ErrCancelledf(format string, args ...interface{}) error {
-	return ErrCancelled{
-		fmt.Sprintf(format, args...),
-	}
-}
-
 //  ____ ___
 // |    |   \______ ___________
 // |    |   /  ___// __ \_  __ \
@@ -145,21 +123,6 @@ func (err ErrUserNotExist) Error() string {
 	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
 }
 
-// ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
-type ErrUserRedirectNotExist struct {
-	Name string
-}
-
-// IsErrUserRedirectNotExist check if an error is an ErrUserRedirectNotExist.
-func IsErrUserRedirectNotExist(err error) bool {
-	_, ok := err.(ErrUserRedirectNotExist)
-	return ok
-}
-
-func (err ErrUserRedirectNotExist) Error() string {
-	return fmt.Sprintf("user redirect does not exist [name: %s]", err.Name)
-}
-
 // ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
 type ErrUserProhibitLogin struct {
 	UID  int64
@@ -190,66 +153,6 @@ func IsErrUserInactive(err error) bool {
 
 func (err ErrUserInactive) Error() string {
 	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
-}
-
-// ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
-type ErrEmailAlreadyUsed struct {
-	Email string
-}
-
-// IsErrEmailAlreadyUsed checks if an error is a ErrEmailAlreadyUsed.
-func IsErrEmailAlreadyUsed(err error) bool {
-	_, ok := err.(ErrEmailAlreadyUsed)
-	return ok
-}
-
-func (err ErrEmailAlreadyUsed) Error() string {
-	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
-}
-
-// ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
-type ErrEmailInvalid struct {
-	Email string
-}
-
-// IsErrEmailInvalid checks if an error is an ErrEmailInvalid
-func IsErrEmailInvalid(err error) bool {
-	_, ok := err.(ErrEmailInvalid)
-	return ok
-}
-
-func (err ErrEmailInvalid) Error() string {
-	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
-}
-
-// ErrEmailAddressNotExist email address not exist
-type ErrEmailAddressNotExist struct {
-	Email string
-}
-
-// IsErrEmailAddressNotExist checks if an error is an ErrEmailAddressNotExist
-func IsErrEmailAddressNotExist(err error) bool {
-	_, ok := err.(ErrEmailAddressNotExist)
-	return ok
-}
-
-func (err ErrEmailAddressNotExist) Error() string {
-	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
-}
-
-// ErrPrimaryEmailCannotDelete primary email address cannot be deleted
-type ErrPrimaryEmailCannotDelete struct {
-	Email string
-}
-
-// IsErrPrimaryEmailCannotDelete checks if an error is an ErrPrimaryEmailCannotDelete
-func IsErrPrimaryEmailCannotDelete(err error) bool {
-	_, ok := err.(ErrPrimaryEmailCannotDelete)
-	return ok
-}
-
-func (err ErrPrimaryEmailCannotDelete) Error() string {
-	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
 }
 
 // ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
@@ -451,6 +354,7 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
 type ErrGPGNoEmailFound struct {
 	FailedEmails []string
+	ID           string
 }
 
 // IsErrGPGNoEmailFound checks if an error is a ErrGPGNoEmailFound.
@@ -461,6 +365,22 @@ func IsErrGPGNoEmailFound(err error) bool {
 
 func (err ErrGPGNoEmailFound) Error() string {
 	return fmt.Sprintf("none of the emails attached to the GPG key could be found: %v", err.FailedEmails)
+}
+
+// ErrGPGInvalidTokenSignature represents a "ErrGPGInvalidTokenSignature" kind of error.
+type ErrGPGInvalidTokenSignature struct {
+	Wrapped error
+	ID      string
+}
+
+// IsErrGPGInvalidTokenSignature checks if an error is a ErrGPGInvalidTokenSignature.
+func IsErrGPGInvalidTokenSignature(err error) bool {
+	_, ok := err.(ErrGPGInvalidTokenSignature)
+	return ok
+}
+
+func (err ErrGPGInvalidTokenSignature) Error() string {
+	return "the provided signature does not sign the token with the provided key"
 }
 
 // ErrGPGKeyParsing represents a "ErrGPGKeyParsing" kind of error.
@@ -1114,7 +1034,7 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 }
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
-	return fmt.Sprintf("user doesn't have acces to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
 }
 
 // ErrWontSign explains the first reason why a commit would not be signed
@@ -1289,29 +1209,7 @@ func IsErrSHAOrCommitIDNotProvided(err error) bool {
 }
 
 func (err ErrSHAOrCommitIDNotProvided) Error() string {
-	return "a SHA or commmit ID must be proved when updating a file"
-}
-
-//  __      __      ___.   .__                   __
-// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
-//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
-//        \/       \/    \/     \/                   \/
-
-// ErrWebhookNotExist represents a "WebhookNotExist" kind of error.
-type ErrWebhookNotExist struct {
-	ID int64
-}
-
-// IsErrWebhookNotExist checks if an error is a ErrWebhookNotExist.
-func IsErrWebhookNotExist(err error) bool {
-	_, ok := err.(ErrWebhookNotExist)
-	return ok
-}
-
-func (err ErrWebhookNotExist) Error() string {
-	return fmt.Sprintf("webhook does not exist [id: %d]", err.ID)
+	return "a SHA or commit ID must be proved when updating a file"
 }
 
 // .___
@@ -1819,58 +1717,6 @@ func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
-// .____                 .__           _________
-// |    |    ____   ____ |__| ____    /   _____/ ____  __ _________   ____  ____
-// |    |   /  _ \ / ___\|  |/    \   \_____  \ /  _ \|  |  \_  __ \_/ ___\/ __ \
-// |    |__(  <_> ) /_/  >  |   |  \  /        (  <_> )  |  /|  | \/\  \__\  ___/
-// |_______ \____/\___  /|__|___|  / /_______  /\____/|____/ |__|    \___  >___  >
-//         \/    /_____/         \/          \/                          \/    \/
-
-// ErrLoginSourceNotExist represents a "LoginSourceNotExist" kind of error.
-type ErrLoginSourceNotExist struct {
-	ID int64
-}
-
-// IsErrLoginSourceNotExist checks if an error is a ErrLoginSourceNotExist.
-func IsErrLoginSourceNotExist(err error) bool {
-	_, ok := err.(ErrLoginSourceNotExist)
-	return ok
-}
-
-func (err ErrLoginSourceNotExist) Error() string {
-	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
-}
-
-// ErrLoginSourceAlreadyExist represents a "LoginSourceAlreadyExist" kind of error.
-type ErrLoginSourceAlreadyExist struct {
-	Name string
-}
-
-// IsErrLoginSourceAlreadyExist checks if an error is a ErrLoginSourceAlreadyExist.
-func IsErrLoginSourceAlreadyExist(err error) bool {
-	_, ok := err.(ErrLoginSourceAlreadyExist)
-	return ok
-}
-
-func (err ErrLoginSourceAlreadyExist) Error() string {
-	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
-}
-
-// ErrLoginSourceInUse represents a "LoginSourceInUse" kind of error.
-type ErrLoginSourceInUse struct {
-	ID int64
-}
-
-// IsErrLoginSourceInUse checks if an error is a ErrLoginSourceInUse.
-func IsErrLoginSourceInUse(err error) bool {
-	_, ok := err.(ErrLoginSourceInUse)
-	return ok
-}
-
-func (err ErrLoginSourceInUse) Error() string {
-	return fmt.Sprintf("login source is still used by some users [id: %d]", err.ID)
-}
-
 // ___________
 // \__    ___/___ _____    _____
 //   |    |_/ __ \\__  \  /     \
@@ -1909,25 +1755,6 @@ func IsErrTeamNotExist(err error) bool {
 
 func (err ErrTeamNotExist) Error() string {
 	return fmt.Sprintf("team does not exist [org_id %d, team_id %d, name: %s]", err.OrgID, err.TeamID, err.Name)
-}
-
-//
-// Two-factor authentication
-//
-
-// ErrTwoFactorNotEnrolled indicates that a user is not enrolled in two-factor authentication.
-type ErrTwoFactorNotEnrolled struct {
-	UID int64
-}
-
-// IsErrTwoFactorNotEnrolled checks if an error is a ErrTwoFactorNotEnrolled.
-func IsErrTwoFactorNotEnrolled(err error) bool {
-	_, ok := err.(ErrTwoFactorNotEnrolled)
-	return ok
-}
-
-func (err ErrTwoFactorNotEnrolled) Error() string {
-	return fmt.Sprintf("user not enrolled in 2FA [uid: %d]", err.UID)
 }
 
 //  ____ ___        .__                    .___
@@ -1992,28 +1819,6 @@ func IsErrExternalLoginUserNotExist(err error) bool {
 
 func (err ErrExternalLoginUserNotExist) Error() string {
 	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
-}
-
-// ____ ________________________________              .__          __                 __  .__
-// |    |   \_____  \_   _____/\______   \ ____   ____ |__| _______/  |_____________ _/  |_|__| ____   ____
-// |    |   //  ____/|    __)   |       _// __ \ / ___\|  |/  ___/\   __\_  __ \__  \\   __\  |/  _ \ /    \
-// |    |  //       \|     \    |    |   \  ___// /_/  >  |\___ \  |  |  |  | \// __ \|  | |  (  <_> )   |  \
-// |______/ \_______ \___  /    |____|_  /\___  >___  /|__/____  > |__|  |__|  (____  /__| |__|\____/|___|  /
-// \/   \/            \/     \/_____/         \/                   \/                    \/
-
-// ErrU2FRegistrationNotExist represents a "ErrU2FRegistrationNotExist" kind of error.
-type ErrU2FRegistrationNotExist struct {
-	ID int64
-}
-
-func (err ErrU2FRegistrationNotExist) Error() string {
-	return fmt.Sprintf("U2F registration does not exist [id: %d]", err.ID)
-}
-
-// IsErrU2FRegistrationNotExist checks if an error is a ErrU2FRegistrationNotExist.
-func IsErrU2FRegistrationNotExist(err error) bool {
-	_, ok := err.(ErrU2FRegistrationNotExist)
-	return ok
 }
 
 // .___                            ________                                   .___                   .__
@@ -2141,43 +1946,4 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
-}
-
-//  ________      _____          __  .__
-//  \_____  \    /  _  \  __ ___/  |_|  |__
-//   /   |   \  /  /_\  \|  |  \   __\  |  \
-//  /    |    \/    |    \  |  /|  | |   Y  \
-//  \_______  /\____|__  /____/ |__| |___|  /
-//          \/         \/                 \/
-
-// ErrOAuthClientIDInvalid will be thrown if client id cannot be found
-type ErrOAuthClientIDInvalid struct {
-	ClientID string
-}
-
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
-func IsErrOauthClientIDInvalid(err error) bool {
-	_, ok := err.(ErrOAuthClientIDInvalid)
-	return ok
-}
-
-// Error returns the error message
-func (err ErrOAuthClientIDInvalid) Error() string {
-	return fmt.Sprintf("Client ID invalid [Client ID: %s]", err.ClientID)
-}
-
-// ErrOAuthApplicationNotFound will be thrown if id cannot be found
-type ErrOAuthApplicationNotFound struct {
-	ID int64
-}
-
-// IsErrOAuthApplicationNotFound checks if an error is a ErrReviewNotExist.
-func IsErrOAuthApplicationNotFound(err error) bool {
-	_, ok := err.(ErrOAuthApplicationNotFound)
-	return ok
-}
-
-// Error returns the error message
-func (err ErrOAuthApplicationNotFound) Error() string {
-	return fmt.Sprintf("OAuth application not found [ID: %d]", err.ID)
 }

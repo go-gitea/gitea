@@ -166,6 +166,24 @@
 						</div>
 					</div>
 
+					<!-- Projects -->
+					<div class="ui {{if not .Projects}}disabled{{end}} dropdown jump item">
+						<span class="text">
+							{{.i18n.Tr "repo.project_board"}}
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						</span>
+						<div class="menu">
+							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/projects">
+							{{.i18n.Tr "repo.issues.new.no_projects"}}
+							</div>
+							{{range .Projects}}
+								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/projects">
+									{{.Title}}
+								</div>
+							{{end}}
+						</div>
+					</div>
+
 					<!-- Assignees -->
 					<div class="ui {{if not .Assignees}}disabled{{end}} dropdown jump item">
 						<span class="text">

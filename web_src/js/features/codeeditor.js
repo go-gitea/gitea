@@ -6,11 +6,11 @@ const languagesByExt = {};
 const baseOptions = {
   fontFamily: 'var(--fonts-monospace)',
   fontSize: 14, // https://github.com/microsoft/monaco-editor/issues/2242
+  guides: {bracketPairs: false, indentation: false},
   links: false,
   minimap: {enabled: false},
   occurrencesHighlight: false,
   overviewRulerLanes: 0,
-  renderIndentGuides: false,
   renderLineHighlight: 'all',
   renderLineHighlightOnlyWhenFocus: true,
   renderWhitespace: 'none',
@@ -45,7 +45,7 @@ function getLanguage(filename) {
 function updateEditor(monaco, editor, filename, lineWrapExts) {
   editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
-  const language = model.getModeId();
+  const language = model.getLanguageId();
   const newLanguage = getLanguage(filename);
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }

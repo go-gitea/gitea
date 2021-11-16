@@ -9,12 +9,18 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
 func SendRepoTransferNotifyMail(doer, newOwner *models.User, repo *models.Repository) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
 	if newOwner.IsOrganization() {
 		users, err := models.GetUsersWhoCanCreateOrgRepo(newOwner.ID)
 		if err != nil {
@@ -63,6 +69,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *models.User,
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	if err := bodyTemplates.ExecuteTemplate(&content, string(mailRepoTransferNotify), data); err != nil {

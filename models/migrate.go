@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
@@ -17,7 +18,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -38,7 +39,7 @@ func InsertMilestones(ms ...*Milestone) (err error) {
 
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*Issue) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -143,7 +144,7 @@ func InsertIssueComments(comments []*Comment) error {
 		issueIDs[comment.IssueID] = true
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -174,7 +175,7 @@ func InsertIssueComments(comments []*Comment) error {
 
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(prs ...*PullRequest) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -194,7 +195,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 
 // InsertReleases migrates release
 func InsertReleases(rels ...*Release) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -232,7 +233,7 @@ func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
 
 // UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
 func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := x.Table("review").
+	_, err := db.GetEngine(db.DefaultContext).Table("review").
 		Where("original_author_id = ?", originalAuthorID).
 		And(migratedIssueCond(tp)).
 		Update(map[string]interface{}{

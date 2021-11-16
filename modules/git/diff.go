@@ -10,6 +10,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -272,4 +273,47 @@ func CutDiffAroundLine(originalDiff io.Reader, line int64, old bool, numbersOfLi
 	newHunk[headerLines] = fmt.Sprintf("@@ -%d,%d +%d,%d @@",
 		oldBegin, oldNumOfLines, newBegin, newNumOfLines)
 	return strings.Join(newHunk, "\n"), nil
+}
+
+// GetAffectedFiles returns the affected files between two commits
+func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repository) ([]string, error) {
+	stdoutReader, stdoutWriter, err := os.Pipe()
+	if err != nil {
+		log.Error("Unable to create os.Pipe for %s", repo.Path)
+		return nil, err
+	}
+	defer func() {
+		_ = stdoutReader.Close()
+		_ = stdoutWriter.Close()
+	}()
+
+	affectedFiles := make([]string, 0, 32)
+
+	// Run `git diff --name-only` to get the names of the changed files
+	err = NewCommand("diff", "--name-only", oldCommitID, newCommitID).
+		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
+			stdoutWriter, nil, nil,
+			func(ctx context.Context, cancel context.CancelFunc) error {
+				// Close the writer end of the pipe to begin processing
+				_ = stdoutWriter.Close()
+				defer func() {
+					// Close the reader on return to terminate the git command if necessary
+					_ = stdoutReader.Close()
+				}()
+				// Now scan the output from the command
+				scanner := bufio.NewScanner(stdoutReader)
+				for scanner.Scan() {
+					path := strings.TrimSpace(scanner.Text())
+					if len(path) == 0 {
+						continue
+					}
+					affectedFiles = append(affectedFiles, path)
+				}
+				return scanner.Err()
+			})
+	if err != nil {
+		log.Error("Unable to get affected files for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+	}
+
+	return affectedFiles, err
 }

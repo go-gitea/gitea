@@ -52,5 +52,7 @@ func ListStargazers(ctx *context.APIContext) {
 	for i, stargazer := range stargazers {
 		users[i] = convert.ToUser(stargazer, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Repo.Repository.NumStars))
 	ctx.JSON(http.StatusOK, users)
 }

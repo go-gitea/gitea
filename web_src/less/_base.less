@@ -76,8 +76,10 @@
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-removed-row-bg: #ffeef0;
+  --color-diff-moved-row-bg: #f1f8d1;
   --color-diff-added-row-bg: #e6ffed;
   --color-diff-removed-row-border: #f1c0c0;
+  --color-diff-moved-row-border: #d0e27f;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-inactive: #f2f2f2;
   /* target-based colors */
@@ -114,6 +116,8 @@
   --color-placeholder-text: #aaa;
   --color-editor-line-highlight: var(--color-primary-light-6);
   --color-project-board-bg: var(--color-secondary-light-4);
+  --color-project-board-dark-label: #555555;
+  --color-project-board-light-label: #a6aab5;
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-active-bg: var(--color-primary-alpha-20);
@@ -134,7 +138,7 @@ pre,
 code,
 kbd,
 samp {
-  font-size: .9em; /* compensate for monospace fonts being usually slighty larger */
+  font-size: .9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
 }
 
@@ -175,13 +179,13 @@ details summary > * {
 }
 
 * {
-  scrollbar-width: thin;
   scrollbar-color: var(--color-primary) transparent;
   caret-color: var(--color-caret);
 }
 
 ::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-thumb {
   box-shadow: inset 0 0 0 6px var(--color-primary);
@@ -633,6 +637,7 @@ a.ui.card:hover,
 
   .fitted .svg {
     margin-right: 0;
+    vertical-align: middle;
   }
 
   .searchbox {
@@ -748,7 +753,7 @@ a.ui.card:hover,
     box-shadow: none;
   }
 
-  /* Overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
+  /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
   /* This fixes the commit graph button on the commits page */
 
   .menu:not(.vertical) .item > .button.compact {
@@ -960,10 +965,13 @@ a.ui.card:hover,
   }
 
   .form {
-    .fake {
-      display: none !important;
+    .autofill-dummy {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      z-index: -10000;
     }
-
     .sub.field {
       margin-left: 25px;
     }
@@ -1042,7 +1050,7 @@ a.ui.card:hover,
 
   .migrate {
     color: var(--color-text-light-2) !important;
-    opacity: .5;
+
     a {
       color: var(--color-text-light) !important;
 
@@ -1286,6 +1294,7 @@ footer {
   display: flex;
   margin-left: auto;
   margin-right: auto;
+  overflow-x: auto;
 }
 
 @media @mediaSm {
@@ -1355,6 +1364,13 @@ footer {
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
   margin-bottom: 2px !important;
+  justify-content: space-evenly;
+
+}
+
+.ui.secondary.pointing.menu.repos-filter .item {
+  padding-left: 4.5px;
+  padding-right: 4.5px;
 }
 
 .repo-title {
@@ -1771,6 +1787,10 @@ a.ui.basic.label:hover {
   }
 }
 
+.migrate .svg.gitea-git {
+  color: #f05133; /* from https://upload.wikimedia.org/wikipedia/commons/e/e0/Git-logo.svg */
+}
+
 .ui.popup {
   background-color: var(--color-body);
   color: var(--color-secondary-dark-6);
@@ -2084,4 +2104,17 @@ table th[data-sortt-desc] {
   text-overflow: ellipsis;
   margin-top: -.5em;
   margin-bottom: -.5em;
+}
+
+.precolors {
+  padding-left: 0;
+  padding-right: 0;
+  margin: 3px 10px auto;
+  width: 120px;
+
+  .color {
+    float: left;
+    width: 15px;
+    height: 15px;
+  }
 }

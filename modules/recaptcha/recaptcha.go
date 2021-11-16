@@ -7,14 +7,14 @@ package recaptcha
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Response is the structure of JSON returned from API
@@ -46,12 +46,12 @@ func Verify(ctx context.Context, response string) (bool, error) {
 		return false, fmt.Errorf("Failed to send CAPTCHA response: %s", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return false, fmt.Errorf("Failed to read CAPTCHA response: %s", err)
 	}
+
 	var jsonResponse Response
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err = json.Unmarshal(body, &jsonResponse)
 	if err != nil {
 		return false, fmt.Errorf("Failed to parse CAPTCHA response: %s", err)

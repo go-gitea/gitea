@@ -1,3 +1,4 @@
+//go:build sqlite
 // +build sqlite
 
 // Copyright 2014 The Gogs Authors. All rights reserved.

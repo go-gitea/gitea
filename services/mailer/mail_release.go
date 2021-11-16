@@ -23,6 +23,11 @@ const (
 
 // MailNewRelease send new release notify to all all repo watchers.
 func MailNewRelease(rel *models.Release) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+
 	watcherIDList, err := models.GetRepoWatchersIDs(rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
@@ -68,6 +73,7 @@ func mailNewRelease(lang string, tos []string, rel *models.Release) {
 		// helper
 		"i18n":     locale,
 		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var mailBody bytes.Buffer

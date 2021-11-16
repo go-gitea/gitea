@@ -7,7 +7,6 @@ package git
 
 import (
 	"errors"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -59,14 +58,14 @@ func GetHook(repoPath, name string) (*Hook, error) {
 	}
 	samplePath := filepath.Join(repoPath, "hooks", name+".sample")
 	if isFile(h.path) {
-		data, err := ioutil.ReadFile(h.path)
+		data, err := os.ReadFile(h.path)
 		if err != nil {
 			return nil, err
 		}
 		h.IsActive = true
 		h.Content = string(data)
 	} else if isFile(samplePath) {
-		data, err := ioutil.ReadFile(samplePath)
+		data, err := os.ReadFile(samplePath)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +96,7 @@ func (h *Hook) Update() error {
 		return err
 	}
 
-	err := ioutil.WriteFile(h.path, []byte(strings.ReplaceAll(h.Content, "\r", "")), os.ModePerm)
+	err := os.WriteFile(h.path, []byte(strings.ReplaceAll(h.Content, "\r", "")), os.ModePerm)
 	if err != nil {
 		return err
 	}
@@ -143,5 +142,5 @@ func SetUpdateHook(repoPath, content string) (err error) {
 	if err != nil {
 		return err
 	}
-	return ioutil.WriteFile(hookPath, []byte(content), 0777)
+	return os.WriteFile(hookPath, []byte(content), 0777)
 }

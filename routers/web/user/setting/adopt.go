@@ -23,11 +23,11 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	allowDelete := ctx.IsUserSiteAdmin() || setting.Repository.AllowDeleteOfUnadoptedRepositories
 	ctx.Data["allowDelete"] = allowDelete
 
-	dir := ctx.Query("id")
-	action := ctx.Query("action")
+	dir := ctx.FormString("id")
+	action := ctx.FormString("action")
 
 	ctxUser := ctx.User
-	root := filepath.Join(models.UserPath(ctxUser.LowerName))
+	root := models.UserPath(ctxUser.LowerName)
 
 	// check not a repo
 	has, err := models.IsRepositoryExist(ctxUser, dir)

@@ -13,10 +13,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,8 +26,8 @@ func TestAPILFSNotStarted(t *testing.T) {
 
 	setting.LFS.StartServer = false
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -45,8 +46,8 @@ func TestAPILFSMediaType(t *testing.T) {
 
 	setting.LFS.StartServer = true
 
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "POST", "/%s/%s.git/info/lfs/objects/batch", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusUnsupportedMediaType)
@@ -86,7 +87,6 @@ func TestAPILFSBatch(t *testing.T) {
 	decodeResponse := func(t *testing.T, b *bytes.Buffer) *lfs.BatchResponse {
 		var br lfs.BatchResponse
 
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		assert.NoError(t, json.Unmarshal(b.Bytes(), &br))
 		return &br
 	}
@@ -135,7 +135,7 @@ func TestAPILFSBatch(t *testing.T) {
 		assert.Equal(t, "Oid or size are invalid", br.Objects[1].Error.Message)
 	})
 
-	t.Run("PointerSizeMissmatch", func(t *testing.T) {
+	t.Run("PointerSizeMismatch", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.BatchRequest{
@@ -254,6 +254,10 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.NoError(t, err)
 			assert.True(t, exist)
 
+			repo2 := createLFSTestRepository(t, "batch2")
+			content := []byte("dummy0")
+			storeObjectInRepo(t, repo2.ID, &content)
+
 			meta, err := repo.GetLFSMetaObjectByOid(p.Oid)
 			assert.Nil(t, meta)
 			assert.Equal(t, models.ErrLFSObjectNotExist, err)
@@ -359,13 +363,19 @@ func TestAPILFSUpload(t *testing.T) {
 		assert.Nil(t, meta)
 		assert.Equal(t, models.ErrLFSObjectNotExist, err)
 
-		req := newRequest(t, p, "")
+		t.Run("InvalidAccess", func(t *testing.T) {
+			req := newRequest(t, p, "invalid")
+			session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+		})
 
-		session.MakeRequest(t, req, http.StatusOK)
+		t.Run("ValidAccess", func(t *testing.T) {
+			req := newRequest(t, p, "dummy5")
 
-		meta, err = repo.GetLFSMetaObjectByOid(p.Oid)
-		assert.NoError(t, err)
-		assert.NotNil(t, meta)
+			session.MakeRequest(t, req, http.StatusOK)
+			meta, err = repo.GetLFSMetaObjectByOid(p.Oid)
+			assert.NoError(t, err)
+			assert.NotNil(t, meta)
+		})
 	})
 
 	t.Run("MetaAlreadyExists", func(t *testing.T) {
@@ -376,7 +386,7 @@ func TestAPILFSUpload(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusOK)
 	})
 
-	t.Run("HashMissmatch", func(t *testing.T) {
+	t.Run("HashMismatch", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "2581dd7bbc1fe44726de4b7dd806a087a978b9c5aec0a60481259e34be09b06a", Size: 1}, "a")
@@ -384,7 +394,7 @@ func TestAPILFSUpload(t *testing.T) {
 		session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	})
 
-	t.Run("SizeMissmatch", func(t *testing.T) {
+	t.Run("SizeMismatch", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", Size: 2}, "a")

@@ -19,6 +19,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -61,7 +62,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	}
 	defer reader.Close()
 	buf := make([]byte, 1024)
-	n, err := reader.Read(buf)
+	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
 		// return default
 		return "UTF-8", false
@@ -84,7 +85,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 				}
 				defer dataRc.Close()
 				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
+				n, err = util.ReadAtMost(dataRc, buf)
 				if err != nil {
 					// return default
 					return "UTF-8", false
@@ -148,37 +149,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else {
-		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
-		if err != nil {
-			return nil, err
-		}
-		if protectedBranch != nil {
-			if !protectedBranch.CanUserPush(doer.ID) {
-				return nil, models.ErrUserCannotCommit{
-					UserName: doer.LowerName,
-				}
-			}
-			if protectedBranch.RequireSignedCommits {
-				_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
-				if err != nil {
-					if !models.IsErrWontSign(err) {
-						return nil, err
-					}
-					return nil, models.ErrUserCannotCommit{
-						UserName: doer.LowerName,
-					}
-				}
-			}
-			patterns := protectedBranch.GetProtectedFilePatterns()
-			for _, pat := range patterns {
-				if pat.Match(strings.ToLower(opts.TreePath)) {
-					return nil, models.ErrFilePathProtected{
-						Path: opts.TreePath,
-					}
-				}
-			}
-		}
+	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+		return nil, err
 	}
 
 	// If FromTreePath is not set, set it to the opts.TreePath
@@ -464,4 +436,44 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *models.User, opts *Up
 		return nil, err
 	}
 	return file, nil
+}
+
+// VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
+func VerifyBranchProtection(repo *models.Repository, doer *models.User, branchName string, treePath string) error {
+	protectedBranch, err := repo.GetBranchProtection(branchName)
+	if err != nil {
+		return err
+	}
+	if protectedBranch != nil {
+		isUnprotectedFile := false
+		glob := protectedBranch.GetUnprotectedFilePatterns()
+		if len(glob) != 0 {
+			isUnprotectedFile = protectedBranch.IsUnprotectedFile(glob, treePath)
+		}
+		if !protectedBranch.CanUserPush(doer.ID) && !isUnprotectedFile {
+			return models.ErrUserCannotCommit{
+				UserName: doer.LowerName,
+			}
+		}
+		if protectedBranch.RequireSignedCommits {
+			_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), branchName)
+			if err != nil {
+				if !models.IsErrWontSign(err) {
+					return err
+				}
+				return models.ErrUserCannotCommit{
+					UserName: doer.LowerName,
+				}
+			}
+		}
+		patterns := protectedBranch.GetProtectedFilePatterns()
+		for _, pat := range patterns {
+			if pat.Match(strings.ToLower(treePath)) {
+				return models.ErrFilePathProtected{
+					Path: treePath,
+				}
+			}
+		}
+	}
+	return nil
 }

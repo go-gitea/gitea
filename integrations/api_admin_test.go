@@ -10,9 +10,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -20,7 +21,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	keyOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
+	keyOwner := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys?token=%s", keyOwner.Name, token)
@@ -32,7 +33,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
-	models.AssertExistsAndLoadBean(t, &models.PublicKey{
+	unittest.AssertExistsAndLoadBean(t, &models.PublicKey{
 		ID:          newPublicKey.ID,
 		Name:        newPublicKey.Title,
 		Content:     newPublicKey.Key,
@@ -43,7 +44,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token=%s",
 		keyOwner.Name, newPublicKey.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
-	models.AssertNotExistsBean(t, &models.PublicKey{ID: newPublicKey.ID})
+	unittest.AssertNotExistsBean(t, &models.PublicKey{ID: newPublicKey.ID})
 }
 
 func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
@@ -52,7 +53,7 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 	session := loginUser(t, "user1")
 
 	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d?token=%s", models.NonexistentID, token)
+	req := NewRequestf(t, "DELETE", "/api/v1/admin/users/user1/keys/%d?token=%s", unittest.NonexistentID, token)
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -127,7 +128,7 @@ func TestAPIListUsers(t *testing.T) {
 		}
 	}
 	assert.True(t, found)
-	numberOfUsers := models.GetCount(t, &models.User{}, "type = 0")
+	numberOfUsers := unittest.GetCount(t, &models.User{}, "type = 0")
 	assert.Equal(t, numberOfUsers, len(users))
 }
 
@@ -190,11 +191,10 @@ func TestAPIEditUser(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	errMap := make(map[string]interface{})
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
@@ -205,6 +205,6 @@ func TestAPIEditUser(t *testing.T) {
 		Restricted: &bTrue,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
-	user2 = models.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
+	user2 = unittest.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
 	assert.True(t, user2.IsRestricted)
 }

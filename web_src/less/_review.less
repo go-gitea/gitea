@@ -48,13 +48,51 @@
 }
 
 .comment-code-cloud {
-  padding: .5rem;
-  padding-left: 0;
+  padding: .5rem !important;
   position: relative;
   margin: 0 auto;
 
+  @media @mediaSm {
+    padding: .75rem !important;
+
+    .code-comment-buttons {
+      margin: .5rem 0 .25rem !important;
+
+      .code-comment-buttons-buttons {
+        width: 100%;
+      }
+    }
+  }
+
   .comments .comment {
     margin: 0;
+
+    @media @mediaSm {
+      padding: 0;
+
+      .comment-header-right.actions .ui.basic.label {
+        display: none;
+      }
+
+      .avatar {
+        width: auto;
+        float: none;
+        margin: 0 .5rem 0 0;
+        flex-shrink: 0;
+
+        &.image {
+          margin: 0 !important;
+        }
+      }
+
+      .comment-content {
+        margin-left: 0 !important;
+      }
+
+      &.code-comment {
+        padding: 0 0 .5rem !important;
+      }
+    }
   }
 
   .attached {
@@ -112,6 +150,17 @@
       display: block;
     }
   }
+
+  @media @mediaSm {
+    .button {
+      width: 100%;
+      margin: 0 !important;
+
+      &:not(:last-child) {
+        margin-bottom: .75rem !important;
+      }
+    }
+  }
 }
 
 .diff-file-body .comment-form {
@@ -142,6 +191,7 @@ a.blob-excerpt:hover {
     > .ui.segment {
       width: 94vw;
     }
+
     .editor-toolbar {
       overflow-x: auto;
     }

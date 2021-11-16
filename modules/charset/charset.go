@@ -8,12 +8,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gogs/chardet"
 	"golang.org/x/net/html/charset"
@@ -26,9 +26,9 @@ var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 // ToUTF8WithFallbackReader detects the encoding of content and coverts to UTF-8 reader if possible
 func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 	var buf = make([]byte, 2048)
-	n, err := rd.Read(buf)
+	n, err := util.ReadAtMost(rd, buf)
 	if err != nil {
-		return rd
+		return io.MultiReader(bytes.NewReader(RemoveBOMIfPresent(buf[:n])), rd)
 	}
 
 	charsetLabel, err := DetectEncoding(buf[:n])
@@ -78,7 +78,7 @@ func ToUTF8WithErr(content []byte) (string, error) {
 
 // ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
 func ToUTF8WithFallback(content []byte) []byte {
-	bs, _ := ioutil.ReadAll(ToUTF8WithFallbackReader(bytes.NewReader(content)))
+	bs, _ := io.ReadAll(ToUTF8WithFallbackReader(bytes.NewReader(content)))
 	return bs
 }
 

@@ -89,7 +89,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 			return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
 		}
 		for _, addr := range addrList {
-			if isIPPrivate(addr) || !addr.IsGlobalUnicast() {
+			if util.IsIPPrivate(addr) || !addr.IsGlobalUnicast() {
 				return &models.ErrInvalidCloneAddr{Host: u.Host, PrivateNet: addr.String(), IsPermissionDenied: true}
 			}
 		}
@@ -318,7 +318,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
 					comments, _, err := downloader.GetComments(base.GetCommentOptions{
-						IssueNumber: issue.Number,
+						Context: issue.Context,
 					})
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
@@ -376,7 +376,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					for _, pr := range prs {
 						log.Trace("migrating pull request %d's comments", pr.Number)
 						comments, _, err := downloader.GetComments(base.GetCommentOptions{
-							IssueNumber: pr.Number,
+							Context: pr.Context,
 						})
 						if err != nil {
 							if !base.IsErrNotSupported(err) {
@@ -404,25 +404,13 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				// migrate reviews
 				var allReviews = make([]*base.Review, 0, reviewBatchSize)
 				for _, pr := range prs {
-					number := pr.Number
-
-					// on gitlab migrations pull number change
-					if pr.OriginalNumber > 0 {
-						number = pr.OriginalNumber
-					}
-
-					reviews, err := downloader.GetReviews(number)
+					reviews, err := downloader.GetReviews(pr.Context)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
 						}
 						log.Warn("migrating reviews is not supported, ignored")
 						break
-					}
-					if pr.OriginalNumber > 0 {
-						for i := range reviews {
-							reviews[i].IssueIndex = pr.Number
-						}
 					}
 
 					allReviews = append(allReviews, reviews...)
@@ -485,17 +473,4 @@ func Init() error {
 	}
 
 	return nil
-}
-
-// isIPPrivate reports whether ip is a private address, according to
-// RFC 1918 (IPv4 addresses) and RFC 4193 (IPv6 addresses).
-// from https://github.com/golang/go/pull/42793
-// TODO remove if https://github.com/golang/go/issues/29146 got resolved
-func isIPPrivate(ip net.IP) bool {
-	if ip4 := ip.To4(); ip4 != nil {
-		return ip4[0] == 10 ||
-			(ip4[0] == 172 && ip4[1]&0xf0 == 16) ||
-			(ip4[0] == 192 && ip4[1] == 168)
-	}
-	return len(ip) == net.IPv6len && ip[0]&0xfe == 0xfc
 }

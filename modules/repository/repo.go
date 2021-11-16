@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -95,6 +96,21 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 	}
 
+	if repo.OwnerID == u.ID {
+		repo.Owner = u
+	}
+
+	if err = repo.CheckDaemonExportOK(ctx); err != nil {
+		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
+	}
+
+	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		SetDescription(fmt.Sprintf("MigrateRepositoryGitData(git update-server-info): %s", repoPath)).
+		RunInDir(repoPath); err != nil {
+		log.Error("MigrateRepositoryGitData(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)
+		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
+	}
+
 	gitRepo, err := git.OpenRepository(repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
@@ -126,13 +142,13 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 
 		if opts.LFS {
 			ep := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
-			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep); err != nil {
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep, setting.Migrations.SkipTLSVerify); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
 		}
 	}
 
-	if err = repo.UpdateSize(models.DefaultDBContext()); err != nil {
+	if err = repo.UpdateSize(db.DefaultContext); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -223,7 +239,11 @@ func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 // SyncReleasesWithTags synchronizes release table with repository tags
 func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) error {
 	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true, ListOptions: models.ListOptions{PageSize: 50}}
+	opts := models.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		ListOptions:   db.ListOptions{PageSize: 50},
+	}
 	for page := 1; ; page++ {
 		opts.Page = page
 		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
@@ -250,7 +270,7 @@ func SyncReleasesWithTags(repo *models.Repository, gitRepo *git.Repository) erro
 			}
 		}
 	}
-	tags, err := gitRepo.GetTags()
+	tags, err := gitRepo.GetTags(0, 0)
 	if err != nil {
 		return fmt.Errorf("GetTags: %v", err)
 	}
@@ -316,8 +336,8 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
-func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL) error {
-	client := lfs.NewClient(endpoint)
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL, skipTLSVerify bool) error {
+	client := lfs.NewClient(endpoint, skipTLSVerify)
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)

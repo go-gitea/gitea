@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -241,7 +242,7 @@ func populateIssueIndexer(ctx context.Context) {
 		default:
 		}
 		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
+			ListOptions: db.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
 			OrderBy:     models.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,

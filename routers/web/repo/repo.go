@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
@@ -133,17 +135,17 @@ func Create(ctx *context.Context) {
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
-	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
+	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
-	templateID := ctx.QueryInt64("template_id")
+	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := models.GetRepositoryByID(templateID)
-		if err == nil && templateRepo.CheckUnitUser(ctxUser, models.UnitTypeCode) {
+		if err == nil && templateRepo.CheckUnitUser(ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -291,8 +293,8 @@ func Action(ctx *context.Context) {
 			return
 		}
 
-		ctx.Repo.Repository.Description = ctx.Query("desc")
-		ctx.Repo.Repository.Website = ctx.Query("site")
+		ctx.Repo.Repository.Description = ctx.FormString("desc")
+		ctx.Repo.Repository.Website = ctx.FormString("site")
 		err = models.UpdateRepository(ctx.Repo.Repository, false)
 	}
 
@@ -301,7 +303,7 @@ func Action(ctx *context.Context) {
 		return
 	}
 
-	ctx.RedirectToFirst(ctx.Query("redirect_to"), ctx.Repo.RepoLink)
+	ctx.RedirectToFirst(ctx.FormString("redirect_to"), ctx.Repo.RepoLink)
 }
 
 func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
@@ -342,7 +344,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(models.DefaultDBContext(), curRepo.ID, tagNames)
+	releases, err := models.GetReleasesByRepoIDAndNames(db.DefaultContext, curRepo.ID, tagNames)
 	if err != nil {
 		if models.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -379,7 +381,7 @@ func Download(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(models.DefaultDBContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("models.GetRepoArchiver", err)
 		return
@@ -409,7 +411,7 @@ func Download(ctx *context.Context) {
 				return
 			}
 			times++
-			archiver, err = models.GetRepoArchiver(models.DefaultDBContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+			archiver, err = models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 			if err != nil {
 				ctx.ServerError("archiver_service.StartArchive", err)
 				return
@@ -465,7 +467,7 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(models.DefaultDBContext(), aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return

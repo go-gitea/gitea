@@ -10,7 +10,7 @@ import (
 	"io"
 	"os"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
 )
 
 // CanColorStdout reports if we can color the Stdout
@@ -52,7 +52,6 @@ func NewConsoleLogger() LoggerProvider {
 // Init inits connection writer with json config.
 // json config only need key "level".
 func (log *ConsoleLogger) Init(config string) error {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(config), log)
 	if err != nil {
 		return fmt.Errorf("Unable to parse JSON: %v", err)

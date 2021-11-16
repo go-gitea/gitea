@@ -8,7 +8,7 @@
 	<title>{{.Subject}}</title>
 </head>
 
-{{$repo_url := printf "<a href='%s'>%s</a>" .Release.Repo.HTMLURL .Release.Repo.FullName}}
+{{$repo_url := printf "<a href='%s'>%s</a>" .Issue.Repo.HTMLURL .Issue.Repo.FullName}}
 {{$link := printf "<a href='%s'>#%d</a>" .Link .Issue.Index}}
 <body>
 	<p>

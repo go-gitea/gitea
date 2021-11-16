@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type (
@@ -66,9 +66,8 @@ type (
 )
 
 // GetDiscordHook returns discord metadata
-func GetDiscordHook(w *models.Webhook) *DiscordMeta {
+func GetDiscordHook(w *webhook_model.Webhook) *DiscordMeta {
 	s := &DiscordMeta{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
 	}
@@ -99,7 +98,6 @@ var (
 
 // JSONPayload Marshals the DiscordPayload to json
 func (d *DiscordPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(d, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -193,7 +191,7 @@ func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, 
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -207,11 +205,11 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEven
 		text = p.Review.Content
 
 		switch event {
-		case models.HookEventPullRequestReviewApproved:
+		case webhook_model.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case models.HookEventPullRequestReviewRejected:
+		case webhook_model.HookEventPullRequestReviewRejected:
 			color = redColor
-		case models.HookEventPullRequestComment:
+		case webhook_model.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -246,11 +244,10 @@ func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
 		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
 	}
@@ -260,14 +257,14 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 	return convertPayloader(s, p, event)
 }
 
-func parseHookPullRequestEventType(event models.HookEventType) (string, error) {
+func parseHookPullRequestEventType(event webhook_model.HookEventType) (string, error) {
 	switch event {
 
-	case models.HookEventPullRequestReviewApproved:
+	case webhook_model.HookEventPullRequestReviewApproved:
 		return "approved", nil
-	case models.HookEventPullRequestReviewRejected:
+	case webhook_model.HookEventPullRequestReviewRejected:
 		return "rejected", nil
-	case models.HookEventPullRequestComment:
+	case webhook_model.HookEventPullRequestComment:
 		return "comment", nil
 
 	default:

@@ -4,19 +4,12 @@
 
 package migrations
 
-import (
-	"fmt"
+import "xorm.io/xorm"
 
-	"xorm.io/xorm"
-)
-
-func addOrgIDHookTaskColumn(x *xorm.Engine) error {
-	type HookTask struct {
-		OrgID int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
+func addKeyIsVerified(x *xorm.Engine) error {
+	type GPGKey struct {
+		Verified bool `xorm:"NOT NULL DEFAULT false"`
 	}
 
-	if err := x.Sync2(new(HookTask)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync(new(GPGKey))
 }

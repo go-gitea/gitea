@@ -11,12 +11,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, templateRepoName, generateOwnerName, generateRepoName string) *httptest.ResponseRecorder {
-	generateOwner := models.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
+	generateOwner := unittest.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
 
 	// Step0: check the existence of the generated repo
 	req := NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)

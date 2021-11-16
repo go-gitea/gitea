@@ -76,7 +76,10 @@ wiki, issues, labels, releases, release_assets, milestones, pull_requests, comme
 }
 
 func runDumpRepository(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
@@ -84,6 +87,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
 	var (

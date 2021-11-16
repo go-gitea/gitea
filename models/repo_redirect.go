@@ -6,6 +6,8 @@ package models
 
 import (
 	"strings"
+
+	"code.gitea.io/gitea/models/db"
 )
 
 // RepoRedirect represents that a repo name should be redirected to another
@@ -16,11 +18,15 @@ type RepoRedirect struct {
 	RedirectRepoID int64  // repoID to redirect to
 }
 
+func init() {
+	db.RegisterModel(new(RepoRedirect))
+}
+
 // LookupRepoRedirect look up if a repository has a redirect name
 func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 	repoName = strings.ToLower(repoName)
 	redirect := &RepoRedirect{OwnerID: ownerID, LowerName: repoName}
-	if has, err := x.Get(redirect); err != nil {
+	if has, err := db.GetEngine(db.DefaultContext).Get(redirect); err != nil {
 		return 0, err
 	} else if !has {
 		return 0, ErrRepoRedirectNotExist{OwnerID: ownerID, RepoName: repoName}
@@ -29,7 +35,7 @@ func LookupRepoRedirect(ownerID int64, repoName string) (int64, error) {
 }
 
 // newRepoRedirect create a new repo redirect
-func newRepoRedirect(e Engine, ownerID, repoID int64, oldRepoName, newRepoName string) error {
+func newRepoRedirect(e db.Engine, ownerID, repoID int64, oldRepoName, newRepoName string) error {
 	oldRepoName = strings.ToLower(oldRepoName)
 	newRepoName = strings.ToLower(newRepoName)
 
@@ -49,7 +55,7 @@ func newRepoRedirect(e Engine, ownerID, repoID int64, oldRepoName, newRepoName s
 
 // deleteRepoRedirect delete any redirect from the specified repo name to
 // anything else
-func deleteRepoRedirect(e Engine, ownerID int64, repoName string) error {
+func deleteRepoRedirect(e db.Engine, ownerID int64, repoName string) error {
 	repoName = strings.ToLower(repoName)
 	_, err := e.Delete(&RepoRedirect{OwnerID: ownerID, LowerName: repoName})
 	return err

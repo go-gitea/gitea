@@ -7,6 +7,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/db"
 	"xorm.io/builder"
 )
 
@@ -28,7 +29,7 @@ func (issues IssueList) getRepoIDs() []int64 {
 	return keysInt64(repoIDs)
 }
 
-func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
+func (issues IssueList) loadRepositories(e db.Engine) ([]*Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
@@ -62,7 +63,7 @@ func (issues IssueList) loadRepositories(e Engine) ([]*Repository, error) {
 
 // LoadRepositories loads issues' all repositories
 func (issues IssueList) LoadRepositories() ([]*Repository, error) {
-	return issues.loadRepositories(x)
+	return issues.loadRepositories(db.GetEngine(db.DefaultContext))
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
@@ -75,7 +76,7 @@ func (issues IssueList) getPosterIDs() []int64 {
 	return keysInt64(posterIDs)
 }
 
-func (issues IssueList) loadPosters(e Engine) error {
+func (issues IssueList) loadPosters(e db.Engine) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -118,7 +119,7 @@ func (issues IssueList) getIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadLabels(e Engine) error {
+func (issues IssueList) loadLabels(e db.Engine) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -181,7 +182,7 @@ func (issues IssueList) getMilestoneIDs() []int64 {
 	return keysInt64(ids)
 }
 
-func (issues IssueList) loadMilestones(e Engine) error {
+func (issues IssueList) loadMilestones(e db.Engine) error {
 	milestoneIDs := issues.getMilestoneIDs()
 	if len(milestoneIDs) == 0 {
 		return nil
@@ -210,7 +211,7 @@ func (issues IssueList) loadMilestones(e Engine) error {
 	return nil
 }
 
-func (issues IssueList) loadAssignees(e Engine) error {
+func (issues IssueList) loadAssignees(e db.Engine) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -271,7 +272,7 @@ func (issues IssueList) getPullIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadPullRequests(e Engine) error {
+func (issues IssueList) loadPullRequests(e db.Engine) error {
 	issuesIDs := issues.getPullIssueIDs()
 	if len(issuesIDs) == 0 {
 		return nil
@@ -315,7 +316,7 @@ func (issues IssueList) loadPullRequests(e Engine) error {
 	return nil
 }
 
-func (issues IssueList) loadAttachments(e Engine) (err error) {
+func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -360,7 +361,7 @@ func (issues IssueList) loadAttachments(e Engine) (err error) {
 	return nil
 }
 
-func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
+func (issues IssueList) loadComments(e db.Engine, cond builder.Cond) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -406,7 +407,7 @@ func (issues IssueList) loadComments(e Engine, cond builder.Cond) (err error) {
 	return nil
 }
 
-func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
+func (issues IssueList) loadTotalTrackedTimes(e db.Engine) (err error) {
 	type totalTimesByIssue struct {
 		IssueID int64
 		Time    int64
@@ -466,7 +467,7 @@ func (issues IssueList) loadTotalTrackedTimes(e Engine) (err error) {
 }
 
 // loadAttributes loads all attributes, expect for attachments and comments
-func (issues IssueList) loadAttributes(e Engine) error {
+func (issues IssueList) loadAttributes(e db.Engine) error {
 	if _, err := issues.loadRepositories(e); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadRepositories: %v", err)
 	}
@@ -501,36 +502,36 @@ func (issues IssueList) loadAttributes(e Engine) error {
 // LoadAttributes loads attributes of the issues, except for attachments and
 // comments
 func (issues IssueList) LoadAttributes() error {
-	return issues.loadAttributes(x)
+	return issues.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
 // LoadAttachments loads attachments
 func (issues IssueList) LoadAttachments() error {
-	return issues.loadAttachments(x)
+	return issues.loadAttachments(db.GetEngine(db.DefaultContext))
 }
 
 // LoadComments loads comments
 func (issues IssueList) LoadComments() error {
-	return issues.loadComments(x, builder.NewCond())
+	return issues.loadComments(db.GetEngine(db.DefaultContext), builder.NewCond())
 }
 
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
-	return issues.loadComments(x, builder.Eq{"comment.type": CommentTypeComment})
+	return issues.loadComments(db.GetEngine(db.DefaultContext), builder.Eq{"comment.type": CommentTypeComment})
 }
 
 // LoadPullRequests loads pull requests
 func (issues IssueList) LoadPullRequests() error {
-	return issues.loadPullRequests(x)
+	return issues.loadPullRequests(db.GetEngine(db.DefaultContext))
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
 // FIXME: only returns official counts due to double counting of non-official approvals
 func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
-	return issues.getApprovalCounts(x)
+	return issues.getApprovalCounts(db.GetEngine(db.DefaultContext))
 }
 
-func (issues IssueList) getApprovalCounts(e Engine) (map[int64][]*ReviewCount, error) {
+func (issues IssueList) getApprovalCounts(e db.Engine) (map[int64][]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 2*len(issues))
 	ids := make([]int64, len(issues))
 	for i, issue := range issues {

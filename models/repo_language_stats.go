@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/go-enry/go-enry/v2"
@@ -24,6 +25,10 @@ type LanguageStat struct {
 	Size        int64              `xorm:"NOT NULL DEFAULT 0"`
 	Color       string             `xorm:"-"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX CREATED"`
+}
+
+func init() {
+	db.RegisterModel(new(LanguageStat))
 }
 
 // LanguageStatList defines a list of language statistics
@@ -60,7 +65,7 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	return langPerc
 }
 
-func (repo *Repository) getLanguageStats(e Engine) (LanguageStatList, error) {
+func (repo *Repository) getLanguageStats(e db.Engine) (LanguageStatList, error) {
 	stats := make(LanguageStatList, 0, 6)
 	if err := e.Where("`repo_id` = ?", repo.ID).Desc("`size`").Find(&stats); err != nil {
 		return nil, err
@@ -70,12 +75,12 @@ func (repo *Repository) getLanguageStats(e Engine) (LanguageStatList, error) {
 
 // GetLanguageStats returns the language statistics for a repository
 func (repo *Repository) GetLanguageStats() (LanguageStatList, error) {
-	return repo.getLanguageStats(x)
+	return repo.getLanguageStats(db.GetEngine(db.DefaultContext))
 }
 
 // GetTopLanguageStats returns the top language statistics for a repository
 func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error) {
-	stats, err := repo.getLanguageStats(x)
+	stats, err := repo.getLanguageStats(db.GetEngine(db.DefaultContext))
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +112,7 @@ func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error)
 
 // UpdateLanguageStats updates the language statistics for repository
 func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]int64) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	if err := sess.Begin(); err != nil {
 		return err
 	}
@@ -178,7 +183,7 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]in
 
 // CopyLanguageStat Copy originalRepo language stat information to destRepo (use for forked repo)
 func CopyLanguageStat(originalRepo, destRepo *Repository) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

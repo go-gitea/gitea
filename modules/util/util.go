@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"strconv"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ type OptionalBool byte
 
 const (
 	// OptionalBoolNone a "null" boolean value
-	OptionalBoolNone = iota
+	OptionalBoolNone OptionalBool = iota
 	// OptionalBoolTrue a "true" boolean value
 	OptionalBoolTrue
 	// OptionalBoolFalse a "false" boolean value
@@ -45,6 +46,15 @@ func OptionalBoolOf(b bool) OptionalBool {
 		return OptionalBoolTrue
 	}
 	return OptionalBoolFalse
+}
+
+// OptionalBoolParse get the corresponding OptionalBool of a string using strconv.ParseBool
+func OptionalBoolParse(s string) OptionalBool {
+	b, e := strconv.ParseBool(s)
+	if e != nil {
+		return OptionalBoolNone
+	}
+	return OptionalBoolOf(b)
 }
 
 // Max max of two ints

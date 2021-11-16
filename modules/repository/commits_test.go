@@ -5,19 +5,19 @@
 package repository
 
 import (
-	"container/list"
 	"crypto/md5"
 	"fmt"
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -48,7 +48,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	}
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository)
 	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
@@ -100,7 +100,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 }
 
 func TestPushCommits_AvatarLink(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pushCommits := NewPushCommits()
 	pushCommits.Commits = []*PushCommit{
@@ -173,21 +173,22 @@ func TestListToPushCommits(t *testing.T) {
 	hash2, err := git.NewIDFromString(hexString2)
 	assert.NoError(t, err)
 
-	l := list.New()
-	l.PushBack(&git.Commit{
-		ID:            hash1,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message1",
-	})
-	l.PushBack(&git.Commit{
-		ID:            hash2,
-		Author:        sig,
-		Committer:     sig,
-		CommitMessage: "Message2",
-	})
+	l := []*git.Commit{
+		{
+			ID:            hash1,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message1",
+		},
+		{
+			ID:            hash2,
+			Author:        sig,
+			Committer:     sig,
+			CommitMessage: "Message2",
+		},
+	}
 
-	pushCommits := ListToPushCommits(l)
+	pushCommits := GitToPushCommits(l)
 	if assert.Len(t, pushCommits.Commits, 2) {
 		assert.Equal(t, "Message1", pushCommits.Commits[0].Message)
 		assert.Equal(t, hexString1, pushCommits.Commits[0].Sha1)

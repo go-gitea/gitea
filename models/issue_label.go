@@ -6,16 +6,18 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"html/template"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // LabelColorPattern is a regexp witch can validate LabelColor
@@ -40,6 +42,11 @@ type Label struct {
 	QueryString       string `xorm:"-"`
 	IsSelected        bool   `xorm:"-"`
 	IsExcluded        bool   `xorm:"-"`
+}
+
+func init() {
+	db.RegisterModel(new(Label))
+	db.RegisterModel(new(IssueLabel))
 }
 
 // GetLabelTemplateFile loads the label template file by given name,
@@ -138,19 +145,44 @@ func (label *Label) BelongsToRepo() bool {
 	return label.RepoID > 0
 }
 
+// SrgbToLinear converts a component of an sRGB color to its linear intensity
+// See: https://en.wikipedia.org/wiki/SRGB#The_reverse_transformation_(sRGB_to_CIE_XYZ)
+func SrgbToLinear(color uint8) float64 {
+	flt := float64(color) / 255
+	if flt <= 0.04045 {
+		return flt / 12.92
+	}
+	return math.Pow((flt+0.055)/1.055, 2.4)
+}
+
+// Luminance returns the luminance of an sRGB color
+func Luminance(color uint32) float64 {
+	r := SrgbToLinear(uint8(0xFF & (color >> 16)))
+	g := SrgbToLinear(uint8(0xFF & (color >> 8)))
+	b := SrgbToLinear(uint8(0xFF & color))
+
+	// luminance ratios for sRGB
+	return 0.2126*r + 0.7152*g + 0.0722*b
+}
+
+// LuminanceThreshold is the luminance at which white and black appear to have the same contrast
+// i.e. x such that 1.05 / (x + 0.05) = (x + 0.05) / 0.05
+// i.e. math.Sqrt(1.05*0.05) - 0.05
+const LuminanceThreshold float64 = 0.179
+
 // ForegroundColor calculates the text color for labels based
 // on their background color.
 func (label *Label) ForegroundColor() template.CSS {
 	if strings.HasPrefix(label.Color, "#") {
 		if color, err := strconv.ParseUint(label.Color[1:], 16, 64); err == nil {
-			r := float32(0xFF & (color >> 16))
-			g := float32(0xFF & (color >> 8))
-			b := float32(0xFF & color)
-			luminance := (0.2126*r + 0.7152*g + 0.0722*b) / 255
+			// NOTE: see web_src/js/components/ContextPopup.vue for similar implementation
+			luminance := Luminance(uint32(color))
 
-			if luminance < 0.66 {
+			// prefer white or black based upon contrast
+			if luminance < LuminanceThreshold {
 				return template.CSS("#fff")
 			}
+			return template.CSS("#000")
 		}
 	}
 
@@ -183,7 +215,7 @@ func LoadLabelsFormatted(labelTemplate string) (string, error) {
 	return strings.Join(labels, ", "), err
 }
 
-func initializeLabels(e Engine, id int64, labelTemplate string, isOrg bool) error {
+func initializeLabels(e db.Engine, id int64, labelTemplate string, isOrg bool) error {
 	list, err := GetLabelTemplateFile(labelTemplate)
 	if err != nil {
 		return err
@@ -211,11 +243,11 @@ func initializeLabels(e Engine, id int64, labelTemplate string, isOrg bool) erro
 }
 
 // InitializeLabels adds a label set to a repository using a template
-func InitializeLabels(ctx DBContext, repoID int64, labelTemplate string, isOrg bool) error {
-	return initializeLabels(ctx.e, repoID, labelTemplate, isOrg)
+func InitializeLabels(ctx context.Context, repoID int64, labelTemplate string, isOrg bool) error {
+	return initializeLabels(db.GetEngine(ctx), repoID, labelTemplate, isOrg)
 }
 
-func newLabel(e Engine, label *Label) error {
+func newLabel(e db.Engine, label *Label) error {
 	_, err := e.Insert(label)
 	return err
 }
@@ -225,25 +257,26 @@ func NewLabel(label *Label) error {
 	if !LabelColorPattern.MatchString(label.Color) {
 		return fmt.Errorf("bad color code: %s", label.Color)
 	}
-	return newLabel(x, label)
+	return newLabel(db.GetEngine(db.DefaultContext), label)
 }
 
 // NewLabels creates new labels
 func NewLabels(labels ...*Label) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
 	for _, label := range labels {
 		if !LabelColorPattern.MatchString(label.Color) {
 			return fmt.Errorf("bad color code: %s", label.Color)
 		}
-		if err := newLabel(sess, label); err != nil {
+		if err := newLabel(db.GetEngine(ctx), label); err != nil {
 			return err
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UpdateLabel updates label information.
@@ -251,7 +284,7 @@ func UpdateLabel(l *Label) error {
 	if !LabelColorPattern.MatchString(l.Color) {
 		return fmt.Errorf("bad color code: %s", l.Color)
 	}
-	return updateLabelCols(x, l, "name", "description", "color")
+	return updateLabelCols(db.GetEngine(db.DefaultContext), l, "name", "description", "color")
 }
 
 // DeleteLabel delete a label
@@ -264,7 +297,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -294,7 +327,7 @@ func DeleteLabel(id, labelID int64) error {
 }
 
 // getLabelByID returns a label by label id
-func getLabelByID(e Engine, labelID int64) (*Label, error) {
+func getLabelByID(e db.Engine, labelID int64) (*Label, error) {
 	if labelID <= 0 {
 		return nil, ErrLabelNotExist{labelID}
 	}
@@ -311,13 +344,13 @@ func getLabelByID(e Engine, labelID int64) (*Label, error) {
 
 // GetLabelByID returns a label by given ID.
 func GetLabelByID(id int64) (*Label, error) {
-	return getLabelByID(x, id)
+	return getLabelByID(db.GetEngine(db.DefaultContext), id)
 }
 
 // GetLabelsByIDs returns a list of labels by IDs
 func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, x.Table("label").
+	return labels, db.GetEngine(db.DefaultContext).Table("label").
 		In("id", labelIDs).
 		Asc("name").
 		Cols("id", "repo_id", "org_id").
@@ -332,7 +365,7 @@ func GetLabelsByIDs(labelIDs []int64) ([]*Label, error) {
 //         \/     \/|__|              \/                       \/
 
 // getLabelInRepoByName returns a label by Name in given repository.
-func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, error) {
+func getLabelInRepoByName(e db.Engine, repoID int64, labelName string) (*Label, error) {
 	if len(labelName) == 0 || repoID <= 0 {
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
@@ -351,7 +384,7 @@ func getLabelInRepoByName(e Engine, repoID int64, labelName string) (*Label, err
 }
 
 // getLabelInRepoByID returns a label by ID in given repository.
-func getLabelInRepoByID(e Engine, repoID, labelID int64) (*Label, error) {
+func getLabelInRepoByID(e db.Engine, repoID, labelID int64) (*Label, error) {
 	if labelID <= 0 || repoID <= 0 {
 		return nil, ErrRepoLabelNotExist{labelID, repoID}
 	}
@@ -371,7 +404,7 @@ func getLabelInRepoByID(e Engine, repoID, labelID int64) (*Label, error) {
 
 // GetLabelInRepoByName returns a label by name in given repository.
 func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
-	return getLabelInRepoByName(x, repoID, labelName)
+	return getLabelInRepoByName(db.GetEngine(db.DefaultContext), repoID, labelName)
 }
 
 // GetLabelIDsInRepoByNames returns a list of labelIDs by names in a given
@@ -379,7 +412,7 @@ func GetLabelInRepoByName(repoID int64, labelName string) (*Label, error) {
 // it silently ignores label names that do not belong to the repository.
 func GetLabelIDsInRepoByNames(repoID int64, labelNames []string) ([]int64, error) {
 	labelIDs := make([]int64, 0, len(labelNames))
-	return labelIDs, x.Table("label").
+	return labelIDs, db.GetEngine(db.DefaultContext).Table("label").
 		Where("repo_id = ?", repoID).
 		In("name", labelNames).
 		Asc("name").
@@ -400,21 +433,21 @@ func BuildLabelNamesIssueIDsCondition(labelNames []string) *builder.Builder {
 
 // GetLabelInRepoByID returns a label by ID in given repository.
 func GetLabelInRepoByID(repoID, labelID int64) (*Label, error) {
-	return getLabelInRepoByID(x, repoID, labelID)
+	return getLabelInRepoByID(db.GetEngine(db.DefaultContext), repoID, labelID)
 }
 
 // GetLabelsInRepoByIDs returns a list of labels by IDs in given repository,
 // it silently ignores label IDs that do not belong to the repository.
 func GetLabelsInRepoByIDs(repoID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, x.
+	return labels, db.GetEngine(db.DefaultContext).
 		Where("repo_id = ?", repoID).
 		In("id", labelIDs).
 		Asc("name").
 		Find(&labels)
 }
 
-func getLabelsByRepoID(e Engine, repoID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+func getLabelsByRepoID(e db.Engine, repoID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
 	if repoID <= 0 {
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
@@ -433,15 +466,20 @@ func getLabelsByRepoID(e Engine, repoID int64, sortType string, listOptions List
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	return labels, sess.Find(&labels)
 }
 
 // GetLabelsByRepoID returns all labels that belong to given repository by ID.
-func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
-	return getLabelsByRepoID(x, repoID, sortType, listOptions)
+func GetLabelsByRepoID(repoID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
+	return getLabelsByRepoID(db.GetEngine(db.DefaultContext), repoID, sortType, listOptions)
+}
+
+// CountLabelsByRepoID count number of all labels that belong to given repository by ID.
+func CountLabelsByRepoID(repoID int64) (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID).Count(&Label{})
 }
 
 // ________
@@ -452,7 +490,7 @@ func GetLabelsByRepoID(repoID int64, sortType string, listOptions ListOptions) (
 //         \/     /_____/
 
 // getLabelInOrgByName returns a label by Name in given organization
-func getLabelInOrgByName(e Engine, orgID int64, labelName string) (*Label, error) {
+func getLabelInOrgByName(e db.Engine, orgID int64, labelName string) (*Label, error) {
 	if len(labelName) == 0 || orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
@@ -471,7 +509,7 @@ func getLabelInOrgByName(e Engine, orgID int64, labelName string) (*Label, error
 }
 
 // getLabelInOrgByID returns a label by ID in given organization.
-func getLabelInOrgByID(e Engine, orgID, labelID int64) (*Label, error) {
+func getLabelInOrgByID(e db.Engine, orgID, labelID int64) (*Label, error) {
 	if labelID <= 0 || orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{labelID, orgID}
 	}
@@ -491,7 +529,7 @@ func getLabelInOrgByID(e Engine, orgID, labelID int64) (*Label, error) {
 
 // GetLabelInOrgByName returns a label by name in given organization.
 func GetLabelInOrgByName(orgID int64, labelName string) (*Label, error) {
-	return getLabelInOrgByName(x, orgID, labelName)
+	return getLabelInOrgByName(db.GetEngine(db.DefaultContext), orgID, labelName)
 }
 
 // GetLabelIDsInOrgByNames returns a list of labelIDs by names in a given
@@ -502,7 +540,7 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 	}
 	labelIDs := make([]int64, 0, len(labelNames))
 
-	return labelIDs, x.Table("label").
+	return labelIDs, db.GetEngine(db.DefaultContext).Table("label").
 		Where("org_id = ?", orgID).
 		In("name", labelNames).
 		Asc("name").
@@ -512,21 +550,21 @@ func GetLabelIDsInOrgByNames(orgID int64, labelNames []string) ([]int64, error) 
 
 // GetLabelInOrgByID returns a label by ID in given organization.
 func GetLabelInOrgByID(orgID, labelID int64) (*Label, error) {
-	return getLabelInOrgByID(x, orgID, labelID)
+	return getLabelInOrgByID(db.GetEngine(db.DefaultContext), orgID, labelID)
 }
 
 // GetLabelsInOrgByIDs returns a list of labels by IDs in given organization,
 // it silently ignores label IDs that do not belong to the organization.
 func GetLabelsInOrgByIDs(orgID int64, labelIDs []int64) ([]*Label, error) {
 	labels := make([]*Label, 0, len(labelIDs))
-	return labels, x.
+	return labels, db.GetEngine(db.DefaultContext).
 		Where("org_id = ?", orgID).
 		In("id", labelIDs).
 		Asc("name").
 		Find(&labels)
 }
 
-func getLabelsByOrgID(e Engine, orgID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
+func getLabelsByOrgID(e db.Engine, orgID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
 	if orgID <= 0 {
 		return nil, ErrOrgLabelNotExist{0, orgID}
 	}
@@ -545,15 +583,20 @@ func getLabelsByOrgID(e Engine, orgID int64, sortType string, listOptions ListOp
 	}
 
 	if listOptions.Page != 0 {
-		sess = listOptions.setSessionPagination(sess)
+		sess = db.SetSessionPagination(sess, &listOptions)
 	}
 
 	return labels, sess.Find(&labels)
 }
 
 // GetLabelsByOrgID returns all labels that belong to given organization by ID.
-func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]*Label, error) {
-	return getLabelsByOrgID(x, orgID, sortType, listOptions)
+func GetLabelsByOrgID(orgID int64, sortType string, listOptions db.ListOptions) ([]*Label, error) {
+	return getLabelsByOrgID(db.GetEngine(db.DefaultContext), orgID, sortType, listOptions)
+}
+
+// CountLabelsByOrgID count all labels that belong to given organization by ID.
+func CountLabelsByOrgID(orgID int64) (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where("org_id = ?", orgID).Count(&Label{})
 }
 
 // .___
@@ -563,7 +606,7 @@ func GetLabelsByOrgID(orgID int64, sortType string, listOptions ListOptions) ([]
 // |___/____  >____  >____/  \___ |
 //          \/     \/            \/
 
-func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
+func getLabelsByIssueID(e db.Engine, issueID int64) ([]*Label, error) {
 	var labels []*Label
 	return labels, e.Where("issue_label.issue_id = ?", issueID).
 		Join("LEFT", "issue_label", "issue_label.label_id = label.id").
@@ -573,10 +616,10 @@ func getLabelsByIssueID(e Engine, issueID int64) ([]*Label, error) {
 
 // GetLabelsByIssueID returns all labels that belong to given issue by ID.
 func GetLabelsByIssueID(issueID int64) ([]*Label, error) {
-	return getLabelsByIssueID(x, issueID)
+	return getLabelsByIssueID(db.GetEngine(db.DefaultContext), issueID)
 }
 
-func updateLabelCols(e Engine, l *Label, cols ...string) error {
+func updateLabelCols(e db.Engine, l *Label, cols ...string) error {
 	_, err := e.ID(l.ID).
 		SetExpr("num_issues",
 			builder.Select("count(*)").From("issue_label").
@@ -608,19 +651,19 @@ type IssueLabel struct {
 	LabelID int64 `xorm:"UNIQUE(s)"`
 }
 
-func hasIssueLabel(e Engine, issueID, labelID int64) bool {
+func hasIssueLabel(e db.Engine, issueID, labelID int64) bool {
 	has, _ := e.Where("issue_id = ? AND label_id = ?", issueID, labelID).Get(new(IssueLabel))
 	return has
 }
 
 // HasIssueLabel returns true if issue has been labeled.
 func HasIssueLabel(issueID, labelID int64) bool {
-	return hasIssueLabel(x, issueID, labelID)
+	return hasIssueLabel(db.GetEngine(db.DefaultContext), issueID, labelID)
 }
 
 // newIssueLabel this function creates a new label it does not check if the label is valid for the issue
 // YOU MUST CHECK THIS BEFORE THIS FUNCTION
-func newIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
+func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
@@ -653,7 +696,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -681,7 +724,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 }
 
 // newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
-func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) (err error) {
+func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err error) {
 	if err = issue.loadRepo(e); err != nil {
 		return err
 	}
@@ -702,25 +745,25 @@ func newIssueLabels(e *xorm.Session, issue *Issue, labels []*Label, doer *User) 
 
 // NewIssueLabels creates a list of issue-label relations.
 func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = newIssueLabels(sess, issue, labels, doer); err != nil {
+	if err = newIssueLabels(db.GetEngine(ctx), issue, labels, doer); err != nil {
 		return err
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(sess); err != nil {
+	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (err error) {
+func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {
 	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
@@ -750,7 +793,7 @@ func deleteIssueLabel(e *xorm.Session, issue *Issue, label *Label, doer *User) (
 
 // DeleteIssueLabel deletes issue-label relation.
 func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -768,7 +811,7 @@ func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 	return sess.Commit()
 }
 
-func deleteLabelsByRepoID(sess Engine, repoID int64) error {
+func deleteLabelsByRepoID(sess db.Engine, repoID int64) error {
 	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
 
 	if _, err := sess.In("label_id", deleteCond).

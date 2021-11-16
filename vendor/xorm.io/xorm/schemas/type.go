@@ -5,8 +5,9 @@
 package schemas
 
 import (
+	"database/sql"
+	"math/big"
 	"reflect"
-	"sort"
 	"strings"
 	"time"
 )
@@ -38,6 +39,7 @@ const (
 	TIME_TYPE
 	NUMERIC_TYPE
 	ARRAY_TYPE
+	BOOL_TYPE
 )
 
 // IsType reutrns ture if the column type is the same as the parameter
@@ -63,6 +65,11 @@ func (s *SQLType) IsTime() bool {
 	return s.IsType(TIME_TYPE)
 }
 
+// IsBool returns true if column is a boolean type
+func (s *SQLType) IsBool() bool {
+	return s.IsType(BOOL_TYPE)
+}
+
 // IsNumeric returns true if column is a numeric type
 func (s *SQLType) IsNumeric() bool {
 	return s.IsType(NUMERIC_TYPE)
@@ -85,16 +92,19 @@ func (s *SQLType) IsXML() bool {
 
 // enumerates all the database column types
 var (
-	Bit            = "BIT"
-	UnsignedBit    = "UNSIGNED BIT"
-	TinyInt        = "TINYINT"
-	SmallInt       = "SMALLINT"
-	MediumInt      = "MEDIUMINT"
-	Int            = "INT"
-	UnsignedInt    = "UNSIGNED INT"
-	Integer        = "INTEGER"
-	BigInt         = "BIGINT"
-	UnsignedBigInt = "UNSIGNED BIGINT"
+	Bit               = "BIT"
+	UnsignedBit       = "UNSIGNED BIT"
+	TinyInt           = "TINYINT"
+	UnsignedTinyInt   = "UNSIGNED TINYINT"
+	SmallInt          = "SMALLINT"
+	UnsignedSmallInt  = "UNSIGNED SMALLINT"
+	MediumInt         = "MEDIUMINT"
+	UnsignedMediumInt = "UNSIGNED MEDIUMINT"
+	Int               = "INT"
+	UnsignedInt       = "UNSIGNED INT"
+	Integer           = "INTEGER"
+	BigInt            = "BIGINT"
+	UnsignedBigInt    = "UNSIGNED BIGINT"
 
 	Enum = "ENUM"
 	Set  = "SET"
@@ -151,16 +161,19 @@ var (
 	Array = "ARRAY"
 
 	SqlTypes = map[string]int{
-		Bit:            NUMERIC_TYPE,
-		UnsignedBit:    NUMERIC_TYPE,
-		TinyInt:        NUMERIC_TYPE,
-		SmallInt:       NUMERIC_TYPE,
-		MediumInt:      NUMERIC_TYPE,
-		Int:            NUMERIC_TYPE,
-		UnsignedInt:    NUMERIC_TYPE,
-		Integer:        NUMERIC_TYPE,
-		BigInt:         NUMERIC_TYPE,
-		UnsignedBigInt: NUMERIC_TYPE,
+		Bit:               NUMERIC_TYPE,
+		UnsignedBit:       NUMERIC_TYPE,
+		TinyInt:           NUMERIC_TYPE,
+		UnsignedTinyInt:   NUMERIC_TYPE,
+		SmallInt:          NUMERIC_TYPE,
+		UnsignedSmallInt:  NUMERIC_TYPE,
+		MediumInt:         NUMERIC_TYPE,
+		UnsignedMediumInt: NUMERIC_TYPE,
+		Int:               NUMERIC_TYPE,
+		UnsignedInt:       NUMERIC_TYPE,
+		Integer:           NUMERIC_TYPE,
+		BigInt:            NUMERIC_TYPE,
+		UnsignedBigInt:    NUMERIC_TYPE,
 
 		Enum:  TEXT_TYPE,
 		Set:   TEXT_TYPE,
@@ -208,93 +221,50 @@ var (
 		Bytea:            BLOB_TYPE,
 		UniqueIdentifier: BLOB_TYPE,
 
-		Bool: NUMERIC_TYPE,
+		Bool:    BOOL_TYPE,
+		Boolean: BOOL_TYPE,
 
 		Serial:    NUMERIC_TYPE,
 		BigSerial: NUMERIC_TYPE,
 
+		"INT8": NUMERIC_TYPE,
+
 		Array: ARRAY_TYPE,
 	}
-
-	intTypes  = sort.StringSlice{"*int", "*int16", "*int32", "*int8"}
-	uintTypes = sort.StringSlice{"*uint", "*uint16", "*uint32", "*uint8"}
-)
-
-// !nashtsai! treat following var as interal const values, these are used for reflect.TypeOf comparison
-var (
-	emptyString       string
-	boolDefault       bool
-	byteDefault       byte
-	complex64Default  complex64
-	complex128Default complex128
-	float32Default    float32
-	float64Default    float64
-	int64Default      int64
-	uint64Default     uint64
-	int32Default      int32
-	uint32Default     uint32
-	int16Default      int16
-	uint16Default     uint16
-	int8Default       int8
-	uint8Default      uint8
-	intDefault        int
-	uintDefault       uint
-	timeDefault       time.Time
 )
 
 // enumerates all types
 var (
-	IntType   = reflect.TypeOf(intDefault)
-	Int8Type  = reflect.TypeOf(int8Default)
-	Int16Type = reflect.TypeOf(int16Default)
-	Int32Type = reflect.TypeOf(int32Default)
-	Int64Type = reflect.TypeOf(int64Default)
+	IntType   = reflect.TypeOf((*int)(nil)).Elem()
+	Int8Type  = reflect.TypeOf((*int8)(nil)).Elem()
+	Int16Type = reflect.TypeOf((*int16)(nil)).Elem()
+	Int32Type = reflect.TypeOf((*int32)(nil)).Elem()
+	Int64Type = reflect.TypeOf((*int64)(nil)).Elem()
 
-	UintType   = reflect.TypeOf(uintDefault)
-	Uint8Type  = reflect.TypeOf(uint8Default)
-	Uint16Type = reflect.TypeOf(uint16Default)
-	Uint32Type = reflect.TypeOf(uint32Default)
-	Uint64Type = reflect.TypeOf(uint64Default)
+	UintType   = reflect.TypeOf((*uint)(nil)).Elem()
+	Uint8Type  = reflect.TypeOf((*uint8)(nil)).Elem()
+	Uint16Type = reflect.TypeOf((*uint16)(nil)).Elem()
+	Uint32Type = reflect.TypeOf((*uint32)(nil)).Elem()
+	Uint64Type = reflect.TypeOf((*uint64)(nil)).Elem()
 
-	Float32Type = reflect.TypeOf(float32Default)
-	Float64Type = reflect.TypeOf(float64Default)
+	Float32Type = reflect.TypeOf((*float32)(nil)).Elem()
+	Float64Type = reflect.TypeOf((*float64)(nil)).Elem()
 
-	Complex64Type  = reflect.TypeOf(complex64Default)
-	Complex128Type = reflect.TypeOf(complex128Default)
+	Complex64Type  = reflect.TypeOf((*complex64)(nil)).Elem()
+	Complex128Type = reflect.TypeOf((*complex128)(nil)).Elem()
 
-	StringType = reflect.TypeOf(emptyString)
-	BoolType   = reflect.TypeOf(boolDefault)
-	ByteType   = reflect.TypeOf(byteDefault)
+	StringType = reflect.TypeOf((*string)(nil)).Elem()
+	BoolType   = reflect.TypeOf((*bool)(nil)).Elem()
+	ByteType   = reflect.TypeOf((*byte)(nil)).Elem()
 	BytesType  = reflect.SliceOf(ByteType)
 
-	TimeType = reflect.TypeOf(timeDefault)
-)
-
-// enumerates all types
-var (
-	PtrIntType   = reflect.PtrTo(IntType)
-	PtrInt8Type  = reflect.PtrTo(Int8Type)
-	PtrInt16Type = reflect.PtrTo(Int16Type)
-	PtrInt32Type = reflect.PtrTo(Int32Type)
-	PtrInt64Type = reflect.PtrTo(Int64Type)
-
-	PtrUintType   = reflect.PtrTo(UintType)
-	PtrUint8Type  = reflect.PtrTo(Uint8Type)
-	PtrUint16Type = reflect.PtrTo(Uint16Type)
-	PtrUint32Type = reflect.PtrTo(Uint32Type)
-	PtrUint64Type = reflect.PtrTo(Uint64Type)
-
-	PtrFloat32Type = reflect.PtrTo(Float32Type)
-	PtrFloat64Type = reflect.PtrTo(Float64Type)
-
-	PtrComplex64Type  = reflect.PtrTo(Complex64Type)
-	PtrComplex128Type = reflect.PtrTo(Complex128Type)
-
-	PtrStringType = reflect.PtrTo(StringType)
-	PtrBoolType   = reflect.PtrTo(BoolType)
-	PtrByteType   = reflect.PtrTo(ByteType)
-
-	PtrTimeType = reflect.PtrTo(TimeType)
+	TimeType        = reflect.TypeOf((*time.Time)(nil)).Elem()
+	BigFloatType    = reflect.TypeOf((*big.Float)(nil)).Elem()
+	NullFloat64Type = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
+	NullStringType  = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+	NullInt32Type   = reflect.TypeOf((*sql.NullInt32)(nil)).Elem()
+	NullInt64Type   = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
+	NullBoolType    = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
 )
 
 // Type2SQLType generate SQLType acorrding Go's type
@@ -315,7 +285,7 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	case reflect.Complex64, reflect.Complex128:
 		st = SQLType{Varchar, 64, 0}
 	case reflect.Array, reflect.Slice, reflect.Map:
-		if t.Elem() == reflect.TypeOf(byteDefault) {
+		if t.Elem() == ByteType {
 			st = SQLType{Blob, 0, 0}
 		} else {
 			st = SQLType{Text, 0, 0}
@@ -327,6 +297,16 @@ func Type2SQLType(t reflect.Type) (st SQLType) {
 	case reflect.Struct:
 		if t.ConvertibleTo(TimeType) {
 			st = SQLType{DateTime, 0, 0}
+		} else if t.ConvertibleTo(NullFloat64Type) {
+			st = SQLType{Double, 0, 0}
+		} else if t.ConvertibleTo(NullStringType) {
+			st = SQLType{Varchar, 255, 0}
+		} else if t.ConvertibleTo(NullInt32Type) {
+			st = SQLType{Integer, 0, 0}
+		} else if t.ConvertibleTo(NullInt64Type) {
+			st = SQLType{BigInt, 0, 0}
+		} else if t.ConvertibleTo(NullBoolType) {
+			st = SQLType{Boolean, 0, 0}
 		} else {
 			// TODO need to handle association struct
 			st = SQLType{Text, 0, 0}
@@ -344,24 +324,30 @@ func SQLType2Type(st SQLType) reflect.Type {
 	name := strings.ToUpper(st.Name)
 	switch name {
 	case Bit, TinyInt, SmallInt, MediumInt, Int, Integer, Serial:
-		return reflect.TypeOf(1)
+		return IntType
 	case BigInt, BigSerial:
-		return reflect.TypeOf(int64(1))
+		return Int64Type
 	case Float, Real:
-		return reflect.TypeOf(float32(1))
+		return Float32Type
 	case Double:
-		return reflect.TypeOf(float64(1))
+		return Float64Type
 	case Char, NChar, Varchar, NVarchar, TinyText, Text, NText, MediumText, LongText, Enum, Set, Uuid, Clob, SysName:
-		return reflect.TypeOf("")
+		return StringType
 	case TinyBlob, Blob, LongBlob, Bytea, Binary, MediumBlob, VarBinary, UniqueIdentifier:
-		return reflect.TypeOf([]byte{})
+		return BytesType
 	case Bool:
-		return reflect.TypeOf(true)
+		return BoolType
 	case DateTime, Date, Time, TimeStamp, TimeStampz, SmallDateTime, Year:
-		return reflect.TypeOf(timeDefault)
+		return TimeType
 	case Decimal, Numeric, Money, SmallMoney:
-		return reflect.TypeOf("")
+		return StringType
 	default:
-		return reflect.TypeOf("")
+		return StringType
 	}
+}
+
+// SQLTypeName returns sql type name
+func SQLTypeName(tp string) string {
+	fields := strings.Split(tp, "(")
+	return fields[0]
 }

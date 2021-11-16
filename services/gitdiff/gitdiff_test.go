@@ -13,9 +13,12 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
+
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
@@ -297,7 +300,7 @@ index 6961180..9ba1a00 100644
 				t.Errorf("ParsePatch(%q) error = %v, wantErr %v", testcase.name, err, testcase.wantErr)
 				return
 			}
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
+
 			gotMarshaled, _ := json.MarshalIndent(got, "", "  ")
 			if got.NumFiles != 1 {
 				t.Errorf("ParsePath(%q) did not receive 1 file:\n%s", testcase.name, string(gotMarshaled))
@@ -490,10 +493,10 @@ func setupDefaultDiff() *Diff {
 	}
 }
 func TestDiff_LoadComments(t *testing.T) {
-	assert.NoError(t, models.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := models.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	diff := setupDefaultDiff()
 	assert.NoError(t, diff.LoadComments(issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
@@ -513,9 +516,14 @@ func TestDiffLine_GetCommentSide(t *testing.T) {
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
+	gitRepo, err := git.OpenRepository("./testdata/academic-module")
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer gitRepo.Close()
 	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
-		diffs, err := GetDiffRangeWithWhitespaceBehavior("./testdata/academic-module", "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9",
-			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior)
+		diffs, err := GetDiffRangeWithWhitespaceBehavior(gitRepo, "559c156f8e0178b71cb44355428f24001b08fc68", "bd7063cc7c04689c4d082183d32a604ed27a24f9", "",
+			setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles, behavior, false)
 		assert.NoError(t, err, fmt.Sprintf("Error when diff with %s", behavior))
 		for _, f := range diffs.Files {
 			assert.True(t, len(f.Sections) > 0, fmt.Sprintf("%s should have sections", f.Name))
@@ -532,4 +540,23 @@ func TestDiffToHTML_14231(t *testing.T) {
 	output := diffToHTML("main.v", diffRecord, DiffLineAdd)
 
 	assertEqual(t, expected, output)
+}
+
+func TestNoCrashes(t *testing.T) {
+	type testcase struct {
+		gitdiff string
+	}
+
+	tests := []testcase{
+		{
+			gitdiff: "diff --git \n--- a\t\n",
+		},
+		{
+			gitdiff: "diff --git \"0\n",
+		},
+	}
+	for _, testcase := range tests {
+		// It shouldn't crash, so don't care about the output.
+		ParsePatch(setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(testcase.gitdiff))
+	}
 }

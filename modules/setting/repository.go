@@ -29,8 +29,6 @@ var (
 		DefaultPrivate                          string
 		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
-		MirrorQueueLength                       int
-		PullRequestQueueLength                  int
 		PreferredLicenses                       []string
 		DisableHTTPGit                          bool
 		AccessControlAllowOrigin                string
@@ -41,7 +39,6 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
-		DisableMirrors                          bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
@@ -87,7 +84,8 @@ var (
 		} `ini:"repository.issue"`
 
 		Release struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -142,8 +140,6 @@ var (
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
 		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
-		MirrorQueueLength:                       1000,
-		PullRequestQueueLength:                  1000,
 		PreferredLicenses:                       []string{"Apache License 2.0", "MIT License"},
 		DisableHTTPGit:                          false,
 		AccessControlAllowOrigin:                "",
@@ -154,7 +150,6 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
-		DisableMirrors:                          false,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
 		DefaultBranch:                           "master",
@@ -223,9 +218,11 @@ var (
 		},
 
 		Release: struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		}{
-			AllowedTypes: "",
+			AllowedTypes:     "",
+			DefaultPagingNum: 10,
 		},
 
 		// Signing settings

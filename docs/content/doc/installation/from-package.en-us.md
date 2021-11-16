@@ -43,6 +43,14 @@ Arch Linux ARM provides packages for [aarch64](https://archlinuxarm.org/packages
 pacman -S gitea
 ```
 
+## Canonical Snap
+
+There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version.
+
+``sh
+snap install gitea
+``
+
 ## SUSE and openSUSE
 
 OpenSUSE build service provides packages for [openSUSE and SLE](https://software.opensuse.org/download/package?package=gitea&project=devel%3Atools%3Ascm) 

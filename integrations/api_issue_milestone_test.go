@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -18,9 +19,9 @@ import (
 func TestAPIIssuesMilestone(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	milestone := models.AssertExistsAndLoadBean(t, &models.Milestone{ID: 1}).(*models.Milestone)
-	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: milestone.RepoID}).(*models.Repository)
-	owner := models.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	milestone := unittest.AssertExistsAndLoadBean(t, &models.Milestone{ID: 1}).(*models.Milestone)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: milestone.RepoID}).(*models.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 	assert.Equal(t, int64(1), int64(milestone.NumIssues))
 	assert.Equal(t, structs.StateOpen, milestone.State())
 

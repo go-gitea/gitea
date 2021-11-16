@@ -6,9 +6,9 @@ package org
 
 import (
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -51,8 +51,8 @@ func Home(ctx *context.Context) {
 	}
 
 	var orderBy models.SearchOrderBy
-	ctx.Data["SortType"] = ctx.Query("sort")
-	switch ctx.Query("sort") {
+	ctx.Data["SortType"] = ctx.FormString("sort")
+	switch ctx.FormString("sort") {
 	case "newest":
 		orderBy = models.SearchOrderByNewest
 	case "oldest":
@@ -78,10 +78,10 @@ func Home(ctx *context.Context) {
 		orderBy = models.SearchOrderByRecentUpdated
 	}
 
-	keyword := strings.Trim(ctx.Query("q"), " ")
+	keyword := ctx.FormTrim("q")
 	ctx.Data["Keyword"] = keyword
 
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
@@ -92,7 +92,7 @@ func Home(ctx *context.Context) {
 		err   error
 	)
 	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
-		ListOptions: models.ListOptions{
+		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		},
@@ -108,10 +108,10 @@ func Home(ctx *context.Context) {
 		return
 	}
 
-	var opts = models.FindOrgMembersOpts{
+	var opts = &models.FindOrgMembersOpts{
 		OrgID:       org.ID,
 		PublicOnly:  true,
-		ListOptions: models.ListOptions{Page: 1, PageSize: 25},
+		ListOptions: db.ListOptions{Page: 1, PageSize: 25},
 	}
 
 	if ctx.User != nil {
@@ -123,7 +123,7 @@ func Home(ctx *context.Context) {
 		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
 	}
 
-	members, _, err := models.FindOrgMembers(&opts)
+	members, _, err := models.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("FindOrgMembers", err)
 		return
@@ -142,7 +142,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = org.Teams
 
-	ctx.Data["DisabledMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
