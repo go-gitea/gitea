@@ -109,7 +109,9 @@ export function initRepoEditor() {
         value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            $(`<span class="section"><a href="#">${encodeURIComponent(value)}</a></span>`).insertBefore($(this));
+            const $span = $(`<span class="section"><a href="#"></a></span>`);
+            $span.find('a').text(value);
+            $span.insertBefore($(this));
             $('<div class="divider"> / </div>').insertBefore($(this));
           }
         } else {
