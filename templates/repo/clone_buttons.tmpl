@@ -14,7 +14,7 @@
 	<input id="repo-clone-url" value="{{if $.PageIsWiki}}{{$.WikiCloneLink.SSH}}{{else}}{{$.CloneLink.SSH}}{{end}}" readonly>
 {{end}}
 {{if or (not $.DisableHTTP) (and (not $.DisableSSH) (or $.IsSigned $.ExposeAnonSSH))}}
-	<button class="ui basic icon button poping up" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
+	<button class="ui basic icon button popping up" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
 		{{svg "octicon-paste"}}
 	</button>
 {{end}}

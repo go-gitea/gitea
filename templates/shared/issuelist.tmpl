@@ -79,7 +79,7 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date poping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-variation="tiny inverted" data-position="right center">
+						<span class="due-date popping up" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-position="right center">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "mr-2"}}
 								{{.DeadlineUnix.FormatShort}}
@@ -126,7 +126,7 @@
 				</div>
 				<div class="issue-item-icon-right text grey">
 					{{range .Assignees}}
-						<a class="ui assignee poping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-variation="inverted" data-position="left center">
+						<a class="ui assignee popping up" href="{{.HomeLink}}" data-content="{{.GetDisplayName}}" data-position="left center">
 							{{avatar .}}
 						</a>
 					{{end}}

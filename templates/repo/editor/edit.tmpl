@@ -17,7 +17,7 @@
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
 								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
-								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info"}}</span>
+								<span class="popping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center">{{svg "octicon-info"}}</span>
 							{{else}}
 								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 							{{end}}

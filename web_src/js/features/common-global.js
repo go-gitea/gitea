@@ -62,7 +62,7 @@ export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
-      .addClass('poping up')
+      .addClass('popping up')
       .attr('data-content', $(this).attr('title'))
       .attr('data-variation', 'inverted tiny')
       .attr('title', '');
@@ -88,7 +88,7 @@ export function initGlobalCommon() {
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
-      $('.poping.up').popup('hide');
+      $('.popping.up').popup('hide');
     },
     fullTextSearch: 'exact'
   });
@@ -104,8 +104,18 @@ export function initGlobalCommon() {
   $('.ui.progress').progress({
     showActivity: false
   });
-  $('.poping.up').attr('data-variation', 'inverted tiny').popup();
-  $('.top.menu .poping.up').popup({
+
+  // init popups
+  for (const el of document.querySelectorAll('.popping.up')) {
+    const attr = el.getAttribute('data-variation');
+    const variations = new Set(attr ? attr.split(' ') : undefined);
+    variations.add('tiny');
+    variations.add('inverted');
+    el.setAttribute('data-variation', [...variations].join(' '));
+    $(el).popup();
+  }
+
+  $('.top.menu .popping.up').popup({
     onShow() {
       if ($('.top.menu .menu.transition').hasClass('visible')) {
         return false;
