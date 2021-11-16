@@ -14,6 +14,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -116,7 +118,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
 
-		if err = createDelegateHooks(repoPath); err != nil {
+		if err = repo_module.CreateDelegateHooks(repoPath); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 		return nil
@@ -135,6 +137,8 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 	if err := models.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed")
 	}
+
+	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
 
 	return repo, nil
 }
