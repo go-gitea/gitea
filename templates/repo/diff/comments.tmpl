@@ -18,11 +18,11 @@
 						{{ .OriginalAuthor }}
 					</span>
 					<span class="text grey">
-						{{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 					<span class="text migrate">
 						{{if $.root.Repository.OriginalURL}}
-							({{$.root.i18n.Tr "repo.migrated_from" $.root.Repository.OriginalURL $.root.Repository.GetOriginalURLHostname | Safe }})
+							({{$.root.i18n.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe }})
 						{{end}}
 					</span>
 				{{else}}
@@ -30,7 +30,7 @@
 						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 							{{.Poster.GetDisplayName}}
 						</a>
-						{{$.root.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
 			</div>

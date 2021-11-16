@@ -5,6 +5,7 @@
 package convert
 
 import (
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -126,7 +127,7 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, _ := commit.ParentID(i)
 		apiParents[i] = &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + sha.String(),
+			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
 			SHA: sha.String(),
 		}
 	}
@@ -147,13 +148,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 
 	return &api.Commit{
 		CommitMeta: &api.CommitMeta{
-			URL:     repo.APIURL() + "/git/commits/" + commit.ID.String(),
+			URL:     repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
 			SHA:     commit.ID.String(),
 			Created: commit.Committer.When,
 		},
-		HTMLURL: repo.HTMLURL() + "/commit/" + commit.ID.String(),
+		HTMLURL: repo.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
 		RepoCommit: &api.RepoCommit{
-			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
+			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
 			Author: &api.CommitUser{
 				Identity: api.Identity{
 					Name:  commit.Author.Name,
@@ -170,7 +171,7 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 			},
 			Message: commit.Message(),
 			Tree: &api.CommitMeta{
-				URL:     repo.APIURL() + "/git/trees/" + commit.ID.String(),
+				URL:     repo.APIURL() + "/git/trees/" + url.PathEscape(commit.ID.String()),
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},

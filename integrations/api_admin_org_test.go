@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +43,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 		assert.Equal(t, org.Location, apiOrg.Location)
 		assert.Equal(t, org.Visibility, apiOrg.Visibility)
 
-		db.AssertExistsAndLoadBean(t, &models.User{
+		unittest.AssertExistsAndLoadBean(t, &models.User{
 			Name:      org.UserName,
 			LowerName: strings.ToLower(org.UserName),
 			FullName:  org.FullName,

@@ -7,7 +7,7 @@
 			<h2>{{.i18n.Tr "repo.wiki.welcome"}}</h2>
 			<p>{{.i18n.Tr "repo.wiki.welcome_desc"}}</p>
 			{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-				<a class="ui green button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.create_first_page"}}</a>
+				<a class="ui green button" href="{{.RepoLink}}/wiki?action=_new">{{.i18n.Tr "repo.wiki.create_first_page"}}</a>
 			{{end}}
 		</div>
 	</div>
