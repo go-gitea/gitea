@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 
 	"github.com/stretchr/testify/assert"
 )

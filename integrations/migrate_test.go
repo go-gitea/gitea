@@ -8,11 +8,15 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models"
+<<<<<<< HEAD
 	"code.gitea.io/gitea/modules/migrations"
+=======
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+>>>>>>> 376f01539 (Fix imports)
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
 )
