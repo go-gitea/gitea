@@ -604,7 +604,7 @@ func GetContentsList(ctx *context.APIContext) {
 func GetFileHistory(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/git/history/{filepath} repository repoGetFileHistory
 	// ---
-	// summary: Get a file's or directory's commit history
+	// summary: Get the commit history of a file or directory
 	// produces:
 	// - application/json
 	// parameters:
