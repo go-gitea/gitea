@@ -108,7 +108,7 @@ func newMailService() {
 			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %v", MailService.EnvelopeFrom, err)
 		}
 		MailService.OverrideEnvelopeFrom = true
-		MailService.EnvelopeFrom = parsed.String()
+		MailService.EnvelopeFrom = parsed.Address
 	}
 
 	if MailService.MailerType == "" {
