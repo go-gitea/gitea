@@ -177,6 +177,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	return nil
 }
 
+// Note: The output of this method must get sanitized.
 func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
 	defer func() {
 		err := recover()
@@ -264,10 +265,7 @@ func RenderRaw(ctx *markup.RenderContext, input io.Reader, output io.Writer) err
 		_ = wr.Close()
 	}()
 
-	buf := markup.SanitizeReader(rd, "")
-	_, err := io.Copy(output, buf)
-
-	return err
+	return markup.SanitizeReader(rd, "", output)
 }
 
 // RenderRawString renders Markdown to HTML without handling special links and return string
