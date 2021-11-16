@@ -381,10 +381,7 @@ async function onEditContent(event) {
         const $content = $segment;
         if (!$content.find('.dropzone-attachments').length) {
           if (data.attachments !== '') {
-            $content.append(`
-                  <div class="dropzone-attachments">
-                  </div>
-                `);
+            $content.append(`<div class="dropzone-attachments"></div>`);
             $content.find('.dropzone-attachments').replaceWith(data.attachments);
           }
         } else if (data.attachments === '') {
