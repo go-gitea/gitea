@@ -129,7 +129,7 @@ func init() {
 		pr := reflectionWrap(bean)
 		issueRow := AssertExistsAndLoadMap(t, "issue", builder.Eq{"id": pr.int("IssueID")})
 		assert.True(t, parseBool(issueRow["is_pull"]))
-		assert.EqualValues(t, parseInt(issueRow["Index"]), pr.int("Index"))
+		assert.EqualValues(t, parseInt(issueRow["index"]), pr.int("Index"))
 	}
 
 	checkForMilestoneConsistency := func(t assert.TestingT, bean interface{}) {
