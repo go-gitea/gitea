@@ -10,7 +10,7 @@
 					{{else}}
 						{{template "repo/icon" .}}
 					{{end}}
-					<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
 					<div class="labels df ac fw">
@@ -37,8 +37,8 @@
 					</div>
 				</div>
 				{{if .IsMirror}}<div class="fork-flag">{{$.i18n.Tr "repo.mirror_from"}} <a target="_blank" rel="noopener noreferrer" href="{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{(MirrorRemoteAddress $.Mirror).Address}}{{end}}">{{if .SanitizedOriginalURL}}{{.SanitizedOriginalURL}}{{else}}{{(MirrorRemoteAddress $.Mirror).Address}}{{end}}</a></div>{{end}}
-				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{SubStr .BaseRepo.RelLink 1 -1}}</a></div>{{end}}
-				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{SubStr .TemplateRepo.RelLink 1 -1}}</a></div>{{end}}
+				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
+				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{.TemplateRepo.FullName}}</a></div>{{end}}
 			</div>
 			{{if not .IsBeingCreated}}
 				<div class="repo-buttons">
@@ -103,7 +103,7 @@
 		{{if not .Repository.IsBeingCreated}}
 			<div class="ui tabular stackable menu navbar">
 				{{if .Permission.CanRead $.UnitTypeCode}}
-				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL | EscapePound}}{{end}}">
+				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
 					{{svg "octicon-code"}} {{.i18n.Tr "repo.code"}}
 				</a>
 				{{end}}
