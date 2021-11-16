@@ -183,9 +183,9 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// load comments that are not code comments
-	issue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	// make request
 	session := loginUser(t, repoOwner.Name)
@@ -197,6 +197,6 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	// lists extracted directly from DB are the same
 	var comments []*api.TimelineComment
 	DecodeJSON(t, resp, &comments)
-	expectedCount := db.GetCount(t, &models.Comment{IssueID: issue.ID})
+	expectedCount := unittest.GetCount(t, &models.Comment{IssueID: issue.ID})
 	assert.EqualValues(t, expectedCount, len(comments))
 }
