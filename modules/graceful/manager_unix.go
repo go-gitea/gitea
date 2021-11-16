@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 // Copyright 2019 The Gitea Authors. All rights reserved.

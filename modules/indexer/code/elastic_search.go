@@ -83,7 +83,10 @@ func NewElasticSearchIndexer(url, indexerName string) (*ElasticSearchIndexer, bo
 		indexerAliasName: indexerName,
 	}
 	exists, err := indexer.init()
-
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, !exists, err
 }
 
