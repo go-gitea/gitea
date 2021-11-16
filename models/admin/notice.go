@@ -1,11 +1,11 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package admin
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -44,10 +44,11 @@ func (n *Notice) TrStr() string {
 
 // CreateNotice creates new system notice.
 func CreateNotice(tp NoticeType, desc string, args ...interface{}) error {
-	return createNotice(db.GetEngine(db.DefaultContext), tp, desc, args...)
+	return CreateNoticeCtx(db.DefaultContext, tp, desc, args...)
 }
 
-func createNotice(e db.Engine, tp NoticeType, desc string, args ...interface{}) error {
+// CreateNoticeCtx creates new system notice.
+func CreateNoticeCtx(ctx context.Context, tp NoticeType, desc string, args ...interface{}) error {
 	if len(args) > 0 {
 		desc = fmt.Sprintf(desc, args...)
 	}
@@ -55,42 +56,43 @@ func createNotice(e db.Engine, tp NoticeType, desc string, args ...interface{}) 
 		Type:        tp,
 		Description: desc,
 	}
-	_, err := e.Insert(n)
-	return err
+	return db.Insert(ctx, n)
 }
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string, args ...interface{}) error {
-	return createNotice(db.GetEngine(db.DefaultContext), NoticeRepository, desc, args...)
+	return CreateNoticeCtx(db.DefaultContext, NoticeRepository, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
 // creates a system notice when error occurs.
 func RemoveAllWithNotice(title, path string) {
-	removeAllWithNotice(db.GetEngine(db.DefaultContext), title, path)
+	RemoveAllWithNoticeCtx(db.DefaultContext, title, path)
 }
 
 // RemoveStorageWithNotice removes a file from the storage and
 // creates a system notice when error occurs.
 func RemoveStorageWithNotice(bucket storage.ObjectStorage, title, path string) {
-	removeStorageWithNotice(db.GetEngine(db.DefaultContext), bucket, title, path)
+	removeStorageWithNotice(db.DefaultContext, bucket, title, path)
 }
 
-func removeStorageWithNotice(e db.Engine, bucket storage.ObjectStorage, title, path string) {
+func removeStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, title, path string) {
 	if err := bucket.Delete(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = createNotice(e, NoticeRepository, desc); err != nil {
+		if err = CreateNoticeCtx(ctx, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
 }
 
-func removeAllWithNotice(e db.Engine, title, path string) {
+// RemoveAllWithNoticeCtx removes all directories in given path and
+// creates a system notice when error occurs.
+func RemoveAllWithNoticeCtx(ctx context.Context, title, path string) {
 	if err := util.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = createNotice(e, NoticeRepository, desc); err != nil {
+		if err = CreateNoticeCtx(ctx, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -141,17 +143,4 @@ func DeleteNoticesByIDs(ids []int64) error {
 		In("id", ids).
 		Delete(new(Notice))
 	return err
-}
-
-// GetAdminUser returns the first administrator
-func GetAdminUser() (*User, error) {
-	var admin User
-	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{}
-	}
-
-	return &admin, nil
 }
