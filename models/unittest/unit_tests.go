@@ -134,6 +134,6 @@ func GetCountByCond(t assert.TestingT, tableName string, cond builder.Cond) int6
 
 // AssertCountByCond test the count of database entries matching bean
 func AssertCountByCond(t assert.TestingT, tableName string, cond builder.Cond, expected int) {
-	assert.EqualValues(t, expected, GetCount(t, db.GetEngine(db.DefaultContext), tableName, cond),
+	assert.EqualValues(t, expected, GetCountByCond(t, tableName, cond),
 		"Failed consistency test, the counted bean (of table %s) was %+v", tableName, cond)
 }
