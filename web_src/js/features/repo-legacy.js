@@ -323,9 +323,7 @@ async function onEditContent(event) {
                 dz.emit('thumbnail', this, imgSrc);
                 dz.emit('complete', this);
                 dz.files.push(this);
-                fileUuidDict[this.uuid] = {
-                  submitted: true,
-                };
+                fileUuidDict[this.uuid] = {submitted: true};
                 $dropzone.find(`img[src='${imgSrc}']`).css('max-width', '100%');
                 const input = $(`<input id="${this.uuid}" name="files" type="hidden">`).val(this.uuid);
                 $dropzone.find('.files').append(input);
