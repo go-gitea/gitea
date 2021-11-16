@@ -332,20 +332,16 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export function updateIssuesMeta(url, action, issueIds, elementId) {
-  return new Promise((resolve, reject) => {
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrfToken,
-        action,
-        issue_ids: issueIds,
-        id: elementId,
-      },
-      success: resolve,
-      error: reject,
-    });
+export async function updateIssuesMeta(url, action, issueIds, elementId) {
+  return $.ajax({
+    type: 'POST',
+    url,
+    data: {
+      _csrf: csrfToken,
+      action,
+      issue_ids: issueIds,
+      id: elementId,
+    },
   });
 }
 

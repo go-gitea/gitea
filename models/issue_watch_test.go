@@ -16,11 +16,11 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	assert.NoError(t, CreateOrUpdateIssueWatch(3, 1, true))
-	iw := db.AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
+	iw := unittest.AssertExistsAndLoadBean(t, &IssueWatch{UserID: 3, IssueID: 1}).(*IssueWatch)
 	assert.True(t, iw.IsWatching)
 
 	assert.NoError(t, CreateOrUpdateIssueWatch(1, 1, false))
-	iw = db.AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
+	iw = unittest.AssertExistsAndLoadBean(t, &IssueWatch{UserID: 1, IssueID: 1}).(*IssueWatch)
 	assert.False(t, iw.IsWatching)
 }
 
