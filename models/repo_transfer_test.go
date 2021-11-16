@@ -7,7 +7,6 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
@@ -15,8 +14,8 @@ import (
 func TestRepositoryTransfer(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := db.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	doer := unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 
 	transfer, err := GetPendingRepositoryTransfer(repo)
 	assert.NoError(t, err)
@@ -30,7 +29,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.Nil(t, transfer)
 	assert.True(t, IsErrNoPendingTransfer(err))
 
-	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	assert.NoError(t, CreatePendingRepositoryTransfer(doer, user2, repo.ID, nil))
 
@@ -39,7 +38,7 @@ func TestRepositoryTransfer(t *testing.T) {
 	assert.NoError(t, transfer.LoadAttributes())
 	assert.Equal(t, "user2", transfer.Recipient.Name)
 
-	user6 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user6 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	// Only transfer can be started at any given time
 	err = CreatePendingRepositoryTransfer(doer, user6, repo.ID, nil)

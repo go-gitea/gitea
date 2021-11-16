@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/packages/rubygems"
 
 	"github.com/stretchr/testify/assert"
@@ -22,7 +23,7 @@ import (
 
 func TestPackageRubyGems(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	packageName := "gitea"
 	packageVersion := "1.0.5"

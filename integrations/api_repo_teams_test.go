@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -20,9 +20,9 @@ func TestAPIRepoTeams(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// publicOrgRepo = user3/repo21
-	publicOrgRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 32}).(*models.Repository)
+	publicOrgRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 32}).(*models.Repository)
 	// user4
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -62,7 +62,7 @@ func TestAPIRepoTeams(t *testing.T) {
 	res = session.MakeRequest(t, req, http.StatusForbidden)
 
 	// AddTeam with user2
-	user = db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user = unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session = loginUser(t, user.Name)
 	token = getTokenForLoggedInUser(t, session)
 	url = fmt.Sprintf("/api/v1/repos/%s/teams/%s?token=%s", publicOrgRepo.FullName(), "team1", token)

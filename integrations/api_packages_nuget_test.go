@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/unittest"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/packages/nuget"
@@ -25,7 +26,7 @@ import (
 
 func TestPackageNuGet(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	packageName := "test.package"
 	packageVersion := "1.0.3"
