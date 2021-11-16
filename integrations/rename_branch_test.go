@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -39,6 +39,6 @@ func TestRenameBranch(t *testing.T) {
 	assert.Equal(t, "/user2/repo1/src/branch/main/README.md", location)
 
 	// check db
-	repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	assert.Equal(t, "main", repo1.DefaultBranch)
 }

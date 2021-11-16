@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	migration "code.gitea.io/gitea/modules/migrations/base"
 	"code.gitea.io/gitea/modules/repository"
@@ -22,8 +22,8 @@ import (
 func TestMirrorPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repoPath := models.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
