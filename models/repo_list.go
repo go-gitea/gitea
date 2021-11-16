@@ -12,7 +12,10 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+<<<<<<< HEAD
 	user_model "code.gitea.io/gitea/models/user"
+=======
+>>>>>>> f548ff512 (Fix test)
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -275,13 +278,13 @@ func userOrgTeamRepoBuilder(userID int64) *builder.Builder {
 		Where(builder.Eq{"`team_user`.uid": userID})
 }
 
-func userOrgTeamUnitRepoBuilder(userID int64, unitType UnitType) *builder.Builder {
+func userOrgTeamUnitRepoBuilder(userID int64, unitType unit.Type) *builder.Builder {
 	return userOrgTeamRepoBuilder(userID).
 		Join("INNER", "team_unit", "`team_unit`.team_id = `team_repo`.team_id").
 		Where(builder.Eq{"`team_unit`.`type`": unitType})
 }
 
-func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType UnitType) builder.Cond {
+func userOrgUnitRepoCond(idStr string, userID, orgID int64, unitType unit.Type) builder.Cond {
 	return builder.In(idStr,
 		userOrgTeamUnitRepoBuilder(userID, unitType).
 			And(builder.Eq{"org_id": orgID}),

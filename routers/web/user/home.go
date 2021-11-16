@@ -411,7 +411,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		team = ctx.Org.Team
 	}
 
-	isPullList := unitType == models.UnitTypePullRequests
+	isPullList := unitType == unit.TypePullRequests
 	opts := &models.IssuesOptions{
 		IsPull:     util.OptionalBoolOf(isPullList),
 		SortType:   sortType,
