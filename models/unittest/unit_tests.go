@@ -125,7 +125,8 @@ func AssertInt64InRange(t assert.TestingT, low, high, value int64) {
 }
 
 // GetCountByCond get the count of database entries matching bean
-func GetCountByCond(t assert.TestingT, e db.Engine, tableName string, cond builder.Cond) int64 {
+func GetCountByCond(t assert.TestingT, tableName string, cond builder.Cond) int64 {
+	e := db.GetEngine(db.DefaultContext)
 	count, err := e.Table(tableName).Where(cond).Count()
 	assert.NoError(t, err)
 	return count
