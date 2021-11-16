@@ -6,7 +6,6 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -188,7 +187,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 func prepareUserInfo(ctx *context.Context) *models.User {
