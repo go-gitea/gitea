@@ -134,7 +134,8 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 }
 
 func TestGetFileHistory(t *testing.T) {
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	defer prepareTestEnv(t)()
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
