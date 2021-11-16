@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -19,9 +19,9 @@ import (
 
 func TestAPIPullReview(t *testing.T) {
 	defer prepareTestEnv(t)()
-	pullIssue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes())
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
 
 	// test ListPullReviews
 	session := loginUser(t, "user2")
@@ -63,7 +63,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, *reviews[5], review)
 
 	// test GetPullReviewComments
-	comment := db.AssertExistsAndLoadBean(t, &models.Comment{ID: 7}).(*models.Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 7}).(*models.Comment)
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, 10, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var reviewComments []*api.PullReviewComment
@@ -196,9 +196,9 @@ func TestAPIPullReview(t *testing.T) {
 
 	// test get review requests
 	// to make it simple, use same api with get review
-	pullIssue12 := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
 	assert.NoError(t, pullIssue12.LoadAttributes())
-	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
 
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
@@ -220,9 +220,9 @@ func TestAPIPullReview(t *testing.T) {
 
 func TestAPIPullReviewRequest(t *testing.T) {
 	defer prepareTestEnv(t)()
-	pullIssue := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes())
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.RepoID}).(*models.Repository)
 
 	// Test add Review Request
 	session := loginUser(t, "user2")
@@ -265,9 +265,9 @@ func TestAPIPullReviewRequest(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test team review request
-	pullIssue12 := db.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
+	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 12}).(*models.Issue)
 	assert.NoError(t, pullIssue12.LoadAttributes())
-	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue12.RepoID}).(*models.Repository)
 
 	// Test add Team Review Request
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/requested_reviewers?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token), &api.PullReviewRequestOptions{

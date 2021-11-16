@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -18,13 +17,13 @@ import (
 func TestUser_ToUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := db.AssertExistsAndLoadBean(t, &models.User{ID: 1, IsAdmin: true}).(*models.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1, IsAdmin: true}).(*models.User)
 
 	apiUser := toUser(user1, true, true)
 	assert.True(t, apiUser.IsAdmin)
 	assert.Contains(t, apiUser.AvatarURL, "://")
 
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2, IsAdmin: false}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2, IsAdmin: false}).(*models.User)
 
 	apiUser = toUser(user2, true, true)
 	assert.False(t, apiUser.IsAdmin)
@@ -33,7 +32,7 @@ func TestUser_ToUser(t *testing.T) {
 	assert.False(t, apiUser.IsAdmin)
 	assert.EqualValues(t, api.VisibleTypePublic.String(), apiUser.Visibility)
 
-	user31 := db.AssertExistsAndLoadBean(t, &models.User{ID: 31, IsAdmin: false, Visibility: api.VisibleTypePrivate}).(*models.User)
+	user31 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 31, IsAdmin: false, Visibility: api.VisibleTypePrivate}).(*models.User)
 
 	apiUser = toUser(user31, true, true)
 	assert.False(t, apiUser.IsAdmin)
