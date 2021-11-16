@@ -8,7 +8,8 @@ import (
 	"math"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/unittestbridge"
+
+	"github.com/stretchr/testify/assert"
 	"xorm.io/builder"
 )
 
@@ -47,79 +48,90 @@ func LoadBeanIfExists(bean interface{}, conditions ...interface{}) (bool, error)
 }
 
 // BeanExists for testing, check if a bean exists
-func BeanExists(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) bool {
-	ta := unittestbridge.NewAsserter(t)
+func BeanExists(t assert.TestingT, bean interface{}, conditions ...interface{}) bool {
 	exists, err := LoadBeanIfExists(bean, conditions...)
-	ta.NoError(err)
+	assert.NoError(t, err)
 	return exists
 }
 
 // AssertExistsAndLoadBean assert that a bean exists and load it from the test database
-func AssertExistsAndLoadBean(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) interface{} {
-	ta := unittestbridge.NewAsserter(t)
+func AssertExistsAndLoadBean(t assert.TestingT, bean interface{}, conditions ...interface{}) interface{} {
 	exists, err := LoadBeanIfExists(bean, conditions...)
-	ta.NoError(err)
-	ta.True(exists,
+	assert.NoError(t, err)
+	assert.True(t, exists,
 		"Expected to find %+v (of type %T, with conditions %+v), but did not",
 		bean, bean, conditions)
 	return bean
 }
 
+// AssertExistsAndLoadMap assert that a row exists and load it from the test database
+func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...interface{}) map[string]string {
+	e := db.GetEngine(db.DefaultContext).Table(table)
+	res, err := whereConditions(e, conditions).Query()
+	assert.NoError(t, err)
+	assert.True(t, len(res) == 1,
+		"Expected to find one row in %s (with conditions %+v), but found %d",
+		table, conditions, len(res),
+	)
+
+	if len(res) == 1 {
+		rec := map[string]string{}
+		for k, v := range res[0] {
+			rec[k] = string(v)
+		}
+	}
+	return nil
+}
+
 // GetCount get the count of a bean
-func GetCount(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) int {
-	ta := unittestbridge.NewAsserter(t)
+func GetCount(t assert.TestingT, bean interface{}, conditions ...interface{}) int {
 	e := db.GetEngine(db.DefaultContext)
 	count, err := whereConditions(e, conditions).Count(bean)
-	ta.NoError(err)
+	assert.NoError(t, err)
 	return int(count)
 }
 
 // AssertNotExistsBean assert that a bean does not exist in the test database
-func AssertNotExistsBean(t unittestbridge.Tester, bean interface{}, conditions ...interface{}) {
-	ta := unittestbridge.NewAsserter(t)
+func AssertNotExistsBean(t assert.TestingT, bean interface{}, conditions ...interface{}) {
 	exists, err := LoadBeanIfExists(bean, conditions...)
-	ta.NoError(err)
-	ta.False(exists)
+	assert.NoError(t, err)
+	assert.False(t, exists)
 }
 
 // AssertExistsIf asserts that a bean exists or does not exist, depending on
 // what is expected.
-func AssertExistsIf(t unittestbridge.Tester, expected bool, bean interface{}, conditions ...interface{}) {
-	ta := unittestbridge.NewAsserter(t)
+func AssertExistsIf(t assert.TestingT, expected bool, bean interface{}, conditions ...interface{}) {
 	exists, err := LoadBeanIfExists(bean, conditions...)
-	ta.NoError(err)
-	ta.Equal(expected, exists)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, exists)
 }
 
 // AssertSuccessfulInsert assert that beans is successfully inserted
-func AssertSuccessfulInsert(t unittestbridge.Tester, beans ...interface{}) {
-	ta := unittestbridge.NewAsserter(t)
+func AssertSuccessfulInsert(t assert.TestingT, beans ...interface{}) {
 	err := db.Insert(db.DefaultContext, beans...)
-	ta.NoError(err)
+	assert.NoError(t, err)
 }
 
 // AssertCount assert the count of a bean
-func AssertCount(t unittestbridge.Tester, bean, expected interface{}) {
-	ta := unittestbridge.NewAsserter(t)
-	ta.EqualValues(expected, GetCount(ta, bean))
+func AssertCount(t assert.TestingT, bean, expected interface{}) {
+	assert.EqualValues(t, expected, GetCount(t, bean))
 }
 
 // AssertInt64InRange assert value is in range [low, high]
-func AssertInt64InRange(t unittestbridge.Tester, low, high, value int64) {
-	ta := unittestbridge.NewAsserter(t)
-	ta.True(value >= low && value <= high,
+func AssertInt64InRange(t assert.TestingT, low, high, value int64) {
+	assert.True(t, value >= low && value <= high,
 		"Expected value in range [%d, %d], found %d", low, high, value)
 }
 
 // GetCountByCond get the count of database entries matching bean
-func GetCountByCond(ta unittestbridge.Asserter, e db.Engine, tableName string, cond builder.Cond) int64 {
+func GetCountByCond(t assert.TestingT, e db.Engine, tableName string, cond builder.Cond) int64 {
 	count, err := e.Table(tableName).Where(cond).Count()
-	ta.NoError(err)
+	assert.NoError(t, err)
 	return count
 }
 
 // AssertCountByCond test the count of database entries matching bean
-func AssertCountByCond(ta unittestbridge.Asserter, tableName string, cond builder.Cond, expected int) {
-	ta.EqualValues(expected, GetCount(ta, db.GetEngine(db.DefaultContext), tableName, cond),
+func AssertCountByCond(t assert.TestingT, tableName string, cond builder.Cond, expected int) {
+	assert.EqualValues(t, expected, GetCount(t, db.GetEngine(db.DefaultContext), tableName, cond),
 		"Failed consistency test, the counted bean (of table %s) was %+v", tableName, cond)
 }

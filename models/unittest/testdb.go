@@ -42,7 +42,7 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	var err error
-	InitUnitTestBridge()
+
 	giteaRoot = pathToGiteaRoot
 	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
 
