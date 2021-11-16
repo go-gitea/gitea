@@ -7,6 +7,7 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -76,7 +77,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		// reset ctx.org.OrgLink with new name
-		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + form.Name
+		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
 		nameChanged = false
 	}

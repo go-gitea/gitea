@@ -244,7 +244,7 @@ func CreatePost(ctx *context.Context) {
 		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
+			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
@@ -263,7 +263,7 @@ func CreatePost(ctx *context.Context) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
+			ctx.Redirect(repo.Link())
 			return
 		}
 	}

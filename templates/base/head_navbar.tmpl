@@ -63,8 +63,7 @@
 		</div>
 	{{else if .IsSigned}}
 		<div class="right stackable menu">
-			{{$issueURL := Printf "%s/%s/issues/%d" AppSubUrl .ActiveStopwatch.RepoSlug .ActiveStopwatch.IssueIndex}}
-			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{$issueURL}}">
+			<a class="active-stopwatch-trigger item ui label {{if not .ActiveStopwatch}}hidden{{end}}" href="{{.ActiveStopwatch.IssueLink}}">
 				<span class="text">
 					<span class="fitted item">
 						{{svg "octicon-stopwatch"}}
@@ -75,14 +74,14 @@
 			</a>
 			<div class="ui popup very wide">
 				<div class="df ac">
-					<a class="stopwatch-link df ac" href="{{$issueURL}}">
+					<a class="stopwatch-link df ac" href="{{.ActiveStopwatch.IssueLink}}">
 						{{svg "octicon-issue-opened"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 						<span class="ui label blue stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
 							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
 						</span>
 					</a>
-					<form class="stopwatch-commit" method="POST" action="{{$issueURL}}/times/stopwatch/toggle">
+					<form class="stopwatch-commit" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
 							class="ui button mini compact basic icon fitted poping up"
@@ -90,7 +89,7 @@
 							data-position="top right" data-variation="small inverted"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
-					<form class="stopwatch-cancel" method="POST" action="{{$issueURL}}/times/stopwatch/cancel">
+					<form class="stopwatch-cancel" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
 							class="ui button mini compact basic icon fitted poping up"
@@ -149,12 +148,12 @@
 					</div>
 
 					<div class="divider"></div>
-					<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}">
+					<a class="item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
 						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					{{if not .DisableStars}}
-						<a class="item" href="{{AppSubUrl}}/{{.SignedUser.Name}}?tab=stars">
+						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}}
 							{{.i18n.Tr "your_starred"}}
 						</a>
