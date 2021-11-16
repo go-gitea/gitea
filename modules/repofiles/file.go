@@ -36,19 +36,19 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 	if commit == nil {
 		return nil, fmt.Errorf("commit cannot be nil")
 	}
-	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + commit.ID.String())
-	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + commit.Tree.ID.String())
+	commitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()))
+	commitTreeURL, _ := url.Parse(repo.APIURL() + "/git/trees/" + url.PathEscape(commit.Tree.ID.String()))
 	parents := make([]*api.CommitMeta, commit.ParentCount())
 	for i := 0; i <= commit.ParentCount(); i++ {
 		if parent, err := commit.Parent(i); err == nil && parent != nil {
-			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + parent.ID.String())
+			parentCommitURL, _ := url.Parse(repo.APIURL() + "/git/commits/" + url.PathEscape(parent.ID.String()))
 			parents[i] = &api.CommitMeta{
 				SHA: parent.ID.String(),
 				URL: parentCommitURL.String(),
 			}
 		}
 	}
-	commitHTMLURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + commit.ID.String())
+	commitHTMLURL, _ := url.Parse(repo.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()))
 	fileCommit := &api.FileCommitResponse{
 		CommitMeta: api.CommitMeta{
 			SHA: commit.ID.String(),

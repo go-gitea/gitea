@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -38,7 +37,7 @@ func TestInitializeLabels(t *testing.T) {
 	web.SetForm(ctx, &forms.InitializeLabelsForm{TemplateName: "Default"})
 	InitializeLabels(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-	db.AssertExistsAndLoadBean(t, &models.Label{
+	unittest.AssertExistsAndLoadBean(t, &models.Label{
 		RepoID: 2,
 		Name:   "enhancement",
 		Color:  "#84b6eb",
@@ -84,7 +83,7 @@ func TestNewLabel(t *testing.T) {
 	})
 	NewLabel(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-	db.AssertExistsAndLoadBean(t, &models.Label{
+	unittest.AssertExistsAndLoadBean(t, &models.Label{
 		Name:  "newlabel",
 		Color: "#abcdef",
 	})
@@ -103,7 +102,7 @@ func TestUpdateLabel(t *testing.T) {
 	})
 	UpdateLabel(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
-	db.AssertExistsAndLoadBean(t, &models.Label{
+	unittest.AssertExistsAndLoadBean(t, &models.Label{
 		ID:    2,
 		Name:  "newnameforlabel",
 		Color: "#abcdef",
@@ -119,8 +118,8 @@ func TestDeleteLabel(t *testing.T) {
 	ctx.Req.Form.Set("id", "2")
 	DeleteLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	db.AssertNotExistsBean(t, &models.Label{ID: 2})
-	db.AssertNotExistsBean(t, &models.IssueLabel{LabelID: 2})
+	unittest.AssertNotExistsBean(t, &models.Label{ID: 2})
+	unittest.AssertNotExistsBean(t, &models.IssueLabel{LabelID: 2})
 	assert.Equal(t, ctx.Tr("repo.issues.label_deletion_success"), ctx.Flash.SuccessMsg)
 }
 
@@ -133,9 +132,9 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 	ctx.Req.Form.Set("action", "clear")
 	UpdateIssueLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	db.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
-	db.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
-	models.CheckConsistencyFor(t, &models.Label{})
+	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
+	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
+	unittest.CheckConsistencyFor(t, &models.Label{})
 }
 
 func TestUpdateIssueLabel_Toggle(t *testing.T) {
@@ -160,11 +159,11 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		UpdateIssueLabel(ctx)
 		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 		for _, issueID := range testCase.IssueIDs {
-			db.AssertExistsIf(t, testCase.ExpectedAdd, &models.IssueLabel{
+			unittest.AssertExistsIf(t, testCase.ExpectedAdd, &models.IssueLabel{
 				IssueID: issueID,
 				LabelID: testCase.LabelID,
 			})
 		}
-		models.CheckConsistencyFor(t, &models.Label{})
+		unittest.CheckConsistencyFor(t, &models.Label{})
 	}
 }

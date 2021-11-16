@@ -5,11 +5,11 @@
 			{{if .Team.IsMember $.SignedUser.ID}}
 				<form>
 					<button class="ui red tiny button delete-button" data-modal-id="leave-team-sidebar"
-						data-url="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/leave" data-datauid="{{$.SignedUser.ID}}"
+						data-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/leave" data-datauid="{{$.SignedUser.ID}}"
 						data-name="{{.Team.Name}}">{{$.i18n.Tr "org.teams.leave"}}</button>
 				</form>
 			{{else if .IsOrganizationOwner}}
-				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName}}/action/join">
+				<form method="post" action="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/action/join">
 					{{$.CsrfTokenHtml}}
 					<input type="hidden" name="page" value="team"/>
 					<button type="submit" class="ui blue tiny button" name="uid" value="{{$.SignedUser.ID}}">{{$.i18n.Tr "org.teams.join"}}</button>
@@ -55,7 +55,7 @@
 	</div>
 	{{if .IsOrganizationOwner}}
 		<div class="ui bottom attached segment">
-			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName}}/edit">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
+			<a class="ui teal small button" href="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit">{{svg "octicon-gear"}} {{$.i18n.Tr "org.teams.settings"}}</a>
 		</div>
 	{{end}}
 </div>
