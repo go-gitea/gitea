@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -19,7 +19,7 @@ import (
 )
 
 func TestRepoEdit(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
@@ -60,13 +60,13 @@ func TestRepoEdit(t *testing.T) {
 	Edit(apiCtx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	db.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &models.Repository{
 		ID: 1,
-	}, db.Cond("name = ? AND is_archived = 1", *opts.Name))
+	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
 }
 
 func TestRepoEditNameChange(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
@@ -82,7 +82,7 @@ func TestRepoEditNameChange(t *testing.T) {
 	Edit(apiCtx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &models.Repository{
 		ID: 1,
-	}, db.Cond("name = ?", opts.Name))
+	}, unittest.Cond("name = ?", opts.Name))
 }

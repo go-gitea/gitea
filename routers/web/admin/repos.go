@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -95,7 +94,7 @@ func UnadoptedRepos(ctx *context.Context) {
 	}
 
 	ctx.Data["Keyword"] = q
-	repoNames, count, err := repository.ListUnadoptedRepositories(q, &opts)
+	repoNames, count, err := repo_service.ListUnadoptedRepositories(q, &opts)
 	if err != nil {
 		ctx.ServerError("ListUnadoptedRepositories", err)
 	}
@@ -147,7 +146,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
-		if _, err := repository.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 			Name:      dirSplit[1],
 			IsPrivate: true,
 		}); err != nil {
@@ -156,7 +155,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" {
-		if err := repository.DeleteUnadoptedRepository(ctx.User, ctxUser, dirSplit[1]); err != nil {
+		if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, dirSplit[1]); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}

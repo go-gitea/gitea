@@ -11,7 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/secret"
@@ -90,7 +90,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 
-	var task = models.Task{
+	var task = &models.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
@@ -98,7 +98,7 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		PayloadContent: string(bs),
 	}
 
-	if err := models.CreateTask(&task); err != nil {
+	if err := models.CreateTask(task); err != nil {
 		return nil, err
 	}
 
@@ -126,5 +126,5 @@ func CreateMigrateTask(doer, u *models.User, opts base.MigrateOptions) (*models.
 		return nil, err
 	}
 
-	return &task, nil
+	return task, nil
 }

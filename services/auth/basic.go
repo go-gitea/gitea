@@ -50,7 +50,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	auths := strings.SplitN(baHead, " ", 2)
-	if len(auths) != 2 || (auths[0] != "Basic" && auths[0] != "basic") {
+	if len(auths) != 2 || (strings.ToLower(auths[0]) != "basic") {
 		return nil
 	}
 
