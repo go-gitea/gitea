@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	_ "image/jpeg" // Needed for jpeg support
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -315,17 +316,17 @@ func (u *User) DashboardLink() string {
 
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
-	return setting.AppSubURL + "/" + u.Name
+	return setting.AppSubURL + "/" + url.PathEscape(u.Name)
 }
 
 // HTMLURL returns the user or organization's full link.
 func (u *User) HTMLURL() string {
-	return setting.AppURL + u.Name
+	return setting.AppURL + url.PathEscape(u.Name)
 }
 
 // OrganisationLink returns the organization sub page link.
 func (u *User) OrganisationLink() string {
-	return setting.AppSubURL + "/org/" + u.Name
+	return setting.AppSubURL + "/org/" + url.PathEscape(u.Name)
 }
 
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.

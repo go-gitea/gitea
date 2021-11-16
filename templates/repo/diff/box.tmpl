@@ -100,9 +100,9 @@
 							{{end}}
 							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 								{{if $file.IsDeleted}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.BeforeSourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+									<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{else}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{EscapePound $.SourcePath}}/{{EscapePound .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{end}}
 							{{end}}
 						</div>

@@ -58,7 +58,7 @@ func DeleteRepo(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/repos?page=" + ctx.FormString("page") + "&sort=" + ctx.FormString("sort"),
+		"redirect": setting.AppSubURL + "/admin/repos?page=" + url.QueryEscape(ctx.FormString("page")) + "&sort=" + url.QueryEscape(ctx.FormString("sort")),
 	})
 }
 
@@ -161,5 +161,5 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.delete_preexisting_success", dir))
 	}
-	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + page)
+	ctx.Redirect(setting.AppSubURL + "/admin/repos/unadopted?search=true&q=" + url.QueryEscape(q) + "&page=" + url.QueryEscape(page))
 }

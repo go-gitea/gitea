@@ -232,7 +232,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			}
 			if readmeFile != nil {
 				readmeFile.name = entry.Name() + "/" + readmeFile.name
-				readmeTreelink = treeLink + "/" + entry.GetSubJumpablePathName()
+				readmeTreelink = treeLink + "/" + util.PathEscapeSegments(entry.GetSubJumpablePathName())
 				break
 			}
 		}
@@ -301,7 +301,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					fileSize = meta.Size
 					ctx.Data["FileSize"] = meta.Size
 					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-					ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+					ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.HTMLURL(), url.PathEscape(meta.Oid), url.PathEscape(filenameBase64))
 				}
 			}
 		}
@@ -379,7 +379,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
+	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(dataRc, buf)
@@ -425,7 +425,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				isTextFile = st.IsText()
 
 				fileSize = meta.Size
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
+				ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 			}
 		}
 	}
@@ -641,7 +641,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		}
 
 		if firstUnit != nil {
-			ctx.Redirect(fmt.Sprintf("%s/%s%s", setting.AppSubURL, ctx.Repo.Repository.FullName(), firstUnit.URI))
+			ctx.Redirect(fmt.Sprintf("%s%s", ctx.Repo.Repository.Link(), firstUnit.URI))
 			return
 		}
 	}
@@ -697,7 +697,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + ctx.Repo.CommitID + "/" + ctx.Repo.TreePath
+	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -779,7 +779,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	treeLink := branchLink
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	ctx.Data["TreeLink"] = treeLink
@@ -828,7 +828,7 @@ func renderCode(ctx *context.Context) {
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	// Get Topics of this repo
