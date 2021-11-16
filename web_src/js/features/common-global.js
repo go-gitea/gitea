@@ -64,7 +64,6 @@ export function initGlobalCommon() {
     $(this)
       .addClass('popping up')
       .attr('data-content', $(this).attr('title'))
-      .attr('data-variation', 'inverted tiny')
       .attr('title', '');
   });
 
@@ -108,9 +107,8 @@ export function initGlobalCommon() {
   // init popups
   for (const el of document.querySelectorAll('.popping.up')) {
     const attr = el.getAttribute('data-variation');
-    const variations = new Set(attr ? attr.split(' ') : undefined);
-    variations.add('tiny');
-    variations.add('inverted');
+    const attrs = attr ? attr.split(' ') : [];
+    const variations = new Set([...attrs, 'inverted', 'tiny']);
     el.setAttribute('data-variation', [...variations].join(' '));
     $(el).popup();
   }
