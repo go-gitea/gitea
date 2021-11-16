@@ -13,6 +13,7 @@ import (
 	"context"
 	"io"
 	"math"
+	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
@@ -130,14 +131,20 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					sizes[language] += f.Size()
 					continue
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					// group languages, such as Pug -> HTML; SCSS -> CSS
-					group := enry.GetLanguageGroup(language)
-					if len(group) != 0 {
-						language = group
+					// strip off a ? if present
+					if idx := strings.IndexByte(language, '?'); idx >= 0 {
+						language = language[:idx]
 					}
+					if len(language) != 0 {
+						// group languages, such as Pug -> HTML; SCSS -> CSS
+						group := enry.GetLanguageGroup(language)
+						if len(group) != 0 {
+							language = group
+						}
 
-					sizes[language] += f.Size()
-					continue
+						sizes[language] += f.Size()
+						continue
+					}
 				}
 
 			}

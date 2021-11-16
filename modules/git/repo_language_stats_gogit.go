@@ -106,15 +106,20 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 					return nil
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
-					// group languages, such as Pug -> HTML; SCSS -> CSS
-					group := enry.GetLanguageGroup(language)
-					if len(group) != 0 {
-						language = group
+					// strip off a ? if present
+					if idx := strings.IndexByte(language, '?'); idx >= 0 {
+						language = language[:idx]
 					}
+					if len(language) != 0 {
+						// group languages, such as Pug -> HTML; SCSS -> CSS
+						group := enry.GetLanguageGroup(language)
+						if len(group) != 0 {
+							language = group
+						}
 
-					sizes[language] += f.Size
-
-					return nil
+						sizes[language] += f.Size()
+						continue
+					}
 				}
 			}
 		}

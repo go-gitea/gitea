@@ -71,6 +71,13 @@ func Code(fileName, language, code string) string {
 
 	if len(language) > 0 {
 		lexer = lexers.Get(language)
+
+		if lexer == nil {
+			// Attempt stripping off the '?'
+			if idx := strings.IndexByte(language, '?'); idx > 0 {
+				lexer = lexers.Get(language[:idx])
+			}
+		}
 	}
 
 	if lexer == nil {
