@@ -8,8 +8,9 @@ function displayError(el, err) {
   el.closest('pre').before(errorNode);
 }
 
-export async function renderMermaid(els) {
-  if (!els || !els.length) return;
+export async function renderMermaid() {
+  const els = document.querySelectorAll('.markup code.language-mermaid');
+  if (!els.length) return;
 
   const {default: mermaid} = await import(/* webpackChunkName: "mermaid" */'mermaid');
 
