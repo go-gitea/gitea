@@ -200,6 +200,21 @@ func (err ErrUserHasOrgs) Error() string {
 	return fmt.Sprintf("user still has membership of organizations [uid: %d]", err.UID)
 }
 
+// ErrUserOwnPackages represents a "UserOwnPackages" kind of error.
+type ErrUserOwnPackages struct {
+	UID int64
+}
+
+// IsErrUserOwnPackages checks if an error is an ErrUserOwnPackages.
+func IsErrUserOwnPackages(err error) bool {
+	_, ok := err.(ErrUserOwnPackages)
+	return ok
+}
+
+func (err ErrUserOwnPackages) Error() string {
+	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
+}
+
 // ErrUserNotAllowedCreateOrg represents a "UserNotAllowedCreateOrg" kind of error.
 type ErrUserNotAllowedCreateOrg struct{}
 

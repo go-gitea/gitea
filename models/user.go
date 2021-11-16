@@ -1166,6 +1166,15 @@ func deleteUser(e db.Engine, u *User) error {
 		return ErrUserHasOrgs{UID: u.ID}
 	}
 
+	// Check ownership of packages.
+	// TODO: SQL because of import cycle
+	count, err = e.Table("package").Where("owner_id = ?", u.ID).Count()
+	if err != nil {
+		return fmt.Errorf("Get Package Count: %v", err)
+	} else if count > 0 {
+		return ErrUserOwnPackages{UID: u.ID}
+	}
+
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
 	if err = e.Table("watch").Cols("watch.repo_id").
@@ -1365,7 +1374,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err erro
 		}
 		if err = DeleteUser(u); err != nil {
 			// Ignore users that were set inactive by admin.
-			if IsErrUserOwnRepos(err) || IsErrUserHasOrgs(err) {
+			if IsErrUserOwnRepos(err) || IsErrUserHasOrgs(err) || IsErrUserOwnPackages(err) {
 				continue
 			}
 			return err

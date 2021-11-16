@@ -167,6 +167,9 @@ func SettingsDelete(ctx *context.Context) {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
+			} else if models.IsErrUserOwnPackages(err) {
+				ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
+				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {
 				ctx.ServerError("DeleteOrganization", err)
 			}

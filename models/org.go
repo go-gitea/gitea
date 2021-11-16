@@ -268,7 +268,7 @@ func DeleteOrganization(org *User) (err error) {
 	}
 
 	if err = deleteOrg(sess, org); err != nil {
-		if IsErrUserOwnRepos(err) {
+		if IsErrUserOwnRepos(err) || IsErrUserOwnPackages(err) {
 			return err
 		} else if err != nil {
 			return fmt.Errorf("deleteOrg: %v", err)
@@ -285,6 +285,15 @@ func deleteOrg(e *xorm.Session, u *User) error {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {
 		return ErrUserOwnRepos{UID: u.ID}
+	}
+
+	// Check ownership of packages.
+	// TODO: SQL because of import cycle
+	count, err = e.Table("package").Where("owner_id = ?", u.ID).Count()
+	if err != nil {
+		return fmt.Errorf("Get Package Count: %v", err)
+	} else if count > 0 {
+		return ErrUserOwnPackages{UID: u.ID}
 	}
 
 	if err := deleteBeans(e,
