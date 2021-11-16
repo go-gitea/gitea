@@ -9,8 +9,7 @@ import (
 	"reflect"
 )
 
-func fieldByName(it interface{}, field string) reflect.Value {
-	v := reflect.ValueOf(it)
+func fieldByName(v reflect.Value, field string) reflect.Value {
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}

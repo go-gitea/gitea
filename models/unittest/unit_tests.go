@@ -79,6 +79,7 @@ func AssertExistsAndLoadMap(t assert.TestingT, table string, conditions ...inter
 		for k, v := range res[0] {
 			rec[k] = string(v)
 		}
+		return rec
 	}
 	return nil
 }
