@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -108,7 +109,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	cantSetUser := !ctx.User.IsAdmin &&
 		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {
@@ -527,7 +528,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 
 	cantSetUser := !ctx.User.IsAdmin &&
 		opts.UserID != ctx.User.ID &&
-		!ctx.IsUserRepoWriter([]models.UnitType{models.UnitTypeIssues})
+		!ctx.IsUserRepoWriter([]unit.Type{unit.TypeIssues})
 
 	if cantSetUser {
 		if opts.UserID == 0 {

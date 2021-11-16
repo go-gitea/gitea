@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
@@ -123,7 +123,7 @@ func (d *DingtalkPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader,
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, title string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -185,6 +185,6 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) *Dingtalk
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetDingtalkPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(DingtalkPayload), p, event)
 }

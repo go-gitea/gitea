@@ -581,7 +581,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
-- `ALLOWED_HOST_LIST`: **external**: Webhook can only call allowed hosts for security reasons. Comma separated list.
+- `ALLOWED_HOST_LIST`: **external**: Since 1.15.7. Default to `*` for 1.15.x, `external` for 1.16 and later. Webhook can only call allowed hosts for security reasons. Comma separated list.
   - Built-in networks:
     - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
     - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.

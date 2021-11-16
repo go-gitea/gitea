@@ -56,7 +56,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		// VisibleTypePrivate Visible only for organization's members
 		VisibleTypePrivate int = 2
 
-		// UnitTypeCode is unit type code
+		// unit.UnitTypeCode is unit type code
 		UnitTypeCode int = 1
 
 		// AccessModeNone no access

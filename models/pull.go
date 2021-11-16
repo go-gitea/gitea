@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -236,7 +237,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 	}
 
 	issueReference := "#"
-	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 		issueReference = "!"
 	}
 
@@ -338,7 +339,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
 	}
-	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
