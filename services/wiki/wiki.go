@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -374,6 +375,6 @@ func DeleteWiki(repo *models.Repository) error {
 		return err
 	}
 
-	models.RemoveAllWithNotice("Delete repository wiki", repo.WikiPath())
+	models.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	return nil
 }

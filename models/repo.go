@@ -132,7 +132,7 @@ func NewRepoContext() {
 	loadRepoConfig()
 	unit.LoadUnitConfig()
 
-	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
 // RepositoryStatus defines the status of repository
@@ -1647,36 +1647,36 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete repository files", repoPath)
+	RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete repository wiki", repo.WikiPath())
+		RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for i := range archivePaths {
-		removeStorageWithNotice(db.GetEngine(db.DefaultContext), storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+		RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
 	}
 
 	// Remove lfs objects
 	for i := range lfsPaths {
-		removeStorageWithNotice(db.GetEngine(db.DefaultContext), storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+		RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
 	}
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+		RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for i := range newAttachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1801,8 +1801,8 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(db.DefaultContext), u)
+func GetRepositoryCount(ctx context.Context, u *User) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), u)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
