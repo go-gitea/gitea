@@ -1,3 +1,4 @@
+import {htmlEscape} from 'escape-goat';
 import {initMarkupContent} from '../markup/content.js';
 import {createCodeEditor} from './codeeditor.js';
 
@@ -109,9 +110,7 @@ export function initRepoEditor() {
         value = parts[i];
         if (i < parts.length - 1) {
           if (value.length) {
-            const $span = $(`<span class="section"><a href="#"></a></span>`);
-            $span.find('a').text(value);
-            $span.insertBefore($(this));
+            $(`<span class="section"><a href="#">${htmlEscape(value)}</a></span>`).insertBefore($(this));
             $('<div class="divider"> / </div>').insertBefore($(this));
           }
         } else {
