@@ -65,7 +65,7 @@ func TestViewIssuesSortByType(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	session := loginUser(t, user.Name)
-	req := NewRequest(t, "GET", repo.RelLink()+"/issues?type=created_by")
+	req := NewRequest(t, "GET", repo.Link()+"/issues?type=created_by")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -97,7 +97,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 	issues.UpdateIssueIndexer(issue)
 	time.Sleep(time.Second * 1)
 	const keyword = "first"
-	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.RelLink(), keyword)
+	req := NewRequestf(t, "GET", "%s/issues?q=%s", repo.Link(), keyword)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)

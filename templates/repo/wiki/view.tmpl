@@ -37,7 +37,7 @@
 		<div class="ui dividing header">
 			<div class="ui stackable grid">
 				<div class="eight wide column">
-					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}/_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
+					<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.file_revision"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_revision" ><span>{{.CommitCount}}</span> {{svg "octicon-history"}}</a>
 					{{$title}}
 					<div class="ui sub header">
 						{{$timeSince := TimeSince .Author.When $.Lang}}
@@ -47,9 +47,9 @@
 				<div class="eight wide right aligned column">
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
 						<div class="ui right">
-							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}/_edit">{{.i18n.Tr "repo.wiki.edit_page_button"}}</a>
-							<a class="ui green small button" href="{{.RepoLink}}/wiki/_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
-							<a class="ui red small button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}/delete" data-id="{{.PageURL}}">{{.i18n.Tr "repo.wiki.delete_page_button"}}</a>
+							<a class="ui small button" href="{{.RepoLink}}/wiki/{{.PageURL}}?action=_edit">{{.i18n.Tr "repo.wiki.edit_page_button"}}</a>
+							<a class="ui green small button" href="{{.RepoLink}}/wiki?action=_new">{{.i18n.Tr "repo.wiki.new_page_button"}}</a>
+							<a class="ui red small button delete-button" href="" data-url="{{.RepoLink}}/wiki/{{.PageURL}}?action=_delete" data-id="{{.PageURL}}">{{.i18n.Tr "repo.wiki.delete_page_button"}}</a>
 						</div>
 					{{end}}
 				</div>
@@ -68,7 +68,7 @@
 			<div class="column" style="padding-top: 0;">
 				<div class="ui segment">
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 					{{end}}
 					{{.sidebarContent | Str2html}}
 				</div>
@@ -78,7 +78,7 @@
 		{{if .footerPresent}}
 		<div class="ui segment">
 				{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer/_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+					<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Footer?action=_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
 				{{end}}
 			{{.footerContent | Str2html}}
 		</div>
