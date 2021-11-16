@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package base
+package migration
 
 // Uploader uploads all the information of one repository
 type Uploader interface {

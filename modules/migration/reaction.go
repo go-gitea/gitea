@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package base
+package migration
 
 // Reaction represents a reaction to an issue/pr/comment.
 type Reaction struct {

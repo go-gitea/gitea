@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 
 	"gopkg.in/yaml.v2"
 )

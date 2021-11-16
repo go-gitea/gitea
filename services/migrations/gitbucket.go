@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
 )
 
