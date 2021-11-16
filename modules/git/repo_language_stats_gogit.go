@@ -50,7 +50,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		if err == nil {
 			defer deleteTemporaryFile()
 			checker = &CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
 				Repo:       repo,
 				IndexFile:  indexFilename,
 				WorkTree:   workTree,
@@ -96,6 +96,16 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					notGenerated = generated == "false"
 				}
 				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					// group languages, such as Pug -> HTML; SCSS -> CSS
+					group := enry.GetLanguageGroup(language)
+					if len(group) != 0 {
+						language = group
+					}
+
+					sizes[language] += f.Size
+
+					return nil
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					// group languages, such as Pug -> HTML; SCSS -> CSS
 					group := enry.GetLanguageGroup(language)
 					if len(group) != 0 {

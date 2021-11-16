@@ -986,7 +986,7 @@ If the rule is defined above the renderer ini section or the name does not match
 
 - `file_extension e.g. .toml`: **language e.g. ini**. File extension to language mapping overrides.
 
-- Gitea will highlight files using the `linguist-language` attribute from the `.gitattributes` file
+- Gitea will highlight files using the `linguist-language` or `gitlab-language` attribute from the `.gitattributes` file
 if available. If this is not set or the language is unavailable, the file extension will be looked up
 in this mapping or the filetype using heuristics.
 

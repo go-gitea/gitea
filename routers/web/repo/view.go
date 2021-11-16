@@ -511,7 +511,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 
 				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 					CachedOnly: true,
-					Attributes: []string{"linguist-language"},
+					Attributes: []string{"linguist-language", "gitlab-language"},
 					Filenames:  []string{ctx.Repo.TreePath},
 					IndexFile:  indexFilename,
 					WorkTree:   worktree,
@@ -521,6 +521,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 
 				language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
+				if language == "" || language == "unspecified" {
+					language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
+				}
+				if language == "unspecified" {
+					language = ""
+				}
 			}
 			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), language, buf)
 		}

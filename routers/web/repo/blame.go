@@ -211,7 +211,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 
 		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
 			CachedOnly: true,
-			Attributes: []string{"linguist-language"},
+			Attributes: []string{"linguist-language", "gitlab-language"},
 			Filenames:  []string{ctx.Repo.TreePath},
 			IndexFile:  indexFilename,
 			WorkTree:   worktree,
@@ -221,6 +221,12 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 		}
 
 		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
+		if language == "" || language == "unspecified" {
+			language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
+		}
+		if language == "unspecified" {
+			language = ""
+		}
 	}
 	var lines = make([]string, 0)
 	rows := make([]*blameRow, 0)

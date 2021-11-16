@@ -1313,7 +1313,7 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 			defer deleteTemporaryFile()
 
 			checker = &git.CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language"},
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
 				Repo:       gitRepo,
 				IndexFile:  indexFilename,
 				WorkTree:   worktree,
@@ -1359,7 +1359,9 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 						gotGenerated = generated == "false"
 					}
 				}
-				if language, has := attrs["linguist-language"]; has {
+				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					diffFile.Language = language
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					diffFile.Language = language
 				}
 			} else {

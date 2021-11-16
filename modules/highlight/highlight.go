@@ -146,7 +146,7 @@ func File(numLines int, fileName, language string, code []byte) []string {
 
 	var lexer chroma.Lexer
 
-	// linguist-language overrides everything
+	// provided language overrides everything
 	if len(language) > 0 {
 		lexer = lexers.Get(language)
 	}
