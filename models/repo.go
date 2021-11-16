@@ -1599,6 +1599,12 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
+	// Unlink packages
+	// TODO Currently raw sql because of import cycle
+	if _, err := sess.Exec("UPDATE `package` SET `repo_id` = 0 WHERE `repo_id` = ?", repo.ID); err != nil {
+		return err
+	}
+
 	// Remove archives
 	var archives []*RepoArchiver
 	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
