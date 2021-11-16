@@ -10,7 +10,8 @@ export function renderCodeCopy() {
 
   for (const el of els) {
     const btn = button.cloneNode(true);
-    btn.setAttribute('data-clipboard-text', el.textContent);
+    const code = (el.textContent || '').replace(/\r?\n$/, '');
+    btn.setAttribute('data-clipboard-text', code);
     el.after(btn);
   }
 }
