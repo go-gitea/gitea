@@ -9,7 +9,7 @@
 				{{template "org/team/navbar" .}}
 				{{if .IsOrganizationOwner}}
 					<div class="ui attached segment">
-						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/add" method="post">
+						<form class="ui form" id="add-member-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/add" method="post">
 							{{.CsrfTokenHtml}}
 							<input type="hidden" name="uid" value="{{.SignedUser.ID}}">
 							<div class="inline field ui left">
@@ -29,7 +29,7 @@
 							{{if and $.IsOrganizationOwner (not (eq $.SignedUser.ID .ID))}}
 								<form>
 									<button class="ui red button delete-button right" data-modal-id="remove-team-member"
-										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName}}/action/remove" data-datauid="{{.ID}}"
+										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
 										data-name="{{.DisplayName}}"
 										data-data-team-name="{{$.Team.Name}}">{{$.i18n.Tr "org.members.remove"}}</button>
 								</form>

@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -631,7 +631,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		pullNum := db.GetCount(t, &models.PullRequest{})
+		pullNum := unittest.GetCount(t, &models.PullRequest{})
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 
@@ -667,8 +667,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+1)
-			pr1 = db.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+1)
+			pr1 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Flow:       models.PullRequestFlowAGit,
 			}).(*models.PullRequest)
@@ -688,8 +688,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			pr2 = db.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			pr2 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
 				Flow:       models.PullRequestFlowAGit,
@@ -741,7 +741,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
@@ -753,7 +753,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return

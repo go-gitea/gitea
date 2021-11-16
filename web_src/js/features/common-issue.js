@@ -21,7 +21,7 @@ export function initCommonIssue() {
       elementId = '';
       action = 'clear';
     }
-    updateIssuesMeta(url, action, issueIDs, elementId, '').then(() => {
+    updateIssuesMeta(url, action, issueIDs, elementId).then(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {
         // uncheck all checkboxes

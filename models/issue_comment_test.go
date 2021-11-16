@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,9 +15,9 @@ import (
 func TestCreateComment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := db.AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
-	doer := db.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{}).(*Issue)
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: issue.RepoID}).(*Repository)
+	doer := unittest.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
 
 	now := time.Now().Unix()
 	comment, err := CreateComment(&CreateCommentOptions{
@@ -35,18 +34,18 @@ func TestCreateComment(t *testing.T) {
 	assert.EqualValues(t, "Hello", comment.Content)
 	assert.EqualValues(t, issue.ID, comment.IssueID)
 	assert.EqualValues(t, doer.ID, comment.PosterID)
-	db.AssertInt64InRange(t, now, then, int64(comment.CreatedUnix))
-	db.AssertExistsAndLoadBean(t, comment) // assert actually added to DB
+	unittest.AssertInt64InRange(t, now, then, int64(comment.CreatedUnix))
+	unittest.AssertExistsAndLoadBean(t, comment) // assert actually added to DB
 
-	updatedIssue := db.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
-	db.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
+	updatedIssue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue.ID}).(*Issue)
+	unittest.AssertInt64InRange(t, now, then, int64(updatedIssue.UpdatedUnix))
 }
 
 func TestFetchCodeComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := db.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	res, err := FetchCodeComments(issue, user)
 	assert.NoError(t, err)
 	assert.Contains(t, res, "README.md")
@@ -54,7 +53,7 @@ func TestFetchCodeComments(t *testing.T) {
 	assert.Len(t, res["README.md"][4], 1)
 	assert.Equal(t, int64(4), res["README.md"][4][0].ID)
 
-	user2 := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	res, err = FetchCodeComments(issue, user2)
 	assert.NoError(t, err)
 	assert.Len(t, res, 1)

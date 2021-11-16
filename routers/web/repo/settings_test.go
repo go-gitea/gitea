@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -59,7 +58,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
 		Mode:    models.AccessModeRead,
@@ -89,7 +88,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	DeployKeysPost(ctx)
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.DeployKey{
+	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
 		Mode:    models.AccessModeWrite,

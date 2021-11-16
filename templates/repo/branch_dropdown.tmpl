@@ -17,14 +17,14 @@
 		<div class="data" style="display: none" data-mode="{{if .root.IsViewTag}}tags{{else}}branches{{end}}">
 			{{if $showBranchesInDropdown}}
 				{{range .root.Branches}}
-					<div class="item branch {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}">{{.}}</div>
+					<div class="item branch {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/branch/{{PathEscapeSegments .}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}">{{.}}</div>
 				{{end}}
 			{{end}}
 			{{range .root.Tags}}
 				{{if $release}}
-					<div class="item tag {{if eq $release.TagName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/compare/{{EscapePound .}}...{{if $release.IsDraft}}{{EscapePound $release.Target}}{{else}}{{if $release.TagName}}{{EscapePound $release.TagName}}{{else}}{{EscapePound $release.Sha1}}{{end}}{{end}}">{{.}}</div>
+					<div class="item tag {{if eq $release.TagName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/compare/{{PathEscapeSegments .}}...{{if $release.IsDraft}}{{PathEscapeSegments $release.Target}}{{else}}{{if $release.TagName}}{{PathEscapeSegments $release.TagName}}{{else}}{{PathEscapeSegments $release.Sha1}}{{end}}{{end}}">{{.}}</div>
 				{{else}}
-					<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{EscapePound .}}{{if $.root.TreePath}}/{{EscapePound $.root.TreePath}}{{end}}">{{.}}</div>
+					<div class="item tag {{if eq $.root.BranchName .}}selected{{end}}" data-url="{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{PathEscapeSegments .}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}">{{.}}</div>
 				{{end}}
 			{{end}}
 		</div>
@@ -71,7 +71,7 @@
 							{{end}}
 						</div>
 					</a>
-					<form ref="newBranchForm" action="{{.root.RepoLink}}/branches/_new/{{EscapePound .root.BranchNameSubURL}}" method="post">
+					<form ref="newBranchForm" action="{{.root.RepoLink}}/branches/_new/{{.root.BranchNameSubURL}}" method="post">
 						{{.root.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
 						<input type="hidden" name="create_tag" v-model="createTag">

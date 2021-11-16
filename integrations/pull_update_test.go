@@ -11,9 +11,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/repofiles"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 
@@ -23,8 +22,8 @@ import (
 func TestAPIPullUpdate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
-		user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-		org26 := db.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+		org26 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
@@ -51,8 +50,8 @@ func TestAPIPullUpdate(t *testing.T) {
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
-		user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-		org26 := db.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+		org26 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
@@ -89,7 +88,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	assert.NoError(t, err)
 	assert.NotEmpty(t, baseRepo)
 
-	headRepo, err := repo_module.ForkRepository(actor, forkOrg, models.ForkRepoOptions{
+	headRepo, err := repo_service.ForkRepository(actor, forkOrg, models.ForkRepoOptions{
 		BaseRepo:    baseRepo,
 		Name:        "repo-pr-update",
 		Description: "desc",
@@ -163,7 +162,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	err = pull_service.NewPullRequest(baseRepo, pullIssue, nil, nil, pullRequest, nil)
 	assert.NoError(t, err)
 
-	issue := db.AssertExistsAndLoadBean(t, &models.Issue{Title: "Test Pull -to-update-"}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "Test Pull -to-update-"}).(*models.Issue)
 	pr, err := models.GetPullRequestByIssueID(issue.ID)
 	assert.NoError(t, err)
 

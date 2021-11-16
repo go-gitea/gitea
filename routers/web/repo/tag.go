@@ -58,7 +58,7 @@ func NewProtectedTagPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 }
 
 // EditProtectedTag render the page to edit a protect tag
