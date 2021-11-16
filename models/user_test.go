@@ -562,36 +562,36 @@ func TestNewUserRedirect3(t *testing.T) {
 }
 
 func TestFollowUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
 		assert.NoError(t, user_model.FollowUser(followerID, followedID))
-		db.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)
 	testSuccess(5, 2)
 
 	assert.NoError(t, user_model.FollowUser(2, 2))
 
-	CheckConsistencyFor(t, &User{})
+	unittest.CheckConsistencyFor(t, &User{})
 }
 
 func TestUnfollowUser(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(followerID, followedID int64) {
 		assert.NoError(t, user_model.UnfollowUser(followerID, followedID))
-		db.AssertNotExistsBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+		unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
 	}
 	testSuccess(4, 2)
 	testSuccess(5, 2)
 	testSuccess(2, 2)
 
-	CheckConsistencyFor(t, &User{})
+	unittest.CheckConsistencyFor(t, &User{})
 }
 
 func TestGetUserByOpenID(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	_, err := GetUserByOpenID("https://unknown")
 	if assert.Error(t, err) {

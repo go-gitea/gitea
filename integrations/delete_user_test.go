@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
