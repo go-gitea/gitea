@@ -408,18 +408,17 @@ function initCommentForm() {
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if (hasUpdateAction) {
-        const promises = [];
-        Object.keys(items).forEach((elementId) => {
-          const item = items[elementId];
-          const promise = updateIssuesMeta(
-            item['update-url'],
-            item.action,
-            item['issue-id'],
-            elementId,
-          );
-          promises.push(promise);
-        });
-        Promise.all(promises).then(reload);
+        (async function() {
+          for (const [elementId, item] of Object.entries(items)) {
+            await updateIssuesMeta(
+              item['update-url'],
+              item.action,
+              item['issue-id'],
+              elementId,
+            );
+          }
+          window.location.reload();
+        })();
       }
     });
 
