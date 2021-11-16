@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -53,7 +53,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = db.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
 	var err error
 	ctx.Repo.Owner, err = models.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
@@ -78,7 +78,7 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.User = db.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
+	ctx.User = unittest.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has

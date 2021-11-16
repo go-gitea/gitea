@@ -14,14 +14,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/avatar"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserAvatar(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
+		user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
 
 		seed := user2.Email
 		if len(seed) == 0 {
@@ -71,7 +71,7 @@ func TestUserAvatar(t *testing.T) {
 
 		session.MakeRequest(t, req, http.StatusFound)
 
-		user2 = db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
+		user2 = unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of the repo3, is an org
 
 		req = NewRequest(t, "GET", user2.AvatarLinkWithSize(0))
 		_ = session.MakeRequest(t, req, http.StatusOK)

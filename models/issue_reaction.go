@@ -240,7 +240,7 @@ func (r *Reaction) LoadUser() (*User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := getUserByID(db.GetEngine(db.DefaultContext), r.UserID)
+	user, err := GetUserByIDCtx(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}

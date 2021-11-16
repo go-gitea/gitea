@@ -839,7 +839,12 @@ parsingLoop:
 			case strings.HasPrefix(line, "--- "):
 				// Handle ambiguous filenames
 				if curFile.IsAmbiguous {
-					if len(line) > 6 && line[4] == 'a' {
+					// The shortest string that can end up here is:
+					// "--- a\t\n" without the qoutes.
+					// This line has a len() of 7 but doesn't contain a oldName.
+					// So the amount that the line need is at least 8 or more.
+					// The code will otherwise panic for a out-of-bounds.
+					if len(line) > 7 && line[4] == 'a' {
 						curFile.OldName = line[6 : len(line)-1]
 						if line[len(line)-2] == '\t' {
 							curFile.OldName = curFile.OldName[:len(curFile.OldName)-1]
@@ -1194,6 +1199,11 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	_ = rd.UnreadByte()
 	if char == '"' {
 		fmt.Fscanf(rd, "%q ", &name)
+		if len(name) == 0 {
+			log.Error("Reader has no file name: %v", rd)
+			return "", true
+		}
+
 		if name[0] == '\\' {
 			name = name[1:]
 		}
