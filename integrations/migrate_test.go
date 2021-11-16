@@ -8,11 +8,10 @@ import (
 	"os"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
 )
