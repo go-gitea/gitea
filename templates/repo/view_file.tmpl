@@ -48,6 +48,7 @@
 				{{end}}
 				<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
 			</div>
+			<a download href="{{EscapePound $.RawFileLink}}"><span class="btn-octicon poping up" data-content="{{.i18n.Tr "repo.download_file"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-download"}}</span></a>
 			{{if .Repository.CanEnableEditor}}
 				{{if .CanEditFile}}
 					<a href="{{.RepoLink}}/_edit/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}"><span class="btn-octicon poping up" data-content="{{.EditFileTooltip}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-pencil"}}</span></a>
