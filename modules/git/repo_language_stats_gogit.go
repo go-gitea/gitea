@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/log"
@@ -117,8 +118,8 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 							language = group
 						}
 
-						sizes[language] += f.Size()
-						continue
+						sizes[language] += f.Size
+						return nil
 					}
 				}
 			}
