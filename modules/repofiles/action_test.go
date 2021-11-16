@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -45,8 +44,8 @@ func TestUpdateIssuesCommit(t *testing.T) {
 		},
 	}
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repo.Owner = user
 
 	commentBean := &models.Comment{
@@ -57,12 +56,12 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	}
 	issueBean := &models.Issue{RepoID: repo.ID, Index: 4}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	db.AssertExistsAndLoadBean(t, commentBean)
-	db.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, commentBean)
+	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 
 	// Test that push to a non-default branch closes no issue.
 	pushCommits = []*repository.PushCommit{
@@ -75,7 +74,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			Message:        "close #1",
 		},
 	}
-	repo = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 	commentBean = &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -84,12 +83,12 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	}
 	issueBean = &models.Issue{RepoID: repo.ID, Index: 1}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, "non-existing-branch"))
-	db.AssertExistsAndLoadBean(t, commentBean)
-	db.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 
 	pushCommits = []*repository.PushCommit{
 		{
@@ -101,7 +100,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			Message:        "close " + setting.AppURL + repo.FullName() + "/pulls/1",
 		},
 	}
-	repo = db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 	commentBean = &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef3",
@@ -110,12 +109,12 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	}
 	issueBean = &models.Issue{RepoID: repo.ID, Index: 1}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 1}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	db.AssertExistsAndLoadBean(t, commentBean)
-	db.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, commentBean)
+	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_Colon(t *testing.T) {
@@ -131,21 +130,21 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 		},
 	}
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	repo.Owner = user
 
 	issueBean := &models.Issue{RepoID: repo.ID, Index: 4}
 
-	db.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
+	unittest.AssertNotExistsBean(t, &models.Issue{RepoID: repo.ID, Index: 2}, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	db.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that push to a non-default branch closes an issue.
 	pushCommits := []*repository.PushCommit{
@@ -159,7 +158,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 		},
 	}
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -169,17 +168,17 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 
 	issueBean := &models.Issue{RepoID: repo.ID, Index: 2, ID: 7}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, "non-existing-branch"))
-	db.AssertExistsAndLoadBean(t, commentBean)
-	db.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, commentBean)
+	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that a push to default branch closes issue in another repo
 	// If the user also has push permissions to that repo
@@ -194,7 +193,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 		},
 	}
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -204,17 +203,17 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 
 	issueBean := &models.Issue{RepoID: 1, Index: 1, ID: 1}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	db.AssertExistsAndLoadBean(t, commentBean)
-	db.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, commentBean)
+	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	// Test that a push to default branch closes issue in another repo
 	// If the user also has push permissions to that repo
@@ -229,7 +228,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 		},
 	}
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -239,17 +238,17 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 
 	issueBean := &models.Issue{RepoID: 1, Index: 1, ID: 1}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	db.AssertExistsAndLoadBean(t, commentBean)
-	db.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertExistsAndLoadBean(t, commentBean)
+	unittest.AssertExistsAndLoadBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
 
 func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 10}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 10}).(*models.User)
 
 	// Test that a push with close reference *can not* close issue
 	// If the committer doesn't have push rights in that repo
@@ -272,7 +271,7 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 		},
 	}
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 6}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 6}).(*models.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef3",
@@ -288,12 +287,12 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 
 	issueBean := &models.Issue{RepoID: 3, Index: 1, ID: 6}
 
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, commentBean2)
-	db.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, commentBean2)
+	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
 	assert.NoError(t, UpdateIssuesCommit(user, repo, pushCommits, repo.DefaultBranch))
-	db.AssertNotExistsBean(t, commentBean)
-	db.AssertNotExistsBean(t, commentBean2)
-	db.AssertNotExistsBean(t, issueBean, "is_closed=1")
-	models.CheckConsistencyFor(t, &models.Action{})
+	unittest.AssertNotExistsBean(t, commentBean)
+	unittest.AssertNotExistsBean(t, commentBean2)
+	unittest.AssertNotExistsBean(t, issueBean, "is_closed=1")
+	unittest.CheckConsistencyFor(t, &models.Action{})
 }
