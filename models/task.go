@@ -9,7 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
-	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"

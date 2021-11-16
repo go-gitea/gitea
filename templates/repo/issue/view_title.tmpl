@@ -34,7 +34,7 @@
 		{{if .HeadBranchHTMLURL}}
 			{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchHTMLURL | Escape) $headHref}}
 		{{end}}
-		{{$headHref = printf "%s <a class=\"poping up\" data-content=\"%s\" data-success=\"%s\" data-error=\"%s\" data-clipboard-text=\"%s\" data-variation=\"inverted tiny\">%s</a>" $headHref (.i18n.Tr "repo.copy_branch") (.i18n.Tr "repo.copy_branch_success") (.i18n.Tr "repo.copy_branch_error") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+		{{$headHref = printf "%s <a class=\"poping up\" data-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.i18n.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 		{{$baseHref := .BaseTarget|Escape}}
 		{{if .BaseBranchHTMLURL}}
 			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchHTMLURL | Escape) $baseHref}}

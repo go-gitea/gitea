@@ -153,6 +153,15 @@ func InitEngine(ctx context.Context) (err error) {
 	return nil
 }
 
+// SetEngine is used by unit test code
+func SetEngine(eng *xorm.Engine) {
+	x = eng
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
+	}
+}
+
 // InitEngineWithMigration initializes a new xorm.Engine
 // This function must never call .Sync2() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check

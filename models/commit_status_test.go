@@ -16,7 +16,7 @@ import (
 func TestGetCommitStatuses(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	sha1 := "1234123412341234123412341234123412341234"
 

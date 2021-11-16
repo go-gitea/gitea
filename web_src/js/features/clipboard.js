@@ -1,27 +1,25 @@
-// For all DOM elements with [data-clipboard-target] or [data-clipboard-text], this copy-to-clipboard will work for them
+const {copy_success, copy_error} = window.config.i18n;
 
-// TODO: replace these with toast-style notifications
 function onSuccess(btn) {
-  if (!btn.dataset.content) return;
+  btn.setAttribute('data-variation', 'inverted tiny');
   $(btn).popup('destroy');
-  const oldContent = btn.dataset.content;
-  btn.dataset.content = btn.dataset.success;
+  const oldContent = btn.getAttribute('data-content');
+  btn.setAttribute('data-content', copy_success);
   $(btn).popup('show');
-  btn.dataset.content = oldContent;
+  btn.setAttribute('data-content', oldContent || '');
 }
 function onError(btn) {
-  if (!btn.dataset.content) return;
-  const oldContent = btn.dataset.content;
+  btn.setAttribute('data-variation', 'inverted tiny');
+  const oldContent = btn.getAttribute('data-content');
   $(btn).popup('destroy');
-  btn.dataset.content = btn.dataset.error;
+  btn.setAttribute('data-content', copy_error);
   $(btn).popup('show');
-  btn.dataset.content = oldContent;
+  btn.setAttribute('data-content', oldContent || '');
 }
 
-/**
- * Fallback to use if navigator.clipboard doesn't exist.
- * Achieved via creating a temporary textarea element, selecting the text, and using document.execCommand.
- */
+
+// Fallback to use if navigator.clipboard doesn't exist. Achieved via creating
+// a temporary textarea element, selecting the text, and using document.execCommand
 function fallbackCopyToClipboard(text) {
   if (!document.execCommand) return false;
 
@@ -37,7 +35,8 @@ function fallbackCopyToClipboard(text) {
 
   tempTextArea.select();
 
-  // if unsecure (not https), there is no navigator.clipboard, but we can still use document.execCommand to copy to clipboard
+  // if unsecure (not https), there is no navigator.clipboard, but we can still
+  // use document.execCommand to copy to clipboard
   const success = document.execCommand('copy');
 
   document.body.removeChild(tempTextArea);
@@ -45,10 +44,13 @@ function fallbackCopyToClipboard(text) {
   return success;
 }
 
+// For all DOM elements with [data-clipboard-target] or [data-clipboard-text],
+// this copy-to-clipboard will work for them
 export default function initGlobalCopyToClipboardListener() {
   document.addEventListener('click', (e) => {
     let target = e.target;
-    // in case <button data-clipboard-text><svg></button>, so we just search up to 3 levels for performance.
+    // in case <button data-clipboard-text><svg></button>, so we just search
+    // up to 3 levels for performance
     for (let i = 0; i < 3 && target; i++) {
       let text;
       if (target.dataset.clipboardText) {
