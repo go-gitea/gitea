@@ -364,6 +364,6 @@ func Action(ctx *context.Context) {
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 		return
 	}
-
+	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), u.HomeLink())
 }
