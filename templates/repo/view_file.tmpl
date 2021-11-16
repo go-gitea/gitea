@@ -70,7 +70,7 @@
 	</h4>
 	<div class="ui attached table unstackable segment">
 		{{if .EscapeStatus.BadBIDI}}
-			<div class="ui error message">
+			<div class="ui error m-0">
 				<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
 				<div class="header">
 					{{.i18n.Tr "repo.bidi_bad_header"}}
@@ -78,7 +78,7 @@
 				{{.i18n.Tr "repo.bidi_bad_description" | Str2html}}
 			</div>
 		{{else if .EscapeStatus.Escaped}}
-			<div class="ui warning message">
+			<div class="ui warning message m-0">
 				<span class="close icon">{{svg "octicon-x" 16 "close inside"}}</span>
 				<div class="header">
 					{{.i18n.Tr "repo.unicode_header"}}
