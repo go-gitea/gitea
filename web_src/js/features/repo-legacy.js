@@ -293,9 +293,7 @@ async function onEditContent(event) {
         thumbnailHeight: 480,
         init() {
           this.on('success', (file, data) => {
-            fileUuidDict[file.uuid] = {
-              submitted: false,
-            };
+            fileUuidDict[file.uuid] = {submitted: false};
             const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
             $dropzone.find('.files').append(input);
           });
