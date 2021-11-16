@@ -9,17 +9,17 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/migrations"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMigrateLocalPath(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	adminUser := db.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
+	adminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = true
