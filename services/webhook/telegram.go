@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -32,7 +32,7 @@ type (
 )
 
 // GetTelegramHook returns telegram metadata
-func GetTelegramHook(w *models.Webhook) *TelegramMeta {
+func GetTelegramHook(w *webhook_model.Webhook) *TelegramMeta {
 	s := &TelegramMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetTelegramHook(%d): %v", w.ID, err)
@@ -143,7 +143,7 @@ func (t *TelegramPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader,
 }
 
 // Review implements PayloadConvertor Review method
-func (t *TelegramPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (t *TelegramPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, attachmentText string
 	switch p.Action {
 	case api.HookIssueReviewed:
@@ -181,7 +181,7 @@ func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
-func GetTelegramPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetTelegramPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(TelegramPayload), p, event)
 }
 

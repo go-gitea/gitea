@@ -84,18 +84,18 @@ export function initRepoCommentForm() {
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if (hasUpdateAction) {
-        const promises = [];
-        Object.keys(items).forEach((elementId) => {
-          const item = items[elementId];
-          const promise = updateIssuesMeta(
-            item['update-url'],
-            item.action,
-            item['issue-id'],
-            elementId,
-          );
-          promises.push(promise);
-        });
-        Promise.all(promises).then(() => window.location.reload());
+        // TODO: Add batch functionality and make this 1 network request.
+        (async function() {
+          for (const [elementId, item] of Object.entries(items)) {
+            await updateIssuesMeta(
+              item['update-url'],
+              item.action,
+              item['issue-id'],
+              elementId,
+            );
+          }
+          window.location.reload();
+        })();
       }
     });
 
@@ -259,7 +259,7 @@ export function initRepoCommentForm() {
 }
 
 
-export async function initRepository() {
+export function initRepository() {
   if ($('.repository').length === 0) {
     return;
   }
@@ -351,6 +351,7 @@ export async function initRepository() {
 
     // Edit issue or comment content
     $(document).on('click', '.edit-content', async function (event) {
+      event.preventDefault();
       $(this).closest('.dropdown').find('.menu').toggle('visible');
       const $segment = $(this).closest('.header').next();
       const $editContentZone = $segment.find('.edit-content-zone');
@@ -363,7 +364,7 @@ export async function initRepository() {
       if ($editContentZone.html().length === 0) {
         $editContentZone.html($('#edit-content-form').html());
         $textarea = $editContentZone.find('textarea');
-        attachTribute($textarea.get(), {mentions: true, emoji: true});
+        await attachTribute($textarea.get(), {mentions: true, emoji: true});
 
         let dz;
         const $dropzone = $editContentZone.find('.dropzone');
@@ -511,7 +512,6 @@ export async function initRepository() {
         $textarea.focus();
         $simplemde.codemirror.focus();
       });
-      event.preventDefault();
     });
 
     initRepoIssueCommentDelete();

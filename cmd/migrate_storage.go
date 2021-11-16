@@ -107,7 +107,10 @@ func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
 }
 
 func runMigrateStorage(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 

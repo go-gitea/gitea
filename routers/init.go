@@ -6,14 +6,15 @@ package routers
 
 import (
 	"context"
+	"net"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -23,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
-	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,7 +40,9 @@ import (
 	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
+	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	"code.gitea.io/gitea/services/repository"
@@ -126,9 +128,9 @@ func GlobalInit(ctx context.Context) {
 	markup.Init()
 
 	if setting.EnableSQLite3 {
-		log.Info("SQLite3 Supported")
+		log.Info("SQLite3 support is enabled")
 	} else if setting.Database.UseSQLite3 {
-		log.Fatal("SQLite3 is set in settings but NOT Supported")
+		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
 	}
 
 	mustInitCtx(ctx, common.InitDBEngine)
@@ -155,7 +157,9 @@ func GlobalInit(ctx context.Context) {
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
+			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
+			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 	} else {
 		ssh.Unused()
 	}

@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -23,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -35,6 +35,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
@@ -357,7 +358,7 @@ func SettingsPost(ctx *context.Context) {
 	case "advanced":
 		var repoChanged bool
 		var units []models.RepoUnit
-		var deleteUnitTypes []models.UnitType
+		var deleteUnitTypes []unit_model.Type
 
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
 		// as an error on the UI for this action
@@ -368,7 +369,7 @@ func SettingsPost(ctx *context.Context) {
 			repoChanged = true
 		}
 
-		if form.EnableWiki && form.EnableExternalWiki && !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
+		if form.EnableWiki && form.EnableExternalWiki && !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalWikiURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_wiki_url_error"))
 				ctx.Redirect(repo.Link() + "/settings")
@@ -377,29 +378,29 @@ func SettingsPost(ctx *context.Context) {
 
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeExternalWiki,
+				Type:   unit_model.TypeExternalWiki,
 				Config: &models.ExternalWikiConfig{
 					ExternalWikiURL: form.ExternalWikiURL,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
-		} else if form.EnableWiki && !form.EnableExternalWiki && !models.UnitTypeWiki.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
+		} else if form.EnableWiki && !form.EnableExternalWiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeWiki,
+				Type:   unit_model.TypeWiki,
 				Config: new(models.UnitConfig),
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 		} else {
-			if !models.UnitTypeExternalWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalWiki)
+			if !unit_model.TypeExternalWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 			}
-			if !models.UnitTypeWiki.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeWiki)
+			if !unit_model.TypeWiki.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 			}
 		}
 
-		if form.EnableIssues && form.EnableExternalTracker && !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
+		if form.EnableIssues && form.EnableExternalTracker && !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
 			if !validation.IsValidExternalURL(form.ExternalTrackerURL) {
 				ctx.Flash.Error(ctx.Tr("repo.settings.external_tracker_url_error"))
 				ctx.Redirect(repo.Link() + "/settings")
@@ -412,47 +413,47 @@ func SettingsPost(ctx *context.Context) {
 			}
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeExternalTracker,
+				Type:   unit_model.TypeExternalTracker,
 				Config: &models.ExternalTrackerConfig{
 					ExternalTrackerURL:    form.ExternalTrackerURL,
 					ExternalTrackerFormat: form.TrackerURLFormat,
 					ExternalTrackerStyle:  form.TrackerIssueStyle,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
-		} else if form.EnableIssues && !form.EnableExternalTracker && !models.UnitTypeIssues.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
+		} else if form.EnableIssues && !form.EnableExternalTracker && !unit_model.TypeIssues.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeIssues,
+				Type:   unit_model.TypeIssues,
 				Config: &models.IssuesConfig{
 					EnableTimetracker:                form.EnableTimetracker,
 					AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               form.EnableIssueDependencies,
 				},
 			})
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 		} else {
-			if !models.UnitTypeExternalTracker.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeExternalTracker)
+			if !unit_model.TypeExternalTracker.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalTracker)
 			}
-			if !models.UnitTypeIssues.UnitGlobalDisabled() {
-				deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeIssues)
+			if !unit_model.TypeIssues.UnitGlobalDisabled() {
+				deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 			}
 		}
 
-		if form.EnableProjects && !models.UnitTypeProjects.UnitGlobalDisabled() {
+		if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypeProjects,
+				Type:   unit_model.TypeProjects,
 			})
-		} else if !models.UnitTypeProjects.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypeProjects)
+		} else if !unit_model.TypeProjects.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
-		if form.EnablePulls && !models.UnitTypePullRequests.UnitGlobalDisabled() {
+		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			units = append(units, models.RepoUnit{
 				RepoID: repo.ID,
-				Type:   models.UnitTypePullRequests,
+				Type:   unit_model.TypePullRequests,
 				Config: &models.PullRequestsConfig{
 					IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
 					AllowMerge:                    form.PullsAllowMerge,
@@ -465,8 +466,8 @@ func SettingsPost(ctx *context.Context) {
 					DefaultMergeStyle:             models.MergeStyle(form.PullsDefaultMergeStyle),
 				},
 			})
-		} else if !models.UnitTypePullRequests.UnitGlobalDisabled() {
-			deleteUnitTypes = append(deleteUnitTypes, models.UnitTypePullRequests)
+		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePullRequests)
 		}
 
 		if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
@@ -604,7 +605,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repository.ConvertForkToNormalRepository(repo); err != nil {
+		if err := repo_service.ConvertForkToNormalRepository(repo); err != nil {
 			log.Error("Unable to convert repository %-v from fork. Error: %v", repo, err)
 			ctx.ServerError("Convert Fork", err)
 			return
@@ -662,7 +663,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository transfer process was started: %s/%s -> %s", ctx.Repo.Owner.Name, repo.Name, newOwner)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_started", newOwner.DisplayName()))
-		ctx.Redirect(ctx.Repo.Owner.HomeLink() + "/" + repo.Name + "/settings")
+		ctx.Redirect(repo.Link() + "/settings")
 
 	case "cancel_transfer":
 		if !ctx.Repo.IsOwner() {
@@ -674,7 +675,7 @@ func SettingsPost(ctx *context.Context) {
 		if err != nil {
 			if models.IsErrNoPendingTransfer(err) {
 				ctx.Flash.Error("repo.settings.transfer_abort_invalid")
-				ctx.Redirect(ctx.User.HomeLink() + "/" + repo.Name + "/settings")
+				ctx.Redirect(repo.Link() + "/settings")
 			} else {
 				ctx.ServerError("GetPendingRepositoryTransfer", err)
 			}
@@ -694,7 +695,7 @@ func SettingsPost(ctx *context.Context) {
 
 		log.Trace("Repository transfer process was cancelled: %s/%s ", ctx.Repo.Owner.Name, repo.Name)
 		ctx.Flash.Success(ctx.Tr("repo.settings.transfer_abort_success", repoTransfer.Recipient.Name))
-		ctx.Redirect(ctx.Repo.Owner.HomeLink() + "/" + repo.Name + "/settings")
+		ctx.Redirect(repo.Link() + "/settings")
 
 	case "delete":
 		if !ctx.Repo.IsOwner() {
@@ -834,7 +835,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["OrgID"] = ctx.Repo.Repository.OwnerID
 	ctx.Data["OrgName"] = ctx.Repo.Repository.OwnerName
 	ctx.Data["Org"] = ctx.Repo.Repository.Owner
-	ctx.Data["Units"] = models.Units
+	ctx.Data["Units"] = unit_model.Units
 
 	ctx.HTML(http.StatusOK, tplCollaboration)
 }
@@ -843,7 +844,7 @@ func Collaboration(ctx *context.Context) {
 func CollaborationPost(ctx *context.Context) {
 	name := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("collaborator")))
 	if len(name) == 0 || ctx.Repo.Owner.LowerName == name {
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		return
 	}
 
@@ -851,7 +852,7 @@ func CollaborationPost(ctx *context.Context) {
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
-			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
 			ctx.ServerError("GetUserByName", err)
 		}
@@ -860,14 +861,14 @@ func CollaborationPost(ctx *context.Context) {
 
 	if !u.IsActive {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_inactive_user"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		return
 	}
 
 	// Organization is not allowed to be added as a collaborator.
 	if u.IsOrganization() {
 		ctx.Flash.Error(ctx.Tr("repo.settings.org_not_allowed_to_be_collaborator"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		return
 	}
 
@@ -887,7 +888,7 @@ func CollaborationPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
-	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 }
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration

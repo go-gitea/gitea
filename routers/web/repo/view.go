@@ -21,6 +21,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
@@ -231,7 +232,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			}
 			if readmeFile != nil {
 				readmeFile.name = entry.Name() + "/" + readmeFile.name
-				readmeTreelink = treeLink + "/" + entry.GetSubJumpablePathName()
+				readmeTreelink = treeLink + "/" + util.PathEscapeSegments(entry.GetSubJumpablePathName())
 				break
 			}
 		}
@@ -300,7 +301,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					fileSize = meta.Size
 					ctx.Data["FileSize"] = meta.Size
 					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-					ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+					ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.HTMLURL(), url.PathEscape(meta.Oid), url.PathEscape(filenameBase64))
 				}
 			}
 		}
@@ -353,7 +354,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
+	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
@@ -375,7 +376,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
+	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(dataRc, buf)
@@ -421,7 +422,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				isTextFile = st.IsText()
 
 				fileSize = meta.Size
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
+				ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 			}
 		}
 	}
@@ -514,7 +515,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+			} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			}
 		}
@@ -563,7 +564,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+	} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
@@ -582,6 +583,13 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
 			if err != nil {
+				if models.IsErrTaskDoesNotExist(err) {
+					ctx.Data["Repo"] = ctx.Repo
+					ctx.Data["CloneAddr"] = ""
+					ctx.Data["Failed"] = true
+					ctx.HTML(http.StatusOK, tplMigrating)
+					return
+				}
 				ctx.ServerError("models.GetMigratingTask", err)
 				return
 			}
@@ -607,20 +615,20 @@ func checkHomeCodeViewable(ctx *context.Context) {
 			}
 		}
 
-		var firstUnit *models.Unit
+		var firstUnit *unit_model.Unit
 		for _, repoUnit := range ctx.Repo.Units {
-			if repoUnit.Type == models.UnitTypeCode {
+			if repoUnit.Type == unit_model.TypeCode {
 				return
 			}
 
-			unit, ok := models.Units[repoUnit.Type]
+			unit, ok := unit_model.Units[repoUnit.Type]
 			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}
 		}
 
 		if firstUnit != nil {
-			ctx.Redirect(fmt.Sprintf("%s/%s%s", setting.AppSubURL, ctx.Repo.Repository.FullName(), firstUnit.URI))
+			ctx.Redirect(fmt.Sprintf("%s%s", ctx.Repo.Repository.Link(), firstUnit.URI))
 			return
 		}
 	}
@@ -676,7 +684,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + ctx.Repo.CommitID + "/" + ctx.Repo.TreePath
+	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -758,7 +766,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	treeLink := branchLink
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	ctx.Data["TreeLink"] = treeLink
@@ -807,7 +815,7 @@ func renderCode(ctx *context.Context) {
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	// Get Topics of this repo
