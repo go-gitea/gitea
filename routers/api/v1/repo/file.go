@@ -667,10 +667,12 @@ func GetFileHistory(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 		return
 	}
+
+	userCache := make(map[string]*models.User)
 	apiCommits := make([]*api.Commit, len(commits))
 	for i, commit := range commits {
 		// Create json struct
-		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, make(map[string]*models.User))
+		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
