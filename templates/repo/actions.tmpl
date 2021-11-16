@@ -1,14 +1,14 @@
-{{template "base/head" .}}
-<div class="page-content repository commits">
-	{{template "repo/header" .}}
-	<div class="ui container">
+{{template 'base/head' .}}
+<div class='page-content repository commits'>
+	{{template 'repo/header' .}}
+	<div class='ui container'>
 		
-		<ul id="displayJobs">
+		<ul id='displayJobs'>
 
 		</ul>
 
 		<!-- display list of timeline -->
-		<div id="displayTimeline" >
+		<div id='displayTimeline' >
 
 		</div>	
 	</div>
@@ -16,241 +16,257 @@
 
 
 	<script>
-		var ghHostApiUrl = 'http://localhost:5000';
-		var owner = 'runner';
-		var repo = 'server';
+		const ghHostApiUrl = 'http://localhost:5000';
+		const owner = 'runner';
+		const repo = 'server';
 
-		var jobs = [];
+		let jobs = [];
 
-		var source = new EventSource(ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/Message/event?filter=**");
-		source.addEventListener("job", ev => {
-				var je = JSON.parse(ev.data);
-				var x = je.job;
-				
-				var r = jobs.filter((j) => j.requestId < x.requestId);
-				r.unshift(x);
-				jobs = r;
+		const source = new EventSource(`${ghHostApiUrl}/${owner}/${repo}/_apis/v1/Message/event?filter=**`);
+		source.addEventListener('job', (ev) => {
+			const je = JSON.parse(ev.data);
+			const x = je.job;
 
-				console.log(jobs);
+			const r = jobs.filter((j) => j.requestId < x.requestId);
+			r.unshift(x);
+			jobs = r;
 
-				for (const job of jobs){
-					let lineContents = [`requestId: ${job.requestId}`, `runid: ${job.runid}`, `name: ${job.name}`, `repo: ${job.repo}`];
-					for(const lineContent of lineContents){
-						var liDOM = document.createElement("li");
-						var jobContent = document.createTextNode(lineContent);
-						liDOM.appendChild(jobContent);
-						document.getElementById('displayJobs').appendChild(liDOM);
-					}
-					let hrDOM = document.createElement("hr");
-					document.getElementById('displayJobs').appendChild(hrDOM);
-
+			for (const job of jobs) {
+				const lineContents = [`requestId: ${job.requestId}`, `runid: ${job.runid}`, `name: ${job.name}`, `repo: ${job.repo}`];
+				for (const lineContent of lineContents) {
+					const liDOM = document.createElement('li');
+					const jobContent = document.createTextNode(lineContent);
+					liDOM.appendChild(jobContent);
+					document.getElementById('displayJobs').appendChild(liDOM);
 				}
+				const hrDOM = document.createElement('hr');
+				document.getElementById('displayJobs').appendChild(hrDOM);
+			}
+		});
 
-				});
-
-		var apiUrl = ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/Message";
+		const apiUrl = `${ghHostApiUrl}/${owner}/${repo}/_apis/v1/Message`;
+		
 		(async () => {
-				var newjobs = JSON.parse((await (await fetch(apiUrl, { })).text()));
-				var sjobs = newjobs.sort((a, b) => b.requestId - a.requestId);
-				
-				if(jobs.length > 0) {
-						var x = jobs[jobs.length - 1];
-						sjobs = sjobs.filter((j) => j.requestId < x.requestId);
-				}
+			const newjobs = JSON.parse((await (await fetch(apiUrl, {})).text()));
+			let sjobs = newjobs.sort((a, b) => b.requestId - a.requestId);
 
-				jobs = [...sjobs, ...jobs];
+			if (jobs.length > 0) {
+				const x = jobs[jobs.length - 1];
+				sjobs = sjobs.filter((j) => j.requestId < x.requestId);
+			}
+
+			jobs = [...sjobs, ...jobs];
 		})();
 
-		/**
-		* Gets a list of all artifacts that are in a specific container
-		*/
 		async function listArtifacts(runid) {
-			const artifactUrl = ghHostApiUrl + "/runner/host/_apis/pipelines/workflows/" + runid + "/artifacts"
+			const artifactUrl = `${ghHostApiUrl}/runner/host/_apis/pipelines/workflows/${runid}/artifacts`;
 
 			const response = await fetch(artifactUrl);
-			const body = await response.text()
-			return JSON.parse(body)
+			const body = await response.text();
+			return JSON.parse(body);
 		}
 
-		/**
-		* Fetches a set of container items that describe the contents of an artifact
-		* @param artifactName the name of the artifact
-		* @param containerUrl the artifact container URL for the run
-		*/
-		async function getContainerItems(
-				artifactName,
-				containerUrl
-			) {
-				// the itemPath search parameter controls which containers will be returned
-				const resourceUrl = new URL(containerUrl)
-				resourceUrl.searchParams.append('itemPath', artifactName)
+		async function getContainerItems(artifactName, containerUrl) {
+			const resourceUrl = new URL(containerUrl);
+			resourceUrl.searchParams.append('itemPath', artifactName);
 
-				const response = await fetch(resourceUrl.toString());
-				const body = await response.text()
-				return JSON.parse(body)
-			}
+			const response = await fetch(resourceUrl.toString());
+			const body = await response.text();
+			return JSON.parse(body);
+		}
 
 		function setJobs(f) {
 			jobs = f(jobs);
 		}
-    let timeline = [];
+
+		let timeline = [];
+		
 		function setTimeline(f) {
 			timeline = f(timeline);
-		//	for (const tl of timeline){
-		//		var pDOM = document.createElement("p");
-		//		var tlContent = document.createTextNode(`${tl}`);
-		//		console.log(tl);
-
-		//		pDOM.appendChild(tlContent);
-		//		document.getElementById('displayTimeline').appendChild(pDOM);
-		//	}
 		}
-    let artifacts = [];
+
+		let artifacts = [];
+
 		function setArtifacts(f) {
 			artifacts = f(artifacts);
 		}
-    let title = "Loading...";
+
+		let title = 'Loading...';
+
 		function setTitle(f) {
 			title = f(title);
 		}
-    const id = '';
-    let errors = [];
+
+		const id = '';
+		let errors = [];
+
 		function setErrors(f) {
 			errors = f(errors);
 		}
 
+		function getJobById(jobs, id) {
+			const actualId = (typeof id === 'string') ? parseInt(id) : id;
+			let item = null;
+
+			if (actualId !== undefined && actualId !== null) {
+				const x = jobs.find((x) => x.requestId === actualId) || null;
+
+				if (x !== null) {
+					item = {
+						id: x.requestId,
+						title: x.jobId,
+						description: x.timeLineId
+					};
+
+					return {
+						item,
+						job: x
+					};
+				}
+			}
+
+			return {
+				item: null,
+				job: null
+			};
+		}
+
 		async function main() {
-				setArtifacts(_ => []);
-				if(id === undefined) {
-						return;
-				}
-				var njobs;
-				var _id = Number.parseInt(id);
-				if(jobs.length === 0 || jobs.find(x => x.requestId === _id) == null) {
-						njobs = await (await (await fetch(ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/Message", { })).json())
-						setJobs(njobs);
-				}
-				var query = getJobById(njobs || jobs, id);
-				if(query.job.errors !== null && query.job.errors.length > 0) {
-						setErrors(query.job.errors);
+			setArtifacts((_) => []);
+			if (id === undefined) {
+				return;
+			}
+			let njobs;
+			const _id = Number.parseInt(id);
+			if (jobs.length === 0 || jobs.some((x) => x.requestId === _id)) {
+				njobs = await (await (await fetch(`${ghHostApiUrl}/${owner}/${repo}/_apis/v1/Message`, {})).json());
+				setJobs(njobs);
+			}
+			const query = getJobById(njobs || jobs, id);
+			if (query.job.errors !== null && query.job.errors.length > 0) {
+				setErrors(query.job.errors);
+			} else {
+				setErrors([]);
+			}
+			const item = query.item;
+			const timelineId = item ? item.description : null;
+			if (timelineId !== null) {
+				const timeline = await fetch(`${ghHostApiUrl}/owner/repo/_apis/v1/Timeline/${timelineId}`, {});
+				if (timeline.status === 200) {
+					const newTimeline = await timeline.json();
+					if (newTimeline !== null && newTimeline.length > 1) {
+						setTitle(newTimeline.shift().name);
+						setTimeline(newTimeline);
+					} else {
+						setTitle('Unknown');
+						setTimeline([]);
+					}
 				} else {
-						setErrors([]);
+					setTitle((query.job.errors !== null && query.job.errors.length > 0) ? 'Failed to run' : 'Wait for workflow to run...');
+					setTimeline((_) => []);
 				}
-				const item = query.item;
-				const timelineId = item ? item.description : null;
-				if(timelineId != null) {
-						var timeline = await fetch(ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/Timeline/" + timelineId, { });
-						if(timeline.status === 200) {
-								var newTimeline = await timeline.json();
-								if(newTimeline != null && newTimeline.length > 1) {
-										setTitle(newTimeline.shift().name);
-										setTimeline(newTimeline);
-								} else {
-										setTitle("Unknown");
-										setTimeline([]);
-								}
-						} else {
-								setTitle((query.job.errors !== null && query.job.errors.length > 0) ? "Failed to run" : "Wait for workflow to run...");
-								setTimeline(e => []);
+			}
+			if (query.job.runid !== -1) {
+				const artifacts = await listArtifacts(query.job.runid);
+				if (artifacts.value !== undefined) {
+					for (let i = 0; i < artifacts.count; i++) {
+						const element = artifacts.value[i];
+						const items = await getContainerItems(element.name, element.fileContainerResourceUrl);
+						if (items !== undefined) {
+							element.files = items.value;
 						}
+					}
+					setArtifacts((_) => artifacts.value);
 				}
-				if(query.job.runid !== -1) {
-						var artifacts = await listArtifacts(query.job.runid);
-						if(artifacts.value !== undefined) {
-								for (let i = 0; i < artifacts.count; i++) {
-										const element = artifacts.value[i];
-										var items = await getContainerItems(element.name, element.fileContainerResourceUrl)
-										if(items !== undefined) {
-												element.files = items.value 
-										}
-								}
-								setArtifacts(_ => artifacts.value);
-						}
-				}
+			}
 		}
 
 		async function listener() {
-        if(id !== undefined && id !== null && id.length > 0) {
-            var item = getJobById(jobs, id).item;
-            if(item !== null && item.description && item.description != '' && item.description != "00000000-0000-0000-0000-000000000000") {
-                var source = new EventSource(ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/TimeLineWebConsoleLog?timelineId="+ item.description);
-                try {
-                    var missed = [];
-                    var callback = function(timeline, e) {
-                        var s = timeline.find(t => t.id === e.record.stepId);
-                        var convert = new Convert({
-                            newline: true,
-                            escapeXML: true
-                        });
-                        if(s != null && s != undefined) {
-                            if(s.log == null) {
-                                s.log = { id:-1, location: null, content: ""};
-                                if(e.record.startLine > 1) {
-                                    (async () => {
-                                        console.log("Downloading previous log lines of this step...");
-                                        var lines = await fetch(ghHostApiUrl + "/" + owner + "/" + repo + "/_apis/v1/TimeLineWebConsoleLog/" + item.description + "/" + e.record.stepId, { });
-                                        if(lines.status === 200) {
-                                            var missingLines = await lines.json();
-                                            missingLines.length = e.record.startLine - 1;
-                                            s.log.content = missingLines.reduce((prev, c ) => (prev.length > 0 ? prev + "<br/>" : "") + convert.toHtml(c.line), "") + s.log.content;
-                                        } else {
-                                            console.log("No logs to download..., currently fixes itself");
-                                        }
-                                    })();
-                                }
-                            }
-                            if (s.log.id === -1) {
-                                s.log.content = e.record.value.reduce((prev, c) => (prev.length > 0 ? prev + "<br/>" : "") + convert.toHtml(c), s.log.content);
-                            }
-                            return true;
-                        }
-                        return false;
-                    }
-                    source.addEventListener ("log", (ev) => {
-                        console.log("new logline " + ev.data);
-                        var e = JSON.parse(ev.data);
-                        setTimeline(timeline => {
-                            if(callback(timeline, e)) {
-                                return [...timeline];
-                            }
-                            missed.push(e);
-                            return timeline;
-                        });
-                    });
-                    source.addEventListener ("timeline", (ev) => {
-                        var e = JSON.parse(ev.data);
-                        setTitle(e.timeline.shift().name);
-                        setTimeline(oldtimeline => {
-                            var del = e.timeline.splice(0, oldtimeline.length)
-                            for (let i = 0; i < del.length; i++) {
-                                oldtimeline[i].result = del[i].result;
-                                oldtimeline[i].state = del[i].state;
-                            }
-                            if(e.timeline.length === 0) {
-                                // Todo Merge Timelines here
-                                return oldtimeline;
-                            }
-                            var timeline = [...oldtimeline, ...e.timeline]
-                            for (; missed.length > 0;) {
-                                if(callback(timeline, missed[0])) {
-                                    missed.shift();
-                                } else {
-                                    break;
-                                }
-                            }
-                            return timeline;
-                        });
-                        // console.log(ev.data)
-                    });
-                } finally {
-                    return () => {
-                        source.close();
-                    }
-                }
-            }
-        }
-        return () => {};
+			if (id !== undefined && id !== null && id.length > 0) {
+				const item = getJobById(jobs, id).item;
+				if (item !== null && item.description && item.description !== '' && item.description !== '00000000-0000-0000-0000-000000000000') {
+					const source = new EventSource(`${ghHostApiUrl}/${owner}/${repo}/_apis/v1/TimeLineWebConsoleLog?timelineId=${item.description}`);
+					try {
+						const missed = [];
+						const callback = function(timeline, e) {
+							const s = timeline.find((t) => t.id === e.record.stepId);
+							if (s !== null && s !== undefined) {
+								if (s.log === null) {
+									s.log = {
+										id: -1,
+										location: null,
+										content: ''
+									};
+
+									if (e.record.startLine > 1) {
+										(async () => {
+											console.log('Downloading previous log lines of this step...');
+											const lines = await fetch(`${ghHostApiUrl}/${owner}/${repo}/_apis/v1/TimeLineWebConsoleLog/${item.description}/${e.record.stepId}`, {});
+											if (lines.status === 200) {
+												const missingLines = await lines.json();
+												missingLines.length = e.record.startLine - 1;
+												s.log.content = `${missingLines.reduce((prev, c) => `${(prev.length > 0 ? `${prev}<br/>` : '')}${c.line}`, '')}${s.log.content}`;
+											} else {
+												console.log('No logs to download..., currently fixes itself');
+											}
+										})();
+									}
+								}
+								if (s.log.id === -1) {
+									s.log.content = e.record.value.reduce((prev, c) => `${(prev.length > 0 ? `${prev}<br/>` : '')}${c}`, s.log.content);
+								}
+								return true;
+							}
+							return false;
+						};
+						source.addEventListener('log', (ev) => {
+							const e = JSON.parse(ev.data);
+							setTimeline((timeline) => {
+								if (callback(timeline, e)) {
+									return [...timeline];
+								}
+								missed.push(e);
+								return timeline;
+							});
+						});
+						source.addEventListener('timeline', (ev) => {
+							const e = JSON.parse(ev.data);
+							setTitle(e.timeline.shift().name);
+							setTimeline((oldtimeline) => {
+								const del = e.timeline.splice(0, oldtimeline.length);
+								for (let i = 0; i < del.length; i++) {
+									oldtimeline[i].result = del[i].result;
+									oldtimeline[i].state = del[i].state;
+								}
+								if (e.timeline.length === 0) {
+									// Todo Merge Timelines here
+									return oldtimeline;
+								}
+								const timeline = [...oldtimeline, ...e.timeline];
+								for (; missed.length > 0;) {
+									if (callback(timeline, missed[0])) {
+										missed.shift();
+									} else {
+										break;
+									}
+								}
+								return timeline;
+							});
+						});
+					} finally {
+						console.log('finally');
+					}
+
+					return (() => {
+						source.close();
+					});
+				}
+			}
+			return () => {};
 		}
+
+		main();
+		listener();
 
 	</script>
 
@@ -262,4 +278,4 @@
 	</style>
 
 </div>
-{{template "base/footer" .}}
+{{template 'base/footer' .}}
