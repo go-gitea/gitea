@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/jaytaylor/html2text"
+
 	"gopkg.in/gomail.v2"
 )
 

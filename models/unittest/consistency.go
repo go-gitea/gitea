@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/stretchr/testify/assert"
+
 	"xorm.io/builder"
 )
 

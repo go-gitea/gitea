@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gopkg.in/ini.v1"
-
 	"github.com/stretchr/testify/assert"
+
+	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {

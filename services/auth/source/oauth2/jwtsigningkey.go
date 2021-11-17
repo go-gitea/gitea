@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/golang-jwt/jwt"
+
 	ini "gopkg.in/ini.v1"
 )
 

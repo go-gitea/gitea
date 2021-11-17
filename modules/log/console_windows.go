@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/mattn/go-isatty"
+
 	"golang.org/x/sys/windows"
 )
 

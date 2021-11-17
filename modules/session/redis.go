@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/session"
+
 	"github.com/go-redis/redis/v8"
 )
 

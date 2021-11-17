@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/nosql"
 
 	"gitea.com/go-chi/cache"
+
 	"github.com/go-redis/redis/v8"
 	"github.com/unknwon/com"
 )

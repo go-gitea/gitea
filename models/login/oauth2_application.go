@@ -17,7 +17,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	uuid "github.com/google/uuid"
+
 	"golang.org/x/crypto/bcrypt"
+
 	"xorm.io/xorm"
 )
 

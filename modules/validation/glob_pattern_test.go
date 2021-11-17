@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"gitea.com/go-chi/binding"
+
 	"github.com/gobwas/glob"
 )
 

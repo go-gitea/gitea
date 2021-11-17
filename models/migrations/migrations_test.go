@@ -24,6 +24,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/com"
+
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 )

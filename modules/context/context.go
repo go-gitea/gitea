@@ -34,10 +34,12 @@ import (
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
+
 	chi "github.com/go-chi/chi/v5"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
+
 	"golang.org/x/crypto/pbkdf2"
 )
 

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
+
 	"xorm.io/builder"
 )
 

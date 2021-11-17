@@ -10,7 +10,9 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/log"
+
 	chiSession "gitea.com/go-chi/session"
+
 	"github.com/gorilla/sessions"
 )
 

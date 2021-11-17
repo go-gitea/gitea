@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/pquerna/otp/totp"
+
 	"golang.org/x/crypto/pbkdf2"
 )
 

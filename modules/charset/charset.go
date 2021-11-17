@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gogs/chardet"
+
 	"golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
 )

@@ -32,6 +32,7 @@ import (
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/armor"
+
 	"xorm.io/builder"
 )
 
