@@ -27,6 +27,7 @@ COMMA := ,
 XGO_VERSION := go-1.17.x
 MIN_GO_VERSION := 001016000
 MIN_NODE_VERSION := 012017000
+MIN_GOLANGCI_LINT_VERSION := 001043000
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -765,12 +766,22 @@ pr\#%: clean-all
 	$(GO) run contrib/pr/checkout.go $*
 
 .PHONY: golangci-lint
-golangci-lint:
-	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
-		export BINARY="golangci-lint"; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.37.0; \
-	fi
+golangci-lint: golangci-lint-check
 	golangci-lint run --timeout 10m
+
+.PHONY: golangci-lint-check
+golangci-lint-check:
+	$(eval GOLANGCI_LINT_VERSION := $(shell printf "%03d%03d%03d" $(shell golangci-lint --version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval MIN_GOLANGCI_LINT_VER_FMT := $(shell printf "%g.%g.%g" $(shell echo $(MIN_GOLANGCI_LINT_VERSION) | grep -o ...)))
+	@hash golangci-lint > /dev/null 2>&1; if [ $$? -ne 0 ]; then \
+		echo "Downloading golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
+		export BINARY="golangci-lint"; \
+		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
+	elif [ "$(GOLANGCI_LINT_VERSION)" -lt "$(MIN_GOLANGCI_LINT_VERSION)" ]; then \
+		echo "Downloading newer version of golangci-lint v${MIN_GOLANGCI_LINT_VER_FMT}"; \
+		export BINARY="golangci-lint"; \
+		curl -sfL "https://raw.githubusercontent.com/golangci/golangci-lint/v${MIN_GOLANGCI_LINT_VER_FMT}/install.sh" | sh -s -- -b $(GOPATH)/bin v$(MIN_GOLANGCI_LINT_VER_FMT); \
+	fi
 
 .PHONY: docker
 docker:
