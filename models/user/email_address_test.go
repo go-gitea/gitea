@@ -252,3 +252,20 @@ func TestListEmails(t *testing.T) {
 	assert.Len(t, emails, 5)
 	assert.Greater(t, count, int64(len(emails)))
 }
+
+func TestEmailAddressValidate(t *testing.T) {
+	var kases = map[string]error{
+		"abc@gmail.com":                  nil,
+		"132@hotmail.com":                nil,
+		"1-3-2@test.org":                 nil,
+		"1.3.2@test.org":                 nil,
+		"a_123@test.org.cn":              nil,
+		";233@qq.com":                    ErrEmailCharIsNotSupported,
+		string([]byte{0xE2, 0x84, 0xAA}): ErrEmailCharIsNotSupported,
+	}
+	for kase, err := range kases {
+		t.Run(kase, func(t *testing.T) {
+			assert.EqualValues(t, err, ValidateEmail(kase))
+		})
+	}
+}
