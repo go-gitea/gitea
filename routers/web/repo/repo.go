@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/archiver"
 	archiver_service "code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -373,7 +374,11 @@ func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
+		if errors.Is(err, archiver.ErrUnknowArchiveFormat{}) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("archiver_service.NewRequest", err)
+		}
 		return
 	}
 	if aReq == nil {
