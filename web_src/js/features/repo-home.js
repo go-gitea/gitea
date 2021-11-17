@@ -101,7 +101,9 @@ export function initRepoTopicBar() {
         const query = stripTags(this.urlData.query.trim());
         let found_query = false;
         const current_topics = [];
-        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, e) => { current_topics.push(e.dataset.value) });
+        topicDropdown.find('div.label.visible.topic,a.label.visible').each((_, el) => {
+          current_topics.push(el.getAttribute('data-value'));
+        });
 
         if (res.topics) {
           let found = false;

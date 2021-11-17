@@ -1,3 +1,4 @@
+/* eslint-disable github/no-then */
 const {appSubUrl, csrfToken} = window.config;
 
 export function initUserAuthU2fAuth() {
