@@ -8,7 +8,6 @@ package repo
 import (
 	"errors"
 	"net/http"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -323,8 +322,7 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	headTarget := path.Join(userName, repoName)
-	setCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, userName, repoName)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff

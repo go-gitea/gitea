@@ -126,7 +126,7 @@
 						<span class="ui green label">{{$.i18n.Tr "repo.activity.published_release_label"}}</span>
 						{{.TagName}}
 						{{if not .IsTag}}
-							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | EscapePound}}">{{.Title | RenderEmoji}}</a>
+							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji}}</a>
 						{{end}}
 						{{TimeSinceUnix .CreatedUnix $.Lang}}
 					</p>
