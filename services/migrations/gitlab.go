@@ -17,8 +17,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/xanzy/go-gitlab"
@@ -80,7 +78,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	// Only use basic auth if token is blank and password is NOT
 	// Basic auth will fail with empty strings, but empty token will allow anonymous public API usage
 	if token == "" && password != "" {
-		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL))
+		gitlabClient, err = gitlab.NewBasicAuthClient(username, password, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
 	}
 
 	if err != nil {
