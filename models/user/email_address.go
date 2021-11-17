@@ -23,9 +23,9 @@ import (
 
 var (
 	// ErrEmailNotActivated e-mail address has not been activated error
-	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
+	ErrEmailNotActivated = errors.New("e-mail address has not been activated")
 
-	ErrEmailCharIsNotSupported = errors.New("email address contains unsupported charactor, only letters, digits, '.', '-', '_', '+', '@' are allowed")
+	ErrEmailCharIsNotSupported = errors.New("e-mail address contains unsupported charactor, only letters, digits, '.', '-', '_', '+', '@' are allowed")
 )
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
