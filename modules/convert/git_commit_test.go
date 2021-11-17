@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
@@ -20,7 +19,7 @@ import (
 
 func TestToCommitMeta(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	headRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	headRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	sha1, _ := git.NewIDFromString("0000000000000000000000000000000000000000")
 	signature := &git.Signature{Name: "Test Signature", Email: "test@email.com", When: time.Unix(0, 0)}
 	tag := &git.Tag{

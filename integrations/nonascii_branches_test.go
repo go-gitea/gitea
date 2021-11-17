@@ -63,17 +63,17 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "ГлавнаяВетка",
-			to:     "branch/%d0%93%d0%bb%d0%b0%d0%b2%d0%bd%d0%b0%d1%8f%d0%92%d0%b5%d1%82%d0%ba%d0%b0",
+			to:     "branch/%D0%93%D0%BB%D0%B0%D0%B2%D0%BD%D0%B0%D1%8F%D0%92%D0%B5%D1%82%D0%BA%D0%B0",
 			status: http.StatusOK,
 		},
 		{
 			from:   "а/б/в",
-			to:     "branch/%d0%b0/%d0%b1/%d0%b2",
+			to:     "branch/%D0%B0/%D0%B1/%D0%B2",
 			status: http.StatusOK,
 		},
 		{
 			from:   "Grüßen/README.md",
-			to:     "branch/Gr%c3%bc%c3%9fen/README.md",
+			to:     "branch/Gr%C3%BC%C3%9Fen/README.md",
 			status: http.StatusOK,
 		},
 		{
@@ -83,7 +83,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "Plus+Is+Not+Space/Файл.md",
-			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%D0%A4%D0%B0%D0%B9%D0%BB.md",
 			status: http.StatusOK,
 		},
 		{
@@ -93,28 +93,28 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "ブランチ",
-			to:     "branch/%e3%83%96%e3%83%a9%e3%83%b3%e3%83%81",
+			to:     "branch/%E3%83%96%E3%83%A9%E3%83%B3%E3%83%81",
 			status: http.StatusOK,
 		},
 		// Tags
 		{
 			from:   "Тэг",
-			to:     "tag/%d0%a2%d1%8d%d0%b3",
+			to:     "tag/%D0%A2%D1%8D%D0%B3",
 			status: http.StatusOK,
 		},
 		{
 			from:   "Ё/人",
-			to:     "tag/%d0%81/%e4%ba%ba",
+			to:     "tag/%D0%81/%E4%BA%BA",
 			status: http.StatusOK,
 		},
 		{
 			from:   "タグ",
-			to:     "tag/%e3%82%bf%e3%82%b0",
+			to:     "tag/%E3%82%BF%E3%82%B0",
 			status: http.StatusOK,
 		},
 		{
 			from:   "タグ/ファイル.md",
-			to:     "tag/%e3%82%bf%e3%82%b0/%e3%83%95%e3%82%a1%e3%82%a4%e3%83%ab.md",
+			to:     "tag/%E3%82%BF%E3%82%B0/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB.md",
 			status: http.StatusOK,
 		},
 		// Files
@@ -125,38 +125,38 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 		{
 			from:   "Файл.md",
-			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%D0%A4%D0%B0%D0%B9%D0%BB.md",
 			status: http.StatusOK,
 		},
 		{
 			from:   "ファイル.md",
-			to:     "branch/Plus+Is+Not+Space/%e3%83%95%e3%82%a1%e3%82%a4%e3%83%ab.md",
+			to:     "branch/Plus+Is+Not+Space/%E3%83%95%E3%82%A1%E3%82%A4%E3%83%AB.md",
 			status: http.StatusNotFound, // it's not on default branch
 		},
 		// Same but url-encoded (few tests)
 		{
 			from:   "%E3%83%96%E3%83%A9%E3%83%B3%E3%83%81",
-			to:     "branch/%e3%83%96%e3%83%a9%e3%83%b3%e3%83%81",
+			to:     "branch/%E3%83%96%E3%83%A9%E3%83%B3%E3%83%81",
 			status: http.StatusOK,
 		},
 		{
 			from:   "%E3%82%BF%E3%82%b0",
-			to:     "tag/%e3%82%bf%e3%82%b0",
+			to:     "tag/%E3%82%BF%E3%82%B0",
 			status: http.StatusOK,
 		},
 		{
 			from:   "%D0%A4%D0%B0%D0%B9%D0%BB.md",
-			to:     "branch/Plus+Is+Not+Space/%d0%a4%d0%b0%d0%b9%d0%bb.md",
+			to:     "branch/Plus+Is+Not+Space/%D0%A4%D0%B0%D0%B9%D0%BB.md",
 			status: http.StatusOK,
 		},
 		{
 			from:   "%D0%81%2F%E4%BA%BA",
-			to:     "tag/%d0%81/%e4%ba%ba",
+			to:     "tag/%D0%81/%E4%BA%BA",
 			status: http.StatusOK,
 		},
 		{
 			from:   "Ё%2F%E4%BA%BA",
-			to:     "tag/%d0%81/%e4%ba%ba",
+			to:     "tag/%D0%81/%E4%BA%BA",
 			status: http.StatusOK,
 		},
 	}

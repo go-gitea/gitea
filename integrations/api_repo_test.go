@@ -12,7 +12,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -22,15 +22,15 @@ import (
 
 func TestAPIUserReposNotLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
 	resp := MakeRequest(t, req, http.StatusOK)
 
 	var apiRepos []api.Repository
 	DecodeJSON(t, resp, &apiRepos)
-	expectedLen := db.GetCount(t, models.Repository{OwnerID: user.ID},
-		db.Cond("is_private = ?", false))
+	expectedLen := unittest.GetCount(t, models.Repository{OwnerID: user.ID},
+		unittest.Cond("is_private = ?", false))
 	assert.Len(t, apiRepos, expectedLen)
 	for _, repo := range apiRepos {
 		assert.EqualValues(t, user.ID, repo.Owner.ID)
@@ -53,11 +53,11 @@ func TestAPISearchRepo(t *testing.T) {
 		assert.False(t, repo.Private)
 	}
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
-	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
-	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
-	orgUser := db.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 15}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 16}).(*models.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 18}).(*models.User)
+	user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 20}).(*models.User)
+	orgUser := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 17}).(*models.User)
 
 	oldAPIDefaultNum := setting.API.DefaultPagingNum
 	defer func() {
@@ -209,7 +209,7 @@ var repoCache = make(map[int64]*models.Repository)
 
 func getRepo(t *testing.T, repoID int64) *models.Repository {
 	if _, ok := repoCache[repoID]; !ok {
-		repoCache[repoID] = db.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+		repoCache[repoID] = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
 	}
 	return repoCache[repoID]
 }
@@ -246,11 +246,11 @@ func TestAPIViewRepo(t *testing.T) {
 
 func TestAPIOrgRepos(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
-	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
 	// User3 is an Org. Check their repos.
-	sourceOrg := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
+	sourceOrg := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
 
 	expectedResults := map[*models.User]struct {
 		count           int
@@ -292,7 +292,7 @@ func TestAPIOrgRepos(t *testing.T) {
 
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 	req := NewRequestf(t, "GET", "/api/v1/repositories/2?token="+token)
@@ -316,7 +316,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 
 	defer prepareTestEnv(t)()
 	for _, testCase := range testCases {
-		user := db.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session)
 		req := NewRequestWithJSON(t, "POST", "/api/v1/repos/migrate?token="+token, &api.MigrateRepoOptions{
@@ -395,7 +395,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 
 	defer prepareTestEnv(t)()
 	for _, testCase := range testCases {
-		user := db.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
 		session := loginUser(t, user.Name)
 		token := getTokenForLoggedInUser(t, session)
 		req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/org/%s/repos?token="+token, testCase.orgName), &api.CreateRepoOption{
@@ -463,7 +463,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	//create repo to move
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 	repoName := "moveME"
@@ -480,8 +480,8 @@ func TestAPIRepoTransfer(t *testing.T) {
 
 	//start testing
 	for _, testCase := range testCases {
-		user = db.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
-		repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
+		user = unittest.AssertExistsAndLoadBean(t, &models.User{ID: testCase.ctxUserID}).(*models.User)
+		repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
 		session = loginUser(t, user.Name)
 		token = getTokenForLoggedInUser(t, session)
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/transfer?token=%s", repo.OwnerName, repo.Name, token), &api.TransferRepoOption{
@@ -492,18 +492,18 @@ func TestAPIRepoTransfer(t *testing.T) {
 	}
 
 	//cleanup
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: apiRepo.ID}).(*models.Repository)
 	_ = models.DeleteRepository(user, repo.OwnerID, repo.ID)
 }
 
 func TestAPIGenerateRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	templateRepo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 44}).(*models.Repository)
+	templateRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 44}).(*models.Repository)
 
 	// user
 	repo := new(api.Repository)
@@ -535,10 +535,10 @@ func TestAPIGenerateRepo(t *testing.T) {
 
 func TestAPIRepoGetReviewers(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/reviewers?token=%s", user.Name, repo.Name, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -549,10 +549,10 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 
 func TestAPIRepoGetAssignees(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/assignees?token=%s", user.Name, repo.Name, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)

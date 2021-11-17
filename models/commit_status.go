@@ -7,6 +7,7 @@ package models
 import (
 	"crypto/sha1"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -137,8 +138,7 @@ func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
 	_ = status.loadAttributes(db.GetEngine(db.DefaultContext))
-	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
-		setting.AppURL, status.Repo.FullName(), status.SHA)
+	return status.Repo.APIURL() + "/statuses/" + url.PathEscape(status.SHA)
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc

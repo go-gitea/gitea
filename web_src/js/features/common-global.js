@@ -104,7 +104,7 @@ export function initGlobalCommon() {
   $('.ui.progress').progress({
     showActivity: false
   });
-  $('.poping.up').popup();
+  $('.poping.up').attr('data-variation', 'inverted tiny').popup();
   $('.top.menu .poping.up').popup({
     onShow() {
       if ($('.top.menu .menu.transition').hasClass('visible')) {
