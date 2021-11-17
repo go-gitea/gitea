@@ -371,7 +371,11 @@ func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
+		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("archiver_service.NewRequest", err)
+		}
 		return
 	}
 	if aReq == nil {

@@ -5,6 +5,7 @@
 package archiver
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -17,10 +18,6 @@ import (
 
 func TestMain(m *testing.M) {
 	models.MainTest(m, filepath.Join("..", ".."))
-}
-
-func waitForCount(t *testing.T, num int) {
-
 }
 
 func TestArchive_Basic(t *testing.T) {
@@ -83,11 +80,8 @@ func TestArchive_Basic(t *testing.T) {
 	inFlight[2] = secondReq
 
 	ArchiveRepository(zipReq)
-	waitForCount(t, 1)
 	ArchiveRepository(tgzReq)
-	waitForCount(t, 2)
 	ArchiveRepository(secondReq)
-	waitForCount(t, 3)
 
 	// Make sure sending an unprocessed request through doesn't affect the queue
 	// count.
@@ -131,4 +125,9 @@ func TestArchive_Basic(t *testing.T) {
 	// Ideally, the extension would match what we originally requested.
 	assert.NotEqual(t, zipReq.GetArchiveName(), tgzReq.GetArchiveName())
 	assert.NotEqual(t, zipReq.GetArchiveName(), secondReq.GetArchiveName())
+}
+
+func TestErrUnknownArchiveFormat(t *testing.T) {
+	var err = ErrUnknownArchiveFormat{RequestFormat: "master"}
+	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
 }
