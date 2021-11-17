@@ -377,10 +377,6 @@ func NewFuncMap() []template.FuncMap {
 			return setting.MermaidMaxSourceCharacters
 		},
 		"QueryEscape": url.QueryEscape,
-		"BeautifyRef": func(ref string) string {
-			splitted := strings.Split(ref, "/")
-			return splitted[len(splitted)-1]
-		},
 	}}
 }
 
