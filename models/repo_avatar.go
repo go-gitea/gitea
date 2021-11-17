@@ -109,7 +109,10 @@ func (repo *Repository) AvatarLink() string {
 func (repo *Repository) avatarLink(e db.Engine) string {
 	link := repo.relAvatarLink(e)
 	// link may be empty!
-	if len(link) > 1 {
+	if len(link) > 0 {
+		if len(link) == 1 {
+			return setting.AppURL + "/"
+		}
 		if link[0] == '/' && link[1] != '/' {
 			return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
 		}
