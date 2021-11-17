@@ -24,8 +24,8 @@ import (
 var (
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("e-mail address has not been activated")
-
-	ErrEmailCharIsNotSupported = errors.New("e-mail address contains unsupported charactor, only letters, digits, '.', '-', '_', '+', '@' are allowed")
+	// ErrEmailCharIsNotSupported e-mail address contains unsupported character
+	ErrEmailCharIsNotSupported = errors.New("e-mail address contains unsupported character, only letters, digits, '.', '-', '_', '+', '@' are allowed")
 )
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
@@ -114,7 +114,8 @@ func isEmailAllowedChar(b byte) bool {
 	return (b >= '0' && b <= '9') ||
 		(b >= 'a' && b <= 'z') ||
 		(b >= 'A' && b <= 'Z') ||
-		b == '.' || b == '-' || b == '_' || b == '@'
+		b == '.' || b == '-' || b == '_' ||
+		b == '@' || b == '+'
 }
 
 // ValidateEmail check if email is a allowed address
