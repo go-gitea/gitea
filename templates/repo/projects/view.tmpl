@@ -195,7 +195,7 @@
 										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">
+								<a class="project-board-title vm" href="{{.Link}}">
 									{{.Title}}
 								</a>
 							</div>
@@ -204,9 +204,9 @@
 									#{{.Index}}
 									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
 									{{if .OriginalAuthor }}
-										{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 									{{else if gt .Poster.ID 0}}
-										{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+										{{$.i18n.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 									{{else}}
 										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 									{{end}}
