@@ -1,9 +1,7 @@
-{{ $imagePathOld := printf "%s/%s" .root.BeforeRawPath (EscapePound .file.OldName)  }}
-{{ $imagePathNew := printf "%s/%s" .root.RawPath (EscapePound .file.Name)  }}
 {{if or .blobBase .blobHead}}
 <tr>
 	<td colspan="2">
-		<div class="image-diff" data-path-before="{{$imagePathOld}}" data-path-after="{{$imagePathNew}}">
+		<div class="image-diff" data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}" data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}">
 			<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu">
 				<div class="new-menu-inner">
 					<a class="item active" data-tab="diff-side-by-side-{{ .file.Index }}">{{.root.i18n.Tr "repo.diff.image.side_by_side"}}</a>

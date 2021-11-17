@@ -408,6 +408,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/new").Get(admin.NewUser).Post(bindIgnErr(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Combo("/{userid}").Get(admin.EditUser).Post(bindIgnErr(forms.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/{userid}/delete", admin.DeleteUser)
+			m.Post("/{userid}/avatar", bindIgnErr(forms.AvatarForm{}), admin.AvatarPost)
+			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 		})
 
 		m.Group("/emails", func() {
@@ -895,21 +897,23 @@ func RegisterRoutes(m *web.Route) {
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {
-			m.Get("/", repo.Wiki)
-			m.Get("/{page}", repo.Wiki)
-			m.Get("/_pages", repo.WikiPages)
-			m.Get("/{page}/_revision", repo.WikiRevision)
+			m.Combo("/").
+				Get(repo.Wiki).
+				Post(context.RepoMustNotBeArchived(),
+					reqSignIn,
+					reqRepoWikiWriter,
+					bindIgnErr(forms.NewWikiForm{}),
+					repo.WikiPost)
+			m.Combo("/*").
+				Get(repo.Wiki).
+				Post(context.RepoMustNotBeArchived(),
+					reqSignIn,
+					reqRepoWikiWriter,
+					bindIgnErr(forms.NewWikiForm{}),
+					repo.WikiPost)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
-
-			m.Group("", func() {
-				m.Combo("/_new").Get(repo.NewWiki).
-					Post(bindIgnErr(forms.NewWikiForm{}), repo.NewWikiPost)
-				m.Combo("/{page}/_edit").Get(repo.EditWiki).
-					Post(bindIgnErr(forms.NewWikiForm{}), repo.EditWikiPost)
-				m.Post("/{page}/delete", repo.DeleteWikiPagePost)
-			}, context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter)
-		}, repo.MustEnableWiki, context.RepoRef(), func(ctx *context.Context) {
+		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
 		})
 
