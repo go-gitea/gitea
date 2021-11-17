@@ -84,7 +84,7 @@
 				<div class="board-column-header df ac sb">
 					<div class="ui large label board-label py-2">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) (ne .ID 0)}}
-						<div class="ui dropdown jump item popping up">
+						<div class="ui dropdown jump item tooltip">
 							<div class="not-mobile px-3" tabindex="-1">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>

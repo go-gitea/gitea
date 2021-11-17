@@ -82,7 +82,7 @@
 							<br>
 							{{range $t, $unit := $.Units}}
 							{{if $unit.Type.UnitGlobalDisabled}}
-							<div class="field popping up" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
+							<div class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
 							{{else}}
 							<div class="field">
 							{{end}}

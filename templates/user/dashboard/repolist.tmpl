@@ -31,7 +31,7 @@
 					{{.i18n.Tr "home.my_repos"}}
 					<span class="ui grey label ml-3">${reposTotalCount}</span>
 				</div>
-				<a class="popping up" :href="subUrl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-position="left center">
+				<a class="tooltip" :href="subUrl + '/repo/create'" data-content="{{.i18n.Tr "new_repo"}}" data-position="left center">
 					{{svg "octicon-plus"}}
 					<span class="sr-only">{{.i18n.Tr "new_repo"}}</span>
 				</a>
@@ -168,7 +168,7 @@
 					{{.i18n.Tr "home.my_orgs"}}
 					<span class="ui grey label ml-3">${organizationsTotalCount}</span>
 				</div>
-				<a v-if="canCreateOrganization" class="popping up" :href="subUrl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-position="left center">
+				<a v-if="canCreateOrganization" class="tooltip" :href="subUrl + '/org/create'" data-content="{{.i18n.Tr "new_org"}}" data-position="left center">
 					{{svg "octicon-plus"}}
 					<span class="sr-only">{{.i18n.Tr "new_org"}}</span>
 				</a>

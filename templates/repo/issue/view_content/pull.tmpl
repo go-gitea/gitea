@@ -34,12 +34,12 @@
 						</div>
 						<div class="review-item-right">
 							{{if .Review.Stale}}
-								<span class="ui popping up type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
+								<span class="ui tooltip type-icon text grey" data-content="{{$.i18n.Tr "repo.issues.is_stale"}}">
 									{{svg "octicon-hourglass" 16 "icon"}}
 								</span>
 							{{end}}
 							{{if (and $.Permission.IsAdmin (or (eq .Review.Type 1) (eq .Review.Type 3)) (not $.Issue.IsClosed))}}
-								<a href="#" class="ui muted popping up icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
+								<a href="#" class="ui muted tooltip icon dismiss-review-btn" data-review-id="dismiss-review-{{.Review.ID}}" data-content="{{$.i18n.Tr "repo.issues.dismiss_review"}}">
 									{{svg "octicon-x" 16}}
 								</a>
 								<div class="ui small modal" id="dismiss-review-modal">
@@ -72,7 +72,7 @@
 								{{else}}grey{{end}}">
 
 								{{if .CanChange }}
-									<a href="#" class="ui popping up icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
+									<a href="#" class="ui tooltip icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.i18n.Tr "repo.issues.remove_request_review"}} {{else}} {{$.i18n.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
 								{{end}}
@@ -86,7 +86,7 @@
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<a href="{{$.Repository.OriginalURL}}" class="ui popping up" data-content="{{$.i18n.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe }}">
+							<a href="{{$.Repository.OriginalURL}}" class="ui tooltip" data-content="{{$.i18n.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe }}">
 								<span class="text black ">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
 									{{ .OriginalAuthor }}

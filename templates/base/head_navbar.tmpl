@@ -41,7 +41,7 @@
 
 	{{if and .IsSigned .MustChangePassword}}
 		<div class="right stackable menu">
-			<div class="ui dropdown jump item popping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
@@ -84,7 +84,7 @@
 					<form class="stopwatch-commit" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
-							class="ui button mini compact basic icon fitted popping up"
+							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.i18n.Tr "repo.issues.stop_tracking"}}"
 							data-position="top right"
 						>{{svg "octicon-square-fill"}}</button>
@@ -92,7 +92,7 @@
 					<form class="stopwatch-cancel" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
-							class="ui button mini compact basic icon fitted popping up"
+							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right"
 						>{{svg "octicon-trash"}}</button>
@@ -100,7 +100,7 @@
 				</div>
 			</div>
 
-			<a href="{{AppSubUrl}}/notifications" class="item popping up" data-content='{{.i18n.Tr "notifications"}}'>
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip" data-content='{{.i18n.Tr "notifications"}}'>
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
@@ -112,7 +112,7 @@
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item popping up" data-content="{{.i18n.Tr "create_new"}}">
+			<div class="ui dropdown jump item tooltip" data-content="{{.i18n.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
 					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
@@ -135,7 +135,7 @@
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item popping up" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
 					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>

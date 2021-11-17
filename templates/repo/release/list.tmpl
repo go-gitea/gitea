@@ -159,7 +159,7 @@
 											<li>
 												<span class="ui text middle aligned right">
 													<span class="ui text grey">{{.Size | FileSize}}</span>
-													<span class="popping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+													<span class="tooltip" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 														{{svg "octicon-info"}}
 													</span>
 												</span>

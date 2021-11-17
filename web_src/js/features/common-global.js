@@ -62,7 +62,7 @@ export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
-      .addClass('popping up')
+      .addClass('tooltip')
       .attr('data-content', $(this).attr('title'))
       .attr('title', '');
   });
@@ -87,7 +87,7 @@ export function initGlobalCommon() {
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
-      $('.popping.up').popup('hide');
+      $('.tooltip').popup('hide');
     },
     fullTextSearch: 'exact'
   });
@@ -105,15 +105,15 @@ export function initGlobalCommon() {
   });
 
   // init popups
-  for (const el of document.querySelectorAll('.popping.up')) {
-    const attr = el.getAttribute('data-variation');
+  $('.tooltip').each((_, el) => {
+    const $el = $(el);
+    const attr = $el.attr('data-variation');
     const attrs = attr ? attr.split(' ') : [];
     const variations = new Set([...attrs, 'inverted', 'tiny']);
-    el.setAttribute('data-variation', [...variations].join(' '));
-    $(el).popup();
-  }
+    $el.attr('data-variation', [...variations].join(' ')).popup();
+  });
 
-  $('.top.menu .popping.up').popup({
+  $('.top.menu .tooltip').popup({
     onShow() {
       if ($('.top.menu .menu.transition').hasClass('visible')) {
         return false;

@@ -44,7 +44,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" class="popping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}'>
+									<a href="{{$row.PreviousShaURL}}" class="tooltip" data-content='{{$.i18n.Tr "repo.blame_prior"}}'>
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}

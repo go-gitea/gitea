@@ -22,7 +22,7 @@
 						</div>
 					{{end}}
 					{{if .LFSLock}}
-						<div class="file-info-entry ui popping up" data-content="{{.LFSLockHint}}">
+						<div class="file-info-entry ui tooltip" data-content="{{.LFSLockHint}}">
 							{{svg "octicon-lock" 16 "mr-2"}}
 							<a href="{{.LFSLock.Owner.HomeLink}}">{{.LFSLockOwner}}</a>
 						</div>
@@ -34,8 +34,8 @@
 		<div class="file-header-right file-actions df ac">
 			{{if .HasSourceRenderedToggle}}
 				<div class="ui compact icon buttons two-toggle-buttons">
-					<a href="{{$.Link}}?display=source" class="ui mini basic button popping up {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code" 15}}</a>
-					<a href="{{$.Link}}" class="ui mini basic button popping up {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file" 15}}</a>
+					<a href="{{$.Link}}?display=source" class="ui mini basic button tooltip {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code" 15}}</a>
+					<a href="{{$.Link}}" class="ui mini basic button tooltip {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file" 15}}</a>
 				</div>
 			{{end}}
 			<div class="ui buttons mr-2">
@@ -48,17 +48,17 @@
 				{{end}}
 				<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
 			</div>
-			<a download href="{{$.RawFileLink}}"><span class="btn-octicon popping up" data-content="{{.i18n.Tr "repo.download_file"}}" data-position="bottom center">{{svg "octicon-download"}}</span></a>
+			<a download href="{{$.RawFileLink}}"><span class="btn-octicon tooltip" data-content="{{.i18n.Tr "repo.download_file"}}" data-position="bottom center">{{svg "octicon-download"}}</span></a>
 			{{if .Repository.CanEnableEditor}}
 				{{if .CanEditFile}}
-					<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon popping up" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span></a>
+					<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon tooltip" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span></a>
 				{{else}}
-					<span class="btn-octicon popping up disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span>
+					<span class="btn-octicon tooltip disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span>
 				{{end}}
 				{{if .CanDeleteFile}}
-					<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger popping up"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span></a>
+					<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger tooltip"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span></a>
 				{{else}}
-					<span class="btn-octicon popping up disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
+					<span class="btn-octicon tooltip disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
 				{{end}}
 			{{end}}
 		</div>
