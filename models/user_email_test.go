@@ -111,14 +111,14 @@ func TestListEmails(t *testing.T) {
 
 	// Must find only primary addresses (i.e. from the `user` table)
 	opts = &SearchEmailOptions{IsPrimary: util.OptionalBoolTrue}
-	emails, count, err = SearchEmails(opts)
+	emails, _, err = SearchEmails(opts)
 	assert.NoError(t, err)
 	assert.True(t, contains(func(s *SearchEmailResult) bool { return s.IsPrimary }))
 	assert.False(t, contains(func(s *SearchEmailResult) bool { return !s.IsPrimary }))
 
 	// Must find only inactive addresses (i.e. not validated)
 	opts = &SearchEmailOptions{IsActivated: util.OptionalBoolFalse}
-	emails, count, err = SearchEmails(opts)
+	emails, _, err = SearchEmails(opts)
 	assert.NoError(t, err)
 	assert.True(t, contains(func(s *SearchEmailResult) bool { return !s.IsActivated }))
 	assert.False(t, contains(func(s *SearchEmailResult) bool { return s.IsActivated }))
