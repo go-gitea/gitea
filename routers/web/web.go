@@ -36,8 +36,8 @@ import (
 	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
 
-	// to registers all internal adapters
-	_ "code.gitea.io/gitea/modules/session"
+
+	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	"github.com/NYTimes/gziphandler"
