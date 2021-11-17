@@ -560,3 +560,51 @@ func TestNewUserRedirect3(t *testing.T) {
 		RedirectUserID: user.ID,
 	})
 }
+
+func TestFollowUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	testSuccess := func(followerID, followedID int64) {
+		assert.NoError(t, user_model.FollowUser(followerID, followedID))
+		unittest.AssertExistsAndLoadBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+	}
+	testSuccess(4, 2)
+	testSuccess(5, 2)
+
+	assert.NoError(t, user_model.FollowUser(2, 2))
+
+	unittest.CheckConsistencyFor(t, &User{})
+}
+
+func TestUnfollowUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	testSuccess := func(followerID, followedID int64) {
+		assert.NoError(t, user_model.UnfollowUser(followerID, followedID))
+		unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: followerID, FollowID: followedID})
+	}
+	testSuccess(4, 2)
+	testSuccess(5, 2)
+	testSuccess(2, 2)
+
+	unittest.CheckConsistencyFor(t, &User{})
+}
+
+func TestGetUserByOpenID(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	_, err := GetUserByOpenID("https://unknown")
+	if assert.Error(t, err) {
+		assert.True(t, IsErrUserNotExist(err))
+	}
+
+	user, err := GetUserByOpenID("https://user1.domain1.tld")
+	if assert.NoError(t, err) {
+		assert.Equal(t, int64(1), user.ID)
+	}
+
+	user, err = GetUserByOpenID("https://domain1.tld/user2/")
+	if assert.NoError(t, err) {
+		assert.Equal(t, int64(2), user.ID)
+	}
+}
