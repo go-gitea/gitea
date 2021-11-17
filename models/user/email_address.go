@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"net/mail"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -25,7 +26,7 @@ var (
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("e-mail address has not been activated")
 	// ErrEmailCharIsNotSupported e-mail address contains unsupported character
-	ErrEmailCharIsNotSupported = errors.New("e-mail address contains unsupported character, only letters, digits, '.', '-', '_', '+', '@' are allowed")
+	ErrEmailCharIsNotSupported = errors.New("e-mail address contains unsupported character")
 )
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
@@ -110,13 +111,7 @@ func (email *EmailAddress) BeforeInsert() {
 	}
 }
 
-func isEmailAllowedChar(b byte) bool {
-	return (b >= '0' && b <= '9') ||
-		(b >= 'a' && b <= 'z') ||
-		(b >= 'A' && b <= 'Z') ||
-		b == '.' || b == '-' || b == '_' ||
-		b == '@' || b == '+'
-}
+var emailRegexp = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~;]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 // ValidateEmail check if email is a allowed address
 func ValidateEmail(email string) error {
@@ -124,10 +119,8 @@ func ValidateEmail(email string) error {
 		return nil
 	}
 
-	for _, r := range []byte(email) {
-		if !isEmailAllowedChar(r) {
-			return ErrEmailCharIsNotSupported
-		}
+	if !emailRegexp.MatchString(email) {
+		return ErrEmailCharIsNotSupported
 	}
 
 	if _, err := mail.ParseAddress(email); err != nil {

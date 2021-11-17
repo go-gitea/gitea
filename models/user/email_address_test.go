@@ -260,6 +260,7 @@ func TestEmailAddressValidate(t *testing.T) {
 		"1-3-2@test.org":                 nil,
 		"1.3.2@test.org":                 nil,
 		"a_123@test.org.cn":              nil,
+		`first+last@iana.org`:            nil,
 		";233@qq.com":                    ErrEmailCharIsNotSupported,
 		string([]byte{0xE2, 0x84, 0xAA}): ErrEmailCharIsNotSupported,
 	}
