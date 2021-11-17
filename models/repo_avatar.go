@@ -110,6 +110,11 @@ func (repo *Repository) avatarLink(e db.Engine) string {
 	link := repo.relAvatarLink(e)
 	// link may be empty!
 	if len(link) > 0 {
+		// When link is non-empty, it's either the fallbackImage or
+		// a link to to .../repo-avatars/avatarLink.
+		// We know when we have ".../repo-avatars/avatarLink" that it will be larger
+		// than 2 characters, but with fallbackImage it could be that it's set to
+		// '/' in which case we should return AppURL + /
 		if len(link) == 1 {
 			return setting.AppURL + "/"
 		}
