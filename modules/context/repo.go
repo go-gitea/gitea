@@ -41,10 +41,10 @@ var IssueTemplateDirCandidates = []string{
 
 // PullRequest contains information to make a pull request
 type PullRequest struct {
-	BaseRepo *models.Repository
-	Allowed  bool
-	SameRepo bool
-	HeadInfo string // [<user>:]<branch>
+	BaseRepo       *models.Repository
+	Allowed        bool
+	SameRepo       bool
+	HeadInfoSubURL string // [<user>:]<branch> url segment
 }
 
 // Repository contains information to operate a repository
@@ -189,11 +189,11 @@ func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches []string, fi
 func (r *Repository) BranchNameSubURL() string {
 	switch {
 	case r.IsViewBranch:
-		return "branch/" + r.BranchName
+		return "branch/" + util.PathEscapeSegments(r.BranchName)
 	case r.IsViewTag:
-		return "tag/" + r.BranchName
+		return "tag/" + util.PathEscapeSegments(r.BranchName)
 	case r.IsViewCommit:
-		return "commit/" + r.BranchName
+		return "commit/" + util.PathEscapeSegments(r.BranchName)
 	}
 	log.Error("Unknown view type for repo: %v", r)
 	return ""
@@ -321,9 +321,9 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	}
 
 	redirectPath := strings.Replace(
-		ctx.Req.URL.Path,
-		fmt.Sprintf("%s/%s", ownerName, previousRepoName),
-		repo.FullName(),
+		ctx.Req.URL.EscapedPath(),
+		url.PathEscape(ownerName)+"/"+url.PathEscape(previousRepoName),
+		url.PathEscape(repo.OwnerName)+"/"+url.PathEscape(repo.Name),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {
@@ -588,7 +588,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.Data["BaseRepo"] = repo.BaseRepo
 		ctx.Repo.PullRequest.BaseRepo = repo.BaseRepo
 		ctx.Repo.PullRequest.Allowed = canPush
-		ctx.Repo.PullRequest.HeadInfo = ctx.Repo.Owner.Name + ":" + ctx.Repo.BranchName
+		ctx.Repo.PullRequest.HeadInfoSubURL = url.PathEscape(ctx.Repo.Owner.Name) + ":" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	} else if repo.AllowsPulls() {
 		// Or, this is repository accepts pull requests between branches.
 		canCompare = true
@@ -596,7 +596,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.Repo.PullRequest.BaseRepo = repo
 		ctx.Repo.PullRequest.Allowed = canPush
 		ctx.Repo.PullRequest.SameRepo = true
-		ctx.Repo.PullRequest.HeadInfo = ctx.Repo.BranchName
+		ctx.Repo.PullRequest.HeadInfoSubURL = util.PathEscapeSegments(ctx.Repo.BranchName)
 	}
 	ctx.Data["CanCompareOrPull"] = canCompare
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
@@ -621,7 +621,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	if ctx.FormString("go-get") == "1" {
 		ctx.Data["GoGetImport"] = ComposeGoGetImport(owner.Name, repo.Name)
-		prefix := setting.AppURL + path.Join(owner.Name, repo.Name, "src", "branch", ctx.Repo.BranchName)
+		prefix := repo.HTMLURL() + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 	}
@@ -810,7 +810,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			if isRenamedBranch && has {
 				renamedBranchName := ctx.Data["RenamedBranchName"].(string)
 				ctx.Flash.Info(ctx.Tr("repo.branch.renamed", refName, renamedBranchName))
-				link := strings.Replace(ctx.Req.RequestURI, refName, renamedBranchName, 1)
+				link := setting.AppSubURL + strings.Replace(ctx.Req.URL.EscapedPath(), util.PathEscapeSegments(refName), util.PathEscapeSegments(renamedBranchName), 1)
 				ctx.Redirect(link)
 				return
 			}
@@ -845,7 +845,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				// If short commit ID add canonical link header
 				if len(refName) < 40 {
 					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
-						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), refName, ctx.Repo.Commit.ID.String(), 1))))
+						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
 			} else {
 				if len(ignoreNotExistErr) > 0 && ignoreNotExistErr[0] {
@@ -857,11 +857,13 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
+				prefix := strings.TrimPrefix(setting.AppSubURL+strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")), ctx.Repo.RepoLink)
+
 				ctx.Redirect(path.Join(
-					setting.AppSubURL,
-					strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")),
+					ctx.Repo.RepoLink,
+					util.PathEscapeSegments(prefix),
 					ctx.Repo.BranchNameSubURL(),
-					ctx.Repo.TreePath))
+					util.PathEscapeSegments(ctx.Repo.TreePath)))
 				return
 			}
 		}

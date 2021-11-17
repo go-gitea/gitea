@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -53,14 +52,14 @@ func TestNewReleasePost(t *testing.T) {
 		test.LoadGitRepo(t, ctx)
 		web.SetForm(ctx, &testCase.Form)
 		NewReleasePost(ctx)
-		db.AssertExistsAndLoadBean(t, &models.Release{
+		unittest.AssertExistsAndLoadBean(t, &models.Release{
 			RepoID:      1,
 			PublisherID: 2,
 			TagName:     testCase.Form.TagName,
 			Target:      testCase.Form.Target,
 			Title:       testCase.Form.Title,
 			Note:        testCase.Form.Content,
-		}, db.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
+		}, unittest.Cond("is_draft=?", len(testCase.Form.Draft) > 0))
 		ctx.Repo.GitRepo.Close()
 	}
 }

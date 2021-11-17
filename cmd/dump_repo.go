@@ -11,10 +11,10 @@ import (
 
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/urfave/cli"
 )

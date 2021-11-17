@@ -373,6 +373,17 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
+// Link returns the Link URL to this issue.
+func (issue *Issue) Link() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+	return fmt.Sprintf("%s/%s/%d", issue.Repo.Link(), path, issue.Index)
+}
+
 // DiffURL returns the absolute URL to this diff
 func (issue *Issue) DiffURL() string {
 	if issue.IsPull {

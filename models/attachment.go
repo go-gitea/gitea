@@ -7,6 +7,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"path"
 
 	"code.gitea.io/gitea/models/db"
@@ -59,7 +60,7 @@ func (a *Attachment) RelativePath() string {
 
 // DownloadURL returns the download url of the attached file
 func (a *Attachment) DownloadURL() string {
-	return fmt.Sprintf("%sattachments/%s", setting.AppURL, a.UUID)
+	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
 // LinkedRepository returns the linked repo if any

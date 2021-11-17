@@ -7,7 +7,6 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +38,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrCircularDependency(err))
 
-	_ = db.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
+	_ = unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
 
 	// Check if dependencies left is correct
 	left, err := IssueNoDependenciesLeft(issue1)
