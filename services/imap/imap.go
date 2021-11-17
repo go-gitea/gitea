@@ -28,23 +28,12 @@ import (
 
 // Client is an imap client
 type Client struct {
-	Client   ClientPort
+	Client   *client.Client
 	UserName string
 	Passwd   string
 	Addr     string
 	IsTLS    bool
 	Lock     sync.Mutex
-}
-
-// ClientPort operations to perform for an IMAP server or to test the code
-type ClientPort interface {
-	Login(username, password string) error
-	Logout() error
-	Select(name string, readOnly bool) (*imap.MailboxStatus, error)
-	Search(criteria *imap.SearchCriteria) (seqNums []uint32, err error)
-	Store(seqset *imap.SeqSet, item imap.StoreItem, value interface{}, ch chan *imap.Message) error
-	Expunge(ch chan uint32) error
-	Fetch(seqset *imap.SeqSet, items []imap.FetchItem, ch chan *imap.Message) error
 }
 
 // ClientInitOpt options to init a Client
@@ -102,8 +91,8 @@ func (c *Client) LogOut() error {
 	return err
 }
 
-// GetUnReadMailIDs get all unread mails
-func (c *Client) GetUnReadMailIDs(mailBox string) ([]uint32, error) {
+// GetUnreadMailIDs get all unread mails
+func (c *Client) GetUnreadMailIDs(mailBox string) ([]uint32, error) {
 	if err := c.Login(); err != nil {
 		return nil, err
 	}
@@ -297,7 +286,7 @@ type Mail struct {
 
 // GetUnreadMails get all unread mails
 func (c *Client) GetUnreadMails(mailBox string, limit int) ([]*Mail, error) {
-	ids, err := c.GetUnReadMailIDs(mailBox)
+	ids, err := c.GetUnreadMailIDs(mailBox)
 	if err != nil {
 		return nil, err
 	}

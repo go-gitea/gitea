@@ -254,9 +254,13 @@ github.com/editorconfig/editorconfig-core-go/v2
 # github.com/emersion/go-imap v1.2.0
 ## explicit
 github.com/emersion/go-imap
+github.com/emersion/go-imap/backend
+github.com/emersion/go-imap/backend/backendutil
+github.com/emersion/go-imap/backend/memory
 github.com/emersion/go-imap/client
 github.com/emersion/go-imap/commands
 github.com/emersion/go-imap/responses
+github.com/emersion/go-imap/server
 github.com/emersion/go-imap/utf7
 # github.com/emersion/go-message v0.15.0
 ## explicit
