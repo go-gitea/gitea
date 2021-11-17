@@ -15,7 +15,7 @@ import (
 // TestFixturesAreConsistent assert that test fixtures are consistent
 func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	CheckConsistencyFor(t,
+	unittest.CheckConsistencyFor(t,
 		&User{},
 		&Repository{},
 		&Issue{},

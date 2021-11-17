@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"net/url"
+
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -58,7 +60,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			}
 		}
 	case models.NotificationSourceCommit:
-		url := n.Repository.HTMLURL() + "/commit/" + n.CommitID
+		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
 			Type:    api.NotifySubjectCommit,
 			Title:   n.CommitID,

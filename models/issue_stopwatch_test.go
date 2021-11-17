@@ -7,7 +7,6 @@ package models
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -27,9 +26,9 @@ func TestCancelStopwatch(t *testing.T) {
 
 	err = CancelStopwatch(user1, issue1)
 	assert.NoError(t, err)
-	db.AssertNotExistsBean(t, &Stopwatch{UserID: user1.ID, IssueID: issue1.ID})
+	unittest.AssertNotExistsBean(t, &Stopwatch{UserID: user1.ID, IssueID: issue1.ID})
 
-	_ = db.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeCancelTracking, PosterID: user1.ID, IssueID: issue1.ID})
+	_ = unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeCancelTracking, PosterID: user1.ID, IssueID: issue1.ID})
 
 	assert.Nil(t, CancelStopwatch(user1, issue2))
 }
@@ -68,10 +67,10 @@ func TestCreateOrStopIssueStopwatch(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user3, issue1))
-	sw := db.AssertExistsAndLoadBean(t, &Stopwatch{UserID: 3, IssueID: 1}).(*Stopwatch)
+	sw := unittest.AssertExistsAndLoadBean(t, &Stopwatch{UserID: 3, IssueID: 1}).(*Stopwatch)
 	assert.LessOrEqual(t, sw.CreatedUnix, timeutil.TimeStampNow())
 
 	assert.NoError(t, CreateOrStopIssueStopwatch(user2, issue2))
-	db.AssertNotExistsBean(t, &Stopwatch{UserID: 2, IssueID: 2})
-	db.AssertExistsAndLoadBean(t, &TrackedTime{UserID: 2, IssueID: 2})
+	unittest.AssertNotExistsBean(t, &Stopwatch{UserID: 2, IssueID: 2})
+	unittest.AssertExistsAndLoadBean(t, &TrackedTime{UserID: 2, IssueID: 2})
 }
