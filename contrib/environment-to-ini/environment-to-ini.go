@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/urfave/cli"
-
 	ini "gopkg.in/ini.v1"
 )
 

@@ -10,7 +10,6 @@ import (
 
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
-
 	"gopkg.in/yaml.v2"
 )
 

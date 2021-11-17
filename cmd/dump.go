@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )

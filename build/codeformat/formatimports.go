@@ -46,7 +46,7 @@ func parseImportLine(line string) (*importLineParsed, error) {
 	pDot := strings.IndexRune(il.pkg, '.')
 	pSlash := strings.IndexRune(il.pkg, '/')
 	if pDot != -1 && pDot < pSlash {
-		il.group = il.pkg[:pSlash]
+		il.group = "domain-package"
 	}
 	for groupName := range importPackageGroupOrders {
 		if groupName == "" {

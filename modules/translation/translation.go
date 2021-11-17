@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/unknwon/i18n"
-
 	"golang.org/x/text/language"
 )
 

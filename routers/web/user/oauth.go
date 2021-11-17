@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/binding"
-
 	"github.com/golang-jwt/jwt"
 )
 

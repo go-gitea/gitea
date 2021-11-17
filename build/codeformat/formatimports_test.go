@@ -86,11 +86,9 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"code.gitea.io/other/package"
-
 	"github.com/issue9/identicon"
 	"github.com/nfnt/resize"
 	"github.com/oliamb/cutter"
-
 	"xorm.io/the/package"
 )
 `

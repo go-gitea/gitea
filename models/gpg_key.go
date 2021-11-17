@@ -16,7 +16,6 @@ import (
 
 	"github.com/keybase/go-crypto/openpgp"
 	"github.com/keybase/go-crypto/openpgp/packet"
-
 	"xorm.io/xorm"
 )
 

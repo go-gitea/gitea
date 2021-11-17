@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
-
 	"xorm.io/builder"
 )
 

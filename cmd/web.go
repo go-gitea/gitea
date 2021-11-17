@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/urfave/cli"
-
 	ini "gopkg.in/ini.v1"
 )
 

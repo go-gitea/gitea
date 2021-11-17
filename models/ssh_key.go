@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/crypto/ssh"
-
 	"xorm.io/builder"
 )
 

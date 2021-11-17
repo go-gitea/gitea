@@ -19,7 +19,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/urfave/cli"
-
 	"xorm.io/xorm"
 )
 

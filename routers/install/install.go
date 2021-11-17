@@ -32,7 +32,6 @@ import (
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
-
 	"gopkg.in/ini.v1"
 )
 

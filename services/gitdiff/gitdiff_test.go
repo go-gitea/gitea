@@ -21,7 +21,6 @@ import (
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
-
 	"gopkg.in/ini.v1"
 )
 

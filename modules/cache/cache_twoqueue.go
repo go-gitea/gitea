@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 
 	mc "gitea.com/go-chi/cache"
-
 	lru "github.com/hashicorp/golang-lru"
 )
 

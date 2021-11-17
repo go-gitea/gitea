@@ -24,7 +24,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/google/go-github/v39/github"
-
 	"golang.org/x/oauth2"
 )
 

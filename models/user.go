@@ -39,7 +39,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
-
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
