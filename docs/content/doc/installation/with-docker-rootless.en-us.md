@@ -168,7 +168,9 @@ named volumes; Docker will deal with that automatically.
 version: "2"
 
 +volumes:
-+  gitea:
++  gitea-data:
++    driver: local
++  gitea-config:
 +    driver: local
 +
 services:

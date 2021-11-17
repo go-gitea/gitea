@@ -107,25 +107,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 							languageStr := string(language)
 
-							preClasses := []string{}
+							preClasses := []string{"code-block"}
 							if languageStr == "mermaid" {
 								preClasses = append(preClasses, "is-loading")
 							}
 
-							if len(preClasses) > 0 {
-								_, err := w.WriteString(`<pre class="` + strings.Join(preClasses, " ") + `">`)
-								if err != nil {
-									return
-								}
-							} else {
-								_, err := w.WriteString(`<pre>`)
-								if err != nil {
-									return
-								}
+							_, err := w.WriteString(`<pre class="` + strings.Join(preClasses, " ") + `">`)
+							if err != nil {
+								return
 							}
 
 							// include language-x class as part of commonmark spec
-							_, err := w.WriteString(`<code class="chroma language-` + string(language) + `">`)
+							_, err = w.WriteString(`<code class="chroma language-` + string(language) + `">`)
 							if err != nil {
 								return
 							}

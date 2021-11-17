@@ -84,7 +84,6 @@ func NewNilResponseHashSumRecorder() *NilResponseHashSumRecorder {
 func TestMain(m *testing.M) {
 	defer log.Close()
 
-	unittest.InitUnitTestBridge()
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
