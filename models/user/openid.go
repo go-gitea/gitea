@@ -15,8 +15,8 @@ import (
 var ErrOpenIDNotExist = errors.New("OpenID is unknown")
 
 // UserOpenID is the list of all OpenID identities of a user.
-//nolint
-type UserOpenID struct { //nolint
+// Since this is a middle table, name it OpenID is not suitable, so we ignore the lint here
+type UserOpenID struct { //revive:disable-line:exported
 	ID   int64  `xorm:"pk autoincr"`
 	UID  int64  `xorm:"INDEX NOT NULL"`
 	URI  string `xorm:"UNIQUE NOT NULL"`
