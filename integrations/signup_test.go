@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/unknwon/i18n"
 )
