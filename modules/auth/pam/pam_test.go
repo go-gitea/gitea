@@ -1,3 +1,4 @@
+//go:build pam
 // +build pam
 
 // Copyright 2021 The Gitea Authors. All rights reserved.

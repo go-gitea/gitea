@@ -130,14 +130,6 @@ func Recovery() func(next http.Handler) http.Handler {
 					log.Error("%v", combinedErr)
 
 					sessionStore := session.GetSession(req)
-					if sessionStore == nil {
-						if setting.IsProd() {
-							http.Error(w, http.StatusText(500), 500)
-						} else {
-							http.Error(w, combinedErr, 500)
-						}
-						return
-					}
 
 					var lc = middleware.Locale(w, req)
 					var store = dataStore{

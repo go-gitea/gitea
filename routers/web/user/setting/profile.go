@@ -246,7 +246,7 @@ func Repos(ctx *context.Context) {
 		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
 		repos := map[string]*models.Repository{}
 		// We're going to iterate by pagesize.
-		root := filepath.Join(models.UserPath(ctxUser.Name))
+		root := models.UserPath(ctxUser.Name)
 		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
