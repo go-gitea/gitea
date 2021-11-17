@@ -48,5 +48,5 @@ func TestAPIDownloadArchive(t *testing.T) {
 
 	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
-	MakeRequest(t, NewRequest(t, "GET", link.String()), 400)
+	MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusBadRequest)
 }

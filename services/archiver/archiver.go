@@ -39,19 +39,19 @@ type ArchiveRequest struct {
 // the way to 64.
 var shaRegex = regexp.MustCompile(`^[0-9a-f]{4,64}$`)
 
-// ErrUnknowArchiveFormat request archive format is not supported
-type ErrUnknowArchiveFormat struct {
+// ErrUnknownArchiveFormat request archive format is not supported
+type ErrUnknownArchiveFormat struct {
 	RequestFormat string
 }
 
 // Error implements error
-func (err ErrUnknowArchiveFormat) Error() string {
+func (err ErrUnknownArchiveFormat) Error() string {
 	return fmt.Sprintf("unknown format: %s", err.RequestFormat)
 }
 
 // Is implements error
-func (ErrUnknowArchiveFormat) Is(err error) bool {
-	_, ok := err.(ErrUnknowArchiveFormat)
+func (ErrUnknownArchiveFormat) Is(err error) bool {
+	_, ok := err.(ErrUnknownArchiveFormat)
 	return ok
 }
 
@@ -75,7 +75,7 @@ func NewRequest(repoID int64, repo *git.Repository, uri string) (*ArchiveRequest
 		ext = ".bundle"
 		r.Type = git.BUNDLE
 	default:
-		return nil, ErrUnknowArchiveFormat{RequestFormat: uri}
+		return nil, ErrUnknownArchiveFormat{RequestFormat: uri}
 	}
 
 	r.refName = strings.TrimSuffix(uri, ext)
