@@ -10,10 +10,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/webhook"
-	"code.gitea.io/gitea/modules/migrations"
 	repository_service "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 

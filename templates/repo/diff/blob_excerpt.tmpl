@@ -4,17 +4,17 @@
 		{{if eq .GetType 4}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
-					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="{{$.Anchor}}">
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</a>
 				{{end}}
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="{{$.Anchor}}">
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</a>
 				{{end}}
 				{{if eq $line.GetExpandDirection 2}}
-					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="{{$.Anchor}}">
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold"}}
 					</a>
 				{{end}}
@@ -36,17 +36,17 @@
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
-					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="{{$.Anchor}}">
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</a>
 				{{end}}
 				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="{{$.Anchor}}">
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</a>
 				{{end}}
 				{{if eq $line.GetExpandDirection 2}}
-					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{$.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="{{$.Anchor}}">
+					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold"}}
 					</a>
 				{{end}}

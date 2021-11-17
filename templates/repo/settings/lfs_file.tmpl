@@ -20,19 +20,19 @@
 					{{else if not .IsTextFile}}
 						<div class="view-raw ui center">
 							{{if .IsImageFile}}
-								<img src="{{EscapePound $.RawFileLink}}">
+								<img src="{{$.RawFileLink}}">
 							{{else if .IsVideoFile}}
-								<video controls src="{{EscapePound $.RawFileLink}}">
+								<video controls src="{{$.RawFileLink}}">
 									<strong>{{.i18n.Tr "repo.video_not_supported_in_browser"}}</strong>
 								</video>
 							{{else if .IsAudioFile}}
-								<audio controls src="{{EscapePound $.RawFileLink}}">
+								<audio controls src="{{$.RawFileLink}}">
 									<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
 								</audio>
 							{{else if .IsPDFFile}}
-								<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{EscapePound $.RawFileLink}}"></iframe>
+								<iframe width="100%" height="600px" src="{{AppSubUrl}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
 							{{else}}
-								<a href="{{EscapePound $.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
+								<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
 							{{end}}
 						</div>
 					{{else if .FileSize}}

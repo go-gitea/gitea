@@ -45,13 +45,13 @@
 						<tr>
 							<td>{{.ID}}</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{.Owner.Name}}">{{.Owner.Name}}</a>
+								<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 								{{if .Owner.Visibility.IsPrivate}}
 									<span class="text gold">{{svg "octicon-lock"}}</span>
 								{{end}}
 							</td>
 							<td>
-								<a href="{{AppSubUrl}}/{{.Owner.Name}}/{{.Name}}">{{.Name}}</a>
+								<a href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
 									<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.archived"}}</span>
 								{{end}}
