@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"gopkg.in/ini.v1"
 )
 

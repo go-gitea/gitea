@@ -13,8 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
-	// Register the sources
-	_ "code.gitea.io/gitea/services/auth/source/db"
+	_ "code.gitea.io/gitea/services/auth/source/db" // register the sources (and below)
 	_ "code.gitea.io/gitea/services/auth/source/ldap"
 	_ "code.gitea.io/gitea/services/auth/source/oauth2"
 	_ "code.gitea.io/gitea/services/auth/source/pam"
