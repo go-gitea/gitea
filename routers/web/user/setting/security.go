@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -107,7 +108,7 @@ func loadSecurityData(ctx *context.Context) {
 	}
 	ctx.Data["AccountLinks"] = sources
 
-	openid, err := models.GetUserOpenIDs(ctx.User.ID)
+	openid, err := user_model.GetUserOpenIDs(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return

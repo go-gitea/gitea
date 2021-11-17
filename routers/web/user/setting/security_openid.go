@@ -7,7 +7,7 @@ package setting
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -45,7 +45,7 @@ func OpenIDPost(ctx *context.Context) {
 	form.Openid = id
 	log.Trace("Normalized id: " + id)
 
-	oids, err := models.GetUserOpenIDs(ctx.User.ID)
+	oids, err := user_model.GetUserOpenIDs(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
@@ -89,9 +89,9 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	log.Trace("Verified ID: " + id)
 
-	oid := &models.UserOpenID{UID: ctx.User.ID, URI: id}
-	if err = models.AddUserOpenID(oid); err != nil {
-		if models.IsErrOpenIDAlreadyUsed(err) {
+	oid := &user_model.UserOpenID{UID: ctx.User.ID, URI: id}
+	if err = user_model.AddUserOpenID(oid); err != nil {
+		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
 			return
 		}
@@ -106,7 +106,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
-	if err := models.DeleteUserOpenID(&models.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := user_model.DeleteUserOpenID(&user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
 		ctx.ServerError("DeleteUserOpenID", err)
 		return
 	}
@@ -120,7 +120,7 @@ func DeleteOpenID(ctx *context.Context) {
 
 // ToggleOpenIDVisibility response for toggle visibility of user's openid
 func ToggleOpenIDVisibility(ctx *context.Context) {
-	if err := models.ToggleUserOpenIDVisibility(ctx.FormInt64("id")); err != nil {
+	if err := user_model.ToggleUserOpenIDVisibility(ctx.FormInt64("id")); err != nil {
 		ctx.ServerError("ToggleUserOpenIDVisibility", err)
 		return
 	}
