@@ -13,7 +13,7 @@ async function initRepoProjectSortable() {
       const board = document.getElementsByClassName('board')[0];
       const boardColumns = board.getElementsByClassName('board-column');
 
-      boardColumns.forEach((column, i) => {
+      for (const [i, column] of boardColumns.entries()) {
         if (parseInt($(column).data('sorting')) !== i) {
           $.ajax({
             url: $(column).data('url'),
@@ -26,7 +26,7 @@ async function initRepoProjectSortable() {
             method: 'PUT',
           });
         }
-      });
+      }
     },
   });
 

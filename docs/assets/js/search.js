@@ -91,13 +91,13 @@ function executeSearch(searchQuery) {
 }
 
 function populateResults(result) {
-  result.forEach((value, key) => {
+  for (const [key, value] of result.entries()) {
     const content = value.item.contents;
     let snippet = '';
     const snippetHighlights = [];
     if (fuseOptions.tokenize) {
       snippetHighlights.push(searchQuery);
-      value.matches.forEach((mvalue) => {
+      for (const mvalue of value.matches) {
         if (mvalue.key === 'tags' || mvalue.key === 'categories') {
           snippetHighlights.push(mvalue.value);
         } else if (mvalue.key === 'contents') {
@@ -111,7 +111,7 @@ function populateResults(result) {
             snippetHighlights.push(mvalue.value.substring(mvalue.indices[0][0], mvalue.indices[0][1] - mvalue.indices[0][0] + 1));
           }
         }
-      });
+      }
     }
 
     if (snippet.length < 1) {
@@ -130,10 +130,10 @@ function populateResults(result) {
     });
     document.getElementById('search-results').appendChild(htmlToElement(output));
 
-    snippetHighlights.forEach((snipvalue) => {
+    for (const snipvalue of snippetHighlights) {
       new Mark(document.getElementById(`summary-${key}`)).mark(snipvalue);
-    });
-  });
+    }
+  }
 }
 
 function render(templateString, data) {

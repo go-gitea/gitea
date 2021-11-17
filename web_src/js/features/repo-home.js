@@ -57,13 +57,13 @@ export function initRepoTopicBar() {
           const {invalidTopics} = xhr.responseJSON;
           const topicLables = topicDropdown.children('a.ui.label');
 
-          topics.split(',').forEach((value, index) => {
+          for (const [index, value] of topics.split(',').entries()) {
             for (let i = 0; i < invalidTopics.length; i++) {
               if (invalidTopics[i] === value) {
                 topicLables.eq(index).removeClass('green').addClass('red');
               }
             }
-          });
+          }
         } else {
           topicPrompts.countPrompt = xhr.responseJSON.message;
         }

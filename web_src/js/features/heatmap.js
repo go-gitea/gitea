@@ -8,11 +8,13 @@ export default function initHeatmap() {
 
   try {
     const heatmap = {};
-    JSON.parse(el.getAttribute('data-heatmap-data')).forEach(({contributions, timestamp}) => {
+    const heatmapData = JSON.parse(el.getAttribute('data-heatmap-data'));
+
+    for (const {contributions, timestamp} of heatmapData) {
       // Convert to user timezone and sum contributions by date
       const dateStr = new Date(timestamp * 1000).toDateString();
       heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
-    });
+    }
 
     const values = Object.keys(heatmap).map((v) => {
       return {date: new Date(v), count: heatmap[v]};
