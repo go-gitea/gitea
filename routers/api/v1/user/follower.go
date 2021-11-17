@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -239,7 +240,7 @@ func Follow(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := models.FollowUser(ctx.User.ID, target.ID); err != nil {
+	if err := user_model.FollowUser(ctx.User.ID, target.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "FollowUser", err)
 		return
 	}
@@ -265,7 +266,7 @@ func Unfollow(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if err := models.UnfollowUser(ctx.User.ID, target.ID); err != nil {
+	if err := user_model.UnfollowUser(ctx.User.ID, target.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnfollowUser", err)
 		return
 	}
