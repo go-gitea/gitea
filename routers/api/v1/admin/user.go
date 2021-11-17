@@ -206,17 +206,19 @@ func EditUser(ctx *context.APIContext) {
 	}
 	var emailChanged bool
 	if form.Email != nil {
-		if err := user_model.ValidateEmail(*form.Email); err != nil {
+		email := strings.TrimSpace(*form.Email)
+		if len(email) == 0 {
+			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
+			return
+		}
+
+		if err := user_model.ValidateEmail(email); err != nil {
 			ctx.InternalServerError(err)
 			return
 		}
 
-		emailChanged = !strings.EqualFold(u.Email, *form.Email)
-		u.Email = *form.Email
-		if len(u.Email) == 0 {
-			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("email is not allowed to be empty string"))
-			return
-		}
+		emailChanged = !strings.EqualFold(u.Email, email)
+		u.Email = email
 	}
 	if form.Website != nil {
 		u.Website = *form.Website
