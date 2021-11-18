@@ -108,20 +108,11 @@ func (repo *Repository) AvatarLink() string {
 // avatarLink returns user avatar absolute link.
 func (repo *Repository) avatarLink(e db.Engine) string {
 	link := repo.relAvatarLink(e)
-	// link may be empty!
-	if len(link) > 0 {
-		// When link is non-empty, it's either the fallbackImage or
-		// a link to to .../repo-avatars/avatarLink.
-		// We know when we have ".../repo-avatars/avatarLink" that it will be larger
-		// than 2 characters, but with fallbackImage it could be that it's set to
-		// '/' in which case we should return AppURL + /
-		if len(link) == 1 {
-			return setting.AppURL + "/"
-		}
-		if link[0] == '/' && link[1] != '/' {
-			return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-		}
+	// we only prepend our AppSubURL to our known (relative, internal) avatar links
+	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
+		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
 	}
+	// otherwise, return the link as it is
 	return link
 }
 
