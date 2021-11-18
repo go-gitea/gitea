@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+// Copied and modified from https://github.com/issue9/identicon/ (MIT License)
+
 package identicon
 
 var (
