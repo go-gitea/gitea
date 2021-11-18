@@ -545,6 +545,11 @@ func GetIssue(ctx *context.APIContext) {
 		}
 		return
 	}
+
+	if issue.IsPrivate && !ctx.Repo.CanSeePrivateIssues() {
+		ctx.NotFound()
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
 }
 

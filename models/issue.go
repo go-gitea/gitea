@@ -192,6 +192,15 @@ func (issue *Issue) loadPoster(e db.Engine) (err error) {
 	return
 }
 
+func (issue *Issue) loadIsPrivate(e db.Engine) (err error) {
+	var isPrivate bool
+	if _, err = e.Table("issue").Where("id=?", issue.ID).Cols("is_private").Get(&isPrivate); err != nil {
+		return
+	}
+	issue.IsPrivate = isPrivate
+	return
+}
+
 func (issue *Issue) loadPullRequest(e db.Engine) (err error) {
 	if issue.IsPull && issue.PullRequest == nil {
 		issue.PullRequest, err = getPullRequestByIssueID(e, issue.ID)
@@ -323,6 +332,10 @@ func (issue *Issue) loadAttributes(e db.Engine) (err error) {
 		if err = issue.loadTotalTimes(e); err != nil {
 			return err
 		}
+	}
+
+	if err = issue.loadIsPrivate(e); err != nil {
+		return err
 	}
 
 	return issue.loadReactions(e)
