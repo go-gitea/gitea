@@ -12,7 +12,6 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -20,8 +19,8 @@ import (
 func TestAPIDownloadArchive(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
