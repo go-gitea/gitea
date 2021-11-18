@@ -80,7 +80,7 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /_/static {
+    location /_/static/assets {
         alias /path/to/gitea/public;
     }
 

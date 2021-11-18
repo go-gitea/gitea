@@ -12,7 +12,7 @@
 			{{range .Collaborators}}
 				<div class="item ui grid">
 					<div class="ui five wide column">
-						<a href="{{AppSubUrl}}/{{.Name}}">
+						<a href="{{.HomeLink}}">
 							{{avatar .}}
 							{{.DisplayName}}
 						</a>
@@ -62,11 +62,11 @@
 			{{range $t, $team := .Teams}}
 				<div class="item ui grid">
 					<div class="ui five wide column">
-						<a href="{{AppSubUrl}}/org/{{$.OrgName}}/teams/{{.LowerName}}">
+						<a href="{{AppSubUrl}}/org/{{$.OrgName|PathEscape}}/teams/{{.LowerName|PathEscape}}">
 							{{.Name}}
 						</a>
 					</div>
-					<div class="ui eight wide column poping up" data-content="{{$.i18n.Tr "repo.settings.change_team_permission_tip"}}">
+					<div class="ui eight wide column tooltip" data-content="{{$.i18n.Tr "repo.settings.change_team_permission_tip"}}">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
 							<div class="text">{{if eq .Authorize 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Authorize 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Authorize 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .Authorize 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
@@ -79,7 +79,7 @@
 						{{end}}
 					</div>
 					{{if $allowedToChangeTeams}}
-						<div class="ui two wide column {{if .IncludesAllRepositories}}poping up{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.i18n.Tr "repo.settings.delete_team_tip"}}"{{end}}>
+						<div class="ui two wide column {{if .IncludesAllRepositories}}tooltip{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.i18n.Tr "repo.settings.delete_team_tip"}}"{{end}}>
 							<button class="ui red tiny button inline text-thin delete-button {{if .IncludesAllRepositories}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
 									{{$.i18n.Tr "repo.settings.delete_collaborator"}}
 							</button>

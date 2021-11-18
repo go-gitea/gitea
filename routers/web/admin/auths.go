@@ -8,7 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"regexp"
+	"strconv"
 
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/auth/pam"
@@ -396,7 +398,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + fmt.Sprint(form.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + strconv.FormatInt(form.ID, 10))
 }
 
 // DeleteAuthSource response for deleting an auth source
@@ -414,7 +416,7 @@ func DeleteAuthSource(ctx *context.Context) {
 			ctx.Flash.Error(fmt.Sprintf("DeleteLoginSource: %v", err))
 		}
 		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": setting.AppSubURL + "/admin/auths/" + ctx.Params(":authid"),
+			"redirect": setting.AppSubURL + "/admin/auths/" + url.PathEscape(ctx.Params(":authid")),
 		})
 		return
 	}

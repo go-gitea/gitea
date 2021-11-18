@@ -35,15 +35,15 @@
 									{{ .Issue.OriginalAuthor }}
 								</span>
 								<span class="text grey">
-									{{ .i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe }}
+									{{ .i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe }}
 								</span>
 								<span class="text migrate">
-									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" .Repository.OriginalURL .Repository.GetOriginalURLHostname | Safe }}){{end}}
+									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
 								<span class="text grey">
 									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-									{{.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}}
+									{{.i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 							{{end}}
 						</div>
@@ -180,7 +180,7 @@
 					{{end}}
 				{{else}}
 					<div class="ui warning message">
-						{{.i18n.Tr "repo.issues.sign_in_require_desc" .SignInLink | Safe}}
+						{{.i18n.Tr "repo.issues.sign_in_require_desc" (.SignInLink|Escape) | Safe}}
 					</div>
 				{{end}}
 			{{end}}

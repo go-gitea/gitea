@@ -8,9 +8,8 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"

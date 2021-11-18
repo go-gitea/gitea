@@ -34,7 +34,7 @@
 		{{if .HeadBranchHTMLURL}}
 			{{$headHref = printf "<a href=\"%s\">%s</a>" (.HeadBranchHTMLURL | Escape) $headHref}}
 		{{end}}
-		{{$headHref = printf "%s <a class=\"poping up\" data-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.i18n.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
+		{{$headHref = printf "%s <a class=\"tooltip\" data-content=\"%s\" data-clipboard-text=\"%s\">%s</a>" $headHref (.i18n.Tr "copy_branch") (.HeadTarget | Escape) (svg "octicon-copy" 14)}}
 		{{$baseHref := .BaseTarget|Escape}}
 		{{if .BaseBranchHTMLURL}}
 			{{$baseHref = printf "<a href=\"%s\">%s</a>" (.BaseBranchHTMLURL | Escape) $baseHref}}
@@ -91,9 +91,9 @@
 		{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.Lang }}
 		<span class="time-desc">
 			{{if .Issue.OriginalAuthor }}
-				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr .Issue.OriginalAuthor | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.OriginalAuthor|Escape) | Safe}}
 			{{else if gt .Issue.Poster.ID 0}}
-				{{$.i18n.Tr "repo.issues.opened_by" $createdStr .Issue.Poster.HomeLink (.Issue.Poster.GetDisplayName|Escape) | Safe}}
+				{{$.i18n.Tr "repo.issues.opened_by" $createdStr (.Issue.Poster.HomeLink|Escape) (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{else}}
 				{{$.i18n.Tr "repo.issues.opened_by_fake" $createdStr (.Issue.Poster.GetDisplayName|Escape) | Safe}}
 			{{end}}

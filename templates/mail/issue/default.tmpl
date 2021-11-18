@@ -20,13 +20,13 @@
 	{{if eq .ActionName "push"}}
 		<p>
 			{{if .Comment.IsForcePush}}
-				{{$oldCommitUrl := printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
+				{{$oldCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.OldCommit}}
 				{{$oldShortSha := ShortSha .Comment.OldCommit}}
-				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" $oldCommitUrl $oldShortSha}}
+				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $oldCommitUrl) (Escape $oldShortSha)}}
 
-				{{$newCommitUrl := printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}
+				{{$newCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.NewCommit}}
 				{{$newShortSha := ShortSha .Comment.NewCommit}}
-				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" $newCommitUrl $newShortSha}}
+				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $newCommitUrl) (Escape $newShortSha)}}
 
 				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
@@ -36,26 +36,26 @@
 	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
-			{{.i18n.Tr "mail.issue.action.close" .Doer.Name .Issue.Index | Str2html}}
+			{{.i18n.Tr "mail.issue.action.close" (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "reopen"}}
-			{{.i18n.Tr "mail.issue.action.reopen" .Doer.Name .Issue.Index | Str2html}}
+			{{.i18n.Tr "mail.issue.action.reopen" (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "merge"}}
-			{{.i18n.Tr "mail.issue.action.merge" .Doer.Name .Issue.Index .Issue.PullRequest.BaseBranch | Str2html}}
+			{{.i18n.Tr "mail.issue.action.merge" (Escape .Doer.Name) .Issue.Index (Escape .Issue.PullRequest.BaseBranch) | Str2html}}
 		{{else if eq .ActionName "approve"}}
-			{{.i18n.Tr "mail.issue.action.approve" .Doer.Name | Str2html}}
+			{{.i18n.Tr "mail.issue.action.approve" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "reject"}}
-			{{.i18n.Tr "mail.issue.action.reject" .Doer.Name | Str2html}}
+			{{.i18n.Tr "mail.issue.action.reject" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "review"}}
-			{{.i18n.Tr "mail.issue.action.review" .Doer.Name | Str2html}}
+			{{.i18n.Tr "mail.issue.action.review" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "review_dismissed"}}
-			{{.i18n.Tr "mail.issue.action.review_dismissed" .Doer.Name .Comment.Review.Reviewer.Name | Str2html}}
+			{{.i18n.Tr "mail.issue.action.review_dismissed" (Escape .Doer.Name) (Escape .Comment.Review.Reviewer.Name) | Str2html}}
 		{{else if eq .ActionName "ready_for_review"}}
-			{{.i18n.Tr "mail.issue.action.ready_for_review" .Doer.Name | Str2html}}
+			{{.i18n.Tr "mail.issue.action.ready_for_review" (Escape .Doer.Name) | Str2html}}
 		{{end}}
 
 		{{- if eq .Body ""}}
 			{{if eq .ActionName "new"}}
-				{{.i18n.Tr "mail.issue.action.new" .Doer.Name .Issue.Index | Str2html}}
+				{{.i18n.Tr "mail.issue.action.new" (Escape .Doer.Name) .Issue.Index | Str2html}}
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
@@ -72,7 +72,7 @@
 			<ul>
 			{{range .Comment.Commits}}
 				<li>
-					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
+					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}/commit/{{.ID}}">
 						{{ShortSha .ID.String}}
 					</a>  -  {{.Summary}}
 				</li>
