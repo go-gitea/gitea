@@ -72,13 +72,13 @@ func TestMyOrgs(t *testing.T) {
 
 	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/user/orgs")
-	resp := session.MakeRequest(t, req, http.StatusUnauthorized)
+	session.MakeRequest(t, req, http.StatusUnauthorized)
 
 	normalUsername := "user2"
 	session = loginUser(t, normalUsername)
 	token := getTokenForLoggedInUser(t, session)
 	req = NewRequest(t, "GET", "/api/v1/user/orgs?token="+token)
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)

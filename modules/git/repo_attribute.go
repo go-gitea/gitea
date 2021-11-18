@@ -22,6 +22,8 @@ type CheckAttributeOpts struct {
 	AllAttributes bool
 	Attributes    []string
 	Filenames     []string
+	IndexFile     string
+	WorkTree      string
 }
 
 // CheckAttribute return the Blame object of file
@@ -29,6 +31,19 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 	err := LoadGitVersion()
 	if err != nil {
 		return nil, fmt.Errorf("git version missing: %v", err)
+	}
+
+	env := []string{}
+
+	if len(opts.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
+	}
+	if len(opts.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+		env = append(env, "GIT_WORK_TREE="+opts.WorkTree)
+	}
+
+	if len(env) > 0 {
+		env = append(os.Environ(), env...)
 	}
 
 	stdOut := new(bytes.Buffer)
@@ -61,7 +76,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd := NewCommand(cmdArgs...)
 
-	if err := cmd.RunInDirPipeline(repo.Path, stdOut, stdErr); err != nil {
+	if err := cmd.RunInDirTimeoutEnvPipeline(env, -1, repo.Path, stdOut, stdErr); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 

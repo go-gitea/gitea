@@ -85,7 +85,7 @@ func registerRepositoryUpdateHook() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return repo_module.SyncRepositoryHooks(ctx)
+		return repo_service.SyncRepositoryHooks(ctx)
 	})
 }
 

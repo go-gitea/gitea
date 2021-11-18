@@ -5,19 +5,13 @@
 package repository
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/builder"
 )
 
 func getHookTemplates() (hookNames, hookTpls, giteaHookTpls []string) {
@@ -239,39 +233,4 @@ func CheckDelegateHooks(repoPath string) ([]string, error) {
 		}
 	}
 	return results, nil
-}
-
-// SyncRepositoryHooks rewrites all repositories' pre-receive, update and post-receive hooks
-// to make sure the binary and custom conf path are up-to-date.
-func SyncRepositoryHooks(ctx context.Context) error {
-	log.Trace("Doing: SyncRepositoryHooks")
-
-	if err := db.Iterate(
-		db.DefaultContext,
-		new(models.Repository),
-		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
-			repo := bean.(*models.Repository)
-			select {
-			case <-ctx.Done():
-				return db.ErrCancelledf("before sync repository hooks for %s", repo.FullName())
-			default:
-			}
-
-			if err := createDelegateHooks(repo.RepoPath()); err != nil {
-				return fmt.Errorf("SyncRepositoryHook: %v", err)
-			}
-			if repo.HasWiki() {
-				if err := createDelegateHooks(repo.WikiPath()); err != nil {
-					return fmt.Errorf("SyncRepositoryHook: %v", err)
-				}
-			}
-			return nil
-		},
-	); err != nil {
-		return err
-	}
-
-	log.Trace("Finished: SyncRepositoryHooks")
-	return nil
 }
