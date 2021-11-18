@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -582,7 +583,7 @@ func CreateIssue(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateIssueOption)
 	var deadlineUnix timeutil.TimeStamp
-	if form.Deadline != nil && ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if form.Deadline != nil && ctx.Repo.CanWrite(unit.TypeIssues) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
@@ -599,7 +600,7 @@ func CreateIssue(ctx *context.APIContext) {
 
 	var assigneeIDs = make([]int64, 0)
 	var err error
-	if ctx.Repo.CanWrite(models.UnitTypeIssues) {
+	if ctx.Repo.CanWrite(unit.TypeIssues) {
 		issue.MilestoneID = form.Milestone
 		assigneeIDs, err = models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 		if err != nil {

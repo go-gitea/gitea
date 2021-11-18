@@ -101,7 +101,7 @@ func searchResult(result *SearchResult, startIndex, endIndex int) (*Result, erro
 		Language:       result.Language,
 		Color:          result.Color,
 		LineNumbers:    lineNumbers,
-		FormattedLines: highlight.Code(result.Filename, formattedLinesBuffer.String()),
+		FormattedLines: highlight.Code(result.Filename, "", formattedLinesBuffer.String()),
 	}, nil
 }
 

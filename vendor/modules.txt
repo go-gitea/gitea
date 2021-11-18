@@ -463,9 +463,6 @@ github.com/google/go-querystring/query
 # github.com/google/uuid v1.2.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/context v1.1.1
-## explicit
-github.com/gorilla/context
 # github.com/gorilla/css v1.0.0
 github.com/gorilla/css/scanner
 # github.com/gorilla/feeds v1.1.1
@@ -564,10 +561,6 @@ github.com/klauspost/pgzip
 github.com/kr/pretty
 # github.com/kr/text v0.2.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.4.0
-## explicit
-github.com/lafriks/xormstore
-github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.10.2
 ## explicit
 github.com/lib/pq

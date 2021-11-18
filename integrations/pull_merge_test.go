@@ -17,7 +17,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -62,7 +63,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 
 func TestPullMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -76,7 +77,7 @@ func TestPullMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -84,7 +85,7 @@ func TestPullMerge(t *testing.T) {
 
 func TestPullRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -98,7 +99,7 @@ func TestPullRebase(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebase)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -106,7 +107,7 @@ func TestPullRebase(t *testing.T) {
 
 func TestPullRebaseMerge(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -120,7 +121,7 @@ func TestPullRebaseMerge(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleRebaseMerge)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -128,7 +129,7 @@ func TestPullRebaseMerge(t *testing.T) {
 
 func TestPullSquash(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		hookTasks, err := models.HookTasks(1, 1) //Retrieve previous hook number
+		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
 
@@ -143,7 +144,7 @@ func TestPullSquash(t *testing.T) {
 		assert.EqualValues(t, "pulls", elem[3])
 		testPullMerge(t, session, elem[1], elem[2], elem[4], models.MergeStyleSquash)
 
-		hookTasks, err = models.HookTasks(1, 1)
+		hookTasks, err = webhook.HookTasks(1, 1)
 		assert.NoError(t, err)
 		assert.Len(t, hookTasks, hookTasksLenBefore+1)
 	})
@@ -220,15 +221,15 @@ func TestCantMergeConflict(t *testing.T) {
 		session.MakeRequest(t, req, 201)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
-		user1 := db.AssertExistsAndLoadBean(t, &models.User{
+		user1 := unittest.AssertExistsAndLoadBean(t, &models.User{
 			Name: "user1",
 		}).(*models.User)
-		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		}).(*models.Repository)
 
-		pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "conflict",
@@ -257,10 +258,10 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		// Now we want to create a commit on a branch that is totally unrelated to our current head
 		// Drop down to pure code at this point
-		user1 := db.AssertExistsAndLoadBean(t, &models.User{
+		user1 := unittest.AssertExistsAndLoadBean(t, &models.User{
 			Name: "user1",
 		}).(*models.User)
-		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
 		}).(*models.Repository)
@@ -319,7 +320,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		gitRepo, err := git.OpenRepository(path)
 		assert.NoError(t, err)
-		pr := db.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "unrelated",

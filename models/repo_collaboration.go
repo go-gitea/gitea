@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -276,7 +277,7 @@ func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
 	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
 		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
 		Where("team_repo.repo_id = ?", repo.ID).
-		And("team_unit.`type` = ?", UnitTypeCode).
+		And("team_unit.`type` = ?", unit.TypeCode).
 		And("team_user.uid = ?", userID).Table("team_user").Exist(&TeamUser{})
 	if err != nil {
 		return false, err

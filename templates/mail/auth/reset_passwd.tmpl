@@ -5,7 +5,7 @@
 	<title>{{.i18n.Tr "mail.reset_password.title" .DisplayName}}</title>
 </head>
 
-{{ $recover_url := printf "%suser/recover_account?code=%s" AppUrl .Code}}
+{{ $recover_url := printf "%suser/recover_account?code=%s" AppUrl (QueryEscape .Code)}}
 <body>
 	<p>{{.i18n.Tr "mail.hi_user_x" .DisplayName | Str2html}}</p><br>
 	<p>{{.i18n.Tr "mail.reset_password.text" .ResetPwdCodeLives | Str2html}}</p><p><a href="{{$recover_url}}">{{$recover_url}}</a></p><br>

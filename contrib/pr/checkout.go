@@ -26,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -36,7 +37,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
-	context2 "github.com/gorilla/context"
 	"xorm.io/xorm"
 )
 
@@ -100,8 +100,8 @@ func runPR() {
 	})
 	db.HasEngine = true
 	//x.ShowSQL(true)
-	err = db.InitFixtures(
-		db.FixturesOptions{
+	err = unittest.InitFixtures(
+		unittest.FixturesOptions{
 			Dir: path.Join(curDir, "models/fixtures/"),
 		},
 	)
@@ -109,7 +109,7 @@ func runPR() {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
-	db.LoadFixtures()
+	unittest.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(models.LocalCopyPath())
 	util.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
@@ -138,7 +138,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(c))
+	http.ListenAndServe(":8080", c)
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
