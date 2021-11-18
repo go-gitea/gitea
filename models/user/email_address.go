@@ -267,3 +267,11 @@ func DeleteEmailAddresses(emails []*EmailAddress) (err error) {
 
 	return nil
 }
+
+// DeleteInactiveEmailAddresses deletes inactive email addresses
+func DeleteInactiveEmailAddresses(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).
+		Where("is_activated = ?", false).
+		Delete(new(EmailAddress))
+	return err
+}

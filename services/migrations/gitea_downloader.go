@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
@@ -417,7 +417,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
 			log.Warn("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)
-			if err2 := models.CreateRepositoryNotice(
+			if err2 := admin_model.CreateRepositoryNotice(
 				fmt.Sprintf("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)); err2 != nil {
 				log.Error("create repository notice failed: ", err2)
 			}
@@ -479,7 +479,7 @@ func (g *GiteaDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comm
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
 				log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)
-				if err2 := models.CreateRepositoryNotice(
+				if err2 := admin_model.CreateRepositoryNotice(
 					fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", opts.Context.ForeignID(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
 					log.Error("create repository notice failed: ", err2)
 				}
@@ -557,7 +557,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
 			log.Warn("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)
-			if err2 := models.CreateRepositoryNotice(
+			if err2 := admin_model.CreateRepositoryNotice(
 				fmt.Sprintf("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)); err2 != nil {
 				log.Error("create repository notice failed: ", err2)
 			}
