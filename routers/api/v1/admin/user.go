@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -289,7 +290,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteUser(u); err != nil {
+	if err := user_service.DeleteUser(u); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
 			models.IsErrUserOwnPackages(err) {

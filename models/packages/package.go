@@ -145,8 +145,8 @@ func DeletePackageByIDIfUnreferenced(ctx context.Context, packageID int64) error
 }
 
 // HasOwnerPackages tests if a user/org has packages
-func HasOwnerPackages(ownerID int64) (bool, error) {
-	return db.GetEngine(db.DefaultContext).Where("owner_id = ?", ownerID).Exist(&Package{})
+func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
+	return db.GetEngine(ctx).Where("owner_id = ?", ownerID).Exist(&Package{})
 }
 
 // HasRepositoryPackages tests if a repository has packages

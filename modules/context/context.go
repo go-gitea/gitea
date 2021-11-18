@@ -72,6 +72,16 @@ type Context struct {
 	Package     *Package
 }
 
+// TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
+// This is useful if the locale message is intended to only produce HTML content.
+func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
+	trArgs := make([]interface{}, len(args))
+	for i, arg := range args {
+		trArgs[i] = html.EscapeString(arg)
+	}
+	return ctx.Tr(msg, trArgs...)
+}
+
 // GetData returns the data
 func (ctx *Context) GetData() map[string]interface{} {
 	return ctx.Data
@@ -122,9 +132,9 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	}
 
 	redirectPath := strings.Replace(
-		ctx.Req.URL.Path,
-		userName,
-		user.Name,
+		ctx.Req.URL.EscapedPath(),
+		url.PathEscape(userName),
+		url.PathEscape(user.Name),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {

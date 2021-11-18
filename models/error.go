@@ -155,21 +155,6 @@ func (err ErrUserInactive) Error() string {
 	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
 }
 
-// ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
-type ErrOpenIDAlreadyUsed struct {
-	OpenID string
-}
-
-// IsErrOpenIDAlreadyUsed checks if an error is a ErrOpenIDAlreadyUsed.
-func IsErrOpenIDAlreadyUsed(err error) bool {
-	_, ok := err.(ErrOpenIDAlreadyUsed)
-	return ok
-}
-
-func (err ErrOpenIDAlreadyUsed) Error() string {
-	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
-}
-
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
 type ErrUserOwnRepos struct {
 	UID int64

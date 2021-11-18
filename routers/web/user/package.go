@@ -55,7 +55,7 @@ func Packages(ctx *context.Context) {
 		return
 	}
 
-	hasPackages, err := packages.HasOwnerPackages(ctx.ContextUser.ID)
+	hasPackages, err := packages.HasOwnerPackages(db.DefaultContext, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("HasOwnerPackages", err)
 		return

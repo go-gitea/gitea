@@ -6,8 +6,8 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -26,6 +26,7 @@ import (
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -188,7 +189,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 func prepareUserInfo(ctx *context.Context) *models.User {
@@ -366,7 +367,7 @@ func EditUserPost(ctx *context.Context) {
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 }
 
 // DeleteUser response for deleting a user
@@ -377,17 +378,17 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteUser(u); err != nil {
+	if err = user.DeleteUser(u); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
+				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
 			})
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
+				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
 			})
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
@@ -405,4 +406,35 @@ func DeleteUser(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/users",
 	})
+}
+
+// AvatarPost response for change user's avatar request
+func AvatarPost(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	if err := router_user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
+
+// DeleteAvatar render delete avatar page
+func DeleteAvatar(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := u.DeleteAvatar(); err != nil {
+		ctx.Flash.Error(err.Error())
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }

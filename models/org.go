@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -14,9 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 	"xorm.io/xorm"
@@ -254,75 +253,21 @@ func CountOrganizations() int64 {
 	return count
 }
 
-// DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *User) (err error) {
-	if !org.IsOrganization() {
-		return fmt.Errorf("%s is a user not an organization", org.Name)
-	}
-
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = deleteOrg(sess, org); err != nil {
-		if IsErrUserOwnRepos(err) || IsErrUserOwnPackages(err) {
-			return err
-		} else if err != nil {
-			return fmt.Errorf("deleteOrg: %v", err)
-		}
-	}
-
-	return sess.Commit()
-}
-
-func deleteOrg(e *xorm.Session, u *User) error {
-	// Check ownership of repository.
-	count, err := getRepositoryCount(e, u)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %v", err)
-	} else if count > 0 {
-		return ErrUserOwnRepos{UID: u.ID}
-	}
-
-	// Check ownership of packages.
-	// TODO: SQL because of import cycle
-	count, err = e.Table("package").Where("owner_id = ?", u.ID).Count()
-	if err != nil {
-		return fmt.Errorf("Get Package Count: %v", err)
-	} else if count > 0 {
-		return ErrUserOwnPackages{UID: u.ID}
-	}
+// DeleteOrganization deletes models associated to an organization.
+func DeleteOrganization(ctx context.Context, org *User) error {
+	e := db.GetEngine(ctx)
 
 	if err := deleteBeans(e,
-		&Team{OrgID: u.ID},
-		&OrgUser{OrgID: u.ID},
-		&TeamUser{OrgID: u.ID},
-		&TeamUnit{OrgID: u.ID},
+		&Team{OrgID: org.ID},
+		&OrgUser{OrgID: org.ID},
+		&TeamUser{OrgID: org.ID},
+		&TeamUnit{OrgID: org.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
 
-	if _, err = e.ID(u.ID).Delete(new(User)); err != nil {
+	if _, err := e.ID(org.ID).Delete(new(User)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
-	}
-
-	// FIXME: system notice
-	// Note: There are something just cannot be roll back,
-	//	so just keep error logs of those operations.
-	path := UserPath(u.Name)
-
-	if err := util.RemoveAll(path); err != nil {
-		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-	}
-
-	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarRelativePath()
-		if err := storage.Avatars.Delete(avatarPath); err != nil {
-			return fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-		}
 	}
 
 	return nil

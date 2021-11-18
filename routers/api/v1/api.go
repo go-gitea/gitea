@@ -89,10 +89,11 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/packages/rubygems"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
-	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
+
+	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/cors"

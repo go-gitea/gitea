@@ -244,7 +244,7 @@ func CreatePost(ctx *context.Context) {
 		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
+			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
@@ -263,7 +263,7 @@ func CreatePost(ctx *context.Context) {
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
-			ctx.Redirect(ctxUser.HomeLink() + "/" + repo.Name)
+			ctx.Redirect(repo.Link())
 			return
 		}
 	}
@@ -373,7 +373,11 @@ func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
+		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("archiver_service.NewRequest", err)
+		}
 		return
 	}
 	if aReq == nil {

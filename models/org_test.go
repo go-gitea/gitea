@@ -261,24 +261,6 @@ func TestCountOrganizations(t *testing.T) {
 	assert.Equal(t, expected, CountOrganizations())
 }
 
-func TestDeleteOrganization(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &User{ID: 6}).(*User)
-	assert.NoError(t, DeleteOrganization(org))
-	unittest.AssertNotExistsBean(t, &User{ID: 6})
-	unittest.AssertNotExistsBean(t, &OrgUser{OrgID: 6})
-	unittest.AssertNotExistsBean(t, &Team{OrgID: 6})
-
-	org = unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	err := DeleteOrganization(org)
-	assert.Error(t, err)
-	assert.True(t, IsErrUserOwnRepos(err))
-
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
-	assert.Error(t, DeleteOrganization(user))
-	unittest.CheckConsistencyFor(t, &User{}, &Team{})
-}
-
 func TestIsOrganizationOwner(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(orgID, userID int64, expected bool) {

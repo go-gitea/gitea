@@ -21,7 +21,7 @@
 								{{$class = (printf "%s%s" $class " isWarning")}}
 							{{end}}
 						{{end}}
-						<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{$commit.Rev}}" rel="nofollow" class="{{$class}}">
+						<a href="{{$.RepoLink}}/commit/{{$commit.Rev|PathEscape}}" rel="nofollow" class="{{$class}}">
 							<span class="shortsha">{{ShortSha $commit.Commit.ID.String}}</span>
 							{{- if $commit.Commit.Signature -}}
 								<span class="shortsha-pad"></span>{{template "repo/shabox_badge" dict "root" $ "verification" $commit.Verification}}
@@ -44,7 +44,7 @@
 									{{svg "octicon-tag" 16 "mr-2"}}{{.ShortName}}
 								</a>
 							{{else if eq $refGroup "remotes"}}
-								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/commit/{{$commit.Rev}}">
+								<a class="ui labelled icon button basic tiny" href="{{$.RepoLink}}/src/commit/{{$commit.Rev|PathEscape}}">
 									{{svg "octicon-cross-reference" 16 "mr-2"}}{{.ShortName}}
 								</a>
 							{{else if eq $refGroup "heads"}}
