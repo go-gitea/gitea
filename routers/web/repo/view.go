@@ -537,10 +537,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
 			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
 			ctx.Data["EscapeStatus"] = status
+			statuses := make([]charset.EscapeStatus, len(fileContent))
 			for i, line := range fileContent {
-				_, fileContent[i] = charset.EscapeControlString(line)
+				statuses[i], fileContent[i] = charset.EscapeControlString(line)
 			}
 			ctx.Data["FileContent"] = fileContent
+			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
