@@ -7,9 +7,9 @@
 				{{if $release}}
 					{{.root.i18n.Tr "repo.release.compare"}}
 				{{else}}
-					{{svg "octicon-git-branch"}}
-					{{if .root.IsViewBranch}}{{.root.i18n.Tr "repo.branch"}}{{else}}{{.root.i18n.Tr "repo.tree"}}{{end}}:
-					<strong>{{if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.BranchName}}{{end}}</strong>
+					{{if .root.IsViewTag}}{{svg "octicon-tag"}}{{else}}{{svg "octicon-git-branch"}}{{end}}
+					{{if .root.IsViewBranch}}{{.root.i18n.Tr "repo.branch"}}{{else if .root.IsViewTag}}{{.root.i18n.Tr "repo.tag"}}{{else}}{{.root.i18n.Tr "repo.tree"}}{{end}}:
+					<strong>{{if .root.IsViewBranch}}{{.root.BranchName}}{{else if .root.IsViewTag}}{{.root.TagName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
 				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -66,8 +66,10 @@
 						<div class="text small">
 							{{if or .root.IsViewBranch $release}}
 								{{.root.i18n.Tr "repo.branch.create_from" .root.BranchName}}
+							{{else if .root.IsViewTag}}
+								{{.root.i18n.Tr "repo.branch.create_from" .root.TagName}}
 							{{else}}
-								{{.root.i18n.Tr "repo.branch.create_from" (ShortSha .root.BranchName)}}
+								{{.root.i18n.Tr "repo.branch.create_from" (ShortSha .root.CommitID)}}
 							{{end}}
 						</div>
 					</a>
