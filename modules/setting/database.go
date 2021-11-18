@@ -91,9 +91,9 @@ func InitDBConfig() {
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
-		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFE_TIME").MustDuration(3 * time.Second)
+		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(3 * time.Second)
 	} else {
-		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFE_TIME").MustDuration(0)
+		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(0)
 	}
 	Database.MaxOpenConns = sec.Key("MAX_OPEN_CONNS").MustInt(0)
 
