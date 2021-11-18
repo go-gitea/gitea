@@ -12,10 +12,10 @@ import (
 
 func TestNewImapClient(t *testing.T) {
 	_, err := NewImapClient(ClientInitOpt{
-		Addr: "127.0.0.1:1179",
-		IsTLS: false,
+		Addr:     "127.0.0.1:1179",
+		IsTLS:    false,
 		UserName: "receive@gitea.io",
-		Passwd: "123456",
+		Passwd:   "123456",
 	})
 
 	assert.NoError(t, err)
@@ -23,10 +23,10 @@ func TestNewImapClient(t *testing.T) {
 
 func TestGetUnreadMailIDs(t *testing.T) {
 	c, err := NewImapClient(ClientInitOpt{
-		Addr: "127.0.0.1:1179",
-		IsTLS: false,
+		Addr:     "127.0.0.1:1179",
+		IsTLS:    false,
 		UserName: "receive@gitea.io",
-		Passwd: "123456",
+		Passwd:   "123456",
 	})
 	assert.NoError(t, err)
 
@@ -37,10 +37,10 @@ func TestGetUnreadMailIDs(t *testing.T) {
 
 func TestMail_LoadHeader(t *testing.T) {
 	c, err := NewImapClient(ClientInitOpt{
-		Addr: "127.0.0.1:1179",
-		IsTLS: false,
+		Addr:     "127.0.0.1:1179",
+		IsTLS:    false,
 		UserName: "receive@gitea.io",
-		Passwd: "123456",
+		Passwd:   "123456",
 	})
 	assert.NoError(t, err)
 
@@ -56,10 +56,10 @@ func TestMail_LoadHeader(t *testing.T) {
 
 func TestMail_LoadBody(t *testing.T) {
 	c, err := NewImapClient(ClientInitOpt{
-		Addr: "127.0.0.1:1179",
-		IsTLS: false,
+		Addr:     "127.0.0.1:1179",
+		IsTLS:    false,
 		UserName: "receive@gitea.io",
-		Passwd: "123456",
+		Passwd:   "123456",
 	})
 	assert.NoError(t, err)
 
