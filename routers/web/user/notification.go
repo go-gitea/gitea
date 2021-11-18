@@ -167,7 +167,7 @@ func NotificationStatusPost(c *context.Context) {
 	}
 
 	if !c.FormBool("noredirect") {
-		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.FormString("page"))
+		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, url.QueryEscape(c.FormString("page")))
 		c.Redirect(url, http.StatusSeeOther)
 	}
 
@@ -189,6 +189,5 @@ func NotificationPurgePost(c *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
-	c.Redirect(url, http.StatusSeeOther)
+	c.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
 }

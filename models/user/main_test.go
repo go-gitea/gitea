@@ -15,5 +15,7 @@ func TestMain(m *testing.M) {
 	unittest.MainTest(m, filepath.Join("..", ".."),
 		"email_address.yml",
 		"user_redirect.yml",
+		"follow.yml",
+		"user_open_id.yml",
 	)
 }

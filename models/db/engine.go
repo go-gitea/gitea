@@ -16,17 +16,13 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	// Needed for the MySQL driver
-	_ "github.com/go-sql-driver/mysql"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
-	// Needed for the Postgresql driver
-	_ "github.com/lib/pq"
-
-	// Needed for the MSSQL driver
-	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
+	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
+	_ "github.com/lib/pq"                // Needed for the Postgresql driver
 )
 
 var (
@@ -151,6 +147,15 @@ func InitEngine(ctx context.Context) (err error) {
 	}
 	x.SetDefaultContext(ctx)
 	return nil
+}
+
+// SetEngine is used by unit test code
+func SetEngine(eng *xorm.Engine) {
+	x = eng
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
+	}
 }
 
 // InitEngineWithMigration initializes a new xorm.Engine

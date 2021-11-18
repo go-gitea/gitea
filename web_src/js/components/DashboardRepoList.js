@@ -137,7 +137,7 @@ function initVueComponents() {
 
     mounted() {
       this.changeReposFilter(this.reposFilter);
-      $(this.$el).find('.poping.up').popup();
+      $(this.$el).find('.tooltip').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
       Vue.nextTick(() => {

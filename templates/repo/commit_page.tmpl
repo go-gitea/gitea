@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached info clearing segment {{$class}}">
 			{{if not $.PageIsWiki}}
-			<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
+			<a class="ui floated right blue tiny button" href="{{.SourcePath}}">
 				{{.i18n.Tr "repo.diff.browse_source"}}
 			</a>
 			{{end}}
@@ -72,9 +72,9 @@
 							<div class="item">
 								{{range .Parents}}
 									{{if $.PageIsWiki}}
-										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}">{{ShortSha .}}</a>
+										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 									{{else}}
-										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 									{{end}}
 								{{end}}
 							</div>

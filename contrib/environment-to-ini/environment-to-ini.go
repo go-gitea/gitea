@@ -224,7 +224,6 @@ func DecodeSectionKey(encoded string) (string, string) {
 	if !inKey {
 		if splitter := strings.Index(remaining, "__"); splitter > -1 {
 			section += remaining[:splitter]
-			inKey = true
 			key += remaining[splitter+2:]
 		} else {
 			section += remaining
