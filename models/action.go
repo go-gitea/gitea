@@ -294,19 +294,21 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User  // the user we want activity for
-	RequestedTeam   *Team  // the team we want activity for
-	Actor           *User  // the user viewing the activity
-	IncludePrivate  bool   // include private actions
-	OnlyPerformedBy bool   // only actions performed by requested user
-	IncludeDeleted  bool   // include deleted actions
-	Date            string // the day we want activity for: YYYY-MM-DD
+	db.ListOptions
+	RequestedUser   *User       // the user we want activity for
+	RequestedTeam   *Team       // the team we want activity for
+	RequestedRepo   *Repository // the repo we want activity for
+	Actor           *User       // the user viewing the activity
+	IncludePrivate  bool        // include private actions
+	OnlyPerformedBy bool        // only actions performed by requested user
+	IncludeDeleted  bool        // include deleted actions
+	Date            string      // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
 func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
-	if !activityReadable(opts.RequestedUser, opts.Actor) {
-		return make([]*Action, 0), nil
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
+		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
@@ -314,9 +316,18 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		return nil, err
 	}
 
-	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
+	sess := db.GetEngine(db.DefaultContext).Where(cond)
+	if opts.Page >= 0 {
+		opts.Page = 1
+	}
+	if opts.PageSize >= setting.API.MaxResponseItems || opts.PageSize <= 0 {
+		opts.PageSize = setting.UI.FeedPagingNum
+	}
+	sess = db.SetSessionPagination(sess, &opts)
 
-	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
+	actions := make([]*Action, 0, opts.PageSize)
+
+	if err := sess.Desc("created_unix").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -341,9 +352,28 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		actorID = opts.Actor.ID
 	}
 
+	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
+		org, err := GetUserByID(opts.RequestedTeam.OrgID)
+		if err != nil {
+			return nil, err
+		}
+		opts.RequestedUser = org
+	}
+
+	// check activity visibility for actor ( equal to activityReadable() )
+	if opts.Actor == nil {
+		cond = cond.And(builder.In("user_id",
+			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": true}).From("`user`"),
+		))
+	} else if !opts.Actor.IsAdmin {
+		cond = cond.And(builder.In("user_id",
+			builder.Select("`user`.id").Where(builder.Eq{"keep_activity_private": true}).From("`user`"),
+		).Or(builder.In("user_id", opts.Actor.ID)))
+	}
+
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		if opts.RequestedUser.IsOrganization() {
+		if opts.RequestedUser != nil && opts.RequestedUser.IsOrganization() {
 			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
 			if err != nil {
 				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
@@ -366,11 +396,14 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
 
-	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
+	if opts.RequestedUser != nil {
+		cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
 
-	if opts.OnlyPerformedBy {
-		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		if opts.OnlyPerformedBy {
+			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
 	}
+
 	if !opts.IncludePrivate {
 		cond = cond.And(builder.Eq{"is_private": false})
 	}
