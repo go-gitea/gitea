@@ -372,6 +372,17 @@ func (issue *Issue) HTMLURL() string {
 	return fmt.Sprintf("%s/%s/%d", issue.Repo.HTMLURL(), path, issue.Index)
 }
 
+// Link returns the Link URL to this issue.
+func (issue *Issue) Link() string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+	return fmt.Sprintf("%s/%s/%d", issue.Repo.Link(), path, issue.Index)
+}
+
 // DiffURL returns the absolute URL to this diff
 func (issue *Issue) DiffURL() string {
 	if issue.IsPull {
@@ -1917,7 +1928,7 @@ func (issue *Issue) getParticipantIDsByIssue(e db.Engine) ([]int64, error) {
 
 // Get Blocked By Dependencies, aka all issues this issue is blocked by.
 func (issue *Issue) getBlockedByDependencies(e db.Engine) (issueDeps []*DependencyInfo, err error) {
-	return issueDeps, e.
+	err = e.
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
@@ -1925,11 +1936,17 @@ func (issue *Issue) getBlockedByDependencies(e db.Engine) (issueDeps []*Dependen
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
+
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+	}
+
+	return issueDeps, err
 }
 
 // Get Blocking Dependencies, aka all issues this issue blocks.
 func (issue *Issue) getBlockingDependencies(e db.Engine) (issueDeps []*DependencyInfo, err error) {
-	return issueDeps, e.
+	err = e.
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
@@ -1937,6 +1954,12 @@ func (issue *Issue) getBlockingDependencies(e db.Engine) (issueDeps []*Dependenc
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
 		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
 		Find(&issueDeps)
+
+	for _, depInfo := range issueDeps {
+		depInfo.Issue.Repo = &depInfo.Repository
+	}
+
+	return issueDeps, err
 }
 
 // BlockedByDependencies finds all Dependencies an issue is blocked by

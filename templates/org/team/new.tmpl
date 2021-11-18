@@ -3,7 +3,7 @@
 	{{template "org/header" .}}
 	<div class="ui middle very relaxed page grid">
 		<div class="column">
-			<form class="ui form" action="{{if .PageIsOrgTeamsNew}}{{.OrgLink}}/teams/new{{else}}{{.OrgLink}}/teams/{{.Team.LowerName}}/edit{{end}}" data-delete-url="{{.OrgLink}}/teams/{{.Team.LowerName}}/delete" method="post">
+			<form class="ui form" action="{{if .PageIsOrgTeamsNew}}{{.OrgLink}}/teams/new{{else}}{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/edit{{end}}" data-delete-url="{{.OrgLink}}/teams/{{.Team.LowerName | PathEscape}}/delete" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
 					{{if .PageIsOrgTeamsNew}}{{.i18n.Tr "org.create_new_team"}}{{else}}{{.i18n.Tr "org.teams.settings"}}{{end}}
@@ -82,7 +82,7 @@
 							<br>
 							{{range $t, $unit := $.Units}}
 							{{if $unit.Type.UnitGlobalDisabled}}
-							<div class="field poping up" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
+							<div class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
 							{{else}}
 							<div class="field">
 							{{end}}
@@ -104,7 +104,7 @@
 						{{else}}
 							<button class="ui green button">{{.i18n.Tr "org.teams.update_settings"}}</button>
 							{{if not (eq .Team.LowerName "owners")}}
-								<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.team_name}}/delete">{{.i18n.Tr "org.teams.delete_team"}}</button>
+								<button class="ui red button delete-button" data-url="{{.OrgLink}}/teams/{{.team_name | PathEscape}}/delete">{{.i18n.Tr "org.teams.delete_team"}}</button>
 							{{end}}
 						{{end}}
 					</div>

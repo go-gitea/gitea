@@ -14,6 +14,8 @@ linters:
     - gofmt
     - misspell
     - gocritic
+    - bidichk
+    - ineffassign
   enable-all: false
   disable-all: true
   fast: false
@@ -110,3 +112,6 @@ issues:
       linters:
         - staticcheck
       text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+    - path: models/user/openid.go
+      linters:
+        - golint

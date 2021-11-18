@@ -7,6 +7,7 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -16,11 +17,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
+	"code.gitea.io/gitea/services/task"
 )
 
 const (
@@ -237,7 +238,7 @@ func MigratePost(ctx *context.Context) {
 
 	err = task.MigrateRepository(ctx.User, ctxUser, opts)
 	if err == nil {
-		ctx.Redirect(ctxUser.HomeLink() + "/" + opts.RepoName)
+		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return
 	}
 

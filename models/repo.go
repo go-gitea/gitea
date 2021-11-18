@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	_ "image/jpeg" // Needed for jpeg support
 	"net"
 	"net/url"
 	"os"
@@ -22,6 +21,9 @@ import (
 	"time"
 	"unicode/utf8"
 
+	_ "image/jpeg" // Needed for jpeg support
+
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/webhook"
@@ -132,7 +134,7 @@ func NewRepoContext() {
 	loadRepoConfig()
 	unit.LoadUnitConfig()
 
-	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
 // RepositoryStatus defines the status of repository
@@ -314,7 +316,7 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + repo.FullName()
+	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // CommitLink make link to by commit full ID
@@ -323,14 +325,14 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
 		result = ""
 	} else {
-		result = repo.HTMLURL() + "/commit/" + commitID
+		result = repo.HTMLURL() + "/commit/" + url.PathEscape(commitID)
 	}
 	return
 }
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + repo.FullName()
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -709,19 +711,14 @@ func (repo *Repository) GitConfigPath() string {
 	return GitConfigPath(repo.RepoPath())
 }
 
-// RelLink returns the repository relative link
-func (repo *Repository) RelLink() string {
-	return "/" + repo.FullName()
-}
-
 // Link returns the repository link
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + repo.FullName()
+	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // ComposeCompareURL returns the repository comparison URL
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
-	return fmt.Sprintf("%s/compare/%s...%s", repo.FullName(), oldCommitID, newCommitID)
+	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
 // UpdateDefaultBranch updates the default branch
@@ -930,11 +927,11 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
@@ -1652,36 +1649,36 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete repository files", repoPath)
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete repository wiki", repo.WikiPath())
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for i := range archivePaths {
-		removeStorageWithNotice(db.GetEngine(db.DefaultContext), storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
 	}
 
 	// Remove lfs objects
 	for i := range lfsPaths {
-		removeStorageWithNotice(db.GetEngine(db.DefaultContext), storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
 	}
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for i := range newAttachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1806,8 +1803,8 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(db.DefaultContext), u)
+func GetRepositoryCount(ctx context.Context, u *User) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), u)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.

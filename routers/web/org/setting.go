@@ -7,6 +7,7 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	userSetting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/org"
 )
 
 const (
@@ -76,7 +78,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		// reset ctx.org.OrgLink with new name
-		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + form.Name
+		ctx.Org.OrgLink = setting.AppSubURL + "/org/" + url.PathEscape(form.Name)
 		log.Trace("Organization name changed: %s -> %s", org.Name, form.Name)
 		nameChanged = false
 	}
@@ -155,15 +157,14 @@ func SettingsDelete(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("org.settings")
 	ctx.Data["PageIsSettingsDelete"] = true
 
-	org := ctx.Org.Organization
 	if ctx.Req.Method == "POST" {
-		if org.Name != ctx.FormString("org_name") {
+		if ctx.Org.Organization.Name != ctx.FormString("org_name") {
 			ctx.Data["Err_OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_org_name"), tplSettingsDelete, nil)
 			return
 		}
 
-		if err := models.DeleteOrganization(org); err != nil {
+		if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
@@ -171,7 +172,7 @@ func SettingsDelete(ctx *context.Context) {
 				ctx.ServerError("DeleteOrganization", err)
 			}
 		} else {
-			log.Trace("Organization deleted: %s", org.Name)
+			log.Trace("Organization deleted: %s", ctx.Org.Organization.Name)
 			ctx.Redirect(setting.AppSubURL + "/")
 		}
 		return
