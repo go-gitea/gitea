@@ -74,5 +74,5 @@ func TestAPIIssuesMilestone(t *testing.T) {
 	assert.Equal(t, int64(2), apiMilestones[0].ID)
 
 	req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/repos/%s/%s/milestones/%d?token=%s", owner.Name, repo.Name, apiMilestone.ID, token))
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 }
