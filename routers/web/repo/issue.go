@@ -1684,7 +1684,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {
+		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) ||
+		!issue.IsPull && (issue.IsPrivate && !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID)))) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
