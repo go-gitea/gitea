@@ -1116,8 +1116,7 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check if the issue is private, if so check if the user has enough
 	// permission to view the issue.
-	if issue.IsPrivate {
-		if !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if issue.IsPrivate && !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
 			var userID int64
 			if ctx.IsSigned {
 				userID = ctx.User.ID
@@ -1690,8 +1689,8 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
-		!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) ||
-		!issue.IsPull && (issue.IsPrivate && !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID)))) {
+		(!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) &&
+			(issue.IsPrivate && !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))))) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -1774,7 +1773,7 @@ func IssuePrivate(ctx *context.Context) {
 	isConfidential := ctx.FormBool("is_confidential")
 
 	if err := issue_service.ChangeConfidential(issue, ctx.User, isConfidential); err != nil {
-		ctx.ServerError("ChangeTitle", err)
+		ctx.ServerError("ChangeConfidential", err)
 		return
 	}
 
@@ -1915,34 +1914,6 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	}
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
-	})
-}
-
-// UpdateIssueConfidential change issue's confidential
-func UpdateIssueConfidential(ctx *context.Context) {
-	issue := GetActionIssue(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
-		ctx.Error(http.StatusForbidden)
-		return
-	}
-
-	title := ctx.FormTrim("title")
-	if len(title) == 0 {
-		ctx.Error(http.StatusNoContent)
-		return
-	}
-
-	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
-		ctx.ServerError("ChangeTitle", err)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"title": issue.Title,
 	})
 }
 

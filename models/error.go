@@ -1347,7 +1347,7 @@ func IsErrCannotSeePrivateIssue(err error) bool {
 }
 
 func (err ErrCannotSeePrivateIssue) Error() string {
-	return fmt.Sprintf("issue is private but user hasn't permission to view it [id: %d, repo_id: %d, index: %d, user_id: %d]", err.ID, err.RepoID, err.Index, err.UserID)
+	return fmt.Sprintf("issue is private but user has no permission to view it [id: %d, repo_id: %d, index: %d, user_id: %d]", err.ID, err.RepoID, err.Index, err.UserID)
 }
 
 // __________      .__  .__ __________                                     __
