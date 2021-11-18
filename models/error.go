@@ -1331,6 +1331,25 @@ func (err ErrReactionAlreadyExist) Error() string {
 	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
 }
 
+// ErrCannotSeePrivateIssue is used when a user tries to view a issue
+// which they don't have permission for.
+type ErrCannotSeePrivateIssue struct {
+	UserID int64
+	ID     int64
+	RepoID int64
+	Index  int64
+}
+
+// IsErrCannotSeePrivateIssue checks if an error is a ErrCannotSeePrivateIssue.
+func IsErrCannotSeePrivateIssue(err error) bool {
+	_, ok := err.(ErrCannotSeePrivateIssue)
+	return ok
+}
+
+func (err ErrCannotSeePrivateIssue) Error() string {
+	return fmt.Sprintf("issue is private but user hasn't permission to view it [id: %d, repo_id: %d, index: %d, user_id: %d]", err.ID, err.RepoID, err.Index, err.UserID)
+}
+
 // __________      .__  .__ __________                                     __
 // \______   \__ __|  | |  |\______   \ ____  ________ __   ____   _______/  |_
 //  |     ___/  |  \  | |  | |       _// __ \/ ____/  |  \_/ __ \ /  ___/\   __\

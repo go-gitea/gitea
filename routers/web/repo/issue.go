@@ -995,6 +995,7 @@ func NewIssuePost(ctx *context.Context) {
 		MilestoneID: milestoneID,
 		Content:     form.Content,
 		Ref:         form.Ref,
+		IsPrivate:   form.IsConfidential,
 	}
 
 	if err := issue_service.NewIssue(repo, issue, labelIDs, attachments, assigneeIDs); err != nil {
@@ -1105,6 +1106,25 @@ func ViewIssue(ctx *context.Context) {
 	}
 	if issue.Repo == nil {
 		issue.Repo = ctx.Repo.Repository
+	}
+
+	// Check if the issue is private, if so check if the user has enough
+	// permission to view the issue.
+	if issue.IsPrivate {
+		if !ctx.Repo.CanSeePrivateIssues() {
+			var userID int64
+			if ctx.User != nil {
+				userID = ctx.User.ID
+			} else {
+				userID = -1
+			}
+			ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+				UserID: userID,
+				ID:     issue.ID,
+				RepoID: ctx.Repo.Repository.ID,
+				Index:  ctx.ParamsInt64(":index"),
+			})
+		}
 	}
 
 	// Make sure type and URL matches.
