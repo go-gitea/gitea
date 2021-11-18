@@ -8,6 +8,9 @@ code.gitea.io/gitea-vet/checks
 # code.gitea.io/sdk/gitea v0.14.0
 ## explicit
 code.gitea.io/sdk/gitea
+# codeberg.org/Codeberg/avatars v0.0.0-20210202020214-c86887927797
+## explicit
+codeberg.org/Codeberg/avatars
 # gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 ## explicit
 gitea.com/go-chi/binding
@@ -749,6 +752,12 @@ github.com/spf13/jwalterweatherman
 github.com/spf13/pflag
 # github.com/spf13/viper v1.7.1
 github.com/spf13/viper
+# github.com/srwiley/oksvg v0.0.0-20211104221756-aeb4ca2c1505
+## explicit
+github.com/srwiley/oksvg
+# github.com/srwiley/rasterx v0.0.0-20210519020934-456a8d69b780
+## explicit
+github.com/srwiley/rasterx
 # github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf
 ## explicit
 github.com/ssor/bom
@@ -886,6 +895,10 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
+# golang.org/x/image v0.0.0-20190802002840-cff245a6509b
+golang.org/x/image/colornames
+golang.org/x/image/math/fixed
+golang.org/x/image/vector
 # golang.org/x/mod v0.4.2
 golang.org/x/mod/module
 golang.org/x/mod/semver

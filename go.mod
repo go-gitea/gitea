@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.78.0 // indirect
 	code.gitea.io/gitea-vet v0.2.1
 	code.gitea.io/sdk/gitea v0.14.0
+	codeberg.org/Codeberg/avatars v0.0.0-20210202020214-c86887927797
 	gitea.com/go-chi/binding v0.0.0-20211013065440-d16dc407c2be
 	gitea.com/go-chi/cache v0.0.0-20211013020926-78790b11abf1
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
@@ -102,6 +103,8 @@ require (
 	github.com/sergi/go-diff v1.2.0
 	github.com/shurcooL/httpfs v0.0.0-20190707220628-8d4bc4ba7749 // indirect
 	github.com/shurcooL/vfsgen v0.0.0-20200824052919-0d455de96546
+	github.com/srwiley/oksvg v0.0.0-20211104221756-aeb4ca2c1505
+	github.com/srwiley/rasterx v0.0.0-20210519020934-456a8d69b780
 	github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf // indirect
 	github.com/stretchr/testify v1.7.0
 	github.com/syndtr/goleveldb v1.0.0
