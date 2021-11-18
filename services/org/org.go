@@ -33,8 +33,12 @@ func DeleteOrganization(org *models.User) error {
 		return models.ErrUserOwnRepos{UID: org.ID}
 	}
 
-	if err = models.DeleteOrganization(ctx, org); err != nil {
+	if err := models.DeleteOrganization(ctx, org); err != nil {
 		return fmt.Errorf("DeleteOrganization: %v", err)
+	}
+
+	if err := commiter.Commit(); err != nil {
+		return err
 	}
 
 	// FIXME: system notice
@@ -53,5 +57,5 @@ func DeleteOrganization(org *models.User) error {
 		}
 	}
 
-	return commiter.Commit()
+	return nil
 }

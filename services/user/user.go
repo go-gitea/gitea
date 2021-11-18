@@ -54,25 +54,29 @@ func DeleteUser(u *models.User) error {
 		return fmt.Errorf("DeleteUser: %v", err)
 	}
 
+	if err := commiter.Commit(); err != nil {
+		return err
+	}
+
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := models.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
 	}
 
-	if len(u.Avatar) > 0 {
+	if u.Avatar != "" {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err := storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = admin_model.CreateNotice(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
 		}
 	}
 
-	return commiter.Commit()
+	return nil
 }
 
 // DeleteInactiveUsers deletes all inactive users and email addresses.
