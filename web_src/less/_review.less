@@ -16,6 +16,13 @@
   }
 }
 
+.diff-file-box .lines-code .code-inner.has-escaped::before {
+  visibility: visible;
+  content: '⚠️';
+  font-family: var(--fonts-emoji);
+  color: var(--color-red);
+}
+
 .diff-file-box .lines-code:hover .ui.button.add-code-comment {
   opacity: 1;
 }

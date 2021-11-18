@@ -168,12 +168,15 @@ func getDiffLineSectionInfo(treePath, line string, lastLeftIdx, lastRightIdx int
 }
 
 // escape a line's content or return <br> needed for copy/paste purposes
-func getLineContent(content string) string {
+func getLineContent(content string) DiffInline {
 	if len(content) > 0 {
-		_, content = charset.EscapeControlString(content)
-		return html.EscapeString(content)
+		status, content := charset.EscapeControlString(content)
+		return DiffInline{
+			EscapeStatus: status,
+			Content:      template.HTML(html.EscapeString(content)),
+		}
 	}
-	return "<br>"
+	return DiffInline{Content: "<br>"}
 }
 
 // DiffSection represents a section of a DiffFile.
@@ -411,7 +414,7 @@ func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
 	return fixedup
 }
 
-func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
+func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) DiffInline {
 	buf := bytes.NewBuffer(nil)
 	match := ""
 
@@ -483,8 +486,8 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			buf.Write(codeTagSuffix)
 		}
 	}
-	_, content := charset.EscapeControlString(buf.String())
-	return template.HTML(content)
+	status, content := charset.EscapeControlString(buf.String())
+	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 
 // GetLine gets a specific line by type (add or del) and file line number
@@ -536,10 +539,16 @@ func init() {
 	diffMatchPatch.DiffEditCost = 100
 }
 
+// DiffInline is a struct that has a content and escape status
+type DiffInline struct {
+	EscapeStatus charset.EscapeStatus
+	Content      template.HTML
+}
+
 // GetComputedInlineDiffFor computes inline diff for the given line.
-func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) template.HTML {
+func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) DiffInline {
 	if setting.Git.DisableDiffHighlight {
-		return template.HTML(getLineContent(diffLine.Content[1:]))
+		return getLineContent(diffLine.Content[1:])
 	}
 
 	var (
@@ -556,30 +565,30 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
-		return template.HTML(getLineContent(diffLine.Content[1:]))
+		return getLineContent(diffLine.Content[1:])
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
-			return template.HTML(escaped)
+			status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
+			return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
 		}
 		diff1 = compareDiffLine.Content
 		diff2 = diffLine.Content
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
-			return template.HTML(escaped)
+			status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
+			return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
-			return template.HTML(escaped)
+			status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
+			return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
 		}
-		_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content))
-		return template.HTML(escaped)
+		status, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content))
+		return DiffInline{EscapeStatus: status, Content: template.HTML(escaped)}
 	}
 
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, language, diff1[1:]), highlight.Code(diffSection.FileName, language, diff2[1:]), true)
