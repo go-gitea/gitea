@@ -1,9 +1,8 @@
-// Copyright 2014 The Gogs Authors. All rights reserved.
-// Copyright 2020 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package admin
 
 import (
 	"context"
@@ -52,8 +51,7 @@ func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...inter
 		Type:        tp,
 		Description: desc,
 	}
-	_, err := db.GetEngine(ctx).Insert(n)
-	return err
+	return db.Insert(ctx, n)
 }
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
@@ -130,17 +128,4 @@ func DeleteNoticesByIDs(ids []int64) error {
 		In("id", ids).
 		Delete(new(Notice))
 	return err
-}
-
-// GetAdminUser returns the first administrator
-func GetAdminUser() (*User, error) {
-	var admin User
-	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{}
-	}
-
-	return &admin, nil
 }

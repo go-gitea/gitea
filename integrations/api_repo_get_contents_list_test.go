@@ -13,9 +13,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -64,7 +64,6 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// Get user2's token
 	session := loginUser(t, user2.Name)
 	token2 := getTokenForLoggedInUser(t, session)
-	session = emptyTestSession(t)
 	// Get user4's token
 	session = loginUser(t, user4.Name)
 	token4 := getTokenForLoggedInUser(t, session)
@@ -72,7 +71,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 
 	// Make a new branch in repo1
 	newBranch := "test_branch"
-	err := repo_module.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
+	err := repo_service.CreateNewBranch(user2, repo1, repo1.DefaultBranch, newBranch)
 	assert.NoError(t, err)
 	// Get the commit ID of the default branch
 	gitRepo, err := git.OpenRepository(repo1.RepoPath())
@@ -139,7 +138,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	// Test file contents a file with a bad ref
 	ref = "badref"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Test accessing private ref with user token that does not have access - should fail
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo16.Name, treePath, token4)

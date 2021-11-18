@@ -287,7 +287,7 @@ func TestIssueCrossReference(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, comment)
 
 	// Ref from a different repository
-	issueRefURL, issueRef = testIssueWithBean(t, "user12", 10, "TitleXRef", fmt.Sprintf("Description ref user2/repo1#%d", issueBase.Index))
+	_, issueRef = testIssueWithBean(t, "user12", 10, "TitleXRef", fmt.Sprintf("Description ref user2/repo1#%d", issueBase.Index))
 	unittest.AssertExistsAndLoadBean(t, &models.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    10,

@@ -62,10 +62,10 @@ func TestAPIRepoTags(t *testing.T) {
 
 	// delete tag
 	delReq := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/tags/%s?token=%s", user.Name, repoName, newTag.Name, token)
-	resp = session.MakeRequest(t, delReq, http.StatusNoContent)
+	session.MakeRequest(t, delReq, http.StatusNoContent)
 
 	// check if it's gone
-	resp = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func createNewTagUsingAPI(t *testing.T, session *TestSession, token string, ownerName, repoName, name, target, msg string) *api.Tag {

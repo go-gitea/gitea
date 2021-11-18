@@ -533,7 +533,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 
 func TestDiffToHTML_14231(t *testing.T) {
 	setting.Cfg = ini.Empty()
-	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "		run()\n"), highlight.Code("main.v", "		run(db)\n"), true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "", "		run()\n"), highlight.Code("main.v", "", "		run(db)\n"), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
 	expected := `		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>`

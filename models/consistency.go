@@ -5,6 +5,7 @@
 package models
 
 import (
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 
 	"xorm.io/builder"
@@ -127,7 +128,7 @@ func DeleteOrphanedIssues() error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }
