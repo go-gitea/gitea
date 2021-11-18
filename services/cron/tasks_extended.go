@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 func registerDeleteInactiveUsers() {
@@ -25,7 +26,7 @@ func registerDeleteInactiveUsers() {
 		OlderThan: 0 * time.Second,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return models.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
+		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
 	})
 }
 
