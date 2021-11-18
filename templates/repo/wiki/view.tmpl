@@ -46,7 +46,7 @@
 				</div>
 				<div class="eight wide right aligned column">
 					{{if .EscapeStatus.Escaped}}
-						<a class="ui small button unescape-button hide">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui small button unescape-button" style="display: none;">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
 						<a class="ui small button escape-button">{{.i18n.Tr "repo.escape_control_characters"}}</a>
 					{{end}}
 					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
