@@ -90,3 +90,43 @@ func TestGetFeeds2(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, actions, 0)
 }
+
+func TestActivityReadable(t *testing.T) {
+	tt := []struct {
+		desc   string
+		user   *User
+		doer   *User
+		result bool
+	}{{
+		desc:   "user should see own activity",
+		user:   &User{ID: 1},
+		doer:   &User{ID: 1},
+		result: true,
+	}, {
+		desc:   "anon should see activity if public",
+		user:   &User{ID: 1},
+		result: true,
+	}, {
+		desc:   "anon should NOT see activity",
+		user:   &User{ID: 1, KeepActivityPrivate: true},
+		result: false,
+	}, {
+		desc:   "user should see own activity if private too",
+		user:   &User{ID: 1, KeepActivityPrivate: true},
+		doer:   &User{ID: 1},
+		result: true,
+	}, {
+		desc:   "other user should NOT see activity",
+		user:   &User{ID: 1, KeepActivityPrivate: true},
+		doer:   &User{ID: 2},
+		result: false,
+	}, {
+		desc:   "admin should see activity",
+		user:   &User{ID: 1, KeepActivityPrivate: true},
+		doer:   &User{ID: 2, IsAdmin: true},
+		result: true,
+	}}
+	for _, test := range tt {
+		assert.Equal(t, test.result, activityReadable(test.user, test.doer), test.desc)
+	}
+}
