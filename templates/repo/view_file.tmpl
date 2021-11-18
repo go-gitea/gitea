@@ -78,7 +78,7 @@
 				<div class="header">
 					{{.i18n.Tr "repo.bidi_bad_header"}}
 				</div>
-				{{.i18n.Tr "repo.bidi_bad_description" | Str2html}}
+				<p>{{.i18n.Tr "repo.bidi_bad_description" | Str2html}}</p>
 			</div>
 		{{else if .EscapeStatus.Escaped}}
 			<div class="ui warning message file-message">
@@ -86,7 +86,7 @@
 				<div class="header">
 					{{.i18n.Tr "repo.unicode_header"}}
 				</div>
-				{{.i18n.Tr "repo.unicode_description" | Str2html}}
+				<p>{{.i18n.Tr "repo.unicode_description" | Str2html}}</p>
 			</div>
 		{{end}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">

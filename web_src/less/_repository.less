@@ -3095,7 +3095,17 @@ td.blob-excerpt {
 
 .file-message {
   margin-bottom: 0 !important;
+}
+
+.file-message,
+.wiki-message {
   border-radius: 0 !important;
+  display: flex;
+  flex-direction: column;
+  p {
+    text-align: left;
+    align-self: center;
+  }
 }
 
 /* fomantic's last-child selector does not work with hidden last child */

@@ -95,8 +95,8 @@
 								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
 							{{end}}
 							{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-								<a class="ui tiny button unescape-button">{{$.i18n.Tr "repo.unescape_control_characters"}}</a>
-								<a class="ui tiny button escape-button" style="display: none;">{{$.i18n.Tr "repo.escape_control_characters"}}</a>
+								<a class="ui basic tiny button unescape-button">{{$.i18n.Tr "repo.unescape_control_characters"}}</a>
+								<a class="ui basic tiny button escape-button" style="display: none;">{{$.i18n.Tr "repo.escape_control_characters"}}</a>
 							{{end}}
 							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 								{{if $file.IsDeleted}}
