@@ -26,6 +26,7 @@ import (
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli"
 )
@@ -534,7 +535,7 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return models.DeleteUser(user)
+	return user_service.DeleteUser(user)
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {

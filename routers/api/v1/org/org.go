@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	"code.gitea.io/gitea/services/org"
 )
 
 func listUserOrgs(ctx *context.APIContext, u *models.User) {
@@ -364,7 +365,7 @@ func Delete(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteOrganization(ctx.Org.Organization); err != nil {
+	if err := org.DeleteOrganization(ctx.Org.Organization); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteOrganization", err)
 		return
 	}
