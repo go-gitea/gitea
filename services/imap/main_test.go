@@ -27,18 +27,18 @@ type testIMAPMailbox struct {
 	Subscribed bool
 	Messages   []*memory.Message
 
-	Name_ string
-	User  *testImapUser
+	NameStr string
+	User    *testImapUser
 }
 
 func (mbox *testIMAPMailbox) Name() string {
-	return mbox.Name_
+	return mbox.NameStr
 }
 
 func (mbox *testIMAPMailbox) Info() (*imap.MailboxInfo, error) {
 	info := &imap.MailboxInfo{
 		Delimiter: Delimiter,
-		Name:      mbox.Name_,
+		Name:      mbox.NameStr,
 	}
 	return info, nil
 }
@@ -91,7 +91,7 @@ func (mbox *testIMAPMailbox) unseenSeqNum() uint32 {
 }
 
 func (mbox *testIMAPMailbox) Status(items []imap.StatusItem) (*imap.MailboxStatus, error) {
-	status := imap.NewMailboxStatus(mbox.Name_, items)
+	status := imap.NewMailboxStatus(mbox.NameStr, items)
 	status.Flags = mbox.flags()
 	status.PermanentFlags = []string{"\\*"}
 	status.UnseenSeqNum = mbox.unseenSeqNum()
@@ -329,8 +329,8 @@ func initTestBacken() *testImapBacken {
 
 	u.Mailboxes = map[string]*testIMAPMailbox{
 		"INBOX": {
-			Name_: "INBOX",
-			User:  u,
+			NameStr: "INBOX",
+			User:    u,
 			Messages: []*memory.Message{
 				{
 					Uid:   6,
