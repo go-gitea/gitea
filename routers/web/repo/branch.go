@@ -344,17 +344,15 @@ func CreateBranch(ctx *context.Context) {
 	var err error
 
 	if form.CreateTag {
-		if ctx.Repo.IsViewTag {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName, "")
-		} else {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
+		target := ctx.Repo.CommitID
+		if ctx.Repo.IsViewBranch {
+			target = ctx.Repo.BranchName
 		}
+		err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.IsViewBranch {
 		err = repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
-	} else if ctx.Repo.IsViewTag {
-		err = repo_service.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrTagAlreadyExists(err) {
