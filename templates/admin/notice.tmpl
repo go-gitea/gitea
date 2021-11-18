@@ -29,7 +29,7 @@
 							<td>{{.ID}}</td>
 							<td>{{$.i18n.Tr .TrStr}}</td>
 							<td class="view-detail"><span class="notice-description text truncate">{{.Description}}</span></td>
-							<td><span class="notice-created-time poping up" data-content="{{.CreatedUnix.AsTime}}" data-variation="inverted tiny">{{.CreatedUnix.FormatShort}}</span></td>
+							<td><span class="notice-created-time tooltip" data-content="{{.CreatedUnix.AsTime}}">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a href="#">{{svg "octicon-note" 16 "view-detail"}}</a></td>
 						</tr>
 					{{end}}
