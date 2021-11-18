@@ -328,16 +328,8 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 }
 
 func activityReadable(user, doer *User) bool {
-	var doerID int64
-	if doer != nil {
-		doerID = doer.ID
-	}
-	if doer == nil || !doer.IsAdmin {
-		if user.KeepActivityPrivate && doerID != user.ID {
-			return false
-		}
-	}
-	return true
+	return !user.KeepActivityPrivate ||
+		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
 func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
