@@ -58,8 +58,6 @@ else
 	SED_INPLACE := sed -i ''
 endif
 
-GOFMT ?= gofmt -s
-
 EXTRA_GOFLAGS ?=
 
 MAKE_VERSION := $(shell $(MAKE) -v | head -n 1)
@@ -126,8 +124,6 @@ GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/op
 ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
 endif
-
-GO_SOURCES_OWN := $(filter-out vendor/% %/bindata.go, $(GO_SOURCES))
 
 #To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
 SWAGGER := $(GO) run -mod=vendor github.com/go-swagger/go-swagger/cmd/swagger
@@ -238,7 +234,7 @@ clean:
 .PHONY: fmt
 fmt:
 	@echo "Running go fmt..."
-	@$(GOFMT) -w $(GO_SOURCES_OWN)
+	@$(GO) run build/code-batch-process.go gitea-fmt -s -w '{file-list}'
 
 .PHONY: vet
 vet:
@@ -298,7 +294,7 @@ misspell-check:
 		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
 	fi
 	@echo "Running misspell-check..."
-	@misspell -error -i unknwon $(GO_SOURCES_OWN)
+	@$(GO) run build/code-batch-process.go misspell -error -i unknwon '{file-list}'
 
 .PHONY: misspell
 misspell:
@@ -306,12 +302,12 @@ misspell:
 		$(GO) install github.com/client9/misspell/cmd/misspell@v0.3.4; \
 	fi
 	@echo "Running go misspell..."
-	@misspell -w -i unknwon $(GO_SOURCES_OWN)
+	@$(GO) run build/code-batch-process.go misspell -w -i unknwon '{file-list}'
 
 .PHONY: fmt-check
 fmt-check:
 	# get all go files and run go fmt on them
-	@diff=$$($(GOFMT) -d $(GO_SOURCES_OWN)); \
+	@diff=$$($(GO) run build/code-batch-process.go gitea-fmt -s -d '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \

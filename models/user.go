@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	_ "image/jpeg" // Needed for jpeg support
 	"net/url"
 	"os"
 	"path/filepath"
@@ -20,6 +19,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
@@ -39,7 +40,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
-
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
