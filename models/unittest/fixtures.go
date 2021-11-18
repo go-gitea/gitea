@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 
 	"github.com/go-testfixtures/testfixtures/v3"
-
 	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )

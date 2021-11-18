@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -88,7 +89,7 @@ func TestUpdateAttachment(t *testing.T) {
 	attach.Name = "new_name"
 	assert.NoError(t, UpdateAttachment(attach))
 
-	db.AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
+	unittest.AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
 }
 
 func TestGetAttachmentsByUUIDs(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/gitdiff"
 
@@ -118,13 +119,21 @@ func TestGetDiffPreview(t *testing.T) {
 	t.Run("with given branch", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedDiff, diff)
+		expectedBs, err := json.Marshal(expectedDiff)
+		assert.NoError(t, err)
+		bs, err := json.Marshal(diff)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expectedBs, bs)
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedDiff, diff)
+		expectedBs, err := json.Marshal(expectedDiff)
+		assert.NoError(t, err)
+		bs, err := json.Marshal(diff)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expectedBs, bs)
 	})
 }
 

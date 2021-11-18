@@ -17,7 +17,7 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{avatar .User 28 "mr-2"}}<a href="{{AppSubUrl}}/{{.User.Name}}">{{$userName}}</a>
+								{{avatar .User 28 "mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
 							{{else}}
 								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
 								{{$userName}}
@@ -40,9 +40,9 @@
 								{{end}}
 							{{end}}
 							{{if $.PageIsWiki}}
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								<a href="{{$.RepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else if $.Reponame}}
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								<a href="{{$.RepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
 								<span class="{{$class}}">
 							{{end}}
@@ -61,7 +61,7 @@
 							{{if $.PageIsWiki}}
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
 							{{else }}
-								{{ $commitLink:= printf "%s/%s/%s/commit/%s" AppSubUrl $.Username $.Reponame .ID }}
+								{{ $commitLink:= printf "%s/commit/%s" $.RepoLink (PathEscape .ID.String) }}
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject .Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>
