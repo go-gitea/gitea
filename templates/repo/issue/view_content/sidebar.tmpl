@@ -302,6 +302,29 @@
 			</div>
 		</div>
 
+		{{if or .HasIssuesOrPullsWritePermission .Issue.IsPrivate .IsPoster}}
+		<div class="ui divider"></div>
+		<div class="ui">
+			<span class="text"><strong>{{.i18n.Tr "repo.issues.confidential"}}</strong></span>
+			<div class="mt-3">
+				<form method="POST" action="{{.Issue.Link}}/private">
+					<input type="hidden" name="is_confidential" value="{{if .Issue.IsPrivate}}false{{else}}true{{end}}" />
+					{{$.CsrfTokenHtml}}
+					<button class="fluid ui button df jc">
+						{{if .Issue.IsPrivate}}
+							<!-- TODO: Replace it with a better icon! --> 
+							{{svg "octicon-mute" 16 "mr-3"}}
+							{{.i18n.Tr "repo.issues.confidential.off"}}
+						{{else}}
+							<!-- TODO: Replace it with a better icon! --> 
+							{{svg "octicon-unmute" 16 "mr-3"}}
+							{{.i18n.Tr "repo.issues.confidential.on"}}
+						{{end}}
+					</button>
+				</form>
+			</div>
+		</div>
+		{{end}}
 		<div class="ui divider"></div>
 
 		{{if .Participants}}

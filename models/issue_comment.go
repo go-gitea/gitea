@@ -101,8 +101,10 @@ const (
 	CommentTypeProject
 	// 31 Project board changed
 	CommentTypeProjectBoard
-	// Dismiss Review
+	// 32 Dismiss Review
 	CommentTypeDismissReview
+	// 33 Change confidential
+	CommenTypeConfidentialChanged
 )
 
 // RoleDescriptor defines comment tag type
@@ -907,6 +909,8 @@ type CreateCommentOptions struct {
 	NewTitle         string
 	OldRef           string
 	NewRef           string
+	OldConfidential  bool
+	NewConfidential  bool
 	CommitID         int64
 	CommitSHA        string
 	Patch            string

@@ -1752,6 +1752,28 @@ func UpdateIssueTitle(ctx *context.Context) {
 	})
 }
 
+// IssuePrivate sets the issue confidential
+func IssuePrivate(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
+	isConfidential := ctx.FormBool("is_confidential")
+
+	if err := issue_service.ChangeConfidential(issue, ctx.User, isConfidential); err != nil {
+		ctx.ServerError("ChangeTitle", err)
+		return
+	}
+
+	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+}
+
 // UpdateIssueRef change issue's ref (branch)
 func UpdateIssueRef(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
@@ -1886,6 +1908,34 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	}
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": true,
+	})
+}
+
+// UpdateIssueConfidential change issue's confidential
+func UpdateIssueConfidential(ctx *context.Context) {
+	issue := GetActionIssue(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+		ctx.Error(http.StatusForbidden)
+		return
+	}
+
+	title := ctx.FormTrim("title")
+	if len(title) == 0 {
+		ctx.Error(http.StatusNoContent)
+		return
+	}
+
+	if err := issue_service.ChangeTitle(issue, ctx.User, title); err != nil {
+		ctx.ServerError("ChangeTitle", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"title": issue.Title,
 	})
 }
 

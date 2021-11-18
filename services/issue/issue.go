@@ -54,6 +54,19 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 	return nil
 }
 
+// ChangeConfidential changes the confidential of this issue, as the given user.
+func ChangeConfidential(issue *models.Issue, doer *models.User, isConfidential bool) (err error) {
+	issue.IsPrivate = isConfidential
+
+	if err = issue.ChangeConfidential(doer); err != nil {
+		return
+	}
+
+	// TODO: add a notification (possible)?
+
+	return nil
+}
+
 // ChangeIssueRef changes the branch of this issue, as the given user.
 func ChangeIssueRef(issue *models.Issue, doer *models.User, ref string) error {
 	oldRef := issue.Ref

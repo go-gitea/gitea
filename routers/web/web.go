@@ -715,6 +715,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/watch", repo.IssueWatch)
+				m.Post("/private", repo.IssuePrivate)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)

@@ -743,6 +743,40 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 	return committer.Commit()
 }
 
+// ChangeConfidential changes the confidential of this issue, as the given user.
+func (issue *Issue) ChangeConfidential(doer *User) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = updateIssueCols(db.GetEngine(ctx), issue, "is_private"); err != nil {
+		return fmt.Errorf("updateIssueCols: %v", err)
+	}
+
+	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+
+	opts := &CreateCommentOptions{
+		Type:            CommenTypeConfidentialChanged,
+		Doer:            doer,
+		Repo:            issue.Repo,
+		Issue:           issue,
+		OldConfidential: !issue.IsPrivate,
+		NewConfidential: issue.IsPrivate,
+	}
+	if _, err = createComment(db.GetEngine(ctx), opts); err != nil {
+		return fmt.Errorf("createComment: %v", err)
+	}
+	if err = issue.addCrossReferences(db.GetEngine(ctx), doer, true); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
 // ChangeRef changes the branch of this issue, as the given user.
 func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 	ctx, committer, err := db.TxContext()
