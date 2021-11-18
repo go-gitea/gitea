@@ -83,7 +83,7 @@ func TestAPIModifyLabels(t *testing.T) {
 
 	//DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 }
 
@@ -203,6 +203,6 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 
 	//DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 }
