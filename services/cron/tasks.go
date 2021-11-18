@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -89,18 +90,18 @@ func (t *Task) RunWithUser(doer *models.User, config Config) {
 		if err := t.fun(ctx, doer, config); err != nil {
 			if db.IsErrCancelled(err) {
 				message := err.(db.ErrCancelled).Message
-				if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message)); err != nil {
+				if err := admin_model.CreateNotice(admin_model.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message)); err != nil {
 					log.Error("CreateNotice: %v", err)
 				}
 				return
 			}
-			if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "error", doer, err)); err != nil {
+			if err := admin_model.CreateNotice(admin_model.NoticeTask, config.FormatMessage(t.Name, "error", doer, err)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
 		}
 		if config.DoNoticeOnSuccess() {
-			if err := models.CreateNotice(models.NoticeTask, config.FormatMessage(t.Name, "finished", doer)); err != nil {
+			if err := admin_model.CreateNotice(admin_model.NoticeTask, config.FormatMessage(t.Name, "finished", doer)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 		}
