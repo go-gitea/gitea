@@ -6,6 +6,7 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -244,7 +245,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + ctx.Params(":action"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/milestones?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteMilestone delete a milestone

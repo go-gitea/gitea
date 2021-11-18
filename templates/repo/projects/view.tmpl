@@ -84,7 +84,7 @@
 				<div class="board-column-header df ac sb">
 					<div class="ui large label board-label py-2">{{.Title}}</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) (ne .ID 0)}}
-						<div class="ui dropdown jump item poping up" data-variation="tiny inverted">
+						<div class="ui dropdown jump item tooltip">
 							<div class="not-mobile px-3" tabindex="-1">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
@@ -195,7 +195,7 @@
 										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">
+								<a class="project-board-title vm" href="{{.Link}}">
 									{{.Title}}
 								</a>
 							</div>
@@ -204,9 +204,9 @@
 									#{{.Index}}
 									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
 									{{if .OriginalAuthor }}
-										{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 									{{else if gt .Poster.ID 0}}
-										{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+										{{$.i18n.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 									{{else}}
 										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 									{{end}}
