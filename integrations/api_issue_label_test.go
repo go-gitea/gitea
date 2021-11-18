@@ -10,9 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models/unittest"
-
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +83,7 @@ func TestAPIModifyLabels(t *testing.T) {
 
 	//DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 }
 
@@ -204,6 +203,6 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 
 	//DeleteLabel
 	req = NewRequest(t, "DELETE", singleURLStr)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 }

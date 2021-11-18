@@ -31,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	stdcharset "golang.org/x/net/html/charset"
@@ -179,6 +178,7 @@ func getLineContent(content string) string {
 
 // DiffSection represents a section of a DiffFile.
 type DiffSection struct {
+	file     *DiffFile
 	FileName string
 	Name     string
 	Lines    []*DiffLine
@@ -548,6 +548,11 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 		diff2           string
 	)
 
+	language := ""
+	if diffSection.file != nil {
+		language = diffSection.file.Language
+	}
+
 	// try to find equivalent diff line. ignore, otherwise
 	switch diffLine.Type {
 	case DiffLineSection:
@@ -555,7 +560,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineAdd:
 		compareDiffLine = diffSection.GetLine(DiffLineDel, diffLine.RightIdx)
 		if compareDiffLine == nil {
-			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
 			return template.HTML(escaped)
 		}
 		diff1 = compareDiffLine.Content
@@ -563,21 +568,21 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	case DiffLineDel:
 		compareDiffLine = diffSection.GetLine(DiffLineAdd, diffLine.LeftIdx)
 		if compareDiffLine == nil {
-			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
 			return template.HTML(escaped)
 		}
 		diff1 = diffLine.Content
 		diff2 = compareDiffLine.Content
 	default:
 		if strings.IndexByte(" +-", diffLine.Content[0]) > -1 {
-			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content[1:]))
+			_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content[1:]))
 			return template.HTML(escaped)
 		}
-		_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, diffLine.Content))
+		_, escaped := charset.EscapeControlString(highlight.Code(diffSection.FileName, language, diffLine.Content))
 		return template.HTML(escaped)
 	}
 
-	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, diff1[1:]), highlight.Code(diffSection.FileName, diff2[1:]), true)
+	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, language, diff1[1:]), highlight.Code(diffSection.FileName, language, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
 	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
@@ -603,6 +608,7 @@ type DiffFile struct {
 	IsProtected             bool
 	IsGenerated             bool
 	IsVendored              bool
+	Language                string
 }
 
 // GetType returns type of diff file.
@@ -1014,7 +1020,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			line := sb.String()
 
 			// Create a new section to represent this hunk
-			curSection = &DiffSection{}
+			curSection = &DiffSection{file: curFile}
 			lastLeftIdx = -1
 			curFile.Sections = append(curFile.Sections, curSection)
 
@@ -1054,7 +1060,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			rightLine++
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = &DiffSection{}
+				curSection = &DiffSection{file: curFile}
 				curFile.Sections = append(curFile.Sections, curSection)
 				lastLeftIdx = -1
 			}
@@ -1080,7 +1086,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			}
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = &DiffSection{}
+				curSection = &DiffSection{file: curFile}
 				curFile.Sections = append(curFile.Sections, curSection)
 				lastLeftIdx = -1
 			}
@@ -1100,7 +1106,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			lastLeftIdx = -1
 			if curSection == nil {
 				// Create a new section to represent this hunk
-				curSection = &DiffSection{}
+				curSection = &DiffSection{file: curFile}
 				curFile.Sections = append(curFile.Sections, curSection)
 			}
 			curSection.Lines = append(curSection.Lines, diffLine)
@@ -1308,23 +1314,15 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	var checker *git.CheckAttributeReader
 
 	if git.CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
+		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
 		if err == nil {
 			defer deleteTemporaryFile()
-			workdir, err := os.MkdirTemp("", "empty-work-dir")
-			if err != nil {
-				log.Error("Unable to create temporary directory: %v", err)
-				return nil, err
-			}
-			defer func() {
-				_ = util.RemoveAll(workdir)
-			}()
 
 			checker = &git.CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated"},
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
 				Repo:       gitRepo,
 				IndexFile:  indexFilename,
-				WorkTree:   workdir,
+				WorkTree:   worktree,
 			}
 			ctx, cancel := context.WithCancel(git.DefaultContext)
 			if err := checker.Init(ctx); err != nil {
@@ -1366,6 +1364,11 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 					} else {
 						gotGenerated = generated == "false"
 					}
+				}
+				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					diffFile.Language = language
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
+					diffFile.Language = language
 				}
 			} else {
 				log.Error("Unexpected error: %v", err)

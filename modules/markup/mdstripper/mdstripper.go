@@ -6,11 +6,10 @@ package mdstripper
 
 import (
 	"bytes"
+	"io"
 	"net/url"
 	"strings"
 	"sync"
-
-	"io"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
