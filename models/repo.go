@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	_ "image/jpeg" // Needed for jpeg support
 	"net"
 	"net/url"
 	"os"
@@ -21,6 +20,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"

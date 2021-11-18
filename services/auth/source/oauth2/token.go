@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/golang-jwt/jwt"
 )
 
