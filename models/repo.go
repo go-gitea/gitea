@@ -202,21 +202,24 @@ type Repository struct {
 	OriginalURL         string             `xorm:"VARCHAR(2048)"`
 	DefaultBranch       string
 
-	NumWatches          int
-	NumStars            int
-	NumForks            int
-	NumIssues           int
-	NumClosedIssues     int
-	NumOpenIssues       int `xorm:"-"`
-	NumPulls            int
-	NumClosedPulls      int
-	NumOpenPulls        int `xorm:"-"`
-	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenMilestones   int `xorm:"-"`
-	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenProjects     int `xorm:"-"`
+	NumWatches             int
+	NumStars               int
+	NumForks               int
+	NumIssues              int
+	NumClosedIssues        int
+	NumOpenIssues          int `xorm:"-"`
+	NumPrivateIssues       int
+	NumOpenPrivateIssues   int `xorm:"-"`
+	NumClosedPrivateIssues int
+	NumPulls               int
+	NumClosedPulls         int
+	NumOpenPulls           int `xorm:"-"`
+	NumMilestones          int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedMilestones    int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenMilestones      int `xorm:"-"`
+	NumProjects            int `xorm:"NOT NULL DEFAULT 0"`
+	NumClosedProjects      int `xorm:"NOT NULL DEFAULT 0"`
+	NumOpenProjects        int `xorm:"-"`
 
 	IsPrivate   bool `xorm:"INDEX"`
 	IsEmpty     bool `xorm:"INDEX"`
@@ -296,6 +299,8 @@ func (repo *Repository) AfterLoad() {
 	}
 
 	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
+	repo.NumOpenPrivateIssues = repo.NumPrivateIssues - repo.NumClosedPrivateIssues
+	fmt.Println(repo.NumPrivateIssues, repo.NumClosedPrivateIssues)
 	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
 	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects

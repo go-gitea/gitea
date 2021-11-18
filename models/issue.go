@@ -975,7 +975,11 @@ func newIssue(e db.Engine, doer *User, opts NewIssueOptions) (err error) {
 	if opts.IsPull {
 		_, err = e.Exec("UPDATE `repository` SET num_pulls = num_pulls + 1 WHERE id = ?", opts.Issue.RepoID)
 	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		if opts.Issue.IsPrivate {
+			_, err = e.Exec("UPDATE `repository` SET num_private_issues = num_private_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		} else {
+			_, err = e.Exec("UPDATE `repository` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		}
 	}
 	if err != nil {
 		return err
@@ -2027,12 +2031,22 @@ func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
 			issue.RepoID,
 		)
 	} else {
-		_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
-			issue.RepoID,
-			false,
-			true,
-			issue.RepoID,
-		)
+		if issue.IsPrivate {
+			_, err = e.Exec("UPDATE `repository` SET num_closed_private_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=? AND is_private=?) WHERE id=?",
+				issue.RepoID,
+				false,
+				true,
+				true,
+				issue.RepoID,
+			)
+		} else {
+			_, err = e.Exec("UPDATE `repository` SET num_closed_issues=(SELECT count(*) FROM issue WHERE repo_id=? AND is_pull=? AND is_closed=?) WHERE id=?",
+				issue.RepoID,
+				false,
+				true,
+				issue.RepoID,
+			)
+		}
 	}
 	return
 }
