@@ -25,7 +25,6 @@ import (
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
@@ -45,7 +44,7 @@ import (
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/services/repository"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/session"
@@ -73,7 +72,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repository.NewContext)
+	mustInit(repo_service.NewContext)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -85,7 +84,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
 
 		log.Info("re-sync repository hooks ...")
-		mustInitCtx(ctx, repo_module.SyncRepositoryHooks)
+		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
 		mustInit(models.RewriteAllPublicKeys)
