@@ -18,6 +18,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) {
 		for _, datum := range data {
+			if datum == nil {
+				continue
+			}
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
