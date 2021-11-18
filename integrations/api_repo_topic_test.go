@@ -75,15 +75,15 @@ func TestAPIRepoTopic(t *testing.T) {
 
 	// Test delete a topic
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add an existing topic
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Golang", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add a topic
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "topicName3", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test read topics using token
 	req = NewRequest(t, "GET", url)
@@ -96,7 +96,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -107,7 +107,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -118,7 +118,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -129,15 +129,15 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test add a topic when there is already maximum
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "t26", token2)
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test delete a topic that repo doesn't have
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
-	res = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Get user4's token
 	session = loginUser(t, user4.Name)
@@ -153,6 +153,6 @@ func TestAPIRepoTopic(t *testing.T) {
 
 	// Test add a topic to repo with write access (requires repo admin access)
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)
-	res = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 }
