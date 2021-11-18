@@ -36,24 +36,24 @@ func TestAPIIssuesReactions(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
 	})
-	resp := session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Delete not allowed reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "zzz",
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	//Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "rocket",
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	//Add existing reaction
-	resp = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)
@@ -96,24 +96,24 @@ func TestAPICommentReactions(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "wrong",
 	})
-	resp := session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Delete none existing reaction
 	req = NewRequestWithJSON(t, "DELETE", urlStr, &api.EditReactionOption{
 		Reaction: "eyes",
 	})
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	//Add allowed reaction
 	req = NewRequestWithJSON(t, "POST", urlStr, &api.EditReactionOption{
 		Reaction: "+1",
 	})
-	resp = session.MakeRequest(t, req, http.StatusCreated)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiNewReaction api.Reaction
 	DecodeJSON(t, resp, &apiNewReaction)
 
 	//Add existing reaction
-	resp = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 	//Get end result of reaction list of issue #1
 	req = NewRequestf(t, "GET", urlStr)

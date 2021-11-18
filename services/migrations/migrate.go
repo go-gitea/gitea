@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/matchlist"
 	base "code.gitea.io/gitea/modules/migration"
@@ -122,7 +123,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+		if err2 := admin_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err

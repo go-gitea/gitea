@@ -102,10 +102,10 @@
 <meta property="og:site_name" content="{{AppName}}" />
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme}}.css?v={{MD5 AppVer}}">
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
 {{end}}
 {{template "custom/header" .}}
 </head>

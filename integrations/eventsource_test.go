@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/eventsource"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,7 +69,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 
 	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" //946687801 <- only Notification 4 is in this filter ...
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
-	resp = session.MakeRequest(t, req, http.StatusResetContent)
+	session.MakeRequest(t, req, http.StatusResetContent)
 
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?token=%s&status-types=unread", token))
 	resp = session.MakeRequest(t, req, http.StatusOK)

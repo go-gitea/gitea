@@ -93,11 +93,9 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 	AssignForm(f, data)
 
 	typ := reflect.TypeOf(f)
-	val := reflect.ValueOf(f)
 
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
-		val = val.Elem()
 	}
 
 	if field, ok := typ.FieldByName(errs[0].FieldNames[0]); ok {
