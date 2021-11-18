@@ -69,6 +69,8 @@ type Issue struct {
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
 	IsLocked bool `xorm:"NOT NULL DEFAULT false"`
+	// IsPrivate limits who can see the issue.
+	IsPrivate bool `xorm:"NOT NULL DEFAULT false"`
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
@@ -1154,6 +1156,7 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
+	CanSeePrivate  bool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1257,6 +1260,10 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		} else {
 			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
 		}
+	}
+
+	if !opts.CanSeePrivate {
+		sess.And("issue.is_private=?", false)
 	}
 
 	switch opts.IsPull {
@@ -1496,6 +1503,7 @@ type IssueStatsOptions struct {
 	ReviewRequestedID int64
 	IsPull            util.OptionalBool
 	IssueIDs          []int64
+	CanSeePrivate     bool
 }
 
 const (
@@ -1581,6 +1589,10 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 
 		if opts.ReviewRequestedID > 0 {
 			applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+		}
+
+		if !opts.CanSeePrivate {
+			sess.And("issue.is_private=?", false)
 		}
 
 		switch opts.IsPull {

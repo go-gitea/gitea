@@ -98,6 +98,11 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
+// CanSeePrivateIssues returns true if the user is allowed to see private issues on the repo.
+func (p *Permission) CanSeePrivateIssues() bool {
+	return p.CanWrite(unit.TypeIssues)
+}
+
 // ColorFormat writes a colored string for these Permissions
 func (p *Permission) ColorFormat(s fmt.State) {
 	noColor := log.ColorBytes(log.Reset)

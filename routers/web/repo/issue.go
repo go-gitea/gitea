@@ -169,6 +169,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
+	canSeePrivateIssues := ctx.Repo.CanSeePrivateIssues()
+
 	var issueStats *models.IssueStats
 	if forceEmpty {
 		issueStats = &models.IssueStats{}
@@ -183,6 +185,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewRequestedID: reviewRequestedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
+			CanSeePrivate:     canSeePrivateIssues,
 		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -235,6 +238,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
 			IssueIDs:          issueIDs,
+			CanSeePrivate:     canSeePrivateIssues,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
