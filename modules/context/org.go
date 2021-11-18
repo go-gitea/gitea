@@ -69,12 +69,6 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	org := ctx.Org.Organization
 	ctx.Data["Org"] = org
 
-	// Force redirection when username is actually a user.
-	if org.Type != models.UserTypeOrganization {
-		ctx.Redirect(org.AsUser().HomeLink())
-		return
-	}
-
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
 		ctx.Org.IsOwner = true
