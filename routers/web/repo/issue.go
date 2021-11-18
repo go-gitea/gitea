@@ -171,6 +171,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	canSeePrivateIssues := ctx.Repo.CanSeePrivateIssues()
 
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+
 	var issueStats *models.IssueStats
 	if forceEmpty {
 		issueStats = &models.IssueStats{}
@@ -186,7 +191,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
 			CanSeePrivate:     canSeePrivateIssues,
-		})
+		}, userID)
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
 			return
@@ -239,6 +244,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			SortType:          sortType,
 			IssueIDs:          issueIDs,
 			CanSeePrivate:     canSeePrivateIssues,
+			UserID:            userID,
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)
@@ -1111,9 +1117,9 @@ func ViewIssue(ctx *context.Context) {
 	// Check if the issue is private, if so check if the user has enough
 	// permission to view the issue.
 	if issue.IsPrivate {
-		if !ctx.Repo.CanSeePrivateIssues() {
+		if !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
 			var userID int64
-			if ctx.User != nil {
+			if ctx.IsSigned {
 				userID = ctx.User.ID
 			} else {
 				userID = -1
