@@ -29,7 +29,6 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -45,6 +44,7 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/session"
