@@ -22,6 +22,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
@@ -1148,7 +1149,8 @@ func deleteBeans(e db.Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-func deleteUser(e db.Engine, u *User) error {
+func deleteUser(ctx context.Context, u *User) error {
+	e := db.GetEngine(ctx)
 	// Note: A user owns any repository or belongs to any organization
 	//	cannot perform delete operation.
 
@@ -1304,7 +1306,7 @@ func deleteUser(e db.Engine, u *User) error {
 	path := UserPath(u.Name)
 	if err = util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+		_ = admin_model.CreateNoticeCtx(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 		return err
 	}
 
@@ -1312,7 +1314,7 @@ func deleteUser(e db.Engine, u *User) error {
 		avatarPath := u.CustomAvatarRelativePath()
 		if err = storage.Avatars.Delete(avatarPath); err != nil {
 			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
+			_ = admin_model.CreateNoticeCtx(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
 			return err
 		}
 	}
@@ -1328,18 +1330,18 @@ func DeleteUser(u *User) (err error) {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = deleteUser(sess, u); err != nil {
+	if err = deleteUser(ctx, u); err != nil {
 		// Note: don't wrapper error here.
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteInactiveUsers deletes all inactive users and email addresses.
@@ -1824,4 +1826,17 @@ func GetUserByOpenID(uri string) (*User, error) {
 	}
 
 	return nil, ErrUserNotExist{0, uri, 0}
+}
+
+// GetAdminUser returns the first administrator
+func GetAdminUser() (*User, error) {
+	var admin User
+	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{}
+	}
+
+	return &admin, nil
 }
