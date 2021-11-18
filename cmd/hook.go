@@ -293,7 +293,6 @@ Gitea or set your environment appropriately.`, "")
 		}
 	} else if lastline > 0 {
 		fmt.Fprintf(out, "\n")
-		lastline = 0
 	}
 
 	fmt.Fprintf(out, "Checked %d references in total\n", total)
