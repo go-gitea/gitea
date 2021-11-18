@@ -34,4 +34,3 @@ func TestGetUnreadMailIDs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, ms, []uint32{1})
 }
-

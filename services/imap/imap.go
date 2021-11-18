@@ -20,10 +20,9 @@ import (
 	"github.com/emersion/go-imap"
 	"github.com/emersion/go-imap/client"
 	"github.com/emersion/go-message"
-
-	// for charset init
-	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
+
+	_ "github.com/emersion/go-message/charset" // for charset init
 )
 
 // Client is an imap client
