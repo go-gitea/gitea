@@ -140,7 +140,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, "COMMENT", review.State)
 	assert.EqualValues(t, 0, review.CodeCommentsCount)
 	req = NewRequestf(t, http.MethodDelete, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, review.ID, token)
-	resp = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// test CreatePullReview Comment without body but with comments
 	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, token), &api.CreatePullReviewOptions{
