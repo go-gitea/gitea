@@ -371,7 +371,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
+	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
@@ -935,8 +935,18 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
-	// TODO: need pagination
-	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{})
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
+	ctx.Data["Page"] = pager
+
+	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: models.ItemsPerPage,
+	})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return
@@ -948,6 +958,7 @@ func Forks(ctx *context.Context) {
 			return
 		}
 	}
+
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)

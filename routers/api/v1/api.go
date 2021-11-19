@@ -215,10 +215,13 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 	}
 }
 
-func reqBasicAuth() func(ctx *context.APIContext) {
+func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuth && ctx.Data["AuthedMethod"].(string) == new(auth.ReverseProxy).Name() {
+			return
+		}
 		if !ctx.Context.IsBasicAuth {
-			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
+			ctx.Error(http.StatusUnauthorized, "reqBasicOrRevProxyAuth", "auth required")
 			return
 		}
 		ctx.CheckForOTP()
@@ -630,7 +633,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
-				}, reqBasicAuth())
+				}, reqBasicOrRevProxyAuth())
 			})
 		})
 

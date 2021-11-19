@@ -1,10 +1,13 @@
 const {csrfToken} = window.config;
 
 async function initRepoProjectSortable() {
+  const els = document.getElementsByClassName('board');
+  if (!els.length) return;
+
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
   const boardColumns = document.getElementsByClassName('board-column');
 
-  new Sortable(document.getElementsByClassName('board')[0], {
+  new Sortable(els[0], {
     group: 'board-column',
     draggable: '.board-column',
     animation: 150,

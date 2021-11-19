@@ -157,5 +157,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
+	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

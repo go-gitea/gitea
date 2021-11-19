@@ -72,7 +72,7 @@ func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{}, IDs)
 
-	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
+	_, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
 	assert.Error(t, err)
 
 	IDs, err = MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})
