@@ -8,7 +8,7 @@
 package identicon
 
 import (
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"image"
 	"image/color"
@@ -47,7 +47,7 @@ func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
 
 // Make generates an avatar by data
 func (i *Identicon) Make(data []byte) image.Image {
-	h := md5.New()
+	h := sha256.New()
 	h.Write(data)
 	sum := h.Sum(nil)
 
@@ -70,7 +70,7 @@ func (i *Identicon) render(c, b1, b2, b1Angle, b2Angle, foreColor int) image.Ima
 /*
 # Algorithm
 
-An image is splitted into 9 areas
+Origin: An image is splitted into 9 areas
 
 ```
   -------------
@@ -85,6 +85,8 @@ An image is splitted into 9 areas
 Area 1/3/9/7 use a 90-degree rotating pattern.
 Area 1/3/9/7 use another 90-degree rotating pattern.
 Area 5 uses a random patter.
+
+The Patched Fix: make the image left-right mirrored to get rid of something like "swastika"
 */
 
 // draw blocks to the paletted
@@ -92,13 +94,8 @@ Area 5 uses a random patter.
 // b1,b2: the block drawers for other blocks (around the center block)
 // b1Angle,b2Angle: the angle for the rotation of b1/b2
 func drawBlocks(p *image.Paletted, size int, c, b1, b2 blockFunc, b1Angle, b2Angle int) {
-	incr := func(a int) int {
-		if a >= 3 {
-			a = 0
-		} else {
-			a++
-		}
-		return a
+	nextAngle := func(a int) int {
+		return (a + 1) % 4
 	}
 
 	padding := (size % 3) / 2 // in cased the size can not be aligned by 3 blocks.
@@ -114,28 +111,28 @@ func drawBlocks(p *image.Paletted, size int, c, b1, b2 blockFunc, b1Angle, b2Ang
 	// center top (2)
 	b2(p, blockSize+padding, 0+padding, blockSize, b2Angle)
 
-	b1Angle = incr(b1Angle)
-	b2Angle = incr(b2Angle)
+	b1Angle = nextAngle(b1Angle)
+	b2Angle = nextAngle(b2Angle)
 	// right top (3)
-	b1(p, twoBlockSize+padding, 0+padding, blockSize, b1Angle)
+	// b1(p, twoBlockSize+padding, 0+padding, blockSize, b1Angle)
 	// right middle (6)
-	b2(p, twoBlockSize+padding, blockSize+padding, blockSize, b2Angle)
+	// b2(p, twoBlockSize+padding, blockSize+padding, blockSize, b2Angle)
 
-	b1Angle = incr(b1Angle)
-	b2Angle = incr(b2Angle)
+	b1Angle = nextAngle(b1Angle)
+	b2Angle = nextAngle(b2Angle)
 	// right bottom (9)
-	b1(p, twoBlockSize+padding, twoBlockSize+padding, blockSize, b1Angle)
+	// b1(p, twoBlockSize+padding, twoBlockSize+padding, blockSize, b1Angle)
 	// center bottom (8)
 	b2(p, blockSize+padding, twoBlockSize+padding, blockSize, b2Angle)
 
-	b1Angle = incr(b1Angle)
-	b2Angle = incr(b2Angle)
+	b1Angle = nextAngle(b1Angle)
+	b2Angle = nextAngle(b2Angle)
 	// lef bottom (7)
 	b1(p, 0+padding, twoBlockSize+padding, blockSize, b1Angle)
 	// left middle (4)
 	b2(p, 0+padding, blockSize+padding, blockSize, b2Angle)
 
-	// then we make it left-right mirror
+	// then we make it left-right mirror, so we didn't draw 3/6/9 before
 	for x := 0; x < size/2; x++ {
 		for y := 0; y < size; y++ {
 			p.SetColorIndex(size-x, y, p.ColorIndexAt(x, y))

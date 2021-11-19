@@ -20,7 +20,7 @@ type blockFunc func(img *image.Paletted, x, y, size int, angle int)
 
 // draw a polygon by points, and the polygon is rotated by angle.
 func drawBlock(img *image.Paletted, x, y, size int, angle int, points []int) {
-	if angle > 0 {
+	if angle != 0 {
 		m := size / 2
 		rotate(points, m, m, angle)
 	}

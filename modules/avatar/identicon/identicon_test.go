@@ -30,7 +30,6 @@ func TestGenerate(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		s := strconv.Itoa(i)
 		img := imgMaker.Make([]byte(s))
-		assert.NoError(t, err)
 
 		f, err := os.Create(dir + "/" + s + ".png")
 		if !assert.NoError(t, err) {
