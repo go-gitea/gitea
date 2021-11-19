@@ -95,10 +95,10 @@ func Deliver(t *webhook_model.HookTask) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
+			return fmt.Errorf("invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
 		}
 	default:
-		return fmt.Errorf("Invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
+		return fmt.Errorf("invalid http method for webhook: [%d] %v", t.ID, w.HTTPMethod)
 	}
 
 	var signatureSHA1 string
@@ -169,10 +169,10 @@ func Deliver(t *webhook_model.HookTask) error {
 	}()
 
 	if setting.DisableWebhooks {
-		return fmt.Errorf("Webhook task skipped (webhooks disabled): [%d]", t.ID)
+		return fmt.Errorf("webhook task skipped (webhooks disabled): [%d]", t.ID)
 	}
 
-	resp, err := webhookHTTPClient.Do(req)
+	resp, err := webhookHTTPClient.Do(req.WithContext(graceful.GetManager().ShutdownContext()))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
 		return err
