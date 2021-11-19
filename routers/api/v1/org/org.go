@@ -39,7 +39,6 @@ func listUserOrgs(ctx *context.APIContext, u *models.User) {
 		return
 	}
 
-	maxResults := len(orgs)
 	orgs, _ = util.PaginateSlice(orgs, listOptions.Page, listOptions.PageSize).([]*models.Organization)
 
 	apiOrgs := make([]*api.Organization, len(orgs))

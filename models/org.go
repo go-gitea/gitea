@@ -546,8 +546,8 @@ func (opts FindOrgOptions) toConds() builder.Cond {
 }
 
 // FindOrgs returns a list of organizations according given conditions
-func FindOrgs(opts FindOrgOptions) ([]*User, error) {
-	orgs := make([]*User, 0, 10)
+func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
+	orgs := make([]*Organization, 0, 10)
 	sess := db.GetEngine(db.DefaultContext).
 		Where(opts.toConds()).
 		Asc("`user`.name")
