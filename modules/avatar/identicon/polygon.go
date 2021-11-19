@@ -60,7 +60,7 @@ func pointInPolygon(x, y int, polygonPoints []int) bool {
 
 		if mul := (x1-x)*(y2-y) - (x2-x)*(y1-y); mul >= 0 {
 			r++
-		} else if mul < 0 {
+		} else {
 			r--
 		}
 		x1, y1 = x2, y2
