@@ -100,7 +100,9 @@ func (srv *Server) ListenAndServe(serve ServeFunction) error {
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction) error {
 	go srv.awaitShutdown()
 
-	tlsConfig.MinVersion = tls.VersionTLS12
+	if tlsConfig.MinVersion == 0 {
+		tlsConfig.MinVersion = tls.VersionTLS12
+	}
 
 	l, err := GetListener(srv.network, srv.address)
 	if err != nil {
