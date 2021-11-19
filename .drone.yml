@@ -230,6 +230,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
@@ -242,6 +243,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
@@ -257,6 +259,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
@@ -271,6 +274,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
@@ -375,6 +379,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
@@ -389,6 +394,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
