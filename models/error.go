@@ -155,21 +155,6 @@ func (err ErrUserInactive) Error() string {
 	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
 }
 
-// ErrOpenIDAlreadyUsed represents a "OpenIDAlreadyUsed" kind of error.
-type ErrOpenIDAlreadyUsed struct {
-	OpenID string
-}
-
-// IsErrOpenIDAlreadyUsed checks if an error is a ErrOpenIDAlreadyUsed.
-func IsErrOpenIDAlreadyUsed(err error) bool {
-	_, ok := err.(ErrOpenIDAlreadyUsed)
-	return ok
-}
-
-func (err ErrOpenIDAlreadyUsed) Error() string {
-	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
-}
-
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
 type ErrUserOwnRepos struct {
 	UID int64
@@ -1694,29 +1679,6 @@ func (err ErrMilestoneNotExist) Error() string {
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
 }
 
-//    _____   __    __                .__                           __
-//   /  _  \_/  |__/  |______    ____ |  |__   _____   ____   _____/  |_
-//  /  /_\  \   __\   __\__  \ _/ ___\|  |  \ /     \_/ __ \ /    \   __\
-// /    |    \  |  |  |  / __ \\  \___|   Y  \  Y Y  \  ___/|   |  \  |
-// \____|__  /__|  |__| (____  /\___  >___|  /__|_|  /\___  >___|  /__|
-//         \/                \/     \/     \/      \/     \/     \/
-
-// ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
-type ErrAttachmentNotExist struct {
-	ID   int64
-	UUID string
-}
-
-// IsErrAttachmentNotExist checks if an error is a ErrAttachmentNotExist.
-func IsErrAttachmentNotExist(err error) bool {
-	_, ok := err.(ErrAttachmentNotExist)
-	return ok
-}
-
-func (err ErrAttachmentNotExist) Error() string {
-	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
-}
-
 // ___________
 // \__    ___/___ _____    _____
 //   |    |_/ __ \\__  \  /     \
@@ -1773,7 +1735,7 @@ type ErrUploadNotExist struct {
 
 // IsErrUploadNotExist checks if an error is a ErrUploadNotExist.
 func IsErrUploadNotExist(err error) bool {
-	_, ok := err.(ErrAttachmentNotExist)
+	_, ok := err.(ErrUploadNotExist)
 	return ok
 }
 

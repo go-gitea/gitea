@@ -8,80 +8,80 @@
 				<div class="{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}push news{{end}}">
 					<p>
 						{{if gt .ActUser.ID 0}}
-							<a href="{{AppSubUrl}}/{{.GetActUserName}}" title="{{.GetDisplayNameTitle}}">{{.GetDisplayName}}</a>
+							<a href="{{AppSubUrl}}/{{.GetActUserName | PathEscape}}" title="{{.GetDisplayNameTitle}}">{{.GetDisplayName}}</a>
 						{{else}}
 							{{.ShortActUserName}}
 						{{end}}
 						{{if eq .GetOpType 1}}
-							{{$.i18n.Tr "action.create_repo" .GetRepoLink .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.create_repo" (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 2}}
-							{{$.i18n.Tr "action.rename_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.rename_repo" (.GetContent|Escape) (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 5}}
-							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{ $branchLink := .GetBranch | PathEscapeSegments | Escape}}
 							{{if .Content}}
-								{{$.i18n.Tr "action.commit_repo" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
+								{{$.i18n.Tr "action.commit_repo" (.GetRepoLink|Escape) $branchLink (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 							{{else}}
-								{{$.i18n.Tr "action.create_branch" .GetRepoLink $branchLink (Escape .GetBranch) .ShortRepoPath | Str2html}}
+								{{$.i18n.Tr "action.create_branch" (.GetRepoLink|Escape) $branchLink (Escape .GetBranch) (.ShortRepoPath|Escape) | Str2html}}
 							{{end}}
 						{{else if eq .GetOpType 6}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.create_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.create_issue" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 7}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.create_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.create_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 8}}
-							{{$.i18n.Tr "action.transfer_repo" .GetContent .GetRepoLink .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.transfer_repo" .GetContent (.GetRepoLink|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 9}}
-							{{ $tagLink := .GetTag | EscapePound | Escape}}
-							{{$.i18n.Tr "action.push_tag" .GetRepoLink $tagLink .ShortRepoPath .GetTag | Str2html}}
+							{{ $tagLink := .GetTag | PathEscapeSegments | Escape}}
+							{{$.i18n.Tr "action.push_tag" (.GetRepoLink|Escape) $tagLink (.ShortRepoPath|Escape) .GetTag | Str2html}}
 						{{else if eq .GetOpType 10}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.comment_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.comment_issue" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 11}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.merge_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.merge_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 12}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.close_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.close_issue" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 13}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reopen_issue" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.reopen_issue" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 14}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.close_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.close_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 15}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reopen_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.reopen_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 16}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.delete_tag" .GetRepoLink (.GetTag|Escape) .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.delete_tag" (.GetRepoLink|Escape) (.GetTag|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 17}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.delete_branch" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.delete_branch" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 18}}
-							{{ $branchLink := .GetBranch | EscapePound}}
-							{{$.i18n.Tr "action.mirror_sync_push" .GetRepoLink $branchLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
+							{{ $branchLink := .GetBranch | PathEscapeSegments}}
+							{{$.i18n.Tr "action.mirror_sync_push" (.GetRepoLink|Escape) $branchLink (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 19}}
-							{{$.i18n.Tr "action.mirror_sync_create" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.mirror_sync_create" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 20}}
-							{{$.i18n.Tr "action.mirror_sync_delete" .GetRepoLink (.GetBranch|Escape) .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.mirror_sync_delete" (.GetRepoLink|Escape) (.GetBranch|Escape) (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 21}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.approve_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.approve_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 22}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.reject_pull_request" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.reject_pull_request" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 23}}
 							{{ $index := index .GetIssueInfos 0}}
-							{{$.i18n.Tr "action.comment_pull" .GetRepoLink $index .ShortRepoPath | Str2html}}
+							{{$.i18n.Tr "action.comment_pull" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) | Str2html}}
 						{{else if eq .GetOpType 24}}
-							{{ $branchLink := .GetBranch | EscapePound | Escape}}
+							{{ $branchLink := .GetBranch | PathEscapeSegments | Escape}}
 							{{ $linkText := .Content | RenderEmoji }}
-							{{$.i18n.Tr "action.publish_release" .GetRepoLink $branchLink .ShortRepoPath $linkText | Str2html}}
+							{{$.i18n.Tr "action.publish_release" (.GetRepoLink|Escape) $branchLink (.ShortRepoPath|Escape) $linkText | Str2html}}
 						{{else if eq .GetOpType 25}}
 							{{ $index := index .GetIssueInfos 0}}
 							{{ $reviewer := index .GetIssueInfos 1}}
-							{{$.i18n.Tr "action.review_dismissed" .GetRepoLink $index .ShortRepoPath $reviewer | Str2html}}
+							{{$.i18n.Tr "action.review_dismissed" (.GetRepoLink|Escape) $index (.ShortRepoPath|Escape) $reviewer | Str2html}}
 						{{end}}
 					</p>
 					{{if or (eq .GetOpType 5) (eq .GetOpType 18)}}

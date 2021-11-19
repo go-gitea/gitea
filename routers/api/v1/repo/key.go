@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -33,8 +34,8 @@ func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repo
 	return apiKey, nil
 }
 
-func composeDeployKeysAPILink(repoPath string) string {
-	return setting.AppURL + "api/v1/repos/" + repoPath + "/keys/"
+func composeDeployKeysAPILink(owner, name string) string {
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/keys/"
 }
 
 // ListDeployKeys list all the deploy keys of a repository
@@ -94,7 +95,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		return
 	}
 
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
 		if err := keys[i].GetContent(); err != nil {
@@ -154,7 +155,7 @@ func GetDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKey := convert.ToDeployKey(apiLink, key)
 	if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
 		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Repo.Repository)
@@ -233,7 +234,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 	}
 
 	key.Content = content
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(apiLink, key))
 }
 

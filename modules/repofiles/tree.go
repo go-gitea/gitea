@@ -6,6 +6,7 @@ package repofiles
 
 import (
 	"fmt"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
@@ -28,7 +29,7 @@ func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recurs
 	}
 	tree := new(api.GitTreeResponse)
 	tree.SHA = gitTree.ResolvedID.String()
-	tree.URL = repo.APIURL() + "/git/trees/" + tree.SHA
+	tree.URL = repo.APIURL() + "/git/trees/" + url.PathEscape(tree.SHA)
 	var entries git.Entries
 	if recursive {
 		entries, err = gitTree.ListEntriesRecursive()

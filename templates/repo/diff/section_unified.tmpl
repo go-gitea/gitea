@@ -6,17 +6,17 @@
 				{{if eq .GetType 4}}
 					<td colspan="2" class="lines-num">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</a>
 						{{end}}
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</a>
 						{{end}}
 						{{if eq $line.GetExpandDirection 2}}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold"}}
 							</a>
 						{{end}}
@@ -29,7 +29,7 @@
 				{{if eq .GetType 4}}
 					<td class="chroma lines-code blob-hunk"><code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{else}}
-					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
+					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-{{if $line.RightIdx}}right{{else}}left{{end}}{{if (not $line.CanComment)}} invisible{{end}}" data-side="{{if $line.RightIdx}}right{{else}}left{{end}}" data-idx="{{if $line.RightIdx}}{{$line.RightIdx}}{{else}}{{$line.LeftIdx}}{{end}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{$section.GetComputedInlineDiffFor $line}}</code></td>
 				{{end}}
 			</tr>
 			{{if gt (len $line.Comments) 0}}

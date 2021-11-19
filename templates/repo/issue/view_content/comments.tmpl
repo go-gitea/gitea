@@ -28,17 +28,17 @@
 								{{ .OriginalAuthor }}
 							</span>
 							<span class="text grey">
-								{{$.i18n.Tr "repo.issues.commented_at" .Issue.HashTag $createdStr | Safe}} {{if $.Repository.OriginalURL}}
+								{{$.i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}} {{if $.Repository.OriginalURL}}
 							</span>
 							<span class="text migrate">
-								({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}
+								({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 							</span>
 						{{else}}
 							<span class="text grey">
 								<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 									{{.Poster.GetDisplayName}}
 								</a>
-								{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdStr | Safe}}
+								{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 							</span>
 						{{end}}
 					</div>
@@ -124,18 +124,18 @@
 			</a>
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL $.Issue.PullRequest.MergedCommitID}}
+				{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 				{{if eq $.Issue.PullRequest.Status 3}}
-					{{$.i18n.Tr "repo.issues.manually_pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+					{{$.i18n.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 				{{else}}
-					{{$.i18n.Tr "repo.issues.pull_merged_at" $link (ShortSha $.Issue.PullRequest.MergedCommitID) $.BaseTarget $createdStr | Str2html}}
+					{{$.i18n.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 				{{end}}
 			</span>
 		</div>
 	{{else if eq .Type 3 5 6}}
 		{{ $refFrom:= "" }}
 		{{if ne .RefRepoID .Issue.RepoID}}
-			{{ $refFrom = $.i18n.Tr "repo.issues.ref_from" .RefRepo.FullName }}
+			{{ $refFrom = $.i18n.Tr "repo.issues.ref_from" (.RefRepo.FullName|Escape) }}
 		{{end}}
 		{{ $refTr := "repo.issues.ref_issue_from" }}
 		{{if .Issue.IsPull}}
@@ -154,7 +154,7 @@
 			{{if eq .RefAction 3}}<del>{{end}}
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-				{{$.i18n.Tr $refTr .EventTag $createdStr .RefCommentHTMLURL $refFrom | Safe}}
+				{{$.i18n.Tr $refTr (.EventTag|Escape) $createdStr (.RefCommentHTMLURL|Escape) $refFrom | Safe}}
 			</span>
 			{{if eq .RefAction 3}}</del>{{end}}
 
@@ -414,7 +414,7 @@
 							{{ .OriginalAuthor }}
 						</span>
 						<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-						<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+						<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 					{{else}}
 						<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 					{{end}}
@@ -444,7 +444,7 @@
 									{{ .OriginalAuthor }}
 								</span>
 								<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-								<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+								<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 							{{else}}
 								<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 							{{end}}
@@ -542,11 +542,11 @@
 																		{{ .OriginalAuthor }}
 																	</span>
 																	<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-																	<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" $.Repository.OriginalURL $.Repository.GetOriginalURLHostname | Safe }}){{end}}</span>
+																	<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 																{{else}}
 																	<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 																{{end}}
-																{{$.i18n.Tr "repo.issues.commented_at" .HashTag $createdSubStr | Safe}}
+																{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
 															</span>
 														</div>
 														<div class="comment-header-right actions df ac">
@@ -712,7 +712,7 @@
 			<span class="text grey">
 				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 				{{ if .IsForcePush }}
-					{{$.i18n.Tr "repo.issues.force_push_codes" $.Issue.PullRequest.HeadBranch (ShortSha .OldCommit) ($.Issue.Repo.CommitLink .OldCommit)  (ShortSha .NewCommit) ($.Issue.Repo.CommitLink .NewCommit) $createdStr | Safe}}
+					{{$.i18n.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
 				{{else}}
 					{{$.i18n.Tr (TrN $.i18n.Lang (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n") (len .Commits) $createdStr | Safe}}
 				{{end}}
@@ -780,6 +780,23 @@
 					</div>
 				</div>
 			{{end}}
+		</div>
+	{{else if eq .Type 33}}
+		<div class="timeline-item event" id="{{.HashTag}}">
+			<span class="badge">{{svg "octicon-git-branch"}}</span>
+			<a href="{{.Poster.HomeLink}}">
+				{{avatar .Poster}}
+			</a>
+			<span class="text grey">
+				<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+				{{if and .OldRef .NewRef}}
+					{{$.i18n.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+				{{else if .OldRef}}
+					{{$.i18n.Tr "repo.issues.remove_ref_at" (.OldRef|Escape) $createdStr | Safe}}
+				{{else}}
+					{{$.i18n.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr | Safe}}
+				{{end}}
+			</span>
 		</div>
 	{{end}}
 {{end}}

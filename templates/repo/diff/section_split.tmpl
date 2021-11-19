@@ -7,17 +7,17 @@
 				{{if eq .GetType 4}}
 					<td class="lines-num lines-num-old">
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-down"}}
 							</a>
 						{{end}}
 						{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold-up"}}
 							</a>
 						{{end}}
 						{{if eq $line.GetExpandDirection 2}}
-							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{$.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
+							<a role="button" class="blob-excerpt" data-url="{{$.root.RepoLink}}/blob_excerpt/{{PathEscape $.root.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=" data-anchor="diff-{{Sha1 $file.Name}}K{{$line.SectionInfo.RightIdx}}">
 								{{svg "octicon-fold"}}
 							</a>
 						{{end}}
@@ -27,17 +27,17 @@
 					{{$match := index $section.Lines $line.Match}}
 					<td class="lines-num lines-num-old del-code" data-line-num="{{$line.LeftIdx}}"><span rel="diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}"></span></td>
 					<td class="lines-type-marker lines-type-marker-old del-code"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
-					<td class="lines-code lines-code-old halfwidth del-code">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+					<td class="lines-code lines-code-old halfwidth del-code">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
 					<td class="lines-num lines-num-new add-code" data-line-num="{{if $match.RightIdx}}{{$match.RightIdx}}{{end}}"><span rel="{{if $match.RightIdx}}diff-{{Sha1 $file.Name}}R{{$match.RightIdx}}{{end}}"></span></td>
 					<td class="lines-type-marker lines-type-marker-new add-code">{{if $match.RightIdx}}<span class="mono" data-type-marker="{{$match.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-new halfwidth add-code">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="right" data-idx="{{$match.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $match.RightIdx}}{{$section.GetComputedInlineDiffFor $match}}{{end}}</code></td>
+					<td class="lines-code lines-code-new halfwidth add-code">{{if and $.root.SignedUserID $.root.PageIsPullFiles}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $match.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$match.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $match.RightIdx}}{{$section.GetComputedInlineDiffFor $match}}{{end}}</code></td>
 				{{else}}
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $file.Name}}L{{$line.LeftIdx}}{{end}}"></span></td>
 					<td class="lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-old halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+					<td class="lines-code lines-code-old halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 2))}}<a class="ui primary button add-code-comment add-code-comment-left{{if (not $line.CanComment)}} invisible{{end}}" data-side="left" data-idx="{{$line.LeftIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.LeftIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $file.Name}}R{{$line.RightIdx}}{{end}}"></span></td>
 					<td class="lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span>{{end}}</td>
-					<td class="lines-code lines-code-new halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-path="{{$file.Name}}" data-side="right" data-idx="{{$line.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
+					<td class="lines-code lines-code-new halfwidth">{{if and $.root.SignedUserID $.root.PageIsPullFiles (not (eq .GetType 3))}}<a class="ui primary button add-code-comment add-code-comment-right{{if (not $line.CanComment)}} invisible{{end}}" data-side="right" data-idx="{{$line.RightIdx}}">{{svg "octicon-plus"}}</a>{{end}}<code class="code-inner">{{if $line.RightIdx}}{{$section.GetComputedInlineDiffFor $line}}{{end}}</code></td>
 				{{end}}
 			</tr>
 			{{if and (eq .GetType 3) $hasmatch}}

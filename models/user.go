@@ -12,7 +12,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	_ "image/jpeg" // Needed for jpeg support
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -20,15 +20,17 @@ import (
 	"time"
 	"unicode/utf8"
 
+	_ "image/jpeg" // Needed for jpeg support
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -37,7 +39,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
-
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -160,9 +161,6 @@ type User struct {
 	// For organization
 	NumTeams                  int
 	NumMembers                int
-	Teams                     []*Team             `xorm:"-"`
-	Members                   UserList            `xorm:"-"`
-	MembersIsPublic           map[int64]bool      `xorm:"-"`
 	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
@@ -315,17 +313,17 @@ func (u *User) DashboardLink() string {
 
 // HomeLink returns the user or organization home page link.
 func (u *User) HomeLink() string {
-	return setting.AppSubURL + "/" + u.Name
+	return setting.AppSubURL + "/" + url.PathEscape(u.Name)
 }
 
 // HTMLURL returns the user or organization's full link.
 func (u *User) HTMLURL() string {
-	return setting.AppURL + u.Name
+	return setting.AppURL + url.PathEscape(u.Name)
 }
 
 // OrganisationLink returns the organization sub page link.
 func (u *User) OrganisationLink() string {
-	return setting.AppSubURL + "/org/" + u.Name
+	return setting.AppSubURL + "/org/" + url.PathEscape(u.Name)
 }
 
 // GenerateEmailActivateCode generates an activate code based on user information and given e-mail.
@@ -358,7 +356,7 @@ func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
 
 // IsFollowing returns true if user is following followID.
 func (u *User) IsFollowing(followID int64) bool {
-	return IsFollowing(u.ID, followID)
+	return user_model.IsFollowing(u.ID, followID)
 }
 
 // GetFollowing returns range of user's following.
@@ -468,7 +466,7 @@ func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
 		}
 
 		// If they follow - they see each over
-		follower := IsFollowing(u.ID, viewer.ID)
+		follower := user_model.IsFollowing(u.ID, viewer.ID)
 		if follower {
 			return true
 		}
@@ -515,20 +513,6 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 	return isOwner
 }
 
-// HasMemberWithUserID returns true if user with userID is part of the u organisation.
-func (u *User) HasMemberWithUserID(userID int64) bool {
-	return u.hasMemberWithUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-func (u *User) hasMemberWithUserID(e db.Engine, userID int64) bool {
-	isMember, err := isOrganizationMember(e, u.ID, userID)
-	if err != nil {
-		log.Error("IsOrganizationMember: %v", err)
-		return false
-	}
-	return isMember
-}
-
 // IsPublicMember returns true if user public his/her membership in given organization.
 func (u *User) IsPublicMember(orgID int64) bool {
 	isMember, err := IsPublicMembership(orgID, u.ID)
@@ -539,15 +523,16 @@ func (u *User) IsPublicMember(orgID int64) bool {
 	return isMember
 }
 
-func (u *User) getOrganizationCount(e db.Engine) (int64, error) {
-	return e.
+// GetOrganizationCount returns count of membership of organization of the user.
+func GetOrganizationCount(ctx context.Context, u *User) (int64, error) {
+	return db.GetEngine(ctx).
 		Where("uid=?", u.ID).
 		Count(new(OrgUser))
 }
 
 // GetOrganizationCount returns count of membership of organization of user.
 func (u *User) GetOrganizationCount() (int64, error) {
-	return u.getOrganizationCount(db.GetEngine(db.DefaultContext))
+	return GetOrganizationCount(db.DefaultContext, u)
 }
 
 // GetRepositories returns repositories that user owns, including private repositories.
@@ -1146,25 +1131,9 @@ func deleteBeans(e db.Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-func deleteUser(e db.Engine, u *User) error {
-	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation.
-
-	// Check ownership of repository.
-	count, err := getRepositoryCount(e, u)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %v", err)
-	} else if count > 0 {
-		return ErrUserOwnRepos{UID: u.ID}
-	}
-
-	// Check membership of organization.
-	count, err = u.getOrganizationCount(e)
-	if err != nil {
-		return fmt.Errorf("GetOrganizationCount: %v", err)
-	} else if count > 0 {
-		return ErrUserHasOrgs{UID: u.ID}
-	}
+// DeleteUser deletes models associated to an user.
+func DeleteUser(ctx context.Context, u *User) (err error) {
+	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
@@ -1211,12 +1180,12 @@ func deleteUser(e db.Engine, u *User) error {
 		&Access{UserID: u.ID},
 		&Watch{UserID: u.ID},
 		&Star{UID: u.ID},
-		&Follow{UserID: u.ID},
-		&Follow{FollowID: u.ID},
+		&user_model.Follow{UserID: u.ID},
+		&user_model.Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
 		&IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
-		&UserOpenID{UID: u.ID},
+		&user_model.UserOpenID{UID: u.ID},
 		&Reaction{UserID: u.ID},
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
@@ -1297,85 +1266,21 @@ func deleteUser(e db.Engine, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// Note: There are something just cannot be roll back,
-	//	so just keep error logs of those operations.
-	path := UserPath(u.Name)
-	if err = util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-		return err
-	}
-
-	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarRelativePath()
-		if err = storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-			return err
-		}
-	}
-
 	return nil
 }
 
-// DeleteUser completely and permanently deletes everything of a user,
-// but issues/comments/pulls will be kept and shown as someone has been deleted,
-// unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(u *User) (err error) {
-	if u.IsOrganization() {
-		return fmt.Errorf("%s is an organization not a user", u.Name)
-	}
+// GetInactiveUsers gets all inactive users
+func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
+	var cond builder.Cond = builder.Eq{"is_active": false}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = deleteUser(sess, u); err != nil {
-		// Note: don't wrapper error here.
-		return err
-	}
-
-	return sess.Commit()
-}
-
-// DeleteInactiveUsers deletes all inactive users and email addresses.
-func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err error) {
-	users := make([]*User, 0, 10)
 	if olderThan > 0 {
-		if err = db.GetEngine(db.DefaultContext).
-			Where("is_active = ? and created_unix < ?", false, time.Now().Add(-olderThan).Unix()).
-			Find(&users); err != nil {
-			return fmt.Errorf("get all inactive users: %v", err)
-		}
-	} else {
-		if err = db.GetEngine(db.DefaultContext).
-			Where("is_active = ?", false).
-			Find(&users); err != nil {
-			return fmt.Errorf("get all inactive users: %v", err)
-		}
-	}
-	// FIXME: should only update authorized_keys file once after all deletions.
-	for _, u := range users {
-		select {
-		case <-ctx.Done():
-			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
-		default:
-		}
-		if err = DeleteUser(u); err != nil {
-			// Ignore users that were set inactive by admin.
-			if IsErrUserOwnRepos(err) || IsErrUserHasOrgs(err) {
-				continue
-			}
-			return err
-		}
+		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-olderThan).Unix()})
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).
-		Where("is_activated = ?", false).
-		Delete(new(user_model.EmailAddress))
-	return err
+	users := make([]*User, 0, 10)
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Find(&users)
 }
 
 // UserPath returns the path absolute path of user repositories.
@@ -1796,4 +1701,43 @@ func IterateUser(f func(user *User) error) error {
 			}
 		}
 	}
+}
+
+// GetUserByOpenID returns the user object by given OpenID if exists.
+func GetUserByOpenID(uri string) (*User, error) {
+	if len(uri) == 0 {
+		return nil, ErrUserNotExist{0, uri, 0}
+	}
+
+	uri, err := openid.Normalize(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Trace("Normalized OpenID URI: " + uri)
+
+	// Otherwise, check in openid table
+	oid := &user_model.UserOpenID{}
+	has, err := db.GetEngine(db.DefaultContext).Where("uri=?", uri).Get(oid)
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return GetUserByID(oid.UID)
+	}
+
+	return nil, ErrUserNotExist{0, uri, 0}
+}
+
+// GetAdminUser returns the first administrator
+func GetAdminUser() (*User, error) {
+	var admin User
+	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{}
+	}
+
+	return &admin, nil
 }

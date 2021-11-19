@@ -12,7 +12,7 @@ import (
 	"html"
 	"io"
 	"net/http"
-	"path"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -38,7 +38,7 @@ const (
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
+func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
 	ctx.Data["BaseCommit"] = base
 	ctx.Data["HeadCommit"] = head
 
@@ -54,22 +54,28 @@ func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit,
 		return blob
 	}
 
-	setPathsCompareContext(ctx, base, head, headTarget)
+	setPathsCompareContext(ctx, base, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
 
-// setPathsCompareContext sets context data for source and raw paths
-func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
-	sourcePath := setting.AppSubURL + "/%s/src/commit/%s"
-	rawPath := setting.AppSubURL + "/%s/raw/commit/%s"
+// SourceCommitURL creates a relative URL for a commit in the given repository
+func SourceCommitURL(owner, name string, commit *git.Commit) string {
+	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/src/commit/" + url.PathEscape(commit.ID.String())
+}
 
-	ctx.Data["SourcePath"] = fmt.Sprintf(sourcePath, headTarget, head.ID)
-	ctx.Data["RawPath"] = fmt.Sprintf(rawPath, headTarget, head.ID)
+// RawCommitURL creates a relative URL for the raw commit in the given repository
+func RawCommitURL(owner, name string, commit *git.Commit) string {
+	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/raw/commit/" + url.PathEscape(commit.ID.String())
+}
+
+// setPathsCompareContext sets context data for source and raw paths
+func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
+	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
+	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
 	if base != nil {
-		baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-		ctx.Data["BeforeSourcePath"] = fmt.Sprintf(sourcePath, baseTarget, base.ID)
-		ctx.Data["BeforeRawPath"] = fmt.Sprintf(rawPath, baseTarget, base.ID)
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, head)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, head)
 	}
 }
 
@@ -427,7 +433,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
+				branches, tags, err := getBranchesAndTagsForRepo(rootRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
 					return nil
@@ -452,7 +458,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
+				branches, tags, err := getBranchesAndTagsForRepo(ownForkRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
 					return nil
@@ -619,13 +625,12 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	headTarget := path.Join(ci.HeadUser.Name, repo.Name)
-	setCompareContext(ctx, baseCommit, headCommit, headTarget)
+	setCompareContext(ctx, baseCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
 }
 
-func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (branches, tags []string, err error) {
+func getBranchesAndTagsForRepo(repo *models.Repository) (branches, tags []string, err error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, nil, err

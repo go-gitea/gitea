@@ -131,7 +131,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// Show OpenID URIs
-	openIDs, err := models.GetUserOpenIDs(ctxUser.ID)
+	openIDs, err := user_model.GetUserOpenIDs(ctxUser.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
@@ -355,15 +355,15 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "follow":
-		err = models.FollowUser(ctx.User.ID, u.ID)
+		err = user_model.FollowUser(ctx.User.ID, u.ID)
 	case "unfollow":
-		err = models.UnfollowUser(ctx.User.ID, u.ID)
+		err = user_model.UnfollowUser(ctx.User.ID, u.ID)
 	}
 
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 		return
 	}
-
+	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), u.HomeLink())
 }

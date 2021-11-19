@@ -167,9 +167,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -332,20 +332,16 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export function updateIssuesMeta(url, action, issueIds, elementId) {
-  return new Promise((resolve, reject) => {
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrfToken,
-        action,
-        issue_ids: issueIds,
-        id: elementId,
-      },
-      success: resolve,
-      error: reject,
-    });
+export async function updateIssuesMeta(url, action, issueIds, elementId) {
+  return $.ajax({
+    type: 'POST',
+    url,
+    data: {
+      _csrf: csrfToken,
+      action,
+      issue_ids: issueIds,
+      id: elementId,
+    },
   });
 }
 
@@ -491,7 +487,7 @@ export function initRepoPullRequestReview() {
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
-    const path = $(this).data('path');
+    const path = $(this).closest('[data-path]').data('path');
     const tr = $(this).closest('tr');
     const lineType = tr.data('line-type');
 

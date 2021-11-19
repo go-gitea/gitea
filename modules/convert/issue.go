@@ -6,6 +6,7 @@ package convert
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -191,7 +192,7 @@ func ToLabel(label *models.Label, repo *models.Repository, org *models.User) *ap
 		}
 	} else { // BelongsToOrg
 		if org != nil {
-			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, org.Name, label.ID)
+			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, url.PathEscape(org.Name), label.ID)
 		} else {
 			log.Error("ToLabel did not get org to calculate url for label with id '%d'", label.ID)
 		}

@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -302,9 +303,9 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	}
 
 	// add OpenID for the user
-	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
-	if err = models.AddUserOpenID(userOID); err != nil {
-		if models.IsErrOpenIDAlreadyUsed(err) {
+	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
+	if err = user_model.AddUserOpenID(userOID); err != nil {
+		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
 		}
@@ -430,9 +431,9 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	// add OpenID for the user
-	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
-	if err = models.AddUserOpenID(userOID); err != nil {
-		if models.IsErrOpenIDAlreadyUsed(err) {
+	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
+	if err = user_model.AddUserOpenID(userOID); err != nil {
+		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return
 		}
