@@ -38,13 +38,6 @@ func TestAPIDownloadArchive(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 266, len(bs))
 
-	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master.bundle", user2.Name, repo.Name))
-	link.RawQuery = url.Values{"token": {token}}.Encode()
-	resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-	bs, err = io.ReadAll(resp.Body)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 382, len(bs))
-
 	link, _ = url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/archive/master", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
 	MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusBadRequest)
