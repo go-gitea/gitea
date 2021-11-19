@@ -206,7 +206,7 @@ steps:
 
   - name: build
     pull: always
-    image: golang:1.17
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
       - ./build/test-env-check.sh
