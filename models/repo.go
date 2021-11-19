@@ -1803,8 +1803,8 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(ctx context.Context, u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), u.ID)
+func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), ownerID)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.

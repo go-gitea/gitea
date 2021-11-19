@@ -35,7 +35,7 @@ func DeleteUser(u *models.User) error {
 	//	cannot perform delete operation.
 
 	// Check ownership of repository.
-	count, err := models.GetRepositoryCount(ctx, u)
+	count, err := models.GetRepositoryCount(ctx, u.ID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {

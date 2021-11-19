@@ -193,6 +193,11 @@ func (org *Organization) DisplayName() string {
 	return org.AsUser().DisplayName()
 }
 
+// CustomAvatarRelativePath returns user custom avatar relative path.
+func (org *Organization) CustomAvatarRelativePath() string {
+	return org.Avatar
+}
+
 // CreateOrganization creates record of a new organization.
 func CreateOrganization(org *Organization, owner *User) (err error) {
 	if !owner.CanCreateOrganization() {
@@ -314,7 +319,11 @@ func CountOrganizations() int64 {
 }
 
 // DeleteOrganization deletes models associated to an organization.
-func DeleteOrganization(ctx context.Context, org *User) error {
+func DeleteOrganization(ctx context.Context, org *Organization) error {
+	if org.Type != UserTypeOrganization {
+		return fmt.Errorf("%s is a user not an organization", org.Name)
+	}
+
 	e := db.GetEngine(ctx)
 
 	if err := deleteBeans(e,
