@@ -115,7 +115,9 @@ func (p *Project) NumClosedIssues() int {
 func (p *Project) NumOpenIssues() int {
 	c, err := x.Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		Cols("issue_id").
+		Count()
 	if err != nil {
 		return 0
 	}
