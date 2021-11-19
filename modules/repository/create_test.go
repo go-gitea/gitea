@@ -36,7 +36,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
-	org := &models.User{
+	org := &models.Organization{
 		Name:       "All_repo",
 		IsActive:   true,
 		Type:       models.UserTypeOrganization,
@@ -52,7 +52,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIds := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := CreateRepository(user, org, models.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIds = append(repoIds, r.ID)
@@ -114,8 +114,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	org.Teams = nil // Reset teams to allow their reloading.
-	r, err := CreateRepository(user, org, models.CreateRepoOptions{Name: "repo-last"})
+	r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIds = append(repoIds, r.ID)

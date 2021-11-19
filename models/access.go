@@ -254,11 +254,12 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	if err = repo.Owner.loadTeams(e); err != nil {
+	teams, err := OrgFromUser(repo.Owner).loadTeams(e)
+	if err != nil {
 		return err
 	}
 
-	for _, t := range repo.Owner.Teams {
+	for _, t := range teams {
 		if t.ID == ignTeamID {
 			continue
 		}
