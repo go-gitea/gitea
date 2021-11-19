@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -79,7 +80,7 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return models.IterateAttachment(func(attach *models.Attachment) error {
+	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})

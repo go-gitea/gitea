@@ -5,13 +5,12 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 // Stopwatch represents a stopwatch for time tracking.
@@ -86,18 +85,19 @@ func hasUserStopwatch(e db.Engine, userID int64) (exists bool, sw *Stopwatch, er
 
 // CreateOrStopIssueStopwatch will create or remove a stopwatch and will log it into issue's timeline.
 func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := createOrStopIssueStopwatch(sess, user, issue); err != nil {
+	defer committer.Close()
+	if err := createOrStopIssueStopwatch(ctx, user, issue); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error {
+func createOrStopIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
+	e := db.GetEngine(ctx)
 	sw, exists, err := getStopwatch(e, user.ID, issue.ID)
 	if err != nil {
 		return err
@@ -122,7 +122,7 @@ func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error
 			return err
 		}
 
-		if _, err := createComment(e, &CreateCommentOptions{
+		if _, err := createComment(ctx, &CreateCommentOptions{
 			Doer:    user,
 			Issue:   issue,
 			Repo:    issue.Repo,
@@ -146,7 +146,7 @@ func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error
 			if err != nil {
 				return err
 			}
-			if err := createOrStopIssueStopwatch(e, user, issue); err != nil {
+			if err := createOrStopIssueStopwatch(ctx, user, issue); err != nil {
 				return err
 			}
 		}
@@ -157,11 +157,11 @@ func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error
 			IssueID: issue.ID,
 		}
 
-		if _, err := e.Insert(sw); err != nil {
+		if err := db.Insert(ctx, sw); err != nil {
 			return err
 		}
 
-		if _, err := createComment(e, &CreateCommentOptions{
+		if _, err := createComment(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,
@@ -175,18 +175,19 @@ func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
 func CancelStopwatch(user *User, issue *Issue) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := cancelStopwatch(sess, user, issue); err != nil {
+	defer committer.Close()
+	if err := cancelStopwatch(ctx, user, issue); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func cancelStopwatch(e *xorm.Session, user *User, issue *Issue) error {
+func cancelStopwatch(ctx context.Context, user *User, issue *Issue) error {
+	e := db.GetEngine(ctx)
 	sw, exists, err := getStopwatch(e, user.ID, issue.ID)
 	if err != nil {
 		return err
@@ -201,7 +202,7 @@ func cancelStopwatch(e *xorm.Session, user *User, issue *Issue) error {
 			return err
 		}
 
-		if _, err := createComment(e, &CreateCommentOptions{
+		if _, err := createComment(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,
