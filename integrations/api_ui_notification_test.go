@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -19,9 +20,9 @@ import (
 func TestNotification(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	thread5 := db.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.NoError(t, thread5.LoadAttributes())
 
 	token := getUserToken(t, user2.Name)

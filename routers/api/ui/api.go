@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -44,9 +46,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					if redirectUserID, err := models.LookupUserRedirect(userName); err == nil {
+					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
 						context.RedirectToUser(ctx.Context, userName, redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
+					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
@@ -198,10 +200,10 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					redirectUserID, err := models.LookupUserRedirect(ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
 					if err == nil {
 						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
+					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
@@ -228,22 +230,22 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
-		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+	if !ctx.Repo.CanRead(unit.TypeIssues) &&
+		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.User,
-					models.UnitTypeIssues,
-					models.UnitTypePullRequests,
+					unit.TypeIssues,
+					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Anonymous user cannot read %-v and %-v in Repo %-v\n"+
 					"Anonymous user in Repo has Permissions: %-+v",
-					models.UnitTypeIssues,
-					models.UnitTypePullRequests,
+					unit.TypeIssues,
+					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			}
