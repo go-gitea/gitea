@@ -71,7 +71,7 @@ func TestMetas(t *testing.T) {
 func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err1 := GetRepositoryCount(db.DefaultContext, &User{ID: int64(10)})
+	count, err1 := GetRepositoryCount(db.DefaultContext, 10)
 	privateCount, err2 := GetPrivateRepositoryCount(&User{ID: int64(10)})
 	publicCount, err3 := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err1)

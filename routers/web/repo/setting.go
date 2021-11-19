@@ -588,7 +588,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if newOwner.Type == models.UserTypeOrganization {
-			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
+			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
@@ -877,7 +877,7 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := ctx.Repo.Owner.GetTeam(name)
+	team, err := models.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
 	if err != nil {
 		if models.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))

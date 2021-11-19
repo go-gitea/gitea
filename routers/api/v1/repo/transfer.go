@@ -64,7 +64,7 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if newOwner.Type == models.UserTypeOrganization {
-		if !ctx.User.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
+		if !ctx.User.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
@@ -78,7 +78,7 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
-		org := convert.ToOrganization(newOwner)
+		org := convert.ToOrganization(models.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
 			team, err := models.GetTeamByID(tID)
 			if err != nil {

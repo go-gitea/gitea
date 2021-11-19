@@ -53,7 +53,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User,
 	repoPath := models.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := u.GetOwnerTeam()
+		t, err := models.OrgFromUser(u).GetOwnerTeam()
 		if err != nil {
 			return nil, err
 		}

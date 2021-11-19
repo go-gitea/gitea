@@ -86,7 +86,7 @@ func Migrate(ctx *context.APIContext) {
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := repoOwner.IsOwnedBy(ctx.User.ID)
+			isOwner, err := models.OrgFromUser(repoOwner).IsOwnedBy(ctx.User.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
