@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
-	//"code.gitea.io/gitea/modules/log"
 	package_module "code.gitea.io/gitea/modules/packages"
 	rubygems_module "code.gitea.io/gitea/modules/packages/rubygems"
 	package_router "code.gitea.io/gitea/routers/api/v1/packages"

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	packages_models "code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	maven_module "code.gitea.io/gitea/modules/packages/maven"
 )
 
@@ -23,13 +23,13 @@ type MetadataResponse struct {
 	Version    []string `xml:"versioning>versions>version"`
 }
 
-func createMetadataResponse(pds []*packages_models.PackageDescriptor) *MetadataResponse {
+func createMetadataResponse(pds []*packages_model.PackageDescriptor) *MetadataResponse {
 	sort.Slice(pds, func(i, j int) bool {
 		// Maven and Gradle order packages by their creation timestamp and not by their version string
 		return pds[i].Version.CreatedUnix < pds[j].Version.CreatedUnix
 	})
 
-	var release *packages_models.PackageDescriptor
+	var release *packages_model.PackageDescriptor
 
 	versions := make([]string, 0, len(pds))
 	for _, pd := range pds {

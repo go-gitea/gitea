@@ -113,6 +113,12 @@ func SetRepositoryLink(packageID, repoID int64) error {
 	return err
 }
 
+// UnlinkRepositoryFromAllPackages unlinks every package from the repository
+func UnlinkRepositoryFromAllPackages(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Cols("repo_id").Update(&Package{})
+	return err
+}
+
 // GetPackageByID gets a package by id
 func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 	p := &Package{}

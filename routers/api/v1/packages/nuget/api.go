@@ -10,7 +10,7 @@ import (
 	"sort"
 	"time"
 
-	packages_models "code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 
 	"github.com/hashicorp/go-version"
@@ -95,7 +95,7 @@ type PackageDependency struct {
 	Range string `json:"range"`
 }
 
-func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_models.PackageDescriptor) *RegistrationIndexResponse {
+func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_model.PackageDescriptor) *RegistrationIndexResponse {
 	sort.Slice(pds, func(i, j int) bool {
 		return pds[i].SemVer.LessThan(pds[j].SemVer)
 	})
@@ -121,7 +121,7 @@ func createRegistrationIndexResponse(l *linkBuilder, pds []*packages_models.Pack
 	}
 }
 
-func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_models.PackageDescriptor) *RegistrationIndexPageItem {
+func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_model.PackageDescriptor) *RegistrationIndexPageItem {
 	metadata := pd.Metadata.(*nuget_module.Metadata)
 
 	return &RegistrationIndexPageItem{
@@ -141,7 +141,7 @@ func createRegistrationIndexPageItem(l *linkBuilder, pd *packages_models.Package
 	}
 }
 
-func createDependencyGroups(pd *packages_models.PackageDescriptor) []*PackageDependencyGroup {
+func createDependencyGroups(pd *packages_model.PackageDescriptor) []*PackageDependencyGroup {
 	metadata := pd.Metadata.(*nuget_module.Metadata)
 
 	dependencyGroups := make([]*PackageDependencyGroup, 0, len(metadata.Dependencies))
@@ -172,7 +172,7 @@ type RegistrationLeafResponse struct {
 	RegistrationIndexURL string    `json:"registration"`
 }
 
-func createRegistrationLeafResponse(l *linkBuilder, pd *packages_models.PackageDescriptor) *RegistrationLeafResponse {
+func createRegistrationLeafResponse(l *linkBuilder, pd *packages_model.PackageDescriptor) *RegistrationLeafResponse {
 	return &RegistrationLeafResponse{
 		Type:                 []string{"Package", "http://schema.nuget.org/catalog#Permalink"},
 		Listed:               true,
@@ -188,7 +188,7 @@ type PackageVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
 
-func createPackageVersionsResponse(pds []*packages_models.PackageDescriptor) *PackageVersionsResponse {
+func createPackageVersionsResponse(pds []*packages_model.PackageDescriptor) *PackageVersionsResponse {
 	versions := make([]string, 0, len(pds))
 	for _, pd := range pds {
 		versions = append(versions, normalizeVersion(pd.SemVer))
@@ -223,12 +223,12 @@ type SearchResultVersion struct {
 	Downloads           int64  `json:"downloads"`
 }
 
-func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages_models.PackageDescriptor) *SearchResultResponse {
+func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages_model.PackageDescriptor) *SearchResultResponse {
 	data := make([]*SearchResult, 0, len(pds))
 
 	if len(pds) > 0 {
 		groupID := pds[0].Package.Name
-		group := make([]*packages_models.PackageDescriptor, 0, 10)
+		group := make([]*packages_model.PackageDescriptor, 0, 10)
 
 		for i := 0; i < len(pds); i++ {
 			if groupID != pds[i].Package.Name {
@@ -247,7 +247,7 @@ func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages
 	}
 }
 
-func createSearchResult(l *linkBuilder, pds []*packages_models.PackageDescriptor) *SearchResult {
+func createSearchResult(l *linkBuilder, pds []*packages_model.PackageDescriptor) *SearchResult {
 	latest := pds[0]
 	versions := make([]*SearchResultVersion, 0, len(pds))
 	for _, pd := range pds {

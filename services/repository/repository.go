@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -37,8 +39,15 @@ func DeleteRepository(doer *models.User, repo *models.Repository) error {
 	// If the repo itself has webhooks, we need to trigger them before deleting it...
 	notification.NotifyDeleteRepository(doer, repo)
 
-	err := models.DeleteRepository(doer, repo.OwnerID, repo.ID)
-	return err
+	if err := models.DeleteRepository(doer, repo.OwnerID, repo.ID); err != nil {
+		return err
+	}
+
+	if err := packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, repo.ID); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace

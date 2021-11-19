@@ -11,11 +11,11 @@ import (
 	"net/url"
 	"sort"
 
-	packages_models "code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 )
 
-func createPackageMetadataResponse(registryURL string, pds []*packages_models.PackageDescriptor) *npm_module.PackageMetadata {
+func createPackageMetadataResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageMetadata {
 	sort.Slice(pds, func(i, j int) bool {
 		return pds[i].SemVer.LessThan(pds[j].SemVer)
 	})
@@ -49,7 +49,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_models.Pa
 	}
 }
 
-func createPackageMetadataVersion(registryURL string, pd *packages_models.PackageDescriptor) *npm_module.PackageMetadataVersion {
+func createPackageMetadataVersion(registryURL string, pd *packages_model.PackageDescriptor) *npm_module.PackageMetadataVersion {
 	hashBytes, _ := hex.DecodeString(pd.Files[0].Blob.HashSHA512)
 
 	metadata := pd.Metadata.(*npm_module.Metadata)
