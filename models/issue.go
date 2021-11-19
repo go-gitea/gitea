@@ -802,6 +802,24 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 		return fmt.Errorf("updateIssueCols: %v", err)
 	}
 
+	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
+		return fmt.Errorf("loadRepo: %v", err)
+	}
+	oldRefFriendly := strings.TrimPrefix(oldRef, "refs/heads/")
+	newRefFriendly := strings.TrimPrefix(issue.Ref, "refs/heads/")
+
+	opts := &CreateCommentOptions{
+		Type:   CommentTypeChangeIssueRef,
+		Doer:   doer,
+		Repo:   issue.Repo,
+		Issue:  issue,
+		OldRef: oldRefFriendly,
+		NewRef: newRefFriendly,
+	}
+	if _, err = createComment(db.GetEngine(ctx), opts); err != nil {
+		return fmt.Errorf("createComment: %v", err)
+	}
+
 	return committer.Commit()
 }
 

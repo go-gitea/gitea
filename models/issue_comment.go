@@ -103,7 +103,9 @@ const (
 	CommentTypeProjectBoard
 	// 32 Dismiss Review
 	CommentTypeDismissReview
-	// 33 Change confidential
+	// 33 Change issue ref
+	CommentTypeChangeIssueRef
+	// 34 Change confidential
 	CommenTypeConfidentialChanged
 )
 
