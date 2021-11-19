@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -36,14 +37,14 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64              `xorm:"-"`
-	Note             string             `xorm:"TEXT"`
-	RenderedNote     string             `xorm:"-"`
-	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*Attachment      `xorm:"-"`
-	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	NumCommitsBehind int64                    `xorm:"-"`
+	Note             string                   `xorm:"TEXT"`
+	RenderedNote     string                   `xorm:"-"`
+	IsDraft          bool                     `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool                     `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool                     `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*repo_model.Attachment `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp       `xorm:"INDEX"`
 }
 
 func init() {
@@ -126,7 +127,7 @@ func UpdateRelease(ctx context.Context, rel *Release) error {
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := getAttachmentsByUUIDs(db.GetEngine(ctx), attachmentUUIDs)
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
@@ -295,9 +296,9 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 
 	// Sort
 	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
-	var attachments []*Attachment
+	var attachments []*repo_model.Attachment
 	for index, element := range rels {
-		element.Attachments = []*Attachment{}
+		element.Attachments = []*repo_model.Attachment{}
 		sortedRels.ID[index] = element.ID
 		sortedRels.Rel[index] = element
 	}
@@ -307,7 +308,7 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 	err = e.
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments, repo_model.Attachment{})
 	if err != nil {
 		return err
 	}

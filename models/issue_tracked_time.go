@@ -154,12 +154,12 @@ func GetTrackedSeconds(opts FindTrackedTimesOptions) (int64, error) {
 
 // AddTime will add the given time (in seconds) to the issue
 func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	t, err := addTime(sess, user, issue, amount, created)
 	if err != nil {
@@ -170,7 +170,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		return nil, err
 	}
 
-	if _, err := createComment(sess, &CreateCommentOptions{
+	if _, err := createComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -181,7 +181,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 		return nil, err
 	}
 
-	return t, sess.Commit()
+	return t, committer.Commit()
 }
 
 func addTime(e db.Engine, user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
@@ -230,12 +230,12 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*User]string, error) {
 
 // DeleteIssueUserTimes deletes times for issue
 func DeleteIssueUserTimes(issue *Issue, user *User) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	opts := FindTrackedTimesOptions{
 		IssueID: issue.ID,
@@ -253,7 +253,7 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 	if err := issue.loadRepo(sess); err != nil {
 		return err
 	}
-	if _, err := createComment(sess, &CreateCommentOptions{
+	if _, err := createComment(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
@@ -263,17 +263,17 @@ func DeleteIssueUserTimes(issue *Issue, user *User) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteTime delete a specific Time
 func DeleteTime(t *TrackedTime) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if err := t.loadAttributes(sess); err != nil {
 		return err
@@ -283,7 +283,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := createComment(sess, &CreateCommentOptions{
+	if _, err := createComment(ctx, &CreateCommentOptions{
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,
@@ -293,7 +293,7 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func deleteTimes(e db.Engine, opts FindTrackedTimesOptions) (removedTime int64, err error) {

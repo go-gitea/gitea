@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -17,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 const ownerTeamName = "Owners"
@@ -873,7 +873,8 @@ func AddTeamMember(team *Team, userID int64) error {
 	return sess.Commit()
 }
 
-func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
+func removeTeamMember(ctx context.Context, team *Team, userID int64) error {
+	e := db.GetEngine(ctx)
 	isMember, err := isTeamMember(e, team.OrgID, team.ID, userID)
 	if err != nil || !isMember {
 		return err
@@ -927,7 +928,7 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 	}); err != nil {
 		return err
 	} else if count == 0 {
-		return removeOrgUser(e, team.OrgID, userID)
+		return removeOrgUser(ctx, team.OrgID, userID)
 	}
 
 	return nil
@@ -935,15 +936,15 @@ func removeTeamMember(e *xorm.Session, team *Team, userID int64) error {
 
 // RemoveTeamMember removes member from given team of given organization.
 func RemoveTeamMember(team *Team, userID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := removeTeamMember(sess, team, userID); err != nil {
+	defer committer.Close()
+	if err := removeTeamMember(ctx, team, userID); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // IsUserInTeams returns if a user in some teams
