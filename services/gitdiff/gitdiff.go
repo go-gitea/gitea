@@ -694,8 +694,10 @@ func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) er
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.
-func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*Diff, error) {
+func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipTo string) (*Diff, error) {
 	var curFile *DiffFile
+
+	skipping := skipTo != ""
 
 	diff := &Diff{Files: make([]*DiffFile, 0)}
 
@@ -739,6 +741,20 @@ parsingLoop:
 		}
 
 		curFile = createDiffFile(diff, line)
+		if skipping {
+			if curFile.Name != skipTo {
+				line, err = skipToNextDiffHead(input)
+				if err != nil {
+					if err == io.EOF {
+						return diff, nil
+					}
+					return diff, err
+				}
+				continue
+			}
+			skipping = false
+		}
+
 		diff.Files = append(diff.Files, curFile)
 
 		// 2. It is followed by one or more extended header lines:
@@ -953,6 +969,36 @@ parsingLoop:
 
 	diff.NumFiles = len(diff.Files)
 	return diff, nil
+}
+
+func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
+	// need to skip until the next cmdDiffHead
+	isFragment, wasFragment := false, false
+	var lineBytes []byte
+	for {
+		lineBytes, isFragment, err = input.ReadLine()
+		if err != nil {
+			return
+		}
+		if wasFragment {
+			wasFragment = isFragment
+			continue
+		}
+		if bytes.HasPrefix(lineBytes, []byte(cmdDiffHead)) {
+			break
+		}
+		wasFragment = isFragment
+	}
+	line = string(lineBytes)
+	if isFragment {
+		var tail string
+		tail, err = input.ReadString('\n')
+		if err != nil {
+			return
+		}
+		line += tail
+	}
+	return
 }
 
 func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
@@ -1279,8 +1325,11 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 		diffArgs = append(diffArgs, afterCommitID)
 		beforeCommitID = actualBeforeCommitID
 	}
+
 	if skipTo != "" {
-		diffArgs = append(diffArgs, "--skip-to="+skipTo)
+		if git.CheckGitVersionAtLeast("2.31") == nil {
+			diffArgs = append(diffArgs, "--skip-to="+skipTo)
+		}
 	}
 	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 
@@ -1299,7 +1348,7 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
-	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
+	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout, skipTo)
 	if err != nil {
 		return nil, fmt.Errorf("ParsePatch: %v", err)
 	}
@@ -1418,7 +1467,7 @@ func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skip
 // CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(c *models.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
 		log.Error("Unable to parse patch: %v", err)
 		return nil, err
