@@ -197,6 +197,7 @@ func CreateOrganization(org, owner *User) (err error) {
 		NumMembers:              1,
 		IncludesAllRepositories: true,
 		CanCreateOrgRepo:        true,
+		CanSeePrivateIssues:     true,
 	}
 	if err = db.Insert(ctx, t); err != nil {
 		return fmt.Errorf("insert owner team: %v", err)

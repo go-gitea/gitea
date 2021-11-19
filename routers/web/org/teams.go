@@ -237,6 +237,7 @@ func NewTeamPost(ctx *context.Context) {
 		Authorize:               models.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
+		CanSeePrivateIssues:     form.CanSeePrivateIssues,
 	}
 
 	if t.Authorize < models.AccessModeOwner {
@@ -353,7 +354,9 @@ func EditTeamPost(ctx *context.Context) {
 			return
 		}
 	}
+
 	t.CanCreateOrgRepo = form.CanCreateOrgRepo
+	t.CanSeePrivateIssues = form.CanSeePrivateIssues
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplTeamNew)

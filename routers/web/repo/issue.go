@@ -169,7 +169,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	canSeePrivateIssues := ctx.Repo.CanSeePrivateIssues()
+	canSeePrivateIssues := ctx.Repo.CanReadPrivateIssues()
 
 	var userID int64
 	if ctx.IsSigned {
@@ -1116,7 +1116,7 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check if the issue is private, if so check if the user has enough
 	// permission to view the issue.
-	if issue.IsPrivate && !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
 		var userID int64
 		if ctx.IsSigned {
 			userID = ctx.User.ID
@@ -1689,7 +1689,7 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
 		(!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) &&
-			(issue.IsPrivate && !(ctx.Repo.CanSeePrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))))) {
+			(issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))))) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }

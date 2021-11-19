@@ -14,9 +14,10 @@ import (
 
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
-	AccessMode AccessMode
-	Units      []*RepoUnit
-	UnitsMode  map[unit.Type]AccessMode
+	AccessMode      AccessMode
+	Units           []*RepoUnit
+	UnitsMode       map[unit.Type]AccessMode
+	SeePrivateIssue bool
 }
 
 // IsOwner returns true if current user is the owner of repository.
@@ -98,9 +99,9 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 	return p.CanWrite(unit.TypeIssues)
 }
 
-// CanSeePrivateIssues returns true if the user is allowed to see private issues on the repo.
-func (p *Permission) CanSeePrivateIssues() bool {
-	return p.CanWrite(unit.TypeIssues)
+// CanReadPrivateIssues returns true if the user is allowed to see private issues on the repo.
+func (p *Permission) CanReadPrivateIssues() bool {
+	return p.SeePrivateIssue || p.IsAdmin()
 }
 
 // ColorFormat writes a colored string for these Permissions
@@ -242,6 +243,10 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 			perm.AccessMode = AccessModeOwner
 			perm.UnitsMode = nil
 			return
+		}
+		// Check if the team has acces to private issues.
+		if team.CanSeePrivateIssues {
+			perm.SeePrivateIssue = true
 		}
 	}
 

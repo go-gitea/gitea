@@ -74,6 +74,13 @@
 									<span class="help">{{.i18n.Tr "org.teams.admin_access_helper"}}</span>
 								</div>
 							</div>
+							<div class="field">
+								<div class="ui checkbox">can_see_private_issues
+									<label for="can_see_private_issues">{{.i18n.Tr "org.teams.can_see_private_issues"}}</label>
+									<input id="can_see_private_issues" name="can_see_private_issues" type="checkbox" {{if .Team.CanSeePrivateIssues}}checked{{end}}>
+									<span class="help">{{.i18n.Tr "org.teams.can_see_private_issues_helper"}}</span>
+								</div>
+							</div>
 						</div>
 						<div class="ui divider"></div>
 

@@ -546,7 +546,7 @@ func GetIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !ctx.Repo.CanSeePrivateIssues() {
+	if issue.IsPrivate && !ctx.Repo.CanReadPrivateIssues() {
 		ctx.NotFound()
 	}
 

@@ -37,6 +37,7 @@ type Team struct {
 	Units                   []*TeamUnit `xorm:"-"`
 	IncludesAllRepositories bool        `xorm:"NOT NULL DEFAULT false"`
 	CanCreateOrgRepo        bool        `xorm:"NOT NULL DEFAULT false"`
+	CanSeePrivateIssues     bool        `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {
@@ -643,7 +644,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 	}
 
 	if _, err = sess.ID(t.ID).Cols("name", "lower_name", "description",
-		"can_create_org_repo", "authorize", "includes_all_repositories").Update(t); err != nil {
+		"can_create_org_repo", "authorize", "includes_all_repositories", "can_see_private_issues").Update(t); err != nil {
 		return fmt.Errorf("update: %v", err)
 	}
 

@@ -112,7 +112,7 @@
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}}
 						{{if .Repository.NumOpenIssues}}
-							{{if .Permission.CanSeePrivateIssues}}
+							{{if .Permission.CanReadPrivateIssues}}
 								<span class="ui blue small label">{{CountFmt (Add .Repository.NumOpenIssues .Repository.NumOpenPrivateIssues)}}</span>
 							{{else}}
 								<span class="ui blue small label">{{CountFmt .Repository.NumOpenIssues}}</span>
