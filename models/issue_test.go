@@ -5,7 +5,9 @@
 package models
 
 import (
+	"fmt"
 	"sort"
+	"sync"
 	"testing"
 	"time"
 
@@ -416,4 +418,44 @@ func TestIssue_ResolveMentions(t *testing.T) {
 	testSuccess("user17", "big_test_private_4", "user20", []string{"user5"}, []int64{})
 	// Private repo, whole team
 	testSuccess("user17", "big_test_private_4", "user15", []string{"user17/owners"}, []int64{18})
+}
+
+func TestCorrectIssueStats(t *testing.T) {
+	assert.NoError(t, PrepareTestDatabase())
+
+	// Because the condition is to have chunked database look-ups,
+	// We have to more issues than `maxQueryParameters`, we will insert.
+	// maxQueryParameters + 10 issues into the testDatabase.
+	// Each new issues will have a constant description "Bugs are nasty"
+	// Which will be used later on.
+
+	issueAmount := maxQueryParameters + 10
+
+	var wg sync.WaitGroup
+	for i := 0; i < issueAmount; i++ {
+		wg.Add(1)
+		go func(i int) {
+			testInsertIssue(t, fmt.Sprintf("Issue %d", i+1), "Bugs are nasty", 0)
+			wg.Done()
+		}(i)
+	}
+	wg.Wait()
+
+	// Now we will get all issueID's that match the "Bugs are nasty" query.
+	total, ids, err := SearchIssueIDsByKeyword("Bugs are nasty", []int64{1}, issueAmount, 0)
+
+	// Just to be sure.
+	assert.NoError(t, err)
+	assert.EqualValues(t, issueAmount, total)
+
+	// Now we will call the GetIssueStats with these IDs and if working,
+	// get the correct stats back.
+	issueStats, err := GetIssueStats(&IssueStatsOptions{
+		RepoID:   1,
+		IssueIDs: ids,
+	})
+
+	// Now check the values.
+	assert.NoError(t, err)
+	assert.EqualValues(t, issueStats.OpenCount, issueAmount)
 }

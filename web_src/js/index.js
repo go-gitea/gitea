@@ -362,7 +362,7 @@ function initImagePaste(target) {
           const name = img.name.substr(0, img.name.lastIndexOf('.'));
           insertAtCursor(textarea, `![${name}]()`);
           const data = await uploadFile(img, uploadUrl);
-          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](${AppSubUrl}/attachments/${data.uuid})`);
+          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           dropzoneFiles.appendChild(input[0]);
         }
@@ -378,7 +378,7 @@ function initSimpleMDEImagePaste(simplemde, dropzone, files) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));
       const data = await uploadFile(img, uploadUrl);
       const pos = simplemde.codemirror.getCursor();
-      simplemde.codemirror.replaceRange(`![${name}](${AppSubUrl}/attachments/${data.uuid})`, pos);
+      simplemde.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
       files.append(input);
     }
@@ -408,18 +408,17 @@ function initCommentForm() {
     $(`.${selector}`).dropdown('setting', 'onHide', () => {
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if (hasUpdateAction) {
-        const promises = [];
-        Object.keys(items).forEach((elementId) => {
-          const item = items[elementId];
-          const promise = updateIssuesMeta(
-            item['update-url'],
-            item.action,
-            item['issue-id'],
-            elementId,
-          );
-          promises.push(promise);
-        });
-        Promise.all(promises).then(reload);
+        (async function() {
+          for (const [elementId, item] of Object.entries(items)) {
+            await updateIssuesMeta(
+              item['update-url'],
+              item.action,
+              item['issue-id'],
+              elementId,
+            );
+          }
+          window.location.reload();
+        })();
       }
     });
 

@@ -152,7 +152,7 @@ func ListUnadoptedRepositories(query string, opts *models.ListOptions) ([]string
 	count := 0
 
 	// We're going to iterate by pagesize.
-	root := filepath.Join(setting.RepoRootPath)
+	root := filepath.Clean(setting.RepoRootPath)
 	if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

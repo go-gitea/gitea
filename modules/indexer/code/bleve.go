@@ -174,6 +174,10 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 		indexDir: indexDir,
 	}
 	created, err := indexer.init()
+	if err != nil {
+		indexer.Close()
+		return nil, false, err
+	}
 	return indexer, created, err
 }
 

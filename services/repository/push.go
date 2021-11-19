@@ -36,7 +36,7 @@ func handle(data ...queue.Data) {
 }
 
 func initPushQueue() error {
-	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{}).(queue.Queue)
+	pushQueue = queue.CreateQueue("push_update", handle, []*repo_module.PushUpdateOptions{})
 	if pushQueue == nil {
 		return fmt.Errorf("Unable to create push_update Queue")
 	}

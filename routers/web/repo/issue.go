@@ -1019,7 +1019,7 @@ func commentTag(repo *models.Repository, poster *models.User, issue *models.Issu
 		return models.CommentTagNone, err
 	}
 
-	if perm.CanWrite(models.UnitTypeCode) {
+	if perm.CanWriteIssuesOrPulls(issue.IsPull) {
 		return models.CommentTagWriter, nil
 	}
 
