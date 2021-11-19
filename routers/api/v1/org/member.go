@@ -6,6 +6,7 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -18,15 +19,21 @@ import (
 
 // listMembers list an organization's members
 func listMembers(ctx *context.APIContext, publicOnly bool) {
-	var members []*models.User
-
-	members, _, err := models.FindOrgMembers(&models.FindOrgMembersOpts{
+	opts := &models.FindOrgMembersOpts{
 		OrgID:       ctx.Org.Organization.ID,
 		PublicOnly:  publicOnly,
 		ListOptions: utils.GetListOptions(ctx),
-	})
+	}
+
+	count, err := models.CountOrgMembers(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUsersByIDs", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	members, _, err := models.FindOrgMembers(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -35,6 +42,7 @@ func listMembers(ctx *context.APIContext, publicOnly bool) {
 		apiMembers[i] = convert.ToUser(member, ctx.User)
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiMembers)
 }
 
@@ -152,7 +160,7 @@ func IsMember(ctx *context.APIContext) {
 		}
 	}
 
-	redirectURL := setting.AppURL + "api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
+	redirectURL := setting.AppSubURL + "/api/v1/orgs/" + url.PathEscape(ctx.Org.Organization.Name) + "/public_members/" + url.PathEscape(userToCheck.Name)
 	ctx.Redirect(redirectURL, 302)
 }
 

@@ -7,9 +7,11 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -29,13 +31,13 @@ const (
 
 // MustEnableProjects check if projects are enabled in settings
 func MustEnableProjects(ctx *context.Context) {
-	if models.UnitTypeProjects.UnitGlobalDisabled() {
+	if unit.TypeProjects.UnitGlobalDisabled() {
 		ctx.NotFound("EnableKanbanBoard", nil)
 		return
 	}
 
 	if ctx.Repo.Repository != nil {
-		if !ctx.Repo.CanRead(models.UnitTypeProjects) {
+		if !ctx.Repo.CanRead(unit.TypeProjects) {
 			ctx.NotFound("MustEnableProjects", nil)
 			return
 		}
@@ -46,11 +48,11 @@ func MustEnableProjects(ctx *context.Context) {
 func Projects(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.project_board")
 
-	sortType := ctx.QueryTrim("sort")
+	sortType := ctx.FormTrim("sort")
 
-	isShowClosed := strings.ToLower(ctx.QueryTrim("state")) == "closed"
+	isShowClosed := strings.ToLower(ctx.FormTrim("state")) == "closed"
 	repo := ctx.Repo.Repository
-	page := ctx.QueryInt("page")
+	page := ctx.FormInt("page")
 	if page <= 1 {
 		page = 1
 	}
@@ -82,6 +84,7 @@ func Projects(ctx *context.Context) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, projects[i].Description)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -106,7 +109,7 @@ func Projects(ctx *context.Context) {
 	pager.AddParam(ctx, "state", "State")
 	ctx.Data["Page"] = pager
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
@@ -118,7 +121,7 @@ func Projects(ctx *context.Context) {
 func NewProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.HTML(http.StatusOK, tplProjectsNew)
 }
 
@@ -128,7 +131,7 @@ func NewProjectPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 		ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
 		ctx.HTML(http.StatusOK, tplProjectsNew)
 		return
@@ -171,7 +174,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + ctx.Params(":action"))
+	ctx.Redirect(ctx.Repo.RepoLink + "/projects?state=" + url.QueryEscape(ctx.Params(":action")))
 }
 
 // DeleteProject delete a project
@@ -204,9 +207,8 @@ func DeleteProject(ctx *context.Context) {
 // EditProject allows a project to be edited
 func EditProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
-	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
@@ -232,9 +234,8 @@ func EditProject(ctx *context.Context) {
 func EditProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateProjectForm)
 	ctx.Data["Title"] = ctx.Tr("repo.projects.edit")
-	ctx.Data["PageIsProjects"] = true
 	ctx.Data["PageIsEditProjects"] = true
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplProjectsNew)
@@ -324,17 +325,16 @@ func ViewProject(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, project.Description)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
 		return
 	}
 
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["Boards"] = boards
-	ctx.Data["PageIsProjects"] = true
-	ctx.Data["RequiresDraggable"] = true
 
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
@@ -346,7 +346,7 @@ func UpdateIssueProject(ctx *context.Context) {
 		return
 	}
 
-	projectID := ctx.QueryInt64("id")
+	projectID := ctx.FormInt64("id")
 	for _, issue := range issues {
 		oldProjectID := issue.ProjectID()
 		if oldProjectID == projectID {
@@ -373,7 +373,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -422,7 +422,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 // AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -442,6 +442,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 	if err := models.NewProjectBoard(&models.ProjectBoard{
 		ProjectID: project.ID,
 		Title:     form.Title,
+		Color:     form.Color,
 		CreatorID: ctx.User.ID,
 	}); err != nil {
 		ctx.ServerError("NewProjectBoard", err)
@@ -461,7 +462,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -511,6 +512,8 @@ func EditProjectBoard(ctx *context.Context) {
 		board.Title = form.Title
 	}
 
+	board.Color = form.Color
+
 	if form.Sorting != 0 {
 		board.Sorting = form.Sorting
 	}
@@ -553,7 +556,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, models.UnitTypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -625,7 +628,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 func CreateProject(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.projects.new")
 	ctx.Data["ProjectTypes"] = models.GetProjectsConfig()
-	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
 	ctx.HTML(http.StatusOK, tplGenericProjectsNew)
 }
@@ -641,7 +644,7 @@ func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
 	ctx.Data["ContextUser"] = user
 
 	if ctx.HasError() {
-		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(models.UnitTypeProjects)
+		ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 		ctx.HTML(http.StatusOK, tplGenericProjectsNew)
 		return
 	}

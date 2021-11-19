@@ -5,6 +5,7 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -58,7 +59,7 @@ func getUserHeatmapData(user *User, team *Team, doer *User) ([]*UserHeatmapData,
 		return nil, err
 	}
 
-	return hdata, x.
+	return hdata, db.GetEngine(db.DefaultContext).
 		Select(groupBy+" AS timestamp, count(user_id) as contributions").
 		Table("action").
 		Where(cond).

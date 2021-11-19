@@ -6,11 +6,17 @@ package git
 
 import (
 	"bytes"
+	"context"
+	"os"
+	"path/filepath"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ReadTreeToIndex reads a treeish to the index
-func (repo *Repository) ReadTreeToIndex(treeish string) error {
+func (repo *Repository) ReadTreeToIndex(treeish string, indexFilename ...string) error {
 	if len(treeish) != 40 {
 		res, err := NewCommand("rev-parse", "--verify", treeish).RunInDir(repo.Path)
 		if err != nil {
@@ -24,15 +30,41 @@ func (repo *Repository) ReadTreeToIndex(treeish string) error {
 	if err != nil {
 		return err
 	}
-	return repo.readTreeToIndex(id)
+	return repo.readTreeToIndex(id, indexFilename...)
 }
 
-func (repo *Repository) readTreeToIndex(id SHA1) error {
-	_, err := NewCommand("read-tree", id.String()).RunInDir(repo.Path)
+func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error {
+	var env []string
+	if len(indexFilename) > 0 {
+		env = append(os.Environ(), "GIT_INDEX_FILE="+indexFilename[0])
+	}
+	_, err := NewCommand("read-tree", id.String()).RunInDirWithEnv(repo.Path, env)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// ReadTreeToTemporaryIndex reads a treeish to a temporary index file
+func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpDir string, cancel context.CancelFunc, err error) {
+	tmpDir, err = os.MkdirTemp("", "index")
+	if err != nil {
+		return
+	}
+
+	filename = filepath.Join(tmpDir, ".tmp-index")
+	cancel = func() {
+		err := util.RemoveAll(tmpDir)
+		if err != nil {
+			log.Error("failed to remove tmp index file: %v", err)
+		}
+	}
+	err = repo.ReadTreeToIndex(treeish, filename)
+	if err != nil {
+		defer cancel()
+		return "", "", func() {}, err
+	}
+	return
 }
 
 // EmptyIndex empties the index

@@ -5,6 +5,8 @@
 package convert
 
 import (
+	"net/url"
+
 	"code.gitea.io/gitea/models"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -31,10 +33,12 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL()
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
+				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
 			}
 		}
 	case models.NotificationSourcePullRequest:
@@ -42,10 +46,12 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		if n.Issue != nil {
 			result.Subject.Title = n.Issue.Title
 			result.Subject.URL = n.Issue.APIURL()
+			result.Subject.HTMLURL = n.Issue.HTMLURL()
 			result.Subject.State = n.Issue.State()
 			comment, err := n.Issue.GetLastComment()
 			if err == nil && comment != nil {
 				result.Subject.LatestCommentURL = comment.APIURL()
+				result.Subject.LatestCommentHTMLURL = comment.HTMLURL()
 			}
 
 			pr, _ := n.Issue.GetPullRequest()
@@ -54,16 +60,20 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 			}
 		}
 	case models.NotificationSourceCommit:
+		url := n.Repository.HTMLURL() + "/commit/" + url.PathEscape(n.CommitID)
 		result.Subject = &api.NotificationSubject{
-			Type:  api.NotifySubjectCommit,
-			Title: n.CommitID,
-			URL:   n.Repository.HTMLURL() + "/commit/" + n.CommitID,
+			Type:    api.NotifySubjectCommit,
+			Title:   n.CommitID,
+			URL:     url,
+			HTMLURL: url,
 		}
 	case models.NotificationSourceRepository:
 		result.Subject = &api.NotificationSubject{
 			Type:  api.NotifySubjectRepository,
 			Title: n.Repository.FullName(),
-			URL:   n.Repository.Link(),
+			// FIXME: this is a relative URL, rather useless and inconsistent, but keeping for backwards compat
+			URL:     n.Repository.Link(),
+			HTMLURL: n.Repository.HTMLURL(),
 		}
 	}
 

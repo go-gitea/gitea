@@ -83,6 +83,10 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 			"/owner/repo/commit/123456789012345678921234567893124567894",
 			false,
 		},
+		{
+			"/owner/repo/releases/download/tag/repo.tar.gz",
+			true,
+		},
 	}
 	lfsTests := []string{
 		"/owner/repo/info/lfs/",
@@ -102,11 +106,11 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 		t.Run(tt.path, func(t *testing.T) {
 			req, _ := http.NewRequest("POST", "http://localhost"+tt.path, nil)
 			setting.LFS.StartServer = false
-			if got := isGitRawOrLFSPath(req); got != tt.want {
+			if got := isGitRawReleaseOrLFSPath(req); got != tt.want {
 				t.Errorf("isGitOrLFSPath() = %v, want %v", got, tt.want)
 			}
 			setting.LFS.StartServer = true
-			if got := isGitRawOrLFSPath(req); got != tt.want {
+			if got := isGitRawReleaseOrLFSPath(req); got != tt.want {
 				t.Errorf("isGitOrLFSPath() = %v, want %v", got, tt.want)
 			}
 		})
@@ -115,11 +119,11 @@ func Test_isGitRawOrLFSPath(t *testing.T) {
 		t.Run(tt, func(t *testing.T) {
 			req, _ := http.NewRequest("POST", tt, nil)
 			setting.LFS.StartServer = false
-			if got := isGitRawOrLFSPath(req); got != setting.LFS.StartServer {
-				t.Errorf("isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, gitRawPathRe.MatchString(tt))
+			if got := isGitRawReleaseOrLFSPath(req); got != setting.LFS.StartServer {
+				t.Errorf("isGitOrLFSPath(%q) = %v, want %v, %v", tt, got, setting.LFS.StartServer, gitRawReleasePathRe.MatchString(tt))
 			}
 			setting.LFS.StartServer = true
-			if got := isGitRawOrLFSPath(req); got != setting.LFS.StartServer {
+			if got := isGitRawReleaseOrLFSPath(req); got != setting.LFS.StartServer {
 				t.Errorf("isGitOrLFSPath(%q) = %v, want %v", tt, got, setting.LFS.StartServer)
 			}
 		})

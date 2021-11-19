@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -44,7 +46,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 
 			commit, err := gitRepo.GetCommit(rel.Target)
 			if err != nil {
-				return false, fmt.Errorf("GetCommit: %v", err)
+				return false, fmt.Errorf("createTag::GetCommit[%v]: %v", rel.Target, err)
 			}
 
 			// Trim '--' prefix to prevent command line argument vulnerability.
@@ -122,7 +124,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 		return err
 	}
 
-	if err = models.AddReleaseAttachments(models.DefaultDBContext(), rel.ID, attachmentUUIDs); err != nil {
+	if err = models.AddReleaseAttachments(db.DefaultContext, rel.ID, attachmentUUIDs); err != nil {
 		return err
 	}
 
@@ -188,11 +190,11 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	}
 	rel.LowerTagName = strings.ToLower(rel.TagName)
 
-	ctx, commiter, err := models.TxDBContext()
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	defer commiter.Close()
+	defer committer.Close()
 
 	if err = models.UpdateRelease(ctx, rel); err != nil {
 		return err
@@ -205,7 +207,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 	var deletedUUIDsMap = make(map[string]bool)
 	if len(delAttachmentUUIDs) > 0 {
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, delAttachmentUUIDs)
 		if err != nil {
 			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", delAttachmentUUIDs, err)
 		}
@@ -216,7 +218,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 			deletedUUIDsMap[attach.UUID] = true
 		}
 
-		if _, err := models.DeleteAttachments(ctx, attachments, false); err != nil {
+		if _, err := repo_model.DeleteAttachments(ctx, attachments, false); err != nil {
 			return fmt.Errorf("DeleteAttachments [uuids: %v]: %v", delAttachmentUUIDs, err)
 		}
 	}
@@ -227,7 +229,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 			updateAttachmentsList = append(updateAttachmentsList, k)
 		}
 		// Check attachments
-		attachments, err := models.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, updateAttachmentsList)
 		if err != nil {
 			return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", updateAttachmentsList, err)
 		}
@@ -239,7 +241,7 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 
 		for uuid, newName := range editAttachments {
 			if !deletedUUIDsMap[uuid] {
-				if err = models.UpdateAttachmentByUUID(ctx, &models.Attachment{
+				if err = repo_model.UpdateAttachmentByUUID(ctx, &repo_model.Attachment{
 					UUID: uuid,
 					Name: newName,
 				}, "name"); err != nil {
@@ -249,12 +251,12 @@ func UpdateRelease(doer *models.User, gitRepo *git.Repository, rel *models.Relea
 		}
 	}
 
-	if err = commiter.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return
 	}
 
 	for _, uuid := range delAttachmentUUIDs {
-		if err := storage.Attachments.Delete(models.AttachmentRelativePath(uuid)); err != nil {
+		if err := storage.Attachments.Delete(repo_model.AttachmentRelativePath(uuid)); err != nil {
 			// Even delete files failed, but the attachments has been removed from database, so we
 			// should not return error but only record the error on logs.
 			// users have to delete this attachments manually or we should have a
@@ -310,7 +312,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 	} else {
 		rel.IsTag = true
 
-		if err = models.UpdateRelease(models.DefaultDBContext(), rel); err != nil {
+		if err = models.UpdateRelease(db.DefaultContext, rel); err != nil {
 			return fmt.Errorf("Update: %v", err)
 		}
 	}
@@ -320,7 +322,7 @@ func DeleteReleaseByID(id int64, doer *models.User, delTag bool) error {
 		return fmt.Errorf("LoadAttributes: %v", err)
 	}
 
-	if err := models.DeleteAttachmentsByRelease(rel.ID); err != nil {
+	if err := repo_model.DeleteAttachmentsByRelease(rel.ID); err != nil {
 		return fmt.Errorf("DeleteAttachments: %v", err)
 	}
 

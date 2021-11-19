@@ -176,7 +176,7 @@ func CreateBranch(ctx *context.APIContext) {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	err := repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
@@ -257,7 +257,7 @@ func ListBranches(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	skip, _ := listOptions.GetStartEnd()
-	branches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
+	branches, totalNumOfBranches, err := repo_service.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
@@ -282,9 +282,8 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumOfBranches))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
 	ctx.JSON(http.StatusOK, &apiBranches)
 }
 
@@ -499,6 +498,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		DismissStaleApprovals:         form.DismissStaleApprovals,
 		RequireSignedCommits:          form.RequireSignedCommits,
 		ProtectedFilePatterns:         form.ProtectedFilePatterns,
+		UnprotectedFilePatterns:       form.UnprotectedFilePatterns,
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
@@ -642,6 +642,10 @@ func EditBranchProtection(ctx *context.APIContext) {
 
 	if form.ProtectedFilePatterns != nil {
 		protectBranch.ProtectedFilePatterns = *form.ProtectedFilePatterns
+	}
+
+	if form.UnprotectedFilePatterns != nil {
+		protectBranch.UnprotectedFilePatterns = *form.UnprotectedFilePatterns
 	}
 
 	if form.BlockOnOutdatedBranch != nil {

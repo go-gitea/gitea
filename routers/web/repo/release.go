@@ -11,14 +11,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
@@ -84,21 +86,29 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		ctx.Data["PageIsTagList"] = false
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags()
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: ctx.FormInt("limit"),
+	}
+	if listOptions.PageSize == 0 {
+		listOptions.PageSize = setting.Repository.Release.DefaultPagingNum
+	}
+	if listOptions.PageSize > setting.API.MaxResponseItems {
+		listOptions.PageSize = setting.API.MaxResponseItems
+	}
+
+	tags, err := ctx.Repo.GitRepo.GetTags(listOptions.GetStartEnd())
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
 	}
 	ctx.Data["Tags"] = tags
 
-	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
-		ListOptions: models.ListOptions{
-			Page:     ctx.QueryInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.QueryInt("limit")),
-		},
+		ListOptions:   listOptions,
 		IncludeDrafts: writeAccess && !isTagList,
 		IncludeTags:   isTagList,
 	}
@@ -146,6 +156,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     ctx.Repo.Repository.ComposeMetas(),
 			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:       ctx,
 		}, r.Note)
 		if err != nil {
 			ctx.ServerError("RenderString", err)
@@ -177,7 +188,7 @@ func SingleRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.releases")
 	ctx.Data["PageIsReleaseList"] = true
 
-	writeAccess := ctx.Repo.CanWrite(models.UnitTypeReleases)
+	writeAccess := ctx.Repo.CanWrite(unit.TypeReleases)
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	release, err := models.GetRelease(ctx.Repo.Repository.ID, ctx.Params("*"))
@@ -215,6 +226,7 @@ func SingleRelease(ctx *context.Context) {
 		URLPrefix: ctx.Repo.RepoLink,
 		Metas:     ctx.Repo.Repository.ComposeMetas(),
 		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:       ctx,
 	}, release.Note)
 	if err != nil {
 		ctx.ServerError("RenderString", err)
@@ -252,7 +264,7 @@ func NewRelease(ctx *context.Context) {
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
-	if tagName := ctx.Query("tag"); len(tagName) > 0 {
+	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
 		rel, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
 		if err != nil && !models.IsErrReleaseNotExist(err) {
 			ctx.ServerError("GetRelease", err)
@@ -339,7 +351,7 @@ func NewReleasePost(ctx *context.Context) {
 			}
 
 			ctx.Flash.Success(ctx.Tr("repo.tag.create_success", form.TagName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + form.TagName)
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + util.PathEscapeSegments(form.TagName))
 			return
 		}
 
@@ -507,7 +519,7 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx.QueryInt64("id"), ctx.User, isDelTag); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		if isDelTag {

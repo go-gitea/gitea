@@ -5,11 +5,12 @@
 package repository
 
 import (
-	"container/list"
 	"fmt"
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,6 +32,7 @@ type PushCommits struct {
 	Commits    []*PushCommit
 	HeadCommit *PushCommit
 	CompareURL string
+	Len        int
 
 	avatars    map[string]string
 	emailUsers map[string]*models.User
@@ -80,7 +82,7 @@ func (pc *PushCommits) toAPIPayloadCommit(repoPath, repoLink string, commit *Pus
 	return &api.PayloadCommit{
 		ID:      commit.Sha1,
 		Message: commit.Message,
-		URL:     fmt.Sprintf("%s/commit/%s", repoLink, commit.Sha1),
+		URL:     fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(commit.Sha1)),
 		Author: &api.PayloadUser{
 			Name:     commit.AuthorName,
 			Email:    commit.AuthorEmail,
@@ -139,14 +141,14 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		return avatar
 	}
 
-	size := models.DefaultAvatarPixelSize * models.AvatarRenderedSizeFactor
+	size := avatars.DefaultAvatarPixelSize * avatars.AvatarRenderedSizeFactor
 
 	u, ok := pc.emailUsers[email]
 	if !ok {
 		var err error
 		u, err = models.GetUserByEmail(email)
 		if err != nil {
-			pc.avatars[email] = models.SizedAvatarLink(email, size)
+			pc.avatars[email] = avatars.GenerateEmailAvatarFastLink(email, size)
 			if !models.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return ""
@@ -156,7 +158,7 @@ func (pc *PushCommits) AvatarLink(email string) string {
 		}
 	}
 	if u != nil {
-		pc.avatars[email] = u.RealSizedAvatarLink(size)
+		pc.avatars[email] = u.AvatarLinkWithSize(size)
 	}
 
 	return pc.avatars[email]
@@ -175,12 +177,18 @@ func CommitToPushCommit(commit *git.Commit) *PushCommit {
 	}
 }
 
-// ListToPushCommits transforms a list.List to PushCommits type.
-func ListToPushCommits(l *list.List) *PushCommits {
-	var commits []*PushCommit
-	for e := l.Front(); e != nil; e = e.Next() {
-		commit := CommitToPushCommit(e.Value.(*git.Commit))
-		commits = append(commits, commit)
+// GitToPushCommits transforms a list of git.Commits to PushCommits type.
+func GitToPushCommits(gitCommits []*git.Commit) *PushCommits {
+	commits := make([]*PushCommit, 0, len(gitCommits))
+	for _, commit := range gitCommits {
+		commits = append(commits, CommitToPushCommit(commit))
 	}
-	return &PushCommits{commits, nil, "", make(map[string]string), make(map[string]*models.User)}
+	return &PushCommits{
+		Commits:    commits,
+		HeadCommit: nil,
+		CompareURL: "",
+		Len:        len(commits),
+		avatars:    make(map[string]string),
+		emailUsers: make(map[string]*models.User),
+	}
 }

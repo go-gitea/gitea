@@ -8,6 +8,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/services/gitdiff"
 
@@ -15,7 +17,7 @@ import (
 )
 
 func TestGetDiffPreview(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -83,6 +85,7 @@ func TestGetDiffPreview(t *testing.T) {
 							{
 								LeftIdx:  3,
 								RightIdx: 0,
+								Match:    4,
 								Type:     3,
 								Content:  "-Description for repo1",
 								Comments: nil,
@@ -90,6 +93,7 @@ func TestGetDiffPreview(t *testing.T) {
 							{
 								LeftIdx:  0,
 								RightIdx: 3,
+								Match:    3,
 								Type:     2,
 								Content:  "+Description for repo1",
 								Comments: nil,
@@ -97,6 +101,7 @@ func TestGetDiffPreview(t *testing.T) {
 							{
 								LeftIdx:  0,
 								RightIdx: 4,
+								Match:    -1,
 								Type:     2,
 								Content:  "+this is a new line",
 								Comments: nil,
@@ -114,18 +119,26 @@ func TestGetDiffPreview(t *testing.T) {
 	t.Run("with given branch", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx.Repo.Repository, branch, treePath, content)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedDiff, diff)
+		expectedBs, err := json.Marshal(expectedDiff)
+		assert.NoError(t, err)
+		bs, err := json.Marshal(diff)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expectedBs, bs)
 	})
 
 	t.Run("empty branch, same results", func(t *testing.T) {
 		diff, err := GetDiffPreview(ctx.Repo.Repository, "", treePath, content)
 		assert.NoError(t, err)
-		assert.EqualValues(t, expectedDiff, diff)
+		expectedBs, err := json.Marshal(expectedDiff)
+		assert.NoError(t, err)
+		bs, err := json.Marshal(diff)
+		assert.NoError(t, err)
+		assert.EqualValues(t, expectedBs, bs)
 	})
 }
 
 func TestGetDiffPreviewErrors(t *testing.T) {
-	models.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)

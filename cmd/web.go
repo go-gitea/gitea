@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
 	"strings"
+
+	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -19,7 +20,6 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
-	context2 "github.com/gorilla/context"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -71,7 +71,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	var err = runHTTP("tcp", source, "HTTP Redirector", context2.ClearHandler(handler), setting.RedirectorUseProxyProtocol)
+	var err = runHTTP("tcp", source, "HTTP Redirector", handler, setting.RedirectorUseProxyProtocol)
 
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
@@ -86,6 +86,11 @@ func runWeb(ctx *cli.Context) error {
 		_ = log.DelLogger("console")
 		log.NewLogger(0, "console", "console", fmt.Sprintf(`{"level": "fatal", "colorize": %t, "stacktraceLevel": "none"}`, log.CanColorStdout))
 	}
+	defer func() {
+		if panicked := recover(); panicked != nil {
+			log.Fatal("PANIC: %v\n%s", panicked, string(log.Stack(2)))
+		}
+	}()
 
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
@@ -189,6 +194,10 @@ func listen(m http.Handler, handleRedirector bool) error {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
+	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.
+	// A user may fix the configuration mistake when he sees this log.
+	// And this is also very helpful to maintainers to provide help to users to resolve their configuration problems.
+	log.Info("AppURL(ROOT_URL): %s", setting.AppURL)
 
 	if setting.LFS.StartServer {
 		log.Info("LFS server enabled")
@@ -200,10 +209,10 @@ func listen(m http.Handler, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, "Web", context2.ClearHandler(m), setting.UseProxyProtocol)
+		err = runHTTP("tcp", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.HTTPS:
 		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, context2.ClearHandler(m))
+			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
 			break
 		}
 		if handleRedirector {
@@ -213,22 +222,22 @@ func listen(m http.Handler, handleRedirector bool) error {
 				NoHTTPRedirector()
 			}
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, context2.ClearHandler(m), setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, "FCGI Web", context2.ClearHandler(m), setting.UseProxyProtocol)
+		err = runFCGI("tcp", listenAddr, "FCGI Web", m, setting.UseProxyProtocol)
 	case setting.UnixSocket:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, "Web", context2.ClearHandler(m), setting.UseProxyProtocol)
+		err = runHTTP("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, "Web", context2.ClearHandler(m), setting.UseProxyProtocol)
+		err = runFCGI("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}

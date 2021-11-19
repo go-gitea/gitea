@@ -10,6 +10,7 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/openid"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -33,7 +35,7 @@ const (
 func SignInOpenID(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("sign_in")
 
-	if ctx.Query("openid.return_to") != "" {
+	if ctx.FormString("openid.return_to") != "" {
 		signInOpenIDVerify(ctx)
 		return
 	}
@@ -45,7 +47,7 @@ func SignInOpenID(ctx *context.Context) {
 		return
 	}
 
-	redirectTo := ctx.Query("redirect_to")
+	redirectTo := ctx.FormString("redirect_to")
 	if len(redirectTo) > 0 {
 		middleware.SetRedirectToCookie(ctx.Resp, redirectTo)
 	} else {
@@ -290,7 +292,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	ctx.Data["EnableOpenIDSignUp"] = setting.Service.EnableOpenIDSignUp
 	ctx.Data["OpenID"] = oid
 
-	u, err := models.UserSignIn(form.UserName, form.Password)
+	u, _, err := auth.UserSignIn(form.UserName, form.Password)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplConnectOID, &form)
@@ -301,9 +303,9 @@ func ConnectOpenIDPost(ctx *context.Context) {
 	}
 
 	// add OpenID for the user
-	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
-	if err = models.AddUserOpenID(userOID); err != nil {
-		if models.IsErrOpenIDAlreadyUsed(err) {
+	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
+	if err = user_model.AddUserOpenID(userOID); err != nil {
+		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
 		}
@@ -429,9 +431,9 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	}
 
 	// add OpenID for the user
-	userOID := &models.UserOpenID{UID: u.ID, URI: oid}
-	if err = models.AddUserOpenID(userOID); err != nil {
-		if models.IsErrOpenIDAlreadyUsed(err) {
+	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
+	if err = user_model.AddUserOpenID(userOID); err != nil {
+		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return
 		}

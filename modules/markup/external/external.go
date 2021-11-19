@@ -8,12 +8,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/process"
@@ -74,7 +74,7 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 
 	if p.IsInputFile {
 		// write to temp file
-		f, err := ioutil.TempFile("", "gitea_input")
+		f, err := os.CreateTemp("", "gitea_input")
 		if err != nil {
 			return fmt.Errorf("%s create temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
@@ -96,6 +96,15 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 			return fmt.Errorf("%s close temp file when rendering %s failed: %v", p.Name(), p.Command, err)
 		}
 		args = append(args, f.Name())
+	}
+
+	if ctx == nil || ctx.Ctx == nil {
+		if ctx == nil {
+			log.Warn("RenderContext not provided defaulting to empty ctx")
+			ctx = &markup.RenderContext{}
+		}
+		log.Warn("RenderContext did not provide context, defaulting to Shutdown context")
+		ctx.Ctx = graceful.GetManager().ShutdownContext()
 	}
 
 	processCtx, cancel := context.WithCancel(ctx.Ctx)

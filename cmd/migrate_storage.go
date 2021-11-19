@@ -10,7 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -78,7 +80,7 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return models.IterateAttachment(func(attach *models.Attachment) error {
+	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
@@ -106,7 +108,10 @@ func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
 }
 
 func runMigrateStorage(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
@@ -114,9 +119,10 @@ func runMigrateStorage(ctx *cli.Context) error {
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
+	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
-	if err := models.NewEngine(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}
@@ -184,7 +190,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
 	}
 
-	log.Warn("All files have been copied to the new placement but old files are still on the orignial placement.")
+	log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
 
 	return nil
 }

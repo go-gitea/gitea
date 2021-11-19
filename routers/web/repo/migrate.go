@@ -7,6 +7,7 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -14,13 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/migrations"
+	"code.gitea.io/gitea/services/task"
 )
 
 const (
@@ -34,29 +35,29 @@ func Migrate(ctx *context.Context) {
 		return
 	}
 
-	serviceType := structs.GitServiceType(ctx.QueryInt("service_type"))
+	serviceType := structs.GitServiceType(ctx.FormInt("service_type"))
 
 	setMigrationContextData(ctx, serviceType)
 
 	if serviceType == 0 {
-		ctx.Data["Org"] = ctx.Query("org")
-		ctx.Data["Mirror"] = ctx.Query("mirror")
+		ctx.Data["Org"] = ctx.FormString("org")
+		ctx.Data["Mirror"] = ctx.FormString("mirror")
 
 		ctx.HTML(http.StatusOK, tplMigrate)
 		return
 	}
 
 	ctx.Data["private"] = getRepoPrivate(ctx)
-	ctx.Data["mirror"] = ctx.Query("mirror") == "1"
-	ctx.Data["lfs"] = ctx.Query("lfs") == "1"
-	ctx.Data["wiki"] = ctx.Query("wiki") == "1"
-	ctx.Data["milestones"] = ctx.Query("milestones") == "1"
-	ctx.Data["labels"] = ctx.Query("labels") == "1"
-	ctx.Data["issues"] = ctx.Query("issues") == "1"
-	ctx.Data["pull_requests"] = ctx.Query("pull_requests") == "1"
-	ctx.Data["releases"] = ctx.Query("releases") == "1"
+	ctx.Data["mirror"] = ctx.FormString("mirror") == "1"
+	ctx.Data["lfs"] = ctx.FormString("lfs") == "1"
+	ctx.Data["wiki"] = ctx.FormString("wiki") == "1"
+	ctx.Data["milestones"] = ctx.FormString("milestones") == "1"
+	ctx.Data["labels"] = ctx.FormString("labels") == "1"
+	ctx.Data["issues"] = ctx.FormString("issues") == "1"
+	ctx.Data["pull_requests"] = ctx.FormString("pull_requests") == "1"
+	ctx.Data["releases"] = ctx.FormString("releases") == "1"
 
-	ctxUser := checkContextUser(ctx, ctx.QueryInt64("org"))
+	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
@@ -152,9 +153,12 @@ func MigratePost(ctx *context.Context) {
 		return
 	}
 
-	serviceType := structs.GitServiceType(form.Service)
+	if form.Mirror && setting.Mirror.DisableNewPull {
+		ctx.Error(http.StatusBadRequest, "MigratePost: the site administrator has disabled creation of new mirrors")
+		return
+	}
 
-	setMigrationContextData(ctx, serviceType)
+	setMigrationContextData(ctx, form.Service)
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -162,7 +166,7 @@ func MigratePost(ctx *context.Context) {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	tpl := base.TplName("repo/migrate/" + serviceType.Name())
+	tpl := base.TplName("repo/migrate/" + form.Service.Name())
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tpl)
@@ -198,12 +202,12 @@ func MigratePost(ctx *context.Context) {
 
 	var opts = migrations.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
-		GitServiceType: serviceType,
+		GitServiceType: form.Service,
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
 		Private:        form.Private || setting.Repository.ForcePrivate,
-		Mirror:         form.Mirror && !setting.Repository.DisableMirrors,
+		Mirror:         form.Mirror,
 		LFS:            form.LFS,
 		LFSEndpoint:    form.LFSEndpoint,
 		AuthUsername:   form.AuthUsername,
@@ -234,7 +238,7 @@ func MigratePost(ctx *context.Context) {
 
 	err = task.MigrateRepository(ctx.User, ctxUser, opts)
 	if err == nil {
-		ctx.Redirect(ctxUser.HomeLink() + "/" + opts.RepoName)
+		ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(opts.RepoName))
 		return
 	}
 
@@ -246,7 +250,7 @@ func setMigrationContextData(ctx *context.Context, serviceType structs.GitServic
 
 	ctx.Data["LFSActive"] = setting.LFS.StartServer
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
-	ctx.Data["DisableMirrors"] = setting.Repository.DisableMirrors
+	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	// Plain git should be first
 	ctx.Data["Services"] = append([]structs.GitServiceType{structs.PlainGitService}, structs.SupportedFullGitService...)

@@ -13,13 +13,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/caddyserver/certmagic"
-	context2 "github.com/gorilla/context"
 )
 
 func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler) error {
 
 	// If HTTP Challenge enabled, needs to be serving on port 80. For TLSALPN needs 443.
-	// Due to docker port mapping this can't be checked programatically
+	// Due to docker port mapping this can't be checked programmatically
 	// TODO: these are placeholders until we add options for each in settings with appropriate warning
 	enableHTTPChallenge := true
 	enableTLSALPNChallenge := true
@@ -54,6 +53,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 	}
 
 	tlsConfig := magic.TLSConfig()
+	tlsConfig.NextProtos = append(tlsConfig.NextProtos, "h2")
 
 	if enableHTTPChallenge {
 		go func() {
@@ -66,7 +66,7 @@ func runLetsEncrypt(listenAddr, domain, directory, email string, m http.Handler)
 		}()
 	}
 
-	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, context2.ClearHandler(m), setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
+	return runHTTPSWithTLSConfig("tcp", listenAddr, "Web", tlsConfig, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 }
 
 func runLetsEncryptFallbackHandler(w http.ResponseWriter, r *http.Request) {

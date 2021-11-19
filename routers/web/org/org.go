@@ -49,7 +49,7 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
-	org := &models.User{
+	org := &models.Organization{
 		Name:                      form.OrgName,
 		IsActive:                  true,
 		Type:                      models.UserTypeOrganization,
@@ -75,5 +75,5 @@ func CreatePost(ctx *context.Context) {
 	}
 	log.Trace("Organization created: %s", org.Name)
 
-	ctx.Redirect(org.DashboardLink())
+	ctx.Redirect(org.AsUser().DashboardLink())
 }

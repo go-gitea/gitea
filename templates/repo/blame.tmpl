@@ -10,12 +10,12 @@
 		</div>
 		<div class="file-header-right file-actions df ac">
 			<div class="ui buttons">
-				<a class="ui tiny button" href="{{EscapePound $.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
+				<a class="ui tiny button" href="{{$.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}
-					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
+					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				<a class="ui tiny button" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.normal_view"}}</a>
-				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.normal_view"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.file_history"}}</a>
 			</div>
 		</div>
 	</h4>
@@ -44,7 +44,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" class="poping up" data-content='{{$.i18n.Tr "repo.blame_prior"}}' data-variation="tiny inverted">
+									<a href="{{$row.PreviousShaURL}}" class="tooltip" data-content='{{$.i18n.Tr "repo.blame_prior"}}'>
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}

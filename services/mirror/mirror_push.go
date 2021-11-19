@@ -134,7 +134,7 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 			defer gitRepo.Close()
 
 			ep := lfs.DetermineEndpoint(remoteAddr.String(), "")
-			if err := pushAllLFSObjects(ctx, gitRepo, ep); err != nil {
+			if err := pushAllLFSObjects(ctx, gitRepo, ep, false); err != nil {
 				return util.NewURLSanitizedError(err, remoteAddr, true)
 			}
 		}
@@ -176,8 +176,8 @@ func runPushSync(ctx context.Context, m *models.PushMirror) error {
 	return nil
 }
 
-func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *url.URL) error {
-	client := lfs.NewClient(endpoint)
+func pushAllLFSObjects(ctx context.Context, gitRepo *git.Repository, endpoint *url.URL, skipTLSVerify bool) error {
+	client := lfs.NewClient(endpoint, skipTLSVerify)
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)

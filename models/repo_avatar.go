@@ -10,9 +10,11 @@ import (
 	"fmt"
 	"image/png"
 	"io"
+	"net/url"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,7 +27,7 @@ func (repo *Repository) CustomAvatarRelativePath() string {
 }
 
 // generateRandomAvatar generates a random avatar for repository.
-func (repo *Repository) generateRandomAvatar(e Engine) error {
+func (repo *Repository) generateRandomAvatar(e db.Engine) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
 	seed := idToString
@@ -56,14 +58,14 @@ func (repo *Repository) generateRandomAvatar(e Engine) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return x.
+	return db.GetEngine(db.DefaultContext).
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
 			func(idx int, bean interface{}) error {
 				repository := bean.(*Repository)
 				select {
 				case <-ctx.Done():
-					return ErrCancelledf("before random avatars removed for %s", repository.FullName())
+					return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
 				default:
 				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
@@ -76,10 +78,10 @@ func RemoveRandomAvatars(ctx context.Context) error {
 
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
-	return repo.relAvatarLink(x)
+	return repo.relAvatarLink(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) relAvatarLink(e Engine) string {
+func (repo *Repository) relAvatarLink(e db.Engine) string {
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarRelativePath()
 	if len(avatarPath) == 0 {
@@ -95,23 +97,22 @@ func (repo *Repository) relAvatarLink(e Engine) string {
 			return ""
 		}
 	}
-	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
+	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)
 }
 
 // AvatarLink returns a link to the repository's avatar.
 func (repo *Repository) AvatarLink() string {
-	return repo.avatarLink(x)
+	return repo.avatarLink(db.GetEngine(db.DefaultContext))
 }
 
 // avatarLink returns user avatar absolute link.
-func (repo *Repository) avatarLink(e Engine) string {
+func (repo *Repository) avatarLink(e db.Engine) string {
 	link := repo.relAvatarLink(e)
-	// link may be empty!
-	if len(link) > 0 {
-		if link[0] == '/' && link[1] != '/' {
-			return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-		}
+	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
+	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
+		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
 	}
+	// otherwise, return the link as it is
 	return link
 }
 
@@ -128,7 +129,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return nil
 	}
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
 		return err
@@ -171,7 +172,7 @@ func (repo *Repository) DeleteAvatar() error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err

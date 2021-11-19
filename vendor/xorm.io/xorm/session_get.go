@@ -6,12 +6,17 @@ package xorm
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strconv"
+	"time"
 
 	"xorm.io/xorm/caches"
+	"xorm.io/xorm/convert"
+	"xorm.io/xorm/core"
 	"xorm.io/xorm/internal/utils"
 	"xorm.io/xorm/schemas"
 )
@@ -30,6 +35,19 @@ func (session *Session) Get(bean interface{}) (bool, error) {
 	return session.get(bean)
 }
 
+func isPtrOfTime(v interface{}) bool {
+	if _, ok := v.(*time.Time); ok {
+		return true
+	}
+
+	el := reflect.ValueOf(v).Elem()
+	if el.Kind() != reflect.Struct {
+		return false
+	}
+
+	return el.Type().ConvertibleTo(schemas.TimeType)
+}
+
 func (session *Session) get(bean interface{}) (bool, error) {
 	defer session.resetStatement()
 
@@ -46,7 +64,7 @@ func (session *Session) get(bean interface{}) (bool, error) {
 		return false, ErrObjectIsNil
 	}
 
-	if beanValue.Elem().Kind() == reflect.Struct {
+	if beanValue.Elem().Kind() == reflect.Struct && !isPtrOfTime(bean) {
 		if err := session.statement.SetRefBean(bean); err != nil {
 			return false, err
 		}
@@ -108,6 +126,31 @@ func (session *Session) get(bean interface{}) (bool, error) {
 	return true, nil
 }
 
+var (
+	valuerTypePlaceHolder driver.Valuer
+	valuerType            = reflect.TypeOf(&valuerTypePlaceHolder).Elem()
+
+	scannerTypePlaceHolder sql.Scanner
+	scannerType            = reflect.TypeOf(&scannerTypePlaceHolder).Elem()
+
+	conversionTypePlaceHolder convert.Conversion
+	conversionType            = reflect.TypeOf(&conversionTypePlaceHolder).Elem()
+)
+
+func isScannableStruct(bean interface{}, typeLen int) bool {
+	switch bean.(type) {
+	case *time.Time:
+		return false
+	case sql.Scanner:
+		return false
+	case convert.Conversion:
+		return typeLen > 1
+	case *big.Float:
+		return false
+	}
+	return true
+}
+
 func (session *Session) nocacheGet(beanKind reflect.Kind, table *schemas.Table, bean interface{}, sqlStr string, args ...interface{}) (bool, error) {
 	rows, err := session.queryRows(sqlStr, args...)
 	if err != nil {
@@ -116,161 +159,126 @@ func (session *Session) nocacheGet(beanKind reflect.Kind, table *schemas.Table, 
 	defer rows.Close()
 
 	if !rows.Next() {
-		if rows.Err() != nil {
-			return false, rows.Err()
-		}
-		return false, nil
+		return false, rows.Err()
 	}
 
-	switch bean.(type) {
-	case sql.NullInt64, sql.NullBool, sql.NullFloat64, sql.NullString:
-		return true, rows.Scan(&bean)
-	case *sql.NullInt64, *sql.NullBool, *sql.NullFloat64, *sql.NullString:
-		return true, rows.Scan(bean)
-	case *string:
-		var res sql.NullString
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*string)) = res.String
-		}
-		return true, nil
-	case *int:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*int)) = int(res.Int64)
-		}
-		return true, nil
-	case *int8:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*int8)) = int8(res.Int64)
-		}
-		return true, nil
-	case *int16:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*int16)) = int16(res.Int64)
-		}
-		return true, nil
-	case *int32:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*int32)) = int32(res.Int64)
-		}
-		return true, nil
-	case *int64:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*int64)) = int64(res.Int64)
-		}
-		return true, nil
-	case *uint:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*uint)) = uint(res.Int64)
-		}
-		return true, nil
-	case *uint8:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*uint8)) = uint8(res.Int64)
-		}
-		return true, nil
-	case *uint16:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*uint16)) = uint16(res.Int64)
-		}
-		return true, nil
-	case *uint32:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*uint32)) = uint32(res.Int64)
-		}
-		return true, nil
-	case *uint64:
-		var res sql.NullInt64
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*uint64)) = uint64(res.Int64)
-		}
-		return true, nil
-	case *bool:
-		var res sql.NullBool
-		if err := rows.Scan(&res); err != nil {
-			return true, err
-		}
-		if res.Valid {
-			*(bean.(*bool)) = res.Bool
-		}
-		return true, nil
+	// WARN: Alougth rows return true, but we may also return error.
+	types, err := rows.ColumnTypes()
+	if err != nil {
+		return true, err
 	}
-
+	fields, err := rows.Columns()
+	if err != nil {
+		return true, err
+	}
 	switch beanKind {
 	case reflect.Struct:
-		fields, err := rows.Columns()
-		if err != nil {
-			// WARN: Alougth rows return true, but get fields failed
-			return true, err
+		if !isScannableStruct(bean, len(types)) {
+			break
 		}
-
-		scanResults, err := session.row2Slice(rows, fields, bean)
-		if err != nil {
-			return false, err
-		}
-		// close it before convert data
-		rows.Close()
-
-		dataStruct := utils.ReflectValue(bean)
-		_, err = session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
-		if err != nil {
-			return true, err
-		}
-
-		return true, session.executeProcessors()
+		return session.getStruct(rows, types, fields, table, bean)
 	case reflect.Slice:
-		err = rows.ScanSlice(bean)
+		return session.getSlice(rows, types, fields, bean)
 	case reflect.Map:
-		err = rows.ScanMap(bean)
-	case reflect.String, reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		err = rows.Scan(bean)
-	default:
-		err = rows.Scan(bean)
+		return session.getMap(rows, types, fields, bean)
 	}
 
+	return session.getVars(rows, types, fields, bean)
+}
+
+func (session *Session) getSlice(rows *core.Rows, types []*sql.ColumnType, fields []string, bean interface{}) (bool, error) {
+	switch t := bean.(type) {
+	case *[]string:
+		res, err := session.engine.scanStringInterface(rows, fields, types)
+		if err != nil {
+			return true, err
+		}
+
+		var needAppend = len(*t) == 0 // both support slice is empty or has been initlized
+		for i, r := range res {
+			if needAppend {
+				*t = append(*t, r.(*sql.NullString).String)
+			} else {
+				(*t)[i] = r.(*sql.NullString).String
+			}
+		}
+		return true, nil
+	case *[]interface{}:
+		scanResults, err := session.engine.scanInterfaces(rows, fields, types)
+		if err != nil {
+			return true, err
+		}
+		var needAppend = len(*t) == 0
+		for ii := range fields {
+			s, err := convert.Interface2Interface(session.engine.DatabaseTZ, scanResults[ii])
+			if err != nil {
+				return true, err
+			}
+			if needAppend {
+				*t = append(*t, s)
+			} else {
+				(*t)[ii] = s
+			}
+		}
+		return true, nil
+	default:
+		return true, fmt.Errorf("unspoorted slice type: %t", t)
+	}
+}
+
+func (session *Session) getMap(rows *core.Rows, types []*sql.ColumnType, fields []string, bean interface{}) (bool, error) {
+	switch t := bean.(type) {
+	case *map[string]string:
+		scanResults, err := session.engine.scanStringInterface(rows, fields, types)
+		if err != nil {
+			return true, err
+		}
+		for ii, key := range fields {
+			(*t)[key] = scanResults[ii].(*sql.NullString).String
+		}
+		return true, nil
+	case *map[string]interface{}:
+		scanResults, err := session.engine.scanInterfaces(rows, fields, types)
+		if err != nil {
+			return true, err
+		}
+		for ii, key := range fields {
+			s, err := convert.Interface2Interface(session.engine.DatabaseTZ, scanResults[ii])
+			if err != nil {
+				return true, err
+			}
+			(*t)[key] = s
+		}
+		return true, nil
+	default:
+		return true, fmt.Errorf("unspoorted map type: %t", t)
+	}
+}
+
+func (session *Session) getVars(rows *core.Rows, types []*sql.ColumnType, fields []string, beans ...interface{}) (bool, error) {
+	if len(beans) != len(types) {
+		return false, fmt.Errorf("expected columns %d, but only %d variables", len(types), len(beans))
+	}
+
+	err := session.engine.scan(rows, fields, types, beans...)
 	return true, err
+}
+
+func (session *Session) getStruct(rows *core.Rows, types []*sql.ColumnType, fields []string, table *schemas.Table, bean interface{}) (bool, error) {
+	scanResults, err := session.row2Slice(rows, fields, types, bean)
+	if err != nil {
+		return false, err
+	}
+	// close it before convert data
+	rows.Close()
+
+	dataStruct := utils.ReflectValue(bean)
+	_, err = session.slice2Bean(scanResults, fields, bean, &dataStruct, table)
+	if err != nil {
+		return true, err
+	}
+
+	return true, session.executeProcessors()
 }
 
 func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interface{}) (has bool, err error) {
@@ -304,9 +312,12 @@ func (session *Session) cacheGet(bean interface{}, sqlStr string, args ...interf
 		if rows.Next() {
 			err = rows.ScanSlice(&res)
 			if err != nil {
-				return false, err
+				return true, err
 			}
 		} else {
+			if rows.Err() != nil {
+				return false, rows.Err()
+			}
 			return false, ErrCacheFailed
 		}
 

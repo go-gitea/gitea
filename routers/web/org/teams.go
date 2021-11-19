@@ -7,10 +7,12 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -36,26 +38,26 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	for _, t := range org.Teams {
+	for _, t := range ctx.Org.Teams {
 		if err := t.GetMembers(&models.SearchMembersOptions{}); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
 	}
-	ctx.Data["Teams"] = org.Teams
+	ctx.Data["Teams"] = ctx.Org.Teams
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
 
 // TeamsAction response for join, leave, remove, add operations to team
 func TeamsAction(ctx *context.Context) {
-	uid := ctx.QueryInt64("uid")
+	uid := ctx.FormInt64("uid")
 	if uid == 0 {
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 		return
 	}
 
-	page := ctx.Query("page")
+	page := ctx.FormString("page")
 	var err error
 	switch ctx.Params(":action") {
 	case "join":
@@ -66,25 +68,58 @@ func TeamsAction(ctx *context.Context) {
 		err = ctx.Org.Team.AddMember(ctx.User.ID)
 	case "leave":
 		err = ctx.Org.Team.RemoveMember(ctx.User.ID)
+		if err != nil {
+			if models.IsErrLastOrgOwner(err) {
+				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+			} else {
+				log.Error("Action(%s): %v", ctx.Params(":action"), err)
+				ctx.JSON(http.StatusOK, map[string]interface{}{
+					"ok":  false,
+					"err": err.Error(),
+				})
+				return
+			}
+		}
+		ctx.JSON(http.StatusOK,
+			map[string]interface{}{
+				"redirect": ctx.Org.OrgLink + "/teams/",
+			})
+		return
 	case "remove":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
 		err = ctx.Org.Team.RemoveMember(uid)
-		page = "team"
+		if err != nil {
+			if models.IsErrLastOrgOwner(err) {
+				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
+			} else {
+				log.Error("Action(%s): %v", ctx.Params(":action"), err)
+				ctx.JSON(http.StatusOK, map[string]interface{}{
+					"ok":  false,
+					"err": err.Error(),
+				})
+				return
+			}
+		}
+		ctx.JSON(http.StatusOK,
+			map[string]interface{}{
+				"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName),
+			})
+		return
 	case "add":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.Query("uname")))
+		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
 		var u *models.User
 		u, err = models.GetUserByName(uname)
 		if err != nil {
 			if models.IsErrUserNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
-				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName)
+				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 			} else {
 				ctx.ServerError(" GetUserByName", err)
 			}
@@ -93,7 +128,7 @@ func TeamsAction(ctx *context.Context) {
 
 		if u.IsOrganization() {
 			ctx.Flash.Error(ctx.Tr("form.cannot_add_org_to_team"))
-			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName)
+			ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 			return
 		}
 
@@ -121,9 +156,9 @@ func TeamsAction(ctx *context.Context) {
 
 	switch page {
 	case "team":
-		ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName)
+		ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 	case "home":
-		ctx.Redirect(ctx.Org.Organization.HomeLink())
+		ctx.Redirect(ctx.Org.Organization.AsUser().HomeLink())
 	default:
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 	}
@@ -140,13 +175,13 @@ func TeamsRepoAction(ctx *context.Context) {
 	action := ctx.Params(":action")
 	switch action {
 	case "add":
-		repoName := path.Base(ctx.Query("repo_name"))
+		repoName := path.Base(ctx.FormString("repo_name"))
 		var repo *models.Repository
 		repo, err = models.GetRepositoryByName(ctx.Org.Organization.ID, repoName)
 		if err != nil {
 			if models.IsErrRepoNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("org.teams.add_nonexistent_repo"))
-				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
+				ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
 				return
 			}
 			ctx.ServerError("GetRepositoryByName", err)
@@ -154,7 +189,7 @@ func TeamsRepoAction(ctx *context.Context) {
 		}
 		err = ctx.Org.Team.AddRepository(repo)
 	case "remove":
-		err = ctx.Org.Team.RemoveRepository(ctx.QueryInt64("repoid"))
+		err = ctx.Org.Team.RemoveRepository(ctx.FormInt64("repoid"))
 	case "addall":
 		err = ctx.Org.Team.AddAllRepositories()
 	case "removeall":
@@ -169,11 +204,11 @@ func TeamsRepoAction(ctx *context.Context) {
 
 	if action == "addall" || action == "removeall" {
 		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories",
+			"redirect": ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories",
 		})
 		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + ctx.Org.Team.LowerName + "/repositories")
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName) + "/repositories")
 }
 
 // NewTeam render create new team page
@@ -182,7 +217,7 @@ func NewTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Team"] = &models.Team{}
-	ctx.Data["Units"] = models.Units
+	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
@@ -192,7 +227,7 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Units"] = models.Units
+	ctx.Data["Units"] = unit_model.Units
 	var includesAllRepositories = form.RepoAccess == "all"
 
 	t := &models.Team{
@@ -238,7 +273,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 	log.Trace("Team created: %s/%s", ctx.Org.Organization.Name, t.Name)
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + t.LowerName)
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // TeamMembers render team members page
@@ -271,7 +306,7 @@ func EditTeam(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["team_name"] = ctx.Org.Team.Name
 	ctx.Data["desc"] = ctx.Org.Team.Description
-	ctx.Data["Units"] = models.Units
+	ctx.Data["Units"] = unit_model.Units
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
@@ -282,7 +317,7 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Org.Organization.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 	ctx.Data["Team"] = t
-	ctx.Data["Units"] = models.Units
+	ctx.Data["Units"] = unit_model.Units
 
 	isAuthChanged := false
 	isIncludeAllChanged := false
@@ -340,7 +375,7 @@ func EditTeamPost(ctx *context.Context) {
 		}
 		return
 	}
-	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + t.LowerName)
+	ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(t.LowerName))
 }
 
 // DeleteTeam response for the delete team request

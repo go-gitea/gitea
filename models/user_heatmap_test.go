@@ -7,8 +7,12 @@ package models
 import (
 	"fmt"
 	"testing"
+	"time"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/timeutil"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,13 +39,17 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		{10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`},
 	}
 	// Prepare
-	assert.NoError(t, PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Mock time
+	timeutil.Set(time.Date(2021, 1, 1, 0, 0, 0, 0, time.UTC))
+	defer timeutil.Unset()
 
 	for i, tc := range testCases {
-		user := AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
+		user := unittest.AssertExistsAndLoadBean(t, &User{ID: tc.userID}).(*User)
 
 		doer := &User{ID: tc.doerID}
-		_, err := loadBeanIfExists(doer)
+		_, err := unittest.LoadBeanIfExists(doer)
 		assert.NoError(t, err)
 		if tc.doerID == 0 {
 			doer = nil
@@ -68,7 +76,6 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.Equal(t, tc.CountResult, contributions, fmt.Sprintf("testcase %d", i))
 
 		// Test JSON rendering
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
 		jsonData, err := json.Marshal(heatmap)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.JSONResult, string(jsonData))

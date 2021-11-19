@@ -12,15 +12,14 @@ import (
 	"strings"
 	"text/tabwriter"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/doctor"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
-
 	"github.com/urfave/cli"
+	"xorm.io/xorm"
 )
 
 // CmdDoctor represents the available doctor sub-command.
@@ -96,7 +95,10 @@ func runRecreateTable(ctx *cli.Context) error {
 	setting.Cfg.Section("log").Key("XORM").SetValue(",")
 
 	setting.NewXORMLogService(!ctx.Bool("debug"))
-	if err := models.SetEngine(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := db.InitEngine(stdCtx); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
@@ -108,13 +110,13 @@ func runRecreateTable(ctx *cli.Context) error {
 		names = append(names, args.Get(i))
 	}
 
-	beans, err := models.NamesToBean(names...)
+	beans, err := db.NamesToBean(names...)
 	if err != nil {
 		return err
 	}
 	recreateTables := migrations.RecreateTables(beans...)
 
-	return models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	return db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
 			return err
 		}
@@ -124,10 +126,12 @@ func runRecreateTable(ctx *cli.Context) error {
 }
 
 func runDoctor(ctx *cli.Context) error {
-
 	// Silence the default loggers
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
+
+	stdCtx, cancel := installSignals()
+	defer cancel()
 
 	// Now setup our own
 	logFile := ctx.String("log-file")
@@ -211,5 +215,5 @@ func runDoctor(ctx *cli.Context) error {
 
 	logger := log.GetLogger("doctorouter")
 	defer logger.Close()
-	return doctor.RunChecks(logger, ctx.Bool("fix"), checks)
+	return doctor.RunChecks(stdCtx, logger, ctx.Bool("fix"), checks)
 }

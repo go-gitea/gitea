@@ -6,16 +6,18 @@ package repo
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -26,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
-	jsoniter "github.com/json-iterator/go"
 )
 
 const (
@@ -81,7 +82,11 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		return
 	}
 
-	treeNames, treePaths := getParentTreeFields(ctx.Repo.TreePath)
+	// Check if the filename (and additional path) is specified in the querystring
+	// (filename is a misnomer, but kept for compatibility with Github)
+	filePath, fileName := path.Split(ctx.Req.URL.Query().Get("filename"))
+	filePath = strings.Trim(filePath, "/")
+	treeNames, treePaths := getParentTreeFields(path.Join(ctx.Repo.TreePath, filePath))
 
 	if !isNewFile {
 		entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -114,7 +119,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 		ctx.Data["FileName"] = blob.Name()
 
 		buf := make([]byte, 1024)
-		n, _ := dataRc.Read(buf)
+		n, _ := util.ReadAtMost(dataRc, buf)
 		buf = buf[:n]
 
 		// Only some file types are editable online as text.
@@ -123,7 +128,7 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			return
 		}
 
-		d, _ := ioutil.ReadAll(dataRc)
+		d, _ := io.ReadAll(dataRc)
 		if err := dataRc.Close(); err != nil {
 			log.Error("Error whilst closing blob data: %v", err)
 		}
@@ -136,7 +141,8 @@ func editFile(ctx *context.Context, isNewFile bool) {
 			ctx.Data["FileContent"] = content
 		}
 	} else {
-		treeNames = append(treeNames, "") // Append empty string to allow user name the new file.
+		// Append filename from query, or empty string to allow user name the new file.
+		treeNames = append(treeNames, fileName)
 	}
 
 	ctx.Data["TreeNames"] = treeNames
@@ -165,7 +171,6 @@ func GetEditorConfig(ctx *context.Context, treePath string) string {
 	if err == nil {
 		def, err := ec.GetDefinitionForFilename(treePath)
 		if err == nil {
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			jsonStr, _ := json.Marshal(def)
 			return string(jsonStr)
 		}
@@ -199,7 +204,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + ctx.Repo.BranchName
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(ctx.Repo.BranchName)
 	ctx.Data["FileContent"] = form.Content
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
@@ -294,9 +299,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
 		} else if models.IsErrCommitIDDoesNotMatch(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(form.LastCommit)+"..."+util.PathEscapeSegments(ctx.Repo.CommitID)), tplEditFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+util.PathEscapeSegments(form.NewBranchName)), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(form.LastCommit)+"..."+util.PathEscapeSegments(form.NewBranchName)), tplEditFile, &form)
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
@@ -327,7 +332,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		}
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(unit.TypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
@@ -490,7 +495,7 @@ func DeleteFilePost(ctx *context.Context) {
 				ctx.Error(http.StatusInternalServerError, err.Error())
 			}
 		} else if models.IsErrCommitIDDoesNotMatch(err) || git.IsErrPushOutOfDate(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_deleting", ctx.Repo.RepoLink+"/compare/"+form.LastCommit+"..."+ctx.Repo.CommitID), tplDeleteFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_deleting", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(form.LastCommit)+"..."+util.PathEscapeSegments(ctx.Repo.CommitID)), tplDeleteFile, &form)
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
@@ -513,7 +518,7 @@ func DeleteFilePost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.editor.file_delete_success", ctx.Repo.TreePath))
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(unit.TypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
 		treePath := path.Dir(ctx.Repo.TreePath)
@@ -597,7 +602,7 @@ func UploadFilePost(ctx *context.Context) {
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
-	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + branchName
+	ctx.Data["BranchLink"] = ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName)
 	ctx.Data["commit_summary"] = form.CommitSummary
 	ctx.Data["commit_message"] = form.CommitMessage
 	ctx.Data["commit_choice"] = form.CommitChoice
@@ -693,7 +698,7 @@ func UploadFilePost(ctx *context.Context) {
 			branchErr := err.(models.ErrBranchAlreadyExists)
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchErr.BranchName), tplUploadFile, &form)
 		} else if git.IsErrPushOutOfDate(err) {
-			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+ctx.Repo.CommitID+"..."+util.PathEscapeSegments(form.NewBranchName)), tplUploadFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.file_changed_while_editing", ctx.Repo.RepoLink+"/compare/"+util.PathEscapeSegments(ctx.Repo.CommitID)+"..."+util.PathEscapeSegments(form.NewBranchName)), tplUploadFile, &form)
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
@@ -718,7 +723,7 @@ func UploadFilePost(ctx *context.Context) {
 		return
 	}
 
-	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(models.UnitTypePullRequests) {
+	if form.CommitChoice == frmCommitChoiceNewBranch && ctx.Repo.Repository.UnitEnabled(unit.TypePullRequests) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/compare/" + util.PathEscapeSegments(ctx.Repo.BranchName) + "..." + util.PathEscapeSegments(form.NewBranchName))
 	} else {
 		ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(branchName) + "/" + util.PathEscapeSegments(form.TreePath))
@@ -747,7 +752,7 @@ func UploadFileToServer(ctx *context.Context) {
 	defer file.Close()
 
 	buf := make([]byte, 1024)
-	n, _ := file.Read(buf)
+	n, _ := util.ReadAtMost(file, buf)
 	if n > 0 {
 		buf = buf[:n]
 	}

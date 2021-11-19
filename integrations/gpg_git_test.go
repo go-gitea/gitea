@@ -7,16 +7,17 @@ package integrations
 import (
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -27,7 +28,7 @@ func TestGPGGit(t *testing.T) {
 	username := "user2"
 
 	// OK Set a new GPG home
-	tmpDir, err := ioutil.TempDir("", "temp-gpg")
+	tmpDir, err := os.MkdirTemp("", "temp-gpg")
 	assert.NoError(t, err)
 	defer util.RemoveAll(tmpDir)
 
@@ -60,7 +61,7 @@ func TestGPGGit(t *testing.T) {
 	setting.Repository.Signing.SigningKey = rootKeyID
 	setting.Repository.Signing.SigningName = "gitea"
 	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
-	user := models.AssertExistsAndLoadBean(t, &models.User{Name: username}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{Name: username}).(*models.User)
 
 	setting.Repository.Signing.InitialCommit = []string{"never"}
 	setting.Repository.Signing.CRUDActions = []string{"never"}

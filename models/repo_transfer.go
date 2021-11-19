@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -26,6 +27,10 @@ type RepoTransfer struct {
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX NOT NULL updated"`
+}
+
+func init() {
+	db.RegisterModel(new(RepoTransfer))
 }
 
 // LoadAttributes fetches the transfer recipient from the database
@@ -93,7 +98,7 @@ func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
 func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	transfer := new(RepoTransfer)
 
-	has, err := x.Where("repo_id = ? ", repo.ID).Get(transfer)
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Get(transfer)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +110,7 @@ func GetPendingRepositoryTransfer(repo *Repository) (*RepoTransfer, error) {
 	return transfer, nil
 }
 
-func deleteRepositoryTransfer(e Engine, repoID int64) error {
+func deleteRepositoryTransfer(e db.Engine, repoID int64) error {
 	_, err := e.Where("repo_id = ?", repoID).Delete(&RepoTransfer{})
 	return err
 }
@@ -113,7 +118,7 @@ func deleteRepositoryTransfer(e Engine, repoID int64) error {
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *Repository) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -145,7 +150,7 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
 func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -210,13 +215,13 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		}
 
 		if repoRenamed {
-			if err := os.Rename(RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name)); err != nil {
+			if err := util.Rename(RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name)); err != nil {
 				log.Critical("Unable to move repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name, RepoPath(newOwnerName, repo.Name), RepoPath(oldOwnerName, repo.Name), err)
 			}
 		}
 
 		if wikiRenamed {
-			if err := os.Rename(WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name)); err != nil {
+			if err := util.Rename(WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name)); err != nil {
 				log.Critical("Unable to move wiki for repository %s/%s directory from %s back to correct place %s: %v", oldOwnerName, repo.Name, WikiPath(newOwnerName, repo.Name), WikiPath(oldOwnerName, repo.Name), err)
 			}
 		}
@@ -227,7 +232,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		}
 	}()
 
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return fmt.Errorf("sess.Begin: %v", err)
@@ -261,7 +266,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess, ListOptions{})
+	collaborators, err := repo.getCollaborators(sess, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
@@ -269,6 +274,14 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	// Dummy object.
 	collaboration := &Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
+		if c.IsGhost() {
+			collaboration.ID = c.Collaboration.ID
+			if _, err := sess.Delete(collaboration); err != nil {
+				return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
+			}
+			collaboration.ID = 0
+		}
+
 		if c.ID != newOwner.ID {
 			isMember, err := isOrganizationMember(sess, newOwner.ID, c.ID)
 			if err != nil {
@@ -281,20 +294,22 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		if _, err := sess.Delete(collaboration); err != nil {
 			return fmt.Errorf("remove collaborator '%d': %v", c.ID, err)
 		}
+		collaboration.UserID = 0
 	}
 
 	// Remove old team-repository relations.
 	if oldOwner.IsOrganization() {
-		if err := oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
+		if err := OrgFromUser(oldOwner).removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.getTeams(sess); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		teams, err := OrgFromUser(newOwner).loadTeams(sess)
+		if err != nil {
+			return fmt.Errorf("LoadTeams: %v", err)
 		}
-		for _, t := range newOwner.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(sess, repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
@@ -358,7 +373,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)
 	}
 
-	if err := os.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
+	if err := util.Rename(RepoPath(oldOwner.Name, repo.Name), RepoPath(newOwner.Name, repo.Name)); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 	repoRenamed = true
@@ -370,7 +385,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		log.Error("Unable to check if %s exists. Error: %v", wikiPath, err)
 		return err
 	} else if isExist {
-		if err := os.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
+		if err := util.Rename(wikiPath, WikiPath(newOwner.Name, repo.Name)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 		wikiRenamed = true

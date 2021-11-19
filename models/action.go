@@ -7,11 +7,13 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -72,6 +74,10 @@ type Action struct {
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+}
+
+func init() {
+	db.RegisterModel(new(Action))
 }
 
 // GetOpType gets the ActionType of this action.
@@ -180,10 +186,8 @@ func (a *Action) ShortRepoPath() string {
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink() string {
-	if len(setting.AppSubURL) > 0 {
-		return path.Join(setting.AppSubURL, a.GetRepoPath())
-	}
-	return "/" + a.GetRepoPath()
+	// path.Join will skip empty strings
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
@@ -203,10 +207,10 @@ func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(x)
+	return a.getCommentLink(db.GetEngine(db.DefaultContext))
 }
 
-func (a *Action) getCommentLink(e Engine) string {
+func (a *Action) getCommentLink(e db.Engine) string {
 	if a == nil {
 		return "#"
 	}
@@ -312,7 +316,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := x.Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -348,7 +352,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		if opts.RequestedUser.IsOrganization() {
-			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
+			env, err := OrgFromUser(opts.RequestedUser).AccessibleReposEnv(actorID)
 			if err != nil {
 				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 			}
@@ -362,7 +366,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.RequestedTeam != nil {
-		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
@@ -403,6 +407,6 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 		return nil
 	}
 
-	_, err = x.Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
 	return
 }

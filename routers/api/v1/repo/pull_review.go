@@ -78,14 +78,21 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	allReviews, err := models.FindReviews(models.FindReviewOptions{
+	opts := models.FindReviewOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		Type:        models.ReviewTypeUnknown,
 		IssueID:     pr.IssueID,
-	})
+	}
 
+	allReviews, err := models.FindReviews(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "FindReviews", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	count, err := models.CountReviews(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -95,6 +102,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiReviews)
 }
 

@@ -5,9 +5,10 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/models/db"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -20,7 +21,11 @@ type ProjectIssue struct {
 	ProjectBoardID int64 `xorm:"INDEX"`
 }
 
-func deleteProjectIssuesByProjectID(e Engine, projectID int64) error {
+func init() {
+	db.RegisterModel(new(ProjectIssue))
+}
+
+func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {
 	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssue{})
 	return err
 }
@@ -33,10 +38,10 @@ func deleteProjectIssuesByProjectID(e Engine, projectID int64) error {
 
 // LoadProject load the project the issue was assigned to
 func (i *Issue) LoadProject() (err error) {
-	return i.loadProject(x)
+	return i.loadProject(db.GetEngine(db.DefaultContext))
 }
 
-func (i *Issue) loadProject(e Engine) (err error) {
+func (i *Issue) loadProject(e db.Engine) (err error) {
 	if i.Project == nil {
 		var p Project
 		if _, err = e.Table("project").
@@ -52,10 +57,10 @@ func (i *Issue) loadProject(e Engine) (err error) {
 
 // ProjectID return project id if issue was assigned to one
 func (i *Issue) ProjectID() int64 {
-	return i.projectID(x)
+	return i.projectID(db.GetEngine(db.DefaultContext))
 }
 
-func (i *Issue) projectID(e Engine) int64 {
+func (i *Issue) projectID(e db.Engine) int64 {
 	var ip ProjectIssue
 	has, err := e.Where("issue_id=?", i.ID).Get(&ip)
 	if err != nil || !has {
@@ -66,10 +71,10 @@ func (i *Issue) projectID(e Engine) int64 {
 
 // ProjectBoardID return project board id if issue was assigned to one
 func (i *Issue) ProjectBoardID() int64 {
-	return i.projectBoardID(x)
+	return i.projectBoardID(db.GetEngine(db.DefaultContext))
 }
 
-func (i *Issue) projectBoardID(e Engine) int64 {
+func (i *Issue) projectBoardID(e db.Engine) int64 {
 	var ip ProjectIssue
 	has, err := e.Where("issue_id=?", i.ID).Get(&ip)
 	if err != nil || !has {
@@ -87,7 +92,7 @@ func (i *Issue) projectBoardID(e Engine) int64 {
 
 // NumIssues return counter of all issues assigned to a project
 func (p *Project) NumIssues() int {
-	c, err := x.Table("project_issue").
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Where("project_id=?", p.ID).
 		GroupBy("issue_id").
 		Cols("issue_id").
@@ -100,7 +105,7 @@ func (p *Project) NumIssues() int {
 
 // NumClosedIssues return counter of closed issues assigned to a project
 func (p *Project) NumClosedIssues() int {
-	c, err := x.Table("project_issue").
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
 		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
 		Cols("issue_id").
@@ -113,9 +118,11 @@ func (p *Project) NumClosedIssues() int {
 
 // NumOpenIssues return counter of open issues assigned to a project
 func (p *Project) NumOpenIssues() int {
-	c, err := x.Table("project_issue").
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		Cols("issue_id").
+		Count()
 	if err != nil {
 		return 0
 	}
@@ -124,20 +131,21 @@ func (p *Project) NumOpenIssues() int {
 
 // ChangeProjectAssign changes the project associated with an issue
 func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID); err != nil {
 		return err
 	}
 
-	if err := addUpdateIssueProject(sess, issue, doer, newProjectID); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProjectID int64) error {
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *User, newProjectID int64) error {
+	e := db.GetEngine(ctx)
 	oldProjectID := issue.projectID(e)
 
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
@@ -149,7 +157,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 	}
 
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := createComment(e, &CreateCommentOptions{
+		if _, err := createComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,
@@ -177,7 +185,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-	sess := x.NewSession()
+	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
@@ -201,7 +209,7 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 	return sess.Commit()
 }
 
-func (pb *ProjectBoard) removeIssues(e Engine) error {
+func (pb *ProjectBoard) removeIssues(e db.Engine) error {
 	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
 	return err
 }

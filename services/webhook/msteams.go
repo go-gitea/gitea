@@ -8,10 +8,11 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type (
@@ -57,7 +58,6 @@ type (
 
 // JSONPayload Marshals the MSTeamsPayload to json
 func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {
 		return []byte{}, err
@@ -80,7 +80,7 @@ func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Repo.HTMLURL+"/src/"+refName,
+		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		greenColor,
 		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
 	), nil
@@ -97,7 +97,7 @@ func (m *MSTeamsPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Repo.HTMLURL+"/src/"+refName,
+		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		yellowColor,
 		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
 	), nil
@@ -134,7 +134,7 @@ func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		titleLink = p.CompareURL
 	}
 	if titleLink == "" {
-		titleLink = p.Repo.HTMLURL + "/src/" + branchName
+		titleLink = p.Repo.HTMLURL + "/src/" + util.PathEscapeSegments(branchName)
 	}
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
@@ -207,7 +207,7 @@ func (m *MSTeamsPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, 
 }
 
 // Review implements PayloadConvertor Review method
-func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -221,11 +221,11 @@ func (m *MSTeamsPayload) Review(p *api.PullRequestPayload, event models.HookEven
 		text = p.Review.Content
 
 		switch event {
-		case models.HookEventPullRequestReviewApproved:
+		case webhook_model.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case models.HookEventPullRequestReviewRejected:
+		case webhook_model.HookEventPullRequestReviewRejected:
 			color = redColor
-		case models.HookEventPullRequestComment:
+		case webhook_model.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -284,7 +284,7 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetMSTeamsPayload converts a MSTeams webhook into a MSTeamsPayload
-func GetMSTeamsPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetMSTeamsPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	return convertPayloader(new(MSTeamsPayload), p, event)
 }
 

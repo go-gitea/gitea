@@ -5,12 +5,30 @@
 package dialects
 
 import (
+	"database/sql"
 	"fmt"
+	"time"
+
+	"xorm.io/xorm/core"
 )
+
+// ScanContext represents a context when Scan
+type ScanContext struct {
+	DBLocation   *time.Location
+	UserLocation *time.Location
+}
+
+// DriverFeatures represents driver feature
+type DriverFeatures struct {
+	SupportReturnInsertedID bool
+}
 
 // Driver represents a database driver
 type Driver interface {
 	Parse(string, string) (*URI, error)
+	Features() *DriverFeatures
+	GenScanResult(string) (interface{}, error) // according given column type generating a suitable scan interface
+	Scan(*ScanContext, *core.Rows, []*sql.ColumnType, ...interface{}) error
 }
 
 var (
@@ -58,4 +76,10 @@ func OpenDialect(driverName, connstr string) (Dialect, error) {
 	dialect.Init(uri)
 
 	return dialect, nil
+}
+
+type baseDriver struct{}
+
+func (b *baseDriver) Scan(ctx *ScanContext, rows *core.Rows, types []*sql.ColumnType, v ...interface{}) error {
+	return rows.Scan(v...)
 }

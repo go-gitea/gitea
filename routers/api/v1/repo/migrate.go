@@ -17,8 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/migrations"
 )
 
 // Migrate migrate remote git repository to gitea
@@ -86,7 +86,7 @@ func Migrate(ctx *context.APIContext) {
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := repoOwner.IsOwnedBy(ctx.User.ID)
+			isOwner, err := models.OrgFromUser(repoOwner).IsOwnedBy(ctx.User.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -108,8 +108,8 @@ func Migrate(ctx *context.APIContext) {
 
 	gitServiceType := convert.ToGitServiceType(form.Service)
 
-	if form.Mirror && setting.Repository.DisableMirrors {
-		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled mirrors"))
+	if form.Mirror && setting.Mirror.DisableNewPull {
+		ctx.Error(http.StatusForbidden, "MirrorsGlobalDisabled", fmt.Errorf("the site administrator has disabled the creation of new pull mirrors"))
 		return
 	}
 

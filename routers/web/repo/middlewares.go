@@ -7,7 +7,7 @@ package repo
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 )
@@ -23,7 +23,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 
 	if err != nil && !git.IsErrNotExist(err) {
 		description := fmt.Sprintf("Error while getting .editorconfig file: %v", err)
-		if err := models.CreateRepositoryNotice(description); err != nil {
+		if err := admin_model.CreateRepositoryNotice(description); err != nil {
 			ctx.ServerError("ErrCreatingReporitoryNotice", err)
 		}
 		return
@@ -34,7 +34,7 @@ func SetEditorconfigIfExists(ctx *context.Context) {
 
 // SetDiffViewStyle set diff style as render variable
 func SetDiffViewStyle(ctx *context.Context) {
-	queryStyle := ctx.Query("style")
+	queryStyle := ctx.FormString("style")
 
 	if !ctx.IsSigned {
 		ctx.Data["IsSplitStyle"] = queryStyle == "split"
@@ -62,7 +62,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 
 // SetWhitespaceBehavior set whitespace behavior as render variable
 func SetWhitespaceBehavior(ctx *context.Context) {
-	whitespaceBehavior := ctx.Query("whitespace")
+	whitespaceBehavior := ctx.FormString("whitespace")
 	switch whitespaceBehavior {
 	case "ignore-all", "ignore-eol", "ignore-change":
 		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior

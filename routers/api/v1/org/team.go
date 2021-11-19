@@ -6,11 +6,10 @@
 package org
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -45,23 +44,27 @@ func ListTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	org := ctx.Org.Organization
-	if err := org.GetTeams(&models.SearchTeamOptions{
+	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
 		ListOptions: utils.GetListOptions(ctx),
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTeams", err)
+		OrgID:       ctx.Org.Organization.ID,
+	})
+
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadTeams", err)
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(org.Teams))
-	for i := range org.Teams {
-		if err := org.Teams[i].GetUnits(); err != nil {
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
 			return
 		}
 
-		apiTeams[i] = convert.ToTeam(org.Teams[i])
+		apiTeams[i] = convert.ToTeam(teams[i])
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -85,7 +88,10 @@ func ListUserTeams(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TeamList"
 
-	teams, err := models.GetUserTeams(ctx.User.ID, utils.GetListOptions(ctx))
+	teams, count, err := models.SearchTeam(&models.SearchTeamOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		UserID:      ctx.User.ID,
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserTeams", err)
 		return
@@ -96,7 +102,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	for i := range teams {
 		apiOrg, ok := cache[teams[i].OrgID]
 		if !ok {
-			org, err := models.GetUserByID(teams[i].OrgID)
+			org, err := models.GetOrgByID(teams[i].OrgID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
@@ -107,6 +113,8 @@ func ListUserTeams(ctx *context.APIContext) {
 		apiTeams[i] = convert.ToTeam(teams[i])
 		apiTeams[i].Organization = apiOrg
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, apiTeams)
 }
 
@@ -165,7 +173,7 @@ func CreateTeam(ctx *context.APIContext) {
 		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
-	unitTypes := models.FindUnitTypes(form.Units...)
+	unitTypes := unit_model.FindUnitTypes(form.Units...)
 
 	if team.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
@@ -253,7 +261,7 @@ func EditTeam(ctx *context.APIContext) {
 	if team.Authorize < models.AccessModeOwner {
 		if len(form.Units) > 0 {
 			var units = make([]*models.TeamUnit, 0, len(form.Units))
-			unitTypes := models.FindUnitTypes(form.Units...)
+			unitTypes := unit_model.FindUnitTypes(form.Units...)
 			for _, tp := range unitTypes {
 				units = append(units, &models.TeamUnit{
 					OrgID: ctx.Org.Team.OrgID,
@@ -328,17 +336,19 @@ func GetTeamMembers(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	team := ctx.Org.Team
-	if err := team.GetMembers(&models.SearchMembersOptions{
+
+	if err := ctx.Org.Team.GetMembers(&models.SearchMembersOptions{
 		ListOptions: utils.GetListOptions(ctx),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamMembers", err)
 		return
 	}
-	members := make([]*api.User, len(team.Members))
-	for i, member := range team.Members {
+	members := make([]*api.User, len(ctx.Org.Team.Members))
+	for i, member := range ctx.Org.Team.Members {
 		members[i] = convert.ToUser(member, ctx.User)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.Org.Team.NumMembers))
 	ctx.JSON(http.StatusOK, members)
 }
 
@@ -658,9 +668,9 @@ func SearchTeam(ctx *context.APIContext) {
 
 	opts := &models.SearchTeamOptions{
 		UserID:      ctx.User.ID,
-		Keyword:     strings.TrimSpace(ctx.Query("q")),
+		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
-		IncludeDesc: ctx.Query("include_desc") == "" || ctx.QueryBool("include_desc"),
+		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
 		ListOptions: listOptions,
 	}
 
@@ -688,8 +698,7 @@ func SearchTeam(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", maxResults))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(maxResults)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok":   true,
 		"data": apiTeams,

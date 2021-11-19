@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -17,7 +18,7 @@ import (
 
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
-func getStarredRepos(user *models.User, private bool, listOptions models.ListOptions) ([]*api.Repository, error) {
+func getStarredRepos(user *models.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
 	starredRepos, err := models.GetStarredRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
@@ -92,6 +93,8 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.User.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 

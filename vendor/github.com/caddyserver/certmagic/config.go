@@ -508,8 +508,10 @@ func (cfg *Config) obtainCert(ctx context.Context, name string, interactive bool
 		var issuedCert *IssuedCertificate
 		var issuerUsed Issuer
 		for i, issuer := range issuers {
-			log.Debug(fmt.Sprintf("trying issuer %d/%d", i+1, len(cfg.Issuers)),
-				zap.String("issuer", issuer.IssuerKey()))
+			if log != nil {
+				log.Debug(fmt.Sprintf("trying issuer %d/%d", i+1, len(cfg.Issuers)),
+					zap.String("issuer", issuer.IssuerKey()))
+			}
 
 			if prechecker, ok := issuer.(PreChecker); ok {
 				err = prechecker.PreCheck(ctx, []string{name}, interactive)
@@ -531,10 +533,12 @@ func (cfg *Config) obtainCert(ctx context.Context, name string, interactive bool
 			if errors.As(err, &problem) {
 				errToLog = problem
 			}
-			log.Error("could not get certificate from issuer",
-				zap.String("identifier", name),
-				zap.String("issuer", issuer.IssuerKey()),
-				zap.Error(errToLog))
+			if log != nil {
+				log.Error("could not get certificate from issuer",
+					zap.String("identifier", name),
+					zap.String("issuer", issuer.IssuerKey()),
+					zap.Error(errToLog))
+			}
 		}
 		if err != nil {
 			// only the error from the last issuer will be returned, but we logged the others
@@ -745,10 +749,12 @@ func (cfg *Config) renewCert(ctx context.Context, name string, force, interactiv
 			if errors.As(err, &problem) {
 				errToLog = problem
 			}
-			log.Error("could not get certificate from issuer",
-				zap.String("identifier", name),
-				zap.String("issuer", issuer.IssuerKey()),
-				zap.Error(errToLog))
+			if log != nil {
+				log.Error("could not get certificate from issuer",
+					zap.String("identifier", name),
+					zap.String("issuer", issuer.IssuerKey()),
+					zap.Error(errToLog))
+			}
 		}
 		if err != nil {
 			// only the error from the last issuer will be returned, but we logged the others

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.19.0 (9 Aug 2021)
+
+Enhancements:
+* [#975][]: Avoid panicking in Sampler core if the level is out of bounds.
+* [#984][]: Reduce the size of BufferedWriteSyncer by aligning the fields
+  better.
+
+[#975]: https://github.com/uber-go/zap/pull/975
+[#984]: https://github.com/uber-go/zap/pull/984
+
+Thanks to @lancoLiu and @thockin for their contributions to this release.
+
 ## 1.18.1 (28 Jun 2021)
 
 Bugfixes:
