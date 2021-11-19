@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -2516,7 +2517,7 @@ func GetCommentAttachments(ctx *context.Context) {
 }
 
 func updateAttachments(item interface{}, files []string) error {
-	var attachments []*models.Attachment
+	var attachments []*repo_model.Attachment
 	switch content := item.(type) {
 	case *models.Issue:
 		attachments = content.Attachments
@@ -2529,7 +2530,7 @@ func updateAttachments(item interface{}, files []string) error {
 		if util.IsStringInSlice(attachments[i].UUID, files) {
 			continue
 		}
-		if err := models.DeleteAttachment(attachments[i], true); err != nil {
+		if err := repo_model.DeleteAttachment(attachments[i], true); err != nil {
 			return err
 		}
 	}
@@ -2549,16 +2550,16 @@ func updateAttachments(item interface{}, files []string) error {
 	}
 	switch content := item.(type) {
 	case *models.Issue:
-		content.Attachments, err = models.GetAttachmentsByIssueID(content.ID)
+		content.Attachments, err = repo_model.GetAttachmentsByIssueID(content.ID)
 	case *models.Comment:
-		content.Attachments, err = models.GetAttachmentsByCommentID(content.ID)
+		content.Attachments, err = repo_model.GetAttachmentsByCommentID(content.ID)
 	default:
 		return fmt.Errorf("Unknown Type: %T", content)
 	}
 	return err
 }
 
-func attachmentsHTML(ctx *context.Context, attachments []*models.Attachment, content string) string {
+func attachmentsHTML(ctx *context.Context, attachments []*repo_model.Attachment, content string) string {
 	attachHTML, err := ctx.HTMLString(string(tplAttachment), map[string]interface{}{
 		"ctx":         ctx.Data,
 		"Attachments": attachments,
