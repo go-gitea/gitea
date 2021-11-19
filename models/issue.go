@@ -783,10 +783,10 @@ func (issue *Issue) ChangeConfidential(doer *User) (err error) {
 		OldConfidential: !issue.IsPrivate,
 		NewConfidential: issue.IsPrivate,
 	}
-	if _, err = createComment(db.GetEngine(ctx), opts); err != nil {
+	if _, err = createComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
-	if err = issue.addCrossReferences(db.GetEngine(ctx), doer, true); err != nil {
+	if err = issue.addCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
 
