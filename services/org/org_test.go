@@ -20,18 +20,18 @@ func TestMain(m *testing.M) {
 
 func TestDeleteOrganization(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 6}).(*models.User)
+	org := unittest.AssertExistsAndLoadBean(t, &models.Organization{ID: 6}).(*models.Organization)
 	assert.NoError(t, DeleteOrganization(org))
-	unittest.AssertNotExistsBean(t, &models.User{ID: 6})
+	unittest.AssertNotExistsBean(t, &models.Organization{ID: 6})
 	unittest.AssertNotExistsBean(t, &models.OrgUser{OrgID: 6})
 	unittest.AssertNotExistsBean(t, &models.Team{OrgID: 6})
 
-	org = unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
+	org = unittest.AssertExistsAndLoadBean(t, &models.Organization{ID: 3}).(*models.Organization)
 	err := DeleteOrganization(org)
 	assert.Error(t, err)
 	assert.True(t, models.IsErrUserOwnRepos(err))
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.Organization{ID: 5}).(*models.Organization)
 	assert.Error(t, DeleteOrganization(user))
 	unittest.CheckConsistencyFor(t, &models.User{}, &models.Team{})
 }

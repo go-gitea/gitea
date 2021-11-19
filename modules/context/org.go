@@ -18,11 +18,12 @@ type Organization struct {
 	IsMember         bool
 	IsTeamMember     bool // Is member of team.
 	IsTeamAdmin      bool // In owner team or team that has admin permission level.
-	Organization     *models.User
+	Organization     *models.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
 
-	Team *models.Team
+	Team  *models.Team
+	Teams []*models.Team
 }
 
 // HandleOrgAssignment handles organization assignment
@@ -49,7 +50,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	orgName := ctx.Params(":org")
 
 	var err error
-	ctx.Org.Organization, err = models.GetUserByName(orgName)
+	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
@@ -67,12 +68,6 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	org := ctx.Org.Organization
 	ctx.Data["Org"] = org
-
-	// Force redirection when username is actually a user.
-	if !org.IsOrganization() {
-		ctx.Redirect(org.HomeLink())
-		return
-	}
 
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
@@ -118,18 +113,19 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
 
-	ctx.Org.OrgLink = org.OrganisationLink()
+	ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 	ctx.Data["OrgLink"] = ctx.Org.OrgLink
 
 	// Team.
 	if ctx.Org.IsMember {
 		if ctx.Org.IsOwner {
-			if err := org.LoadTeams(); err != nil {
+			ctx.Org.Teams, err = org.LoadTeams()
+			if err != nil {
 				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {
-			org.Teams, err = org.GetUserTeams(ctx.User.ID)
+			ctx.Org.Teams, err = org.GetUserTeams(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -140,7 +136,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	teamName := ctx.Params(":team")
 	if len(teamName) > 0 {
 		teamExists := false
-		for _, team := range org.Teams {
+		for _, team := range ctx.Org.Teams {
 			if team.LowerName == strings.ToLower(teamName) {
 				teamExists = true
 				ctx.Org.Team = team

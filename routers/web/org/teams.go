@@ -38,13 +38,13 @@ func Teams(ctx *context.Context) {
 	ctx.Data["Title"] = org.FullName
 	ctx.Data["PageIsOrgTeams"] = true
 
-	for _, t := range org.Teams {
+	for _, t := range ctx.Org.Teams {
 		if err := t.GetMembers(&models.SearchMembersOptions{}); err != nil {
 			ctx.ServerError("GetMembers", err)
 			return
 		}
 	}
-	ctx.Data["Teams"] = org.Teams
+	ctx.Data["Teams"] = ctx.Org.Teams
 
 	ctx.HTML(http.StatusOK, tplTeams)
 }
@@ -158,7 +158,7 @@ func TeamsAction(ctx *context.Context) {
 	case "team":
 		ctx.Redirect(ctx.Org.OrgLink + "/teams/" + url.PathEscape(ctx.Org.Team.LowerName))
 	case "home":
-		ctx.Redirect(ctx.Org.Organization.HomeLink())
+		ctx.Redirect(ctx.Org.Organization.AsUser().HomeLink())
 	default:
 		ctx.Redirect(ctx.Org.OrgLink + "/teams")
 	}
