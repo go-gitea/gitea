@@ -1764,7 +1764,7 @@ func IssuePrivate(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (!issue.IsPoster(ctx.User.ID) && !ctx.Repo.IsAdmin()) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
