@@ -529,8 +529,7 @@ type FindOrgOptions struct {
 func queryUserOrgIDs(userID int64) *builder.Builder {
 	return builder.Select("org_id").From("org_user").
 		Where(builder.Eq{
-			"uid":       userID,
-			"is_public": true,
+			"uid": userID,
 		})
 }
 
@@ -559,7 +558,7 @@ func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
 
 // CountOrgs returns total count organizations according options
 func CountOrgs(opts FindOrgOptions) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
+	return db.GetEngine(db.DefaultContext).
 		Where(opts.toConds()).
 		Count(new(User))
 }
