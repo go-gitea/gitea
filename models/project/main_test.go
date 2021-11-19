@@ -16,5 +16,6 @@ func TestMain(m *testing.M) {
 		"project.yml",
 		"project_board.yml",
 		"project_issue.yml",
+		"repository.yml",
 	)
 }
