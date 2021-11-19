@@ -24,7 +24,7 @@ type Identicon struct {
 	rect       image.Rectangle
 }
 
-// New returns an Identicon
+// New returns an Identicon struct with the correct settings
 // size image size
 // back background color
 // fore all possible foreground colors. only one foreground color will be picked randomly for one image
