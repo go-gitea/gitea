@@ -207,15 +207,16 @@ steps:
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
-  - name: fix-permissions
+  - name: prepare-test-env
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - chown -R gitea:gitea .
+      - ./build/test-env-prepare.sh
 
   - name: unit-test
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
@@ -353,16 +354,17 @@ steps:
         exclude:
           - pull_request
 
-  - name: fix-permissions
+  - name: prepare-test-env
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     commands:
-      - chown -R gitea:gitea .
+      - ./build/test-env-prepare.sh
 
   - name: build
     pull: always
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
