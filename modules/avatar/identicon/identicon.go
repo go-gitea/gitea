@@ -14,9 +14,7 @@ import (
 	"image/color"
 )
 
-const (
-	minImageSize = 16
-)
+const minImageSize = 16
 
 // Identicon is used to generate pseudo-random avatars
 type Identicon struct {
