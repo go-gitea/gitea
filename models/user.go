@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	_ "image/jpeg" // Needed for jpeg support
 	"net/url"
 	"os"
 	"path/filepath"
@@ -20,6 +19,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	_ "image/jpeg" // Needed for jpeg support
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
@@ -30,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -39,7 +39,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/pbkdf2"
 	"golang.org/x/crypto/scrypt"
-
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
@@ -541,15 +540,16 @@ func (u *User) IsPublicMember(orgID int64) bool {
 	return isMember
 }
 
-func (u *User) getOrganizationCount(e db.Engine) (int64, error) {
-	return e.
+// GetOrganizationCount returns count of membership of organization of the user.
+func GetOrganizationCount(ctx context.Context, u *User) (int64, error) {
+	return db.GetEngine(ctx).
 		Where("uid=?", u.ID).
 		Count(new(OrgUser))
 }
 
 // GetOrganizationCount returns count of membership of organization of user.
 func (u *User) GetOrganizationCount() (int64, error) {
-	return u.getOrganizationCount(db.GetEngine(db.DefaultContext))
+	return GetOrganizationCount(db.DefaultContext, u)
 }
 
 // GetRepositories returns repositories that user owns, including private repositories.
@@ -1148,25 +1148,9 @@ func deleteBeans(e db.Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-func deleteUser(e db.Engine, u *User) error {
-	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation.
-
-	// Check ownership of repository.
-	count, err := getRepositoryCount(e, u)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %v", err)
-	} else if count > 0 {
-		return ErrUserOwnRepos{UID: u.ID}
-	}
-
-	// Check membership of organization.
-	count, err = u.getOrganizationCount(e)
-	if err != nil {
-		return fmt.Errorf("GetOrganizationCount: %v", err)
-	} else if count > 0 {
-		return ErrUserHasOrgs{UID: u.ID}
-	}
+// DeleteUser deletes models associated to an user.
+func DeleteUser(ctx context.Context, u *User) (err error) {
+	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
@@ -1299,85 +1283,21 @@ func deleteUser(e db.Engine, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// Note: There are something just cannot be roll back,
-	//	so just keep error logs of those operations.
-	path := UserPath(u.Name)
-	if err = util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-		return err
-	}
-
-	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarRelativePath()
-		if err = storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = createNotice(e, NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-			return err
-		}
-	}
-
 	return nil
 }
 
-// DeleteUser completely and permanently deletes everything of a user,
-// but issues/comments/pulls will be kept and shown as someone has been deleted,
-// unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(u *User) (err error) {
-	if u.IsOrganization() {
-		return fmt.Errorf("%s is an organization not a user", u.Name)
-	}
+// GetInactiveUsers gets all inactive users
+func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
+	var cond builder.Cond = builder.Eq{"is_active": false}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return err
-	}
-
-	if err = deleteUser(sess, u); err != nil {
-		// Note: don't wrapper error here.
-		return err
-	}
-
-	return sess.Commit()
-}
-
-// DeleteInactiveUsers deletes all inactive users and email addresses.
-func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err error) {
-	users := make([]*User, 0, 10)
 	if olderThan > 0 {
-		if err = db.GetEngine(db.DefaultContext).
-			Where("is_active = ? and created_unix < ?", false, time.Now().Add(-olderThan).Unix()).
-			Find(&users); err != nil {
-			return fmt.Errorf("get all inactive users: %v", err)
-		}
-	} else {
-		if err = db.GetEngine(db.DefaultContext).
-			Where("is_active = ?", false).
-			Find(&users); err != nil {
-			return fmt.Errorf("get all inactive users: %v", err)
-		}
-	}
-	// FIXME: should only update authorized_keys file once after all deletions.
-	for _, u := range users {
-		select {
-		case <-ctx.Done():
-			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
-		default:
-		}
-		if err = DeleteUser(u); err != nil {
-			// Ignore users that were set inactive by admin.
-			if IsErrUserOwnRepos(err) || IsErrUserHasOrgs(err) {
-				continue
-			}
-			return err
-		}
+		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-olderThan).Unix()})
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).
-		Where("is_activated = ?", false).
-		Delete(new(user_model.EmailAddress))
-	return err
+	users := make([]*User, 0, 10)
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Find(&users)
 }
 
 // UserPath returns the path absolute path of user repositories.
@@ -1824,4 +1744,17 @@ func GetUserByOpenID(uri string) (*User, error) {
 	}
 
 	return nil, ErrUserNotExist{0, uri, 0}
+}
+
+// GetAdminUser returns the first administrator
+func GetAdminUser() (*User, error) {
+	var admin User
+	has, err := db.GetEngine(db.DefaultContext).Where("is_admin=?", true).Get(&admin)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{}
+	}
+
+	return &admin, nil
 }

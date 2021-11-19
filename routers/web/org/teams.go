@@ -91,7 +91,6 @@ func TeamsAction(ctx *context.Context) {
 			return
 		}
 		err = ctx.Org.Team.RemoveMember(uid)
-		page = "team"
 		if err != nil {
 			if models.IsErrLastOrgOwner(err) {
 				ctx.Flash.Error(ctx.Tr("form.last_org_owner"))

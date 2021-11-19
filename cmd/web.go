@@ -9,9 +9,10 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 	"os"
 	"strings"
+
+	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
