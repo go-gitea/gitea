@@ -101,8 +101,10 @@ const (
 	CommentTypeProject
 	// 31 Project board changed
 	CommentTypeProjectBoard
-	// Dismiss Review
+	// 32 Dismiss Review
 	CommentTypeDismissReview
+	// 33 Change issue ref
+	CommentTypeChangeIssueRef
 )
 
 // RoleDescriptor defines comment tag type
