@@ -983,6 +983,14 @@ Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[
 To apply a sanitisation rules only for a specify external renderer they must use the renderer name, e.g. `[markup.sanitizer.asciidoc.rule-1]`.
 If the rule is defined above the renderer ini section or the name does not match a renderer it is applied to every renderer.
 
+## Highlight Mappings (`highlight.mapping`)
+
+- `file_extension e.g. .toml`: **language e.g. ini**. File extension to language mapping overrides.
+
+- Gitea will highlight files using the `linguist-language` or `gitlab-language` attribute from the `.gitattributes` file
+if available. If this is not set or the language is unavailable, the file extension will be looked up
+in this mapping or the filetype using heuristics.
+
 ## Time (`time`)
 
 - `FORMAT`: Time format to display on UI. i.e. RFC1123 or 2006-01-02 15:04:05
