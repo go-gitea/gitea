@@ -109,6 +109,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 	r.DefaultBranch = repo.DefaultBranch
+	r.Description = repo.Description
 
 	r, err = repository.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
