@@ -770,7 +770,7 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 		OldRef: oldRefFriendly,
 		NewRef: newRefFriendly,
 	}
-	if _, err = createComment(db.GetEngine(ctx), opts); err != nil {
+	if _, err = createComment(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
 
