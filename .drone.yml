@@ -1,5 +1,6 @@
 ---
 kind: pipeline
+type: docker
 name: compliance
 
 platform:
@@ -130,6 +131,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: testing-amd64
 
 platform:
@@ -191,16 +193,6 @@ steps:
         exclude:
           - pull_request
 
-  - name: build
-    pull: always
-    image: golang:1.17
-    commands:
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-
   - name: tag-pre-condition
     pull: always
     image: drone/git
@@ -212,11 +204,24 @@ steps:
     commands:
       - ./build/test-env-prepare.sh
 
+  - name: build
+    pull: always
+    image: golang:1.17
+    user: gitea
+    commands:
+      - ./build/test-env-check.sh
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
+
   - name: unit-test
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
@@ -230,7 +235,6 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
@@ -243,7 +247,6 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
@@ -259,7 +262,6 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
@@ -274,7 +276,6 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
@@ -374,12 +375,13 @@ steps:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
 
   - name: test-sqlite
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
@@ -394,7 +396,6 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - ./build/test-env-check.sh
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
@@ -469,6 +470,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: update_gitignore_and_licenses
 
 platform:
@@ -505,6 +507,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: release-latest
 
 platform:
@@ -683,6 +686,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docs
 
 platform:
@@ -724,6 +728,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release-version
 
 platform:
@@ -788,6 +793,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-amd64-release
 
 platform:
@@ -852,6 +858,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-dry-run
 
 platform:
@@ -884,6 +891,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release-version
 
 platform:
@@ -951,6 +959,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docker-linux-arm64-release
 
 platform:
@@ -1017,6 +1026,7 @@ steps:
         - pull_request
 ---
 kind: pipeline
+type: docker
 name: docker-manifest-version
 
 platform:
@@ -1060,6 +1070,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: docker-manifest
 
 platform:
@@ -1103,6 +1114,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: notifications
 
 platform:
