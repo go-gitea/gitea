@@ -43,12 +43,7 @@ func (n *Notice) TrStr() string {
 }
 
 // CreateNotice creates new system notice.
-func CreateNotice(tp NoticeType, desc string, args ...interface{}) error {
-	return CreateNoticeCtx(db.DefaultContext, tp, desc, args...)
-}
-
-// CreateNoticeCtx creates new system notice.
-func CreateNoticeCtx(ctx context.Context, tp NoticeType, desc string, args ...interface{}) error {
+func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...interface{}) error {
 	if len(args) > 0 {
 		desc = fmt.Sprintf(desc, args...)
 	}
@@ -61,38 +56,28 @@ func CreateNoticeCtx(ctx context.Context, tp NoticeType, desc string, args ...in
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string, args ...interface{}) error {
-	return CreateNoticeCtx(db.DefaultContext, NoticeRepository, desc, args...)
+	return CreateNotice(db.DefaultContext, NoticeRepository, desc, args...)
 }
 
 // RemoveAllWithNotice removes all directories in given path and
 // creates a system notice when error occurs.
-func RemoveAllWithNotice(title, path string) {
-	RemoveAllWithNoticeCtx(db.DefaultContext, title, path)
-}
-
-// RemoveStorageWithNotice removes a file from the storage and
-// creates a system notice when error occurs.
-func RemoveStorageWithNotice(bucket storage.ObjectStorage, title, path string) {
-	removeStorageWithNotice(db.DefaultContext, bucket, title, path)
-}
-
-func removeStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, title, path string) {
-	if err := bucket.Delete(path); err != nil {
+func RemoveAllWithNotice(ctx context.Context, title, path string) {
+	if err := util.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = CreateNoticeCtx(ctx, NoticeRepository, desc); err != nil {
+		if err = CreateNotice(ctx, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
 }
 
-// RemoveAllWithNoticeCtx removes all directories in given path and
+// RemoveStorageWithNotice removes a file from the storage and
 // creates a system notice when error occurs.
-func RemoveAllWithNoticeCtx(ctx context.Context, title, path string) {
-	if err := util.RemoveAll(path); err != nil {
+func RemoveStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, title, path string) {
+	if err := bucket.Delete(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = CreateNoticeCtx(ctx, NoticeRepository, desc); err != nil {
+		if err = CreateNotice(ctx, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}

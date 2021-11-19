@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -142,5 +143,5 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 			assert.NoError(t, models.DeleteRepository(user, org.ID, rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, models.DeleteOrganization(org), "DeleteOrganization")
+	assert.NoError(t, models.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
 }
