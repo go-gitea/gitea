@@ -56,6 +56,27 @@ func ChangeTitle(issue *models.Issue, doer *models.User, title string) (err erro
 
 // ChangeConfidential changes the confidential of this issue, as the given user.
 func ChangeConfidential(issue *models.Issue, doer *models.User, isConfidential bool) (err error) {
+	if doer == nil {
+		return models.ErrCannotSeePrivateIssue{
+			UserID: -1,
+			ID:     issue.ID,
+			RepoID: issue.RepoID,
+			Index:  issue.Index,
+		}
+	}
+	isUserAdmin, err := models.IsUserRealRepoAdmin(issue.Repo, doer)
+	if err != nil {
+		return
+	}
+	if !issue.IsPoster(doer.ID) && !isUserAdmin {
+		return models.ErrCannotSeePrivateIssue{
+			UserID: -1,
+			ID:     issue.ID,
+			RepoID: issue.RepoID,
+			Index:  issue.Index,
+		}
+	}
+
 	issue.IsPrivate = isConfidential
 
 	if err = issue.ChangeConfidential(doer); err != nil {

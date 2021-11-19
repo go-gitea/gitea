@@ -302,7 +302,7 @@
 			</div>
 		</div>
 
-		{{if or .IsAdmin .Issue.IsPrivate .IsPoster}}
+		{{if or (.IsRepoAdmin) (.Issue.IsPrivate) (.IsIssuePoster)}}
 		<div class="ui divider"></div>
 		<div class="ui">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.confidential"}}</strong></span>
@@ -312,10 +312,10 @@
 					{{$.CsrfTokenHtml}}
 					<button class="fluid ui button df jc">
 						{{if .Issue.IsPrivate}}
+							<!-- TODO: Replace it with a better icon! -->
+							{{svg "octicon-unmute" 16 "mr-3"}}
 							{{.i18n.Tr "repo.issues.confidential.off"}}
 						{{else}}
-							<!-- TODO: Replace it with a better icon! --> 
-							{{svg "octicon-unmute" 16 "mr-3"}}
 							{{.i18n.Tr "repo.issues.confidential.on"}}
 						{{end}}
 					</button>
