@@ -486,7 +486,7 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 	groupByStr = groupByStr[0 : len(groupByStr)-1]
 
 	sess := db.GetEngine(db.DefaultContext)
-	sess.Select(groupByStr+", count(distinct repo_id) as org_count").
+	sess = sess.Select(groupByStr+", count(distinct repo_id) as org_count").
 		Table("user").
 		Join("INNER", "team", "`team`.org_id = `user`.id").
 		Join("INNER", "team_user", "`team`.id = `team_user`.team_id").
