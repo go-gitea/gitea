@@ -111,10 +111,10 @@
 				{{if .Permission.CanRead $.UnitTypeIssues}}
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}}
-						{{if .Repository.NumOpenIssues}}
-							{{if .Permission.CanReadPrivateIssues}}
-								<span class="ui blue small label">{{CountFmt (Add .Repository.NumOpenIssues .Repository.NumOpenPrivateIssues)}}</span>
-							{{else}}
+						{{if or .Repository.NumOpenIssues .Repository.NumOpenPrivateIssues}}
+							{{if and .Permission.CanReadPrivateIssues .Repository.NumOpenPrivateIssues}}
+								<span class="ui blue small label">{{CountFmt (Add .Repository.NumOpenPrivateIssues .Repository.NumOpenIssues)}}</span>
+							{{else if .Repository.NumOpenIssues}}
 								<span class="ui blue small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 							{{end}}
 						{{end}}
