@@ -89,6 +89,8 @@ type CreateIssueOption struct {
 	// list of label ids
 	Labels []int64 `json:"labels"`
 	Closed bool    `json:"closed"`
+	// mark if the issue is confidential
+	IsConfidential bool `json:"is_confidential"`
 }
 
 // EditIssueOption options for editing an issue

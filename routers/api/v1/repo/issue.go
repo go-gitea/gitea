@@ -611,6 +611,7 @@ func CreateIssue(ctx *context.APIContext) {
 		Content:      form.Body,
 		Ref:          form.Ref,
 		DeadlineUnix: deadlineUnix,
+		IsPrivate:    form.IsConfidential,
 	}
 
 	var assigneeIDs = make([]int64, 0)
