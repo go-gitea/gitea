@@ -77,7 +77,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
@@ -85,7 +85,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -186,7 +186,7 @@ func AddTime(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
@@ -194,7 +194,7 @@ func AddTime(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -272,7 +272,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
@@ -280,7 +280,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -348,7 +348,7 @@ func DeleteTime(ctx *context.APIContext) {
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
-			ctx.NotFound(err)
+			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
@@ -356,7 +356,7 @@ func DeleteTime(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 

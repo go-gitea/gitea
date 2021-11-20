@@ -115,7 +115,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -201,7 +201,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -272,7 +272,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 

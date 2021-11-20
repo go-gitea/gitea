@@ -63,24 +63,20 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
 		return
 	}
-	issue.Repo = ctx.Repo.Repository
 
-	if err = issue.LoadPoster(); err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-	if err = issue.LoadIsPrivate(); err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
+	issue.Repo = ctx.Repo.Repository
 	opts := &models.FindCommentsOptions{
 		IssueID: issue.ID,
 		Since:   since,
@@ -252,7 +248,16 @@ func CreateIssueComment(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.NotFound()
 		return
 	}
 

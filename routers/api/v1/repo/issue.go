@@ -556,7 +556,7 @@ func GetIssue(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -729,13 +729,13 @@ func EditIssue(ctx *context.APIContext) {
 		}
 		return
 	}
-	issue.Repo = ctx.Repo.Repository
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
+	issue.Repo = ctx.Repo.Repository
 	canWrite := ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
 
 	err = issue.LoadAttributes()
@@ -903,7 +903,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 

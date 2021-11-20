@@ -290,7 +290,7 @@ func GetIssueReactions(ctx *context.APIContext) {
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
@@ -414,7 +414,7 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 	}
 
 	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
-		ctx.Status(http.StatusNotFound)
+		ctx.NotFound()
 		return
 	}
 
