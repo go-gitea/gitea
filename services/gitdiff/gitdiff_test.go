@@ -694,7 +694,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	defer gitRepo.Close()
 	for _, behavior := range []string{"-w", "--ignore-space-at-eol", "-b", ""} {
 		diffs, err := GetDiff(gitRepo,
-			DiffOptions{
+			&DiffOptions{
 				AfterCommitID:      "bd7063cc7c04689c4d082183d32a604ed27a24f9",
 				BeforeCommitID:     "559c156f8e0178b71cb44355428f24001b08fc68",
 				MaxLines:           setting.Git.MaxGitDiffLines,

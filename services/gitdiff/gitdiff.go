@@ -1294,7 +1294,7 @@ type DiffOptions struct {
 // GetDiff builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiff(gitRepo *git.Repository, opts DiffOptions, files ...string) (*Diff, error) {
+func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	repoPath := gitRepo.Path
 
 	commit, err := gitRepo.GetCommit(opts.AfterCommitID)

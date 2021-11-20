@@ -287,20 +287,17 @@ func Diff(ctx *context.Context) {
 	}
 
 	fileOnly := ctx.FormBool("file-only")
-	maxLines, maxLineCharacters, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
 	files := ctx.FormStrings("files")
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
-		maxLines, maxLineCharacters, maxFiles = -1, 4096, -1
-		if setting.Git.MaxGitDiffLineCharacters > maxLineCharacters {
-			maxLineCharacters = setting.Git.MaxGitDiffLineCharacters
-		}
+		maxLines, maxFiles = -1, -1
 	}
 
-	diff, err := gitdiff.GetDiff(gitRepo, gitdiff.DiffOptions{
+	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
 		AfterCommitID:      commitID,
 		SkipTo:             ctx.FormString("skip-to"),
 		MaxLines:           maxLines,
-		MaxLineCharacters:  maxLineCharacters,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 		MaxFiles:           maxFiles,
 		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
 	}, files...)
