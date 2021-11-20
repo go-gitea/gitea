@@ -248,7 +248,7 @@ func APIAuth(authMethod auth.Method) func(*APIContext) {
 			if ctx.Locale.Language() != ctx.User.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
