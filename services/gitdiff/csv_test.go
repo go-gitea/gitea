@@ -11,6 +11,7 @@ import (
 
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -194,16 +195,16 @@ c,d,e`,
 
 		var baseReader *csv.Reader
 		if len(c.base) > 0 {
-			baseReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.base))
+			baseReader, err = csv_module.CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.base))
 			if err != nil {
-				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+				t.Errorf("CreateReaderAndDetermineDelimiter failed: %s", err)
 			}
 		}
 		var headReader *csv.Reader
 		if len(c.head) > 0 {
-			headReader, err = csv_module.CreateReaderAndGuessDelimiter(strings.NewReader(c.head))
+			headReader, err = csv_module.CreateReaderAndDetermineDelimiter(nil, strings.NewReader(c.head))
 			if err != nil {
-				t.Errorf("CreateReaderAndGuessDelimiter failed: %s", err)
+				t.Errorf("CreateReaderAndDetermineDelimiter failed: %s", err)
 			}
 		}
 

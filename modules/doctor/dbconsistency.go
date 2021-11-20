@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -74,7 +75,7 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 
 func checkDBConsistency(logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.NewEngine(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
@@ -110,8 +111,8 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		// find attachments without existing issues or releases
 		{
 			Name:    "Orphaned Attachments without existing issues or releases",
-			Counter: models.CountOrphanedAttachments,
-			Fixer:   asFixer(models.DeleteOrphanedAttachments),
+			Counter: repo_model.CountOrphanedAttachments,
+			Fixer:   asFixer(repo_model.DeleteOrphanedAttachments),
 		},
 		// find null archived repositories
 		{

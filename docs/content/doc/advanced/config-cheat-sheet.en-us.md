@@ -617,6 +617,14 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
+- `ALLOWED_HOST_LIST`: **external**: Since 1.15.7. Default to `*` for 1.15.x, `external` for 1.16 and later. Webhook can only call allowed hosts for security reasons. Comma separated list.
+  - Built-in networks:
+    - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
+    - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
+    - `external`: A valid non-private unicast IP, you can access all hosts on public internet. 
+    - `*`: All hosts are allowed.
+  - CIDR list: `1.2.3.0/8` for IPv4 and `2001:db8::/32` for IPv6
+  - Wildcard hosts: `*.mydomain.com`, `192.168.100.*`
 - `SKIP_TLS_VERIFY`: **false**: Allow insecure certification.
 - `PAGING_NUM`: **10**: Number of webhook history events that are shown in one page.
 - `PROXY_URL`: **\<empty\>**: Proxy server URL, support http://, https//, socks://, blank will follow environment http_proxy/https_proxy. If not given, will use global proxy setting.
@@ -634,6 +642,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
   - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
+- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
    - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
@@ -1009,6 +1018,14 @@ ALLOW_DATA_URI_IMAGES = true
 Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
 To apply a sanitisation rules only for a specify external renderer they must use the renderer name, e.g. `[markup.sanitizer.asciidoc.rule-1]`.
 If the rule is defined above the renderer ini section or the name does not match a renderer it is applied to every renderer.
+
+## Highlight Mappings (`highlight.mapping`)
+
+- `file_extension e.g. .toml`: **language e.g. ini**. File extension to language mapping overrides.
+
+- Gitea will highlight files using the `linguist-language` or `gitlab-language` attribute from the `.gitattributes` file
+if available. If this is not set or the language is unavailable, the file extension will be looked up
+in this mapping or the filetype using heuristics.
 
 ## Time (`time`)
 

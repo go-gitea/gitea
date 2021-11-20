@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -139,13 +140,13 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		return false
 	}
 
-	if unit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests); err == nil {
+	if unit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		if !config.AutodetectManualMerge {
 			return false
 		}
 	} else {
-		log.Error("PullRequest[%d].BaseRepo.GetUnit(models.UnitTypePullRequests): %v", pr.ID, err)
+		log.Error("PullRequest[%d].BaseRepo.GetUnit(unit.TypePullRequests): %v", pr.ID, err)
 		return false
 	}
 

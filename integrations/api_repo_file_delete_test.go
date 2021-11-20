@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -38,18 +38,17 @@ func getDeleteFileOptions() *api.DeleteFileOptions {
 
 func TestAPIDeleteFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
-		repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-		repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-		repo16 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
+		repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
+		repo16 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
 		fileID := 0
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
 		token2 := getTokenForLoggedInUser(t, session)
-		session = emptyTestSession(t)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
 		token4 := getTokenForLoggedInUser(t, session)
@@ -111,7 +110,7 @@ func TestAPIDeleteFile(t *testing.T) {
 		deleteFileOptions.SHA = "badsha"
 		url = fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", user2.Name, repo1.Name, treePath, token2)
 		req = NewRequestWithJSON(t, "DELETE", url, &deleteFileOptions)
-		resp = session.MakeRequest(t, req, http.StatusBadRequest)
+		session.MakeRequest(t, req, http.StatusBadRequest)
 
 		// Test creating a file in repo16 by user4 who does not have write access
 		fileID++

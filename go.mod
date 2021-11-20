@@ -55,16 +55,14 @@ require (
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-github/v39 v39.2.0
 	github.com/google/uuid v1.2.0
-	github.com/gorilla/context v1.1.1
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/mux v1.8.0 // indirect
-	github.com/gorilla/sessions v1.2.1 // indirect
+	github.com/gorilla/sessions v1.2.1
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.0 // indirect
 	github.com/hashicorp/go-version v1.3.1
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huandu/xstrings v1.3.2
-	github.com/issue9/identicon v1.2.0
 	github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 	github.com/json-iterator/go v1.1.11
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
@@ -73,7 +71,6 @@ require (
 	github.com/klauspost/compress v1.13.1
 	github.com/klauspost/cpuid/v2 v2.0.9
 	github.com/klauspost/pgzip v1.2.5 // indirect
-	github.com/lafriks/xormstore v1.4.0
 	github.com/lib/pq v1.10.2
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.68.0

@@ -299,16 +299,17 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 	// Remove old team-repository relations.
 	if oldOwner.IsOrganization() {
-		if err := oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
+		if err := OrgFromUser(oldOwner).removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.loadTeams(sess); err != nil {
+		teams, err := OrgFromUser(newOwner).loadTeams(sess)
+		if err != nil {
 			return fmt.Errorf("LoadTeams: %v", err)
 		}
-		for _, t := range newOwner.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(sess, repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)

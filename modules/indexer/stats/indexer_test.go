@@ -10,20 +10,19 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
-	"gopkg.in/ini.v1"
-
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/ini.v1"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func TestRepoStatsIndex(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Cfg = ini.Empty()
 
 	setting.NewQueueService()

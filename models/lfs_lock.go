@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -152,7 +153,7 @@ func CheckLFSAccessForRepo(u *User, repo *Repository, mode AccessMode) error {
 	if err != nil {
 		return err
 	}
-	if !perm.CanAccess(mode, UnitTypeCode) {
+	if !perm.CanAccess(mode, unit.TypeCode) {
 		return ErrLFSUnauthorizedAction{repo.ID, u.DisplayName(), mode}
 	}
 	return nil

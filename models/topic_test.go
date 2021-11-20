@@ -8,15 +8,16 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddTopic(t *testing.T) {
 	totalNrOfTopics := 6
 	repo1NrOfTopics := 3
-	repo2NrOfTopics := 2
 
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	topics, _, err := FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
@@ -36,7 +37,7 @@ func TestAddTopic(t *testing.T) {
 	assert.Len(t, topics, repo1NrOfTopics)
 
 	assert.NoError(t, SaveTopics(2, "golang"))
-	repo2NrOfTopics = 1
+	repo2NrOfTopics := 1
 	topics, _, err = FindTopics(&FindTopicOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, topics, totalNrOfTopics)

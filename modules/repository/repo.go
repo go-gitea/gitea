@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -50,7 +50,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 	repoPath := models.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := u.GetOwnerTeam()
+		t, err := models.OrgFromUser(u).GetOwnerTeam()
 		if err != nil {
 			return nil, err
 		}

@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -51,11 +51,11 @@ func TestAPITopicSearch(t *testing.T) {
 
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
-	user3 := db.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
-	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
-	repo2 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
+	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
+	user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
+	repo2 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
@@ -75,15 +75,15 @@ func TestAPIRepoTopic(t *testing.T) {
 
 	// Test delete a topic
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add an existing topic
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Golang", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add a topic
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "topicName3", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test read topics using token
 	req = NewRequest(t, "GET", url)
@@ -96,7 +96,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -107,7 +107,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -118,7 +118,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -129,15 +129,15 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test add a topic when there is already maximum
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "t26", token2)
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test delete a topic that repo doesn't have
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
-	res = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Get user4's token
 	session = loginUser(t, user4.Name)
@@ -153,6 +153,6 @@ func TestAPIRepoTopic(t *testing.T) {
 
 	// Test add a topic to repo with write access (requires repo admin access)
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)
-	res = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 }

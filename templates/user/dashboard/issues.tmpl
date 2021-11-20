@@ -35,18 +35,18 @@
 					{{range .Repos}}
 						{{with $Repo := .}}
 							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
-									{{with $include := true}}
-										{{range $.RepoIDs}}
-											{{if eq . $Repo.ID}}
+									{{- with $include := true -}}
+										{{- range $.RepoIDs -}}
+											{{- if eq . $Repo.ID -}}
 												{{$include = false}}
-											{{else}}
+											{{- else -}}
 												{{.}}%2C
-											{{end}}
-										{{end}}
-										{{if eq $include true}}
+											{{- end -}}
+										{{- end -}}
+										{{- if eq $include true -}}
 											{{$Repo.ID}}%2C
-										{{end}}
-									{{end}}
+										{{- end -}}
+									{{- end -}}
 									]&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}" title="{{.FullName}}">
 								<span class="text truncate">{{$Repo.FullName}}</span>
 								<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt (index $.Counts $Repo.ID)}}</div>

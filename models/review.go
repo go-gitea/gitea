@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -358,11 +359,12 @@ func IsContentEmptyErr(err error) bool {
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	official := false
 
@@ -428,7 +430,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		}
 	}
 
-	comm, err := createComment(sess, &CreateCommentOptions{
+	comm, err := createComment(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -463,7 +465,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	}
 
 	comm.Review = review
-	return review, comm, sess.Commit()
+	return review, comm, committer.Commit()
 }
 
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
@@ -630,11 +632,12 @@ func InsertReviews(reviews []*Review) error {
 
 // AddReviewRequest add a review request from one reviewer
 func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -666,7 +669,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -679,16 +682,17 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -720,7 +724,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		}
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -732,16 +736,17 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // AddTeamReviewRequest add a review request from one team
 func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -778,7 +783,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		}
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -791,16 +796,17 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -835,10 +841,10 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 	}
 
 	if doer == nil {
-		return nil, sess.Commit()
+		return nil, committer.Commit()
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -850,7 +856,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // MarkConversation Add or remove Conversation mark for a code comment
@@ -897,7 +903,7 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 			return false, err
 		}
 
-		permResult = perm.CanAccess(AccessModeWrite, UnitTypePullRequests)
+		permResult = perm.CanAccess(AccessModeWrite, unit.TypePullRequests)
 		if !permResult {
 			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
 				return false, err

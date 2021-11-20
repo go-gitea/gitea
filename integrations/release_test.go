@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 
@@ -134,7 +134,7 @@ func TestCreateReleasePaging(t *testing.T) {
 func TestViewReleaseListNoLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	link := repo.Link() + "/releases"
 
@@ -160,7 +160,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 func TestViewReleaseListLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	link := repo.Link() + "/releases"
 
@@ -191,7 +191,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 func TestViewTagsList(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	link := repo.Link() + "/tags"
 

@@ -13,13 +13,16 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMetas(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := &Repository{Name: "testRepo"}
 	repo.Owner = &User{Name: "testOwner"}
@@ -32,7 +35,7 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, "testOwner", metas["user"])
 
 	externalTracker := RepoUnit{
-		Type: UnitTypeExternalTracker,
+		Type: unit.TypeExternalTracker,
 		Config: &ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
@@ -67,9 +70,9 @@ func TestMetas(t *testing.T) {
 }
 
 func TestGetRepositoryCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err1 := GetRepositoryCount(&User{ID: int64(10)})
+	count, err1 := GetRepositoryCount(db.DefaultContext, 10)
 	privateCount, err2 := GetPrivateRepositoryCount(&User{ID: int64(10)})
 	publicCount, err3 := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err1)
@@ -80,7 +83,7 @@ func TestGetRepositoryCount(t *testing.T) {
 }
 
 func TestGetPublicRepositoryCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	count, err := GetPublicRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err)
@@ -88,7 +91,7 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 }
 
 func TestGetPrivateRepositoryCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	count, err := GetPrivateRepositoryCount(&User{ID: int64(10)})
 	assert.NoError(t, err)
@@ -96,7 +99,7 @@ func TestGetPrivateRepositoryCount(t *testing.T) {
 }
 
 func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Get sample repo and change visibility
 	repo, err := GetRepositoryByID(9)
@@ -116,7 +119,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 }
 
 func TestGetUserFork(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// User13 has repo 11 forked from repo10
 	repo, err := GetRepositoryByID(10)
@@ -135,8 +138,8 @@ func TestGetUserFork(t *testing.T) {
 }
 
 func TestRepoAPIURL(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
 }
@@ -147,8 +150,8 @@ func TestUploadAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, db.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
 	assert.NoError(t, err)
@@ -161,8 +164,8 @@ func TestUploadBigAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, db.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
 	assert.Error(t, err)
@@ -174,8 +177,8 @@ func TestDeleteAvatar(t *testing.T) {
 	var buff bytes.Buffer
 	png.Encode(&buff, myImage)
 
-	assert.NoError(t, db.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
 	err := repo.UploadAvatar(buff.Bytes())
 	assert.NoError(t, err)
@@ -187,38 +190,65 @@ func TestDeleteAvatar(t *testing.T) {
 }
 
 func TestDoctorUserStarNum(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	assert.NoError(t, DoctorUserStarNum())
 }
 
 func TestRepoGetReviewers(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// test public repo
-	repo1 := db.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
 	reviewers, err := repo1.GetReviewers(2, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
 	// test private repo
-	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	reviewers, err = repo2.GetReviewers(2, 2)
 	assert.NoError(t, err)
 	assert.Empty(t, reviewers)
 }
 
 func TestRepoGetReviewerTeams(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo2 := db.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 	teams, err := repo2.GetReviewerTeams()
 	assert.NoError(t, err)
 	assert.Empty(t, teams)
 
-	repo3 := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	teams, err = repo3.GetReviewerTeams()
 	assert.NoError(t, err)
 	assert.Len(t, teams, 2)
+}
+
+func TestLinkedRepository(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	testCases := []struct {
+		name             string
+		attachID         int64
+		expectedRepo     *Repository
+		expectedUnitType unit.Type
+	}{
+		{"LinkedIssue", 1, &Repository{ID: 1}, unit.TypeIssues},
+		{"LinkedComment", 3, &Repository{ID: 1}, unit.TypePullRequests},
+		{"LinkedRelease", 9, &Repository{ID: 1}, unit.TypeReleases},
+		{"Notlinked", 10, nil, -1},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			attach, err := repo_model.GetAttachmentByID(tc.attachID)
+			assert.NoError(t, err)
+			repo, unitType, err := LinkedRepository(attach)
+			assert.NoError(t, err)
+			if tc.expectedRepo != nil {
+				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
+			}
+			assert.Equal(t, tc.expectedUnitType, unitType)
+		})
+	}
 }

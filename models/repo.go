@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	_ "image/jpeg" // Needed for jpeg support
 	"net"
 	"net/url"
 	"os"
@@ -22,7 +21,13 @@ import (
 	"time"
 	"unicode/utf8"
 
+	_ "image/jpeg" // Needed for jpeg support
+
+	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -128,9 +133,9 @@ func loadRepoConfig() {
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	loadRepoConfig()
-	loadUnitConfig()
+	unit.LoadUnitConfig()
 
-	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
 // RepositoryStatus defines the status of repository
@@ -312,7 +317,7 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + repo.FullName()
+	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // CommitLink make link to by commit full ID
@@ -321,14 +326,14 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
 		result = ""
 	} else {
-		result = repo.HTMLURL() + "/commit/" + commitID
+		result = repo.HTMLURL() + "/commit/" + url.PathEscape(commitID)
 	}
 	return
 }
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + repo.FullName()
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -353,11 +358,11 @@ func (repo *Repository) getUnits(e db.Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(user *User, unitType UnitType) bool {
+func (repo *Repository) CheckUnitUser(user *User, unitType unit.Type) bool {
 	return repo.checkUnitUser(db.GetEngine(db.DefaultContext), user, unitType)
 }
 
-func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType UnitType) bool {
+func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType unit.Type) bool {
 	if user.IsAdmin {
 		return true
 	}
@@ -371,7 +376,7 @@ func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType UnitType
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp UnitType) bool {
+func (repo *Repository) UnitEnabled(tp unit.Type) bool {
 	if err := repo.getUnits(db.GetEngine(db.DefaultContext)); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
@@ -385,7 +390,7 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 
 // ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
 type ErrUnitTypeNotExist struct {
-	UT UnitType
+	UT unit.Type
 }
 
 // IsErrUnitTypeNotExist checks if an error is a ErrUnitNotExist.
@@ -399,28 +404,28 @@ func (err ErrUnitTypeNotExist) Error() string {
 }
 
 // MustGetUnit always returns a RepoUnit object
-func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
+func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
 	ru, err := repo.GetUnit(tp)
 	if err == nil {
 		return ru
 	}
 
-	if tp == UnitTypeExternalWiki {
+	if tp == unit.TypeExternalWiki {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalWikiConfig),
 		}
-	} else if tp == UnitTypeExternalTracker {
+	} else if tp == unit.TypeExternalTracker {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
-	} else if tp == UnitTypePullRequests {
+	} else if tp == unit.TypePullRequests {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
-	} else if tp == UnitTypeIssues {
+	} else if tp == unit.TypeIssues {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(IssuesConfig),
@@ -433,11 +438,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 }
 
 // GetUnit returns a RepoUnit object
-func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
+func (repo *Repository) GetUnit(tp unit.Type) (*RepoUnit, error) {
 	return repo.getUnit(db.GetEngine(db.DefaultContext), tp)
 }
 
-func (repo *Repository) getUnit(e db.Engine, tp UnitType) (*RepoUnit, error) {
+func (repo *Repository) getUnit(e db.Engine, tp unit.Type) (*RepoUnit, error) {
 	if err := repo.getUnits(e); err != nil {
 		return nil, err
 	}
@@ -484,7 +489,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"mode":     "comment",
 		}
 
-		unit, err := repo.GetUnit(UnitTypeExternalTracker)
+		unit, err := repo.GetUnit(unit.TypeExternalTracker)
 		if err == nil {
 			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
@@ -707,19 +712,14 @@ func (repo *Repository) GitConfigPath() string {
 	return GitConfigPath(repo.RepoPath())
 }
 
-// RelLink returns the repository relative link
-func (repo *Repository) RelLink() string {
-	return "/" + repo.FullName()
-}
-
 // Link returns the repository link
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + repo.FullName()
+	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // ComposeCompareURL returns the repository comparison URL
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
-	return fmt.Sprintf("%s/compare/%s...%s", repo.FullName(), oldCommitID, newCommitID)
+	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
 // UpdateDefaultBranch updates the default branch
@@ -784,7 +784,7 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(user.ID)
+		isOwner, err := OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
 		} else if isOwner {
@@ -802,7 +802,7 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.UnitEnabled(UnitTypePullRequests)
+	return repo.CanEnablePulls() && repo.UnitEnabled(unit.TypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -928,11 +928,11 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
@@ -1076,9 +1076,9 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 	}
 
 	// insert units for repo
-	units := make([]RepoUnit, 0, len(DefaultRepoUnits))
-	for _, tp := range DefaultRepoUnits {
-		if tp == UnitTypeIssues {
+	units := make([]RepoUnit, 0, len(unit.DefaultRepoUnits))
+	for _, tp := range unit.DefaultRepoUnits {
+		if tp == unit.TypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -1088,7 +1088,7 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 					EnableDependencies:               setting.Service.DefaultEnableDependencies,
 				},
 			})
-		} else if tp == UnitTypePullRequests {
+		} else if tp == unit.TypePullRequests {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -1119,10 +1119,11 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.loadTeams(db.GetEngine(ctx)); err != nil {
+		teams, err := OrgFromUser(u).loadTeams(db.GetEngine(ctx))
+		if err != nil {
 			return fmt.Errorf("loadTeams: %v", err)
 		}
-		for _, t := range u.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(db.GetEngine(ctx), repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
@@ -1152,7 +1153,7 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 		}
 	}
 
-	if err = copyDefaultWebhooksToRepo(db.GetEngine(ctx), repo.ID); err != nil {
+	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
 		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
 	}
 
@@ -1406,7 +1407,7 @@ func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 }
 
 // UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []UnitType) (err error) {
+func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
 	sess := db.NewSession(db.DefaultContext)
 	defer sess.Close()
 	if err = sess.Begin(); err != nil {
@@ -1445,11 +1446,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err != nil {
 		return err
 	}
-	if org.IsOrganization() {
-		if err = org.loadTeams(sess); err != nil {
-			return err
-		}
-	}
 
 	repo := &Repository{OwnerID: uid}
 	has, err := sess.ID(repoID).Get(repo)
@@ -1477,7 +1473,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if org.IsOrganization() {
-		for _, t := range org.Teams {
+		teams, err := OrgFromUser(org).loadTeams(sess)
+		if err != nil {
+			return err
+		}
+		for _, t := range teams {
 			if !t.hasRepository(sess, repoID) {
 				continue
 			} else if err = t.removeRepository(sess, repo, false); err != nil {
@@ -1486,7 +1486,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	attachments := make([]*Attachment, 0, 20)
+	attachments := make([]*repo_model.Attachment, 0, 20)
 	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -1508,7 +1508,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Comment{RefRepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&DeletedBranch{RepoID: repoID},
-		&HookTask{RepoID: repoID},
+		&webhook.HookTask{RepoID: repoID},
 		&LFSLock{RepoID: repoID},
 		&LanguageStat{RepoID: repoID},
 		&Milestone{RepoID: repoID},
@@ -1525,7 +1525,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
 		&Watch{RepoID: repoID},
-		&Webhook{RepoID: repoID},
+		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1621,7 +1621,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Get all attachments with both issue_id and release_id are zero
-	var newAttachments []*Attachment
+	var newAttachments []*repo_model.Attachment
 	if err := sess.Where(builder.Eq{
 		"repo_id":    repo.ID,
 		"issue_id":   0,
@@ -1635,7 +1635,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
 	}
 
-	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(Attachment)); err != nil {
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
 		return err
 	}
 
@@ -1650,36 +1650,36 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete repository files", repoPath)
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		removeAllWithNotice(db.GetEngine(db.DefaultContext), "Delete repository wiki", repo.WikiPath())
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for i := range archivePaths {
-		removeStorageWithNotice(db.GetEngine(db.DefaultContext), storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
 	}
 
 	// Remove lfs objects
 	for i := range lfsPaths {
-		removeStorageWithNotice(db.GetEngine(db.DefaultContext), storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
 	}
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for i := range newAttachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1791,8 +1791,8 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 		Find(&repos)
 }
 
-func getRepositoryCount(e db.Engine, u *User) (int64, error) {
-	return e.Count(&Repository{OwnerID: u.ID})
+func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
+	return e.Count(&Repository{OwnerID: ownerID})
 }
 
 func getPublicRepositoryCount(e db.Engine, u *User) (int64, error) {
@@ -1804,8 +1804,8 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(db.DefaultContext), u)
+func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), ownerID)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
@@ -1931,7 +1931,7 @@ func CheckRepoStats(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
-			return ErrCancelledf("before checking %s", checker.desc)
+			return db.ErrCancelledf("before checking %s", checker.desc)
 		default:
 			repoStatsCheck(ctx, checker)
 		}
@@ -1948,7 +1948,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
@@ -1971,7 +1971,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
@@ -1994,7 +1994,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
@@ -2191,4 +2191,28 @@ func IterateRepository(f func(repo *Repository) error) error {
 			}
 		}
 	}
+}
+
+// LinkedRepository returns the linked repo if any
+func LinkedRepository(a *repo_model.Attachment) (*Repository, unit.Type, error) {
+	if a.IssueID != 0 {
+		iss, err := GetIssueByID(a.IssueID)
+		if err != nil {
+			return nil, unit.TypeIssues, err
+		}
+		repo, err := GetRepositoryByID(iss.RepoID)
+		unitType := unit.TypeIssues
+		if iss.IsPull {
+			unitType = unit.TypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := GetReleaseByID(a.ReleaseID)
+		if err != nil {
+			return nil, unit.TypeReleases, err
+		}
+		repo, err := GetRepositoryByID(rel.RepoID)
+		return repo, unit.TypeReleases, err
+	}
+	return nil, -1, nil
 }
