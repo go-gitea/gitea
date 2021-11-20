@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -241,7 +242,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(ctx.User); err != nil {
+	if err := user.DeleteUser(ctx.User); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

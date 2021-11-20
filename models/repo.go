@@ -25,6 +25,7 @@ import (
 
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
@@ -134,7 +135,7 @@ func NewRepoContext() {
 	loadRepoConfig()
 	unit.LoadUnitConfig()
 
-	admin_model.RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
 // RepositoryStatus defines the status of repository
@@ -783,7 +784,7 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(user.ID)
+		isOwner, err := OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
 		} else if isOwner {
@@ -1118,10 +1119,11 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.loadTeams(db.GetEngine(ctx)); err != nil {
+		teams, err := OrgFromUser(u).loadTeams(db.GetEngine(ctx))
+		if err != nil {
 			return fmt.Errorf("loadTeams: %v", err)
 		}
-		for _, t := range u.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(db.GetEngine(ctx), repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
@@ -1444,11 +1446,6 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err != nil {
 		return err
 	}
-	if org.IsOrganization() {
-		if err = org.loadTeams(sess); err != nil {
-			return err
-		}
-	}
 
 	repo := &Repository{OwnerID: uid}
 	has, err := sess.ID(repoID).Get(repo)
@@ -1476,7 +1473,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if org.IsOrganization() {
-		for _, t := range org.Teams {
+		teams, err := OrgFromUser(org).loadTeams(sess)
+		if err != nil {
+			return err
+		}
+		for _, t := range teams {
 			if !t.hasRepository(sess, repoID) {
 				continue
 			} else if err = t.removeRepository(sess, repo, false); err != nil {
@@ -1485,7 +1486,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	attachments := make([]*Attachment, 0, 20)
+	attachments := make([]*repo_model.Attachment, 0, 20)
 	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -1620,7 +1621,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Get all attachments with both issue_id and release_id are zero
-	var newAttachments []*Attachment
+	var newAttachments []*repo_model.Attachment
 	if err := sess.Where(builder.Eq{
 		"repo_id":    repo.ID,
 		"issue_id":   0,
@@ -1634,7 +1635,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
 	}
 
-	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(Attachment)); err != nil {
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
 		return err
 	}
 
@@ -1649,36 +1650,36 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	admin_model.RemoveAllWithNotice("Delete repository files", repoPath)
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		admin_model.RemoveAllWithNotice("Delete repository wiki", repo.WikiPath())
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for i := range archivePaths {
-		admin_model.RemoveStorageWithNotice(storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
 	}
 
 	// Remove lfs objects
 	for i := range lfsPaths {
-		admin_model.RemoveStorageWithNotice(storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
 	}
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		admin_model.RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		admin_model.RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for i := range newAttachmentPaths {
-		admin_model.RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1790,8 +1791,8 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 		Find(&repos)
 }
 
-func getRepositoryCount(e db.Engine, u *User) (int64, error) {
-	return e.Count(&Repository{OwnerID: u.ID})
+func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
+	return e.Count(&Repository{OwnerID: ownerID})
 }
 
 func getPublicRepositoryCount(e db.Engine, u *User) (int64, error) {
@@ -1803,8 +1804,8 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(db.DefaultContext), u)
+func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), ownerID)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
@@ -2190,4 +2191,28 @@ func IterateRepository(f func(repo *Repository) error) error {
 			}
 		}
 	}
+}
+
+// LinkedRepository returns the linked repo if any
+func LinkedRepository(a *repo_model.Attachment) (*Repository, unit.Type, error) {
+	if a.IssueID != 0 {
+		iss, err := GetIssueByID(a.IssueID)
+		if err != nil {
+			return nil, unit.TypeIssues, err
+		}
+		repo, err := GetRepositoryByID(iss.RepoID)
+		unitType := unit.TypeIssues
+		if iss.IsPull {
+			unitType = unit.TypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := GetReleaseByID(a.ReleaseID)
+		if err != nil {
+			return nil, unit.TypeReleases, err
+		}
+		repo, err := GetRepositoryByID(rel.RepoID)
+		return repo, unit.TypeReleases, err
+	}
+	return nil, -1, nil
 }

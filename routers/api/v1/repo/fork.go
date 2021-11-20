@@ -120,7 +120,7 @@ func CreateFork(ctx *context.APIContext) {
 			ctx.Error(http.StatusForbidden, "isMemberNot", fmt.Sprintf("User is no Member of Organisation '%s'", org.Name))
 			return
 		}
-		forker = org
+		forker = org.AsUser()
 	}
 
 	fork, err := repo_service.ForkRepository(ctx.User, forker, models.ForkRepoOptions{
