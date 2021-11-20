@@ -223,10 +223,13 @@ func SearchIssues(ctx *context.APIContext) {
 	} else if limit > setting.API.MaxResponseItems {
 		limit = setting.API.MaxResponseItems
 	}
-
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(includedLabelNames) > 0 || len(includedMilestones) > 0 {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
 		issuesOpt := &models.IssuesOptions{
 			ListOptions: db.ListOptions{
 				Page:     ctx.FormInt("page"),
@@ -242,6 +245,7 @@ func SearchIssues(ctx *context.APIContext) {
 			IsPull:             isPull,
 			UpdatedBeforeUnix:  before,
 			UpdatedAfterUnix:   since,
+			UserID:             userID,
 		}
 
 		// Filter for: Created by User, Assigned to User, Mentioning User, Review of User Requested
@@ -452,6 +456,10 @@ func ListIssues(ctx *context.APIContext) {
 	// Only fetch the issues if we either don't have a keyword or the search returned issues
 	// This would otherwise return all issues if no issues were found by the search.
 	if len(keyword) == 0 || len(issueIDs) > 0 || len(labelIDs) > 0 {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
 		issuesOpt := &models.IssuesOptions{
 			ListOptions:       listOptions,
 			RepoIDs:           []int64{ctx.Repo.Repository.ID},
@@ -465,6 +473,7 @@ func ListIssues(ctx *context.APIContext) {
 			PosterID:          createdByID,
 			AssigneeID:        assignedByID,
 			MentionedID:       mentionedByID,
+			UserID:            userID,
 		}
 
 		if issues, err = models.Issues(issuesOpt); err != nil {

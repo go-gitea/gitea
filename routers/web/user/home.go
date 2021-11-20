@@ -403,6 +403,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		IsPull:     util.OptionalBoolOf(isPullList),
 		SortType:   sortType,
 		IsArchived: util.OptionalBoolFalse,
+		UserID:     ctxUser.ID,
 	}
 
 	// Get repository IDs where User/Org/Team has access.
