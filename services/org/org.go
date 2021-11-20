@@ -15,11 +15,7 @@ import (
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *models.User) error {
-	if !org.IsOrganization() {
-		return fmt.Errorf("%s is a user not an organization", org.Name)
-	}
-
+func DeleteOrganization(org *models.Organization) error {
 	ctx, commiter, err := db.TxContext()
 	if err != nil {
 		return err
@@ -27,7 +23,7 @@ func DeleteOrganization(org *models.User) error {
 	defer commiter.Close()
 
 	// Check ownership of repository.
-	count, err := models.GetRepositoryCount(ctx, org)
+	count, err := models.GetRepositoryCount(ctx, org.ID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {

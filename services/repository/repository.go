@@ -43,18 +43,14 @@ func DeleteRepository(doer *models.User, repo *models.Repository) error {
 		return err
 	}
 
-	if err := packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, repo.ID); err != nil {
-		return err
-	}
-
-	return nil
+	return packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, repo.ID)
 }
 
 // PushCreateRepo creates a repository when a new repository is pushed to an appropriate namespace
 func PushCreateRepo(authUser, owner *models.User, repoName string) (*models.Repository, error) {
 	if !authUser.IsAdmin {
 		if owner.IsOrganization() {
-			if ok, err := owner.CanCreateOrgRepo(authUser.ID); err != nil {
+			if ok, err := models.CanCreateOrgRepo(owner.ID, authUser.ID); err != nil {
 				return nil, err
 			} else if !ok {
 				return nil, fmt.Errorf("cannot push-create repository for org")

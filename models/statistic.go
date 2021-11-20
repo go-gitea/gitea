@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
@@ -102,7 +103,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Label, _ = e.Count(new(Label))
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(Team))
-	stats.Counter.Attachment, _ = e.Count(new(Attachment))
+	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(Project))
 	stats.Counter.ProjectBoard, _ = e.Count(new(ProjectBoard))
 	return

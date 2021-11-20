@@ -55,7 +55,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		if ctx.Package.Owner.IsOrganization() {
 			if ctx.User != nil && models.HasOrgOrUserVisible(ctx.Package.Owner, ctx.User) {
 				var err error
-				ctx.Package.AccessMode, err = ctx.Package.Owner.GetOrgUserMaxAuthorizeLevel(ctx.User.ID)
+				ctx.Package.AccessMode, err = models.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.User.ID)
 				if err != nil {
 					errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
 					return
