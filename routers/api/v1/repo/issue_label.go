@@ -61,6 +61,11 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToLabelList(issue.Labels, ctx.Repo.Repository, ctx.Repo.Owner))
 }
 
@@ -165,6 +170,11 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -286,6 +296,11 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return
@@ -307,6 +322,11 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 

@@ -61,6 +61,10 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	if err := comment.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
 	}
+	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
 
 	if !ctx.Repo.CanReadIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "GetIssueCommentReactions", errors.New("no permission to get reactions"))
@@ -190,6 +194,11 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
+	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if comment.Issue.IsLocked && !ctx.Repo.CanWriteIssuesOrPulls(comment.Issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "ChangeIssueCommentReaction", errors.New("no permission to change reaction"))
 		return
@@ -277,6 +286,11 @@ func GetIssueReactions(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
@@ -396,6 +410,11 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 

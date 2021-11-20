@@ -193,6 +193,11 @@ func (issue *Issue) loadPoster(e db.Engine) (err error) {
 	return
 }
 
+// LoadIsPrivate loads isPrivate
+func (issue *Issue) LoadIsPrivate() error {
+	return issue.loadIsPrivate(db.GetEngine(db.DefaultContext))
+}
+
 func (issue *Issue) loadIsPrivate(e db.Engine) (err error) {
 	var isPrivate bool
 	if _, err = e.Table("issue").Where("id=?", issue.ID).Cols("is_private").Get(&isPrivate); err != nil {

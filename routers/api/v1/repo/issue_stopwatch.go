@@ -173,6 +173,11 @@ func prepareIssueStopwatch(ctx *context.APIContext, shouldExist bool) (*models.I
 		return nil, err
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return nil, errors.New("Not enough permission to see issue")
+	}
+
 	if !ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull) {
 		ctx.Status(http.StatusForbidden)
 		return nil, errors.New("Unable to write to PRs")

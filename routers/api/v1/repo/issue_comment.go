@@ -68,6 +68,19 @@ func ListIssueComments(ctx *context.APIContext) {
 	}
 	issue.Repo = ctx.Repo.Repository
 
+	if err = issue.LoadPoster(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if err = issue.LoadIsPrivate(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	opts := &models.FindCommentsOptions{
 		IssueID: issue.ID,
 		Since:   since,
@@ -148,12 +161,19 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+
 	opts := &models.FindCommentsOptions{
-		ListOptions: utils.GetListOptions(ctx),
-		RepoID:      ctx.Repo.Repository.ID,
-		Type:        models.CommentTypeComment,
-		Since:       since,
-		Before:      before,
+		ListOptions:   utils.GetListOptions(ctx),
+		RepoID:        ctx.Repo.Repository.ID,
+		Type:          models.CommentTypeComment,
+		Since:         since,
+		Before:        before,
+		CanSeePrivate: ctx.Repo.CanReadPrivateIssues(),
+		UserID:        userID,
 	}
 
 	comments, err := models.FindComments(opts)
@@ -300,6 +320,12 @@ func GetIssueComment(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
+
+	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if comment.Issue.RepoID != ctx.Repo.Repository.ID {
 		ctx.Status(http.StatusNotFound)
 		return
@@ -423,6 +449,19 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
+	if comment.Issue.IsPrivate {
+		canSeePrivateIssues := ctx.Repo.CanReadPrivateIssues()
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
+
+		if !(comment.Issue.PosterID == userID || canSeePrivateIssues) {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+	}
+
 	if !ctx.IsSigned || (ctx.User.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(http.StatusForbidden)
 		return
@@ -521,6 +560,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
 		}
+		return
+	}
+
+	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 

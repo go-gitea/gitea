@@ -114,6 +114,11 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	user, err := models.GetUserByName(ctx.Params(":user"))
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
@@ -195,6 +200,11 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	watching, err := models.CheckIssueWatch(ctx.User, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -258,6 +268,11 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
 
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 

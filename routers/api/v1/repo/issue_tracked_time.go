@@ -84,6 +84,11 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	opts := &models.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
@@ -188,6 +193,11 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
@@ -269,6 +279,11 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
+		return
+	}
+
 	if !ctx.Repo.CanUseTimetracker(issue, ctx.User) {
 		if !ctx.Repo.Repository.IsTimetrackerEnabled() {
 			ctx.JSON(http.StatusBadRequest, struct{ Message string }{Message: "time tracking disabled"})
@@ -337,6 +352,11 @@ func DeleteTime(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		}
+		return
+	}
+
+	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 
