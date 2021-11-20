@@ -45,7 +45,7 @@ func doMirrorSync(ctx context.Context, req *SyncRequest) {
 	}
 }
 
-var limitErr = fmt.Errorf("reached limit")
+var errLimit = fmt.Errorf("reached limit")
 
 // Update checks and updates mirror repositories.
 func Update(ctx context.Context, pullLimit, pushLimit int) error {
@@ -112,7 +112,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 
 		requested++
 		if limit > 0 && requested > limit {
-			return limitErr
+			return errLimit
 		}
 		return nil
 	}
@@ -120,7 +120,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	if pullLimit != 0 {
 		if err := models.MirrorsIterate(func(idx int, bean interface{}) error {
 			return handler(idx, bean, pullLimit)
-		}); err != nil && err != limitErr {
+		}); err != nil && err != errLimit {
 			log.Error("MirrorsIterate: %v", err)
 			return err
 		}
@@ -128,7 +128,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 	if pushLimit != 0 {
 		if err := models.PushMirrorsIterate(func(idx int, bean interface{}) error {
 			return handler(idx, bean, pushLimit)
-		}); err != nil && err != limitErr {
+		}); err != nil && err != errLimit {
 			log.Error("PushMirrorsIterate: %v", err)
 			return err
 		}
