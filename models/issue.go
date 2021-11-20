@@ -1186,9 +1186,9 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
-	Org            *User // issues permission scope
-	Team           *Team // issues permission scope
-	User           *User // issues permission scope
+	Org            *Organization // issues permission scope
+	Team           *Team         // issues permission scope
+	User           *User         // issues permission scope
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1341,7 +1341,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *User, team *Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) builder.Cond {
 	var cond = builder.NewCond()
 	var unitType = unit.TypeIssues
 	if isPull {
@@ -1687,7 +1687,7 @@ type UserIssueStatsOptions struct {
 	IssueIDs   []int64
 	IsArchived util.OptionalBool
 	LabelIDs   []int64
-	Org        *User
+	Org        *Organization
 	Team       *Team
 }
 

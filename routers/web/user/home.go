@@ -405,7 +405,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Get repository IDs where User/Org/Team has access.
 	var team *models.Team
-	var org *models.User
+	var org *models.Organization
 	if ctx.Org != nil {
 		org = ctx.Org.Organization
 		team = ctx.Org.Team
