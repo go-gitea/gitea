@@ -24,6 +24,9 @@ var (
 	_ Named  = &ReverseProxy{}
 )
 
+// ReverseProxyMethodName is the constant name of the ReverseProxy authentication method
+const ReverseProxyMethodName = "reverse_proxy"
+
 // ReverseProxy implements the Auth interface, but actually relies on
 // a reverse proxy for authentication of users.
 // On successful authentication the proxy is expected to populate the username in the
@@ -43,7 +46,7 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 
 // Name represents the name of auth method
 func (r *ReverseProxy) Name() string {
-	return "reverse_proxy"
+	return ReverseProxyMethodName
 }
 
 // Verify extracts the username from the "setting.ReverseProxyAuthUser" header
