@@ -114,6 +114,10 @@ var (
 	LetsEncryptTOS       bool
 	LetsEncryptDirectory string
 	LetsEncryptEmail     string
+	SSLMinimumVersion    string
+	SSLMaximumVersion    string
+	SSLCurvePreferences  []string
+	SSLCipherSuites      []string
 	GracefulRestartable  bool
 	GracefulHammerTime   time.Duration
 	StartupTimeout       time.Duration
@@ -618,6 +622,10 @@ func NewContext() {
 	}
 	LetsEncryptDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
 	LetsEncryptEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+	SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").MustString("")
+	SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").MustString("")
+	SSLCurvePreferences = sec.Key("SSL_CURVE_PREFERENCES").Strings(",")
+	SSLCipherSuites = sec.Key("SSL_CIPHER_SUITES").Strings(",")
 	Domain = sec.Key("DOMAIN").MustString("localhost")
 	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")

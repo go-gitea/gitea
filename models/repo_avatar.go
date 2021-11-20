@@ -108,12 +108,11 @@ func (repo *Repository) AvatarLink() string {
 // avatarLink returns user avatar absolute link.
 func (repo *Repository) avatarLink(e db.Engine) string {
 	link := repo.relAvatarLink(e)
-	// link may be empty!
-	if len(link) > 0 {
-		if link[0] == '/' && link[1] != '/' {
-			return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-		}
+	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
+	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
+		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
 	}
+	// otherwise, return the link as it is
 	return link
 }
 

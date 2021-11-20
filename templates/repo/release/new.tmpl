@@ -68,7 +68,7 @@
 							<input name="attachment-edit-{{.UUID}}" class="mr-3 attachment_edit" required value="{{.Name}}"/>
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
 							<span class="ui text grey mr-3">{{.Size | FileSize}}</span>
-							<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+							<span class="tooltip" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 								{{svg "octicon-info"}}
 							</span>
 						</div>

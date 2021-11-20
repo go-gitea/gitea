@@ -58,10 +58,10 @@
 				</div>
 				<div class="content">
 					{{if .Verified}}
-						<span class="poping up" data-content="{{$.i18n.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong></span>
+						<span class="tooltip" data-content="{{$.i18n.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if gt (len .Emails) 0}}
-						<span class="poping up" data-content="{{$.i18n.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.i18n.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+						<span class="tooltip" data-content="{{$.i18n.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.i18n.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
 					<div class="print meta">
 						<b>{{$.i18n.Tr "settings.key_id"}}:</b> {{.KeyID}}

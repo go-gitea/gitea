@@ -4,7 +4,10 @@
 
 package models
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+)
 
 // CommentList defines a list of comments
 type CommentList []*Comment
@@ -393,7 +396,7 @@ func (comments CommentList) loadAttachments(e db.Engine) (err error) {
 		return nil
 	}
 
-	attachments := make(map[int64][]*Attachment, len(comments))
+	attachments := make(map[int64][]*repo_model.Attachment, len(comments))
 	commentsIDs := comments.getCommentIDs()
 	left := len(commentsIDs)
 	for left > 0 {
@@ -404,13 +407,13 @@ func (comments CommentList) loadAttachments(e db.Engine) (err error) {
 		rows, err := e.Table("attachment").
 			Join("INNER", "comment", "comment.id = attachment.comment_id").
 			In("comment.id", commentsIDs[:limit]).
-			Rows(new(Attachment))
+			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
 		}
 
 		for rows.Next() {
-			var attachment Attachment
+			var attachment repo_model.Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
 				_ = rows.Close()

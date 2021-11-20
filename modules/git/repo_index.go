@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
@@ -45,14 +46,15 @@ func (repo *Repository) readTreeToIndex(id SHA1, indexFilename ...string) error 
 }
 
 // ReadTreeToTemporaryIndex reads a treeish to a temporary index file
-func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename string, cancel context.CancelFunc, err error) {
-	tmpIndex, err := os.CreateTemp("", "index")
+func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpDir string, cancel context.CancelFunc, err error) {
+	tmpDir, err = os.MkdirTemp("", "index")
 	if err != nil {
 		return
 	}
-	filename = tmpIndex.Name()
+
+	filename = filepath.Join(tmpDir, ".tmp-index")
 	cancel = func() {
-		err := util.Remove(filename)
+		err := util.RemoveAll(tmpDir)
 		if err != nil {
 			log.Error("failed to remove tmp index file: %v", err)
 		}
@@ -60,7 +62,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename strin
 	err = repo.ReadTreeToIndex(treeish, filename)
 	if err != nil {
 		defer cancel()
-		return "", func() {}, err
+		return "", "", func() {}, err
 	}
 	return
 }

@@ -217,24 +217,15 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 		defer wg.Done()
 		defer shasToNameWriter.Close()
 		for _, result := range results {
-			i := 0
-			if i < len(result.SHA) {
-				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
-				if err != nil {
-					errChan <- err
-					break
-				}
-				i += n
+			_, err := shasToNameWriter.Write([]byte(result.SHA))
+			if err != nil {
+				errChan <- err
+				break
 			}
-			var err error
-			n := 0
-			for n < 1 {
-				n, err = shasToNameWriter.Write([]byte{'\n'})
-				if err != nil {
-					errChan <- err
-					break
-				}
-
+			_, err = shasToNameWriter.Write([]byte{'\n'})
+			if err != nil {
+				errChan <- err
+				break
 			}
 
 		}
