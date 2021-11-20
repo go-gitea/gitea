@@ -6,32 +6,27 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ChangeStatus changes issue status to open or closed.
 func ChangeStatus(issue *models.Issue, doer *models.User, closed bool) error {
-	stopTimerIfAvailable := func(doer *models.User, issue *models.Issue) error {
-		if models.StopwatchExists(doer.ID, issue.ID) {
-			if err := models.CreateOrStopIssueStopwatch(doer, issue); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
 	comment, err := issue.ChangeStatus(doer, closed)
 	if err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail
 		if models.IsErrDependenciesLeft(err) {
-			return stopTimerIfAvailable(doer, issue)
+			if closed {
+				return models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue)
+			}
 		}
 		return err
 	}
 
-	if err := stopTimerIfAvailable(doer, issue); err != nil {
-		return err
+	if closed {
+		if err := models.FinishIssueStopwatchIfPossible(db.DefaultContext, doer, issue); err != nil {
+			return err
+		}
 	}
 
 	notification.NotifyIssueChangeStatus(doer, issue, comment, closed)
