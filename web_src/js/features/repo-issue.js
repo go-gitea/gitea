@@ -478,7 +478,7 @@ export function initRepoPullRequestReview() {
     $(this).closest('.menu').toggle('visible');
   });
 
-  $('a.add-code-comment').on('click', async function (e) {
+  $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
