@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -295,7 +296,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					asset.Created = release.Created
 				}
 			}
-			var attach = models.Attachment{
+			var attach = repo_model.Attachment{
 				UUID:          gouuid.New().String(),
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),
