@@ -318,6 +318,42 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
 - `REDIRECTOR_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: expect PROXY protocol header on connections to https redirector.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
+- `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
+- `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
+- `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the prefered curves,
+- `SSL_CIPHER_SUITES`: **ecdhe_ecdsa_with_aes_256_gcm_sha384,ecdhe_rsa_with_aes_256_gcm_sha384,ecdhe_ecdsa_with_aes_128_gcm_sha256,ecdhe_rsa_with_aes_128_gcm_sha256,ecdhe_ecdsa_with_chacha20_poly1305,ecdhe_rsa_with_chacha20_poly1305**: Set the preferred cipher suites.
+  - If there is not hardware support for AES suites by default the cha cha suites will be preferred over the AES suites
+  - supported suites as of go 1.17 are:
+    - TLS 1.0 - 1.2 cipher suites
+      - "rsa_with_rc4_128_sha"
+      - "rsa_with_3des_ede_cbc_sha"
+      - "rsa_with_aes_128_cbc_sha"
+      - "rsa_with_aes_256_cbc_sha"
+      - "rsa_with_aes_128_cbc_sha256"
+      - "rsa_with_aes_128_gcm_sha256"
+      - "rsa_with_aes_256_gcm_sha384"
+      - "ecdhe_ecdsa_with_rc4_128_sha"
+      - "ecdhe_ecdsa_with_aes_128_cbc_sha"
+      - "ecdhe_ecdsa_with_aes_256_cbc_sha"
+      - "ecdhe_rsa_with_rc4_128_sha"
+      - "ecdhe_rsa_with_3des_ede_cbc_sha"
+      - "ecdhe_rsa_with_aes_128_cbc_sha"
+      - "ecdhe_rsa_with_aes_256_cbc_sha"
+      - "ecdhe_ecdsa_with_aes_128_cbc_sha256"
+      - "ecdhe_rsa_with_aes_128_cbc_sha256"
+      - "ecdhe_rsa_with_aes_128_gcm_sha256"
+      - "ecdhe_ecdsa_with_aes_128_gcm_sha256"
+      - "ecdhe_rsa_with_aes_256_gcm_sha384"
+      - "ecdhe_ecdsa_with_aes_256_gcm_sha384"
+      - "ecdhe_rsa_with_chacha20_poly1305_sha256"
+      - "ecdhe_ecdsa_with_chacha20_poly1305_sha256"
+    - TLS 1.3 cipher suites
+      - "aes_128_gcm_sha256"
+      - "aes_256_gcm_sha384"
+      - "chacha20_poly1305_sha256"
+    - Aliased names
+      - "ecdhe_rsa_with_chacha20_poly1305" is an alias for "ecdhe_rsa_with_chacha20_poly1305_sha256"
+      - "ecdhe_ecdsa_with_chacha20_poly1305" is alias for "ecdhe_ecdsa_with_chacha20_poly1305_sha256"
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
    By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
 - `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
@@ -1017,7 +1053,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
 - `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
-- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
+- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option has a higher priority to deny domains.
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
 

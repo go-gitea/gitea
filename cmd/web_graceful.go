@@ -5,7 +5,6 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"net"
 	"net/http"
 	"net/http/fcgi"
@@ -18,14 +17,6 @@ import (
 
 func runHTTP(network, listenAddr, name string, m http.Handler, haProxy bool) error {
 	return graceful.HTTPListenAndServe(network, listenAddr, name, m, haProxy)
-}
-
-func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler, haProxy, haProxyTLSBridging bool) error {
-	return graceful.HTTPListenAndServeTLS(network, listenAddr, name, certFile, keyFile, m, haProxy, haProxyTLSBridging)
-}
-
-func runHTTPSWithTLSConfig(network, listenAddr, name string, tlsConfig *tls.Config, m http.Handler, haProxy, haProxyTLSBridging bool) error {
-	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, haProxy, haProxyTLSBridging)
 }
 
 // NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector

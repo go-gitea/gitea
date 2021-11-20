@@ -107,47 +107,14 @@ func (srv *Server) ListenAndServe(serve ServeFunction, haProxy bool) error {
 	return srv.Serve(serve)
 }
 
-// ListenAndServeTLS listens on the provided network address and then calls
-// Serve to handle requests on incoming TLS connections.
-//
-// Filenames containing a certificate and matching private key for the server must
-// be provided. If the certificate is signed by a certificate authority, the
-// certFile should be the concatenation of the server's certificate followed by the
-// CA's certificate.
-func (srv *Server) ListenAndServeTLS(certFile, keyFile string, serve ServeFunction, haProxy, haProxyTLSBridging bool) error {
-	config := &tls.Config{}
-	if config.NextProtos == nil {
-		config.NextProtos = []string{"h2", "http/1.1"}
-	}
-
-	config.Certificates = make([]tls.Certificate, 1)
-
-	certPEMBlock, err := os.ReadFile(certFile)
-	if err != nil {
-		log.Error("Failed to load https cert file %s for %s:%s: %v", certFile, srv.network, srv.address, err)
-		return err
-	}
-
-	keyPEMBlock, err := os.ReadFile(keyFile)
-	if err != nil {
-		log.Error("Failed to load https key file %s for %s:%s: %v", keyFile, srv.network, srv.address, err)
-		return err
-	}
-
-	config.Certificates[0], err = tls.X509KeyPair(certPEMBlock, keyPEMBlock)
-	if err != nil {
-		log.Error("Failed to create certificate from cert file %s and key file %s for %s:%s: %v", certFile, keyFile, srv.network, srv.address, err)
-		return err
-	}
-
-	return srv.ListenAndServeTLSConfig(config, serve, haProxy, haProxyTLSBridging)
-}
-
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
 func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, haProxy, haProxyTLSBridging bool) error {
 	go srv.awaitShutdown()
-	tlsConfig.MinVersion = tls.VersionTLS12
+
+	if tlsConfig.MinVersion == 0 {
+		tlsConfig.MinVersion = tls.VersionTLS12
+	}
 
 	listener, err := GetListener(srv.network, srv.address)
 	if err != nil {

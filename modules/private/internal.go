@@ -74,10 +74,6 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 				}
 				return conn, err
 			},
-			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
-				var d net.Dialer
-				return d.DialContext(ctx, "unix", setting.HTTPAddr)
-			},
 		})
 	}
 	return req
