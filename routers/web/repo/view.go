@@ -21,6 +21,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
@@ -33,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -230,7 +232,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 			}
 			if readmeFile != nil {
 				readmeFile.name = entry.Name() + "/" + readmeFile.name
-				readmeTreelink = treeLink + "/" + entry.GetSubJumpablePathName()
+				readmeTreelink = treeLink + "/" + util.PathEscapeSegments(entry.GetSubJumpablePathName())
 				break
 			}
 		}
@@ -250,7 +252,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		defer dataRc.Close()
 
 		buf := make([]byte, 1024)
-		n, _ := dataRc.Read(buf)
+		n, _ := util.ReadAtMost(dataRc, buf)
 		buf = buf[:n]
 
 		st := typesniffer.DetectContentType(buf)
@@ -285,7 +287,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					defer dataRc.Close()
 
 					buf = make([]byte, 1024)
-					n, err = dataRc.Read(buf)
+					n, err = util.ReadAtMost(dataRc, buf)
 					if err != nil {
 						ctx.ServerError("Data", err)
 						return
@@ -299,7 +301,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 					fileSize = meta.Size
 					ctx.Data["FileSize"] = meta.Size
 					filenameBase64 := base64.RawURLEncoding.EncodeToString([]byte(readmeFile.name))
-					ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, filenameBase64)
+					ctx.Data["RawFileLink"] = fmt.Sprintf("%s.git/info/lfs/objects/%s/%s", ctx.Repo.Repository.HTMLURL(), url.PathEscape(meta.Oid), url.PathEscape(filenameBase64))
 				}
 			}
 		}
@@ -352,7 +354,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	// Check permission to add or upload new file.
-	if ctx.Repo.CanWrite(models.UnitTypeCode) && ctx.Repo.IsViewBranch {
+	if ctx.Repo.CanWrite(unit_model.TypeCode) && ctx.Repo.IsViewBranch {
 		ctx.Data["CanAddFile"] = !ctx.Repo.Repository.IsArchived
 		ctx.Data["CanUploadFile"] = setting.Repository.Upload.Enabled && !ctx.Repo.Repository.IsArchived
 	}
@@ -369,15 +371,15 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	}
 	defer dataRc.Close()
 
-	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Repo.TreePath + " at " + ctx.Repo.BranchName
+	ctx.Data["Title"] = ctx.Data["Title"].(string) + " - " + ctx.Tr("repo.file.title", ctx.Repo.TreePath, ctx.Repo.RefName)
 
 	fileSize := blob.Size()
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
-	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
+	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	buf := make([]byte, 1024)
-	n, _ := dataRc.Read(buf)
+	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]
 
 	st := typesniffer.DetectContentType(buf)
@@ -409,10 +411,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				defer dataRc.Close()
 
 				buf = make([]byte, 1024)
-				n, err = dataRc.Read(buf)
-				// Error EOF don't mean there is an error, it just means we read to
-				// the end
-				if err != nil && err != io.EOF {
+				n, err = util.ReadAtMost(dataRc, buf)
+				if err != nil {
 					ctx.ServerError("Data", err)
 					return
 				}
@@ -422,7 +422,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				isTextFile = st.IsText()
 
 				fileSize = meta.Size
-				ctx.Data["RawFileLink"] = fmt.Sprintf("%s/media/%s/%s", ctx.Repo.RepoLink, ctx.Repo.BranchNameSubURL(), ctx.Repo.TreePath)
+				ctx.Data["RawFileLink"] = ctx.Repo.RepoLink + "/media/" + ctx.Repo.BranchNameSubURL() + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 			}
 		}
 	}
@@ -502,7 +502,33 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			lineNums := linesBytesCount(buf)
 			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
 			ctx.Data["NumLinesSet"] = true
-			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), buf)
+
+			language := ""
+
+			indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
+			if err == nil {
+				defer deleteTemporaryFile()
+
+				filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
+					CachedOnly: true,
+					Attributes: []string{"linguist-language", "gitlab-language"},
+					Filenames:  []string{ctx.Repo.TreePath},
+					IndexFile:  indexFilename,
+					WorkTree:   worktree,
+				})
+				if err != nil {
+					log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+				}
+
+				language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
+				if language == "" || language == "unspecified" {
+					language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
+				}
+				if language == "unspecified" {
+					language = ""
+				}
+			}
+			ctx.Data["FileContent"] = highlight.File(lineNums, blob.Name(), language, buf)
 		}
 		if !isLFSFile {
 			if ctx.Repo.CanEnableEditor() {
@@ -515,7 +541,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+			} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			}
 		}
@@ -564,7 +590,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(models.UnitTypeCode) {
+	} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
 }
@@ -583,6 +609,13 @@ func checkHomeCodeViewable(ctx *context.Context) {
 		if ctx.Repo.Repository.IsBeingCreated() {
 			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
 			if err != nil {
+				if models.IsErrTaskDoesNotExist(err) {
+					ctx.Data["Repo"] = ctx.Repo
+					ctx.Data["CloneAddr"] = ""
+					ctx.Data["Failed"] = true
+					ctx.HTML(http.StatusOK, tplMigrating)
+					return
+				}
 				ctx.ServerError("models.GetMigratingTask", err)
 				return
 			}
@@ -608,20 +641,20 @@ func checkHomeCodeViewable(ctx *context.Context) {
 			}
 		}
 
-		var firstUnit *models.Unit
+		var firstUnit *unit_model.Unit
 		for _, repoUnit := range ctx.Repo.Units {
-			if repoUnit.Type == models.UnitTypeCode {
+			if repoUnit.Type == unit_model.TypeCode {
 				return
 			}
 
-			unit, ok := models.Units[repoUnit.Type]
+			unit, ok := unit_model.Units[repoUnit.Type]
 			if ok && (firstUnit == nil || !firstUnit.IsLessThan(unit)) {
 				firstUnit = &unit
 			}
 		}
 
 		if firstUnit != nil {
-			ctx.Redirect(fmt.Sprintf("%s/%s%s", setting.AppSubURL, ctx.Repo.Repository.FullName(), firstUnit.URI))
+			ctx.Redirect(fmt.Sprintf("%s%s", ctx.Repo.Repository.Link(), firstUnit.URI))
 			return
 		}
 	}
@@ -677,7 +710,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		return nil
 	}
 
-	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + ctx.Repo.CommitID + "/" + ctx.Repo.TreePath
+	ctx.Data["LastCommitLoaderURL"] = ctx.Repo.RepoLink + "/lastcommit/" + url.PathEscape(ctx.Repo.CommitID) + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	// Get current entry user currently looking at.
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
@@ -759,7 +792,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	treeLink := branchLink
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	ctx.Data["TreeLink"] = treeLink
@@ -808,7 +841,7 @@ func renderCode(ctx *context.Context) {
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	// Get Topics of this repo
@@ -902,8 +935,18 @@ func Stars(ctx *context.Context) {
 func Forks(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repos.forks")
 
-	// TODO: need pagination
-	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{})
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
+	}
+
+	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
+	ctx.Data["Page"] = pager
+
+	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: models.ItemsPerPage,
+	})
 	if err != nil {
 		ctx.ServerError("GetForks", err)
 		return
@@ -915,6 +958,7 @@ func Forks(ctx *context.Context) {
 			return
 		}
 	}
+
 	ctx.Data["Forks"] = forks
 
 	ctx.HTML(http.StatusOK, tplForks)

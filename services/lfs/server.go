@@ -12,12 +12,14 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -45,17 +47,17 @@ type Claims struct {
 
 // DownloadLink builds a URL to download the object.
 func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid)
+	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid))
 }
 
 // UploadLink builds a URL to upload the object.
 func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid, strconv.FormatInt(p.Size, 10))
+	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid), strconv.FormatInt(p.Size, 10))
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify")
+	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
 }
 
 // CheckAcceptMediaType checks if the client accepts the LFS media type.
@@ -489,7 +491,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 
-	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	canRead := perm.CanAccess(accessMode, unit.TypeCode)
 	if canRead && (!requireSigned || ctx.IsSigned) {
 		return true
 	}

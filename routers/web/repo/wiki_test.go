@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -74,10 +74,10 @@ func assertPagesMetas(t *testing.T, expectedNames []string, metas interface{}) {
 }
 
 func TestWiki(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/_pages")
-	ctx.SetParams(":page", "Home")
+	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
+	ctx.SetParams("*", "Home")
 	test.LoadRepo(t, ctx, 1)
 	Wiki(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -86,9 +86,9 @@ func TestWiki(t *testing.T) {
 }
 
 func TestWikiPages(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/_pages")
+	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_pages")
 	test.LoadRepo(t, ctx, 1)
 	WikiPages(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
@@ -96,9 +96,9 @@ func TestWikiPages(t *testing.T) {
 }
 
 func TestNewWiki(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/_new")
+	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	NewWiki(ctx)
@@ -111,9 +111,9 @@ func TestNewWikiPost(t *testing.T) {
 		"New page",
 		"&&&&",
 	} {
-		db.PrepareTestEnv(t)
+		unittest.PrepareTestEnv(t)
 
-		ctx := test.MockContext(t, "user2/repo1/wiki/_new")
+		ctx := test.MockContext(t, "user2/repo1/wiki/?action=_new")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
@@ -129,9 +129,9 @@ func TestNewWikiPost(t *testing.T) {
 }
 
 func TestNewWikiPost_ReservedName(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/_new")
+	ctx := test.MockContext(t, "user2/repo1/wiki/?action=_new")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	web.SetForm(ctx, &forms.NewWikiForm{
@@ -146,10 +146,10 @@ func TestNewWikiPost_ReservedName(t *testing.T) {
 }
 
 func TestEditWiki(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/_edit/Home")
-	ctx.SetParams(":page", "Home")
+	ctx := test.MockContext(t, "user2/repo1/wiki/Home?action=_edit")
+	ctx.SetParams("*", "Home")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	EditWiki(ctx)
@@ -163,9 +163,9 @@ func TestEditWikiPost(t *testing.T) {
 		"Home",
 		"New/<page>",
 	} {
-		db.PrepareTestEnv(t)
-		ctx := test.MockContext(t, "user2/repo1/wiki/_new/Home")
-		ctx.SetParams(":page", "Home")
+		unittest.PrepareTestEnv(t)
+		ctx := test.MockContext(t, "user2/repo1/wiki/Home?action=_new")
+		ctx.SetParams("*", "Home")
 		test.LoadUser(t, ctx, 2)
 		test.LoadRepo(t, ctx, 1)
 		web.SetForm(ctx, &forms.NewWikiForm{
@@ -184,9 +184,9 @@ func TestEditWikiPost(t *testing.T) {
 }
 
 func TestDeleteWikiPagePost(t *testing.T) {
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 
-	ctx := test.MockContext(t, "user2/repo1/wiki/Home/delete")
+	ctx := test.MockContext(t, "user2/repo1/wiki/Home?action=_delete")
 	test.LoadUser(t, ctx, 2)
 	test.LoadRepo(t, ctx, 1)
 	DeleteWikiPagePost(ctx)
@@ -203,7 +203,7 @@ func TestWikiRaw(t *testing.T) {
 		"Page With Spaced Name.md": "text/plain; charset=utf-8",
 		"Page-With-Spaced-Name.md": "text/plain; charset=utf-8",
 	} {
-		db.PrepareTestEnv(t)
+		unittest.PrepareTestEnv(t)
 
 		ctx := test.MockContext(t, "user2/repo1/wiki/raw/"+filepath)
 		ctx.SetParams("*", filepath)

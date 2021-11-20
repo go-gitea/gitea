@@ -158,9 +158,18 @@
 
   .task-list-item {
     list-style-type: none;
+    position: relative;
+    line-height: 1.5rem;
+    min-height: 1.5rem; // to render a checkbox list without content `- [ ]`, we need this min-height to make sure the <li> can be visible
 
     input[type="checkbox"] {
-      margin: 0 6px .25em -1.6em;
+      position: absolute;
+      top: .25em;
+      left: -1.6em;
+    }
+
+    p {
+      line-height: 1.5rem;
     }
   }
 

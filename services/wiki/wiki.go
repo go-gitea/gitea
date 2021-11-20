@@ -12,6 +12,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -35,7 +38,7 @@ func nameAllowed(name string) error {
 
 // NameToSubURL converts a wiki name to its corresponding sub-URL.
 func NameToSubURL(name string) string {
-	return url.QueryEscape(strings.ReplaceAll(name, " ", "-"))
+	return url.PathEscape(strings.ReplaceAll(name, " ", "-"))
 }
 
 // NormalizeWikiName normalizes a wiki name
@@ -369,10 +372,10 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(repo *models.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []models.UnitType{models.UnitTypeWiki}); err != nil {
+	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 
-	models.RemoveAllWithNotice("Delete repository wiki", repo.WikiPath())
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	return nil
 }

@@ -11,8 +11,8 @@
 
 </head>
 
-{{$release_url := printf "<a href='%s'>%s</a>" .Release.HTMLURL .Release.TagName}}
-{{$repo_url := printf "<a href='%s'>%s</a>" .Release.Repo.HTMLURL .Release.Repo.FullName}}
+{{$release_url := printf "<a href='%s'>%s</a>" (.Release.HTMLURL | Escape) (.Release.TagName | Escape) }}
+{{$repo_url := printf "<a href='%s'>%s</a>" (.Release.Repo.HTMLURL | Escape) (.Release.Repo.FullName | Escape)}}
 <body>
 	<p>
 		{{.i18n.Tr "mail.release.new.text" .Release.Publisher.Name $release_url $repo_url | Str2html}}
@@ -31,13 +31,11 @@
 		<br>
 		{{.i18n.Tr "mail.release.downloads"}}
 		<ul>
-			{{$tagname := .Release.TagName | EscapePound}}
-			{{$archive_url := printf "%s%s/%s/archive" AppUrl .Release.Repo.OwnerName .Release.Repo.Name}}
 			<li>
-				<a href="{{$archive_url}}/{{$tagname}}.zip" rel="nofollow"><strong>{{.i18n.Tr "mail.release.download.zip"}}</strong></a>
+				<a href="{{.Release.Repo.Link}}/archive/{{.Release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{.i18n.Tr "mail.release.download.zip"}}</strong></a>
 			</li>
 			<li>
-				<a href="{{$archive_url}}/{{$tagname}}.tar.gz" rel="nofollow"><strong>{{.i18n.Tr "mail.release.download.targz"}}</strong></a>
+				<a href="{{.Release.Repo.Link}}/archive/{{.Release.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{.i18n.Tr "mail.release.download.targz"}}</strong></a>
 			</li>
 			{{if .Release.Attachments}}
 				{{range .Release.Attachments}}

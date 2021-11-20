@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -79,7 +80,7 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return models.IterateAttachment(func(attach *models.Attachment) error {
+	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
@@ -107,7 +108,10 @@ func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
 }
 
 func runMigrateStorage(ctx *cli.Context) error {
-	if err := initDB(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(stdCtx); err != nil {
 		return err
 	}
 
@@ -118,7 +122,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 	log.Info("Configuration file: %s", setting.CustomConf)
 	setting.InitDBConfig()
 
-	if err := db.NewEngine(context.Background(), migrations.Migrate); err != nil {
+	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)
 		return err
 	}

@@ -455,20 +455,19 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/google/go-github/v37 v37.0.0
+# github.com/google/go-github/v39 v39.2.0
 ## explicit
-github.com/google/go-github/v37/github
+github.com/google/go-github/v39/github
 # github.com/google/go-querystring v1.1.0
-## explicit
 github.com/google/go-querystring/query
 # github.com/google/uuid v1.2.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/context v1.1.1
-## explicit
-github.com/gorilla/context
 # github.com/gorilla/css v1.0.0
 github.com/gorilla/css/scanner
+# github.com/gorilla/feeds v1.1.1
+## explicit
+github.com/gorilla/feeds
 # github.com/gorilla/handlers v1.5.1
 github.com/gorilla/handlers
 # github.com/gorilla/mux v1.8.0
@@ -508,9 +507,6 @@ github.com/hashicorp/hcl/json/token
 github.com/huandu/xstrings
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
-# github.com/issue9/identicon v1.2.0
-## explicit
-github.com/issue9/identicon
 # github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 ## explicit
 github.com/jaytaylor/html2text
@@ -562,10 +558,6 @@ github.com/klauspost/pgzip
 github.com/kr/pretty
 # github.com/kr/text v0.2.0
 github.com/kr/text
-# github.com/lafriks/xormstore v1.4.0
-## explicit
-github.com/lafriks/xormstore
-github.com/lafriks/xormstore/util
 # github.com/lib/pq v1.10.2
 ## explicit
 github.com/lib/pq
@@ -622,7 +614,7 @@ github.com/mholt/acmez/acme
 # github.com/mholt/archiver/v3 v3.5.0
 ## explicit
 github.com/mholt/archiver/v3
-# github.com/microcosm-cc/bluemonday v1.0.15
+# github.com/microcosm-cc/bluemonday v1.0.16
 ## explicit
 github.com/microcosm-cc/bluemonday
 github.com/microcosm-cc/bluemonday/css

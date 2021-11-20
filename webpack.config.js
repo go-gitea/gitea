@@ -216,6 +216,9 @@ export default {
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
       },
+      ignore: [
+        'font-awesome',
+      ],
     }) : new AddAssetPlugin('js/licenses.txt', `Licenses are disabled during development`),
   ],
   performance: {

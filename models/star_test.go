@@ -8,32 +8,34 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestStarRepo(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	const userID = 2
 	const repoID = 1
-	db.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
+	unittest.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
 	assert.NoError(t, StarRepo(userID, repoID, true))
-	db.AssertExistsAndLoadBean(t, &Star{UID: userID, RepoID: repoID})
+	unittest.AssertExistsAndLoadBean(t, &Star{UID: userID, RepoID: repoID})
 	assert.NoError(t, StarRepo(userID, repoID, true))
-	db.AssertExistsAndLoadBean(t, &Star{UID: userID, RepoID: repoID})
+	unittest.AssertExistsAndLoadBean(t, &Star{UID: userID, RepoID: repoID})
 	assert.NoError(t, StarRepo(userID, repoID, false))
-	db.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
+	unittest.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
 }
 
 func TestIsStaring(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.True(t, IsStaring(2, 4))
 	assert.False(t, IsStaring(3, 4))
 }
 
 func TestRepository_GetStargazers(t *testing.T) {
 	// repo with stargazers
-	assert.NoError(t, db.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	gazers, err := repo.GetStargazers(db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	if assert.Len(t, gazers, 1) {
@@ -43,8 +45,8 @@ func TestRepository_GetStargazers(t *testing.T) {
 
 func TestRepository_GetStargazers2(t *testing.T) {
 	// repo with stargazers
-	assert.NoError(t, db.PrepareTestDatabase())
-	repo := db.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	gazers, err := repo.GetStargazers(db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
@@ -52,9 +54,9 @@ func TestRepository_GetStargazers2(t *testing.T) {
 
 func TestUser_GetStarredRepos(t *testing.T) {
 	// user who has starred repos
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	starred, err := user.GetStarredRepos(false, 1, 10, "")
 	assert.NoError(t, err)
 	if assert.Len(t, starred, 1) {
@@ -71,9 +73,9 @@ func TestUser_GetStarredRepos(t *testing.T) {
 
 func TestUser_GetStarredRepos2(t *testing.T) {
 	// user who has no starred repos
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
 	starred, err := user.GetStarredRepos(false, 1, 10, "")
 	assert.NoError(t, err)
 	assert.Len(t, starred, 0)
@@ -84,9 +86,9 @@ func TestUser_GetStarredRepos2(t *testing.T) {
 }
 
 func TestUserGetStarredRepoCount(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	counts, err := user.GetStarredRepoCount(false)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), counts)

@@ -10,12 +10,13 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type (
@@ -66,7 +67,7 @@ type (
 )
 
 // GetDiscordHook returns discord metadata
-func GetDiscordHook(w *models.Webhook) *DiscordMeta {
+func GetDiscordHook(w *webhook_model.Webhook) *DiscordMeta {
 	s := &DiscordMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetDiscordHook(%d): %v", w.ID, err)
@@ -115,7 +116,7 @@ func (d *DiscordPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s created", p.Repo.FullName, p.RefType, refName)
 
-	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+refName, greenColor), nil
+	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), greenColor), nil
 }
 
 // Delete implements PayloadConvertor Delete method
@@ -124,7 +125,7 @@ func (d *DiscordPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 	refName := git.RefEndName(p.Ref)
 	title := fmt.Sprintf("[%s] %s %s deleted", p.Repo.FullName, p.RefType, refName)
 
-	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+refName, redColor), nil
+	return d.createPayload(p.Sender, title, "", p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName), redColor), nil
 }
 
 // Fork implements PayloadConvertor Fork method
@@ -150,7 +151,7 @@ func (d *DiscordPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		titleLink = p.CompareURL
 	}
 	if titleLink == "" {
-		titleLink = p.Repo.HTMLURL + "/src/" + branchName
+		titleLink = p.Repo.HTMLURL + "/src/" + util.PathEscapeSegments(branchName)
 	}
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)
@@ -191,7 +192,7 @@ func (d *DiscordPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, 
 }
 
 // Review implements PayloadConvertor Review method
-func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (d *DiscordPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	var text, title string
 	var color int
 	switch p.Action {
@@ -205,11 +206,11 @@ func (d *DiscordPayload) Review(p *api.PullRequestPayload, event models.HookEven
 		text = p.Review.Content
 
 		switch event {
-		case models.HookEventPullRequestReviewApproved:
+		case webhook_model.HookEventPullRequestReviewApproved:
 			color = greenColor
-		case models.HookEventPullRequestReviewRejected:
+		case webhook_model.HookEventPullRequestReviewRejected:
 			color = redColor
-		case models.HookEventPullRequestComment:
+		case webhook_model.HookEventPullRequestComment:
 			color = greyColor
 		default:
 			color = yellowColor
@@ -244,7 +245,7 @@ func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
@@ -257,14 +258,14 @@ func GetDiscordPayload(p api.Payloader, event models.HookEventType, meta string)
 	return convertPayloader(s, p, event)
 }
 
-func parseHookPullRequestEventType(event models.HookEventType) (string, error) {
+func parseHookPullRequestEventType(event webhook_model.HookEventType) (string, error) {
 	switch event {
 
-	case models.HookEventPullRequestReviewApproved:
+	case webhook_model.HookEventPullRequestReviewApproved:
 		return "approved", nil
-	case models.HookEventPullRequestReviewRejected:
+	case webhook_model.HookEventPullRequestReviewRejected:
 		return "rejected", nil
-	case models.HookEventPullRequestComment:
+	case webhook_model.HookEventPullRequestComment:
 		return "comment", nil
 
 	default:

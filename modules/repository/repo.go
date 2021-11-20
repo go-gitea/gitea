@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
+	"net/http"
 	"path"
 	"strings"
 	"time"
@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	migration "code.gitea.io/gitea/modules/migrations/base"
+	"code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -46,11 +46,14 @@ func WikiRemoteURL(remote string) string {
 }
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.Repository, opts migration.MigrateOptions) (*models.Repository, error) {
+func MigrateRepositoryGitData(ctx context.Context, u *models.User,
+	repo *models.Repository, opts migration.MigrateOptions,
+	httpTransport *http.Transport,
+) (*models.Repository, error) {
 	repoPath := models.RepoPath(u.Name, opts.RepoName)
 
 	if u.IsOrganization() {
-		t, err := u.GetOwnerTeam()
+		t, err := models.OrgFromUser(u).GetOwnerTeam()
 		if err != nil {
 			return nil, err
 		}
@@ -141,8 +144,9 @@ func MigrateRepositoryGitData(ctx context.Context, u *models.User, repo *models.
 		}
 
 		if opts.LFS {
-			ep := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
-			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, ep, setting.Migrations.SkipTLSVerify); err != nil {
+			endpoint := lfs.DetermineEndpoint(opts.CloneAddr, opts.LFSEndpoint)
+			lfsClient := lfs.NewClient(endpoint, httpTransport)
+			if err = StoreMissingLfsObjectsInRepository(ctx, repo, gitRepo, lfsClient); err != nil {
 				log.Error("Failed to store missing LFS objects for repository: %v", err)
 			}
 		}
@@ -336,8 +340,7 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
-func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, endpoint *url.URL, skipTLSVerify bool) error {
-	client := lfs.NewClient(endpoint, skipTLSVerify)
+func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, lfsClient lfs.Client) error {
 	contentStore := lfs.NewContentStore()
 
 	pointerChan := make(chan lfs.PointerBlob)
@@ -345,7 +348,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 	go lfs.SearchPointerBlobs(ctx, gitRepo, pointerChan, errChan)
 
 	downloadObjects := func(pointers []lfs.Pointer) error {
-		err := client.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
+		err := lfsClient.Download(ctx, pointers, func(p lfs.Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
 				return objectError
 			}
@@ -411,7 +414,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *models.Reposi
 			}
 
 			batch = append(batch, pointerBlob.Pointer)
-			if len(batch) >= client.BatchSize() {
+			if len(batch) >= lfsClient.BatchSize() {
 				if err := downloadObjects(batch); err != nil {
 					return err
 				}

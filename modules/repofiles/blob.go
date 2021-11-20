@@ -5,6 +5,8 @@
 package repofiles
 
 import (
+	"net/url"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -31,7 +33,7 @@ func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, er
 	}
 	return &api.GitBlobResponse{
 		SHA:      gitBlob.ID.String(),
-		URL:      repo.APIURL() + "/git/blobs/" + gitBlob.ID.String(),
+		URL:      repo.APIURL() + "/git/blobs/" + url.PathEscape(gitBlob.ID.String()),
 		Size:     gitBlob.Size(),
 		Encoding: "base64",
 		Content:  content,

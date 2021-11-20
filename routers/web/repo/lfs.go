@@ -10,6 +10,7 @@ import (
 	gotemplate "html/template"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
@@ -25,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -271,7 +273,7 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	defer dataRc.Close()
 	buf := make([]byte, 1024)
-	n, err := dataRc.Read(buf)
+	n, err := util.ReadAtMost(dataRc, buf)
 	if err != nil {
 		ctx.ServerError("Data", err)
 		return
@@ -284,7 +286,7 @@ func LFSFileGet(ctx *context.Context) {
 
 	fileSize := meta.Size
 	ctx.Data["FileSize"] = meta.Size
-	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s.git/info/lfs/objects/%s/%s", setting.AppURL, ctx.Repo.Repository.FullName(), meta.Oid, "direct")
+	ctx.Data["RawFileLink"] = fmt.Sprintf("%s%s/%s.git/info/lfs/objects/%s/%s", setting.AppURL, url.PathEscape(ctx.Repo.Repository.OwnerName), url.PathEscape(ctx.Repo.Repository.Name), url.PathEscape(meta.Oid), "direct")
 	switch {
 	case isRepresentableAsText:
 		if st.IsSvgImage() {
@@ -296,10 +298,10 @@ func LFSFileGet(ctx *context.Context) {
 			break
 		}
 
-		buf := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+		rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
 
 		// Building code view blocks with line number on server side.
-		fileContent, _ := io.ReadAll(buf)
+		fileContent, _ := io.ReadAll(rd)
 
 		var output bytes.Buffer
 		lines := strings.Split(string(fileContent), "\n")

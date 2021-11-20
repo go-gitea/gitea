@@ -6,6 +6,7 @@ package org
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -159,7 +160,7 @@ func IsMember(ctx *context.APIContext) {
 		}
 	}
 
-	redirectURL := setting.AppURL + "api/v1/orgs/" + ctx.Org.Organization.Name + "/public_members/" + userToCheck.Name
+	redirectURL := setting.AppSubURL + "/api/v1/orgs/" + url.PathEscape(ctx.Org.Organization.Name) + "/public_members/" + url.PathEscape(userToCheck.Name)
 	ctx.Redirect(redirectURL, 302)
 }
 

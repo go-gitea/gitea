@@ -102,7 +102,7 @@ func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Wri
 		return err
 	}
 
-	rd, err := csv.CreateReaderAndGuessDelimiter(bytes.NewReader(rawBytes))
+	rd, err := csv.CreateReaderAndDetermineDelimiter(ctx, bytes.NewReader(rawBytes))
 	if err != nil {
 		return err
 	}

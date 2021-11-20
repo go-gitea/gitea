@@ -10,33 +10,34 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", ".."))
+	unittest.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestUploadAttachment(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
 
 	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)
 	assert.NoError(t, err)
 	defer f.Close()
 
-	attach, err := NewAttachment(&models.Attachment{
+	attach, err := NewAttachment(&repo_model.Attachment{
 		RepoID:     1,
 		UploaderID: user.ID,
 		Name:       filepath.Base(fPath),
 	}, f)
 	assert.NoError(t, err)
 
-	attachment, err := models.GetAttachmentByUUID(attach.UUID)
+	attachment, err := repo_model.GetAttachmentByUUID(attach.UUID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)

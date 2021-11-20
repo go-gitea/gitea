@@ -64,30 +64,30 @@
 			{{if eq $n 0}}
 				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
 					<div class="fitted item mx-0">
-						<a href="{{.BaseRepo.Link}}/compare/{{.BaseRepo.DefaultBranch | EscapePound}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{.Repository.Owner.Name}}{{if .BaseRepo.IsFork}}/{{.Repository.Name}}{{end}}:{{end}}{{.BranchName | EscapePound}}">
+						<a href="{{.BaseRepo.Link}}/compare/{{PathEscapeSegments .BaseRepo.DefaultBranch}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}{{if .BaseRepo.IsFork}}/{{PathEscape .Repository.Name}}{{end}}:{{end}}{{PathEscapeSegments .BranchName}}">
 							<button id="new-pull-request" class="ui compact basic button">{{if .PullRequestCtx.Allowed}}{{.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{.i18n.Tr "action.compare_branch"}}{{end}}</button>
 						</a>
 					</div>
 				{{end}}
 			{{else}}
-				<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{EscapePound .BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{EscapePound $.BranchLink}}/{{EscapePound $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
+				<div class="fitted item"><span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span></div>
 			{{end}}
 			<div class="right fitted item mr-0" id="file-buttons">
 				<div class="ui tiny primary buttons">
 					{{if .Repository.CanEnableEditor}}
 						{{if .CanAddFile}}
-							<a href="{{.RepoLink}}/_new/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
+							<a href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" class="ui button">
 								{{.i18n.Tr "repo.editor.new_file"}}
 							</a>
 						{{end}}
 						{{if .CanUploadFile}}
-							<a href="{{.RepoLink}}/_upload/{{EscapePound .BranchName}}/{{EscapePound .TreePath}}" class="ui button">
+							<a href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" class="ui button">
 								{{.i18n.Tr "repo.editor.upload_file"}}
 							</a>
 						{{end}}
 					{{end}}
 					{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame) }}
-						<a href="{{.RepoLink}}/commits/{{EscapePound .BranchNameSubURL}}/{{EscapePound .TreePath}}" class="ui button">
+						<a href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}" class="ui button">
 							{{.i18n.Tr "repo.file_history"}}
 						</a>
 					{{end}}
@@ -110,15 +110,13 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
-						<button id="download-btn" class="ui basic jump dropdown icon button poping up" data-content="{{.i18n.Tr "repo.download_archive"}}" data-variation="tiny inverted" data-position="top right">
+						<button id="download-btn" class="ui basic jump dropdown icon button tooltip" data-content="{{.i18n.Tr "repo.download_archive"}}" data-position="top right">
 							{{svg "octicon-download"}}
 							<div class="menu">
-								<a class="item" href="vscode://vscode.git/clone?url={{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">
-									{{.i18n.Tr "repo.clone_in_vsc"}}
-								</a>
-								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.zip">{{svg "octicon-file-zip"}}&nbsp;{{.i18n.Tr "repo.download_zip"}}</a>
-								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;{{.i18n.Tr "repo.download_tar"}}</a>
-								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{EscapePound $.BranchName}}.bundle">{{svg "octicon-package"}}&nbsp;{{.i18n.Tr "repo.download_bundle"}}</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.zip">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_zip"}}</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.tar.gz">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_tar"}}</a>
+								<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.bundle">{{svg "octicon-package" 16 "mr-3"}}{{.i18n.Tr "repo.download_bundle"}}</a>
+								<a class="item" href="vscode://vscode.git/clone?url={{if $.PageIsWiki}}{{$.WikiCloneLink.HTTPS}}{{else}}{{$.CloneLink.HTTPS}}{{end}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
 					</div>

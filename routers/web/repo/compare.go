@@ -10,18 +10,21 @@ import (
 	"errors"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
-	"path"
+	"net/url"
 	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	csv_module "code.gitea.io/gitea/modules/csv"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
@@ -31,10 +34,11 @@ import (
 const (
 	tplCompare     base.TplName = "repo/diff/compare"
 	tplBlobExcerpt base.TplName = "repo/diff/blob_excerpt"
+	tplDiffBox     base.TplName = "repo/diff/box"
 )
 
 // setCompareContext sets context data.
-func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
+func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
 	ctx.Data["BaseCommit"] = base
 	ctx.Data["HeadCommit"] = head
 
@@ -50,22 +54,28 @@ func setCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit,
 		return blob
 	}
 
-	setPathsCompareContext(ctx, base, head, headTarget)
+	setPathsCompareContext(ctx, base, head, headOwner, headName)
 	setImageCompareContext(ctx)
 	setCsvCompareContext(ctx)
 }
 
-// setPathsCompareContext sets context data for source and raw paths
-func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headTarget string) {
-	sourcePath := setting.AppSubURL + "/%s/src/commit/%s"
-	rawPath := setting.AppSubURL + "/%s/raw/commit/%s"
+// SourceCommitURL creates a relative URL for a commit in the given repository
+func SourceCommitURL(owner, name string, commit *git.Commit) string {
+	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/src/commit/" + url.PathEscape(commit.ID.String())
+}
 
-	ctx.Data["SourcePath"] = fmt.Sprintf(sourcePath, headTarget, head.ID)
-	ctx.Data["RawPath"] = fmt.Sprintf(rawPath, headTarget, head.ID)
+// RawCommitURL creates a relative URL for the raw commit in the given repository
+func RawCommitURL(owner, name string, commit *git.Commit) string {
+	return setting.AppSubURL + "/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/raw/commit/" + url.PathEscape(commit.ID.String())
+}
+
+// setPathsCompareContext sets context data for source and raw paths
+func setPathsCompareContext(ctx *context.Context, base *git.Commit, head *git.Commit, headOwner, headName string) {
+	ctx.Data["SourcePath"] = SourceCommitURL(headOwner, headName, head)
+	ctx.Data["RawPath"] = RawCommitURL(headOwner, headName, head)
 	if base != nil {
-		baseTarget := path.Join(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-		ctx.Data["BeforeSourcePath"] = fmt.Sprintf(sourcePath, baseTarget, base.ID)
-		ctx.Data["BeforeRawPath"] = fmt.Sprintf(rawPath, baseTarget, base.ID)
+		ctx.Data["BeforeSourcePath"] = SourceCommitURL(headOwner, headName, head)
+		ctx.Data["BeforeRawPath"] = RawCommitURL(headOwner, headName, head)
 	}
 }
 
@@ -104,30 +114,36 @@ func setCsvCompareContext(ctx *context.Context) {
 
 		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
 
-		csvReaderFromCommit := func(c *git.Commit) (*csv.Reader, error) {
+		csvReaderFromCommit := func(ctx *markup.RenderContext, c *git.Commit) (*csv.Reader, io.Closer, error) {
 			blob, err := c.GetBlobByPath(diffFile.Name)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
-				return nil, errTooLarge
+				return nil, nil, errTooLarge
 			}
 
 			reader, err := blob.DataAsync()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			defer reader.Close()
 
-			return csv_module.CreateReaderAndGuessDelimiter(charset.ToUTF8WithFallbackReader(reader))
+			csvReader, err := csv_module.CreateReaderAndDetermineDelimiter(ctx, charset.ToUTF8WithFallbackReader(reader))
+			return csvReader, reader, err
 		}
 
-		baseReader, err := csvReaderFromCommit(baseCommit)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.OldName}, baseCommit)
+		if baseBlobCloser != nil {
+			defer baseBlobCloser.Close()
+		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
-		headReader, err := csvReaderFromCommit(headCommit)
+		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Filename: diffFile.Name}, headCommit)
+		if headBlobCloser != nil {
+			defer headBlobCloser.Close()
+		}
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
@@ -160,6 +176,8 @@ type CompareInfo struct {
 func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	baseRepo := ctx.Repo.Repository
 	ci := &CompareInfo{}
+
+	fileOnly := ctx.FormBool("file-only")
 
 	// Get compared branches information
 	// A full compare url is of the form:
@@ -373,7 +391,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
 	}
-	if !permBase.CanRead(models.UnitTypeCode) {
+	if !permBase.CanRead(unit.TypeCode) {
 		if log.IsTrace() {
 			log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in baseRepo has Permissions: %-+v",
 				ctx.User,
@@ -392,7 +410,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
 		}
-		if !permHead.CanRead(models.UnitTypeCode) {
+		if !permHead.CanRead(unit.TypeCode) {
 			if log.IsTrace() {
 				log.Trace("Permission Denied: User: %-v cannot read code in Repo: %-v\nUser in headRepo has Permissions: %-+v",
 					ctx.User,
@@ -411,15 +429,19 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, rootRepo)
-		if err != nil {
-			ctx.ServerError("GetBranchesForRepo", err)
-			return nil
-		}
-		if perm {
+		canRead := rootRepo.CheckUnitUser(ctx.User, unit.TypeCode)
+		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
-			ctx.Data["RootRepoBranches"] = branches
-			ctx.Data["RootRepoTags"] = tags
+			if !fileOnly {
+				branches, tags, err := getBranchesAndTagsForRepo(rootRepo)
+				if err != nil {
+					ctx.ServerError("GetBranchesForRepo", err)
+					return nil
+				}
+
+				ctx.Data["RootRepoBranches"] = branches
+				ctx.Data["RootRepoTags"] = tags
+			}
 		}
 	}
 
@@ -432,15 +454,18 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		perm, branches, tags, err := getBranchesAndTagsForRepo(ctx.User, ownForkRepo)
-		if err != nil {
-			ctx.ServerError("GetBranchesForRepo", err)
-			return nil
-		}
-		if perm {
+		canRead := ownForkRepo.CheckUnitUser(ctx.User, unit.TypeCode)
+		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
-			ctx.Data["OwnForkRepoBranches"] = branches
-			ctx.Data["OwnForkRepoTags"] = tags
+			if !fileOnly {
+				branches, tags, err := getBranchesAndTagsForRepo(ownForkRepo)
+				if err != nil {
+					ctx.ServerError("GetBranchesForRepo", err)
+					return nil
+				}
+				ctx.Data["OwnForkRepoBranches"] = branches
+				ctx.Data["OwnForkRepoTags"] = tags
+			}
 		}
 	}
 
@@ -492,7 +517,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		headBranchRef = git.TagPrefix + ci.HeadBranch
 	}
 
-	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison)
+	ci.CompareInfo, err = ci.HeadGitRepo.GetCompareInfo(baseRepo.RepoPath(), baseBranchRef, headBranchRef, ci.DirectComparison, fileOnly)
 	if err != nil {
 		ctx.ServerError("GetCompareInfo", err)
 		return nil
@@ -524,7 +549,7 @@ func PrepareCompareDiff(
 	if (headCommitID == ci.CompareInfo.MergeBase && !ci.DirectComparison) ||
 		headCommitID == ci.CompareInfo.BaseCommitID {
 		ctx.Data["IsNothingToCompare"] = true
-		if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+		if unit, err := repo.GetUnit(unit.TypePullRequests); err == nil {
 			config := unit.PullRequestsConfig()
 
 			if !config.AutodetectManualMerge {
@@ -545,7 +570,7 @@ func PrepareCompareDiff(
 	}
 
 	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(ci.HeadGitRepo,
-		beforeCommitID, headCommitID, setting.Git.MaxGitDiffLines,
+		beforeCommitID, headCommitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior, ci.DirectComparison)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
@@ -600,35 +625,27 @@ func PrepareCompareDiff(
 	ctx.Data["Username"] = ci.HeadUser.Name
 	ctx.Data["Reponame"] = ci.HeadRepo.Name
 
-	headTarget := path.Join(ci.HeadUser.Name, repo.Name)
-	setCompareContext(ctx, baseCommit, headCommit, headTarget)
+	setCompareContext(ctx, baseCommit, headCommit, ci.HeadUser.Name, repo.Name)
 
 	return false
 }
 
-func getBranchesAndTagsForRepo(user *models.User, repo *models.Repository) (bool, []string, []string, error) {
-	perm, err := models.GetUserRepoPermission(repo, user)
-	if err != nil {
-		return false, nil, nil, err
-	}
-	if !perm.CanRead(models.UnitTypeCode) {
-		return false, nil, nil, nil
-	}
+func getBranchesAndTagsForRepo(repo *models.Repository) (branches, tags []string, err error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
 	defer gitRepo.Close()
 
-	branches, _, err := gitRepo.GetBranches(0, 0)
+	branches, _, err = gitRepo.GetBranches(0, 0)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
-	tags, err := gitRepo.GetTags(0, 0)
+	tags, err = gitRepo.GetTags(0, 0)
 	if err != nil {
-		return false, nil, nil, err
+		return nil, nil, err
 	}
-	return true, branches, tags, nil
+	return branches, tags, nil
 }
 
 // CompareDiff show different from one commit to another commit
@@ -664,6 +681,12 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Tags"] = baseTags
+
+	fileOnly := ctx.FormBool("file-only")
+	if fileOnly {
+		ctx.HTML(http.StatusOK, tplDiffBox)
+		return
+	}
 
 	headBranches, _, err := ci.HeadGitRepo.GetBranches(0, 0)
 	if err != nil {
@@ -719,7 +742,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
-	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(models.UnitTypePullRequests)
+	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypePullRequests)
 
 	ctx.HTML(http.StatusOK, tplCompare)
 }
