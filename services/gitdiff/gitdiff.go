@@ -694,10 +694,10 @@ func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) er
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.
-func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipTo string) (*Diff, error) {
+func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
 	var curFile *DiffFile
 
-	skipping := skipTo != ""
+	skipping := skipToFile != ""
 
 	diff := &Diff{Files: make([]*DiffFile, 0)}
 
@@ -723,26 +723,24 @@ parsingLoop:
 		// 1. A patch file always begins with `diff --git ` + `a/path b/path` (possibly quoted)
 		// if it does not we have bad input!
 		if !strings.HasPrefix(line, cmdDiffHead) {
-			return diff, fmt.Errorf("Invalid first file line: %s", line)
+			return diff, fmt.Errorf("invalid first file line: %s", line)
 		}
 
-		// TODO: Handle skipping first n files
 		if len(diff.Files) >= maxFiles {
-
 			lastFile := createDiffFile(diff, line)
 			diff.End = lastFile.Name
 			diff.IsIncomplete = true
 			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
 				// By the definition of io.Copy this never returns io.EOF
-				return diff, fmt.Errorf("Copy: %v", err)
+				return diff, fmt.Errorf("error during io.Copy: %w", err)
 			}
 			break parsingLoop
 		}
 
 		curFile = createDiffFile(diff, line)
 		if skipping {
-			if curFile.Name != skipTo {
+			if curFile.Name != skipToFile {
 				line, err = skipToNextDiffHead(input)
 				if err != nil {
 					if err == io.EOF {
@@ -908,7 +906,7 @@ parsingLoop:
 					lineBytes, isFragment, err = input.ReadLine()
 					if err != nil {
 						// Now by the definition of ReadLine this cannot be io.EOF
-						return diff, fmt.Errorf("Unable to ReadLine: %v", err)
+						return diff, fmt.Errorf("unable to ReadLine: %w", err)
 					}
 					_, _ = sb.Write(lineBytes)
 				}
@@ -1020,7 +1018,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			_, isFragment, err = input.ReadLine()
 			if err != nil {
 				// Now by the definition of ReadLine this cannot be io.EOF
-				err = fmt.Errorf("Unable to ReadLine: %v", err)
+				err = fmt.Errorf("unable to ReadLine: %w", err)
 				return
 			}
 		}
@@ -1030,7 +1028,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			if err == io.EOF {
 				return
 			}
-			err = fmt.Errorf("Unable to ReadLine: %v", err)
+			err = fmt.Errorf("unable to ReadLine: %w", err)
 			return
 		}
 		if lineBytes[0] == 'd' {
@@ -1052,7 +1050,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("Unable to ReadLine: %v", err)
+					err = fmt.Errorf("unable to ReadLine: %w", err)
 					return
 				}
 				_, _ = sb.Write(lineBytes)
@@ -1083,7 +1081,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			}
 			// This is used only to indicate that the current file does not have a terminal newline
 			if !bytes.Equal(lineBytes, []byte("\\ No newline at end of file")) {
-				err = fmt.Errorf("Unexpected line in hunk: %s", string(lineBytes))
+				err = fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 				return
 			}
 			// Technically this should be the end the file!
@@ -1152,7 +1150,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
-			err = fmt.Errorf("Unexpected line in hunk: %s", string(lineBytes))
+			err = fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 			return
 		}
 
@@ -1164,7 +1162,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("Unable to ReadLine: %v", err)
+					err = fmt.Errorf("unable to ReadLine: %w", err)
 					return
 				}
 			}
@@ -1326,10 +1324,13 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 		beforeCommitID = actualBeforeCommitID
 	}
 
-	if skipTo != "" {
-		if git.CheckGitVersionAtLeast("2.31") == nil {
-			diffArgs = append(diffArgs, "--skip-to="+skipTo)
-		}
+	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
+	// so if we are using at least this version of git we don't have to tell ParsePatch to do
+	// the skipping for us
+	parsePatchSkipToFile := skipTo
+	if skipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+		diffArgs = append(diffArgs, "--skip-to="+skipTo)
+		parsePatchSkipToFile = ""
 	}
 	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 
@@ -1338,19 +1339,19 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("StdoutPipe: %v", err)
+		return nil, fmt.Errorf("error creating StdoutPipe: %w", err)
 	}
 
 	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("Start: %v", err)
+		return nil, fmt.Errorf("error during Start: %w", err)
 	}
 
 	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
-	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout, skipTo)
+	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout, parsePatchSkipToFile)
 	if err != nil {
-		return nil, fmt.Errorf("ParsePatch: %v", err)
+		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
 	diff.Start = skipTo
 
@@ -1432,7 +1433,7 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	}
 
 	if err = cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("Wait: %v", err)
+		return nil, fmt.Errorf("error during cmd.Wait: %w", err)
 	}
 
 	separator := "..."
