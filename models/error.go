@@ -797,7 +797,6 @@ type ErrInvalidCloneAddr struct {
 	IsPermissionDenied bool
 	LocalPath          bool
 	NotResolvedIP      bool
-	PrivateNet         string
 }
 
 // IsErrInvalidCloneAddr checks if an error is a ErrInvalidCloneAddr.
@@ -809,9 +808,6 @@ func IsErrInvalidCloneAddr(err error) bool {
 func (err *ErrInvalidCloneAddr) Error() string {
 	if err.NotResolvedIP {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: unknown hostname", err.Host)
-	}
-	if len(err.PrivateNet) != 0 {
-		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the host resolve to a private ip address '%s'", err.Host, err.PrivateNet)
 	}
 	if err.IsInvalidPath {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided path is invalid", err.Host)
@@ -1679,29 +1675,6 @@ func (err ErrMilestoneNotExist) Error() string {
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
 }
 
-//    _____   __    __                .__                           __
-//   /  _  \_/  |__/  |______    ____ |  |__   _____   ____   _____/  |_
-//  /  /_\  \   __\   __\__  \ _/ ___\|  |  \ /     \_/ __ \ /    \   __\
-// /    |    \  |  |  |  / __ \\  \___|   Y  \  Y Y  \  ___/|   |  \  |
-// \____|__  /__|  |__| (____  /\___  >___|  /__|_|  /\___  >___|  /__|
-//         \/                \/     \/     \/      \/     \/     \/
-
-// ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
-type ErrAttachmentNotExist struct {
-	ID   int64
-	UUID string
-}
-
-// IsErrAttachmentNotExist checks if an error is a ErrAttachmentNotExist.
-func IsErrAttachmentNotExist(err error) bool {
-	_, ok := err.(ErrAttachmentNotExist)
-	return ok
-}
-
-func (err ErrAttachmentNotExist) Error() string {
-	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
-}
-
 // ___________
 // \__    ___/___ _____    _____
 //   |    |_/ __ \\__  \  /     \
@@ -1758,7 +1731,7 @@ type ErrUploadNotExist struct {
 
 // IsErrUploadNotExist checks if an error is a ErrUploadNotExist.
 func IsErrUploadNotExist(err error) bool {
-	_, ok := err.(ErrAttachmentNotExist)
+	_, ok := err.(ErrUploadNotExist)
 	return ok
 }
 

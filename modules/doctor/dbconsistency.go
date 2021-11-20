@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -110,8 +111,8 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		// find attachments without existing issues or releases
 		{
 			Name:    "Orphaned Attachments without existing issues or releases",
-			Counter: models.CountOrphanedAttachments,
-			Fixer:   asFixer(models.DeleteOrphanedAttachments),
+			Counter: repo_model.CountOrphanedAttachments,
+			Fixer:   asFixer(repo_model.DeleteOrphanedAttachments),
 		},
 		// find null archived repositories
 		{

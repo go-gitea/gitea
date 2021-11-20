@@ -393,7 +393,7 @@ func Generate(ctx *context.APIContext) {
 		}
 
 		if !ctx.User.IsAdmin {
-			canCreate, err := ctxUser.CanCreateOrgRepo(ctx.User.ID)
+			canCreate, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -489,7 +489,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 		return
 	}
 
-	if !models.HasOrgOrUserVisible(org, ctx.User) {
+	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -504,7 +504,7 @@ func CreateOrgRepo(ctx *context.APIContext) {
 			return
 		}
 	}
-	CreateUserRepo(ctx, org, *opt)
+	CreateUserRepo(ctx, org.AsUser(), *opt)
 }
 
 // Get one repository
