@@ -43,7 +43,7 @@ func ReadSession(key string) (*Session, error) {
 	}
 	defer committer.Close()
 
-	if has, err := db.GetByExample(ctx, &session); err != nil {
+	if has, err := db.GetByBean(ctx, &session); err != nil {
 		return nil, err
 	} else if !has {
 		session.Expiry = timeutil.TimeStampNow()
@@ -79,7 +79,7 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 	}
 	defer committer.Close()
 
-	if has, err := db.GetByExample(ctx, &Session{
+	if has, err := db.GetByBean(ctx, &Session{
 		Key: newKey,
 	}); err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
-	if has, err := db.GetByExample(ctx, &Session{
+	if has, err := db.GetByBean(ctx, &Session{
 		Key: oldKey,
 	}); err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 	s := Session{
 		Key: newKey,
 	}
-	if _, err := db.GetByExample(ctx, &s); err != nil {
+	if _, err := db.GetByBean(ctx, &s); err != nil {
 		return nil, err
 	}
 

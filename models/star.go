@@ -49,7 +49,7 @@ func StarRepo(userID, repoID int64, star bool) error {
 			return nil
 		}
 
-		if _, err := db.DeleteByExample(ctx, &Star{UID: userID, RepoID: repoID}); err != nil {
+		if _, err := db.DeleteByBean(ctx, &Star{UID: userID, RepoID: repoID}); err != nil {
 			return err
 		}
 		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_stars = num_stars - 1 WHERE id = ?", repoID); err != nil {

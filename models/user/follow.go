@@ -65,7 +65,7 @@ func UnfollowUser(userID, followID int64) (err error) {
 	}
 	defer committer.Close()
 
-	if _, err = db.DeleteByExample(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
 		return err
 	}
 

@@ -133,18 +133,18 @@ func Exec(ctx context.Context, sqlAndArgs ...interface{}) (sql.Result, error) {
 	return GetEngine(ctx).Exec(sqlAndArgs...)
 }
 
-// GetByExample filled empty fields of the bean according non-empty fields to query in database.
-func GetByExample(ctx context.Context, bean interface{}) (bool, error) {
+// GetByBean filled empty fields of the bean according non-empty fields to query in database.
+func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
 	return GetEngine(ctx).Get(bean)
 }
 
-// DeleteByExample deletes all records according non-empty fields of the bean as conditions.
-func DeleteByExample(ctx context.Context, bean interface{}) (int64, error) {
+// DeleteByBean deletes all records according non-empty fields of the bean as conditions.
+func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
-// CountByExample counts the number of database records according non-empty fields of the bean as conditions.
-func CountByExample(ctx context.Context, bean interface{}) (int64, error) {
+// CountByBean counts the number of database records according non-empty fields of the bean as conditions.
+func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Count(bean)
 }
 

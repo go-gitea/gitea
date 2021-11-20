@@ -513,11 +513,11 @@ func deleteWebhook(bean *Webhook) (err error) {
 	}
 	defer committer.Close()
 
-	if count, err := db.DeleteByExample(ctx, bean); err != nil {
+	if count, err := db.DeleteByBean(ctx, bean); err != nil {
 		return err
 	} else if count == 0 {
 		return ErrWebhookNotExist{ID: bean.ID}
-	} else if _, err = db.DeleteByExample(ctx, &HookTask{HookID: bean.ID}); err != nil {
+	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: bean.ID}); err != nil {
 		return err
 	}
 
@@ -557,7 +557,7 @@ func DeleteDefaultSystemWebhook(id int64) error {
 		return ErrWebhookNotExist{ID: id}
 	}
 
-	if _, err := db.DeleteByExample(ctx, &HookTask{HookID: id}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
 		return err
 	}
 

@@ -50,7 +50,7 @@ func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	}
 	defer committer.Close()
 
-	has, err := db.GetByExample(ctx, m)
+	has, err := db.GetByBean(ctx, m)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +99,11 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 	defer committer.Close()
 
 	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
-	if _, err := db.DeleteByExample(ctx, m); err != nil {
+	if _, err := db.DeleteByBean(ctx, m); err != nil {
 		return -1, err
 	}
 
-	count, err := db.CountByExample(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	if err != nil {
 		return count, err
 	}
