@@ -26,6 +26,7 @@ import (
 	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -377,7 +378,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteUser(u); err != nil {
+	if err = user.DeleteUser(u); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))

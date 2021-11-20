@@ -21,7 +21,8 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	adminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
 	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
 
-	setting.Migrations.AllowedDomains = []string{"github.com"}
+	setting.Migrations.AllowedDomains = "github.com"
+	setting.Migrations.AllowLocalNetworks = false
 	assert.NoError(t, Init())
 
 	err := IsMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git", nonAdminUser)
@@ -33,8 +34,8 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	err = IsMigrateURLAllowed("https://gITHUb.com/go-gitea/gitea.git", nonAdminUser)
 	assert.NoError(t, err)
 
-	setting.Migrations.AllowedDomains = []string{}
-	setting.Migrations.BlockedDomains = []string{"github.com"}
+	setting.Migrations.AllowedDomains = ""
+	setting.Migrations.BlockedDomains = "github.com"
 	assert.NoError(t, Init())
 
 	err = IsMigrateURLAllowed("https://gitlab.com/gitlab/gitlab.git", nonAdminUser)
@@ -47,6 +48,7 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.Error(t, err)
 
 	setting.Migrations.AllowLocalNetworks = true
+	assert.NoError(t, Init())
 	err = IsMigrateURLAllowed("https://10.0.0.1/go-gitea/gitea.git", nonAdminUser)
 	assert.NoError(t, err)
 

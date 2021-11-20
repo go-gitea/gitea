@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/stretchr/testify/assert"
@@ -29,6 +30,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	defer prepareTestEnv(t)()
 
 	setting.Migrations.AllowLocalNetworks = true
+	assert.NoError(t, migrations.Init())
 
 	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
 	srcRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)

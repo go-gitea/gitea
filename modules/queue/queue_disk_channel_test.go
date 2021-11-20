@@ -18,6 +18,9 @@ func TestPersistableChannelQueue(t *testing.T) {
 	handleChan := make(chan *testData)
 	handle := func(data ...Data) {
 		for _, datum := range data {
+			if datum == nil {
+				continue
+			}
 			testDatum := datum.(*testData)
 			handleChan <- testDatum
 		}
@@ -42,13 +45,26 @@ func TestPersistableChannelQueue(t *testing.T) {
 	}, &testData{})
 	assert.NoError(t, err)
 
+	readyForShutdown := make(chan struct{})
+	readyForTerminate := make(chan struct{})
+
 	go queue.Run(func(shutdown func()) {
 		lock.Lock()
 		defer lock.Unlock()
+		select {
+		case <-readyForShutdown:
+		default:
+			close(readyForShutdown)
+		}
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
 		lock.Lock()
 		defer lock.Unlock()
+		select {
+		case <-readyForTerminate:
+		default:
+			close(readyForTerminate)
+		}
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -74,6 +90,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 	err = queue.Push(test1)
 	assert.Error(t, err)
 
+	<-readyForShutdown
 	// Now shutdown the queue
 	lock.Lock()
 	callbacks := make([]func(), len(queueShutdown))
@@ -97,6 +114,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 	}
 
 	// terminate the queue
+	<-readyForTerminate
 	lock.Lock()
 	callbacks = make([]func(), len(queueTerminate))
 	copy(callbacks, queueTerminate)
@@ -123,13 +141,26 @@ func TestPersistableChannelQueue(t *testing.T) {
 	}, &testData{})
 	assert.NoError(t, err)
 
+	readyForShutdown = make(chan struct{})
+	readyForTerminate = make(chan struct{})
+
 	go queue.Run(func(shutdown func()) {
 		lock.Lock()
 		defer lock.Unlock()
+		select {
+		case <-readyForShutdown:
+		default:
+			close(readyForShutdown)
+		}
 		queueShutdown = append(queueShutdown, shutdown)
 	}, func(terminate func()) {
 		lock.Lock()
 		defer lock.Unlock()
+		select {
+		case <-readyForTerminate:
+		default:
+			close(readyForTerminate)
+		}
 		queueTerminate = append(queueTerminate, terminate)
 	})
 
@@ -141,6 +172,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 	assert.Equal(t, test2.TestString, result4.TestString)
 	assert.Equal(t, test2.TestInt, result4.TestInt)
 
+	<-readyForShutdown
 	lock.Lock()
 	callbacks = make([]func(), len(queueShutdown))
 	copy(callbacks, queueShutdown)
@@ -148,6 +180,7 @@ func TestPersistableChannelQueue(t *testing.T) {
 	for _, callback := range callbacks {
 		callback()
 	}
+	<-readyForTerminate
 	lock.Lock()
 	callbacks = make([]func(), len(queueTerminate))
 	copy(callbacks, queueTerminate)
