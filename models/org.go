@@ -440,24 +440,6 @@ func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*User, error) {
 		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
-func getOrgsByUserID(e db.Engine, userID int64, showAll bool) ([]*Organization, error) {
-	orgs := make([]*Organization, 0, 10)
-	sess := e.Where("`org_user`.uid=?", userID)
-	if !showAll {
-		sess = sess.And("`org_user`.is_public=?", true)
-	}
-	return orgs, sess.
-		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
-		Asc("`user`.name").
-		Find(&orgs)
-}
-
-// GetOrgsByUserID returns a list of organizations that the given user ID
-// has joined.
-func GetOrgsByUserID(userID int64, showAll bool) ([]*Organization, error) {
-	return getOrgsByUserID(db.GetEngine(db.DefaultContext), userID, showAll)
-}
-
 // MinimalOrg represents a simple orgnization with only needed columns
 type MinimalOrg = Organization
 
@@ -526,17 +508,18 @@ type FindOrgOptions struct {
 	IncludePrivate bool
 }
 
-func queryUserOrgIDs(userID int64) *builder.Builder {
-	return builder.Select("org_id").From("org_user").
-		Where(builder.Eq{
-			"uid": userID,
-		})
+func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
+	var cond = builder.Eq{"uid": userID}
+	if !includePrivate {
+		cond["is_public"] = true
+	}
+	return builder.Select("org_id").From("org_user").Where(cond)
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
 	var cond = builder.NewCond()
 	if opts.UserID > 0 {
-		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID)))
+		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
 	if !opts.IncludePrivate {
 		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})

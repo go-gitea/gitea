@@ -324,7 +324,7 @@ func TestFindOrgs(t *testing.T) {
 		IncludePrivate: false,
 	})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 1, len(orgs))
+	assert.EqualValues(t, 0, len(orgs))
 
 	total, err := CountOrgs(FindOrgOptions{
 		UserID:         4,
