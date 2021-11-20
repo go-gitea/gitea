@@ -1053,17 +1053,17 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 			),
 		)
 	} else {
-		cond = cond.And(builder.Eq{"issue.is_private": false})
+		cond = cond.And(builder.Eq{"`issue`.is_private": false})
 	}
+
 	return cond
 }
 
 func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
-	if opts.RepoID > 0 {
-		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
-	}
+
+	sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -1085,9 +1085,8 @@ func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
 // CountComments count all comments according options by ignoring pagination
 func CountComments(opts *FindCommentsOptions) (int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
-	if opts.RepoID > 0 {
-		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
-	}
+	sess.Join("INNER", "issue", "issue.id = comment.issue_id")
+
 	return sess.Count(&Comment{})
 }
 
