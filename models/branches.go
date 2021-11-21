@@ -614,12 +614,13 @@ func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist 
 
 // RenameBranch rename a branch
 func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault bool) error) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
+	sess := db.GetEngine(ctx)
 	// 1. update default branch if needed
 	isDefault := repo.DefaultBranch == from
 	if isDefault {
@@ -663,10 +664,10 @@ func (repo *Repository) RenameBranch(from, to string, gitAction func(isDefault b
 		From:   from,
 		To:     to,
 	}
-	_, err = sess.Insert(renamedBranch)
+	err = db.Insert(ctx, renamedBranch)
 	if err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

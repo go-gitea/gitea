@@ -129,18 +129,18 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	oldAvatarPath := repo.CustomAvatarRelativePath()
 
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
-	if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
@@ -159,7 +159,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteAvatar deletes the repos's custom avatar.
@@ -172,14 +172,14 @@ func (repo *Repository) DeleteAvatar() error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	repo.Avatar = ""
-	if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
@@ -187,5 +187,5 @@ func (repo *Repository) DeleteAvatar() error {
 		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

@@ -24,7 +24,7 @@ func GetPaginatedSession(p Paginator) *xorm.Session {
 }
 
 // SetSessionPagination sets pagination for a database session
-func SetSessionPagination(sess *xorm.Session, p Paginator) *xorm.Session {
+func SetSessionPagination(sess Engine, p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
 	return sess.Limit(take, skip)
