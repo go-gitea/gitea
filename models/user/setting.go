@@ -115,5 +115,9 @@ func upsertSettingValue(userID int64, key string, value string) (err error) {
 
 	// if no existing row, insert a new row
 	_, err = e.Insert(&Setting{UserID: userID, SettingKey: key, SettingValue: value})
+	if err != nil {
+		return err
+	}
+
 	return committer.Commit()
 }
