@@ -5,11 +5,11 @@
 package user
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -80,31 +80,20 @@ func SetSetting(setting *Setting) error {
 	return upsertSettingValue(db.GetEngine(db.DefaultContext), setting.UserID, setting.SettingKey, setting.SettingValue)
 }
 
-func upsertSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
-	// Intentionally lowercase key here as XORM may not pick it up via Before* actions
-	key = strings.ToLower(key)
-	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
-	// that ensures that the key is actually locked.
-	switch {
-	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
-		_, err = e.Exec("INSERT INTO `user_setting` (user_id, setting_key, setting_value) "+
-			"VALUES (?,?,?) ON CONFLICT (user_id,setting_key) DO UPDATE SET setting_value = ?",
-			userID, key, value, value)
-	case setting.Database.UseMySQL:
-		_, err = e.Exec("INSERT INTO `user_setting` (user_id, setting_key, setting_value) "+
-			"VALUES (?,?,?) ON DUPLICATE KEY UPDATE setting_value = ?",
-			userID, key, value, value)
-	case setting.Database.UseMSSQL:
-		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
-		_, err = e.Exec("MERGE `user_setting` WITH (HOLDLOCK) as target "+
-			"USING (SELECT ? AS user_id, ? AS setting_key) AS src "+
-			"ON src.user_id = target.user_id AND src.setting_key = target.setting_key "+
-			"WHEN MATCHED THEN UPDATE SET target.setting_value = ? "+
-			"WHEN NOT MATCHED THEN INSERT (user_id, setting_key, setting_value) "+
-			"VALUES (src.user_id, src.setting_key, ?);",
-			userID, key, value, value)
-	default:
-		return fmt.Errorf("database type not supported")
-	}
-	return
+func upsertSettingValue(e db.Engine, userID int64, key string, value string) error {
+	return db.WithTx(func(ctx context.Context) error {
+		sess := db.GetEngine(db.DefaultContext)
+		res, err := sess.Exec("UPDATE user_setting SET setting_value=? WHERE setting_key=?", value, key)
+		if err != nil {
+			return err
+		}
+		rows, _ := res.RowsAffected()
+		if rows != 0 {
+			// the existing row is updated, so we can return
+			return nil
+		}
+		// if no existing row, insert a new row
+		_, err = sess.Insert(&Setting{SettingKey: key, SettingValue: value})
+		return err
+	})
 }
