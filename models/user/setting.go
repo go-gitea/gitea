@@ -5,7 +5,6 @@
 package user
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -80,20 +79,22 @@ func SetSetting(setting *Setting) error {
 	return upsertSettingValue(db.GetEngine(db.DefaultContext), setting.UserID, setting.SettingKey, setting.SettingValue)
 }
 
-func upsertSettingValue(e db.Engine, userID int64, key string, value string) error {
-	return db.WithTx(func(ctx context.Context) error {
-		sess := db.GetEngine(db.DefaultContext)
-		res, err := sess.Exec("UPDATE user_setting SET setting_value=? WHERE setting_key=?", value, key)
-		if err != nil {
-			return err
-		}
-		rows, _ := res.RowsAffected()
-		if rows != 0 {
-			// the existing row is updated, so we can return
-			return nil
-		}
-		// if no existing row, insert a new row
-		_, err = sess.Insert(&Setting{SettingKey: key, SettingValue: value})
+func upsertSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
+	sess := db.NewSession(db.DefaultContext)
+	defer sess.Close()
+	if err = sess.Begin(); err != nil {
 		return err
-	})
+	}
+	res, err := sess.Exec("UPDATE user_setting SET setting_value=? WHERE setting_key=? AND user_id=?", value, key, userID)
+	if err != nil {
+		return err
+	}
+	rows, _ := res.RowsAffected()
+	if rows != 0 {
+		// the existing row is updated, so we can return
+		return nil
+	}
+	// if no existing row, insert a new row
+	_, err = sess.Insert(&Setting{SettingKey: key, SettingValue: value})
+	return sess.Commit()
 }
