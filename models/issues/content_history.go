@@ -75,7 +75,7 @@ func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int)
 		log.Error("can not query content history for deletion, err=%v", err)
 		return
 	}
-	if len(res) <= 1 {
+	if len(res) <= 2 {
 		return
 	}
 
@@ -83,8 +83,8 @@ func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int)
 	for outDatedCount > 0 {
 		var indexToDelete int
 		minEditedInterval := -1
-		// find a history revision with minimal edited interval to delete
-		for i := 1; i < len(res); i++ {
+		// find a history revision with minimal edited interval to delete, the first and the last should never be deleted
+		for i := 1; i < len(res)-1; i++ {
 			editedInterval := int(res[i].EditedUnix - res[i-1].EditedUnix)
 			if minEditedInterval == -1 || editedInterval < minEditedInterval {
 				minEditedInterval = editedInterval
