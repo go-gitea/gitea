@@ -322,7 +322,7 @@ func GetIssueComment(ctx *context.APIContext) {
 	}
 
 	if err = comment.LoadIssue(); err != nil {
-		ctx.InternalServerError(err)
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
 
@@ -454,6 +454,11 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
+	if err = comment.LoadIssue(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
+		return
+	}
+
 	if comment.Issue.IsPrivate {
 		var userID int64
 		if ctx.IsSigned {
@@ -564,6 +569,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
 		}
+		return
+	}
+
+	if err = comment.LoadIssue(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
 
