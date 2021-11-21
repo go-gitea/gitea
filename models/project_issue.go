@@ -103,11 +103,37 @@ func (p *Project) NumIssues() int {
 	return int(c)
 }
 
+// NumClosedPrivateOwnIssues return counter of closed private issues of the user, assigned to a project
+func (p *Project) NumClosedPrivateOwnIssues(userID int64) int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_closed=? AND issue.is_private=? AND issue.poster_id=?", p.ID, true, true, userID).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumClosedPrivateIssues return counter of closed private issues assigned to a project
+func (p *Project) NumClosedPrivateIssues() int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_closed=? AND issue.is_private=?", p.ID, true, true).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
 // NumClosedIssues return counter of closed issues assigned to a project
 func (p *Project) NumClosedIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, true).
+		Where("project_issue.project_id=? AND issue.is_closed=? AND issue.is_private=?", p.ID, true, false).
 		Cols("issue_id").
 		Count()
 	if err != nil {
@@ -120,7 +146,33 @@ func (p *Project) NumClosedIssues() int {
 func (p *Project) NumOpenIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		Where("project_issue.project_id=? AND issue.is_closed=? AND issue.is_private=?", p.ID, false, false).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumOpenPrivateIssues return counter of open private issues assigned to a project
+func (p *Project) NumOpenPrivateIssues() int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_closed=? AND issue.is_private=?", p.ID, false, true).
+		Cols("issue_id").
+		Count()
+	if err != nil {
+		return 0
+	}
+	return int(c)
+}
+
+// NumOpenPrivateOwnIssues return counter of open private issues of the user, assigned to a project
+func (p *Project) NumOpenPrivateOwnIssues(userID int64) int {
+	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
+		Join("INNER", "issue", "project_issue.issue_id=issue.id").
+		Where("project_issue.project_id=? AND issue.is_closed=? AND issue.is_private=? AND issue.poster_id=?", p.ID, false, true, userID).
 		Cols("issue_id").
 		Count()
 	if err != nil {

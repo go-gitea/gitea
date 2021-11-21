@@ -110,9 +110,16 @@ func Projects(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
+	ctx.Data["CanSeePrivateIssues"] = ctx.Repo.Permission.CanReadPrivateIssues()
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["SortType"] = sortType
+
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	ctx.Data["UserID"] = userID
 
 	ctx.HTML(http.StatusOK, tplProjects)
 }
