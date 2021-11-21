@@ -210,8 +210,14 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	if err = client.Mail(from); err != nil {
-		return fmt.Errorf("Mail: %v", err)
+	if opts.OverrideEnvelopeFrom {
+		if err = client.Mail(opts.EnvelopeFrom); err != nil {
+			return fmt.Errorf("Mail: %v", err)
+		}
+	} else {
+		if err = client.Mail(from); err != nil {
+			return fmt.Errorf("Mail: %v", err)
+		}
 	}
 
 	for _, rec := range to {
@@ -242,7 +248,12 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var closeError error
 	var waitError error
 
-	args := []string{"-f", from, "-i"}
+	envelopeFrom := from
+	if setting.MailService.OverrideEnvelopeFrom {
+		envelopeFrom = setting.MailService.EnvelopeFrom
+	}
+
+	args := []string{"-f", envelopeFrom, "-i"}
 	args = append(args, setting.MailService.SendmailArgs...)
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)

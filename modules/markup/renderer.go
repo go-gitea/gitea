@@ -144,8 +144,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 
 	wg.Add(1)
 	go func() {
-		buf := SanitizeReader(pr2, renderer.Name())
-		_, err = io.Copy(output, buf)
+		err = SanitizeReader(pr2, renderer.Name(), output)
 		_ = pr2.Close()
 		wg.Done()
 	}()

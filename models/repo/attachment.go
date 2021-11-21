@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"context"
@@ -11,12 +11,9 @@ import (
 	"path"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -63,33 +60,32 @@ func (a *Attachment) DownloadURL() string {
 	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
-// LinkedRepository returns the linked repo if any
-func (a *Attachment) LinkedRepository() (*Repository, unit.Type, error) {
-	if a.IssueID != 0 {
-		iss, err := GetIssueByID(a.IssueID)
-		if err != nil {
-			return nil, unit.TypeIssues, err
-		}
-		repo, err := GetRepositoryByID(iss.RepoID)
-		unitType := unit.TypeIssues
-		if iss.IsPull {
-			unitType = unit.TypePullRequests
-		}
-		return repo, unitType, err
-	} else if a.ReleaseID != 0 {
-		rel, err := GetReleaseByID(a.ReleaseID)
-		if err != nil {
-			return nil, unit.TypeReleases, err
-		}
-		repo, err := GetRepositoryByID(rel.RepoID)
-		return repo, unit.TypeReleases, err
-	}
-	return nil, -1, nil
-}
-
 // GetAttachmentByID returns attachment by given id
 func GetAttachmentByID(id int64) (*Attachment, error) {
 	return getAttachmentByID(db.GetEngine(db.DefaultContext), id)
+}
+
+//    _____   __    __                .__                           __
+//   /  _  \_/  |__/  |______    ____ |  |__   _____   ____   _____/  |_
+//  /  /_\  \   __\   __\__  \ _/ ___\|  |  \ /     \_/ __ \ /    \   __\
+// /    |    \  |  |  |  / __ \\  \___|   Y  \  Y Y  \  ___/|   |  \  |
+// \____|__  /__|  |__| (____  /\___  >___|  /__|_|  /\___  >___|  /__|
+//         \/                \/     \/     \/      \/     \/     \/
+
+// ErrAttachmentNotExist represents a "AttachmentNotExist" kind of error.
+type ErrAttachmentNotExist struct {
+	ID   int64
+	UUID string
+}
+
+// IsErrAttachmentNotExist checks if an error is a ErrAttachmentNotExist.
+func IsErrAttachmentNotExist(err error) bool {
+	_, ok := err.(ErrAttachmentNotExist)
+	return ok
+}
+
+func (err ErrAttachmentNotExist) Error() string {
+	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
 func getAttachmentByID(e db.Engine, id int64) (*Attachment, error) {
@@ -143,24 +139,26 @@ func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attach
 	return getAttachmentByReleaseIDFileName(db.GetEngine(db.DefaultContext), releaseID, fileName)
 }
 
-func getAttachmentsByIssueID(e db.Engine, issueID int64) ([]*Attachment, error) {
+// GetAttachmentsByIssueIDCtx returns all attachments of an issue.
+func GetAttachmentsByIssueIDCtx(ctx context.Context, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, e.Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
+	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
 
 // GetAttachmentsByIssueID returns all attachments of an issue.
 func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
-	return getAttachmentsByIssueID(db.GetEngine(db.DefaultContext), issueID)
+	return GetAttachmentsByIssueIDCtx(db.DefaultContext, issueID)
 }
 
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
 func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
-	return getAttachmentsByCommentID(db.GetEngine(db.DefaultContext), commentID)
+	return GetAttachmentsByCommentIDCtx(db.DefaultContext, commentID)
 }
 
-func getAttachmentsByCommentID(e db.Engine, commentID int64) ([]*Attachment, error) {
+// GetAttachmentsByCommentIDCtx returns all attachments if comment by given ID.
+func GetAttachmentsByCommentIDCtx(ctx context.Context, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
-	return attachments, e.Where("comment_id=?", commentID).Find(&attachments)
+	return attachments, db.GetEngine(ctx).Where("comment_id=?", commentID).Find(&attachments)
 }
 
 // getAttachmentByReleaseIDFileName return a file based on the the following infos:
@@ -229,7 +227,7 @@ func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
 
 // UpdateAttachment updates the given attachment in database
 func UpdateAttachment(atta *Attachment) error {
-	return updateAttachment(db.GetEngine(db.DefaultContext), atta)
+	return UpdateAttachmentCtx(db.DefaultContext, atta)
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid
@@ -241,15 +239,16 @@ func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...str
 	return err
 }
 
-func updateAttachment(e db.Engine, atta *Attachment) error {
-	var sess *xorm.Session
+// UpdateAttachmentCtx updates the given attachment in database
+func UpdateAttachmentCtx(ctx context.Context, atta *Attachment) error {
+	var sess = db.GetEngine(ctx).Cols("name", "issue_id", "release_id", "comment_id", "download_count")
 	if atta.ID != 0 && atta.UUID == "" {
-		sess = e.ID(atta.ID)
+		sess = sess.ID(atta.ID)
 	} else {
 		// Use uuid only if id is not set and uuid is set
-		sess = e.Where("uuid = ?", atta.UUID)
+		sess = sess.Where("uuid = ?", atta.UUID)
 	}
-	_, err := sess.Cols("name", "issue_id", "release_id", "comment_id", "download_count").Update(atta)
+	_, err := sess.Update(atta)
 	return err
 }
 

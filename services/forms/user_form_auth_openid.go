@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web/middleware"
+
 	"gitea.com/go-chi/binding"
 )
 

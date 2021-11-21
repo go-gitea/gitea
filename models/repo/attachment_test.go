@@ -2,14 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,31 +101,4 @@ func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", attachList[1].UUID)
 	assert.Equal(t, int64(1), attachList[0].IssueID)
 	assert.Equal(t, int64(5), attachList[1].IssueID)
-}
-
-func TestLinkedRepository(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	testCases := []struct {
-		name             string
-		attachID         int64
-		expectedRepo     *Repository
-		expectedUnitType unit.Type
-	}{
-		{"LinkedIssue", 1, &Repository{ID: 1}, unit.TypeIssues},
-		{"LinkedComment", 3, &Repository{ID: 1}, unit.TypePullRequests},
-		{"LinkedRelease", 9, &Repository{ID: 1}, unit.TypeReleases},
-		{"Notlinked", 10, nil, -1},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			attach, err := GetAttachmentByID(tc.attachID)
-			assert.NoError(t, err)
-			repo, unitType, err := attach.LinkedRepository()
-			assert.NoError(t, err)
-			if tc.expectedRepo != nil {
-				assert.Equal(t, tc.expectedRepo.ID, repo.ID)
-			}
-			assert.Equal(t, tc.expectedUnitType, unitType)
-		})
-	}
 }
