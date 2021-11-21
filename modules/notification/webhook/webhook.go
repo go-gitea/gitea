@@ -42,6 +42,10 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *models.User, issue *model
 		return
 	}
 
+	if issue.IsPrivate {
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
@@ -137,6 +141,10 @@ func (m *webhookNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 }
 
 func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
+	if issue.IsPrivate {
+		return
+	}
+
 	if issue.IsPull {
 		mode, _ := models.AccessLevelUnit(doer, issue.Repo, unit.TypePullRequests)
 
@@ -183,6 +191,10 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *models.User, issue *mo
 }
 
 func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+	if issue.IsPrivate {
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
@@ -224,6 +236,10 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 }
 
 func (m *webhookNotifier) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+	if issue.IsPrivate {
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
@@ -272,6 +288,9 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models
 		log.Error("issue.LoadPoster: %v", err)
 		return
 	}
+	if issue.IsPrivate {
+		return
+	}
 
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	if err := webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssues, &api.IssuePayload{
@@ -314,6 +333,9 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mention
 func (m *webhookNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
+	if issue.IsPrivate {
+		return
+	}
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
 		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
@@ -363,6 +385,9 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 		log.Error("LoadAttributes: %v", err)
 		return
 	}
+	if c.Issue.IsPrivate {
+		return
+	}
 
 	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
 	if c.Issue.IsPull {
@@ -404,6 +429,10 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	mode, _ := models.AccessLevel(doer, repo)
 
+	if issue.IsPrivate {
+		return
+	}
+
 	var err error
 	if issue.IsPull {
 		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
@@ -444,6 +473,10 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *models.User, comment *models
 
 	if err = comment.Issue.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
+		return
+	}
+
+	if comment.Issue.IsPrivate {
 		return
 	}
 
@@ -489,6 +522,10 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *models.User, issue *mode
 		return
 	}
 
+	if issue.IsPrivate {
+		return
+	}
+
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	if issue.IsPull {
 		if err = issue.LoadPullRequest(); err != nil {
@@ -529,6 +566,9 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *models.User, issue *m
 		hookAction = api.HookIssueDemilestoned
 	}
 
+	if issue.IsPrivate {
+		return
+	}
 	if err = issue.LoadAttributes(); err != nil {
 		log.Error("issue.LoadAttributes failed: %v", err)
 		return
