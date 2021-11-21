@@ -253,14 +253,6 @@ func FinishMigrateTask(task *Task) error {
 	}
 	task.PayloadContent = string(confBytes)
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	if _, err := sess.ID(task.ID).Cols("status", "end_time", "payload_content").Update(task); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	_, err = db.GetEngine(db.DefaultContext).ID(task.ID).Cols("status", "end_time", "payload_content").Update(task)
+	return err
 }

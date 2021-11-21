@@ -1349,10 +1349,9 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
 func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	e := db.GetEngine(db.DefaultContext)
 
-	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
 	opts.setupSession(sess)
 
@@ -1377,10 +1376,9 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
 func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	e := db.GetEngine(db.DefaultContext)
 
-	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
 	opts.setupSession(sess)
 
@@ -1397,10 +1395,9 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error
 
 // Issues returns a list of issues by given conditions.
 func Issues(opts *IssuesOptions) ([]*Issue, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	e := db.GetEngine(db.DefaultContext)
 
-	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
+	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSession(sess)
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
@@ -1419,15 +1416,14 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 // CountIssues number return of issues by given conditions.
 func CountIssues(opts *IssuesOptions) (int64, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	e := db.GetEngine(db.DefaultContext)
 
 	countsSlice := make([]*struct {
 		RepoID int64
 		Count  int64
 	}, 0, 1)
 
-	sess.Select("COUNT(issue.id) AS count").Table("issue")
+	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSession(sess)
 	if err := sess.Find(&countsSlice); err != nil {
@@ -1901,7 +1897,6 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *Us
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
 	}
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

@@ -55,6 +55,7 @@ type Engine interface {
 	Asc(colNames ...string) *xorm.Session
 	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
+	NoAutoTime() *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 	Sync2(...interface{}) error
 	Select(string) *xorm.Session
