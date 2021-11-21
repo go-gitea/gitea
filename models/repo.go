@@ -146,6 +146,7 @@ const (
 	RepositoryReady           RepositoryStatus = iota // a normal repository
 	RepositoryBeingMigrated                           // repository is migrating
 	RepositoryPendingTransfer                         // repository pending in ownership transfer state
+	RepositoryBroken                                  // repository is in a permanently broken state
 )
 
 // TrustModelType defines the types of trust model for this repository
@@ -287,6 +288,11 @@ func (repo *Repository) IsBeingMigrated() bool {
 // IsBeingCreated indicates that repository is being migrated or forked
 func (repo *Repository) IsBeingCreated() bool {
 	return repo.IsBeingMigrated()
+}
+
+// IsBroken indicates that repository is broken
+func (repo *Repository) IsBroken() bool {
+	return repo.Status == RepositoryBroken
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
