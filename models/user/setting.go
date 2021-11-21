@@ -64,9 +64,7 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 
 // DeleteSetting deletes a specific setting for a user
 func DeleteSetting(setting *Setting) error {
-	sess := db.GetEngine(db.DefaultContext)
-
-	_, err := sess.Delete(setting)
+	_, err := db.GetEngine(db.DefaultContext).Delete(setting)
 	return err
 }
 
@@ -75,16 +73,17 @@ func SetSetting(setting *Setting) error {
 	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
 		return fmt.Errorf("setting key should be lowercase")
 	}
-	return upsertSettingValue(db.GetEngine(db.DefaultContext), setting.UserID, setting.SettingKey, setting.SettingValue)
+	return upsertSettingValue(setting.UserID, setting.SettingKey, setting.SettingValue)
 }
 
-func upsertSettingValue(e db.Engine, userID int64, key string, value string) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+func upsertSettingValue(userID int64, key string, value string) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	res, err := sess.Exec("UPDATE user_setting SET setting_value=? WHERE setting_key=? AND user_id=?", value, key, userID)
+	defer committer.Close()
+	e := db.GetEngine(ctx)
+	res, err := e.Exec("UPDATE user_setting SET setting_value=? WHERE setting_key=? AND user_id=?", value, key, userID)
 	if err != nil {
 		return err
 	}
@@ -93,7 +92,17 @@ func upsertSettingValue(e db.Engine, userID int64, key string, value string) (er
 		// the existing row is updated, so we can return
 		return nil
 	}
+
+	// in case the value isn't changed, update would return 0 rows changed, so we need this check
+	has, err := e.Exist(&Setting{UserID: userID, SettingKey: key})
+	if err != nil {
+		return err
+	}
+	if has {
+		return nil
+	}
+
 	// if no existing row, insert a new row
-	_, err = sess.Insert(&Setting{SettingKey: key, SettingValue: value})
-	return sess.Commit()
+	_, err = e.Insert(&Setting{UserID: userID, SettingKey: key, SettingValue: value})
+	return committer.Commit()
 }
