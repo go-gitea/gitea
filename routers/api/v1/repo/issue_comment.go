@@ -455,13 +455,12 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 	}
 
 	if comment.Issue.IsPrivate {
-		canSeePrivateIssues := ctx.Repo.CanReadPrivateIssues()
 		var userID int64
 		if ctx.IsSigned {
 			userID = ctx.User.ID
 		}
 
-		if !(comment.Issue.PosterID == userID || canSeePrivateIssues) {
+		if !(comment.Issue.PosterID == userID || ctx.Repo.CanReadPrivateIssues()) {
 			ctx.Status(http.StatusNotFound)
 			return
 		}
