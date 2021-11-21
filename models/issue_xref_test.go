@@ -140,19 +140,18 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Index:    idx,
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	assert.NoError(t, sess.Begin())
-	err = newIssue(sess, d, NewIssueOptions{
+	ctx, committer, err := db.TxContext()
+	assert.NoError(t, err)
+	defer committer.Close()
+	err = newIssue(ctx, d, NewIssueOptions{
 		Repo:  r,
 		Issue: i,
 	})
 	assert.NoError(t, err)
-	i, err = getIssueByID(sess, i.ID)
+	i, err = getIssueByID(db.GetEngine(ctx), i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.addCrossReferences(sess, d, false))
-	assert.NoError(t, sess.Commit())
+	assert.NoError(t, i.addCrossReferences(ctx, d, false))
+	assert.NoError(t, committer.Commit())
 	return i
 }
 
@@ -171,12 +170,12 @@ func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *C
 	i := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
 	c := &Comment{Type: CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	assert.NoError(t, sess.Begin())
-	_, err := sess.Insert(c)
+	ctx, committer, err := db.TxContext()
 	assert.NoError(t, err)
-	assert.NoError(t, c.addCrossReferences(sess, d, false))
-	assert.NoError(t, sess.Commit())
+	defer committer.Close()
+	err = db.Insert(ctx, c)
+	assert.NoError(t, err)
+	assert.NoError(t, c.addCrossReferences(ctx, d, false))
+	assert.NoError(t, committer.Commit())
 	return c
 }

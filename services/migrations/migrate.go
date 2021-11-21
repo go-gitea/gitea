@@ -14,8 +14,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/matchlist"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -27,8 +28,8 @@ type MigrateOptions = base.MigrateOptions
 var (
 	factories []base.DownloaderFactory
 
-	allowList *matchlist.Matchlist
-	blockList *matchlist.Matchlist
+	allowList *hostmatcher.HostMatchList
+	blockList *hostmatcher.HostMatchList
 )
 
 // RegisterDownloaderFactory registers a downloader factory
@@ -72,30 +73,35 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 		return &models.ErrInvalidCloneAddr{Host: u.Host, IsProtocolInvalid: true, IsPermissionDenied: true, IsURLError: true}
 	}
 
-	host := strings.ToLower(u.Host)
-	if len(setting.Migrations.AllowedDomains) > 0 {
-		if !allowList.Match(host) {
-			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
-		}
-	} else {
-		if blockList.Match(host) {
+	hostName, _, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		// u.Host can be "host" or "host:port"
+		err = nil //nolint
+		hostName = u.Host
+	}
+	addrList, err := net.LookupIP(hostName)
+	if err != nil {
+		return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
+	}
+
+	var ipAllowed bool
+	var ipBlocked bool
+	for _, addr := range addrList {
+		ipAllowed = ipAllowed || allowList.MatchIPAddr(addr)
+		ipBlocked = ipBlocked || blockList.MatchIPAddr(addr)
+	}
+	var blockedError error
+	if blockList.MatchHostName(hostName) || ipBlocked {
+		blockedError = &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+	}
+	// if we have an allow-list, check the allow-list first
+	if !allowList.IsEmpty() {
+		if !allowList.MatchHostName(hostName) && !ipAllowed {
 			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
 		}
 	}
-
-	if !setting.Migrations.AllowLocalNetworks {
-		addrList, err := net.LookupIP(strings.Split(u.Host, ":")[0])
-		if err != nil {
-			return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
-		}
-		for _, addr := range addrList {
-			if util.IsIPPrivate(addr) || !addr.IsGlobalUnicast() {
-				return &models.ErrInvalidCloneAddr{Host: u.Host, PrivateNet: addr.String(), IsPermissionDenied: true}
-			}
-		}
-	}
-
-	return nil
+	// otherwise, we always follow the blocked list
+	return blockedError
 }
 
 // MigrateRepository migrate repository according MigrateOptions
@@ -122,7 +128,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := models.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+		if err2 := admin_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err
@@ -461,16 +467,18 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 
 // Init migrations service
 func Init() error {
-	var err error
-	allowList, err = matchlist.NewMatchlist(setting.Migrations.AllowedDomains...)
-	if err != nil {
-		return fmt.Errorf("init migration allowList domains failed: %v", err)
-	}
+	// TODO: maybe we can deprecate these legacy ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS/BLOCKED_DOMAINS, use ALLOWED_HOST_LIST/BLOCKED_HOST_LIST instead
 
-	blockList, err = matchlist.NewMatchlist(setting.Migrations.BlockedDomains...)
-	if err != nil {
-		return fmt.Errorf("init migration blockList domains failed: %v", err)
-	}
+	blockList = hostmatcher.ParseSimpleMatchList("migrations.BLOCKED_DOMAINS", setting.Migrations.BlockedDomains)
 
+	allowList = hostmatcher.ParseSimpleMatchList("migrations.ALLOWED_DOMAINS/ALLOW_LOCALNETWORKS", setting.Migrations.AllowedDomains)
+	if allowList.IsEmpty() {
+		// the default policy is that migration module can access external hosts
+		allowList.AppendBuiltin(hostmatcher.MatchBuiltinExternal)
+	}
+	if setting.Migrations.AllowLocalNetworks {
+		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
+		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
+	}
 	return nil
 }

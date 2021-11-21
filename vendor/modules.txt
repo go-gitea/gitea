@@ -510,9 +510,6 @@ github.com/hashicorp/hcl/json/token
 github.com/huandu/xstrings
 # github.com/imdario/mergo v0.3.12
 github.com/imdario/mergo
-# github.com/issue9/identicon v1.2.0
-## explicit
-github.com/issue9/identicon
 # github.com/jaytaylor/html2text v0.0.0-20200412013138-3577fbdbcff7
 ## explicit
 github.com/jaytaylor/html2text

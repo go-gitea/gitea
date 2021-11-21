@@ -40,7 +40,6 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 	default: // "identicon"
 		return identicon.RandomImageSize(size, data)
 	}
-
 }
 
 // RandomImage generates and returns a random avatar image unique to input data

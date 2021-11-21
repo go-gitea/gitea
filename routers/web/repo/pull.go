@@ -217,7 +217,7 @@ func ForkPost(ctx *context.Context) {
 
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
-		isOwner, err := ctxUser.IsOwnedBy(ctx.User.ID)
+		isOwner, err := models.OrgFromUser(ctxUser).IsOwnedBy(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
