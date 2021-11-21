@@ -1064,7 +1064,6 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := e.Where(opts.toConds())
-
 	sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 
 	if opts.Page != 0 {
@@ -1202,7 +1201,9 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 	if review.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
+
 	if err := e.Where(conds).
+		Join("INNER", "issue", "issue.id = comment.issue_id").
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments); err != nil {
