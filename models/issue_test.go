@@ -471,7 +471,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	issueStats, err := GetIssueStats(&IssueStatsOptions{
 		RepoID:   1,
 		IssueIDs: ids,
-	}, 0)
+	})
 
 	// Now check the values.
 	assert.NoError(t, err)

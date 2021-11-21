@@ -189,8 +189,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewRequestedID: reviewRequestedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
+			UserID:            userID,
 			CanSeePrivate:     ctx.Repo.CanReadPrivateIssues(),
-		}, userID)
+		})
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
 			return
@@ -243,6 +244,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			SortType:          sortType,
 			IssueIDs:          issueIDs,
 			UserID:            userID,
+			CanSeePrivate:     ctx.Repo.CanReadPrivateIssues(),
 		})
 		if err != nil {
 			ctx.ServerError("Issues", err)

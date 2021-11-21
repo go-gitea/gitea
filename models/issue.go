@@ -1594,6 +1594,7 @@ type IssueStatsOptions struct {
 	MentionedID       int64
 	PosterID          int64
 	ReviewRequestedID int64
+	UserID            int64
 	IsPull            util.OptionalBool
 	IssueIDs          []int64
 	CanSeePrivate     bool
@@ -1606,9 +1607,9 @@ const (
 )
 
 // GetIssueStats returns issue statistic information by given conditions, as User
-func GetIssueStats(opts *IssueStatsOptions, userID int64) (*IssueStats, error) {
+func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	if len(opts.IssueIDs) <= maxQueryParameters {
-		return getIssueStatsChunk(opts, opts.IssueIDs, userID)
+		return getIssueStatsChunk(opts, opts.IssueIDs)
 	}
 
 	// If too long a list of IDs is provided, we get the statistics in
@@ -1621,7 +1622,7 @@ func GetIssueStats(opts *IssueStatsOptions, userID int64) (*IssueStats, error) {
 		if chunk > len(opts.IssueIDs) {
 			chunk = len(opts.IssueIDs)
 		}
-		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk], userID)
+		stats, err := getIssueStatsChunk(opts, opts.IssueIDs[i:chunk])
 		if err != nil {
 			return nil, err
 		}
@@ -1637,7 +1638,7 @@ func GetIssueStats(opts *IssueStatsOptions, userID int64) (*IssueStats, error) {
 	return accum, nil
 }
 
-func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64, userID int64) (*IssueStats, error) {
+func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats, error) {
 	stats := &IssueStats{}
 
 	countSession := func(opts *IssueStatsOptions, issueIDs []int64) *xorm.Session {
@@ -1685,14 +1686,14 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64, userID int64)
 		}
 
 		if !opts.CanSeePrivate {
-			if userID != 0 {
+			if opts.UserID != 0 {
 				// Allow to see private issues if the user is the poster of it.
 				sess.And(
 					builder.Or(
 						builder.Eq{"`issue`.is_private": false},
 						builder.And(
 							builder.Eq{"`issue`.is_private": true},
-							builder.In("`issue`.poster_id", userID),
+							builder.In("`issue`.poster_id", opts.UserID),
 						),
 					),
 				)
