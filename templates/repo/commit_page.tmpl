@@ -100,7 +100,7 @@
 						{{end}}
 						{{avatar .Verification.SigningUser}}
 						<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.Name}}</strong></a>
-						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> {{.Verification.SigningKey.KeyID}}</span>
+						<span class="pull-right"><span class="ui text">{{if .Verification.SigningSSHKey}}{{.i18n.Tr "repo.commits.ssh_key_fingerprint"}}{{else}}{{.i18n.Tr "repo.commits.gpg_key_id"}}{{end}}:</span> {{if .Verification.SigningSSHKey}} {{.Verification.SigningSSHKey.Fingerprint}} {{else}} {{.Verification.SigningKey.KeyID}} {{end}}</span>
 					{{else}}
 						<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
 						<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
