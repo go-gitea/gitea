@@ -161,9 +161,6 @@ type User struct {
 	// For organization
 	NumTeams                  int
 	NumMembers                int
-	Teams                     []*Team             `xorm:"-"`
-	Members                   UserList            `xorm:"-"`
-	MembersIsPublic           map[int64]bool      `xorm:"-"`
 	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
@@ -514,20 +511,6 @@ func (u *User) IsUserOrgOwner(orgID int64) bool {
 		return false
 	}
 	return isOwner
-}
-
-// HasMemberWithUserID returns true if user with userID is part of the u organisation.
-func (u *User) HasMemberWithUserID(userID int64) bool {
-	return u.hasMemberWithUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-func (u *User) hasMemberWithUserID(e db.Engine, userID int64) bool {
-	isMember, err := isOrganizationMember(e, u.ID, userID)
-	if err != nil {
-		log.Error("IsOrganizationMember: %v", err)
-		return false
-	}
-	return isMember
 }
 
 // IsPublicMember returns true if user public his/her membership in given organization.
@@ -1122,11 +1105,13 @@ func updateUserCols(e db.Engine, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
 	if !u.IsOrganization() {
 		if err = checkDupEmail(sess, u); err != nil {
 			return err
@@ -1135,7 +1120,7 @@ func UpdateUserSetting(u *User) (err error) {
 	if err = updateUser(sess, u); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.
@@ -1550,7 +1535,7 @@ type SearchUserOptions struct {
 	IsProhibitLogin    util.OptionalBool
 }
 
-func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
+func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1616,19 +1601,21 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	sess = db.NewSession(db.DefaultContext)
-	if !opts.IsTwoFactorEnabled.IsNone() {
-		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
-		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
-		if opts.IsTwoFactorEnabled.IsTrue() {
-			cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
-		} else {
-			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
-		}
-		sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
+	e := db.GetEngine(db.DefaultContext)
+	if opts.IsTwoFactorEnabled.IsNone() {
+		return e.Where(cond)
 	}
-	sess = sess.Where(cond)
-	return sess
+
+	// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+	// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+	if opts.IsTwoFactorEnabled.IsTrue() {
+		cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+	} else {
+		cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+	}
+
+	return e.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id").
+		Where(cond)
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,

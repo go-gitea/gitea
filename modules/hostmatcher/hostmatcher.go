@@ -13,14 +13,17 @@ import (
 )
 
 // HostMatchList is used to check if a host or IP is in a list.
-// If you only need to do wildcard matching, consider to use modules/matchlist
 type HostMatchList struct {
-	hosts  []string
+	SettingKeyHint string
+	SettingValue   string
+
+	// builtins networks
+	builtins []string
+	// patterns for host names (with wildcard support)
+	patterns []string
+	// ipNets is the CIDR network list
 	ipNets []*net.IPNet
 }
-
-// MatchBuiltinAll all hosts are matched
-const MatchBuiltinAll = "*"
 
 // MatchBuiltinExternal A valid non-private unicast IP, all hosts on public internet are matched
 const MatchBuiltinExternal = "external"
@@ -31,9 +34,13 @@ const MatchBuiltinPrivate = "private"
 // MatchBuiltinLoopback 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
 const MatchBuiltinLoopback = "loopback"
 
+func isBuiltin(s string) bool {
+	return s == MatchBuiltinExternal || s == MatchBuiltinPrivate || s == MatchBuiltinLoopback
+}
+
 // ParseHostMatchList parses the host list HostMatchList
-func ParseHostMatchList(hostList string) *HostMatchList {
-	hl := &HostMatchList{}
+func ParseHostMatchList(settingKeyHint string, hostList string) *HostMatchList {
+	hl := &HostMatchList{SettingKeyHint: settingKeyHint, SettingValue: hostList}
 	for _, s := range strings.Split(hostList, ",") {
 		s = strings.ToLower(strings.TrimSpace(s))
 		if s == "" {
@@ -42,53 +49,106 @@ func ParseHostMatchList(hostList string) *HostMatchList {
 		_, ipNet, err := net.ParseCIDR(s)
 		if err == nil {
 			hl.ipNets = append(hl.ipNets, ipNet)
+		} else if isBuiltin(s) {
+			hl.builtins = append(hl.builtins, s)
 		} else {
-			hl.hosts = append(hl.hosts, s)
+			hl.patterns = append(hl.patterns, s)
 		}
 	}
 	return hl
 }
 
-// MatchesHostOrIP checks if the host or IP matches an allow/deny(block) list
-func (hl *HostMatchList) MatchesHostOrIP(host string, ip net.IP) bool {
-	var matched bool
-	host = strings.ToLower(host)
-	ipStr := ip.String()
-loop:
-	for _, hostInList := range hl.hosts {
-		switch hostInList {
-		case "":
+// ParseSimpleMatchList parse a simple matchlist (no built-in networks, no CIDR support, only wildcard pattern match)
+func ParseSimpleMatchList(settingKeyHint string, matchList string) *HostMatchList {
+	hl := &HostMatchList{
+		SettingKeyHint: settingKeyHint,
+		SettingValue:   matchList,
+	}
+	for _, s := range strings.Split(matchList, ",") {
+		s = strings.ToLower(strings.TrimSpace(s))
+		if s == "" {
 			continue
-		case MatchBuiltinAll:
-			matched = true
-			break loop
+		}
+		// we keep the same result as old `matchlist`, so no builtin/CIDR support here, we only match wildcard patterns
+		hl.patterns = append(hl.patterns, s)
+	}
+	return hl
+}
+
+// AppendBuiltin appends more builtins to match
+func (hl *HostMatchList) AppendBuiltin(builtin string) {
+	hl.builtins = append(hl.builtins, builtin)
+}
+
+// IsEmpty checks if the checklist is empty
+func (hl *HostMatchList) IsEmpty() bool {
+	return hl == nil || (len(hl.builtins) == 0 && len(hl.patterns) == 0 && len(hl.ipNets) == 0)
+}
+
+func (hl *HostMatchList) checkPattern(host string) bool {
+	host = strings.ToLower(strings.TrimSpace(host))
+	for _, pattern := range hl.patterns {
+		if matched, _ := filepath.Match(pattern, host); matched {
+			return true
+		}
+	}
+	return false
+}
+
+func (hl *HostMatchList) checkIP(ip net.IP) bool {
+	for _, pattern := range hl.patterns {
+		if pattern == "*" {
+			return true
+		}
+	}
+	for _, builtin := range hl.builtins {
+		switch builtin {
 		case MatchBuiltinExternal:
-			if matched = ip.IsGlobalUnicast() && !util.IsIPPrivate(ip); matched {
-				break loop
+			if ip.IsGlobalUnicast() && !util.IsIPPrivate(ip) {
+				return true
 			}
 		case MatchBuiltinPrivate:
-			if matched = util.IsIPPrivate(ip); matched {
-				break loop
+			if util.IsIPPrivate(ip) {
+				return true
 			}
 		case MatchBuiltinLoopback:
-			if matched = ip.IsLoopback(); matched {
-				break loop
-			}
-		default:
-			if matched, _ = filepath.Match(hostInList, host); matched {
-				break loop
-			}
-			if matched, _ = filepath.Match(hostInList, ipStr); matched {
-				break loop
+			if ip.IsLoopback() {
+				return true
 			}
 		}
 	}
-	if !matched {
-		for _, ipNet := range hl.ipNets {
-			if matched = ipNet.Contains(ip); matched {
-				break
-			}
+	for _, ipNet := range hl.ipNets {
+		if ipNet.Contains(ip) {
+			return true
 		}
 	}
-	return matched
+	return false
+}
+
+// MatchHostName checks if the host matches an allow/deny(block) list
+func (hl *HostMatchList) MatchHostName(host string) bool {
+	if hl == nil {
+		return false
+	}
+	if hl.checkPattern(host) {
+		return true
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return hl.checkIP(ip)
+	}
+	return false
+}
+
+// MatchIPAddr checks if the IP matches an allow/deny(block) list, it's safe to pass `nil` to `ip`
+func (hl *HostMatchList) MatchIPAddr(ip net.IP) bool {
+	if hl == nil {
+		return false
+	}
+	host := ip.String() // nil-safe, we will get "<nil>" if ip is nil
+	return hl.checkPattern(host) || hl.checkIP(ip)
+}
+
+// MatchHostOrIP checks if the host or IP matches an allow/deny(block) list
+func (hl *HostMatchList) MatchHostOrIP(host string, ip net.IP) bool {
+	return hl.MatchHostName(host) || hl.MatchIPAddr(ip)
 }

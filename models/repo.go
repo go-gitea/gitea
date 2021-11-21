@@ -25,6 +25,7 @@ import (
 
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
@@ -783,7 +784,7 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(user.ID)
+		isOwner, err := OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
 		} else if isOwner {
@@ -1118,10 +1119,11 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.loadTeams(db.GetEngine(ctx)); err != nil {
+		teams, err := OrgFromUser(u).loadTeams(db.GetEngine(ctx))
+		if err != nil {
 			return fmt.Errorf("loadTeams: %v", err)
 		}
-		for _, t := range u.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(db.GetEngine(ctx), repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
@@ -1274,17 +1276,17 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
 	}
+	defer committer.Close()
 
-	if err := newRepoRedirect(sess, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+	if err := newRepoRedirect(db.GetEngine(ctx), repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func getRepositoriesByForkID(e db.Engine, forkID int64) ([]*Repository, error) {
@@ -1365,17 +1367,17 @@ func UpdateRepositoryCtx(ctx context.Context, repo *Repository, visibilityChange
 
 // UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = updateRepository(sess, repo, visibilityChanged); err != nil {
+	if err = updateRepository(db.GetEngine(ctx), repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
@@ -1383,19 +1385,19 @@ func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
 	if ownerID == 0 {
 		return nil
 	}
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if _, err := sess.Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
 		OwnerName: ownerName,
 	}); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UpdateRepositoryUpdatedTime updates a repository's updated time
@@ -1406,48 +1408,44 @@ func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	// Delete existing settings of units before adding again
 	for _, u := range units {
 		deleteUnitTypes = append(deleteUnitTypes, u.Type)
 	}
 
-	if _, err = sess.Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
+	if _, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
 	if len(units) > 0 {
-		if _, err = sess.Insert(units); err != nil {
+		if err = db.Insert(ctx, units); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
 func DeleteRepository(doer *User, uid, repoID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// In case is a organization.
 	org, err := getUserByID(sess, uid)
 	if err != nil {
 		return err
-	}
-	if org.IsOrganization() {
-		if err = org.loadTeams(sess); err != nil {
-			return err
-		}
 	}
 
 	repo := &Repository{OwnerID: uid}
@@ -1476,7 +1474,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if org.IsOrganization() {
-		for _, t := range org.Teams {
+		teams, err := OrgFromUser(org).loadTeams(sess)
+		if err != nil {
+			return err
+		}
+		for _, t := range teams {
 			if !t.hasRepository(sess, repoID) {
 				continue
 			} else if err = t.removeRepository(sess, repo, false); err != nil {
@@ -1485,7 +1487,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	attachments := make([]*Attachment, 0, 20)
+	attachments := make([]*repo_model.Attachment, 0, 20)
 	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -1620,7 +1622,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Get all attachments with both issue_id and release_id are zero
-	var newAttachments []*Attachment
+	var newAttachments []*repo_model.Attachment
 	if err := sess.Where(builder.Eq{
 		"repo_id":    repo.ID,
 		"issue_id":   0,
@@ -1634,15 +1636,15 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
 	}
 
-	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(Attachment)); err != nil {
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return err
 	}
 
-	sess.Close()
+	committer.Close()
 
 	// We should always delete the files after the database transaction succeed. If
 	// we delete the file but the database rollback, the repository will be broken.
@@ -1768,15 +1770,14 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
@@ -1790,8 +1791,8 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 		Find(&repos)
 }
 
-func getRepositoryCount(e db.Engine, u *User) (int64, error) {
-	return e.Count(&Repository{OwnerID: u.ID})
+func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
+	return e.Count(&Repository{OwnerID: ownerID})
 }
 
 func getPublicRepositoryCount(e db.Engine, u *User) (int64, error) {
@@ -1803,8 +1804,8 @@ func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(ctx context.Context, u *User) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), u)
+func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), ownerID)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
@@ -2135,32 +2136,36 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
+func updateUserStarNumbers(users []User) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, user := range users {
+		if _, err = db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+			return err
+		}
+	}
+
+	return committer.Commit()
+}
+
 // DoctorUserStarNum recalculate Stars number for all user
 func DoctorUserStarNum() (err error) {
 	const batchSize = 100
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
 
 	for start := 0; ; start += batchSize {
 		users := make([]User, 0, batchSize)
-		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+		if err = db.GetEngine(db.DefaultContext).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
 			return
 		}
 		if len(users) == 0 {
 			break
 		}
 
-		if err = sess.Begin(); err != nil {
-			return
-		}
-
-		for _, user := range users {
-			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-				return
-			}
-		}
-
-		if err = sess.Commit(); err != nil {
+		if err = updateUserStarNumbers(users); err != nil {
 			return
 		}
 	}
@@ -2190,4 +2195,28 @@ func IterateRepository(f func(repo *Repository) error) error {
 			}
 		}
 	}
+}
+
+// LinkedRepository returns the linked repo if any
+func LinkedRepository(a *repo_model.Attachment) (*Repository, unit.Type, error) {
+	if a.IssueID != 0 {
+		iss, err := GetIssueByID(a.IssueID)
+		if err != nil {
+			return nil, unit.TypeIssues, err
+		}
+		repo, err := GetRepositoryByID(iss.RepoID)
+		unitType := unit.TypeIssues
+		if iss.IsPull {
+			unitType = unit.TypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := GetReleaseByID(a.ReleaseID)
+		if err != nil {
+			return nil, unit.TypeReleases, err
+		}
+		repo, err := GetRepositoryByID(rel.RepoID)
+		return repo, unit.TypeReleases, err
+	}
+	return nil, -1, nil
 }

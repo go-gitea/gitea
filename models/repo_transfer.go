@@ -118,11 +118,12 @@ func deleteRepositoryTransfer(e db.Engine, repoID int64) error {
 // CancelRepositoryTransfer marks the repository as ready and remove pending transfer entry,
 // thus cancel the transfer process.
 func CancelRepositoryTransfer(repo *Repository) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	repo.Status = RepositoryReady
 	if err := updateRepositoryCols(sess, repo, "status"); err != nil {
@@ -133,7 +134,7 @@ func CancelRepositoryTransfer(repo *Repository) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // TestRepositoryReadyForTransfer make sure repo is ready to transfer
@@ -150,11 +151,12 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
 func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	repo, err := getRepositoryByID(sess, repoID)
 	if err != nil {
@@ -191,11 +193,11 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 		transfer.TeamIDs = append(transfer.TeamIDs, teams[k].ID)
 	}
 
-	if _, err := sess.Insert(transfer); err != nil {
+	if err := db.Insert(ctx, transfer); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
@@ -232,11 +234,13 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		}
 	}()
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	newOwner, err := getUserByName(sess, newOwnerName)
 	if err != nil {
@@ -299,16 +303,17 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 	// Remove old team-repository relations.
 	if oldOwner.IsOrganization() {
-		if err := oldOwner.removeOrgRepo(sess, repo.ID); err != nil {
+		if err := OrgFromUser(oldOwner).removeOrgRepo(sess, repo.ID); err != nil {
 			return fmt.Errorf("removeOrgRepo: %v", err)
 		}
 	}
 
 	if newOwner.IsOrganization() {
-		if err := newOwner.loadTeams(sess); err != nil {
+		teams, err := OrgFromUser(newOwner).loadTeams(sess)
+		if err != nil {
 			return fmt.Errorf("LoadTeams: %v", err)
 		}
-		for _, t := range newOwner.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := t.addRepository(sess, repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
@@ -407,5 +412,5 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 		return fmt.Errorf("newRepoRedirect: %v", err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

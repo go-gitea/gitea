@@ -359,11 +359,12 @@ func IsContentEmptyErr(err error) bool {
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
 func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	official := false
 
@@ -429,7 +430,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		}
 	}
 
-	comm, err := createComment(sess, &CreateCommentOptions{
+	comm, err := createComment(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -464,18 +465,14 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 	}
 
 	comm.Review = review
-	return review, comm, sess.Commit()
+	return review, comm, committer.Commit()
 }
 
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
+	sess := db.GetEngine(db.DefaultContext)
 
 	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
@@ -589,12 +586,12 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	for _, review := range reviews {
 		if _, err := sess.NoAutoTime().Insert(review); err != nil {
@@ -626,16 +623,17 @@ func InsertReviews(reviews []*Review) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // AddReviewRequest add a review request from one reviewer
 func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -667,7 +665,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -680,16 +678,17 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // RemoveReviewRequest remove a review request from one reviewer
 func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -721,7 +720,7 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		}
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -733,16 +732,17 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // AddTeamReviewRequest add a review request from one team
 func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -779,7 +779,7 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		}
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -792,16 +792,17 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // RemoveTeamReviewRequest remove a review request from one team
 func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
@@ -836,10 +837,10 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 	}
 
 	if doer == nil {
-		return nil, sess.Commit()
+		return nil, committer.Commit()
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := createComment(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -851,7 +852,7 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 		return nil, fmt.Errorf("createComment(): %v", err)
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // MarkConversation Add or remove Conversation mark for a code comment
@@ -915,12 +916,12 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 
 // DeleteReview delete a review and it's code comments
 func DeleteReview(r *Review) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
@@ -954,7 +955,7 @@ func DeleteReview(r *Review) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetCodeCommentsCount return count of CodeComments a Review has
