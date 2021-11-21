@@ -10,8 +10,8 @@ import (
 
 func setOwnersTeamToSeePrivateIssues(x *xorm.Engine) error {
 	type Team struct {
-		ID                      int64 `xorm:"pk autoincr"`
-		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
+		ID                  int64 `xorm:"pk autoincr"`
+		CanSeePrivateIssues bool  `xorm:"NOT NULL DEFAULT false"`
 	}
 
 	if err := x.Sync2(new(Team)); err != nil {
