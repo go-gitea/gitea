@@ -107,7 +107,8 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
 export function initRepoIssueContentHistory() {
   const issueIndex = $('#issueIndex').val();
   const $itemIssue = $('.timeline-item.comment.first');
-  if (!issueIndex || !$itemIssue.length) return;
+  const $comments = $('.comment');
+  if (!issueIndex || !$comments.length) return;
 
   const repoLink = $('#repolink').val();
   const issueBaseUrl = `${appSubUrl}/${repoLink}/issues/${issueIndex}`;
@@ -123,7 +124,7 @@ export function initRepoIssueContentHistory() {
     i18nTextDeleteFromHistoryConfirm = resp.i18n.textDeleteFromHistoryConfirm;
     i18nTextOptions = resp.i18n.textOptions;
 
-    if (resp.editedHistoryCountMap[0]) {
+    if (resp.editedHistoryCountMap[0] && $itemIssue.length) {
       showContentHistoryMenu(issueBaseUrl, $itemIssue, '0');
     }
     for (const [commentId, _editedCount] of Object.entries(resp.editedHistoryCountMap)) {

@@ -53,6 +53,11 @@ func TestContentHistory(t *testing.T) {
 	list2, _ := FetchIssueContentHistoryList(dbCtx, 10, 100)
 	assert.Len(t, list2, 5)
 
+	hasHistory1, _ := HasIssueContentHistory(dbCtx, 10, 0)
+	assert.True(t, hasHistory1)
+	hasHistory2, _ := HasIssueContentHistory(dbCtx, 10, 1)
+	assert.False(t, hasHistory2)
+
 	h6, h6Prev, _ := GetIssueContentHistoryAndPrev(dbCtx, 6)
 	assert.EqualValues(t, 6, h6.ID)
 	assert.EqualValues(t, 5, h6Prev.ID)

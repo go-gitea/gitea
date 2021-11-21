@@ -824,13 +824,24 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 
 // ChangeContent changes issue content, as the given user.
 func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
-	issue.Content = content
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	hasContentHistory, err := issues.HasIssueContentHistory(ctx, issue.ID, 0)
+	if err != nil {
+		return fmt.Errorf("HasIssueContentHistory: %v", err)
+	}
+	if !hasContentHistory {
+		if err = issues.SaveIssueContentHistory(db.GetEngine(ctx), issue.PosterID, issue.ID, 0,
+			issue.CreatedUnix, issue.Content, true); err != nil {
+			return fmt.Errorf("SaveIssueContentHistory: %v", err)
+		}
+	}
+
+	issue.Content = content
 
 	if err = updateIssueCols(db.GetEngine(ctx), issue, "content"); err != nil {
 		return fmt.Errorf("UpdateIssueCols: %v", err)
