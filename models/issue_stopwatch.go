@@ -181,19 +181,23 @@ func CreateIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
 	}
 
 	// if another stopwatch is running: stop it
-	exists, _, err := hasUserStopwatch(e, user.ID)
+	exists, sw, err := hasUserStopwatch(e, user.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		return ErrIssueStopwatchAlreadyExist{
-			UserID:  user.ID,
-			IssueID: issue.ID,
+		issue, err := getIssueByID(e, sw.IssueID)
+		if err != nil {
+			return err
+		}
+
+		if err := FinishIssueStopwatch(ctx, user, issue); err != nil {
+			return err
 		}
 	}
 
 	// Create stopwatch
-	var sw = &Stopwatch{
+	sw = &Stopwatch{
 		UserID:  user.ID,
 		IssueID: issue.ID,
 	}
