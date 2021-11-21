@@ -68,13 +68,13 @@ func TestContentHistory(t *testing.T) {
 	assert.EqualValues(t, 6, h6.ID)
 	assert.EqualValues(t, 4, h6Prev.ID)
 
-	// only keep 3 history revisions for comment_id=100
+	// only keep 3 history revisions for comment_id=100, the first and the last should never be deleted
 	keepLimitedContentHistory(dbEngine, 10, 100, 3)
 	list1, _ = FetchIssueContentHistoryList(dbCtx, 10, 0)
 	assert.Len(t, list1, 3)
 	list2, _ = FetchIssueContentHistoryList(dbCtx, 10, 100)
 	assert.Len(t, list2, 3)
-	assert.EqualValues(t, 7, list2[0].HistoryID)
-	assert.EqualValues(t, 6, list2[1].HistoryID)
+	assert.EqualValues(t, 8, list2[0].HistoryID)
+	assert.EqualValues(t, 7, list2[1].HistoryID)
 	assert.EqualValues(t, 4, list2[2].HistoryID)
 }
