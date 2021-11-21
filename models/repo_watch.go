@@ -297,17 +297,17 @@ func NotifyWatchers(actions ...*Action) error {
 
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 	for _, act := range acts {
-		if err := notifyWatchers(sess, act); err != nil {
+		if err := notifyWatchers(db.GetEngine(ctx), act); err != nil {
 			return err
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func watchIfAuto(e db.Engine, userID, repoID int64, isWrite bool) error {

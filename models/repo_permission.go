@@ -289,8 +289,7 @@ func IsUserRealRepoAdmin(repo *Repository, user *User) (bool, error) {
 		return true, nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	if err := repo.getOwner(sess); err != nil {
 		return false, err

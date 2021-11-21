@@ -84,8 +84,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 
 	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	count, err := sess.
 		Where(cond).
@@ -266,17 +265,17 @@ func (t *Team) addAllRepositories(e db.Engine) error {
 
 // AddAllRepositories adds all repositories to the team
 func (t *Team) AddAllRepositories() (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = t.addAllRepositories(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	if err = t.addAllRepositories(sess); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // AddRepository adds new repository to team of organization.
@@ -287,17 +286,17 @@ func (t *Team) AddRepository(repo *Repository) (err error) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = t.addRepository(db.GetEngine(ctx), repo); err != nil {
 		return err
 	}
 
-	if err = t.addRepository(sess, repo); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // RemoveAllRepositories removes all repositories from team and recalculates access
@@ -306,17 +305,17 @@ func (t *Team) RemoveAllRepositories() (err error) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = t.removeAllRepositories(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	if err = t.removeAllRepositories(sess); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // removeAllRepositories removes all repositories from team and recalculates access
@@ -423,17 +422,17 @@ func (t *Team) RemoveRepository(repoID int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = t.removeRepository(db.GetEngine(ctx), repo, true); err != nil {
 		return err
 	}
 
-	if err = t.removeRepository(sess, repo, true); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UnitEnabled returns if the team has the given unit type enabled
@@ -495,17 +494,13 @@ func NewTeam(t *Team) (err error) {
 		return ErrTeamAlreadyExist{t.OrgID, t.LowerName}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if _, err = sess.Insert(t); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("NewTeam sess.Rollback: %v", errRollback)
-		}
+	if err = db.Insert(ctx, t); err != nil {
 		return err
 	}
 
@@ -514,32 +509,24 @@ func NewTeam(t *Team) (err error) {
 		for _, unit := range t.Units {
 			unit.TeamID = t.ID
 		}
-		if _, err = sess.Insert(&t.Units); err != nil {
-			errRollback := sess.Rollback()
-			if errRollback != nil {
-				log.Error("NewTeam sess.Rollback: %v", errRollback)
-			}
+		if err = db.Insert(ctx, &t.Units); err != nil {
 			return err
 		}
 	}
 
 	// Add all repositories to the team if it has access to all of them.
 	if t.IncludesAllRepositories {
-		err = t.addAllRepositories(sess)
+		err = t.addAllRepositories(db.GetEngine(ctx))
 		if err != nil {
 			return fmt.Errorf("addAllRepositories: %v", err)
 		}
 	}
 
 	// Update organization number of teams.
-	if _, err = sess.Exec("UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
-		errRollback := sess.Rollback()
-		if errRollback != nil {
-			log.Error("NewTeam sess.Rollback: %v", errRollback)
-		}
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_teams=num_teams+1 WHERE id = ?", t.OrgID); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func getTeam(e db.Engine, orgID int64, name string) (*Team, error) {
@@ -625,11 +612,12 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 		t.Description = t.Description[:255]
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	t.LowerName = strings.ToLower(t.Name)
 	has, err := sess.
@@ -660,10 +648,6 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 			return err
 		}
 		if _, err = sess.Cols("org_id", "team_id", "type").Insert(&t.Units); err != nil {
-			errRollback := sess.Rollback()
-			if errRollback != nil {
-				log.Error("UpdateTeam sess.Rollback: %v", errRollback)
-			}
 			return err
 		}
 	}
@@ -689,7 +673,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteTeam deletes given team.
@@ -699,11 +683,12 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if err := t.getMembers(sess); err != nil {
 		return err
@@ -737,7 +722,7 @@ func DeleteTeam(t *Team) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // ___________                    ____ ___
@@ -840,13 +825,15 @@ func AddTeamMember(team *Team, userID int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if _, err := sess.Insert(&TeamUser{
+	sess := db.GetEngine(ctx)
+
+	if err := db.Insert(ctx, &TeamUser{
 		UID:    userID,
 		OrgID:  team.OrgID,
 		TeamID: team.ID,
@@ -870,7 +857,7 @@ func AddTeamMember(team *Team, userID int64) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func removeTeamMember(ctx context.Context, team *Team, userID int64) error {
@@ -1049,25 +1036,21 @@ func getUnitsByTeamID(e db.Engine, teamID int64) (units []*TeamUnit, err error) 
 
 // UpdateTeamUnits updates a teams's units
 func UpdateTeamUnits(team *Team, units []TeamUnit) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if _, err = sess.Where("team_id = ?", team.ID).Delete(new(TeamUnit)); err != nil {
+	if _, err = db.GetEngine(ctx).Where("team_id = ?", team.ID).Delete(new(TeamUnit)); err != nil {
 		return err
 	}
 
 	if len(units) > 0 {
-		if _, err = sess.Insert(units); err != nil {
-			errRollback := sess.Rollback()
-			if errRollback != nil {
-				log.Error("UpdateTeamUnits sess.Rollback: %v", errRollback)
-			}
+		if err = db.Insert(ctx, units); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

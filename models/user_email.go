@@ -17,15 +17,15 @@ import (
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(email *user_model.EmailAddress) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := updateActivation(sess, email, true); err != nil {
+	defer committer.Close()
+	if err := updateActivation(db.GetEngine(ctx), email, true); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func updateActivation(e db.Engine, email *user_model.EmailAddress, activate bool) error {
@@ -64,11 +64,12 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 		return ErrUserNotExist{email.UID, "", 0}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// 1. Update user table
 	user.Email = email.Email
@@ -89,7 +90,7 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // SearchEmailOrderBy is used to sort the results from SearchEmails()

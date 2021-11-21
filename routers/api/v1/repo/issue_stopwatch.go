@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -55,7 +56,7 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
+	if err := models.CreateIssueStopwatch(db.DefaultContext, ctx.User, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -104,7 +105,7 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
+	if err := models.FinishIssueStopwatch(db.DefaultContext, ctx.User, issue); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
 		return
 	}

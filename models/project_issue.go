@@ -237,11 +237,12 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *User, newPro
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	var pis ProjectIssue
 	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
@@ -258,7 +259,7 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (pb *ProjectBoard) removeIssues(e db.Engine) error {

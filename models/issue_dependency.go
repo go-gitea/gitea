@@ -61,7 +61,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 		return ErrCircularDependency{issue.ID, dep.ID}
 	}
 
-	if _, err := sess.Insert(&IssueDependency{
+	if err := db.Insert(ctx, &IssueDependency{
 		UserID:       user.ID,
 		IssueID:      issue.ID,
 		DependencyID: dep.ID,
