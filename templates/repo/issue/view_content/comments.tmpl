@@ -782,6 +782,23 @@
 					</div>
 				{{end}}
 			</div>
+		{{else if eq .Type 33}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-branch"}}</span>
+				<a href="{{.Poster.HomeLink}}">
+					{{avatar .Poster}}
+				</a>
+				<span class="text grey">
+					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{if and .OldRef .NewRef}}
+						{{$.i18n.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+					{{else if .OldRef}}
+						{{$.i18n.Tr "repo.issues.remove_ref_at" (.OldRef|Escape) $createdStr | Safe}}
+					{{else}}
+						{{$.i18n.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr | Safe}}
+					{{end}}
+				</span>
+			</div>
 		{{end}}
 	{{end}}
 {{end}}

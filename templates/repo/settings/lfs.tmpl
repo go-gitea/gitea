@@ -27,7 +27,7 @@
 						<td class="right aligned">
 							<a class="ui primary show-panel button" href="{{$.Link}}/find?oid={{.Oid}}&size={{.Size}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
 							<button class="ui basic show-modal icon button" data-modal="#delete-{{.Oid}}">
-								<span class="btn-octicon btn-octicon-danger poping up"  data-content="{{$.i18n.Tr "repo.editor.delete_this_file"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-trash"}}</span>
+								<span class="btn-octicon btn-octicon-danger tooltip"  data-content="{{$.i18n.Tr "repo.editor.delete_this_file"}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
 							</button>
 						</td>
 					</tr>

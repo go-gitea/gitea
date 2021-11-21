@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+
 	"xorm.io/builder"
 )
 
@@ -321,7 +323,7 @@ func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 		return nil
 	}
 
-	attachments := make(map[int64][]*Attachment, len(issues))
+	attachments := make(map[int64][]*repo_model.Attachment, len(issues))
 	issuesIDs := issues.getIssueIDs()
 	left := len(issuesIDs)
 	for left > 0 {
@@ -332,13 +334,13 @@ func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 		rows, err := e.Table("attachment").
 			Join("INNER", "issue", "issue.id = attachment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
-			Rows(new(Attachment))
+			Rows(new(repo_model.Attachment))
 		if err != nil {
 			return err
 		}
 
 		for rows.Next() {
-			var attachment Attachment
+			var attachment repo_model.Attachment
 			err = rows.Scan(&attachment)
 			if err != nil {
 				if err1 := rows.Close(); err1 != nil {

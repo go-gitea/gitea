@@ -2,12 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package admin
 
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +29,7 @@ func TestCreateNotice(t *testing.T) {
 		Description: "test description",
 	}
 	unittest.AssertNotExistsBean(t, noticeBean)
-	assert.NoError(t, CreateNotice(noticeBean.Type, noticeBean.Description))
+	assert.NoError(t, CreateNotice(db.DefaultContext, noticeBean.Type, noticeBean.Description))
 	unittest.AssertExistsAndLoadBean(t, noticeBean)
 }
 

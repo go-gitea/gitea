@@ -6,7 +6,6 @@
 package markup
 
 import (
-	"bytes"
 	"io"
 	"regexp"
 	"sync"
@@ -149,11 +148,11 @@ func Sanitize(s string) string {
 }
 
 // SanitizeReader sanitizes a Reader
-func SanitizeReader(r io.Reader, renderer string) *bytes.Buffer {
+func SanitizeReader(r io.Reader, renderer string, w io.Writer) error {
 	NewSanitizer()
 	policy, exist := sanitizer.rendererPolicies[renderer]
 	if !exist {
 		policy = sanitizer.defaultPolicy
 	}
-	return policy.SanitizeReader(r)
+	return policy.SanitizeReaderToWriter(r, w)
 }
