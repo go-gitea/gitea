@@ -23,7 +23,7 @@ func TestSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get specific setting
-	Settings, err := GetSetting(99, []string{keyName})
+	Settings, err := GetSettings(99, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, Settings, 1)
 	assert.EqualValues(t, newSetting.SettingValue, Settings[keyName].SettingValue)

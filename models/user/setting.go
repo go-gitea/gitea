@@ -30,9 +30,8 @@ func init() {
 	db.RegisterModel(new(Setting))
 }
 
-// GetSetting returns specific settings from user
-// func GetSetting(uid int64, keys []string) ([]*Setting, error) {
-func GetSetting(uid int64, keys []string) (map[string]*Setting, error) {
+// GetSettings returns specific settings from user
+func GetSettings(uid int64, keys []string) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
@@ -90,7 +89,7 @@ func upsertSettingValue(e db.Engine, userID int64, key string, value string) (er
 		return err
 	}
 	rows, _ := res.RowsAffected()
-	if rows != 0 {
+	if rows > 0 {
 		// the existing row is updated, so we can return
 		return nil
 	}
