@@ -11,7 +11,6 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -265,10 +264,13 @@ func createOrUpdateIssueNotifications(e db.Engine, issueID, commentID, notificat
 
 			return err
 		}
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.TypePullRequests) {
-			continue
+		perm, err := getUserRepoPermission(e, issue.Repo, user)
+		if err != nil {
+			log.Error("getUserRepoPermission(): %v", err)
+			return err
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.TypeIssues) {
+
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) || (issue.IsPrivate && !(issue.PosterID == userID || perm.CanReadPrivateIssues())) {
 			continue
 		}
 

@@ -41,13 +41,14 @@ func (a *actionNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.
 	repo := issue.Repo
 
 	if err := models.NotifyWatchers(&models.Action{
-		ActUserID: issue.Poster.ID,
-		ActUser:   issue.Poster,
-		OpType:    models.ActionCreateIssue,
-		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
-		RepoID:    repo.ID,
-		Repo:      repo,
-		IsPrivate: repo.IsPrivate,
+		ActUserID:      issue.Poster.ID,
+		ActUser:        issue.Poster,
+		OpType:         models.ActionCreateIssue,
+		Content:        fmt.Sprintf("%d|%s", issue.Index, issue.Title),
+		RepoID:         repo.ID,
+		Repo:           repo,
+		IsPrivate:      repo.IsPrivate,
+		IsIssuePrivate: issue.IsPrivate,
 	}); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
@@ -90,13 +91,14 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *models.User, issue *model
 func (a *actionNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
 	act := &models.Action{
-		ActUserID: doer.ID,
-		ActUser:   doer,
-		RepoID:    issue.Repo.ID,
-		Repo:      issue.Repo,
-		Comment:   comment,
-		CommentID: comment.ID,
-		IsPrivate: issue.Repo.IsPrivate,
+		ActUserID:      doer.ID,
+		ActUser:        doer,
+		RepoID:         issue.Repo.ID,
+		Repo:           issue.Repo,
+		Comment:        comment,
+		CommentID:      comment.ID,
+		IsPrivate:      issue.Repo.IsPrivate,
+		IsIssuePrivate: issue.IsPrivate,
 	}
 
 	content := ""

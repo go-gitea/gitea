@@ -60,20 +60,21 @@ const (
 // repository. It implemented interface base.Actioner so that can be
 // used in template render.
 type Action struct {
-	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
-	OpType      ActionType
-	ActUserID   int64       `xorm:"INDEX"` // Action user id.
-	ActUser     *User       `xorm:"-"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	CommentID   int64       `xorm:"INDEX"`
-	Comment     *Comment    `xorm:"-"`
-	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
-	RefName     string
-	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	ID             int64 `xorm:"pk autoincr"`
+	UserID         int64 `xorm:"INDEX"` // Receiver user id.
+	OpType         ActionType
+	ActUserID      int64       `xorm:"INDEX"` // Action user id.
+	ActUser        *User       `xorm:"-"`
+	RepoID         int64       `xorm:"INDEX"`
+	Repo           *Repository `xorm:"-"`
+	CommentID      int64       `xorm:"INDEX"`
+	Comment        *Comment    `xorm:"-"`
+	IsDeleted      bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	RefName        string
+	IsPrivate      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	Content        string             `xorm:"TEXT"`
+	CreatedUnix    timeutil.TimeStamp `xorm:"INDEX created"`
+	IsIssuePrivate bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 }
 
 func init() {

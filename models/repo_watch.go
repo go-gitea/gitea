@@ -188,6 +188,7 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 	var permCode []bool
 	var permIssue []bool
 	var permPR []bool
+	var permPrivateIssue []bool
 
 	for _, act := range actions {
 		repoChanged := repo == nil || repo.ID != act.RepoID
@@ -231,6 +232,7 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 			permCode = make([]bool, len(watchers))
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
+			permPrivateIssue = make([]bool, len(watchers))
 			for i, watcher := range watchers {
 				user, err := getUserByID(e, watcher.UserID)
 				if err != nil {
@@ -249,6 +251,7 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 				permCode[i] = perm.CanRead(unit.TypeCode)
 				permIssue[i] = perm.CanRead(unit.TypeIssues)
 				permPR[i] = perm.CanRead(unit.TypePullRequests)
+				permPrivateIssue[i] = perm.CanReadPrivateIssues()
 			}
 		}
 
@@ -259,6 +262,10 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 			act.ID = 0
 			act.UserID = watcher.UserID
 			act.Repo.Units = nil
+
+			if act.IsIssuePrivate && !permPrivateIssue[i] {
+				continue
+			}
 
 			switch act.OpType {
 			case ActionCommitRepo, ActionPushTag, ActionDeleteTag, ActionPublishRelease, ActionDeleteBranch:
