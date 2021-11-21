@@ -302,6 +302,22 @@ func userOrgPublicRepoCond(userID int64) builder.Cond {
 	)
 }
 
+func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
+	return builder.And(
+		builder.Eq{"`repository`.is_private": false},
+		builder.In("`repository`.owner_id",
+			builder.Select("`org_user`.org_id").
+				From("org_user").
+				Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
+				Where(builder.Eq{
+					"`org_user`.uid":    userID,
+					"`user`.type":       UserTypeOrganization,
+					"`user`.visibility": structs.VisibleTypePrivate,
+				}),
+		),
+	)
+}
+
 func userOrgPublicUnitRepoCond(userID, orgID int64) builder.Cond {
 	return userOrgPublicRepoCond(userID).
 		And(builder.Eq{"`repository`.owner_id": orgID})
@@ -364,7 +380,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 					// B. We are in a team for
 					userOrgTeamRepoCond("`repository`.id", opts.OwnerID),
 					// C. Public repositories in organizations that we are member of
-					userOrgPublicRepoCond(opts.OwnerID),
+					userOrgPublicRepoCondPrivate(opts.OwnerID),
 				),
 			)
 			if !opts.Private {
