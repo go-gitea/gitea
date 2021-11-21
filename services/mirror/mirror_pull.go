@@ -261,8 +261,9 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		ep := lfs.DetermineEndpoint(remoteAddr.String(), m.LFSEndpoint)
-		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, ep, false); err != nil {
+		endpoint := lfs.DetermineEndpoint(remoteAddr.String(), m.LFSEndpoint)
+		lfsClient := lfs.NewClient(endpoint, nil)
+		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("Failed to synchronize LFS objects for repository: %v", err)
 		}
 	}
