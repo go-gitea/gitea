@@ -359,6 +359,8 @@ var migrations = []Migration{
 	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
 	// v202 -> v203
 	NewMigration("Add private issues to Repository table", addPrivateIssuesToRepo),
+	// v203 -> v204
+	NewMigration("Set Owners team to acess private issues", setOwnersTeamToSeePrivateIssues),
 }
 
 // GetCurrentDBVersion returns the current db version
