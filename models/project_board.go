@@ -52,7 +52,8 @@ type ProjectBoard struct {
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 
-	Issues []*Issue `xorm:"-"`
+	Issues []*Issue    `xorm:"-"`
+	Repo   *Repository `xorm:"-"`
 }
 
 func init() {
@@ -259,13 +260,15 @@ func SetDefaultBoard(projectID, boardID int64) error {
 }
 
 // LoadIssues load issues assigned to this board
-func (b *ProjectBoard) LoadIssues() (IssueList, error) {
+func (b *ProjectBoard) LoadIssues(opts *LoadIssuesOpts) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: b.ID,
 			ProjectID:      b.ProjectID,
+			CanSeePrivate:  opts.CanSeePrivateIssues,
+			UserID:         opts.UserID,
 		})
 		if err != nil {
 			return nil, err
@@ -277,6 +280,8 @@ func (b *ProjectBoard) LoadIssues() (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectBoardID: -1, // Issues without ProjectBoardID
 			ProjectID:      b.ProjectID,
+			CanSeePrivate:  opts.CanSeePrivateIssues,
+			UserID:         opts.UserID,
 		})
 		if err != nil {
 			return nil, err
@@ -292,11 +297,16 @@ func (b *ProjectBoard) LoadIssues() (IssueList, error) {
 	return issueList, nil
 }
 
+type LoadIssuesOpts struct {
+	UserID              int64
+	CanSeePrivateIssues bool
+}
+
 // LoadIssues load issues assigned to the boards
-func (bs ProjectBoardList) LoadIssues() (IssueList, error) {
+func (bs ProjectBoardList) LoadIssues(opts *LoadIssuesOpts) (IssueList, error) {
 	issues := make(IssueList, 0, len(bs)*10)
 	for i := range bs {
-		il, err := bs[i].LoadIssues()
+		il, err := bs[i].LoadIssues(opts)
 		if err != nil {
 			return nil, err
 		}

@@ -1118,8 +1118,6 @@ func ViewIssue(ctx *context.Context) {
 		var userID int64
 		if ctx.IsSigned {
 			userID = ctx.User.ID
-		} else {
-			userID = -1
 		}
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
 			UserID: userID,

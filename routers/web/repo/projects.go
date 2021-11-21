@@ -269,7 +269,6 @@ func EditProjectPost(ctx *context.Context) {
 
 // ViewProject renders the project board for a project
 func ViewProject(ctx *context.Context) {
-
 	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
@@ -294,7 +293,15 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issueList, err := boards.LoadIssues()
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+
+	issueList, err := boards.LoadIssues(&models.LoadIssuesOpts{
+		UserID:              userID,
+		CanSeePrivateIssues: ctx.Repo.CanReadPrivateIssues(),
+	})
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
