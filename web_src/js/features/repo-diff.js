@@ -94,13 +94,15 @@ export function initRepoDiffShowMore() {
       type: 'GET',
       url,
     }).done((resp) => {
-      if (!resp || resp.html === '' || resp.empty) {
+      if (!resp) {
         $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
         return;
       }
       $('#diff-too-many-files-stats').remove();
       $('#diff-files').append($(resp).find('#diff-files li'));
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+    }).fail(() => {
+      $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
     });
   });
   $(document).on('click', 'a.diff-show-more-button', (e) => {
@@ -118,12 +120,14 @@ export function initRepoDiffShowMore() {
       type: 'GET',
       url,
     }).done((resp) => {
-      if (!resp || resp.html === '' || resp.empty) {
+      if (!resp) {
         $target.removeClass('disabled');
         return;
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+    }).fail(() => {
+      $target.removeClass('disabled');
     });
   });
 }
