@@ -8,7 +8,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -115,11 +114,6 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*models.
 }
 
 func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visited map[int64]bool, fromMention bool) error {
-	checkUnit := unit.TypeIssues
-	if ctx.Issue.IsPull {
-		checkUnit = unit.TypePullRequests
-	}
-
 	langMap := make(map[string][]*models.User)
 	for _, user := range users {
 		// At this point we exclude:
@@ -138,7 +132,13 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*models.User, visite
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+		perm, err := models.GetUserRepoPermission(ctx.Issue.Repo, user)
+		if err != nil {
+			log.Error("getUserRepoPermission(): %v", err)
+			return err
+		}
+
+		if !perm.CanReadIssuesOrPulls(ctx.Issue.IsPull) || (ctx.Issue.IsPrivate && !(ctx.Issue.PosterID == user.ID || perm.CanReadPrivateIssues())) {
 			continue
 		}
 
