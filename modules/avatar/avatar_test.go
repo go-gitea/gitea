@@ -22,7 +22,7 @@ func Test_RandomImageSize(t *testing.T) {
 }
 
 func Test_RandomImage(t *testing.T) {
-	_, err := RandomImage([]byte("gitea@local"))
+	_, err := RandomImage(KindUser, []byte("gitea@local"))
 	assert.NoError(t, err)
 }
 

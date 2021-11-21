@@ -29,7 +29,7 @@ func TestUserAvatar(t *testing.T) {
 			seed = user2.Name
 		}
 
-		img, err := avatar.RandomImage([]byte(seed))
+		img, err := avatar.RandomImage(avatar.KindRepo, []byte(seed))
 		if err != nil {
 			assert.NoError(t, err)
 			return

@@ -24,17 +24,25 @@ import (
 // AvatarSize returns avatar's size
 const AvatarSize = 290
 
-type RandomAvatarGenerator interface {
-	RandomImage(data []byte) (image.Image, error)
-	RandomImageSize(size int, data []byte) (image.Image, error)
-}
+// Kind represent the type an avatar will be generated for
+type Kind uint
+
+const (
+	// User represent users
+	KindUser Kind = 0
+	// Repo represent repositorys
+	KindRepo Kind = 1
+	// Org represent organisations
+	KindOrg Kind = 2
+)
 
 // RandomImageSize generates and returns a random avatar image unique to input data
 // in custom size (height and width).
-func RandomImageSize(size int, data []byte) (image.Image, error) {
-	kind := "dice_bear"
+func RandomImageSize(kind Kind, size int, data []byte) (image.Image, error) {
+	generator := "dice_bear"
 
-	switch kind {
+	// NOTE: If plugins are invented, make avatar generators to plugins
+	switch generator {
 	case "dice_bear":
 		return dice_bear.RandomImageSize(size, data)
 	default: // "identicon"
@@ -44,8 +52,8 @@ func RandomImageSize(size int, data []byte) (image.Image, error) {
 
 // RandomImage generates and returns a random avatar image unique to input data
 // in default size (height and width).
-func RandomImage(data []byte) (image.Image, error) {
-	return RandomImageSize(AvatarSize, data)
+func RandomImage(kind Kind, data []byte) (image.Image, error) {
+	return RandomImageSize(kind, AvatarSize, data)
 }
 
 // Prepare accepts a byte slice as input, validates it contains an image of an

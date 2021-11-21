@@ -31,7 +31,7 @@ func (repo *Repository) generateRandomAvatar(e db.Engine) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
 	seed := idToString
-	img, err := avatar.RandomImage([]byte(seed))
+	img, err := avatar.RandomImage(avatar.KindRepo, []byte(seed))
 	if err != nil {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
