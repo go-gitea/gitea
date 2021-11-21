@@ -83,6 +83,17 @@ func upsertSettingValue(userID int64, key string, value string) (err error) {
 	}
 	defer committer.Close()
 	e := db.GetEngine(ctx)
+
+	// here we use a general method to do a safe upsert for different databases (and most transaction levels)
+	// 1. try to UPDATE the record and acquire the transaction write lock
+	//    if UPDATE returns non-zero rows are changed, OK, the setting is saved correctly
+	//    if UPDATE returns "0 rows changed", two possibilities: (a) record doesn't exist  (b) value is not changed
+	// 2. do a SELECT to check if the row exists or not (we already have the transaction lock)
+	// 3. if the row doesn't exist, do an INSERT (we are still protected by the transaction lock, so it's safe)
+	//
+	// to optimize the SELECT in step 2, we can use an extra column like `revision=revision+1`
+	//    to make sure the UPDATE always returns a non-zero value for existing (unchanged) records.
+
 	res, err := e.Exec("UPDATE user_setting SET setting_value=? WHERE setting_key=? AND user_id=?", value, key, userID)
 	if err != nil {
 		return err
