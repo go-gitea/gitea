@@ -10,10 +10,11 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/setting"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -36,14 +37,14 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64              `xorm:"-"`
-	Note             string             `xorm:"TEXT"`
-	RenderedNote     string             `xorm:"-"`
-	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*Attachment      `xorm:"-"`
-	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
+	NumCommitsBehind int64                    `xorm:"-"`
+	Note             string                   `xorm:"TEXT"`
+	RenderedNote     string                   `xorm:"-"`
+	IsDraft          bool                     `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool                     `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool                     `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*repo_model.Attachment `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp       `xorm:"INDEX"`
 }
 
 func init() {
@@ -78,23 +79,22 @@ func (r *Release) LoadAttributes() error {
 
 // APIURL the api url for a release. release must have attributes loaded
 func (r *Release) APIURL() string {
-	return fmt.Sprintf("%sapi/v1/repos/%s/releases/%d",
-		setting.AppURL, r.Repo.FullName(), r.ID)
+	return r.Repo.APIURL() + "/releases/" + strconv.FormatInt(r.ID, 10)
 }
 
 // ZipURL the zip url for a release. release must have attributes loaded
 func (r *Release) ZipURL() string {
-	return fmt.Sprintf("%s/archive/%s.zip", r.Repo.HTMLURL(), r.TagName)
+	return r.Repo.HTMLURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".zip"
 }
 
 // TarURL the tar.gz url for a release. release must have attributes loaded
 func (r *Release) TarURL() string {
-	return fmt.Sprintf("%s/archive/%s.tar.gz", r.Repo.HTMLURL(), r.TagName)
+	return r.Repo.HTMLURL() + "/archive/" + util.PathEscapeSegments(r.TagName) + ".tar.gz"
 }
 
 // HTMLURL the url for a release on the web UI. release must have attributes loaded
 func (r *Release) HTMLURL() string {
-	return fmt.Sprintf("%s/releases/tag/%s", r.Repo.HTMLURL(), r.TagName)
+	return r.Repo.HTMLURL() + "/releases/tag/" + util.PathEscapeSegments(r.TagName)
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
@@ -127,7 +127,7 @@ func UpdateRelease(ctx context.Context, rel *Release) error {
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := getAttachmentsByUUIDs(db.GetEngine(ctx), attachmentUUIDs)
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
@@ -296,9 +296,9 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 
 	// Sort
 	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
-	var attachments []*Attachment
+	var attachments []*repo_model.Attachment
 	for index, element := range rels {
-		element.Attachments = []*Attachment{}
+		element.Attachments = []*repo_model.Attachment{}
 		sortedRels.ID[index] = element.ID
 		sortedRels.Rel[index] = element
 	}
@@ -308,7 +308,7 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 	err = e.
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, Attachment{})
+		Find(&attachments, repo_model.Attachment{})
 	if err != nil {
 		return err
 	}

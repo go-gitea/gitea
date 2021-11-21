@@ -4,7 +4,9 @@ export default {
   testEnvironment: 'jsdom',
   testMatch: ['<rootDir>/**/*.test.js'],
   testTimeout: 20000,
-  transform: {},
+  transform: {
+    '\\.svg$': 'jest-raw-loader',
+  },
   verbose: false,
 };
 

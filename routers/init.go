@@ -6,14 +6,15 @@ package routers
 
 import (
 	"context"
+	"net"
 	"reflect"
 	"runtime"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
-	"code.gitea.io/gitea/modules/cron"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -23,14 +24,11 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
-	repo_migrations "code.gitea.io/gitea/modules/migrations"
 	"code.gitea.io/gitea/modules/notification"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/task"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -40,10 +38,13 @@ import (
 	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
+	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
-	"code.gitea.io/gitea/services/repository"
+	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/session"
@@ -71,7 +72,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repository.NewContext)
+	mustInit(repo_service.NewContext)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -83,7 +84,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		log.Info("AppPath changed from '%s' to '%s'", runtimeState.LastAppPath, setting.AppPath)
 
 		log.Info("re-sync repository hooks ...")
-		mustInitCtx(ctx, repo_module.SyncRepositoryHooks)
+		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
 		mustInit(models.RewriteAllPublicKeys)
@@ -126,9 +127,9 @@ func GlobalInit(ctx context.Context) {
 	markup.Init()
 
 	if setting.EnableSQLite3 {
-		log.Info("SQLite3 Supported")
+		log.Info("SQLite3 support is enabled")
 	} else if setting.Database.UseSQLite3 {
-		log.Fatal("SQLite3 is set in settings but NOT Supported")
+		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
 	}
 
 	mustInitCtx(ctx, common.InitDBEngine)
@@ -155,7 +156,9 @@ func GlobalInit(ctx context.Context) {
 
 	if setting.SSH.StartBuiltinServer {
 		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s:%d. Cipher list (%v), key exchange algorithms (%v), MACs (%v)", setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
+		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
+			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
+			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
 	} else {
 		ssh.Unused()
 	}

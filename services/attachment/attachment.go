@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"io"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/modules/util"
@@ -20,7 +20,7 @@ import (
 )
 
 // NewAttachment creates a new attachment object, but do not verify.
-func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachment, error) {
+func NewAttachment(attach *repo_model.Attachment, file io.Reader) (*repo_model.Attachment, error) {
 	if attach.RepoID == 0 {
 		return nil, fmt.Errorf("attachment %s should belong to a repository", attach.Name)
 	}
@@ -40,7 +40,7 @@ func NewAttachment(attach *models.Attachment, file io.Reader) (*models.Attachmen
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName string, allowedTypes string) (*models.Attachment, error) {
+func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName string, allowedTypes string) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]
@@ -49,7 +49,7 @@ func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName
 		return nil, err
 	}
 
-	return NewAttachment(&models.Attachment{
+	return NewAttachment(&repo_model.Attachment{
 		RepoID:     repoID,
 		UploaderID: actorID,
 		ReleaseID:  releaseID,

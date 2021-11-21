@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -22,8 +22,8 @@ import (
 func TestAPILFSLocksNotStarted(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = false
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	MakeRequest(t, req, http.StatusNotFound)
@@ -38,8 +38,8 @@ func TestAPILFSLocksNotStarted(t *testing.T) {
 func TestAPILFSLocksNotLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = true
-	user := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 
 	req := NewRequestf(t, "GET", "/%s/%s.git/info/lfs/locks", user.Name, repo.Name)
 	req.Header.Set("Accept", lfs.MediaType)
@@ -52,11 +52,11 @@ func TestAPILFSLocksNotLogin(t *testing.T) {
 func TestAPILFSLocksLogged(t *testing.T) {
 	defer prepareTestEnv(t)()
 	setting.LFS.StartServer = true
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) //in org 3
-	user4 := db.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) //in org 3
+	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) //in org 3
+	user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) //in org 3
 
-	repo1 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	repo3 := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository) // own by org 3
+	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository) // own by org 3
 
 	tests := []struct {
 		user       *models.User

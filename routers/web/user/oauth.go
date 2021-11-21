@@ -283,11 +283,11 @@ func getOAuthGroupsForUser(user *models.User) ([]string, error) {
 	var groups []string
 	for _, org := range orgs {
 		groups = append(groups, org.Name)
-
-		if err := org.LoadTeams(); err != nil {
+		teams, err := org.LoadTeams()
+		if err != nil {
 			return nil, fmt.Errorf("LoadTeams: %v", err)
 		}
-		for _, team := range org.Teams {
+		for _, team := range teams {
 			if team.IsMember(user.ID) {
 				groups = append(groups, org.Name+":"+team.LowerName)
 			}
@@ -454,7 +454,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(setting.AppURL) + html.EscapeString(url.PathEscape(user.LowerName)) + "\">@" + html.EscapeString(user.Name) + "</a>"
+	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)

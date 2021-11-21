@@ -8,6 +8,7 @@ import (
 	"fmt"
 	gotemplate "html/template"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -15,8 +16,10 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -54,7 +57,7 @@ func RefBlame(ctx *context.Context) {
 	rawLink := ctx.Repo.RepoLink + "/raw/" + ctx.Repo.BranchNameSubURL()
 
 	if len(ctx.Repo.TreePath) > 0 {
-		treeLink += "/" + ctx.Repo.TreePath
+		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
 	var treeNames []string
@@ -85,7 +88,7 @@ func RefBlame(ctx *context.Context) {
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["BranchLink"] = branchLink
 
-	ctx.Data["RawFileLink"] = rawLink + "/" + ctx.Repo.TreePath
+	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	ctx.Data["PageIsViewCode"] = true
 
 	ctx.Data["IsBlame"] = true
@@ -202,6 +205,31 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*models.UserCommit, previousCommits map[string]string) {
 	repoLink := ctx.Repo.RepoLink
 
+	language := ""
+
+	indexFilename, worktree, deleteTemporaryFile, err := ctx.Repo.GitRepo.ReadTreeToTemporaryIndex(ctx.Repo.CommitID)
+	if err == nil {
+		defer deleteTemporaryFile()
+
+		filename2attribute2info, err := ctx.Repo.GitRepo.CheckAttribute(git.CheckAttributeOpts{
+			CachedOnly: true,
+			Attributes: []string{"linguist-language", "gitlab-language"},
+			Filenames:  []string{ctx.Repo.TreePath},
+			IndexFile:  indexFilename,
+			WorkTree:   worktree,
+		})
+		if err != nil {
+			log.Error("Unable to load attributes for %-v:%s. Error: %v", ctx.Repo.Repository, ctx.Repo.TreePath, err)
+		}
+
+		language = filename2attribute2info[ctx.Repo.TreePath]["linguist-language"]
+		if language == "" || language == "unspecified" {
+			language = filename2attribute2info[ctx.Repo.TreePath]["gitlab-language"]
+		}
+		if language == "unspecified" {
+			language = ""
+		}
+	}
 	var lines = make([]string, 0)
 	rows := make([]*blameRow, 0)
 
@@ -236,8 +264,8 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				br.RepoLink = repoLink
 				br.PartSha = part.Sha
 				br.PreviousSha = previousSha
-				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, previousSha, ctx.Repo.TreePath)
-				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, part.Sha)
+				br.PreviousShaURL = fmt.Sprintf("%s/blame/commit/%s/%s", repoLink, url.PathEscape(previousSha), util.PathEscapeSegments(ctx.Repo.TreePath))
+				br.CommitURL = fmt.Sprintf("%s/commit/%s", repoLink, url.PathEscape(part.Sha))
 				br.CommitMessage = commit.CommitMessage
 				br.CommitSince = commitSince
 			}
@@ -246,7 +274,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				line += "\n"
 			}
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
-			line = highlight.Code(fileName, line)
+			line = highlight.Code(fileName, language, line)
 
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)

@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -21,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 func parseLoginSource(ctx *context.APIContext, u *models.User, sourceID int64, loginName string) {
@@ -109,10 +111,10 @@ func CreateUser(ctx *context.APIContext) {
 
 	if err := models.CreateUser(u, overwriteDefault); err != nil {
 		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrEmailAlreadyUsed(err) ||
+			user_model.IsErrEmailAlreadyUsed(err) ||
 			models.IsErrNameReserved(err) ||
 			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrEmailInvalid(err) ||
+			user_model.IsErrEmailInvalid(err) ||
 			models.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
@@ -245,7 +247,7 @@ func EditUser(ctx *context.APIContext) {
 	}
 
 	if err := models.UpdateUser(u); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) || models.IsErrEmailInvalid(err) {
+		if user_model.IsErrEmailAlreadyUsed(err) || user_model.IsErrEmailInvalid(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "UpdateUser", err)
@@ -288,7 +290,7 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.DeleteUser(u); err != nil {
+	if err := user_service.DeleteUser(u); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)

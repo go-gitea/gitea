@@ -45,7 +45,7 @@ function getLanguage(filename) {
 function updateEditor(monaco, editor, filename, lineWrapExts) {
   editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
-  const language = model.getModeId();
+  const language = model.getLanguageId();
   const newLanguage = getLanguage(filename);
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }

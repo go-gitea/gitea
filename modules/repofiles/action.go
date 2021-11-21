@@ -7,6 +7,7 @@ package repofiles
 import (
 	"fmt"
 	"html"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -175,7 +176,7 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				continue
 			}
 
-			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, repo.Link(), c.Sha1, html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
+			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
 			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				return err
 			}

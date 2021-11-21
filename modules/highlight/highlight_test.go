@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+
 	"gopkg.in/ini.v1"
 )
 
@@ -95,7 +96,7 @@ steps:
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := File(tt.numLines, tt.fileName, []byte(tt.code)); !reflect.DeepEqual(got, tt.want) {
+			if got := File(tt.numLines, tt.fileName, "", []byte(tt.code)); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("File() = %v, want %v", got, tt.want)
 			}
 		})

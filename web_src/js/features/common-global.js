@@ -62,9 +62,8 @@ export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
     $(this)
-      .addClass('poping up')
+      .addClass('tooltip')
       .attr('data-content', $(this).attr('title'))
-      .attr('data-variation', 'inverted tiny')
       .attr('title', '');
   });
 
@@ -88,7 +87,7 @@ export function initGlobalCommon() {
   $('.jump.dropdown').dropdown({
     action: 'hide',
     onShow() {
-      $('.poping.up').popup('hide');
+      $('.tooltip').popup('hide');
     },
     fullTextSearch: 'exact'
   });
@@ -104,8 +103,17 @@ export function initGlobalCommon() {
   $('.ui.progress').progress({
     showActivity: false
   });
-  $('.poping.up').popup();
-  $('.top.menu .poping.up').popup({
+
+  // init popups
+  $('.tooltip').each((_, el) => {
+    const $el = $(el);
+    const attr = $el.attr('data-variation');
+    const attrs = attr ? attr.split(' ') : [];
+    const variations = new Set([...attrs, 'inverted', 'tiny']);
+    $el.attr('data-variation', [...variations].join(' ')).popup();
+  });
+
+  $('.top.menu .tooltip').popup({
     onShow() {
       if ($('.top.menu .menu.transition').hasClass('visible')) {
         return false;
@@ -135,11 +143,11 @@ export function initGlobalCommon() {
   });
 }
 
-export async function initGlobalDropzone() {
+export function initGlobalDropzone() {
   // Dropzone
   for (const el of document.querySelectorAll('.dropzone')) {
     const $dropzone = $(el);
-    await createDropzone(el, {
+    const _promise = createDropzone(el, {
       url: $dropzone.data('upload-url'),
       headers: {'X-Csrf-Token': csrfToken},
       maxFiles: $dropzone.data('max-file'),

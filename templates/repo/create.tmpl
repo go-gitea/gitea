@@ -11,7 +11,7 @@
 					{{template "base/alert" .}}
 
 					{{if not $.DisableMigrations}}
-						<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" (printf "%s%s" AppSubUrl "/repo/migrate") | Safe}}</p>
+						<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" ((printf "%s%s" AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
 					{{end}}
 
 					{{if not .CanCreateRepo}}
@@ -83,7 +83,7 @@
 								<input class="hidden" name="git_content" type="checkbox" tabindex="0" {{if .git_content}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_content"}}</label>
 							</div>
-							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} poping up{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
+							<div class="ui checkbox{{if not .SignedUser.CanEditGitHook}} tooltip{{end}}"{{if not .SignedUser.CanEditGitHook}} data-content="{{.i18n.Tr "repo.template.git_hooks_tooltip"}}"{{end}}>
 								<input class="hidden" name="git_hooks" type="checkbox" tabindex="0" {{if .git_hooks}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.template.git_hooks"}}</label>
 							</div>

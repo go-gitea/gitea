@@ -6,13 +6,9 @@
 	<div class="menu">
 		{{ $referenceUrl := "" }}
 		{{ if .issue }}
-			{{ if .ctx.Issue.IsPull}}
-				{{ $referenceUrl = Printf "%s%s/pulls/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag }}
-			{{ else }}
-				{{ $referenceUrl = Printf "%s%s/issues/%d#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag }}
-			{{ end }}
+			{{ $referenceUrl = Printf "%s#%s" .ctx.Issue.HTMLURL .item.HashTag }}
 		{{ else }}
-			{{ $referenceUrl = Printf "%s%s/pulls/%d/files#%s" AppUrl .ctx.Repository.FullName .ctx.Issue.Index .item.HashTag }}
+			{{ $referenceUrl = Printf "%s/files#%s" .ctx.Issue.HTMLURL .item.HashTag }}
 		{{ end }}
 		<div class="item context" data-clipboard-text="{{$referenceUrl}}">{{.ctx.i18n.Tr "repo.issues.context.copy_link"}}</div>
 		<div class="item context quote-reply {{if .diff}}quote-reply-diff{{end}}" data-target="{{.item.ID}}">{{.ctx.i18n.Tr "repo.issues.context.quote_reply"}}</div>
