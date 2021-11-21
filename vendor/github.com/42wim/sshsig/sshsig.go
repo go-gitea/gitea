@@ -25,3 +25,5 @@ type Signature struct {
 	pk        ssh.PublicKey
 	hashAlg   string
 }
+
+const defaultNamespace = "file"

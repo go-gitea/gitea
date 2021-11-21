@@ -26,8 +26,7 @@ import (
 )
 
 const (
-	namespace = "git"
-	pemType   = "SSH SIGNATURE"
+	pemType = "SSH SIGNATURE"
 )
 
 // Armored returns the signature in an armored format.
@@ -71,9 +70,6 @@ func Decode(b []byte) (*Signature, error) {
 	}
 	if string(sig.MagicHeader[:]) != magicHeader {
 		return nil, fmt.Errorf("invalid magic header: %s", sig.MagicHeader[:])
-	}
-	if sig.Namespace != "file" {
-		return nil, fmt.Errorf("invalid signature namespace: %s", sig.Namespace)
 	}
 	if _, ok := supportedHashAlgorithms[sig.HashAlgorithm]; !ok {
 		return nil, fmt.Errorf("unsupported hash algorithm: %s", sig.HashAlgorithm)

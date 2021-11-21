@@ -125,7 +125,7 @@ func SignWithAgent(publicKey []byte, ag agent.Agent, data io.Reader, namespace s
 	}
 
 	if namespace == "" {
-		namespace = "file"
+		namespace = defaultNamespace
 	}
 
 	sig, err := signAgent(pk, ag, data, namespace)
@@ -156,7 +156,7 @@ func Sign(pemBytes []byte, data io.Reader, namespace string) ([]byte, error) {
 	}
 
 	if namespace == "" {
-		namespace = "file"
+		namespace = defaultNamespace
 	}
 
 	sig, err := sign(as, data, namespace)

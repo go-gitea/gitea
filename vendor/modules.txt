@@ -28,7 +28,7 @@ gitea.com/go-chi/session/postgres
 # gitea.com/lunny/levelqueue v0.4.1
 ## explicit
 gitea.com/lunny/levelqueue
-# github.com/42wim/sshsig v0.0.0-20211120223956-aea46ba47435
+# github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 ## explicit
 github.com/42wim/sshsig
 github.com/42wim/sshsig/pem
@@ -916,7 +916,7 @@ golang.org/x/oauth2/google/internal/externalaccount
 golang.org/x/oauth2/internal
 golang.org/x/oauth2/jws
 golang.org/x/oauth2/jwt
-# golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf
+# golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1
 ## explicit
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs

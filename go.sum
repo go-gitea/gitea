@@ -54,8 +54,8 @@ gitea.com/lunny/levelqueue v0.4.1 h1:RZ+AFx5gBsZuyqCvofhAkPQ9uaVDPJnsULoJZIYaJNw
 gitea.com/lunny/levelqueue v0.4.1/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
-github.com/42wim/sshsig v0.0.0-20211120223956-aea46ba47435 h1:lvJzGuCfsbYvu3+GpNUvOVQVK3TjvQ1S4ej8IRmKU1E=
-github.com/42wim/sshsig v0.0.0-20211120223956-aea46ba47435/go.mod h1:TbzEKt2Ju8MHx8VCurIA4YsYPz/OsEBN6wq1u+ckV68=
+github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121 h1:r3qt8PCHnfjOv9PN3H+XXKmDA1dfFMIN1AislhlA/ps=
+github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121/go.mod h1:Ock8XgA7pvULhIaHGAk/cDnRfNrF9Jey81nPcc403iU=
 github.com/6543/go-version v1.3.1 h1:HvOp+Telns7HWJ2Xo/05YXQSB2bE0WmVgbHqwMPZT4U=
 github.com/6543/go-version v1.3.1/go.mod h1:oqFAHCwtLVUTLdhQmVZWYvaHXTdsbB4SY85at64SQEo=
 github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c h1:/IBSNwUN8+eKzUzbJPqhK839ygXJ82sde8x3ogr6R28=
@@ -1470,6 +1470,8 @@ golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210616094352-59db8d763f22/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf h1:2ucpDCmfkl8Bd/FsLtiD653Wf96cW37s+iGx93zsu4k=
 golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 h1:kwrAHlwJ0DUBZwQ238v+Uod/3eZ8B2K5rYsUHBQvzmI=
+golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 h1:v+OssWQX+hTHEmOBgwxdZxK4zHq3yOs8F9J7mk0PY8E=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=

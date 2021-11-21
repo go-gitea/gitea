@@ -21,8 +21,13 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-// Verify verifies the signature of the given data and the armored signature using the given public key.
-func Verify(message io.Reader, armoredSignature []byte, publicKey []byte) error {
+// Verify verifies the signature of the given data and the armored signature using the given public key and the namespace.
+// If the namespace is empty, the default namespace (file) is used.
+func Verify(message io.Reader, armoredSignature []byte, publicKey []byte, namespace string) error {
+	if namespace == "" {
+		namespace = defaultNamespace
+	}
+
 	decodedSignature, err := Decode(armoredSignature)
 	if err != nil {
 		return err
@@ -41,7 +46,7 @@ func Verify(message io.Reader, armoredSignature []byte, publicKey []byte) error 
 	hm := h.Sum(nil)
 
 	toVerify := MessageWrapper{
-		Namespace:     "file",
+		Namespace:     namespace,
 		HashAlgorithm: decodedSignature.hashAlg,
 		Hash:          string(hm),
 	}
