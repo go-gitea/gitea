@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -970,8 +971,12 @@ func (r *Review) GetCodeCommentsCount() int {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
 
-	count, err := db.GetEngine(db.DefaultContext).Where(conds).Count(new(Comment))
+	count, err := db.GetEngine(db.DefaultContext).
+		Where(conds).
+		Join("INNER", "issue", "issue.id = comment.issue_id").
+		Count(new(Comment))
 	if err != nil {
+		log.Error("GetCodeCommentsCount: %v", err)
 		return 0
 	}
 	return int(count)
