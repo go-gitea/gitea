@@ -41,8 +41,8 @@
 					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{$.i18n.Tr "settings.ssh_externally_managed"}}"{{end}}>
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
-					{{if not .Verified}}
-						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
+					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
+						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.i18n.Tr "settings.ssh_key_verify"}}</a>
 					{{end}}
 
 				</div>
@@ -51,7 +51,7 @@
 				</div>
 				<div class="content">
 					    {{if .Verified}}
-							<span class="tooltip" data-content="{{$.i18n.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong></span>
+							<span class="tooltip" data-content="{{$.i18n.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.ssh_key_verified"}}</strong></span>
 						{{end}}
 						<strong>{{.Name}}</strong>
 						<div class="print meta">
@@ -62,10 +62,10 @@
 						</div>
 				</div>
 			</div>
-			{{if not .Verified}}
+			{{if and (not .Verified) (eq $.VerifyingFingerprint .Fingerprint)}}
 				<div class="ui  segment">
 					<h4>{{$.i18n.Tr "settings.ssh_token_required"}}</h4>
-					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
+					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.Content}}">

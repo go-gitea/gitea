@@ -196,7 +196,6 @@ func KeysPost(ctx *context.Context) {
 			switch {
 			case models.IsErrSSHInvalidTokenSignature(err):
 				loadKeysData(ctx)
-				ctx.Data["VerifyingFingerprint"] = form.Fingerprint
 				ctx.Data["Err_Signature"] = true
 				ctx.Data["Fingerprint"] = err.(models.ErrSSHInvalidTokenSignature).Fingerprint
 				ctx.RenderWithErr(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
@@ -290,4 +289,5 @@ func loadKeysData(ctx *context.Context) {
 	ctx.Data["Principals"] = principals
 
 	ctx.Data["VerifyingID"] = ctx.FormString("verify_gpg")
+	ctx.Data["VerifyingFingerprint"] = ctx.FormString("verify_ssh")
 }
