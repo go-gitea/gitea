@@ -40,25 +40,13 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerifica
 		}
 
 		for _, k := range keys {
-			// Pre-check (& optimization) that emails attached to key can be attached to the committer email and can validate
 			canValidate := false
 			email := ""
-			//		if k.Verified && activated {
-			if activated {
+			if k.Verified && activated {
 				canValidate = true
 				email = c.Committer.Email
 			}
-			/*
-				if !canValidate {
-					for _, e := range k.Emails {
-						if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
-							canValidate = true
-							email = e.Email
-							break
-						}
-					}
-				}
-			*/
+
 			if !canValidate {
 				continue // Skip this key
 			}

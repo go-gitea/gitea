@@ -183,6 +183,29 @@ func KeysPost(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("settings.add_key_success", form.Title))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
+	case "verify_ssh":
+		token := models.VerificationToken(ctx.User, 1)
+		lastToken := models.VerificationToken(ctx.User, 0)
+
+		fingerprint, err := models.VerifySSHKey(ctx.User.ID, form.Fingerprint, token, form.Signature)
+		if err != nil && models.IsErrSSHInvalidTokenSignature(err) {
+			fingerprint, err = models.VerifySSHKey(ctx.User.ID, form.Fingerprint, lastToken, form.Signature)
+		}
+		if err != nil {
+			ctx.Data["HasSSHVerifyError"] = true
+			switch {
+			case models.IsErrSSHInvalidTokenSignature(err):
+				loadKeysData(ctx)
+				ctx.Data["VerifyingFingerprint"] = form.Fingerprint
+				ctx.Data["Err_Signature"] = true
+				ctx.Data["Fingerprint"] = err.(models.ErrSSHInvalidTokenSignature).Fingerprint
+				ctx.RenderWithErr(ctx.Tr("settings.ssh_invalid_token_signature"), tplSettingsKeys, &form)
+			default:
+				ctx.ServerError("VerifySSH", err)
+			}
+		}
+		ctx.Flash.Success(ctx.Tr("settings.verify_ssh_key_success", fingerprint))
+		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 
 	default:
 		ctx.Flash.Warning("Function not implemented")

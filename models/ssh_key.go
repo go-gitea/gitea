@@ -47,6 +47,7 @@ type PublicKey struct {
 	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
 	HasRecentActivity bool               `xorm:"-"`
 	HasUsed           bool               `xorm:"-"`
+	Verified          bool               `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {

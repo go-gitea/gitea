@@ -357,6 +357,8 @@ var migrations = []Migration{
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
 	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
+	// v202 -> v203
+	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
 }
 
 // GetCurrentDBVersion returns the current db version
