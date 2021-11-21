@@ -1222,6 +1222,7 @@ type IssuesOptions struct {
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
+	UserID             int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1235,7 +1236,7 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
-	UserID         int64
+	CanSeePrivate  bool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1341,20 +1342,21 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		}
 	}
 
-	if opts.UserID == 0 {
-		sess.And("issue.is_private=?", false)
-	} else {
-		// Allow to see private issues if the user is the poster of it.
-		sess.And(
-			builder.Or(
-				builder.Eq{"`issue`.is_private": false},
-				builder.And(
-					builder.Eq{"`issue`.is_private": true},
-					builder.In("`issue`.poster_id", opts.UserID),
+	if !opts.CanSeePrivate {
+		if opts.UserID == 0 {
+			sess.And("issue.is_private=?", false)
+		} else {
+			// Allow to see private issues if the user is the poster of it.
+			sess.And(
+				builder.Or(
+					builder.Eq{"`issue`.is_private": false},
+					builder.And(
+						builder.Eq{"`issue`.is_private": true},
+						builder.In("`issue`.poster_id", opts.UserID),
+					),
 				),
-			),
-		)
-
+			)
+		}
 	}
 
 	switch opts.IsPull {
