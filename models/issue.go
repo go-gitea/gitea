@@ -1023,11 +1023,6 @@ func newIssue(ctx context.Context, doer *User, opts NewIssueOptions) (err error)
 		return err
 	}
 
-	if err = issues.SaveIssueContentHistory(e, doer.ID, opts.Issue.ID, 0,
-		timeutil.TimeStampNow(), opts.Issue.Content, true); err != nil {
-		return err
-	}
-
 	return opts.Issue.addCrossReferences(ctx, doer, false)
 }
 
