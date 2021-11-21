@@ -52,7 +52,9 @@ func TestUserIsPublicMember(t *testing.T) {
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsPublicMember(orgID))
+	is, err := IsPublicMembership(orgID, user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, is)
 }
 
 func TestIsUserOrgOwner(t *testing.T) {
@@ -78,7 +80,9 @@ func TestIsUserOrgOwner(t *testing.T) {
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
+	is, err := IsOrganizationOwner(orgID, user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, is)
 }
 
 func TestGetUserEmailsByNames(t *testing.T) {

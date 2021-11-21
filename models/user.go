@@ -113,8 +113,6 @@ type User struct {
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
-	OwnedOrgs   []*User       `xorm:"-"`
-	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
 	Rands       string `xorm:"VARCHAR(10)"`
@@ -256,12 +254,6 @@ func (u *User) IsOAuth2() bool {
 	return u.LoginType == login.OAuth2
 }
 
-// HasForkedRepo checks if user has already forked a repository with given ID.
-func (u *User) HasForkedRepo(repoID int64) bool {
-	_, has := HasForkedRepo(u.ID, repoID)
-	return has
-}
-
 // MaxCreationLimit returns the number of repositories a user is allowed to create
 func (u *User) MaxCreationLimit() int {
 	if u.MaxRepoCreation <= -1 {
@@ -337,8 +329,8 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	return code
 }
 
-// GetFollowers returns range of user's followers.
-func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
+// GetUserFollowers returns range of user's followers.
+func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.follow_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
@@ -354,13 +346,8 @@ func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
 	return users, sess.Find(&users)
 }
 
-// IsFollowing returns true if user is following followID.
-func (u *User) IsFollowing(followID int64) bool {
-	return user_model.IsFollowing(u.ID, followID)
-}
-
-// GetFollowing returns range of user's following.
-func (u *User) GetFollowing(listOptions db.ListOptions) ([]*User, error) {
+// GetUserFollowing returns range of user's following.
+func GetUserFollowing(u *User, listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.user_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
@@ -503,42 +490,11 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
-// IsUserOrgOwner returns true if user is in the owner team of given organization.
-func (u *User) IsUserOrgOwner(orgID int64) bool {
-	isOwner, err := IsOrganizationOwner(orgID, u.ID)
-	if err != nil {
-		log.Error("IsOrganizationOwner: %v", err)
-		return false
-	}
-	return isOwner
-}
-
-// IsPublicMember returns true if user public his/her membership in given organization.
-func (u *User) IsPublicMember(orgID int64) bool {
-	isMember, err := IsPublicMembership(orgID, u.ID)
-	if err != nil {
-		log.Error("IsPublicMembership: %v", err)
-		return false
-	}
-	return isMember
-}
-
 // GetOrganizationCount returns count of membership of organization of the user.
 func GetOrganizationCount(ctx context.Context, u *User) (int64, error) {
 	return db.GetEngine(ctx).
 		Where("uid=?", u.ID).
 		Count(new(OrgUser))
-}
-
-// GetOrganizationCount returns count of membership of organization of user.
-func (u *User) GetOrganizationCount() (int64, error) {
-	return GetOrganizationCount(db.DefaultContext, u)
-}
-
-// GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(listOpts db.ListOptions, names ...string) (err error) {
-	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts, LowerNames: names})
-	return err
 }
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
@@ -642,17 +598,6 @@ func (u *User) GetActiveAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 		return nil, err
 	}
 	return append(ids, ids2...), nil
-}
-
-// GetMirrorRepositories returns mirror repositories that user owns, including private repositories.
-func (u *User) GetMirrorRepositories() ([]*Repository, error) {
-	return GetUserMirrorRepositories(u.ID)
-}
-
-// GetOwnedOrganizations returns all organizations that user owns.
-func (u *User) GetOwnedOrganizations() (err error) {
-	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID)
-	return err
 }
 
 // DisplayName returns full name if it's not empty,
@@ -1227,14 +1172,6 @@ func DeleteUser(ctx context.Context, u *User) (err error) {
 	// ***** START: PublicKey *****
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
-	}
-	err = rewriteAllPublicKeys(e)
-	if err != nil {
-		return err
-	}
-	err = rewriteAllPrincipalKeys(e)
-	if err != nil {
-		return err
 	}
 	// ***** END: PublicKey *****
 

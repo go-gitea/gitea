@@ -331,8 +331,8 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// "OwnForkRepo"
 	var ownForkRepo *models.Repository
 	if ctx.User != nil && baseRepo.OwnerID != ctx.User.ID {
-		repo, has := models.HasForkedRepo(ctx.User.ID, baseRepo.ID)
-		if has {
+		repo := models.GetForkedRepo(ctx.User.ID, baseRepo.ID)
+		if repo != nil {
 			ownForkRepo = repo
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 		}
@@ -355,12 +355,14 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	// 5. If the headOwner has a fork of the baseRepo - use that
 	if !has {
-		ci.HeadRepo, has = models.HasForkedRepo(ci.HeadUser.ID, baseRepo.ID)
+		ci.HeadRepo = models.GetForkedRepo(ci.HeadUser.ID, baseRepo.ID)
+		has = ci.HeadRepo != nil
 	}
 
 	// 6. If the baseRepo is a fork and the headUser has a fork of that use that
 	if !has && baseRepo.IsFork {
-		ci.HeadRepo, has = models.HasForkedRepo(ci.HeadUser.ID, baseRepo.ForkID)
+		ci.HeadRepo = models.GetForkedRepo(ci.HeadUser.ID, baseRepo.ForkID)
+		has = ci.HeadRepo != nil
 	}
 
 	// 7. Otherwise if we're not the same repo and haven't found a repo give up

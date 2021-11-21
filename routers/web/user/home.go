@@ -111,7 +111,7 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		mirrors, err = ctxUser.GetMirrorRepositories()
+		mirrors, err = models.GetUserMirrorRepositories(ctxUser.ID)
 		if err != nil {
 			ctx.ServerError("GetMirrorRepositories", err)
 			return

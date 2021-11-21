@@ -25,7 +25,7 @@ func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowers(utils.GetListOptions(ctx))
+	users, err := models.GetUserFollowers(u, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
@@ -91,7 +91,7 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *models.User) {
-	users, err := u.GetFollowing(utils.GetListOptions(ctx))
+	users, err := models.GetUserFollowing(u, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
 		return
@@ -157,7 +157,7 @@ func ListFollowing(ctx *context.APIContext) {
 }
 
 func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64) {
-	if u.IsFollowing(followID) {
+	if user_model.IsFollowing(u.ID, followID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()

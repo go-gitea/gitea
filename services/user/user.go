@@ -58,6 +58,13 @@ func DeleteUser(u *models.User) error {
 		return err
 	}
 
+	if err = models.RewriteAllPublicKeys(); err != nil {
+		return err
+	}
+	if err = models.RewriteAllPrincipalKeys(); err != nil {
+		return err
+	}
+
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
 	path := models.UserPath(u.Name)

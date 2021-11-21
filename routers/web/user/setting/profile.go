@@ -301,11 +301,20 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		if err := ctxUser.GetRepositories(db.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
-			ctx.ServerError("GetRepositories", err)
+		userRepos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+			Actor:   ctxUser,
+			Private: true,
+			ListOptions: db.ListOptions{
+				Page:     1,
+				PageSize: setting.UI.Admin.UserPagingNum,
+			},
+			LowerNames: repoNames,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
-		for _, repo := range ctxUser.Repos {
+		for _, repo := range userRepos {
 			if repo.IsFork {
 				if err := repo.GetBaseRepo(); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
@@ -317,16 +326,12 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		var err error
-		var count64 int64
-		ctxUser.Repos, count64, err = models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
-
+		repos, count64, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
-			ctx.ServerError("GetRepositories", err)
+			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
 		count = int(count64)
-		repos := ctxUser.Repos
 
 		for i := range repos {
 			if repos[i].IsFork {

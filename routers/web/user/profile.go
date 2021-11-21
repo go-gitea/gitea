@@ -227,7 +227,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
-		items, err := ctxUser.GetFollowers(db.ListOptions{
+		items, err := models.GetUserFollowers(ctxUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -239,7 +239,7 @@ func Profile(ctx *context.Context) {
 
 		total = ctxUser.NumFollowers
 	case "following":
-		items, err := ctxUser.GetFollowing(db.ListOptions{
+		items, err := models.GetUserFollowing(ctxUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
