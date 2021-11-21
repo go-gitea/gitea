@@ -50,7 +50,7 @@
 					<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
-					    {{if .Verified}}
+						{{if .Verified}}
 							<span class="tooltip" data-content="{{$.i18n.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.ssh_key_verified"}}</strong></span>
 						{{end}}
 						<strong>{{.Name}}</strong>
