@@ -315,7 +315,6 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 	}
 
 	if err = issue.loadComments(e); err != nil {
-
 		return err
 	}
 
@@ -334,6 +333,25 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 // LoadAttributes loads the attribute of this issue.
 func (issue *Issue) LoadAttributes() error {
 	return issue.loadAttributes(db.DefaultContext)
+}
+
+// LoadCommentsAsUser loads the comment of the issue, as the user.
+func (issue *Issue) LoadCommentsAsUser(user *User, canSeePrivateIssues bool) error {
+	return issue.loadCommentsAsUser(db.GetEngine(db.DefaultContext), user, canSeePrivateIssues)
+}
+
+func (issue *Issue) loadCommentsAsUser(e db.Engine, user *User, canSeePrivateIssues bool) (err error) {
+	var userID int64
+	if user != nil {
+		userID = user.ID
+	}
+	issue.Comments, err = findComments(e, &FindCommentsOptions{
+		IssueID:       issue.ID,
+		Type:          CommentTypeUnknown,
+		UserID:        userID,
+		CanSeePrivate: canSeePrivateIssues,
+	})
+	return err
 }
 
 // LoadMilestone load milestone of this issue.
@@ -1218,7 +1236,6 @@ type IssuesOptions struct {
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
 	UserID         int64
-	CanSeePrivate  bool
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
@@ -1324,21 +1341,20 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 		}
 	}
 
-	if !opts.CanSeePrivate {
-		if opts.UserID == 0 {
-			sess.And("issue.is_private=?", false)
-		} else {
-			// Allow to see private issues if the user is the poster of it.
-			sess.And(
-				builder.Or(
-					builder.Eq{"`issue`.is_private": false},
-					builder.And(
-						builder.Eq{"`issue`.is_private": true},
-						builder.In("`issue`.poster_id", opts.UserID),
-					),
+	if opts.UserID == 0 {
+		sess.And("issue.is_private=?", false)
+	} else {
+		// Allow to see private issues if the user is the poster of it.
+		sess.And(
+			builder.Or(
+				builder.Eq{"`issue`.is_private": false},
+				builder.And(
+					builder.Eq{"`issue`.is_private": true},
+					builder.In("`issue`.poster_id", opts.UserID),
 				),
-			)
-		}
+			),
+		)
+
 	}
 
 	switch opts.IsPull {
@@ -1667,9 +1683,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64, userID int64)
 		}
 
 		if !opts.CanSeePrivate {
-			if userID == 0 {
-				sess.And("issue.is_private=?", false)
-			} else {
+			if userID != 0 {
 				// Allow to see private issues if the user is the poster of it.
 				sess.And(
 					builder.Or(
@@ -1680,6 +1694,9 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64, userID int64)
 						),
 					),
 				)
+
+			} else {
+				sess.And("issue.is_private=?", false)
 			}
 		}
 
@@ -1743,6 +1760,16 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			s.Join("INNER", "repository", "issue.repo_id = repository.id").
 				And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 		}
+		// Allow to see comments on private issues
+		s.And(
+			builder.Or(
+				builder.Eq{"`issue`.is_private": false},
+				builder.And(
+					builder.Eq{"`issue`.is_private": true},
+					builder.In("`issue`.poster_id", opts.UserID),
+				),
+			),
+		)
 		return s
 	}
 
@@ -2241,7 +2268,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 		if err != nil {
 			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
 		}
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) {
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) || (issue.IsPrivate && !(issue.IsPoster(user.ID) || perm.CanReadPrivateIssues())) {
 			continue
 		}
 		users = append(users, user)

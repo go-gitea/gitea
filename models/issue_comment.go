@@ -1041,19 +1041,21 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
 	}
-	if opts.CanSeePrivate {
-		// Allow to see comments on private issues
-		cond = cond.And(
-			builder.Or(
-				builder.Eq{"`issue`.is_private": false},
-				builder.And(
-					builder.Eq{"`issue`.is_private": true},
-					builder.In("`issue`.poster_id", opts.UserID),
+	if !opts.CanSeePrivate {
+		if opts.UserID != 0 {
+			// Allow to see comments on private issues
+			cond = cond.And(
+				builder.Or(
+					builder.Eq{"`issue`.is_private": false},
+					builder.And(
+						builder.Eq{"`issue`.is_private": true},
+						builder.In("`issue`.poster_id", opts.UserID),
+					),
 				),
-			),
-		)
-	} else {
-		cond = cond.And(builder.Eq{"`issue`.is_private": false})
+			)
+		} else {
+			cond = cond.And(builder.Eq{"`issue`.is_private": false})
+		}
 	}
 
 	return cond

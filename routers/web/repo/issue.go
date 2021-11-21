@@ -170,8 +170,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	canSeePrivateIssues := ctx.Repo.CanReadPrivateIssues()
-
 	var userID int64
 	if ctx.IsSigned {
 		userID = ctx.User.ID
@@ -191,7 +189,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			ReviewRequestedID: reviewRequestedID,
 			IsPull:            isPullOption,
 			IssueIDs:          issueIDs,
-			CanSeePrivate:     canSeePrivateIssues,
+			CanSeePrivate:     ctx.Repo.CanReadPrivateIssues(),
 		}, userID)
 		if err != nil {
 			ctx.ServerError("GetIssueStats", err)
@@ -244,7 +242,6 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			LabelIDs:          labelIDs,
 			SortType:          sortType,
 			IssueIDs:          issueIDs,
-			CanSeePrivate:     canSeePrivateIssues,
 			UserID:            userID,
 		})
 		if err != nil {
@@ -1177,6 +1174,13 @@ func ViewIssue(ctx *context.Context) {
 		return
 	}
 
+	if issue.IsPrivate {
+		if err = issue.LoadCommentsAsUser(ctx.User, ctx.Repo.CanReadPrivateIssues()); err != nil {
+			ctx.ServerError("LoadCommentsAsUser", err)
+			return
+		}
+	}
+
 	if err = filterXRefComments(ctx, issue); err != nil {
 		ctx.ServerError("filterXRefComments", err)
 		return
@@ -2090,7 +2094,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) {
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) || issue.IsPrivate && !(ctx.User.ID != issue.PosterID || ctx.Repo.CanReadPrivateIssues()) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"
