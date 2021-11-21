@@ -297,6 +297,7 @@ func (b *ProjectBoard) LoadIssues(opts *LoadIssuesOpts) (IssueList, error) {
 	return issueList, nil
 }
 
+// LoadIssuesOpts list the options that can be given to load the issues.
 type LoadIssuesOpts struct {
 	UserID              int64
 	CanSeePrivateIssues bool
