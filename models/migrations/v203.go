@@ -9,6 +9,15 @@ import (
 )
 
 func setOwnersTeamToSeePrivateIssues(x *xorm.Engine) error {
+	type Team struct {
+		ID                      int64 `xorm:"pk autoincr"`
+		IncludesAllRepositories bool  `xorm:"NOT NULL DEFAULT false"`
+	}
+
+	if err := x.Sync2(new(Team)); err != nil {
+		return err
+	}
+
 	_, err := x.Exec("UPDATE `team` SET `can_see_private_issues` = ? WHERE `name`=?",
 		true, "Owners")
 	return err
