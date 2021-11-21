@@ -78,16 +78,16 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerifica
 }
 
 func verifySSHCommitVerification(sig, payload string, k *PublicKey, committer, signer *User, email string) *CommitVerification {
-	if err := sshsig.Verify(bytes.NewBuffer([]byte(payload)), []byte(sig), []byte(k.Content)); err != nil {
-		return &CommitVerification{ // Everything is ok
-			CommittingUser: committer,
-			Verified:       true,
-			Reason:         fmt.Sprintf("%s / %s", signer.Name, k.Fingerprint),
-			SigningUser:    signer,
-			SigningSSHKey:  k,
-			SigningEmail:   email,
-		}
+	if err := sshsig.Verify(bytes.NewBuffer([]byte(payload)), []byte(sig), []byte(k.Content), "git"); err != nil {
+		return nil
 	}
 
-	return nil
+	return &CommitVerification{ // Everything is ok
+		CommittingUser: committer,
+		Verified:       true,
+		Reason:         fmt.Sprintf("%s / %s", signer.Name, k.Fingerprint),
+		SigningUser:    signer,
+		SigningSSHKey:  k,
+		SigningEmail:   email,
+	}
 }
