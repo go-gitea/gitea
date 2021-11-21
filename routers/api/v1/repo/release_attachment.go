@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -54,7 +55,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -241,7 +242,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -256,7 +257,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := models.UpdateAttachment(attach); err != nil {
+	if err := repo_model.UpdateAttachment(attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
@@ -299,7 +300,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := models.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -311,7 +312,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	}
 	// FIXME Should prove the existence of the given repo, but results in unnecessary database requests
 
-	if err := models.DeleteAttachment(attach, true); err != nil {
+	if err := repo_model.DeleteAttachment(attach, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteAttachment", err)
 		return
 	}

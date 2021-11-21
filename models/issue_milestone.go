@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Milestone represents a milestone of repository.
@@ -263,7 +263,8 @@ func changeMilestoneStatus(e db.Engine, m *Milestone, isClosed bool) error {
 	return updateRepoMilestoneNum(e, m.RepoID)
 }
 
-func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
+func changeMilestoneAssign(ctx context.Context, doer *User, issue *Issue, oldMilestoneID int64) error {
+	e := db.GetEngine(ctx)
 	if err := updateIssueCols(e, issue, "milestone_id"); err != nil {
 		return err
 	}
@@ -293,7 +294,7 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 			OldMilestoneID: oldMilestoneID,
 			MilestoneID:    issue.MilestoneID,
 		}
-		if _, err := createComment(e, opts); err != nil {
+		if _, err := createComment(ctx, opts); err != nil {
 			return err
 		}
 	}
@@ -303,17 +304,17 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
 func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = changeMilestoneAssign(ctx, doer, issue, oldMilestoneID); err != nil {
 		return err
 	}
 
-	if err = changeMilestoneAssign(sess, doer, issue, oldMilestoneID); err != nil {
-		return err
-	}
-
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 	return nil

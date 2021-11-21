@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"context"
-	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -18,8 +17,6 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
-	"code.gitea.io/gitea/modules/proxy"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	gitea_sdk "code.gitea.io/sdk/gitea"
@@ -90,12 +87,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 		gitea_sdk.SetToken(token),
 		gitea_sdk.SetBasicAuth(username, password),
 		gitea_sdk.SetContext(ctx),
-		gitea_sdk.SetHTTPClient(&http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-				Proxy:           proxy.Proxy(),
-			},
-		}),
+		gitea_sdk.SetHTTPClient(NewMigrationHTTPClient()),
 	)
 	if err != nil {
 		log.Error(fmt.Sprintf("Failed to create NewGiteaDownloader for: %s. Error: %v", baseURL, err))
@@ -275,12 +267,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 		Created:         rel.CreatedAt,
 	}
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: setting.Migrations.SkipTLSVerify},
-			Proxy:           proxy.Proxy(),
-		},
-	}
+	httpClient := NewMigrationHTTPClient()
 
 	for _, asset := range rel.Attachments {
 		size := int(asset.Size)

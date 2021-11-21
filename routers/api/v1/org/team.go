@@ -102,7 +102,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	for i := range teams {
 		apiOrg, ok := cache[teams[i].OrgID]
 		if !ok {
-			org, err := models.GetUserByID(teams[i].OrgID)
+			org, err := models.GetOrgByID(teams[i].OrgID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
