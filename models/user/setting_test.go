@@ -25,7 +25,7 @@ func TestSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get specific setting
-	Settings, err := GetSettings(99, []string{keyName})
+	settings, err := GetSettings(99, []string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, Settings, 1)
 	assert.EqualValues(t, newSetting.SettingValue, Settings[keyName].SettingValue)
@@ -36,10 +36,10 @@ func TestSettings(t *testing.T) {
 	assert.NoError(t, err)
 
 	// get all settings
-	Settings, err = GetUserAllSettings(99)
+	settings, err = GetUserAllSettings(99)
 	assert.NoError(t, err)
 	assert.Len(t, Settings, 1)
-	assert.EqualValues(t, Settings[updatedSetting.SettingKey].SettingValue, updatedSetting.SettingValue)
+	assert.EqualValues(t, settings[updatedSetting.SettingKey].SettingValue, updatedSetting.SettingValue)
 
 	// delete setting
 	err = DeleteSetting(updatedSetting)
