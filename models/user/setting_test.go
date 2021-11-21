@@ -21,6 +21,8 @@ func TestSettings(t *testing.T) {
 	// create setting
 	err := SetSetting(newSetting)
 	assert.NoError(t, err)
+	err = SetSetting(newSetting) // test about saving unchanged values
+	assert.NoError(t, err)
 
 	// get specific setting
 	Settings, err := GetSettings(99, []string{keyName})
