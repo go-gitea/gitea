@@ -106,9 +106,11 @@ function showContentHistoryMenu(issueBaseUrl, $item, commentId) {
 
 export function initRepoIssueContentHistory() {
   const issueIndex = $('#issueIndex').val();
-  const $itemIssue = $('.timeline-item.comment.first');
-  const $comments = $('.comment');
-  if (!issueIndex || !$comments.length) return;
+  if (!issueIndex) return;
+
+  const $itemIssue = $('.repository.issue .timeline-item.comment.first'); // issue(PR) main content
+  const $comments = $('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, code rerview comments
+  if (!$itemIssue.length && !$comments.length) return;
 
   const repoLink = $('#repolink').val();
   const issueBaseUrl = `${appSubUrl}/${repoLink}/issues/${issueIndex}`;
