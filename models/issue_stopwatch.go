@@ -20,7 +20,7 @@ type ErrIssueStopwatchNotExist struct {
 }
 
 func (err ErrIssueStopwatchNotExist) Error() string {
-	return fmt.Sprintf("issue stopwatch is not exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
 }
 
 // ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
@@ -30,7 +30,7 @@ type ErrIssueStopwatchAlreadyExist struct {
 }
 
 func (err ErrIssueStopwatchAlreadyExist) Error() string {
-	return fmt.Sprintf("issue stopwatch is already exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
 }
 
 // Stopwatch represents a stopwatch for time tracking.
