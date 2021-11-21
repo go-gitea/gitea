@@ -5,7 +5,6 @@
 package models
 
 import (
-	"bytes"
 	"fmt"
 	"hash"
 	"strings"
@@ -16,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/42wim/sshsig"
 	"github.com/keybase/go-crypto/openpgp/packet"
 )
 
@@ -90,67 +88,6 @@ func ParseCommitsWithSignature(oldCommits []*UserCommit, repository *Repository)
 }
 
 // ParseCommitWithSignature check if signature is good against keystore.
-func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerification {
-	// Now try to associate the signature with the committer, if present
-	if committer.ID != 0 {
-		keys, err := ListPublicKeys(committer.ID, db.ListOptions{})
-		if err != nil { // Skipping failed to get gpg keys of user
-			log.Error("ListPublicKeys: %v", err)
-			return &CommitVerification{
-				CommittingUser: committer,
-				Verified:       false,
-				Reason:         "gpg.error.failed_retrieval_gpg_keys",
-			}
-		}
-
-		committerEmailAddresses, _ := user_model.GetEmailAddresses(committer.ID)
-		activated := false
-		for _, e := range committerEmailAddresses {
-			if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
-				activated = true
-				break
-			}
-		}
-
-		for _, k := range keys {
-			// Pre-check (& optimization) that emails attached to key can be attached to the committer email and can validate
-			canValidate := false
-			email := ""
-			//		if k.Verified && activated {
-			if activated {
-				canValidate = true
-				email = c.Committer.Email
-			}
-			/*
-				if !canValidate {
-					for _, e := range k.Emails {
-						if e.IsActivated && strings.EqualFold(e.Email, c.Committer.Email) {
-							canValidate = true
-							email = e.Email
-							break
-						}
-					}
-				}
-			*/
-			if !canValidate {
-				continue // Skip this key
-			}
-
-			commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, k, committer, committer, email)
-			if commitVerification != nil {
-				return commitVerification
-			}
-		}
-	}
-
-	return &CommitVerification{
-		CommittingUser: committer,
-		Verified:       false,
-		Reason:         "gpg.verification_failed",
-	}
-}
-
-// ParseCommitWithSignature check if signature is good against keystore.
 func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	var committer *User
 	if c.Committer != nil {
@@ -185,6 +122,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 		}
 	}
 
+	// If this a SSH signature handle it differently
 	if strings.Contains(c.Signature.Signature, "SSH") {
 		return ParseCommitWithSSHSignature(c, committer)
 	}
@@ -425,21 +363,6 @@ func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey) 
 	return nil, nil
 }
 
-func verifySSHCommitVerification(sig, payload string, k *PublicKey, committer, signer *User, email string) *CommitVerification {
-	if err := sshsig.Verify(bytes.NewBuffer([]byte(payload)), []byte(sig), []byte(k.Content)); err != nil {
-		return &CommitVerification{ // Everything is ok
-			CommittingUser: committer,
-			Verified:       true,
-			Reason:         fmt.Sprintf("%s / %s", signer.Name, k.Fingerprint),
-			SigningUser:    signer,
-			SigningSSHKey:  k,
-			SigningEmail:   email,
-		}
-	}
-
-	return nil
-}
-
 func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload string, k *GPGKey, committer, signer *User, email string) *CommitVerification {
 	key, err := hashAndVerifyWithSubKeys(sig, payload, k)
 	if err != nil { // Skipping failed to generate hash
@@ -571,28 +494,31 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 		return
 	}
 
-	var isMember bool
-	if keyMap != nil {
-		var has bool
-		isMember, has = (*keyMap)[verification.SigningKey.KeyID]
-		if !has {
+	// Check we actually have a GPG SigningKey
+	if verification.SigningKey != nil {
+		var isMember bool
+		if keyMap != nil {
+			var has bool
+			isMember, has = (*keyMap)[verification.SigningKey.KeyID]
+			if !has {
+				isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+				(*keyMap)[verification.SigningKey.KeyID] = isMember
+			}
+		} else {
 			isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-			(*keyMap)[verification.SigningKey.KeyID] = isMember
 		}
-	} else {
-		isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
-	}
 
-	if !isMember {
-		verification.TrustStatus = "untrusted"
-		if verification.CommittingUser.ID != verification.SigningUser.ID {
-			// The committing user and the signing user are not the same
-			// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+		if !isMember {
+			verification.TrustStatus = "untrusted"
+			if verification.CommittingUser.ID != verification.SigningUser.ID {
+				// The committing user and the signing user are not the same
+				// This should be marked as questionable unless the signing user is a collaborator/team member etc.
+				verification.TrustStatus = "unmatched"
+			}
+		} else if trustModel == CollaboratorCommitterTrustModel && verification.CommittingUser.ID != verification.SigningUser.ID {
+			// The committing user and the signing user are not the same and our trustmodel states that they must match
 			verification.TrustStatus = "unmatched"
 		}
-	} else if trustModel == CollaboratorCommitterTrustModel && verification.CommittingUser.ID != verification.SigningUser.ID {
-		// The committing user and the signing user are not the same and our trustmodel states that they must match
-		verification.TrustStatus = "unmatched"
 	}
 
 	return
