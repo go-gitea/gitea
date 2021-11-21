@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -94,7 +95,7 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return nil
 	}
 	if !ctx.User.IsAdmin {
-		canCreate, err := org.CanCreateOrgRepo(ctx.User.ID)
+		canCreate, err := models.OrgFromUser(org).CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
@@ -346,7 +347,7 @@ func RedirectDownload(ctx *context.Context) {
 	curRepo := ctx.Repo.Repository
 	releases, err := models.GetReleasesByRepoIDAndNames(db.DefaultContext, curRepo.ID, tagNames)
 	if err != nil {
-		if models.IsErrAttachmentNotExist(err) {
+		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -355,7 +356,7 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
-		att, err := models.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
@@ -373,7 +374,11 @@ func Download(ctx *context.Context) {
 	uri := ctx.Params("*")
 	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
 	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
+		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+			ctx.Error(http.StatusBadRequest, err.Error())
+		} else {
+			ctx.ServerError("archiver_service.NewRequest", err)
+		}
 		return
 	}
 	if aReq == nil {

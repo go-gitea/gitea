@@ -331,10 +331,10 @@ func TestAPIRepoMigrate(t *testing.T) {
 			switch respJSON["message"] {
 			case "Remote visit addressed rate limitation.":
 				t.Log("test hit github rate limitation")
-			case "You are not allowed to import from private IPs.":
+			case "You can not import from disallowed hosts.":
 				assert.EqualValues(t, "private-ip", testCase.repoName)
 			default:
-				t.Errorf("unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.Fail(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
 			assert.EqualValues(t, testCase.expectedStatus, resp.Code)

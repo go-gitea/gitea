@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -109,6 +110,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 	r.DefaultBranch = repo.DefaultBranch
+	r.Description = repo.Description
 
 	r, err = repo_module.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
 		RepoName:       g.repoName,
@@ -123,7 +125,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		Wiki:           opts.Wiki,
 		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
 		MirrorInterval: opts.MirrorInterval,
-	})
+	}, NewMigrationHTTPTransport())
 
 	g.repo = r
 	if err != nil {
@@ -294,7 +296,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 					asset.Created = release.Created
 				}
 			}
-			var attach = models.Attachment{
+			var attach = repo_model.Attachment{
 				UUID:          gouuid.New().String(),
 				Name:          asset.Name,
 				DownloadCount: int64(*asset.DownloadCount),

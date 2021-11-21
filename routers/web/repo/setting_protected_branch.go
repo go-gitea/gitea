@@ -156,7 +156,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeRead)
+		teams, err := models.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
