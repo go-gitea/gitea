@@ -155,6 +155,10 @@ func FinishIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
 		return err
 	}
 
+	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+		return err
+	}
+
 	if _, err := createComment(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
@@ -198,6 +202,10 @@ func CreateIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
 		return err
 	}
 
+	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
+		return err
+	}
+
 	if _, err := createComment(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
@@ -236,6 +244,10 @@ func cancelStopwatch(ctx context.Context, user *User, issue *Issue) error {
 		}
 
 		if err := issue.loadRepo(e); err != nil {
+			return err
+		}
+
+		if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
 			return err
 		}
 
