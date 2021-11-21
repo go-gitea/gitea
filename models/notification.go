@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -391,14 +392,15 @@ func countUnread(e db.Engine, userID int64) int64 {
 
 // LoadAttributes load Repo Issue User and Comment if not loaded
 func (n *Notification) LoadAttributes() (err error) {
-	return n.loadAttributes(db.GetEngine(db.DefaultContext))
+	return n.loadAttributes(db.DefaultContext)
 }
 
-func (n *Notification) loadAttributes(e db.Engine) (err error) {
+func (n *Notification) loadAttributes(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if err = n.loadRepo(e); err != nil {
 		return
 	}
-	if err = n.loadIssue(e); err != nil {
+	if err = n.loadIssue(ctx); err != nil {
 		return
 	}
 	if err = n.loadUser(e); err != nil {
@@ -420,13 +422,13 @@ func (n *Notification) loadRepo(e db.Engine) (err error) {
 	return nil
 }
 
-func (n *Notification) loadIssue(e db.Engine) (err error) {
+func (n *Notification) loadIssue(ctx context.Context) (err error) {
 	if n.Issue == nil && n.IssueID != 0 {
-		n.Issue, err = getIssueByID(e, n.IssueID)
+		n.Issue, err = getIssueByID(db.GetEngine(ctx), n.IssueID)
 		if err != nil {
 			return fmt.Errorf("getIssueByID [%d]: %v", n.IssueID, err)
 		}
-		return n.Issue.loadAttributes(e)
+		return n.Issue.loadAttributes(ctx)
 	}
 	return nil
 }
@@ -464,7 +466,7 @@ func (n *Notification) GetRepo() (*Repository, error) {
 
 // GetIssue returns the issue of the notification
 func (n *Notification) GetIssue() (*Issue, error) {
-	return n.Issue, n.loadIssue(db.GetEngine(db.DefaultContext))
+	return n.Issue, n.loadIssue(db.DefaultContext)
 }
 
 // HTMLURL formats a URL-string to the notification

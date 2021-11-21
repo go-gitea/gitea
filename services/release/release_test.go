@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/services/attachment"
@@ -103,7 +104,7 @@ func TestRelease_Create(t *testing.T) {
 		IsTag:        false,
 	}, nil, ""))
 
-	attach, err := attachment.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",
@@ -236,7 +237,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.Equal(t, tagName, release.TagName)
 
 	// Add new attachments
-	attach, err := attachment.NewAttachment(&models.Attachment{
+	attach, err := attachment.NewAttachment(&repo_model.Attachment{
 		RepoID:     repo.ID,
 		UploaderID: user.ID,
 		Name:       "test.txt",

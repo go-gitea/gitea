@@ -1,25 +1,26 @@
-// SPDX-License-Identifier: MIT
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+// Copied and modified from https://github.com/issue9/identicon/ (MIT License)
 
 package identicon
 
 import "image"
 
 var (
-	// 可以出现在中间的方块，一般为了美观，都是对称图像。
+	// the blocks can appear in center, these blocks can be more beautiful
 	centerBlocks = []blockFunc{b0, b1, b2, b3, b19, b26, b27}
 
-	// 所有方块
+	// all blocks
 	blocks = []blockFunc{b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20, b21, b22, b23, b24, b25, b26, b27}
 )
 
-// 所有 block 函数的类型
 type blockFunc func(img *image.Paletted, x, y, size int, angle int)
 
-// 将多边形 points 旋转 angle 个角度，然后输出到 img 上，起点为 x,y 坐标
-//
-// points 中的坐标是基于左上角是原点的坐标系。
+// draw a polygon by points, and the polygon is rotated by angle.
 func drawBlock(img *image.Paletted, x, y, size int, angle int, points []int) {
-	if angle > 0 { // 0 角度不需要转换
+	if angle != 0 {
 		m := size / 2
 		rotate(points, m, m, angle)
 	}
@@ -33,7 +34,7 @@ func drawBlock(img *image.Paletted, x, y, size int, angle int, points []int) {
 	}
 }
 
-// 全空白
+// blank
 //
 //  --------
 //  |      |
@@ -42,7 +43,7 @@ func drawBlock(img *image.Paletted, x, y, size int, angle int, points []int) {
 //  --------
 func b0(img *image.Paletted, x, y, size int, angle int) {}
 
-// 全填充正方形
+// full-filled
 //
 //  --------
 //  |######|
@@ -57,7 +58,7 @@ func b1(img *image.Paletted, x, y, size int, angle int) {
 	}
 }
 
-// 中间小方块
+// a small block
 //  ----------
 //  |        |
 //  |  ####  |
@@ -66,8 +67,8 @@ func b1(img *image.Paletted, x, y, size int, angle int) {
 //  ----------
 func b2(img *image.Paletted, x, y, size int, angle int) {
 	l := size / 4
-	x = x + l
-	y = y + l
+	x += l
+	y += l
 
 	for i := x; i < x+2*l; i++ {
 		for j := y; j < y+2*l; j++ {
@@ -76,7 +77,7 @@ func b2(img *image.Paletted, x, y, size int, angle int) {
 	}
 }
 
-// 菱形
+// diamond
 //
 //  ---------
 //  |   #   |
@@ -133,7 +134,7 @@ func b5(img *image.Paletted, x, y, size int, angle int) {
 	})
 }
 
-// b6 矩形
+// b6
 //
 //  --------
 //  |###   |
@@ -151,7 +152,7 @@ func b6(img *image.Paletted, x, y, size int, angle int) {
 	})
 }
 
-// b7 斜放的锥形
+// b7 italic cone
 //
 //  ---------
 //  | #     |
@@ -170,7 +171,7 @@ func b7(img *image.Paletted, x, y, size int, angle int) {
 	})
 }
 
-// b8 三个堆叠的三角形
+// b8 three small triangles
 //
 //  -----------
 //  |    #    |
@@ -184,7 +185,7 @@ func b8(img *image.Paletted, x, y, size int, angle int) {
 	m := size / 2
 	mm := m / 2
 
-	// 顶部三角形
+	// top
 	drawBlock(img, x, y, size, angle, []int{
 		m, 0,
 		3 * mm, m,
@@ -192,7 +193,7 @@ func b8(img *image.Paletted, x, y, size int, angle int) {
 		m, 0,
 	})
 
-	// 底下左边
+	// bottom left
 	drawBlock(img, x, y, size, angle, []int{
 		mm, m,
 		m, size,
@@ -200,7 +201,7 @@ func b8(img *image.Paletted, x, y, size int, angle int) {
 		mm, m,
 	})
 
-	// 底下右边
+	// bottom right
 	drawBlock(img, x, y, size, angle, []int{
 		3 * mm, m,
 		size, size,
@@ -209,7 +210,7 @@ func b8(img *image.Paletted, x, y, size int, angle int) {
 	})
 }
 
-// b9 斜靠的三角形
+// b9 italic triangle
 //
 //  ---------
 //  |#      |
@@ -257,7 +258,7 @@ func b10(img *image.Paletted, x, y, size int, angle int) {
 	})
 }
 
-// b11 左上角1/4大小的方块
+// b11
 //
 //  ----------
 //  |####    |
