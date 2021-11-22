@@ -137,11 +137,16 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	var isFollowing bool
+	if ctx.User != nil && ctxUser != nil {
+		isFollowing = user_model.IsFollowing(ctx.User.ID, ctxUser.ID)
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
-	ctx.Data["IsFollowing"] = user_model.IsFollowing(ctx.User.ID, ctxUser.ID)
+	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
