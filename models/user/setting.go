@@ -51,7 +51,6 @@ func GetUserAllSettings(uid int64) (map[string]*Setting, error) {
 	settings := make([]*Setting, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).
 		Where("user_id=?", uid).
-		Asc("id").
 		Find(&settings); err != nil {
 		return nil, err
 	}
