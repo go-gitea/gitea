@@ -55,6 +55,17 @@
 							{{else}}
 								</span>
 							{{end}}
+							{{$commitID := .ID.String}}
+							<span class="clipboard"
+								data-success="{{$.i18n.Tr "repo.commits.copy_sha_success"}}"
+								data-error="{{$.i18n.Tr "repo.commits.copy_sha_error"}}"
+								data-content="{{$.i18n.Tr "repo.commits.copy_sha_text"}}"
+								data-variation="inverted tiny"
+								data-clipboard-text="{{.ID}}"
+								onclick="'{{$commitID}}'.select(); document.execCommand('copy');"
+							>
+								{{svg "octicon-paste"}}
+							</span>
 						</td>
 						<td class="message">
 							<span class="message-wrapper">
