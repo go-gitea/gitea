@@ -24,12 +24,9 @@
 							{{end}}
 						</td>
 						<td class="sha">
-							{{$class_wrapper := "ui"}}
 							{{$class := "ui sha label"}}
-							{{$clipboard := "clipboard"}}
 							{{if .Signature}}
 								{{$class = (printf "%s%s" $class " isSigned")}}
-								{{$clipboard = (printf "%s%s" $clipboard " isSigned")}}
 								{{if .Verification.Verified}}
 									{{if eq .Verification.TrustStatus "trusted"}}
 										{{$class = (printf "%s%s" $class " isVerified")}}
@@ -42,34 +39,29 @@
 									{{$class = (printf "%s%s" $class " isWarning")}}
 								{{end}}
 							{{end}}
+							<a class="ui button"
+								data-clipboard-text="{{.ID}}"
+							>
+								{{svg "octicon-copy"}}
+							</a>
 							{{if $.PageIsWiki}}
-								<span class="{{$class_wrapper}}">
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else if $.Reponame}}
-								<span class="{{$class_wrapper}}">
+								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
 								<span>
 							{{end}}
-								{{if $.PageIsWiki}}
-									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
-								{{else if $.Reponame}}
-									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+									<span class="shortsha">{{ShortSha .ID.String}}</span>
+								{{if .Signature}}
+									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
-										<span class="shortsha">{{ShortSha .ID.String}}</span>
-									{{if .Signature}}
-										{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
-									{{end}}
-								{{if $.PageIsWiki}}
-									</a>
-								{{else if $.Reponame}}
-									</a>
-								{{end}}
-								{{$commitID := .ID.String}}
-								<a class="{{$clipboard}}"
-									data-clipboard-text="{{.ID}}"
-								>
-									{{svg "octicon-copy"}}
+							{{if $.PageIsWiki}}
 								</a>
-							</span>
+							{{else if $.Reponame}}
+								</a>
+							{{else}}
+								</span>
+							{{end}}
 						</td>
 						<td class="message">
 							<span class="message-wrapper">
