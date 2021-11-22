@@ -1722,9 +1722,14 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	// Check access rights for all issues
 	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
 	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
+	canReadPrivateIssues := ctx.Repo.CanReadPrivateIssues()
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
+			return nil
+		}
+		if issue.IsPrivate && !(canReadPrivateIssues || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+			ctx.NotFound("IsPrivate", nil)
 			return nil
 		}
 		if err = issue.LoadAttributes(); err != nil {
