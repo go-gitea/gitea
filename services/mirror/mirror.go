@@ -98,13 +98,6 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 			return nil
 		}
 
-		// Double check we've not been cancelled
-		select {
-		case <-ctx.Done():
-			return fmt.Errorf("aborted")
-		default:
-		}
-
 		// Push to the Queue
 		if err := mirrorQueue.Push(&item); err != nil {
 			return err
