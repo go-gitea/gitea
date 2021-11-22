@@ -1105,11 +1105,13 @@ func updateUserCols(e db.Engine, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
 	if !u.IsOrganization() {
 		if err = checkDupEmail(sess, u); err != nil {
 			return err
@@ -1118,7 +1120,7 @@ func UpdateUserSetting(u *User) (err error) {
 	if err = updateUser(sess, u); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.
@@ -1190,6 +1192,7 @@ func DeleteUser(ctx context.Context, u *User) (err error) {
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
+		&user_model.Setting{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1533,7 +1536,7 @@ type SearchUserOptions struct {
 	IsProhibitLogin    util.OptionalBool
 }
 
-func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
+func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1599,19 +1602,21 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	sess = db.NewSession(db.DefaultContext)
-	if !opts.IsTwoFactorEnabled.IsNone() {
-		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
-		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
-		if opts.IsTwoFactorEnabled.IsTrue() {
-			cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
-		} else {
-			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
-		}
-		sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
+	e := db.GetEngine(db.DefaultContext)
+	if opts.IsTwoFactorEnabled.IsNone() {
+		return e.Where(cond)
 	}
-	sess = sess.Where(cond)
-	return sess
+
+	// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+	// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+	if opts.IsTwoFactorEnabled.IsTrue() {
+		cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+	} else {
+		cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+	}
+
+	return e.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id").
+		Where(cond)
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,

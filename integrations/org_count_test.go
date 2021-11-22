@@ -116,7 +116,10 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 			Name: username,
 		}).(*models.User)
 
-		orgs, err := models.GetOrgsByUserID(user.ID, true)
+		orgs, err := models.FindOrgs(models.FindOrgOptions{
+			UserID:         user.ID,
+			IncludePrivate: true,
+		})
 		assert.NoError(t, err)
 
 		calcOrgCounts := map[string]int{}

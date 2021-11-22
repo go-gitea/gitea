@@ -269,9 +269,8 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 
 func TestNewGitSig(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	sess.Find(&users)
+	err := db.GetEngine(db.DefaultContext).Find(&users)
+	assert.NoError(t, err)
 
 	for _, user := range users {
 		sig := user.NewGitSig()
@@ -284,9 +283,8 @@ func TestNewGitSig(t *testing.T) {
 
 func TestDisplayName(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	sess.Find(&users)
+	err := db.GetEngine(db.DefaultContext).Find(&users)
+	assert.NoError(t, err)
 
 	for _, user := range users {
 		displayName := user.DisplayName()

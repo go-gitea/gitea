@@ -109,11 +109,11 @@ func (u *User) UploadAvatar(data []byte) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	u.UseCustomAvatar = true
 	// Different users can upload same image as avatar
@@ -121,7 +121,7 @@ func (u *User) UploadAvatar(data []byte) error {
 	// Otherwise, if any of the users delete his avatar
 	// Other users will lose their avatars too.
 	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
-	if err = updateUserCols(sess, u, "use_custom_avatar", "avatar"); err != nil {
+	if err = updateUserCols(db.GetEngine(ctx), u, "use_custom_avatar", "avatar"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
@@ -134,7 +134,7 @@ func (u *User) UploadAvatar(data []byte) error {
 		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // IsUploadAvatarChanged returns true if the current user's avatar would be changed with the provided data
