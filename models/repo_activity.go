@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/git"
 
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -40,35 +41,45 @@ type ActivityStats struct {
 	Code                        *git.CodeActivityStats
 }
 
-// GetActivityStats return stats for repository at given time range
-func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+type GetActivityStatsOpts struct {
+	TimeFrom             time.Time
+	UserID               int64
+	ShowReleases         bool
+	ShowIssues           bool
+	ShowPRs              bool
+	ShowCode             bool
+	CanReadPrivateIssues bool
+}
+
+// GetActivityStats return stats for repository at given time range, as user
+func GetActivityStats(repo *Repository, opts *GetActivityStatsOpts) (*ActivityStats, error) {
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
-	if releases {
-		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
+	if opts.ShowReleases {
+		if err := stats.FillReleases(repo.ID, opts.TimeFrom); err != nil {
 			return nil, fmt.Errorf("FillReleases: %v", err)
 		}
 	}
-	if prs {
-		if err := stats.FillPullRequests(repo.ID, timeFrom); err != nil {
+	if opts.ShowPRs {
+		if err := stats.FillPullRequests(repo.ID, opts.TimeFrom); err != nil {
 			return nil, fmt.Errorf("FillPullRequests: %v", err)
 		}
 	}
-	if issues {
-		if err := stats.FillIssues(repo.ID, timeFrom); err != nil {
+	if opts.ShowIssues {
+		if err := stats.FillIssues(repo.ID, opts.TimeFrom, opts.CanReadPrivateIssues, opts.UserID); err != nil {
 			return nil, fmt.Errorf("FillIssues: %v", err)
 		}
 	}
-	if err := stats.FillUnresolvedIssues(repo.ID, timeFrom, issues, prs); err != nil {
+	if err := stats.FillUnresolvedIssues(repo.ID, opts.TimeFrom, opts.ShowIssues, opts.ShowPRs, opts.CanReadPrivateIssues, opts.UserID); err != nil {
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
-	if code {
+	if opts.ShowCode {
 		gitRepo, err := git.OpenRepository(repo.RepoPath())
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
 		defer gitRepo.Close()
 
-		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
+		code, err := gitRepo.GetCodeActivityStats(opts.TimeFrom, repo.DefaultBranch)
 		if err != nil {
 			return nil, fmt.Errorf("FillFromGit: %v", err)
 		}
@@ -261,12 +272,12 @@ func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged b
 }
 
 // FillIssues returns issue information for activity page
-func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
+func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time, canReadPrivateIssues bool, userID int64) error {
 	var err error
 	var count int64
 
 	// Closed issues
-	sess := issuesForActivityStatement(repoID, fromTime, true, false)
+	sess := issuesForActivityStatement(repoID, fromTime, true, false, canReadPrivateIssues, userID)
 	sess.OrderBy("issue.closed_unix DESC")
 	stats.ClosedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
@@ -274,14 +285,14 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	}
 
 	// Closed issue authors
-	sess = issuesForActivityStatement(repoID, fromTime, true, false)
+	sess = issuesForActivityStatement(repoID, fromTime, true, false, canReadPrivateIssues, userID)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
 	stats.ClosedIssueAuthorCount = count
 
 	// New issues
-	sess = issuesForActivityStatement(repoID, fromTime, false, false)
+	sess = issuesForActivityStatement(repoID, fromTime, false, false, canReadPrivateIssues, userID)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
@@ -289,7 +300,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	}
 
 	// Opened issue authors
-	sess = issuesForActivityStatement(repoID, fromTime, false, false)
+	sess = issuesForActivityStatement(repoID, fromTime, false, false, canReadPrivateIssues, userID)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
@@ -299,12 +310,12 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 }
 
 // FillUnresolvedIssues returns unresolved issue and pull request information for activity page
-func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Time, issues, prs bool) error {
+func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Time, issues, prs bool, canReadPrivateIssues bool, userID int64) error {
 	// Check if we need to select anything
 	if !issues && !prs {
 		return nil
 	}
-	sess := issuesForActivityStatement(repoID, fromTime, false, true)
+	sess := issuesForActivityStatement(repoID, fromTime, false, true, canReadPrivateIssues, userID)
 	if !issues || !prs {
 		sess.And("issue.is_pull = ?", prs)
 	}
@@ -313,7 +324,7 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 	return sess.Find(&stats.UnresolvedIssues)
 }
 
-func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
+func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool, canReadPrivateIssues bool, userID int64) *xorm.Session {
 	sess := db.GetEngine(db.DefaultContext).Where("issue.repo_id = ?", repoID).
 		And("issue.is_closed = ?", closed)
 
@@ -327,6 +338,23 @@ func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unreso
 	} else {
 		sess.And("issue.created_unix < ?", fromTime.Unix())
 		sess.And("issue.updated_unix >= ?", fromTime.Unix())
+	}
+
+	if !canReadPrivateIssues {
+		if userID == 0 {
+			sess.And("issue.is_private = ?", false)
+		} else {
+			// Allow to see private issues if the user is the poster of it.
+			sess.And(
+				builder.Or(
+					builder.Eq{"`issue`.is_private": false},
+					builder.And(
+						builder.Eq{"`issue`.is_private": true},
+						builder.In("`issue`.poster_id", userID),
+					),
+				),
+			)
+		}
 	}
 
 	return sess

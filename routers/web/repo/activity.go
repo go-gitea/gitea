@@ -51,12 +51,21 @@ func Activity(ctx *context.Context) {
 	ctx.Data["DateUntil"] = timeUntil.Format("January 2, 2006")
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+
 	var err error
-	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository, timeFrom,
-		ctx.Repo.CanRead(unit.TypeReleases),
-		ctx.Repo.CanRead(unit.TypeIssues),
-		ctx.Repo.CanRead(unit.TypePullRequests),
-		ctx.Repo.CanRead(unit.TypeCode)); err != nil {
+	if ctx.Data["Activity"], err = models.GetActivityStats(ctx.Repo.Repository, &models.GetActivityStatsOpts{
+		TimeFrom:             timeFrom,
+		UserID:               userID,
+		ShowReleases:         ctx.Repo.CanRead(unit.TypeReleases),
+		ShowIssues:           ctx.Repo.CanRead(unit.TypeIssues),
+		ShowPRs:              ctx.Repo.CanRead(unit.TypePullRequests),
+		ShowCode:             ctx.Repo.CanRead(unit.TypeCode),
+		CanReadPrivateIssues: ctx.Repo.CanReadPrivateIssues(),
+	}); err != nil {
 		ctx.ServerError("GetActivityStats", err)
 		return
 	}
