@@ -32,8 +32,8 @@ end</textarea>
 		<h4 class="ui top attached header">{{.i18n.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{template "package/content/rubygems_dependencies" dict "dependencies" .PackageDescriptor.Metadata.RuntimeDependencies "title" (.i18n.Tr "packages.rubygems.dependencies.runtime")}}
-				{{template "package/content/rubygems_dependencies" dict "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (.i18n.Tr "packages.rubygems.dependencies.development")}}
+				{{template "package/content/rubygems_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.RuntimeDependencies "title" (.i18n.Tr "packages.rubygems.dependencies.runtime")}}
+				{{template "package/content/rubygems_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (.i18n.Tr "packages.rubygems.dependencies.development")}}
 			</div>
 		</div>
 	{{end}}

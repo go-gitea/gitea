@@ -33,7 +33,7 @@ type PackageVersion struct {
 	CreatorID     int64
 	Version       string
 	LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+	CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 	MetadataJSON  string             `xorm:"TEXT metadata_json"`
 	DownloadCount int64
 }
@@ -163,10 +163,11 @@ func DeleteVersionByID(ctx context.Context, versionID int64) error {
 
 // PackageSearchOptions are options for SearchXXX methods
 type PackageSearchOptions struct {
-	OwnerID int64
-	RepoID  int64
-	Type    string
-	Query   string
+	OwnerID    int64
+	RepoID     int64
+	Type       string
+	Query      string
+	Properties map[string]string
 	db.Paginator
 }
 
@@ -183,14 +184,27 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Like{"package.lower_name", strings.ToLower(opts.Query)})
 	}
 
+	if len(opts.Properties) != 0 {
+		propsCond := builder.NewCond()
+		for name, value := range opts.Properties {
+			propsCond = propsCond.Or(builder.Eq{
+				"package_version_property.name":  name,
+				"package_version_property.value": value,
+			})
+		}
+		cond = cond.And(builder.In("package_version.id", builder.Select("package_version_property.version_id").Where(propsCond).From("package_version_property")))
+	}
+
 	return cond
 }
 
 // SearchVersions gets all versions of packages matching the search options
 func SearchVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds()).
+	sess := db.GetEngine(db.DefaultContext).
+		Where(opts.toConds()).
 		Table("package_version").
-		Join("INNER", "package", "package.id = package_version.package_id")
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Desc("created_unix")
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
@@ -208,9 +222,10 @@ func SearchLatestVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64,
 
 	sess := db.GetEngine(db.DefaultContext).
 		Table("package_version").
-		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND package_version.version < pv2.version").
+		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND package_version.created_unix < pv2.created_unix").
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(cond)
+		Where(cond).
+		Desc("created_unix")
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)

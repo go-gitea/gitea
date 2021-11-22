@@ -9,6 +9,8 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models/db"
+
+	"xorm.io/builder"
 )
 
 func init() {
@@ -27,6 +29,7 @@ type Type string
 
 // List of supported packages
 const (
+	TypeComposer Type = "composer"
 	TypeGeneric  Type = "generic"
 	TypeNuGet    Type = "nuget"
 	TypeNpm      Type = "npm"
@@ -38,6 +41,8 @@ const (
 // Name gets the name of the package type
 func (pt Type) Name() string {
 	switch pt {
+	case TypeComposer:
+		return "Composer"
 	case TypeGeneric:
 		return "Generic"
 	case TypeNuGet:
@@ -57,6 +62,8 @@ func (pt Type) Name() string {
 // SVGName gets the name of the package type svg image
 func (pt Type) SVGName() string {
 	switch pt {
+	case TypeComposer:
+		return "gitea-composer"
 	case TypeGeneric:
 		return "octicon-package"
 	case TypeNuGet:
@@ -131,6 +138,19 @@ func GetPackageByID(ctx context.Context, packageID int64) (*Package, error) {
 		return nil, ErrPackageNotExist
 	}
 	return p, nil
+}
+
+// GetPackagesByType gets all packages of a specific type
+func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]*Package, error) {
+	var cond builder.Cond = builder.Eq{
+		"package.owner_id": ownerID,
+		"package.type":     packageType,
+	}
+
+	ps := make([]*Package, 0, 10)
+	return ps, db.GetEngine(ctx).
+		Where(cond).
+		Find(&ps)
 }
 
 // DeletePackageByIDIfUnreferenced deletes a package if there are no associated versions

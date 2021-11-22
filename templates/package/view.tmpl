@@ -19,6 +19,7 @@
 					<div class="ui divider"></div>
 				</div>
 				<div class="twelve wide column">
+					{{template "package/content/composer" .}}
 					{{template "package/content/generic" .}}
 					{{template "package/content/nuget" .}}
 					{{template "package/content/npm" .}}
@@ -36,6 +37,7 @@
 							{{end}}
 							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{.PackageDescriptor.Version.CreatedUnix.FormatDate}}</div>
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
+							{{template "package/metadata/composer" .}}
 							{{template "package/metadata/generic" .}}
 							{{template "package/metadata/nuget" .}}
 							{{template "package/metadata/npm" .}}

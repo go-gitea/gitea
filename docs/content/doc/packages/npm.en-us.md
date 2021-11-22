@@ -30,7 +30,7 @@ The following examples use the `npm` tool with the scope `@test`.
 
 ## Configuring the package registry
 
-To register the project’s package registry you need to configure a new package source.
+To register the package registry you need to configure a new package source.
 
 ```shell
 npm config set {scope}:registry https://gitea.example.com/api/v1/packages/{owner}/npm/

@@ -81,6 +81,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
+	"code.gitea.io/gitea/routers/api/v1/packages/composer"
 	"code.gitea.io/gitea/routers/api/v1/packages/generic"
 	"code.gitea.io/gitea/routers/api/v1/packages/maven"
 	"code.gitea.io/gitea/routers/api/v1/packages/npm"
@@ -1012,6 +1013,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		})
 
 		m.Group("/packages/{username}", func() {
+			m.Group("/composer", func() {
+				m.Get("/packages.json", composer.ServiceIndex)
+				m.Get("/search.json", composer.SearchPackages)
+				m.Get("/list.json", composer.EnumeratePackages)
+				m.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
+				m.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
+				m.Get("/files/{versionid}/{filename}", composer.DownloadPackageFile)
+				m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), composer.UploadPackage)
+			})
 			m.Group("/generic", func() {
 				m.Group("/{packagename}/{packageversion}/{filename}", func() {
 					m.Get("", generic.DownloadPackageFile)

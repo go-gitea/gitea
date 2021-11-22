@@ -1,0 +1,5 @@
+{{if eq .PackageDescriptor.Package.Type "composer"}}
+	{{range .PackageDescriptor.Metadata.Authors}}<div class="item" title="{{$.i18n.Tr "packages.details.author"}}">{{svg "octicon-person" 16 "mr-3"}} {{.Name}}</div>{{end}}
+	{{if .PackageDescriptor.Metadata.Homepage}}<div class="item">{{svg "octicon-link-external" 16 "mr-3"}} <a href="{{.PackageDescriptor.Metadata.Homepage}}" target="_blank" rel="noopener noreferrer me">{{.i18n.Tr "packages.details.project_site"}}</a></div>{{end}}
+	{{range .PackageDescriptor.Metadata.License}}<div class="item" title="{{$.i18n.Tr "packages.details.license"}}">{{svg "octicon-law" 16 "mr-3"}} {{.}}</div>{{end}}
+{{end}}

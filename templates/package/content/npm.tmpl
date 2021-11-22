@@ -11,7 +11,7 @@
 				<input id="installation-input" type="text" readonly="readonly" value="npm install {{.PackageDescriptor.Package.Name}}@{{.PackageDescriptor.Version.Version}}">
 			</div>
 			<div class="field">
-				<label for="installation2-input">{{svg "octicon-terminal"}} {{.i18n.Tr "packages.npm.install2"}}</label>
+				<label for="installation2-input">{{svg "octicon-code"}} {{.i18n.Tr "packages.npm.install2"}}</label>
 				<input id="installation2-input" type="text" readonly="readonly" value="&quot;{{.PackageDescriptor.Package.Name}}&quot;: &quot;{{.PackageDescriptor.Version.Version}}&quot;">
 			</div>
 			<div class="field">
@@ -37,10 +37,10 @@
 		<h4 class="ui top attached header">{{.i18n.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
-				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.Dependencies "title" (.i18n.Tr "packages.npm.dependencies")}}
-				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (.i18n.Tr "packages.npm.dependencies.development")}}
-				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.PeerDependencies "title" (.i18n.Tr "packages.npm.dependencies.peer")}}
-				{{template "package/content/npm_dependencies" dict "dependencies" .PackageDescriptor.Metadata.OptionalDependencies "title" (.i18n.Tr "packages.npm.dependencies.optional")}}
+				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.Dependencies "title" (.i18n.Tr "packages.npm.dependencies")}}
+				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.DevelopmentDependencies "title" (.i18n.Tr "packages.npm.dependencies.development")}}
+				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.PeerDependencies "title" (.i18n.Tr "packages.npm.dependencies.peer")}}
+				{{template "package/content/npm_dependencies" dict "root" $ "dependencies" .PackageDescriptor.Metadata.OptionalDependencies "title" (.i18n.Tr "packages.npm.dependencies.optional")}}
 			</div>
 		</div>
 	{{end}}

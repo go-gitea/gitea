@@ -31,7 +31,7 @@ func addPackageTables(x *xorm.Engine) error {
 		CreatorID     int64
 		Version       string
 		LowerVersion  string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
+		CreatedUnix   timeutil.TimeStamp `xorm:"created INDEX NOT NULL"`
 		MetadataJSON  string             `xorm:"TEXT metadata_json"`
 		DownloadCount int64
 	}

@@ -40,7 +40,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [generic, nuget, npm, maven, pypi]
+	//   enum: [composer, generic, nuget, npm, maven, pypi]
 	// - name: q
 	//   in: query
 	//   description: name filter

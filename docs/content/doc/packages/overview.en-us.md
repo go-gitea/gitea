@@ -19,6 +19,7 @@ The Package Registry can be used as a public or private registry for common pack
 These package types are supported:
 
 - [Generic]({{< relref "doc/packages/generic.en-us.md" >}})
+- [Composer]({{< relref "doc/packages/composer.en-us.md" >}})
 - [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}})
 - [npm]({{< relref "doc/packages/npm.en-us.md" >}})
 - [Maven]({{< relref "doc/packages/maven.en-us.md" >}})

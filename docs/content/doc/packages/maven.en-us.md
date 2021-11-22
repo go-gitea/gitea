@@ -27,7 +27,7 @@ The following examples use `Maven`.
 
 ## Configuring the package registry
 
-To register the project’s package registry you first need to add your access token to the [`settings.xml`](https://maven.apache.org/settings.html) file:
+To register the package registry you first need to add your access token to the [`settings.xml`](https://maven.apache.org/settings.html) file:
 
 ```xml
 <settings>

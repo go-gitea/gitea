@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/maven"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/packages/nuget"
@@ -97,6 +98,8 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 
 	var metadata interface{}
 	switch p.Type {
+	case TypeComposer:
+		metadata = &composer.Metadata{}
 	case TypeNuGet:
 		metadata = &nuget.Metadata{}
 	case TypeNpm:

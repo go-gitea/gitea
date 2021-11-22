@@ -45,7 +45,7 @@ Example request using HTTP Basic authentication:
 ```shell
 curl --user your_username:your_password_or_token \
      --upload-file path/to/file.bin \
-     "https://gitea.example.com/api/v1/packages/testuser/generic/test_package/1.0.0/file.bin"
+     https://gitea.example.com/api/v1/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
 
 The server reponds with the following HTTP Status codes.
@@ -76,5 +76,5 @@ Example request using HTTP Basic authentication:
 
 ```shell
 curl --user your_username:your_token_or_password \
-     "https://gitea.example.com/api/v1/packages/testuser/generic/test_package/1.0.0/file.bin"
+     https://gitea.example.com/api/v1/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
