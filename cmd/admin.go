@@ -589,7 +589,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 	if c.Bool("raw") {
 		fmt.Printf("%s\n", t.Token)
 	} else {
-		fmt.Printf("Access token was successfully created... %s\n", t.Token)
+		fmt.Printf("Access token was successfully created: %s\n", t.Token)
 	}
 
 	return nil
