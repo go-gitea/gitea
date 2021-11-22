@@ -118,7 +118,6 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 }
 
 // UploadAvatar saves custom avatar for user.
-// FIXME: split uploads to different subdirs in case we have massive users.
 func UploadAvatar(u *models.User, data []byte) error {
 	m, err := avatar.Prepare(data)
 	if err != nil {
