@@ -27,7 +27,7 @@ So it's very important to manage these packages. Please take the below guideline
 
 ## Package Design Guideline
 
-### Packages list
+### Packages List
 
 To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The gitea backend is divided into the following parts:
 
@@ -45,7 +45,7 @@ To maintain understandable code and avoid circular dependencies it is important 
 - `templates`: Golang templates for generating the html output.
 - `vendor`: External code that Gitea depends on.
 
-### Package dependencies
+### Package Dependencies
 
 Since Golang don't support import cycles, we have to decide the package dependencies carefully. There are some levels between those packages. Below is the ideal package dependencies direction.
 
@@ -91,9 +91,20 @@ func UpdateIssue(ctx context.Context, repoID int64) error {
 }
 ```
 
-### Future tasks
+### Package Name
 
-Currently, we are creating some refactors to do the two things:
+For the top level package, use a plural as package name, i.e. `services`, `models`, for sub packages, use singular, 
+i.e. `servcies/user`, `models/repository`.
 
-- There are too many files in `models`, so we are moving some of them into a sub package `models/xxx`
+### Import Alias
+
+Since there are many levels because of package levels, sometimes you will encouter `modules/user`, `models/user`, `services/user`, so we recommand to use import alias. To differ from package variables, use **snake_case** as import package alias.
+i.e. `import user_service "code.gitea.io/gitea/services/user"`
+
+### Future Tasks
+
+Currently, we are creating some refactors to do the following things:
+
+- Correct that codes which doesn't follow the rules.
+- There are too many files in `models`, so we are moving some of them into a sub package `models/xxx`.
 - Some `modules` sub packages should be moved to `services` because they depends on `models`.
