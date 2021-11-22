@@ -157,4 +157,49 @@ func TestPackageMaven(t *testing.T) {
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
 	})
+
+	t.Run("DownloadChecksums", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", fmt.Sprintf("%s/1.2.3/%s", root, filename))
+		req = AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusNotFound)
+
+		for key, checksum := range map[string]string{
+			"md5":    "098f6bcd4621d373cade4e832627b4f6",
+			"sha1":   "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3",
+			"sha256": "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+			"sha512": "ee26b0dd4af7e749aa1a8ee3c10ae9923f618980772e473f8819a5d4940e0db27ac185f8a0e1d5f84f88bc887fd67b143732c304cc5fa9ad8e6f57f50028a8ff",
+		} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.%s", root, packageVersion, filename, key))
+			req = AddBasicAuthHeader(req, user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			assert.Equal(t, checksum, resp.Body.String())
+		}
+	})
+
+	t.Run("DownloadMetadata", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequest(t, "GET", root+"/maven-metadata.xml")
+		req = AddBasicAuthHeader(req, user.Name)
+		resp := MakeRequest(t, req, http.StatusOK)
+
+		expectedMetadata := `<?xml version="1.0" encoding="UTF-8"?>` + "\n<metadata><groupId>com.gitea</groupId><artifactId>test-project</artifactId><versioning><release>1.0.1</release><latest>1.0.1</latest><versions><version>1.0.1</version></versions></versioning></metadata>"
+		assert.Equal(t, expectedMetadata, resp.Body.String())
+
+		for key, checksum := range map[string]string{
+			"md5":    "6bee0cebaaa686d658adf3e7e16371a0",
+			"sha1":   "8696abce499fe84d9ea93e5492abe7147e195b6c",
+			"sha256": "3f48322f81c4b2c3bb8649ae1e5c9801476162b520e1c2734ac06b2c06143208",
+			"sha512": "cb075aa2e2ef1a83cdc14dd1e08c505b72d633399b39e73a21f00f0deecb39a3e2c79f157c1163f8a3854828750706e0dec3a0f5e4778e91f8ec2cf351a855f2",
+		} {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/maven-metadata.xml.%s", root, key))
+			req = AddBasicAuthHeader(req, user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			assert.Equal(t, checksum, resp.Body.String())
+		}
+	})
 }

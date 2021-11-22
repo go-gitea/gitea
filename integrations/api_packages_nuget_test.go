@@ -43,6 +43,9 @@ func TestPackageNuGet(t *testing.T) {
 		<version>` + packageVersion + `</version>
 		<authors>` + packageAuthors + `</authors>
 		<description>` + packageDescription + `</description>
+		<group targetFramework=".NETStandard2.0">
+			<dependency id="Microsoft.CSharp" version="4.5.0" />
+		</group>
 	  </metadata>
 	</package>`))
 	archive.Close()

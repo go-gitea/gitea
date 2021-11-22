@@ -208,6 +208,8 @@ func TestPackageNpm(t *testing.T) {
 			MakeRequest(t, req, status)
 		}
 
+		test(t, http.StatusBadRequest, "v1.0")
+		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
 	})

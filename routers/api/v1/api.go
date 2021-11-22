@@ -82,6 +82,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
 	"code.gitea.io/gitea/routers/api/v1/org"
+	"code.gitea.io/gitea/routers/api/v1/packages"
 	"code.gitea.io/gitea/routers/api/v1/packages/composer"
 	"code.gitea.io/gitea/routers/api/v1/packages/generic"
 	"code.gitea.io/gitea/routers/api/v1/packages/maven"
@@ -1096,11 +1097,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, reqToken(), reqPackageAccess(models.AccessModeWrite))
 			})
 			m.Group("/{versionid}", func() {
-				m.Get("", repo.GetPackage)
-				m.Delete("", reqPackageAccess(models.AccessModeWrite), repo.DeletePackage)
-				m.Get("/files", repo.ListPackageFiles)
+				m.Get("", packages.GetPackage)
+				m.Delete("", reqPackageAccess(models.AccessModeWrite), packages.DeletePackage)
+				m.Get("/files", packages.ListPackageFiles)
 			})
-			m.Get("/", repo.ListPackages)
+			m.Get("/", packages.ListPackages)
 		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(models.AccessModeRead))
 
 		// Organizations
