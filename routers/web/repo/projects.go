@@ -628,6 +628,11 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || issue.IsPoster(ctx.User.ID)) {
+		ctx.NotFound("", nil)
+		return
+	}
+
 	if err := models.MoveIssueAcrossProjectBoards(issue, board); err != nil {
 		ctx.ServerError("MoveIssueAcrossProjectBoards", err)
 		return

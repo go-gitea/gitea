@@ -25,16 +25,12 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
-		var userID int64
-		if ctx.IsSigned {
-			userID = ctx.User.ID
-		}
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || issue.IsPoster(ctx.User.ID)) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
-			UserID: userID,
+			UserID: ctx.User.ID,
 			ID:     issue.ID,
 			RepoID: ctx.Repo.Repository.ID,
-			Index:  ctx.ParamsInt64(":index"),
+			Index:  ctx.ParamsInt64("index"),
 		})
 		return
 	}
@@ -60,6 +56,36 @@ func AddDependency(ctx *context.Context) {
 	if err != nil {
 		ctx.Flash.Error(ctx.Tr("repo.issues.dependency.add_error_dep_issue_not_exist"))
 		return
+	}
+
+	if issue.RepoID == dep.RepoID {
+		if dep.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || dep.IsPoster(ctx.User.ID)) {
+			ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+				UserID: ctx.User.ID,
+				ID:     dep.ID,
+				RepoID: dep.Repo.ID,
+				Index:  ctx.ParamsInt64("index"),
+			})
+			return
+		}
+	} else {
+		if err := dep.LoadRepo(); err != nil {
+			ctx.ServerError("LoadRepo", err)
+		}
+
+		perm, err := models.GetUserRepoPermission(dep.Repo, ctx.User)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+		}
+
+		if dep.IsPrivate && !(perm.CanReadPrivateIssues() || dep.IsPoster(ctx.User.ID)) {
+			ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+				UserID: ctx.User.ID,
+				ID:     dep.ID,
+				RepoID: dep.Repo.ID,
+			})
+			return
+		}
 	}
 
 	// Check if both issues are in the same repo if cross repository dependencies is not enabled
@@ -149,6 +175,36 @@ func RemoveDependency(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return
+	}
+
+	if issue.RepoID == dep.RepoID {
+		if dep.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || dep.IsPoster(ctx.User.ID)) {
+			ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+				UserID: ctx.User.ID,
+				ID:     dep.ID,
+				RepoID: dep.Repo.ID,
+				Index:  ctx.ParamsInt64("index"),
+			})
+			return
+		}
+	} else {
+		if err := dep.LoadRepo(); err != nil {
+			ctx.ServerError("LoadRepo", err)
+		}
+
+		perm, err := models.GetUserRepoPermission(dep.Repo, ctx.User)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+		}
+
+		if dep.IsPrivate && !(perm.CanReadPrivateIssues() || dep.IsPoster(ctx.User.ID)) {
+			ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+				UserID: ctx.User.ID,
+				ID:     dep.ID,
+				RepoID: dep.Repo.ID,
+			})
+			return
+		}
 	}
 
 	if err = models.RemoveIssueDependency(ctx.User, issue, dep, depType); err != nil {

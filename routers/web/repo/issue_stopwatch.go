@@ -93,6 +93,16 @@ func GetActiveStopwatch(c *context.Context) {
 		return
 	}
 
+	perm, err := models.GetUserRepoPermission(issue.Repo, c.User)
+	if err != nil {
+		c.ServerError("GetUserRepoPermission", err)
+		return
+	}
+
+	if issue.IsPrivate && !(perm.CanReadPrivateIssues() || issue.IsPoster(c.User.ID)) {
+		return
+	}
+
 	c.Data["ActiveStopwatch"] = StopwatchTmplInfo{
 		issue.Link(),
 		issue.Repo.FullName(),
