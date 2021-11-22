@@ -117,6 +117,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsPublicMember"] = func(uid int64) bool {
+		is, _ := models.IsPublicMembership(ctx.Org.Organization.ID, uid)
+		return is
+	}
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
 
 	ctx.Org.OrgLink = org.AsUser().OrganisationLink()

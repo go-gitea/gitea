@@ -141,7 +141,6 @@ func Home(ctx *context.Context) {
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
-
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)

@@ -358,6 +358,8 @@ var migrations = []Migration{
 	// v201 -> v202
 	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
 	// v202 -> v203
+	NewMigration("Create key/value table for user settings", createUserSettingsTable),
+	// v203 -> v204
 	NewMigration("Add package tables", addPackageTables),
 }
 

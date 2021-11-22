@@ -18,9 +18,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
-	userSetting "code.gitea.io/gitea/routers/web/user/setting"
+	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/org"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -136,7 +137,7 @@ func SettingsPost(ctx *context.Context) {
 func SettingsAvatar(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AvatarForm)
 	form.Source = forms.AvatarLocal
-	if err := userSetting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization.AsUser()); err != nil {
+	if err := user_setting.UpdateAvatarSetting(ctx, form, ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("org.settings.update_avatar_success"))
@@ -147,7 +148,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar response for delete avatar on settings page
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := ctx.Org.Organization.AsUser().DeleteAvatar(); err != nil {
+	if err := user_service.DeleteAvatar(ctx.Org.Organization.AsUser()); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

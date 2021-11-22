@@ -23,10 +23,10 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
-	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
-	"code.gitea.io/gitea/services/user"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -309,7 +309,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if len(form.UserName) != 0 && u.Name != form.UserName {
-		if err := router_user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/admin/users")
 			return
 		}
@@ -378,7 +378,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user.DeleteUser(u); err != nil {
+	if err = user_service.DeleteUser(u); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
@@ -416,7 +416,7 @@ func AvatarPost(ctx *context.Context) {
 	}
 
 	form := web.GetForm(ctx).(*forms.AvatarForm)
-	if err := router_user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
+	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
 		ctx.Flash.Error(err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
@@ -432,7 +432,7 @@ func DeleteAvatar(ctx *context.Context) {
 		return
 	}
 
-	if err := u.DeleteAvatar(); err != nil {
+	if err := user_service.DeleteAvatar(u); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
