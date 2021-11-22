@@ -217,7 +217,6 @@ var (
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
-		HiddenIssueEvents     []int
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -265,7 +264,6 @@ var (
 		Reactions:           []string{`+1`, `-1`, `laugh`, `hooray`, `confused`, `heart`, `rocket`, `eyes`},
 		CustomEmojis:        []string{`git`, `gitea`, `codeberg`, `gitlab`, `github`, `gogs`},
 		CustomEmojisMap:     map[string]string{"git": ":git:", "gitea": ":gitea:", "codeberg": ":codeberg:", "gitlab": ":gitlab:", "github": ":github:", "gogs": ":gogs:"},
-		HiddenIssueEvents:   []int{},
 		Notification: struct {
 			MinTimeout            time.Duration
 			TimeoutStep           time.Duration

@@ -6,6 +6,7 @@
 package setting
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -351,6 +352,22 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
+	hiddenEvents := &forms.UpdateCommentTypeForm{}
+	eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
+	if err != nil {
+		ctx.ServerError("GetSettings", err)
+		return
+	}
+	if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
+		err = json.Unmarshal([]byte(eventsRaw["hidden_comment_types"].SettingValue), &hiddenEvents)
+		if err != nil {
+			ctx.ServerError("json.Unmarshal", err)
+			return
+		}
+	}
+	
+	ctx.Data["HiddenEvents"] = hiddenEvents
+
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
 
@@ -407,6 +424,25 @@ func UpdateUserLang(ctx *context.Context) {
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(i18n.Tr(ctx.User.Language, "settings.update_language_success"))
+	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
+
+}
+
+// UpdateUserShownComments update a user's shown comment types
+func UpdateUserShownComments(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.UpdateCommentTypeForm)
+	ctx.Data["Title"] = ctx.Tr("settings")
+	ctx.Data["PageIsSettingsAppearance"] = true
+
+	json, err := json.Marshal(form)
+	if err != nil {
+		ctx.ServerError("UpdateUserSetting", err)
+		return
+	}
+	user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
+
+	log.Trace("User settings updated: %s", ctx.User.Name)
+	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 
 }

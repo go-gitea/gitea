@@ -7,6 +7,7 @@ package repo
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -1636,12 +1638,26 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
-	ctx.Data["IsEventShown"] = func(commentType models.CommentType) bool {
-		hiddenEvents := make([]int64, len(setting.UI.HiddenIssueEvents))
-		for i, event := range setting.UI.HiddenIssueEvents {
-			hiddenEvents[i] = int64(event)
+	var hiddenEvents *forms.UpdateCommentTypeForm
+	if ctx.IsSigned {
+		eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
+		if err != nil {
+			ctx.ServerError("GetSettings", err)
+			return
 		}
-		return !util.IsInt64InSlice(int64(commentType), hiddenEvents)
+		if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
+			err = json.Unmarshal([]byte(eventsRaw["hidden_comment_types"].SettingValue), &hiddenEvents)
+			if err != nil {
+				ctx.ServerError("json.Unmarshal", err)
+				return
+			}
+		}
+	}
+	ctx.Data["IsEventShown"] = func(commentType models.CommentType) bool {
+		if !ctx.IsSigned || hiddenEvents == nil {
+			return true
+		}
+		return !hiddenEvents.IsHidden(int(commentType))
 	}
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 	ctx.HTML(http.StatusOK, tplIssueView)
