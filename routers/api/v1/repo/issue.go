@@ -555,7 +555,7 @@ func GetIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
 		ctx.NotFound()
 		return
 	}
@@ -731,7 +731,7 @@ func EditIssue(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
 		ctx.NotFound()
 		return
 	}
@@ -903,7 +903,7 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && (!ctx.IsSigned || !issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
 		ctx.NotFound()
 		return
 	}
