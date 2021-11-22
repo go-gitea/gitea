@@ -933,9 +933,10 @@ func DeleteReview(r *Review) error {
 	}
 
 	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  r.IssueID,
-		ReviewID: r.ID,
+		Type:                 CommentTypeCode,
+		IssueID:              r.IssueID,
+		ReviewID:             r.ID,
+		DisablePrivateIssues: true,
 	}
 
 	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
@@ -943,9 +944,10 @@ func DeleteReview(r *Review) error {
 	}
 
 	opts = FindCommentsOptions{
-		Type:     CommentTypeReview,
-		IssueID:  r.IssueID,
-		ReviewID: r.ID,
+		Type:                 CommentTypeReview,
+		IssueID:              r.IssueID,
+		ReviewID:             r.ID,
+		DisablePrivateIssues: true,
 	}
 
 	if _, err := sess.Where(opts.toConds()).Delete(new(Comment)); err != nil {
@@ -990,7 +992,10 @@ func (r *Review) HTMLURL() string {
 		ReviewID: r.ID,
 	}
 	comment := new(Comment)
-	has, err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).Get(comment)
+	has, err := db.GetEngine(db.DefaultContext).
+		Where(opts.toConds()).
+		Join("INNER", "issue", "issue.id = comment.issue_id").
+		Get(comment)
 	if err != nil || !has {
 		return ""
 	}

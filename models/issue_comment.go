@@ -1003,16 +1003,17 @@ func getCommentByID(e db.Engine, id int64) (*Comment, error) {
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	db.ListOptions
-	RepoID        int64
-	IssueID       int64
-	ReviewID      int64
-	UserID        int64
-	Since         int64
-	Before        int64
-	Line          int64
-	TreePath      string
-	Type          CommentType
-	CanSeePrivate bool
+	RepoID               int64
+	IssueID              int64
+	ReviewID             int64
+	UserID               int64
+	Since                int64
+	Before               int64
+	Line                 int64
+	TreePath             string
+	Type                 CommentType
+	CanSeePrivate        bool
+	DisablePrivateIssues bool
 }
 
 func (opts *FindCommentsOptions) toConds() builder.Cond {
@@ -1041,7 +1042,7 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
 	}
-	if !opts.CanSeePrivate {
+	if !opts.CanSeePrivate && !opts.DisablePrivateIssues {
 		if opts.UserID != 0 {
 			// Allow to see comments on private issues
 			cond = cond.And(
