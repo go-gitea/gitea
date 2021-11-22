@@ -1,3 +1,4 @@
+/* eslint-disable github/no-then */
 const {appSubUrl, csrfToken} = window.config;
 
 export function initUserAuthU2fAuth() {
@@ -77,11 +78,11 @@ function u2fError(errorType) {
   };
   u2fErrors[errorType].removeClass('hide');
 
-  Object.keys(u2fErrors).forEach((type) => {
+  for (const type of Object.keys(u2fErrors)) {
     if (type !== `${errorType}`) {
       u2fErrors[type].addClass('hide');
     }
-  });
+  }
   $('#u2f-error').modal('show');
 }
 
