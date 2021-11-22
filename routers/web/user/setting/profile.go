@@ -377,7 +377,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+	if err := models.UpdateUserTheme(ctx.User, form.Theme); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return

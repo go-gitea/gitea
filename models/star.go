@@ -74,7 +74,7 @@ func isStaring(e db.Engine, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func (repo *Repository) GetStargazers(opts db.ListOptions) ([]*User, error) {
+func GetStargazers(repo *Repository, opts db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
@@ -86,49 +86,4 @@ func (repo *Repository) GetStargazers(opts db.ListOptions) ([]*User, error) {
 
 	users := make([]*User, 0, 8)
 	return users, sess.Find(&users)
-}
-
-// GetStarredRepos returns the repos the user starred.
-func (u *User) GetStarredRepos(private bool, page, pageSize int, orderBy string) (repos RepositoryList, err error) {
-	if len(orderBy) == 0 {
-		orderBy = "updated_unix DESC"
-	}
-	sess := db.GetEngine(db.DefaultContext).
-		Join("INNER", "star", "star.repo_id = repository.id").
-		Where("star.uid = ?", u.ID).
-		OrderBy(orderBy)
-
-	if !private {
-		sess = sess.And("is_private = ?", false)
-	}
-
-	if page <= 0 {
-		page = 1
-	}
-	sess.Limit(pageSize, (page-1)*pageSize)
-
-	repos = make([]*Repository, 0, pageSize)
-
-	if err = sess.Find(&repos); err != nil {
-		return
-	}
-
-	if err = repos.loadAttributes(db.GetEngine(db.DefaultContext)); err != nil {
-		return
-	}
-
-	return
-}
-
-// GetStarredRepoCount returns the numbers of repo the user starred.
-func (u *User) GetStarredRepoCount(private bool) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Join("INNER", "star", "star.repo_id = repository.id").
-		Where("star.uid = ?", u.ID)
-
-	if !private {
-		sess = sess.And("is_private = ?", false)
-	}
-
-	return sess.Count(&Repository{})
 }

@@ -217,14 +217,14 @@ func (u *User) SetLastLogin() {
 	u.LastLoginUnix = timeutil.TimeStampNow()
 }
 
-// UpdateDiffViewStyle updates the users diff view style
-func (u *User) UpdateDiffViewStyle(style string) error {
+// UpdateUserDiffViewStyle updates the users diff view style
+func UpdateUserDiffViewStyle(u *User, style string) error {
 	u.DiffViewStyle = style
 	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
 }
 
-// UpdateTheme updates a users' theme irrespective of the site wide theme
-func (u *User) UpdateTheme(themeName string) error {
+// UpdateUserTheme updates a users' theme irrespective of the site wide theme
+func UpdateUserTheme(u *User, themeName string) error {
 	u.Theme = themeName
 	return UpdateUserCols(db.DefaultContext, u, "theme")
 }
