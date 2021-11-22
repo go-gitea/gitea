@@ -26,7 +26,7 @@ To work with the PyPI package registry, you need to use the tools [pip](https://
 
 ## Configuring the package registry
 
-To register the project’s package registry you need to edit your local `~/.pypirc` file. Add
+To register the package registry you need to edit your local `~/.pypirc` file. Add
 
 ```ini
 [distutils]

@@ -26,7 +26,7 @@ To work with the RubyGems package registry, you need to use the [gem](https://gu
 
 ## Configuring the package registry
 
-To register the project’s package registry edit the `~/.gem/credentials` file and add:
+To register the package registry edit the `~/.gem/credentials` file and add:
 
 ```ini
 ---
@@ -40,7 +40,7 @@ https://gitea.example.com/api/v1/packages/{owner}/rubygems: Bearer {token}
 
 For example:
 
-```ini
+```
 ---
 https://gitea.example.com/api/v1/packages/testuser/rubygems: Bearer 3bd626f84b01cd26b873931eace1e430a5773cc4
 ```

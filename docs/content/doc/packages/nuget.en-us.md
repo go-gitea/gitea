@@ -22,13 +22,13 @@ Publish [NuGet](https://www.nuget.org/) packages for your user or organization.
 
 ## Requirements
 
-To work with the NuGet package registry, you can use command-line interface (CLI) tools as well as NuGet features in various IDEs like Visual Studio.
+To work with the NuGet package registry, you can use command-line interface tools as well as NuGet features in various IDEs like Visual Studio.
 More informations about NuGet clients can be found in [the official documentation](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools).
 The following examples use the `dotnet nuget` tool.
 
 ## Configuring the package registry
 
-To register the project’s package registry you need to configure a new NuGet feed source:
+To register the package registry you need to configure a new NuGet feed source:
 
 ```shell
 dotnet nuget add source --name {source_name} --username {username} --password {password} https://gitea.example.com/api/v1/packages/{owner}/nuget/index.json
