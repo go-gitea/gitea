@@ -346,6 +346,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["Boards"] = boards

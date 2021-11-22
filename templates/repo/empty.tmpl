@@ -51,7 +51,7 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								const cloneUrls = document.getElementsByClassName('clone-url');
 								if (cloneUrls) {
 									for (let i = 0; i < cloneUrls.length; i++) {
-										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).dataset.link;
+										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
 									}
 								}
 							</script>

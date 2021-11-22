@@ -10,14 +10,16 @@ import (
 	"xorm.io/xorm"
 )
 
-func addPrivateIssuesToRepo(x *xorm.Engine) error {
-	type Repository struct {
-		NumPrivateIssues       int
-		NumClosedPrivateIssues int
+func createUserSettingsTable(x *xorm.Engine) error {
+	type UserSetting struct {
+		ID           int64  `xorm:"pk autoincr"`
+		UserID       int64  `xorm:"index unique(key_userid)"`              // to load all of someone's settings
+		SettingKey   string `xorm:"varchar(255) index unique(key_userid)"` // ensure key is always lowercase
+		SettingValue string `xorm:"text"`
 	}
-
-	if err := x.Sync2(new(Repository)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	if err := x.Sync2(new(UserSetting)); err != nil {
+		return fmt.Errorf("sync2: %v", err)
 	}
 	return nil
+
 }
