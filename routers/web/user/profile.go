@@ -13,11 +13,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 	"code.gitea.io/gitea/routers/web/org"
 )
 
@@ -26,7 +28,7 @@ func GetUserByName(ctx *context.Context, name string) *models.User {
 	user, err := models.GetUserByName(name)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(name); err == nil {
+			if redirectUserID, err := user_model.LookupUserRedirect(name); err == nil {
 				context.RedirectToUser(ctx, name, redirectUserID)
 			} else {
 				ctx.NotFound("GetUserByName", err)
@@ -71,18 +73,41 @@ func Profile(ctx *context.Context) {
 		uname = strings.TrimSuffix(uname, ".gpg")
 	}
 
+	showFeedType := ""
+	if strings.HasSuffix(uname, ".rss") {
+		showFeedType = "rss"
+		uname = strings.TrimSuffix(uname, ".rss")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/rss+xml") {
+		showFeedType = "rss"
+	}
+	if strings.HasSuffix(uname, ".atom") {
+		showFeedType = "atom"
+		uname = strings.TrimSuffix(uname, ".atom")
+	} else if strings.Contains(ctx.Req.Header.Get("Accept"), "application/atom+xml") {
+		showFeedType = "atom"
+	}
+
 	ctxUser := GetUserByName(ctx, uname)
 	if ctx.Written() {
 		return
 	}
 
 	if ctxUser.IsOrganization() {
+		/*
+			// TODO: enable after rss.RetrieveFeeds() do handle org correctly
+			// Show Org RSS feed
+			if len(showFeedType) != 0 {
+				rss.ShowUserFeed(ctx, ctxUser, showFeedType)
+				return
+			}
+		*/
+
 		org.Home(ctx)
 		return
 	}
 
 	// check view permissions
-	if !ctxUser.IsVisibleToUser(ctx.User) {
+	if !models.IsUserVisibleToViewer(ctxUser, ctx.User) {
 		ctx.NotFound("user", fmt.Errorf(uname))
 		return
 	}
@@ -99,17 +124,29 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	// Show User RSS feed
+	if len(showFeedType) != 0 {
+		feed.ShowUserFeed(ctx, ctxUser, showFeedType)
+		return
+	}
+
 	// Show OpenID URIs
-	openIDs, err := models.GetUserOpenIDs(ctxUser.ID)
+	openIDs, err := user_model.GetUserOpenIDs(ctxUser.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
+	}
+
+	var isFollowing bool
+	if ctx.User != nil && ctxUser != nil {
+		isFollowing = user_model.IsFollowing(ctx.User.ID, ctxUser.ID)
 	}
 
 	ctx.Data["Title"] = ctxUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
+	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
@@ -136,9 +173,12 @@ func Profile(ctx *context.Context) {
 
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
-	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
+	orgs, err := models.FindOrgs(models.FindOrgOptions{
+		UserID:         ctxUser.ID,
+		IncludePrivate: showPrivate,
+	})
 	if err != nil {
-		ctx.ServerError("GetOrgsByUserIDDesc", err)
+		ctx.ServerError("FindOrgs", err)
 		return
 	}
 
@@ -193,31 +233,31 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
-		items, err := ctxUser.GetFollowers(db.ListOptions{
+		items, err := models.GetUserFollowers(ctxUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
 		if err != nil {
-			ctx.ServerError("GetFollowers", err)
+			ctx.ServerError("GetUserFollowers", err)
 			return
 		}
 		ctx.Data["Cards"] = items
 
 		total = ctxUser.NumFollowers
 	case "following":
-		items, err := ctxUser.GetFollowing(db.ListOptions{
+		items, err := models.GetUserFollowing(ctxUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
 		if err != nil {
-			ctx.ServerError("GetFollowing", err)
+			ctx.ServerError("GetUserFollowing", err)
 			return
 		}
 		ctx.Data["Cards"] = items
 
 		total = ctxUser.NumFollowing
 	case "activity":
-		retrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
@@ -324,15 +364,15 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "follow":
-		err = models.FollowUser(ctx.User.ID, u.ID)
+		err = user_model.FollowUser(ctx.User.ID, u.ID)
 	case "unfollow":
-		err = models.UnfollowUser(ctx.User.ID, u.ID)
+		err = user_model.UnfollowUser(ctx.User.ID, u.ID)
 	}
 
 	if err != nil {
 		ctx.ServerError(fmt.Sprintf("Action (%s)", ctx.Params(":action")), err)
 		return
 	}
-
+	// FIXME: We should check this URL and make sure that it's a valid Gitea URL
 	ctx.RedirectToFirst(ctx.FormString("redirect_to"), u.HomeLink())
 }

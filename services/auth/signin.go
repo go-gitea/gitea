@@ -10,10 +10,10 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
-	// Register the sources
-	_ "code.gitea.io/gitea/services/auth/source/db"
+	_ "code.gitea.io/gitea/services/auth/source/db" // register the sources (and below)
 	_ "code.gitea.io/gitea/services/auth/source/ldap"
 	_ "code.gitea.io/gitea/services/auth/source/oauth2"
 	_ "code.gitea.io/gitea/services/auth/source/pam"
@@ -32,7 +32,7 @@ func UserSignIn(username, password string) (*models.User, *login.Source, error) 
 			return nil, nil, err
 		}
 		if cnt > 1 {
-			return nil, nil, models.ErrEmailAlreadyUsed{
+			return nil, nil, user_model.ErrEmailAlreadyUsed{
 				Email: user.Email,
 			}
 		}

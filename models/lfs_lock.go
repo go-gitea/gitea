@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 
 	"xorm.io/xorm"
@@ -104,18 +105,16 @@ func GetLFSLockByID(id int64) (*LFSLock, error) {
 
 // GetLFSLockByRepoID returns a list of locks of repository.
 func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
+	e := db.GetEngine(db.DefaultContext)
 	if page >= 0 && pageSize > 0 {
 		start := 0
 		if page > 0 {
 			start = (page - 1) * pageSize
 		}
-		sess.Limit(pageSize, start)
+		e.Limit(pageSize, start)
 	}
 	lfsLocks := make([]*LFSLock, 0, pageSize)
-	return lfsLocks, sess.Find(&lfsLocks, &LFSLock{RepoID: repoID})
+	return lfsLocks, e.Find(&lfsLocks, &LFSLock{RepoID: repoID})
 }
 
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
@@ -152,7 +151,7 @@ func CheckLFSAccessForRepo(u *User, repo *Repository, mode AccessMode) error {
 	if err != nil {
 		return err
 	}
-	if !perm.CanAccess(mode, UnitTypeCode) {
+	if !perm.CanAccess(mode, unit.TypeCode) {
 		return ErrLFSUnauthorizedAction{repo.ID, u.DisplayName(), mode}
 	}
 	return nil

@@ -29,7 +29,7 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   }
 }
 
-export default async function initImageDiff() {
+export default function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
       width: image1 && image1.width || 0,

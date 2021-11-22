@@ -14,7 +14,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
 
@@ -122,7 +122,7 @@ func TestGetAttachment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			//Write empty file to be available for response
 			if tc.createFile {
-				_, err := storage.Attachments.Save(models.AttachmentRelativePath(tc.uuid), strings.NewReader("hello world"), -1)
+				_, err := storage.Attachments.Save(repo_model.AttachmentRelativePath(tc.uuid), strings.NewReader("hello world"), -1)
 				assert.NoError(t, err)
 			}
 			//Actual test

@@ -1,38 +1,78 @@
-const selector = '[data-clipboard-target], [data-clipboard-text]';
+const {copy_success, copy_error} = window.config.i18n;
 
-// TODO: replace these with toast-style notifications
 function onSuccess(btn) {
-  if (!btn.dataset.content) return;
+  btn.setAttribute('data-variation', 'inverted tiny');
   $(btn).popup('destroy');
-  btn.dataset.content = btn.dataset.success;
+  const oldContent = btn.getAttribute('data-content');
+  btn.setAttribute('data-content', copy_success);
   $(btn).popup('show');
-  btn.dataset.content = btn.dataset.original;
+  btn.setAttribute('data-content', oldContent || '');
 }
 function onError(btn) {
-  if (!btn.dataset.content) return;
+  btn.setAttribute('data-variation', 'inverted tiny');
+  const oldContent = btn.getAttribute('data-content');
   $(btn).popup('destroy');
-  btn.dataset.content = btn.dataset.error;
+  btn.setAttribute('data-content', copy_error);
   $(btn).popup('show');
-  btn.dataset.content = btn.dataset.original;
+  btn.setAttribute('data-content', oldContent || '');
 }
 
-export default async function initClipboard() {
-  for (const btn of document.querySelectorAll(selector) || []) {
-    btn.addEventListener('click', async () => {
-      let text;
-      if (btn.dataset.clipboardText) {
-        text = btn.dataset.clipboardText;
-      } else if (btn.dataset.clipboardTarget) {
-        text = document.querySelector(btn.dataset.clipboardTarget)?.value;
-      }
-      if (!text) return;
 
-      try {
-        await navigator.clipboard.writeText(text);
-        onSuccess(btn);
-      } catch {
-        onError(btn);
+// Fallback to use if navigator.clipboard doesn't exist. Achieved via creating
+// a temporary textarea element, selecting the text, and using document.execCommand
+function fallbackCopyToClipboard(text) {
+  if (!document.execCommand) return false;
+
+  const tempTextArea = document.createElement('textarea');
+  tempTextArea.value = text;
+
+  // avoid scrolling
+  tempTextArea.style.top = 0;
+  tempTextArea.style.left = 0;
+  tempTextArea.style.position = 'fixed';
+
+  document.body.appendChild(tempTextArea);
+
+  tempTextArea.select();
+
+  // if unsecure (not https), there is no navigator.clipboard, but we can still
+  // use document.execCommand to copy to clipboard
+  const success = document.execCommand('copy');
+
+  document.body.removeChild(tempTextArea);
+
+  return success;
+}
+
+// For all DOM elements with [data-clipboard-target] or [data-clipboard-text],
+// this copy-to-clipboard will work for them
+export default function initGlobalCopyToClipboardListener() {
+  document.addEventListener('click', (e) => {
+    let target = e.target;
+    // in case <button data-clipboard-text><svg></button>, so we just search
+    // up to 3 levels for performance
+    for (let i = 0; i < 3 && target; i++) {
+      const text = target.getAttribute('data-clipboard-text') || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
+
+      if (text) {
+        e.preventDefault();
+
+        (async() => {
+          try {
+            await navigator.clipboard.writeText(text);
+            onSuccess(target);
+          } catch {
+            if (fallbackCopyToClipboard(text)) {
+              onSuccess(target);
+            } else {
+              onError(target);
+            }
+          }
+        })();
+
+        break;
       }
-    });
-  }
+      target = target.parentElement;
+    }
+  });
 }

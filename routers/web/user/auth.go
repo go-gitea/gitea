@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -32,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
@@ -181,7 +183,7 @@ func SignInPost(ctx *context.Context) {
 		if models.IsErrUserNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("form.username_password_incorrect"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
-		} else if models.IsErrEmailAlreadyUsed(err) {
+		} else if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplSignIn, &form)
 			log.Info("Failed authentication attempt for %s from %s: %v", form.UserName, ctx.RemoteAddr(), err)
 		} else if models.IsErrUserProhibitLogin(err) {
@@ -211,38 +213,58 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// If this user is enrolled in 2FA, we can't sign the user in just yet.
+	// If this user is enrolled in 2FA TOTP, we can't sign the user in just yet.
 	// Instead, redirect them to the 2FA authentication page.
-	_, err = login.GetTwoFactorByUID(u.ID)
+	hasTOTPtwofa, err := login.HasTwoFactorByUID(u.ID)
 	if err != nil {
-		if login.IsErrTwoFactorNotEnrolled(err) {
-			handleSignIn(ctx, u, form.Remember)
-		} else {
-			ctx.ServerError("UserSignIn", err)
-		}
+		ctx.ServerError("UserSignIn", err)
 		return
 	}
 
-	// User needs to use 2FA, save data and redirect to 2FA page.
+	// Check if the user has u2f registration
+	hasU2Ftwofa, err := login.HasU2FRegistrationsByUID(u.ID)
+	if err != nil {
+		ctx.ServerError("UserSignIn", err)
+		return
+	}
+
+	if !hasTOTPtwofa && !hasU2Ftwofa {
+		// No two factor auth configured we can sign in the user
+		handleSignIn(ctx, u, form.Remember)
+		return
+	}
+
+	// User will need to use 2FA TOTP or U2F, save data
 	if err := ctx.Session.Set("twofaUid", u.ID); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaUid in session", err)
 		return
 	}
+
 	if err := ctx.Session.Set("twofaRemember", form.Remember); err != nil {
 		ctx.ServerError("UserSignIn: Unable to set twofaRemember in session", err)
 		return
 	}
+
+	if hasTOTPtwofa {
+		// User will need to use U2F, save data
+		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
+			ctx.ServerError("UserSignIn: Unable to set u2fEnrolled in session", err)
+			return
+		}
+	}
+
 	if err := ctx.Session.Release(); err != nil {
 		ctx.ServerError("UserSignIn: Unable to save session", err)
 		return
 	}
 
-	regs, err := login.GetU2FRegistrationsByUID(u.ID)
-	if err == nil && len(regs) > 0 {
+	// If we have U2F redirect there first
+	if hasU2Ftwofa {
 		ctx.Redirect(setting.AppSubURL + "/user/u2f")
 		return
 	}
 
+	// Fallback to 2FA
 	ctx.Redirect(setting.AppSubURL + "/user/two_factor")
 }
 
@@ -406,6 +428,11 @@ func U2F(ctx *context.Context) {
 		return
 	}
 
+	// See whether TOTP is also available.
+	if ctx.Session.Get("totpEnrolled") != nil {
+		ctx.Data["TOTPEnrolled"] = true
+	}
+
 	ctx.HTML(http.StatusOK, tplU2F)
 }
 
@@ -462,7 +489,7 @@ func U2FSign(ctx *context.Context) {
 	for _, reg := range regs {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal("parsing u2f registration: %v", err)
+			log.Error("parsing u2f registration: %v", err)
 			continue
 		}
 		newCounter, authErr := r.Authenticate(*signResp, *challenge, reg.Counter)
@@ -538,7 +565,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
-		if err := models.UpdateUserCols(u, "language"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
@@ -546,12 +573,16 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 
 	middleware.SetLocaleCookie(ctx.Resp, u.Language, 0)
 
+	if ctx.Locale.Language() != u.Language {
+		ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+	}
+
 	// Clear whatever CSRF has right now, force to generate a new one
 	middleware.DeleteCSRFCookie(ctx.Resp)
 
 	// Register last login
 	u.SetLastLogin()
-	if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, u, "last_login_unix"); err != nil {
 		ctx.ServerError("UpdateUserCols", err)
 		return setting.AppSubURL + "/"
 	}
@@ -706,7 +737,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = u.UploadAvatar(data)
+				_ = user_service.UploadAvatar(u, data)
 			}
 		}
 	}
@@ -743,7 +774,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.Us
 
 		// Register last login
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, u, "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -789,7 +820,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.Us
 func oAuth2UserLoginCallback(loginSource *login.Source, request *http.Request, response http.ResponseWriter) (*models.User, goth.User, error) {
 	gothUser, err := loginSource.Cfg.(*oauth2.Source).Callback(request, response)
 	if err != nil {
-		if err.Error() == "securecookie: the value is too long" {
+		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", loginSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", loginSource.Name, setting.OAuth2.MaxTokenLength)
 		}
@@ -1248,7 +1279,7 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form int
 // Optionally a template can be specified.
 func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *models.User, gothUser *goth.User, allowLink bool) (ok bool) {
 	if err := models.CreateUser(u); err != nil {
-		if allowLink && (models.IsErrUserAlreadyExist(err) || models.IsErrEmailAlreadyUsed(err)) {
+		if allowLink && (models.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *models.User
 				user = &models.User{Name: u.Name}
@@ -1282,10 +1313,10 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tpl, form)
-		case models.IsErrEmailAlreadyUsed(err):
+		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tpl, form)
-		case models.IsErrEmailInvalid(err):
+		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tpl, form)
 		case models.IsErrNameReserved(err):
@@ -1315,7 +1346,7 @@ func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1436,7 +1467,7 @@ func handleAccountActivation(ctx *context.Context, user *models.User) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, user, "is_active", "rands"); err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound("UpdateUserCols", err)
 		} else {
@@ -1474,7 +1505,7 @@ func ActivateEmail(ctx *context.Context) {
 
 	// Verify code.
 	if email := models.VerifyActiveEmailCode(code, emailStr); email != nil {
-		if err := email.Activate(); err != nil {
+		if err := models.ActivateEmail(email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
 		}
 
@@ -1696,7 +1727,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 	u.MustChangePassword = false
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -1772,7 +1803,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	u.MustChangePassword = false
 
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

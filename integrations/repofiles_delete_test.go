@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
@@ -67,7 +67,7 @@ func TestDeleteRepoFile(t *testing.T) {
 
 func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	// setup
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -106,7 +106,7 @@ func TestDeleteRepoFileWithoutBranchNames(t *testing.T) {
 
 func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	// setup
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)
@@ -136,7 +136,7 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 
 func TestDeleteRepoFileErrors(t *testing.T) {
 	// setup
-	db.PrepareTestEnv(t)
+	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
 	ctx.SetParams(":id", "1")
 	test.LoadRepo(t, ctx, 1)

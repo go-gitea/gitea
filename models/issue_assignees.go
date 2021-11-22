@@ -5,12 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
 // IssueAssignees saves all issue assignees
@@ -94,26 +93,26 @@ func clearAssigneeByUserID(sess db.Engine, userID int64) (err error) {
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return false, nil, err
 	}
+	defer committer.Close()
 
-	removed, comment, err = issue.toggleAssignee(sess, doer, assigneeID, false)
+	removed, comment, err = issue.toggleAssignee(ctx, doer, assigneeID, false)
 	if err != nil {
 		return false, nil, err
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return false, nil, err
 	}
 
 	return removed, comment, nil
 }
 
-func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
+func (issue *Issue) toggleAssignee(ctx context.Context, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
+	sess := db.GetEngine(ctx)
 	removed, err = toggleUserAssignee(sess, issue, assigneeID)
 	if err != nil {
 		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
@@ -133,7 +132,7 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = createComment(sess, opts)
+	comment, err = createComment(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
@@ -147,7 +146,7 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 }
 
 // toggles user assignee state in database
-func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
+func toggleUserAssignee(e db.Engine, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
 	assignee, err := getUserByID(e, assigneeID)
 	if err != nil {

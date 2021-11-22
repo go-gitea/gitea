@@ -25,10 +25,6 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 	if err != nil {
 		return nil, err
 	}
-	err = issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), doer.ID, issue.ID, comment.ID, timeutil.TimeStampNow(), comment.Content, true)
-	if err != nil {
-		return nil, err
-	}
 
 	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
 	if err != nil {
@@ -42,11 +38,26 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *models.Comment, doer *models.User, oldContent string) error {
+	var needsContentHistory = c.Content != oldContent &&
+		(c.Type == models.CommentTypeComment || c.Type == models.CommentTypeReview || c.Type == models.CommentTypeCode)
+	if needsContentHistory {
+		hasContentHistory, err := issues.HasIssueContentHistory(db.DefaultContext, c.IssueID, c.ID)
+		if err != nil {
+			return err
+		}
+		if !hasContentHistory {
+			if err = issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), c.PosterID, c.IssueID, c.ID,
+				c.CreatedUnix, oldContent, true); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := models.UpdateComment(c, doer); err != nil {
 		return err
 	}
 
-	if c.Type == models.CommentTypeComment && c.Content != oldContent {
+	if needsContentHistory {
 		err := issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 		if err != nil {
 			return err

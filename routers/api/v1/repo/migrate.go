@@ -17,8 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
+	"code.gitea.io/gitea/services/migrations"
 )
 
 // Migrate migrate remote git repository to gitea
@@ -86,7 +86,7 @@ func Migrate(ctx *context.APIContext) {
 
 		if repoOwner.IsOrganization() {
 			// Check ownership of organization.
-			isOwner, err := repoOwner.IsOwnedBy(ctx.User.ID)
+			isOwner, err := models.OrgFromUser(repoOwner).IsOwnedBy(ctx.User.ID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "IsOwnedBy", err)
 				return
@@ -253,10 +253,8 @@ func handleRemoteAddrError(ctx *context.APIContext, err error) {
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import local repositories.")
-			} else if len(addrErr.PrivateNet) == 0 {
-				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import from blocked hosts.")
 			} else {
-				ctx.Error(http.StatusUnprocessableEntity, "", "You are not allowed to import from private IPs.")
+				ctx.Error(http.StatusUnprocessableEntity, "", "You can not import from disallowed hosts.")
 			}
 		case addrErr.IsInvalidPath:
 			ctx.Error(http.StatusUnprocessableEntity, "", "Invalid local path, it does not exist or not a directory.")

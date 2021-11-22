@@ -5,7 +5,7 @@
 			<div class="ui five wide column">
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
-						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
+						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-position="bottom center">
 							{{avatar .Owner 290}}
 						</a>
 					{{else}}
@@ -54,7 +54,7 @@
 								{{range .Orgs}}
 									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
-										<a class="poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted">
+										<a class="tooltip" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center">
 											{{avatar .}}
 										</a>
 									</li>
@@ -65,7 +65,7 @@
 							{{end}}
 							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}
 							<li class="follow">
-								{{if .SignedUser.IsFollowing .Owner.ID}}
+								{{if $.IsFollowing}}
 									<form method="post" action="{{.Link}}/action/unfollow?redirect_to={{$.Link}}">
 										{{$.CsrfTokenHtml}}
 										<button type="submit" class="ui basic red button">{{svg "octicon-person"}} {{.i18n.Tr "user.unfollow"}}</button>

@@ -22,6 +22,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -99,11 +101,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	}
 
 	isWiki := false
-	var unitType = models.UnitTypeCode
+	var unitType = unit.TypeCode
 	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
-		unitType = models.UnitTypeWiki
+		unitType = unit.TypeWiki
 		wikiRepoName = reponame
 		reponame = reponame[:len(reponame)-5]
 	}
@@ -111,7 +113,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 	owner, err := models.GetUserByName(username)
 	if err != nil {
 		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+			if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
 				context.RedirectToUser(ctx, username, redirectUserID)
 			} else {
 				ctx.NotFound(fmt.Sprintf("User %s does not exist", username), nil)
@@ -270,7 +272,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if models.IsErrUnitTypeNotExist(err) {
 				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
 				return

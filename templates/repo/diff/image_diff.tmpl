@@ -1,20 +1,18 @@
-{{ $imagePathOld := printf "%s/%s" .root.BeforeRawPath (EscapePound .file.OldName)  }}
-{{ $imagePathNew := printf "%s/%s" .root.RawPath (EscapePound .file.Name)  }}
 {{if or .blobBase .blobHead}}
 <tr>
 	<td colspan="2">
-		<div class="image-diff" data-path-before="{{$imagePathOld}}" data-path-after="{{$imagePathNew}}">
+		<div class="image-diff" data-path-before="{{.root.BeforeRawPath}}/{{PathEscapeSegments .file.OldName}}" data-path-after="{{.root.RawPath}}/{{PathEscapeSegments .file.Name}}">
 			<div class="ui secondary pointing tabular top attached borderless menu stackable new-menu">
 				<div class="new-menu-inner">
-					<a class="item active" data-tab="diff-side-by-side">{{.root.i18n.Tr "repo.diff.image.side_by_side"}}</a>
+					<a class="item active" data-tab="diff-side-by-side-{{ .file.Index }}">{{.root.i18n.Tr "repo.diff.image.side_by_side"}}</a>
 					{{if and .blobBase .blobHead}}
-					<a class="item" data-tab="diff-swipe">{{.root.i18n.Tr "repo.diff.image.swipe"}}</a>
-					<a class="item" data-tab="diff-overlay">{{.root.i18n.Tr "repo.diff.image.overlay"}}</a>
+					<a class="item" data-tab="diff-swipe-{{ .file.Index }}">{{.root.i18n.Tr "repo.diff.image.swipe"}}</a>
+					<a class="item" data-tab="diff-overlay-{{ .file.Index }}">{{.root.i18n.Tr "repo.diff.image.overlay"}}</a>
 					{{end}}
 				</div>
 			</div>
 			<div class="hide">
-				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side">
+				<div class="ui bottom attached tab image-diff-container active" data-tab="diff-side-by-side-{{ .file.Index }}">
 					<div class="diff-side-by-side">
 						{{if .blobBase }}
 						<span class="side">
@@ -49,7 +47,7 @@
 					</div>
 				</div>
 				{{if and .blobBase .blobHead}}
-				<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe">
+				<div class="ui bottom attached tab image-diff-container" data-tab="diff-swipe-{{ .file.Index }}">
 					<div class="diff-swipe">
 						<div class="swipe-frame">
 							<span class="before-container"><img class="image-before" /></span>
@@ -63,7 +61,7 @@
 						</div>
 					</div>
 				</div>
-				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay">
+				<div class="ui bottom attached tab image-diff-container" data-tab="diff-overlay-{{ .file.Index }}">
 					<div class="diff-overlay">
 						<div class="overlay-frame">
 							<div class="ui centered">

@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Reaction represents a reactions on issues and comments.
@@ -102,7 +101,7 @@ func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, error) 
 	return reactions, e.Find(&reactions)
 }
 
-func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
+func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 	reaction := &Reaction{
 		Type:    opts.Type,
 		UserID:  opts.Doer.ID,
@@ -148,18 +147,18 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	reaction, err := createReaction(sess, opts)
+	reaction, err := createReaction(db.GetEngine(ctx), opts)
 	if err != nil {
 		return reaction, err
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return nil, err
 	}
 	return reaction, nil
@@ -203,17 +202,17 @@ func deleteReaction(e db.Engine, opts *ReactionOptions) error {
 
 // DeleteReaction deletes reaction for issue or comment.
 func DeleteReaction(opts *ReactionOptions) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteReaction(db.GetEngine(ctx), opts); err != nil {
 		return err
 	}
 
-	if err := deleteReaction(sess, opts); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteIssueReaction deletes a reaction on issue.
@@ -240,7 +239,7 @@ func (r *Reaction) LoadUser() (*User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := getUserByID(db.GetEngine(db.DefaultContext), r.UserID)
+	user, err := GetUserByIDCtx(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}
