@@ -40,20 +40,11 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerifica
 		}
 
 		for _, k := range keys {
-			canValidate := false
-			email := ""
 			if k.Verified && activated {
-				canValidate = true
-				email = c.Committer.Email
-			}
-
-			if !canValidate {
-				continue // Skip this key
-			}
-
-			commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, k, committer, committer, email)
-			if commitVerification != nil {
-				return commitVerification
+				commitVerification := verifySSHCommitVerification(c.Signature.Signature, c.Signature.Payload, k, committer, committer, c.Committer.Email)
+				if commitVerification != nil {
+					return commitVerification
+				}
 			}
 		}
 	}
