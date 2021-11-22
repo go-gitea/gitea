@@ -74,6 +74,7 @@ type TimelineComment struct {
 	// 30 Project changed
 	// 31 Project board changed
 	// 32 Dismiss Review
+	// 33 Change issue ref
 	Type int64 `json:"type"`
 
 	HTMLURL  string `json:"html_url"`
