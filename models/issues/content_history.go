@@ -75,7 +75,7 @@ func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int)
 		log.Error("can not query content history for deletion, err=%v", err)
 		return
 	}
-	if len(res) <= 1 {
+	if len(res) <= 2 {
 		return
 	}
 
@@ -83,8 +83,8 @@ func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int)
 	for outDatedCount > 0 {
 		var indexToDelete int
 		minEditedInterval := -1
-		// find a history revision with minimal edited interval to delete
-		for i := 1; i < len(res); i++ {
+		// find a history revision with minimal edited interval to delete, the first and the last should never be deleted
+		for i := 1; i < len(res)-1; i++ {
 			editedInterval := int(res[i].EditedUnix - res[i-1].EditedUnix)
 			if minEditedInterval == -1 || editedInterval < minEditedInterval {
 				minEditedInterval = editedInterval
@@ -167,7 +167,20 @@ func FetchIssueContentHistoryList(dbCtx context.Context, issueID int64, commentI
 	return res, nil
 }
 
-//SoftDeleteIssueContentHistory soft delete
+// HasIssueContentHistory check if a ContentHistory entry exists
+func HasIssueContentHistory(dbCtx context.Context, issueID int64, commentID int64) (bool, error) {
+	exists, err := db.GetEngine(dbCtx).Cols("id").Exist(&ContentHistory{
+		IssueID:   issueID,
+		CommentID: commentID,
+	})
+	if err != nil {
+		log.Error("can not fetch issue content history. err=%v", err)
+		return false, err
+	}
+	return exists, err
+}
+
+// SoftDeleteIssueContentHistory soft delete
 func SoftDeleteIssueContentHistory(dbCtx context.Context, historyID int64) error {
 	if _, err := db.GetEngine(dbCtx).ID(historyID).Cols("is_deleted", "content_text").Update(&ContentHistory{
 		IsDeleted:   true,

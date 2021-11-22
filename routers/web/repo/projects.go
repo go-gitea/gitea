@@ -269,7 +269,6 @@ func EditProjectPost(ctx *context.Context) {
 
 // ViewProject renders the project board for a project
 func ViewProject(ctx *context.Context) {
-
 	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
@@ -332,6 +331,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["IsProjectsPage"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 	ctx.Data["Project"] = project
 	ctx.Data["Boards"] = boards

@@ -953,10 +953,10 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// Check if current user has fork of repository or in the same repository.
-	headRepo, has := models.HasForkedRepo(headUser.ID, baseRepo.ID)
-	if !has && !isSameRepo {
+	headRepo := models.GetForkedRepo(headUser.ID, baseRepo.ID)
+	if headRepo == nil && !isSameRepo {
 		log.Trace("parseCompareInfo[%d]: does not have fork or in same repository", baseRepo.ID)
-		ctx.NotFound("HasForkedRepo")
+		ctx.NotFound("GetForkedRepo")
 		return nil, nil, nil, nil, "", ""
 	}
 

@@ -103,7 +103,7 @@ func GetInfo(ctx *context.APIContext) {
 		return
 	}
 
-	if !u.IsVisibleToUser(ctx.User) {
+	if !models.IsUserVisibleToViewer(u, ctx.User) {
 		// fake ErrUserNotExist error message to not leak information about existence
 		ctx.NotFound("GetUserByName", models.ErrUserNotExist{Name: ctx.Params(":username")})
 		return
