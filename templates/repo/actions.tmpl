@@ -133,7 +133,7 @@
 			const _id = Number.parseInt(id);
 			if (jobs.length === 0 || jobs.some((x) => x.requestId === _id)) {
 				njobs = await (await (await fetch(`${ghHostApiUrl}/${owner}/${repo}/_apis/v1/Message`, {})).json());
-				setJobs(njobs);
+				setJobs((_) => njobs);
 			}
 			const query = getJobById(njobs || jobs, id);
 			if (query.job.errors !== null && query.job.errors.length > 0) {
