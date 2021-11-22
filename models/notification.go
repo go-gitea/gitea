@@ -140,15 +140,16 @@ func CountNotifications(opts *FindNotificationOptions) (int64, error) {
 
 // CreateRepoTransferNotification creates  notification for the user a repository was transferred to
 func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
 	var notify []*Notification
 
 	if newOwner.IsOrganization() {
-		users, err := getUsersWhoCanCreateOrgRepo(sess, newOwner.ID)
+		users, err := getUsersWhoCanCreateOrgRepo(db.GetEngine(ctx), newOwner.ID)
 		if err != nil || len(users) == 0 {
 			return err
 		}
@@ -171,28 +172,28 @@ func CreateRepoTransferNotification(doer, newOwner *User, repo *Repository) erro
 		}}
 	}
 
-	if _, err := sess.InsertMulti(notify); err != nil {
+	if err := db.Insert(ctx, notify); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // CreateOrUpdateIssueNotifications creates an issue notification
 // for each watcher, or updates it if already exists
 // receiverID > 0 just send to reciver, else send to all watcher
 func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, receiverID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := createOrUpdateIssueNotifications(db.GetEngine(ctx), issueID, commentID, notificationAuthorID, receiverID); err != nil {
 		return err
 	}
 
-	if err := createOrUpdateIssueNotifications(sess, issueID, commentID, notificationAuthorID, receiverID); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func createOrUpdateIssueNotifications(e db.Engine, issueID, commentID, notificationAuthorID, receiverID int64) error {

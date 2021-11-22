@@ -36,23 +36,23 @@ func ReadSession(key string) (*Session, error) {
 	session := Session{
 		Key: key,
 	}
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	if has, err := sess.Get(&session); err != nil {
+	if has, err := db.GetByBean(ctx, &session); err != nil {
 		return nil, err
 	} else if !has {
 		session.Expiry = timeutil.TimeStampNow()
-		_, err := sess.Insert(&session)
-		if err != nil {
+		if err := db.Insert(ctx, &session); err != nil {
 			return nil, err
 		}
 	}
 
-	return &session, sess.Commit()
+	return &session, committer.Commit()
 }
 
 // ExistSession checks if a session exists
@@ -73,13 +73,13 @@ func DestroySession(key string) error {
 
 // RegenerateSession regenerates a session from the old id
 func RegenerateSession(oldKey, newKey string) (*Session, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	if has, err := sess.Get(&Session{
+	if has, err := db.GetByBean(ctx, &Session{
 		Key: newKey,
 	}); err != nil {
 		return nil, err
@@ -87,32 +87,31 @@ func RegenerateSession(oldKey, newKey string) (*Session, error) {
 		return nil, fmt.Errorf("session Key: %s already exists", newKey)
 	}
 
-	if has, err := sess.Get(&Session{
+	if has, err := db.GetByBean(ctx, &Session{
 		Key: oldKey,
 	}); err != nil {
 		return nil, err
 	} else if !has {
-		_, err := sess.Insert(&Session{
+		if err := db.Insert(ctx, &Session{
 			Key:    oldKey,
 			Expiry: timeutil.TimeStampNow(),
-		})
-		if err != nil {
+		}); err != nil {
 			return nil, err
 		}
 	}
 
-	if _, err := sess.Exec("UPDATE "+sess.Engine().TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE "+db.TableName(&Session{})+" SET `key` = ? WHERE `key`=?", newKey, oldKey); err != nil {
 		return nil, err
 	}
 
 	s := Session{
 		Key: newKey,
 	}
-	if _, err := sess.Get(&s); err != nil {
+	if _, err := db.GetByBean(ctx, &s); err != nil {
 		return nil, err
 	}
 
-	return &s, sess.Commit()
+	return &s, committer.Commit()
 }
 
 // CountSessions returns the number of sessions
