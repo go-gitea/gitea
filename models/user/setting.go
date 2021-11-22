@@ -81,7 +81,14 @@ func upsertSettingValue(userID int64, key string, value string) (err error) {
 	if err != nil {
 		return err
 	}
-	defer committer.Close()
+	defer func() {
+		if err != nil {
+			_ = committer.Close()
+		} else {
+			err = committer.Commit()
+		}
+	}()
+
 	e := db.GetEngine(ctx)
 
 	// here we use a general method to do a safe upsert for different databases (and most transaction levels)
@@ -115,9 +122,5 @@ func upsertSettingValue(userID int64, key string, value string) (err error) {
 
 	// if no existing row, insert a new row
 	_, err = e.Insert(&Setting{UserID: userID, SettingKey: key, SettingValue: value})
-	if err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return err
 }

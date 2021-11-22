@@ -21,7 +21,8 @@ func TestSettings(t *testing.T) {
 	// create setting
 	err := SetSetting(newSetting)
 	assert.NoError(t, err)
-	err = SetSetting(newSetting) // test about saving unchanged values
+	// test about saving unchanged values
+	err = SetSetting(newSetting)
 	assert.NoError(t, err)
 
 	// get specific setting
@@ -31,7 +32,7 @@ func TestSettings(t *testing.T) {
 	assert.EqualValues(t, newSetting.SettingValue, settings[keyName].SettingValue)
 
 	// updated setting
-	updatedSetting := &Setting{UserID: 99, SettingKey: keyName, SettingValue: "Updated", ID: settings[keyName].ID}
+	updatedSetting := &Setting{UserID: 99, SettingKey: keyName, SettingValue: "Updated"}
 	err = SetSetting(updatedSetting)
 	assert.NoError(t, err)
 
@@ -39,9 +40,12 @@ func TestSettings(t *testing.T) {
 	settings, err = GetUserAllSettings(99)
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
-	assert.EqualValues(t, settings[updatedSetting.SettingKey].SettingValue, updatedSetting.SettingValue)
+	assert.EqualValues(t, updatedSetting.SettingValue, settings[updatedSetting.SettingKey].SettingValue)
 
 	// delete setting
-	err = DeleteSetting(updatedSetting)
+	err = DeleteSetting(&Setting{UserID: 99, SettingKey: keyName})
 	assert.NoError(t, err)
+	settings, err = GetUserAllSettings(99)
+	assert.NoError(t, err)
+	assert.Len(t, settings, 0)
 }
