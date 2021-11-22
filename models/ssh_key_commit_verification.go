@@ -52,7 +52,7 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerifica
 	return &CommitVerification{
 		CommittingUser: committer,
 		Verified:       false,
-		Reason:         BadSignature,
+		Reason:         NoKeyFound,
 	}
 }
 
