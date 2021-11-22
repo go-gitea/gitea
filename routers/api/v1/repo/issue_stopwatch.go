@@ -55,8 +55,8 @@ func StartIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
+	if err := models.CreateIssueStopwatch(ctx.User, issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateIssueStopwatch", err)
 		return
 	}
 
@@ -104,8 +104,8 @@ func StopIssueStopwatch(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(ctx.User, issue); err != nil {
-		ctx.Error(http.StatusInternalServerError, "CreateOrStopIssueStopwatch", err)
+	if err := models.FinishIssueStopwatch(ctx.User, issue); err != nil {
+		ctx.Error(http.StatusInternalServerError, "FinishIssueStopwatch", err)
 		return
 	}
 
