@@ -264,21 +264,21 @@ func (f *UpdateLanguageForm) Validate(req *http.Request, errs binding.Errors) bi
 
 // UpdateCommentTypeForm form for updating profile
 type UpdateCommentTypeForm struct {
-	Reference bool
-	Labels bool
-	Milestone bool
-	Assignee bool
-	Title bool
-	Branch bool // delete branch
-	Time bool
-	Deadline bool
+	Reference    bool
+	Labels       bool
+	Milestone    bool
+	Assignee     bool
+	Title        bool
+	Branch       bool // delete branch
+	Time         bool
+	Deadline     bool
 	Dependencies bool
-	Lock bool
-	Target bool // target branch
-	Requests bool // review requests
-	Push bool // push to PR
-	Project bool
-	Ref bool // issue ref
+	Lock         bool
+	Target       bool // target branch
+	Requests     bool // review requests
+	Push         bool // push to PR
+	Project      bool
+	Ref          bool // issue ref
 }
 
 // Validate validates the fields
@@ -347,7 +347,6 @@ func (f *UpdateCommentTypeForm) IsHidden(commentType int) bool {
 	}
 	return false
 }
-
 
 // Avatar types
 const (

@@ -365,7 +365,7 @@ func Appearance(ctx *context.Context) {
 			return
 		}
 	}
-	
+
 	ctx.Data["HiddenEvents"] = hiddenEvents
 
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
@@ -436,10 +436,14 @@ func UpdateUserShownComments(ctx *context.Context) {
 
 	json, err := json.Marshal(form)
 	if err != nil {
-		ctx.ServerError("UpdateUserSetting", err)
+		ctx.ServerError("json.Marshal", err)
 		return
 	}
-	user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
+	err = user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
+	if err != nil {
+		ctx.ServerError("SetSetting", err)
+		return
+	}
 
 	log.Trace("User settings updated: %s", ctx.User.Name)
 	ctx.Flash.Success(ctx.Tr("settings.saved_successfully"))
