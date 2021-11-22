@@ -21,60 +21,66 @@ menu:
 
 ## Background
 
-Gitea uses Golang as backend programming language. It used many third-party modules and also write many. i.e. 
-Gitea uses [Chi](https://github.com/go-chi/chi) as web framework and has some wrappers. Use [Xorm](https://xorm.io) as an ORM framework to operate database. 
+Gitea uses Golang as the backend programming language. It uses many third-party packages and also write some itself. 
+For example, Gitea uses [Chi](https://github.com/go-chi/chi) as basic web framework. [Xorm](https://xorm.io) is an ORM framework that is used to interact with the database. 
 So it's very important to manage these packages. Please take the below guidelines before you start to write backend code.
 
 ## Package Design Guideline
 
-To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The gitea backend code is divided into the following parts:
+### Packages list
 
-- build: Scripts to help build Gitea.
-- cmd: Sub commands to be invoked by OpenSSH / Git. Or some sub commands to help mantain Gitea.
-- integration: Integrations tests
-- models: Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependencies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
-- models/fixtures: Sample model data used in integration tests.
-- models/migrations: Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
-- models/db: Basic database operations. All other `models/xxx` package should depend on this package. And `GetEngine` function should only be invoked from `models/`.
-- modules: Different modules to handle specific functionality in Gitea. Some of them should be moved to `services` but not finished.
-- public: Compiled frontend files (javascript, images, css, etc.)
-- routers: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
-- services: Support functions for common routing operations. Uses models and modules to handle the request.
-- templates: Golang templates for generating the html output.
-- vendor: External code that Gitea depends on.
+To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The gitea backend is divided into the following parts:
 
-There are some levels between those packages. Below is the ideal package dependencies direction.
+- `build`: Scripts to help build Gitea.
+- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to mantain Gitea.
+- `integrations`: Integration tests
+- `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
+- `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
+- `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
+- `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
+- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`.
+- `public`: Compiled frontend files (javascript, images, css, etc.)
+- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers. `routers` include `api`, `install`, `private`, `web` the 4 sub packages. `api` conatins routers for `/api/v1` aims to handle RESTful API requests. `install` could only reponse when system is INSTALL mode. `private` will only be invoked by internal sub commands, especially `serv` and `hooks`. `web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
+- `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
+- `templates`: Golang templates for generating the html output.
+- `vendor`: External code that Gitea depends on.
 
-routers/cmd -> services -> models -> models/db -> modules
+### Package dependencies
+
+Since Golang don't support import cycles, we have to decide the package dependencies carefully. There are some levels between those packages. Below is the ideal package dependencies direction.
+
+`cmd` -> `routers` -> `services` -> `models` -> `models/db` -> `modules`
+
+From left to right, left package could depend on right package. The sub packages on the same level could depend on according shi level's rules.
 
 **NOTICE**
 
-Why we need database transaction outside of `models`? And how?
-Some creation should allow rollback when files create failure or database record insert failed. So we have to allow services create a
-database transaction. Here is some example,
+Why do we need database transactions outside of `models`? And how?
+Some actions should allow for rollback when database record insertion/update/deletion failed. 
+So services must be allowed to create a database transaction. Here is some example,
 
 ```go
 // servcies/repository/repo.go
-func CreateXXXX() error {}\
+func CreateXXXX() error {\
   ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-    // do something, if return err, it will rollback automatically when `committer.Close()` is invoked.
-    if err := issues.UpdateIssue(ctx, repoID); err != nil {
-        // ...
-    }
+  // do something, if return err, it will rollback automatically when `committer.Close()` is invoked.
+  if err := issues.UpdateIssue(ctx, repoID); err != nil {
+      // ...
+  }
 
-    // ......
+  // ......
 
-    return committer.Commit()
+  return committer.Commit()
 }
 ```
 
-You should NOT use `db.GetEngine(ctx)` in `services` directly, but just write a function under `models/`. And
-if the function will be used in the transaction, just let `context.Context` as the function's first parameter.
+You should **not** use `db.GetEngine(ctx)` in `services` directly, but just write a function under `models/`. 
+If the function will be used in the transaction, just let `context.Context` as the function's first parameter.
 
 ```go
 // models/issues/issue.go
@@ -84,3 +90,10 @@ func UpdateIssue(ctx context.Context, repoID int64) error {
     // ......
 }
 ```
+
+### Future tasks
+
+Currently, we are creating some refactors to do the two things:
+
+- There are too many files in `models`, so we are moving some of them into a sub package `models/xxx`
+- Some `modules` sub packages should be moved to `services` because they depends on `models`.
