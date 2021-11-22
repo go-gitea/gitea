@@ -82,8 +82,8 @@ func TestCreateUser_Issue5882(t *testing.T) {
 		user               *user_model.User
 		disableOrgCreation bool
 	}{
-		{&user_model.User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
-		{&user_model.User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
+		{&user_model.User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false, IsActive: true}, false},
+		{&user_model.User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false, IsActive: true}, true},
 	}
 
 	setting.Service.DefaultAllowCreateOrganization = true
