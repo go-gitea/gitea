@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/json"
@@ -69,6 +70,16 @@ type Context struct {
 	Org  *Organization
 }
 
+// TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
+// This is useful if the locale message is intended to only produce HTML content.
+func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
+	trArgs := make([]interface{}, len(args))
+	for i, arg := range args {
+		trArgs[i] = html.EscapeString(arg)
+	}
+	return ctx.Tr(msg, trArgs...)
+}
+
 // GetData returns the data
 func (ctx *Context) GetData() map[string]interface{} {
 	return ctx.Data
@@ -90,7 +101,7 @@ func (ctx *Context) IsUserRepoAdmin() bool {
 }
 
 // IsUserRepoWriter returns true if current user has write privilege in current repo
-func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
+func (ctx *Context) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	for _, unitType := range unitTypes {
 		if ctx.Repo.CanWrite(unitType) {
 			return true
@@ -101,7 +112,7 @@ func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
 }
 
 // IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
-func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
+func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.Type) bool {
 	return ctx.Repo.CanRead(unitType)
 }
 
@@ -119,9 +130,9 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	}
 
 	redirectPath := strings.Replace(
-		ctx.Req.URL.Path,
-		userName,
-		user.Name,
+		ctx.Req.URL.EscapedPath(),
+		url.PathEscape(userName),
+		url.PathEscape(user.Name),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {
@@ -603,7 +614,10 @@ func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			if ctx.Locale.Language() != ctx.User.Language {
+				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+			}
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
@@ -733,10 +747,10 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
-			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

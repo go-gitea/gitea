@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -245,9 +246,9 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				permCode[i] = perm.CanRead(UnitTypeCode)
-				permIssue[i] = perm.CanRead(UnitTypeIssues)
-				permPR[i] = perm.CanRead(UnitTypePullRequests)
+				permCode[i] = perm.CanRead(unit.TypeCode)
+				permIssue[i] = perm.CanRead(unit.TypeIssues)
+				permPR[i] = perm.CanRead(unit.TypePullRequests)
 			}
 		}
 
@@ -289,17 +290,17 @@ func NotifyWatchers(actions ...*Action) error {
 
 // NotifyWatchersActions creates batch of actions for every watcher.
 func NotifyWatchersActions(acts []*Action) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 	for _, act := range acts {
-		if err := notifyWatchers(sess, act); err != nil {
+		if err := notifyWatchers(db.GetEngine(ctx), act); err != nil {
 			return err
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func watchIfAuto(e db.Engine, userID, repoID int64, isWrite bool) error {

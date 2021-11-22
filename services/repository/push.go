@@ -5,8 +5,10 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -17,9 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/queue"
-	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
+	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
@@ -195,7 +198,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits := repo_module.GitToPushCommits(l)
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
-				if err := repofiles.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
+				if err := issue_service.UpdateIssuesCommit(pusher, repo, commits.Commits, refName); err != nil {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
@@ -210,7 +213,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				}
 
 				// Cache for big repository
-				if err := repo_module.CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
+				if err := CacheRef(graceful.GetManager().HammerContext(), repo, gitRepo, opts.RefFullName); err != nil {
 					log.Error("repo_module.CacheRef %s/%s failed: %v", repo.ID, branch, err)
 				}
 			} else {
@@ -229,13 +232,132 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			log.Trace("Non-tag and non-branch commits pushed.")
 		}
 	}
-	if err := repo_module.PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
+	if err := PushUpdateAddDeleteTags(repo, gitRepo, addTags, delTags); err != nil {
 		return fmt.Errorf("PushUpdateAddDeleteTags: %v", err)
 	}
 
 	// Change repository last updated time.
 	if err := models.UpdateRepositoryUpdatedTime(repo.ID, time.Now()); err != nil {
 		return fmt.Errorf("UpdateRepositoryUpdatedTime: %v", err)
+	}
+
+	return nil
+}
+
+// PushUpdateAddDeleteTags updates a number of added and delete tags
+func PushUpdateAddDeleteTags(repo *models.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
+	return db.WithTx(func(ctx context.Context) error {
+		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
+			return err
+		}
+		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
+	})
+}
+
+// pushUpdateAddTags updates a number of add tags
+func pushUpdateAddTags(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, tags []string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
+	}
+
+	releases, err := models.GetReleasesByRepoIDAndNames(ctx, repo.ID, lowerTags)
+	if err != nil {
+		return fmt.Errorf("GetReleasesByRepoIDAndNames: %v", err)
+	}
+	relMap := make(map[string]*models.Release)
+	for _, rel := range releases {
+		relMap[rel.LowerTagName] = rel
+	}
+
+	newReleases := make([]*models.Release, 0, len(lowerTags)-len(relMap))
+
+	emailToUser := make(map[string]*models.User)
+
+	for i, lowerTag := range lowerTags {
+		tag, err := gitRepo.GetTag(tags[i])
+		if err != nil {
+			return fmt.Errorf("GetTag: %v", err)
+		}
+		commit, err := tag.Commit()
+		if err != nil {
+			return fmt.Errorf("Commit: %v", err)
+		}
+
+		sig := tag.Tagger
+		if sig == nil {
+			sig = commit.Author
+		}
+		if sig == nil {
+			sig = commit.Committer
+		}
+		var author *models.User
+		var createdAt = time.Unix(1, 0)
+
+		if sig != nil {
+			var ok bool
+			author, ok = emailToUser[sig.Email]
+			if !ok {
+				author, err = models.GetUserByEmailContext(ctx, sig.Email)
+				if err != nil && !models.IsErrUserNotExist(err) {
+					return fmt.Errorf("GetUserByEmail: %v", err)
+				}
+				if author != nil {
+					emailToUser[sig.Email] = author
+				}
+			}
+			createdAt = sig.When
+		}
+
+		commitsCount, err := commit.CommitsCount()
+		if err != nil {
+			return fmt.Errorf("CommitsCount: %v", err)
+		}
+
+		rel, has := relMap[lowerTag]
+
+		if !has {
+			rel = &models.Release{
+				RepoID:       repo.ID,
+				Title:        "",
+				TagName:      tags[i],
+				LowerTagName: lowerTag,
+				Target:       "",
+				Sha1:         commit.ID.String(),
+				NumCommits:   commitsCount,
+				Note:         "",
+				IsDraft:      false,
+				IsPrerelease: false,
+				IsTag:        true,
+				CreatedUnix:  timeutil.TimeStamp(createdAt.Unix()),
+			}
+			if author != nil {
+				rel.PublisherID = author.ID
+			}
+
+			newReleases = append(newReleases, rel)
+		} else {
+			rel.Sha1 = commit.ID.String()
+			rel.CreatedUnix = timeutil.TimeStamp(createdAt.Unix())
+			rel.NumCommits = commitsCount
+			rel.IsDraft = false
+			if rel.IsTag && author != nil {
+				rel.PublisherID = author.ID
+			}
+			if err = models.UpdateRelease(ctx, rel); err != nil {
+				return fmt.Errorf("Update: %v", err)
+			}
+		}
+	}
+
+	if len(newReleases) > 0 {
+		if err = models.InsertReleasesContext(ctx, newReleases); err != nil {
+			return fmt.Errorf("Insert: %v", err)
+		}
 	}
 
 	return nil

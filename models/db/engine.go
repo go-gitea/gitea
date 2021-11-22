@@ -16,17 +16,13 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	// Needed for the MySQL driver
-	_ "github.com/go-sql-driver/mysql"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
-	// Needed for the Postgresql driver
-	_ "github.com/lib/pq"
-
-	// Needed for the MSSQL driver
-	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
+	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
+	_ "github.com/lib/pq"                // Needed for the Postgresql driver
 )
 
 var (
@@ -59,6 +55,7 @@ type Engine interface {
 	Asc(colNames ...string) *xorm.Session
 	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
+	NoAutoTime() *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 	Sync2(...interface{}) error
 	Select(string) *xorm.Session
@@ -124,24 +121,53 @@ func NewEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
-func syncTables() error {
+//SyncAllTables sync the schemas of all tables, is required by unit test code
+func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// InitInstallEngineWithMigration creates a new xorm.Engine for testing during install
-//
-// This function will cause the basic database schema to be created
-func InitInstallEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+// InitEngine sets the xorm.Engine
+func InitEngine(ctx context.Context) (err error) {
 	x, err = NewEngine()
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return fmt.Errorf("Failed to connect to database: %v", err)
 	}
 
 	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.IsProd))
-	x.ShowSQL(!setting.IsProd)
+	// WARNING: for serv command, MUST remove the output to os.stdout,
+	// so use log file to instead print to stdout.
+	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
+	x.ShowSQL(setting.Database.LogSQL)
+	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
 
+	DefaultContext = &Context{
+		Context: ctx,
+		e:       x,
+	}
 	x.SetDefaultContext(ctx)
+	return nil
+}
+
+// SetEngine is used by unit test code
+func SetEngine(eng *xorm.Engine) {
+	x = eng
+	DefaultContext = &Context{
+		Context: context.Background(),
+		e:       x,
+	}
+}
+
+// InitEngineWithMigration initializes a new xorm.Engine
+// This function must never call .Sync2() if the provided migration function fails.
+// When called from the "doctor" command, the migration function is a version check
+// that prevents the doctor from fixing anything in the database if the migration level
+// is different from the expected value.
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+	if err = InitEngine(ctx); err != nil {
+		return err
+	}
 
 	if err = x.Ping(); err != nil {
 		return err
@@ -157,53 +183,7 @@ func InitInstallEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	return syncTables()
-}
-
-// InitEngine sets the xorm.Engine
-func InitEngine() (err error) {
-	x, err = NewEngine()
-	if err != nil {
-		return fmt.Errorf("Failed to connect to database: %v", err)
-	}
-
-	x.SetMapper(names.GonicMapper{})
-	// WARNING: for serv command, MUST remove the output to os.stdout,
-	// so use log file to instead print to stdout.
-	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
-	x.ShowSQL(setting.Database.LogSQL)
-	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	return nil
-}
-
-// InitEngineWithMigration initializes a new xorm.Engine
-// This function must never call .Sync2() if the provided migration function fails.
-// When called from the "doctor" command, the migration function is a version check
-// that prevents the doctor from fixing anything in the database if the migration level
-// is different from the expected value.
-func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
-	if err = InitEngine(); err != nil {
-		return err
-	}
-
-	DefaultContext = &Context{
-		Context: ctx,
-		e:       x,
-	}
-
-	x.SetDefaultContext(ctx)
-
-	if err = x.Ping(); err != nil {
-		return err
-	}
-
-	if err = migrateFunc(x); err != nil {
-		return fmt.Errorf("migrate: %v", err)
-	}
-
-	if err = syncTables(); err != nil {
+	if err = SyncAllTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 

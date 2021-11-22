@@ -8,7 +8,6 @@ package repo
 import (
 	"errors"
 	"net/http"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -78,7 +77,7 @@ func Commits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["Branch"] = ctx.Repo.BranchName
+	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -154,7 +153,7 @@ func Graph(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["Branch"] = ctx.Repo.BranchName
+	ctx.Data["RefName"] = ctx.Repo.RefName
 	paginator := context.NewPagination(int(graphCommitsCount), setting.UI.GraphMaxCommitNum, page, 5)
 	paginator.AddParam(ctx, "mode", "Mode")
 	paginator.AddParam(ctx, "hide-pr-refs", "HidePRRefs")
@@ -200,7 +199,7 @@ func SearchCommits(ctx *context.Context) {
 	}
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
-	ctx.Data["Branch"] = ctx.Repo.BranchName
+	ctx.Data["RefName"] = ctx.Repo.RefName
 	ctx.HTML(http.StatusOK, tplCommits)
 }
 
@@ -214,8 +213,7 @@ func FileHistory(ctx *context.Context) {
 		return
 	}
 
-	branchName := ctx.Repo.BranchName
-	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(branchName, fileName)
+	commitsCount, err := ctx.Repo.GitRepo.FileCommitsCount(ctx.Repo.RefName, fileName)
 	if err != nil {
 		ctx.ServerError("FileCommitsCount", err)
 		return
@@ -229,7 +227,7 @@ func FileHistory(ctx *context.Context) {
 		page = 1
 	}
 
-	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(branchName, fileName, page)
+	commits, err := ctx.Repo.GitRepo.CommitsByFileAndRange(ctx.Repo.RefName, fileName, page)
 	if err != nil {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
@@ -240,7 +238,7 @@ func FileHistory(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileName"] = fileName
 	ctx.Data["CommitCount"] = commitsCount
-	ctx.Data["Branch"] = branchName
+	ctx.Data["RefName"] = ctx.Repo.RefName
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
@@ -263,8 +261,6 @@ func Diff(ctx *context.Context) {
 		gitRepo *git.Repository
 		err     error
 	)
-
-	fileOnly := ctx.FormBool("file-only")
 
 	if ctx.Data["PageIsWiki"] != nil {
 		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
@@ -290,13 +286,23 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(gitRepo,
-		commitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		false)
+	fileOnly := ctx.FormBool("file-only")
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	files := ctx.FormStrings("files")
+	if fileOnly && (len(files) == 2 || len(files) == 1) {
+		maxLines, maxFiles = -1, -1
+	}
+
+	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		AfterCommitID:      commitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}, files...)
 	if err != nil {
-		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
+		ctx.NotFound("GetDiff", err)
 		return
 	}
 
@@ -323,15 +329,10 @@ func Diff(ctx *context.Context) {
 			return
 		}
 	}
-	headTarget := path.Join(userName, repoName)
-	setCompareContext(ctx, parentCommit, commit, headTarget)
+	setCompareContext(ctx, parentCommit, commit, userName, repoName)
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
-	if fileOnly {
-		ctx.HTML(http.StatusOK, tplDiffBox)
-		return
-	}
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, db.ListOptions{})
 	if err != nil {

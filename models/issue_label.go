@@ -297,11 +297,13 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if label.BelongsToOrg() && label.OrgID != id {
 		return nil
@@ -323,7 +325,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // getLabelByID returns a label by label id
@@ -663,7 +665,8 @@ func HasIssueLabel(issueID, labelID int64) bool {
 
 // newIssueLabel this function creates a new label it does not check if the label is valid for the issue
 // YOU MUST CHECK THIS BEFORE THIS FUNCTION
-func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {
+func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *User) (err error) {
+	e := db.GetEngine(ctx)
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
@@ -683,7 +686,7 @@ func newIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err err
 		Label:   label,
 		Content: "1",
 	}
-	if _, err = createComment(e, opts); err != nil {
+	if _, err = createComment(ctx, opts); err != nil {
 		return err
 	}
 
@@ -696,11 +699,12 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if err = issue.loadRepo(sess); err != nil {
 		return err
@@ -711,7 +715,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return nil
 	}
 
-	if err = newIssueLabel(sess, issue, label, doer); err != nil {
+	if err = newIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
@@ -720,11 +724,12 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
-func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err error) {
+func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *User) (err error) {
+	e := db.GetEngine(ctx)
 	if err = issue.loadRepo(e); err != nil {
 		return err
 	}
@@ -735,7 +740,7 @@ func newIssueLabels(e db.Engine, issue *Issue, labels []*Label, doer *User) (err
 			continue
 		}
 
-		if err = newIssueLabel(e, issue, label, doer); err != nil {
+		if err = newIssueLabel(ctx, issue, label, doer); err != nil {
 			return fmt.Errorf("newIssueLabel: %v", err)
 		}
 	}
@@ -751,7 +756,7 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	}
 	defer committer.Close()
 
-	if err = newIssueLabels(db.GetEngine(ctx), issue, labels, doer); err != nil {
+	if err = newIssueLabels(ctx, issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -763,7 +768,8 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	return committer.Commit()
 }
 
-func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err error) {
+func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *User) (err error) {
+	e := db.GetEngine(ctx)
 	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,
 		LabelID: label.ID,
@@ -784,7 +790,7 @@ func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err 
 		Issue: issue,
 		Label: label,
 	}
-	if _, err = createComment(e, opts); err != nil {
+	if _, err = createComment(ctx, opts); err != nil {
 		return err
 	}
 
@@ -793,22 +799,22 @@ func deleteIssueLabel(e db.Engine, issue *Issue, label *Label, doer *User) (err 
 
 // DeleteIssueLabel deletes issue-label relation.
 func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = deleteIssueLabel(sess, issue, label, doer); err != nil {
+	if err = deleteIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
 	issue.Labels = nil
-	if err = issue.loadLabels(sess); err != nil {
+	if err = issue.loadLabels(db.GetEngine(ctx)); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func deleteLabelsByRepoID(sess db.Engine, repoID int64) error {

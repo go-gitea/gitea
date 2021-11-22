@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/release"
@@ -21,8 +21,8 @@ import (
 func TestCreateNewTagProtected(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
 
 	t.Run("API", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image/png"
 	"io"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -64,7 +65,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 				repository := bean.(*Repository)
 				select {
 				case <-ctx.Done():
-					return ErrCancelledf("before random avatars removed for %s", repository.FullName())
+					return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
 				default:
 				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
@@ -96,7 +97,7 @@ func (repo *Repository) relAvatarLink(e db.Engine) string {
 			return ""
 		}
 	}
-	return setting.AppSubURL + "/repo-avatars/" + repo.Avatar
+	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)
 }
 
 // AvatarLink returns a link to the repository's avatar.
@@ -107,12 +108,11 @@ func (repo *Repository) AvatarLink() string {
 // avatarLink returns user avatar absolute link.
 func (repo *Repository) avatarLink(e db.Engine) string {
 	link := repo.relAvatarLink(e)
-	// link may be empty!
-	if len(link) > 0 {
-		if link[0] == '/' && link[1] != '/' {
-			return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
-		}
+	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
+	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
+		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]
 	}
+	// otherwise, return the link as it is
 	return link
 }
 
@@ -129,18 +129,18 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	oldAvatarPath := repo.CustomAvatarRelativePath()
 
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
-	if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
@@ -159,7 +159,7 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteAvatar deletes the repos's custom avatar.
@@ -172,14 +172,14 @@ func (repo *Repository) DeleteAvatar() error {
 	avatarPath := repo.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", repo.ID, avatarPath)
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	repo.Avatar = ""
-	if _, err := sess.ID(repo.ID).Cols("avatar").Update(repo); err != nil {
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").Update(repo); err != nil {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
@@ -187,5 +187,5 @@ func (repo *Repository) DeleteAvatar() error {
 		return fmt.Errorf("DeleteAvatar: Failed to remove %s: %v", avatarPath, err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

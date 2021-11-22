@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -101,7 +102,7 @@ func ListUserTeams(ctx *context.APIContext) {
 	for i := range teams {
 		apiOrg, ok := cache[teams[i].OrgID]
 		if !ok {
-			org, err := models.GetUserByID(teams[i].OrgID)
+			org, err := models.GetOrgByID(teams[i].OrgID)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByID", err)
 				return
@@ -172,7 +173,7 @@ func CreateTeam(ctx *context.APIContext) {
 		Authorize:               models.ParseAccessMode(form.Permission),
 	}
 
-	unitTypes := models.FindUnitTypes(form.Units...)
+	unitTypes := unit_model.FindUnitTypes(form.Units...)
 
 	if team.Authorize < models.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
@@ -260,7 +261,7 @@ func EditTeam(ctx *context.APIContext) {
 	if team.Authorize < models.AccessModeOwner {
 		if len(form.Units) > 0 {
 			var units = make([]*models.TeamUnit, 0, len(form.Units))
-			unitTypes := models.FindUnitTypes(form.Units...)
+			unitTypes := unit_model.FindUnitTypes(form.Units...)
 			for _, tp := range unitTypes {
 				units = append(units, &models.TeamUnit{
 					OrgID: ctx.Org.Team.OrgID,

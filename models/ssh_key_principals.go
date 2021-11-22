@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -24,11 +25,12 @@ import (
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Principals cannot be duplicated.
 	has, err := sess.
@@ -52,11 +54,11 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return nil, err
 	}
 
-	sess.Close()
+	committer.Close()
 
 	return key, RewriteAllPrincipalKeys()
 }
@@ -88,7 +90,7 @@ func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
 		case "anything":
 			return content, nil
 		case "email":
-			emails, err := GetEmailAddresses(user.ID)
+			emails, err := user_model.GetEmailAddresses(user.ID)
 			if err != nil {
 				return "", err
 			}

@@ -173,7 +173,10 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := db.InitEngine()
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	err := db.InitEngine(stdCtx)
 	if err != nil {
 		return err
 	}
