@@ -569,9 +569,23 @@ func PrepareCompareDiff(
 		beforeCommitID = ci.CompareInfo.BaseCommitID
 	}
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(ci.HeadGitRepo,
-		beforeCommitID, headCommitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, whitespaceBehavior, ci.DirectComparison)
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	files := ctx.FormStrings("files")
+	if len(files) == 2 || len(files) == 1 {
+		maxLines, maxFiles = -1, -1
+	}
+
+	diff, err := gitdiff.GetDiff(ci.HeadGitRepo,
+		&gitdiff.DiffOptions{
+			BeforeCommitID:     beforeCommitID,
+			AfterCommitID:      headCommitID,
+			SkipTo:             ctx.FormString("skip-to"),
+			MaxLines:           maxLines,
+			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+			MaxFiles:           maxFiles,
+			WhitespaceBehavior: whitespaceBehavior,
+			DirectComparison:   ci.DirectComparison,
+		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return false
