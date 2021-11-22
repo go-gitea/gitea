@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 type (
@@ -69,7 +68,7 @@ func IsProjectBoardTypeValid(p ProjectBoardType) bool {
 	}
 }
 
-func createBoardsForProjectsType(sess *xorm.Session, project *Project) error {
+func createBoardsForProjectsType(sess db.Engine, project *Project) error {
 	var items []string
 
 	switch project.BoardType {
@@ -117,17 +116,17 @@ func NewProjectBoard(board *ProjectBoard) error {
 
 // DeleteProjectBoardByID removes all issues references to the project board.
 func DeleteProjectBoardByID(boardID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteProjectBoardByID(db.GetEngine(ctx), boardID); err != nil {
 		return err
 	}
 
-	if err := deleteProjectBoardByID(sess, boardID); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func deleteProjectBoardByID(e db.Engine, boardID int64) error {

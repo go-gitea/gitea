@@ -6,6 +6,7 @@ package db
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -24,7 +25,7 @@ func Authenticate(user *models.User, login, password string) (*models.User, erro
 		if err := user.SetPassword(password); err != nil {
 			return nil, err
 		}
-		if err := models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 			return nil, err
 		}
 	}
