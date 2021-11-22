@@ -440,24 +440,6 @@ func getUsersWhoCanCreateOrgRepo(e db.Engine, orgID int64) ([]*User, error) {
 		And("team_user.org_id = ?", orgID).Asc("`user`.name").Find(&users)
 }
 
-func getOrgsByUserID(e db.Engine, userID int64, showAll bool) ([]*Organization, error) {
-	orgs := make([]*Organization, 0, 10)
-	sess := e.Where("`org_user`.uid=?", userID)
-	if !showAll {
-		sess = sess.And("`org_user`.is_public=?", true)
-	}
-	return orgs, sess.
-		Join("INNER", "`org_user`", "`org_user`.org_id=`user`.id").
-		Asc("`user`.name").
-		Find(&orgs)
-}
-
-// GetOrgsByUserID returns a list of organizations that the given user ID
-// has joined.
-func GetOrgsByUserID(userID int64, showAll bool) ([]*Organization, error) {
-	return getOrgsByUserID(db.GetEngine(db.DefaultContext), userID, showAll)
-}
-
 // MinimalOrg represents a simple orgnization with only needed columns
 type MinimalOrg = Organization
 
@@ -517,6 +499,51 @@ func GetUserOrgsList(user *User) ([]*MinimalOrg, error) {
 	}
 
 	return orgs, nil
+}
+
+// FindOrgOptions finds orgs options
+type FindOrgOptions struct {
+	db.ListOptions
+	UserID         int64
+	IncludePrivate bool
+}
+
+func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
+	var cond = builder.Eq{"uid": userID}
+	if !includePrivate {
+		cond["is_public"] = true
+	}
+	return builder.Select("org_id").From("org_user").Where(cond)
+}
+
+func (opts FindOrgOptions) toConds() builder.Cond {
+	var cond = builder.NewCond()
+	if opts.UserID > 0 {
+		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
+	}
+	if !opts.IncludePrivate {
+		cond = cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
+	}
+	return cond
+}
+
+// FindOrgs returns a list of organizations according given conditions
+func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
+	orgs := make([]*Organization, 0, 10)
+	sess := db.GetEngine(db.DefaultContext).
+		Where(opts.toConds()).
+		Asc("`user`.name")
+	if opts.Page > 0 && opts.PageSize > 0 {
+		sess.Limit(opts.PageSize, opts.PageSize*(opts.Page-1))
+	}
+	return orgs, sess.Find(&orgs)
+}
+
+// CountOrgs returns total count organizations according options
+func CountOrgs(opts FindOrgOptions) (int64, error) {
+	return db.GetEngine(db.DefaultContext).
+		Where(opts.toConds()).
+		Count(new(User))
 }
 
 func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*User, error) {
