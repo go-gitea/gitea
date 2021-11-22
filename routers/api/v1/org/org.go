@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -343,7 +344,7 @@ func Edit(ctx *context.APIContext) {
 	if form.RepoAdminChangeTeamAccess != nil {
 		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
 	}
-	if err := models.UpdateUserCols(org.AsUser(),
+	if err := models.UpdateUserCols(db.DefaultContext, org.AsUser(),
 		"full_name", "description", "website", "location",
 		"visibility", "repo_admin_change_team_access",
 	); err != nil {
