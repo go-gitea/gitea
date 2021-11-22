@@ -1127,6 +1127,7 @@ func ViewIssue(ctx *context.Context) {
 			RepoID: ctx.Repo.Repository.ID,
 			Index:  ctx.ParamsInt64(":index"),
 		})
+		return
 	}
 
 	// Make sure type and URL matches.

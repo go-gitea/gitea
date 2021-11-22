@@ -124,6 +124,7 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 			if refIssue, err = getIssueFromRef(refRepo, ref.Index); err != nil {
 				return err
 			}
+
 			if refIssue == nil {
 				continue
 			}
@@ -131,6 +132,10 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 			perm, err := models.GetUserRepoPermission(refRepo, doer)
 			if err != nil {
 				return err
+			}
+
+			if refIssue.IsPrivate && !(perm.CanReadPrivateIssues() || refIssue.IsPoster(doer.ID)) {
+				continue
 			}
 
 			key := markKey{ID: refIssue.ID, Action: ref.Action}

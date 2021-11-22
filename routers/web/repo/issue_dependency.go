@@ -17,7 +17,25 @@ func AddDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.ServerError("GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
+		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+			UserID: userID,
+			ID:     issue.ID,
+			RepoID: ctx.Repo.Repository.ID,
+			Index:  ctx.ParamsInt64(":index"),
+		})
 		return
 	}
 
@@ -76,7 +94,25 @@ func RemoveDependency(ctx *context.Context) {
 	issueIndex := ctx.ParamsInt64("index")
 	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, issueIndex)
 	if err != nil {
-		ctx.ServerError("GetIssueByIndex", err)
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("GetIssueByIndex", err)
+		} else {
+			ctx.ServerError("GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
+		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
+			UserID: userID,
+			ID:     issue.ID,
+			RepoID: ctx.Repo.Repository.ID,
+			Index:  ctx.ParamsInt64(":index"),
+		})
 		return
 	}
 
