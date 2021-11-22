@@ -40,6 +40,19 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
 
 
+### Framework Usage
+
+Mixing different frameworks together is highly discouraged. A JavaScript module should follow one major framework and follow the framework's best practice.
+
+Recommended implementations:
+* Vue + Native
+* Fomantic-UI (jQuery)
+* Native only
+
+Discouraged implementations:
+* Vue + jQuery
+* jQuery + Native
+
 ### `async` Functions
 
 Only mark a function as `async` if and only if there are `await` calls 
@@ -97,6 +110,19 @@ $('#el').on('click', async (e) => {  // not recommended but acceptable
   return false;        // WRONG
 });
 ```
+
+### HTML Attributes and `dataset`
+
+We forbid `dataset` usage, its camel-casing behaviour makes it hard to grep for attributes. However there are still some special cases, so the current guideline is:
+
+* For legacy code:
+  * `$.data()` should be refactored to `$.attr()`.
+  * `$.data()` can be used to bind some non-string data to elements in rare cases, but it is highly discouraged.
+
+* For new code:
+  * `node.dataset` should not be used, use `node.getAttribute` instead. 
+  * never bind any user data to a DOM node, use a suitable design pattern to describe the relation between node and data.
+
 
 ### Vue2/Vue3 and JSX
 

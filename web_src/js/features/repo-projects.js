@@ -1,22 +1,24 @@
 const {csrfToken} = window.config;
 
 async function initRepoProjectSortable() {
-  const els = document.getElementsByClassName('board');
+  const els = document.querySelectorAll('#project-board > .board');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
-  const boardColumns = document.getElementsByClassName('board-column');
 
-  new Sortable(els[0], {
+  // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
+  const mainBoard = els[0];
+  let boardColumns = mainBoard.getElementsByClassName('board-column');
+  new Sortable(mainBoard, {
     group: 'board-column',
     draggable: '.board-column',
+    filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
     onSort: () => {
-      const board = document.getElementsByClassName('board')[0];
-      const boardColumns = board.getElementsByClassName('board-column');
-
-      for (const [i, column] of boardColumns.entries()) {
+      boardColumns = mainBoard.getElementsByClassName('board-column');
+      for (let i = 0; i < boardColumns.length; i++) {
+        const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
           $.ajax({
             url: $(column).data('url'),
@@ -33,8 +35,9 @@ async function initRepoProjectSortable() {
     },
   });
 
-  for (const column of boardColumns) {
-    new Sortable(column.getElementsByClassName('board')[0], {
+  for (const boardColumn of boardColumns) {
+    const boardCardList = boardColumn.getElementsByClassName('board')[0];
+    new Sortable(boardCardList, {
       group: 'shared',
       animation: 150,
       ghostClass: 'card-ghost',
