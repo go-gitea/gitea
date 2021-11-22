@@ -259,7 +259,7 @@ func DeletePullReview(ctx *context.APIContext) {
 	}
 
 	if err := models.DeleteReview(review); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteReview", fmt.Errorf("can not delete ReviewID: %d", review.ID))
+		ctx.Error(http.StatusInternalServerError, "DeleteReview", fmt.Errorf("can not delete ReviewID: %d, %v", review.ID, err))
 		return
 	}
 
