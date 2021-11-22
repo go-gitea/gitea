@@ -53,17 +53,17 @@ func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
 func (repo *Repository) AddCollaborator(u *User) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := repo.addCollaborator(db.GetEngine(ctx), u); err != nil {
 		return err
 	}
 
-	if err := repo.addCollaborator(sess, u); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOptions) ([]*Collaboration, error) {
@@ -176,17 +176,17 @@ func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mo
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := repo.changeCollaborationAccessMode(db.GetEngine(ctx), uid, mode); err != nil {
 		return err
 	}
 
-	if err := repo.changeCollaborationAccessMode(sess, uid, mode); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
@@ -196,11 +196,13 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		UserID: uid,
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
 		return err
@@ -221,7 +223,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (repo *Repository) reconsiderIssueAssignees(e db.Engine, uid int64) error {
