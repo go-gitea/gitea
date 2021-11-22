@@ -1192,6 +1192,7 @@ func DeleteUser(ctx context.Context, u *User) (err error) {
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
+		&user_model.Setting{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
