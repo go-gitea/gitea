@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Sync causes this ldap source to synchronize its users with the db
@@ -123,7 +124,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 
 			if err == nil && len(source.AttributeAvatar) > 0 {
-				_ = usr.UploadAvatar(su.Avatar)
+				_ = user_service.UploadAvatar(usr, su.Avatar)
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
@@ -152,7 +153,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 				usr.IsActive = true
 
-				err = models.UpdateUserCols(usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				err = models.UpdateUserCols(db.DefaultContext, usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
@@ -160,7 +161,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if usr.IsUploadAvatarChanged(su.Avatar) {
 				if err == nil && len(source.AttributeAvatar) > 0 {
-					_ = usr.UploadAvatar(su.Avatar)
+					_ = user_service.UploadAvatar(usr, su.Avatar)
 				}
 
 			}
@@ -193,7 +194,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.loginSource.Name, usr.Name)
 
 				usr.IsActive = false
-				err = models.UpdateUserCols(usr, "is_active")
+				err = models.UpdateUserCols(db.DefaultContext, usr, "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}

@@ -7,6 +7,7 @@ package repo
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -55,7 +56,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := ctx.User.UpdateDiffViewStyle(style); err != nil {
+	if err := models.UpdateUserDiffViewStyle(ctx.User, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }

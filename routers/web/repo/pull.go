@@ -108,23 +108,23 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !models.HasForkedRepo(ctx.User.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	if err := ctx.User.GetOwnedOrganizations(); err != nil {
-		ctx.ServerError("GetOwnedOrganizations", err)
+	ownedOrgs, err := models.GetOwnedOrgsByUserID(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetOwnedOrgsByUserID", err)
 		return nil
 	}
-	var orgs []*models.User
-	for _, org := range ctx.User.OwnedOrgs {
-		if forkRepo.OwnerID != org.ID && !org.HasForkedRepo(forkRepo.ID) {
+	var orgs []*models.Organization
+	for _, org := range ownedOrgs {
+		if forkRepo.OwnerID != org.ID && !models.HasForkedRepo(org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
 
 	var traverseParentRepo = forkRepo
-	var err error
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
@@ -200,8 +200,8 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo, has := models.HasForkedRepo(ctxUser.ID, traverseParentRepo.ID)
-		if has {
+		repo := models.GetForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		if repo != nil {
 			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
 		}

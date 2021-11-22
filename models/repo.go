@@ -760,19 +760,20 @@ func (repo *Repository) UpdateSize(ctx context.Context) error {
 	return repo.updateSize(db.GetEngine(ctx))
 }
 
-// CanUserFork returns true if specified user can fork repository.
-func (repo *Repository) CanUserFork(user *User) (bool, error) {
+// CanUserForkRepo returns true if specified user can fork repository.
+func CanUserForkRepo(user *User, repo *Repository) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
-	if repo.OwnerID != user.ID && !user.HasForkedRepo(repo.ID) {
+	if repo.OwnerID != user.ID && !HasForkedRepo(user.ID, repo.ID) {
 		return true, nil
 	}
-	if err := user.GetOwnedOrganizations(); err != nil {
+	ownedOrgs, err := GetOwnedOrgsByUserID(user.ID)
+	if err != nil {
 		return false, err
 	}
-	for _, org := range user.OwnedOrgs {
-		if repo.OwnerID != org.ID && !org.HasForkedRepo(repo.ID) {
+	for _, org := range ownedOrgs {
+		if repo.OwnerID != org.ID && !HasForkedRepo(org.ID, repo.ID) {
 			return true, nil
 		}
 	}
@@ -2042,13 +2043,25 @@ func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
 //  \___  / \____/|__|  |__|_ \
 //      \/                   \/
 
-// HasForkedRepo checks if given user has already forked a repository with given ID.
-func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
+// GetForkedRepo checks if given user has already forked a repository with given ID.
+func GetForkedRepo(ownerID, repoID int64) *Repository {
 	repo := new(Repository)
 	has, _ := db.GetEngine(db.DefaultContext).
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Get(repo)
-	return repo, has
+	if has {
+		return repo
+	}
+	return nil
+}
+
+// HasForkedRepo checks if given user has already forked a repository with given ID.
+func HasForkedRepo(ownerID, repoID int64) bool {
+	has, _ := db.GetEngine(db.DefaultContext).
+		Table("repository").
+		Where("owner_id=? AND fork_id=?", ownerID, repoID).
+		Exist()
+	return has
 }
 
 // CopyLFS copies LFS data from one repo to another

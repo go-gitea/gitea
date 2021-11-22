@@ -52,12 +52,8 @@ export default function initGlobalCopyToClipboardListener() {
     // in case <button data-clipboard-text><svg></button>, so we just search
     // up to 3 levels for performance
     for (let i = 0; i < 3 && target; i++) {
-      let text;
-      if (target.dataset.clipboardText) {
-        text = target.dataset.clipboardText;
-      } else if (target.dataset.clipboardTarget) {
-        text = document.querySelector(target.dataset.clipboardTarget)?.value;
-      }
+      const text = target.getAttribute('data-clipboard-text') || document.querySelector(target.getAttribute('data-clipboard-target'))?.value;
+
       if (text) {
         e.preventDefault();
 

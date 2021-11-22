@@ -52,7 +52,9 @@ func TestUserIsPublicMember(t *testing.T) {
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsPublicMember(orgID))
+	is, err := IsPublicMembership(orgID, user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, is)
 }
 
 func TestIsUserOrgOwner(t *testing.T) {
@@ -78,7 +80,9 @@ func TestIsUserOrgOwner(t *testing.T) {
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
+	is, err := IsOrganizationOwner(orgID, user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, is)
 }
 
 func TestGetUserEmailsByNames(t *testing.T) {
@@ -198,13 +202,13 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		assert.Equal(t, test.expected, user.EmailNotifications())
 
 		// Try all possible settings
-		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsEnabled))
+		assert.NoError(t, SetEmailNotifications(user, EmailNotificationsEnabled))
 		assert.Equal(t, EmailNotificationsEnabled, user.EmailNotifications())
 
-		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsOnMention))
+		assert.NoError(t, SetEmailNotifications(user, EmailNotificationsOnMention))
 		assert.Equal(t, EmailNotificationsOnMention, user.EmailNotifications())
 
-		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsDisabled))
+		assert.NoError(t, SetEmailNotifications(user, EmailNotificationsDisabled))
 		assert.Equal(t, EmailNotificationsDisabled, user.EmailNotifications())
 	}
 }

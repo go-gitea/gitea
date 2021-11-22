@@ -491,8 +491,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
-		ctx.ServerError("CanUserFork", err)
+	if ctx.Data["CanSignedUserFork"], err = models.CanUserForkRepo(ctx.User, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("CanSignedUserFork", err)
 		return
 	}
 
@@ -604,7 +604,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["BranchName"] = ctx.Repo.BranchName
 
 	// People who have push access or have forked repository can propose a new pull request.
-	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
+		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
