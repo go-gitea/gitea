@@ -593,7 +593,6 @@ func runGenerateAccessToken(c *cli.Context) error {
 	}
 
 	return nil
-
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {
