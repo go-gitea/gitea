@@ -24,9 +24,12 @@
 							{{end}}
 						</td>
 						<td class="sha">
+							{{$class_wrapper := "ui"}}
 							{{$class := "ui sha label"}}
+							{{$clipboard := "clipboard"}}
 							{{if .Signature}}
 								{{$class = (printf "%s%s" $class " isSigned")}}
+								{{$clipboard = (printf "%s%s" $clipboard " isSigned")}}
 								{{if .Verification.Verified}}
 									{{if eq .Verification.TrustStatus "trusted"}}
 										{{$class = (printf "%s%s" $class " isVerified")}}
@@ -40,31 +43,32 @@
 								{{end}}
 							{{end}}
 							{{if $.PageIsWiki}}
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								<span class="{{$class_wrapper}}">
 							{{else if $.Reponame}}
-								<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								<span class="{{$class_wrapper}}">
 							{{else}}
-								<span class="{{$class}}">
+								<span>
 							{{end}}
-								<span class="shortsha">{{ShortSha .ID.String}}</span>
-								{{if .Signature}}
-									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
+								{{if $.PageIsWiki}}
+									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
+								{{else if $.Reponame}}
+									<a href="{{AppSubUrl}}/{{$.Username}}/{{$.Reponame}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 								{{end}}
-							{{if $.Reponame}}
+										<span class="shortsha">{{ShortSha .ID.String}}</span>
+									{{if .Signature}}
+										{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
+									{{end}}
+								{{if $.PageIsWiki}}
+									</a>
+								{{else if $.Reponame}}
+									</a>
+								{{end}}
+								{{$commitID := .ID.String}}
+								<a class="{{$clipboard}}"
+									data-clipboard-text="{{.ID}}"
+								>
+									{{svg "octicon-copy"}}
 								</a>
-							{{else}}
-								</span>
-							{{end}}
-							{{$commitID := .ID.String}}
-							<span class="clipboard"
-								data-success="{{$.i18n.Tr "repo.commits.copy_sha_success"}}"
-								data-error="{{$.i18n.Tr "repo.commits.copy_sha_error"}}"
-								data-content="{{$.i18n.Tr "repo.commits.copy_sha_text"}}"
-								data-variation="inverted tiny"
-								data-clipboard-text="{{.ID}}"
-								onclick="'{{$commitID}}'.select(); document.execCommand('copy');"
-							>
-								{{svg "octicon-paste"}}
 							</span>
 						</td>
 						<td class="message">
