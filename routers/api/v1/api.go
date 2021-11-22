@@ -65,11 +65,14 @@
 package v1
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -81,10 +84,11 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/org"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/settings"
-	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
+
+	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/cors"
@@ -137,9 +141,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 			owner, err = models.GetUserByName(userName)
 			if err != nil {
 				if models.IsErrUserNotExist(err) {
-					if redirectUserID, err := models.LookupUserRedirect(userName); err == nil {
+					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
 						context.RedirectToUser(ctx.Context, userName, redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
+					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetUserByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
@@ -212,10 +216,13 @@ func reqExploreSignIn() func(ctx *context.APIContext) {
 	}
 }
 
-func reqBasicAuth() func(ctx *context.APIContext) {
+func reqBasicOrRevProxyAuth() func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
+		if ctx.IsSigned && setting.Service.EnableReverseProxyAuth && ctx.Data["AuthedMethod"].(string) == auth.ReverseProxyMethodName {
+			return
+		}
 		if !ctx.Context.IsBasicAuth {
-			ctx.Error(http.StatusUnauthorized, "reqBasicAuth", "basic auth required")
+			ctx.Error(http.StatusUnauthorized, "reqBasicOrRevProxyAuth", "auth required")
 			return
 		}
 		ctx.CheckForOTP()
@@ -253,7 +260,7 @@ func reqAdmin() func(ctx *context.APIContext) {
 }
 
 // reqRepoWriter user should have a permission to write to a repo, or be a site admin
-func reqRepoWriter(unitTypes ...models.UnitType) func(ctx *context.APIContext) {
+func reqRepoWriter(unitTypes ...unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoWriter(unitTypes) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoWriter", "user should have a permission to write to a repo")
@@ -263,7 +270,7 @@ func reqRepoWriter(unitTypes ...models.UnitType) func(ctx *context.APIContext) {
 }
 
 // reqRepoReader user should have specific read permission or be a repo admin or a site admin
-func reqRepoReader(unitType models.UnitType) func(ctx *context.APIContext) {
+func reqRepoReader(unitType unit.Type) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if !ctx.IsUserRepoReaderSpecific(unitType) && !ctx.IsUserRepoAdmin() && !ctx.IsUserSiteAdmin() {
 			ctx.Error(http.StatusForbidden, "reqRepoReader", "user should have specific read permission or be a repo admin or a site admin")
@@ -420,10 +427,10 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 			ctx.Org.Organization, err = models.GetOrgByName(ctx.Params(":org"))
 			if err != nil {
 				if models.IsErrOrgNotExist(err) {
-					redirectUserID, err := models.LookupUserRedirect(ctx.Params(":org"))
+					redirectUserID, err := user_model.LookupUserRedirect(ctx.Params(":org"))
 					if err == nil {
 						context.RedirectToUser(ctx.Context, ctx.Params(":org"), redirectUserID)
-					} else if models.IsErrUserRedirectNotExist(err) {
+					} else if user_model.IsErrUserRedirectNotExist(err) {
 						ctx.NotFound("GetOrgByName", err)
 					} else {
 						ctx.Error(http.StatusInternalServerError, "LookupUserRedirect", err)
@@ -450,19 +457,19 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 }
 
 func mustEnableIssues(ctx *context.APIContext) {
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) {
+	if !ctx.Repo.CanRead(unit.TypeIssues) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.User,
-					models.UnitTypeIssues,
+					unit.TypeIssues,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
 					"Anonymous user in Repo has Permissions: %-+v",
-					models.UnitTypeIssues,
+					unit.TypeIssues,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			}
@@ -473,19 +480,19 @@ func mustEnableIssues(ctx *context.APIContext) {
 }
 
 func mustAllowPulls(ctx *context.APIContext) {
-	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+	if !(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.User,
-					models.UnitTypePullRequests,
+					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Anonymous user cannot read %-v in Repo %-v\n"+
 					"Anonymous user in Repo has Permissions: %-+v",
-					models.UnitTypePullRequests,
+					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			}
@@ -496,26 +503,33 @@ func mustAllowPulls(ctx *context.APIContext) {
 }
 
 func mustEnableIssuesOrPulls(ctx *context.APIContext) {
-	if !ctx.Repo.CanRead(models.UnitTypeIssues) &&
-		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(models.UnitTypePullRequests)) {
+	if !ctx.Repo.CanRead(unit.TypeIssues) &&
+		!(ctx.Repo.Repository.CanEnablePulls() && ctx.Repo.CanRead(unit.TypePullRequests)) {
 		if ctx.Repo.Repository.CanEnablePulls() && log.IsTrace() {
 			if ctx.IsSigned {
 				log.Trace("Permission Denied: User %-v cannot read %-v and %-v in Repo %-v\n"+
 					"User in Repo has Permissions: %-+v",
 					ctx.User,
-					models.UnitTypeIssues,
-					models.UnitTypePullRequests,
+					unit.TypeIssues,
+					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			} else {
 				log.Trace("Permission Denied: Anonymous user cannot read %-v and %-v in Repo %-v\n"+
 					"Anonymous user in Repo has Permissions: %-+v",
-					models.UnitTypeIssues,
-					models.UnitTypePullRequests,
+					unit.TypeIssues,
+					unit.TypePullRequests,
 					ctx.Repo.Repository,
 					ctx.Repo.Permission)
 			}
 		}
+		ctx.NotFound()
+		return
+	}
+}
+
+func mustEnableWiki(ctx *context.APIContext) {
+	if !(ctx.Repo.CanRead(unit.TypeWiki)) {
 		ctx.NotFound()
 		return
 	}
@@ -538,7 +552,7 @@ func bind(obj interface{}) http.HandlerFunc {
 		var theObj = reflect.New(tp).Interface() // create a new form obj for every request but not use obj directly
 		errs := binding.Bind(ctx.Req, theObj)
 		if len(errs) > 0 {
-			ctx.Error(http.StatusUnprocessableEntity, "validationError", errs[0].Error())
+			ctx.Error(http.StatusUnprocessableEntity, "validationError", fmt.Sprintf("%s: %s", errs[0].FieldNames, errs[0].Error()))
 			return
 		}
 		web.SetForm(ctx, theObj)
@@ -576,7 +590,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		// Miscellaneous
 		if setting.API.EnableSwagger {
 			m.Get("/swagger", func(ctx *context.APIContext) {
-				ctx.Redirect("/api/swagger")
+				ctx.Redirect(setting.AppSubURL + "/api/swagger")
 			})
 		}
 		m.Get("/version", misc.Version)
@@ -620,7 +634,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("").Get(user.ListAccessTokens).
 						Post(bind(api.CreateAccessTokenOption{}), user.CreateAccessToken)
 					m.Combo("/{id}").Delete(user.DeleteAccessToken)
-				}, reqBasicAuth())
+				}, reqBasicOrRevProxyAuth())
 			})
 		})
 
@@ -719,7 +733,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Combo("").Get(reqAnyRepoReader(), repo.Get).
 					Delete(reqToken(), reqOwner(), repo.Delete).
 					Patch(reqToken(), reqAdmin(), bind(api.EditRepoOption{}), repo.Edit)
-				m.Post("/generate", reqToken(), reqRepoReader(models.UnitTypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
+				m.Post("/generate", reqToken(), reqRepoReader(unit.TypeCode), bind(api.GenerateRepoOption{}), repo.Generate)
 				m.Post("/transfer", reqOwner(), bind(api.TransferRepoOption{}), repo.Transfer)
 				m.Combo("/notifications").
 					Get(reqToken(), notify.ListRepoNotifications).
@@ -756,16 +770,16 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Put(reqAdmin(), repo.AddTeam).
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
-				m.Get("/raw/*", context.RepoRefForAPI, reqRepoReader(models.UnitTypeCode), repo.GetRawFile)
-				m.Get("/archive/*", reqRepoReader(models.UnitTypeCode), repo.GetArchive)
+				m.Get("/raw/*", context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
-					Post(reqToken(), reqRepoReader(models.UnitTypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
+					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
 				m.Group("/branches", func() {
 					m.Get("", repo.ListBranches)
 					m.Get("/*", repo.GetBranch)
-					m.Delete("/*", context.ReferencesGitRepo(false), reqRepoWriter(models.UnitTypeCode), repo.DeleteBranch)
-					m.Post("", reqRepoWriter(models.UnitTypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
-				}, reqRepoReader(models.UnitTypeCode))
+					m.Delete("/*", context.ReferencesGitRepo(false), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)
 					m.Post("", bind(api.CreateBranchProtectionOption{}), repo.CreateBranchProtection)
@@ -778,9 +792,9 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Group("/tags", func() {
 					m.Get("", repo.ListTags)
 					m.Get("/*", repo.GetTag)
-					m.Post("", reqRepoWriter(models.UnitTypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
+					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateTagOption{}), repo.CreateTag)
 					m.Delete("/*", repo.DeleteTag)
-				}, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(true))
+				}, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(true))
 				m.Group("/keys", func() {
 					m.Combo("").Get(repo.ListDeployKeys).
 						Post(bind(api.CreateKeyOption{}), repo.CreateDeployKey)
@@ -791,6 +805,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Combo("").Get(repo.ListTrackedTimesByRepository)
 					m.Combo("/{timetrackingusername}").Get(repo.ListTrackedTimesByUser)
 				}, mustEnableIssues, reqToken())
+				m.Group("/wiki", func() {
+					m.Combo("/page/{pageName}").
+						Get(repo.GetWikiPage).
+						Patch(mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.EditWikiPage).
+						Delete(mustNotBeArchived, reqRepoWriter(unit.TypeWiki), repo.DeleteWikiPage)
+					m.Get("/revisions/{pageName}", repo.ListPageRevisions)
+					m.Post("/new", mustNotBeArchived, reqRepoWriter(unit.TypeWiki), bind(api.CreateWikiPageOptions{}), repo.NewWikiPage)
+					m.Get("/pages", repo.ListWikiPages)
+				}, mustEnableWiki)
 				m.Group("/issues", func() {
 					m.Combo("").Get(repo.ListIssues).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreateIssueOption{}), repo.CreateIssue)
@@ -850,19 +873,19 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, mustEnableIssuesOrPulls)
 				m.Group("/labels", func() {
 					m.Combo("").Get(repo.ListLabels).
-						Post(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateLabelOption{}), repo.CreateLabel)
 					m.Combo("/{id}").Get(repo.GetLabel).
-						Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
-						Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), repo.DeleteLabel)
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditLabelOption{}), repo.EditLabel).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteLabel)
 				})
 				m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
 				m.Post("/markdown/raw", misc.MarkdownRaw)
 				m.Group("/milestones", func() {
 					m.Combo("").Get(repo.ListMilestones).
-						Post(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
+						Post(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.CreateMilestoneOption{}), repo.CreateMilestone)
 					m.Combo("/{id}").Get(repo.GetMilestone).
-						Patch(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
-						Delete(reqToken(), reqRepoWriter(models.UnitTypeIssues, models.UnitTypePullRequests), repo.DeleteMilestone)
+						Patch(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), bind(api.EditMilestoneOption{}), repo.EditMilestone).
+						Delete(reqToken(), reqRepoWriter(unit.TypeIssues, unit.TypePullRequests), repo.DeleteMilestone)
 				})
 				m.Get("/stargazers", repo.ListStargazers)
 				m.Get("/subscribers", repo.ListSubscribers)
@@ -873,27 +896,27 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				})
 				m.Group("/releases", func() {
 					m.Combo("").Get(repo.ListReleases).
-						Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(false), bind(api.CreateReleaseOption{}), repo.CreateRelease)
+						Post(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(false), bind(api.CreateReleaseOption{}), repo.CreateRelease)
 					m.Group("/{id}", func() {
 						m.Combo("").Get(repo.GetRelease).
-							Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), context.ReferencesGitRepo(false), bind(api.EditReleaseOption{}), repo.EditRelease).
-							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteRelease)
+							Patch(reqToken(), reqRepoWriter(unit.TypeReleases), context.ReferencesGitRepo(false), bind(api.EditReleaseOption{}), repo.EditRelease).
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteRelease)
 						m.Group("/assets", func() {
 							m.Combo("").Get(repo.ListReleaseAttachments).
-								Post(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.CreateReleaseAttachment)
+								Post(reqToken(), reqRepoWriter(unit.TypeReleases), repo.CreateReleaseAttachment)
 							m.Combo("/{asset}").Get(repo.GetReleaseAttachment).
-								Patch(reqToken(), reqRepoWriter(models.UnitTypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
-								Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseAttachment)
+								Patch(reqToken(), reqRepoWriter(unit.TypeReleases), bind(api.EditAttachmentOptions{}), repo.EditReleaseAttachment).
+								Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseAttachment)
 						})
 					})
 					m.Group("/tags", func() {
 						m.Combo("/{tag}").
 							Get(repo.GetReleaseByTag).
-							Delete(reqToken(), reqRepoWriter(models.UnitTypeReleases), repo.DeleteReleaseByTag)
+							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
-				}, reqRepoReader(models.UnitTypeReleases))
-				m.Post("/mirror-sync", reqToken(), reqRepoWriter(models.UnitTypeCode), repo.MirrorSync)
-				m.Get("/editorconfig/{filename}", context.RepoRefForAPI, reqRepoReader(models.UnitTypeCode), repo.GetEditorconfig)
+				}, reqRepoReader(unit.TypeReleases))
+				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
+				m.Get("/editorconfig/{filename}", context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
 						Post(reqToken(), mustNotBeArchived, bind(api.CreatePullRequestOption{}), repo.CreatePullRequest)
@@ -924,18 +947,18 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 							Delete(reqToken(), bind(api.PullReviewRequestOptions{}), repo.DeleteReviewRequests).
 							Post(reqToken(), bind(api.PullReviewRequestOptions{}), repo.CreateReviewRequests)
 					})
-				}, mustAllowPulls, reqRepoReader(models.UnitTypeCode), context.ReferencesGitRepo(false))
+				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo(false))
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
 					})
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
 						m.Get("/{sha}", repo.GetSingleCommit)
@@ -947,7 +970,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Get("/blobs/{sha}", context.RepoRefForAPI, repo.GetBlob)
 					m.Get("/tags/{sha}", context.RepoRefForAPI, repo.GetAnnotatedTag)
 					m.Get("/notes/{sha}", repo.GetNote)
-				}, reqRepoReader(models.UnitTypeCode))
+				}, reqRepoReader(unit.TypeCode))
 				m.Group("/contents", func() {
 					m.Get("", repo.GetContentsList)
 					m.Get("/*", repo.GetContents)
@@ -955,8 +978,8 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						m.Post("", bind(api.CreateFileOptions{}), repo.CreateFile)
 						m.Put("", bind(api.UpdateFileOptions{}), repo.UpdateFile)
 						m.Delete("", bind(api.DeleteFileOptions{}), repo.DeleteFile)
-					}, reqRepoWriter(models.UnitTypeCode), reqToken())
-				}, reqRepoReader(models.UnitTypeCode))
+					}, reqRepoWriter(unit.TypeCode), reqToken())
+				}, reqRepoReader(unit.TypeCode))
 				m.Get("/signing-key.gpg", misc.SigningKey)
 				m.Group("/topics", func() {
 					m.Combo("").Get(repo.ListTopics).
@@ -967,7 +990,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					}, reqAdmin())
 				}, reqAnyRepoReader())
 				m.Get("/issue_templates", context.ReferencesGitRepo(false), repo.GetIssueTemplates)
-				m.Get("/languages", reqRepoReader(models.UnitTypeCode), repo.GetLanguages)
+				m.Get("/languages", reqRepoReader(unit.TypeCode), repo.GetLanguages)
 			}, repoAssignment())
 		})
 

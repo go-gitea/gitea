@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -86,7 +87,7 @@ func getNotifications(c *context.Context) {
 	// redirect to last page if request page is more than total pages
 	pager := context.NewPagination(int(total), perPage, page, 5)
 	if pager.Paginater.Current() < page {
-		c.Redirect(fmt.Sprintf("/notifications?q=%s&page=%d", c.FormString("q"), pager.Paginater.Current()))
+		c.Redirect(fmt.Sprintf("%s/notifications?q=%s&page=%d", setting.AppSubURL, url.QueryEscape(c.FormString("q")), pager.Paginater.Current()))
 		return
 	}
 
@@ -166,7 +167,7 @@ func NotificationStatusPost(c *context.Context) {
 	}
 
 	if !c.FormBool("noredirect") {
-		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, c.FormString("page"))
+		url := fmt.Sprintf("%s/notifications?page=%s", setting.AppSubURL, url.QueryEscape(c.FormString("page")))
 		c.Redirect(url, http.StatusSeeOther)
 	}
 
@@ -188,6 +189,5 @@ func NotificationPurgePost(c *context.Context) {
 		return
 	}
 
-	url := fmt.Sprintf("%s/notifications", setting.AppSubURL)
-	c.Redirect(url, http.StatusSeeOther)
+	c.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
 }

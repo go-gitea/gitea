@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/json"
@@ -33,7 +34,7 @@ import (
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -48,10 +49,11 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp   ResponseWriter
-	Req    *http.Request
-	Data   map[string]interface{}
-	Render Render
+	Resp     ResponseWriter
+	Req      *http.Request
+	Data     map[string]interface{} // data used by MVC templates
+	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render   Render
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF
@@ -66,6 +68,16 @@ type Context struct {
 
 	Repo *Repository
 	Org  *Organization
+}
+
+// TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
+// This is useful if the locale message is intended to only produce HTML content.
+func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
+	trArgs := make([]interface{}, len(args))
+	for i, arg := range args {
+		trArgs[i] = html.EscapeString(arg)
+	}
+	return ctx.Tr(msg, trArgs...)
 }
 
 // GetData returns the data
@@ -89,7 +101,7 @@ func (ctx *Context) IsUserRepoAdmin() bool {
 }
 
 // IsUserRepoWriter returns true if current user has write privilege in current repo
-func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
+func (ctx *Context) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	for _, unitType := range unitTypes {
 		if ctx.Repo.CanWrite(unitType) {
 			return true
@@ -100,7 +112,7 @@ func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
 }
 
 // IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
-func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
+func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.Type) bool {
 	return ctx.Repo.CanRead(unitType)
 }
 
@@ -118,9 +130,9 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	}
 
 	redirectPath := strings.Replace(
-		ctx.Req.URL.Path,
-		userName,
-		user.Name,
+		ctx.Req.URL.EscapedPath(),
+		url.PathEscape(userName),
+		url.PathEscape(user.Name),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {
@@ -224,7 +236,7 @@ func (ctx *Context) NotFound(title string, err error) {
 func (ctx *Context) notFoundInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -260,7 +272,7 @@ func (ctx *Context) ServerError(title string, err error) {
 func (ctx *Context) serverErrorInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -319,7 +331,7 @@ func (ctx *Context) PlainText(status int, bs []byte) {
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		ctx.ServerError("Render JSON failed", err)
+		ctx.ServerError("Write bytes failed", err)
 	}
 }
 
@@ -602,7 +614,10 @@ func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			if ctx.Locale.Language() != ctx.User.Language {
+				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+			}
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User
@@ -644,8 +659,12 @@ func Contexter() func(next http.Handler) http.Handler {
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"Link":          link,
+					"RunModeIsProd": setting.IsProd,
 				},
 			}
+			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
+			ctx.PageData = map[string]interface{}{}
+			ctx.Data["PageData"] = ctx.PageData
 
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, &ctx)
@@ -728,10 +747,10 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Data["ManifestData"] = setting.ManifestData
 
-			ctx.Data["UnitWikiGlobalDisabled"] = models.UnitTypeWiki.UnitGlobalDisabled()
-			ctx.Data["UnitIssuesGlobalDisabled"] = models.UnitTypeIssues.UnitGlobalDisabled()
-			ctx.Data["UnitPullsGlobalDisabled"] = models.UnitTypePullRequests.UnitGlobalDisabled()
-			ctx.Data["UnitProjectsGlobalDisabled"] = models.UnitTypeProjects.UnitGlobalDisabled()
+			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr

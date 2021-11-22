@@ -136,6 +136,12 @@ func GetTwoFactorByUID(uid int64) (*TwoFactor, error) {
 	return twofa, nil
 }
 
+// HasTwoFactorByUID returns the two-factor authentication token associated with
+// the user, if any.
+func HasTwoFactorByUID(uid int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).Where("uid=?", uid).Exist(&TwoFactor{})
+}
+
 // DeleteTwoFactorByID deletes two-factor authentication token by given ID.
 func DeleteTwoFactorByID(id, userID int64) error {
 	cnt, err := db.GetEngine(db.DefaultContext).ID(id).Delete(&TwoFactor{

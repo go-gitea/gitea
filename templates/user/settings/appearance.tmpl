@@ -1,0 +1,74 @@
+{{template "base/head" .}}
+<div class="page-content user settings sshkeys">
+	{{template "user/settings/navbar" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+
+		<!-- Theme -->
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.manage_themes"}}
+		</h4>
+		<div class="ui attached segment">
+			<div class="ui email list">
+				<div class="item">
+					{{.i18n.Tr "settings.theme_desc"}}
+				</div>
+
+			<form class="ui form" action="{{.Link}}/theme" method="post">
+				{{.CsrfTokenHtml}}
+					<div class="field">
+						<label for="ui">{{.i18n.Tr "settings.ui"}}</label>
+						<div class="ui selection dropdown" id="ui">
+							<input name="theme" type="hidden" value="{{.SignedUser.Theme}}">
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							<div class="text">
+								{{range $i,$a := .AllThemes}}
+									{{if eq $.SignedUser.Theme $a}}{{$a}}{{end}}
+								{{end}}
+							</div>
+
+							<div class="menu">
+							{{range $i,$a := .AllThemes}}
+								<div class="item{{if eq $.SignedUser.Theme $a}} active selected{{end}}" data-value="{{$a}}">
+									{{$a}}
+								</div>
+							{{end}}
+							</div>
+						</div>
+					</div>
+
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_theme"}}</button>
+				</div>
+			</form>
+			</div>
+		</div>
+
+		<!-- Language -->
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "settings.language"}}
+		</h4>
+		<div class="ui attached segment">
+			<form class="ui form" action="{{.Link}}/language" method="post">
+				{{.CsrfTokenHtml}}
+				<div class="field">
+					<div class="ui language selection dropdown" id="language">
+						<input name="language" type="hidden" value="{{.SignedUser.Language}}">
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+						<div class="text">{{range .AllLangs}}{{if eq $.SignedUser.Language .Lang}}{{.Name}}{{end}}{{end}}</div>
+						<div class="menu">
+						{{range .AllLangs}}
+							<div class="item{{if eq $.SignedUser.Language .Lang}} active selected{{end}}" data-value="{{.Lang}}">{{.Name}}</div>
+						{{end}}
+						</div>
+					</div>
+				</div>
+				<div class="field">
+					<button class="ui green button">{{$.i18n.Tr "settings.update_language"}}</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+{{template "base/footer" .}}

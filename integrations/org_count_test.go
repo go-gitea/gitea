@@ -10,8 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -111,11 +112,14 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 	}
 
 	return func(t *testing.T) {
-		user := db.AssertExistsAndLoadBean(t, &models.User{
+		user := unittest.AssertExistsAndLoadBean(t, &models.User{
 			Name: username,
 		}).(*models.User)
 
-		orgs, err := models.GetOrgsByUserID(user.ID, true)
+		orgs, err := models.FindOrgs(models.FindOrgOptions{
+			UserID:         user.ID,
+			IncludePrivate: true,
+		})
 		assert.NoError(t, err)
 
 		calcOrgCounts := map[string]int{}

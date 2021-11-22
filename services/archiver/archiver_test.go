@@ -5,26 +5,23 @@
 package archiver
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	db.MainTest(m, filepath.Join("..", ".."))
-}
-
-func waitForCount(t *testing.T, num int) {
-
+	unittest.MainTest(m, filepath.Join("..", ".."))
 }
 
 func TestArchive_Basic(t *testing.T) {
-	assert.NoError(t, db.PrepareTestDatabase())
+	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := test.MockContext(t, "user27/repo49")
 	firstCommit, secondCommit := "51f84af23134", "aacbdfe9e1c4"
@@ -83,11 +80,8 @@ func TestArchive_Basic(t *testing.T) {
 	inFlight[2] = secondReq
 
 	ArchiveRepository(zipReq)
-	waitForCount(t, 1)
 	ArchiveRepository(tgzReq)
-	waitForCount(t, 2)
 	ArchiveRepository(secondReq)
-	waitForCount(t, 3)
 
 	// Make sure sending an unprocessed request through doesn't affect the queue
 	// count.
@@ -131,4 +125,9 @@ func TestArchive_Basic(t *testing.T) {
 	// Ideally, the extension would match what we originally requested.
 	assert.NotEqual(t, zipReq.GetArchiveName(), tgzReq.GetArchiveName())
 	assert.NotEqual(t, zipReq.GetArchiveName(), secondReq.GetArchiveName())
+}
+
+func TestErrUnknownArchiveFormat(t *testing.T) {
+	var err = ErrUnknownArchiveFormat{RequestFormat: "master"}
+	assert.True(t, errors.Is(err, ErrUnknownArchiveFormat{}))
 }

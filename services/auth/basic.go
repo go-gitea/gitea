@@ -23,6 +23,9 @@ var (
 	_ Named  = &Basic{}
 )
 
+// BasicMethodName is the constant name of the basic authentication method
+const BasicMethodName = "basic"
+
 // Basic implements the Auth interface and authenticates requests (API requests
 // only) by looking for Basic authentication data or "x-oauth-basic" token in the "Authorization"
 // header.
@@ -31,7 +34,7 @@ type Basic struct {
 
 // Name represents the name of auth method
 func (b *Basic) Name() string {
-	return "basic"
+	return BasicMethodName
 }
 
 // Verify extracts and validates Basic data (username and password/token) from the
@@ -50,7 +53,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	}
 
 	auths := strings.SplitN(baHead, " ", 2)
-	if len(auths) != 2 || (auths[0] != "Basic" && auths[0] != "basic") {
+	if len(auths) != 2 || (strings.ToLower(auths[0]) != "basic") {
 		return nil
 	}
 

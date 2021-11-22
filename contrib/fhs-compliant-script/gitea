@@ -37,6 +37,6 @@ if [ -z "$APP_INI_SET" ]; then
 fi
 
 # Provide FHS compliant defaults to
-GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" "$GITEA" $CONF_ARG "$@"
+exec -a "$0" GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" "$GITEA" $CONF_ARG "$@"
 
 

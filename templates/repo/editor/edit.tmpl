@@ -10,19 +10,19 @@
 			<div class="ui secondary menu">
 				<div class="fitted item treepath">
 					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
-						<a class="section" href="{{EscapePound $.BranchLink}}">{{.Repository.Name}}</a>
+						<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
 						{{ $n := len .TreeNames}}
 						{{ $l := Subtract $n 1}}
 						{{range $i, $v := .TreeNames}}
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
 								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
-								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info"}}</span>
+								<span class="tooltip" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center">{{svg "octicon-info"}}</span>
 							{{else}}
-								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{index $.TreePaths $i | EscapePound}}">{{$v}}</a></span>
+								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 							{{end}}
 						{{end}}
-						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{EscapePound $.BranchLink}}{{if not .IsNewFile}}/{{EscapePound .TreePath}}{{end}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
+						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
 						<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 					</div>
 				</div>
@@ -31,8 +31,8 @@
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
 					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL | EscapePound}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.i18n.Tr "preview"}}</a>
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | EscapePound}}/{{.TreePath | EscapePound}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.i18n.Tr "preview"}}</a>
+					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">

@@ -6,24 +6,27 @@
 package admin
 
 import (
-	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/web/explore"
-	router_user_setting "code.gitea.io/gitea/routers/web/user/setting"
+	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -38,13 +41,33 @@ func Users(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminUsers"] = true
 
+	statusFilterKeys := []string{"is_active", "is_admin", "is_restricted", "is_2fa_enabled", "is_prohibit_login"}
+	statusFilterMap := map[string]string{}
+	for _, filterKey := range statusFilterKeys {
+		statusFilterMap[filterKey] = ctx.FormString("status_filter[" + filterKey + "]")
+	}
+
+	sortType := ctx.FormString("sort")
+	if sortType == "" {
+		sortType = explore.UserSearchDefaultSortType
+	}
+	ctx.PageData["adminUserListSearchForm"] = map[string]interface{}{
+		"StatusFilterMap": statusFilterMap,
+		"SortType":        sortType,
+	}
+
 	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
 		Actor: ctx.User,
 		Type:  models.UserTypeIndividual,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
-		SearchByEmail: true,
+		SearchByEmail:      true,
+		IsActive:           util.OptionalBoolParse(statusFilterMap["is_active"]),
+		IsAdmin:            util.OptionalBoolParse(statusFilterMap["is_admin"]),
+		IsRestricted:       util.OptionalBoolParse(statusFilterMap["is_restricted"]),
+		IsTwoFactorEnabled: util.OptionalBoolParse(statusFilterMap["is_2fa_enabled"]),
+		IsProhibitLogin:    util.OptionalBoolParse(statusFilterMap["is_prohibit_login"]),
 	}, tplUsers)
 }
 
@@ -138,10 +161,10 @@ func NewUserPost(ctx *context.Context) {
 		case models.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
-		case models.IsErrEmailAlreadyUsed(err):
+		case user_model.IsErrEmailAlreadyUsed(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserNew, &form)
-		case models.IsErrEmailInvalid(err):
+		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
 		case models.IsErrNameReserved(err):
@@ -166,7 +189,7 @@ func NewUserPost(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("admin.users.new_success", u.Name))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + fmt.Sprint(u.ID))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
 func prepareUserInfo(ctx *context.Context) *models.User {
@@ -286,7 +309,7 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if len(form.UserName) != 0 && u.Name != form.UserName {
-		if err := router_user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
+		if err := user_setting.HandleUsernameChange(ctx, u, form.UserName); err != nil {
 			ctx.Redirect(setting.AppSubURL + "/admin/users")
 			return
 		}
@@ -330,10 +353,10 @@ func EditUserPost(ctx *context.Context) {
 	}
 
 	if err := models.UpdateUser(u); err != nil {
-		if models.IsErrEmailAlreadyUsed(err) {
+		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
-		} else if models.IsErrEmailInvalid(err) {
+		} else if user_model.IsErrEmailInvalid(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserEdit, &form)
 		} else {
@@ -344,7 +367,7 @@ func EditUserPost(ctx *context.Context) {
 	log.Trace("Account profile updated by admin (%s): %s", ctx.User.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 }
 
 // DeleteUser response for deleting a user
@@ -355,17 +378,17 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = models.DeleteUser(u); err != nil {
+	if err = user_service.DeleteUser(u); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
+				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
 			})
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
+				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
 			})
 		default:
 			ctx.ServerError("DeleteUser", err)
@@ -378,4 +401,35 @@ func DeleteUser(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": setting.AppSubURL + "/admin/users",
 	})
+}
+
+// AvatarPost response for change user's avatar request
+func AvatarPost(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.AvatarForm)
+	if err := user_setting.UpdateAvatarSetting(ctx, form, u); err != nil {
+		ctx.Flash.Error(err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("settings.update_user_avatar_success"))
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
+
+// DeleteAvatar render delete avatar page
+func DeleteAvatar(ctx *context.Context) {
+	u := prepareUserInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := user_service.DeleteAvatar(u); err != nil {
+		ctx.Flash.Error(err.Error())
+	}
+
+	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }

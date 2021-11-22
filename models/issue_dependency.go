@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -36,11 +37,12 @@ const (
 
 // CreateIssueDependency creates a new dependency for an issue
 func CreateIssueDependency(user *User, issue, dep *Issue) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Check if it aleready exists
 	exists, err := issueDepExists(sess, issue.ID, dep.ID)
@@ -59,7 +61,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 		return ErrCircularDependency{issue.ID, dep.ID}
 	}
 
-	if _, err := sess.Insert(&IssueDependency{
+	if err := db.Insert(ctx, &IssueDependency{
 		UserID:       user.ID,
 		IssueID:      issue.ID,
 		DependencyID: dep.ID,
@@ -68,20 +70,20 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 	}
 
 	// Add comment referencing the new dependency
-	if err = createIssueDependencyComment(sess, user, issue, dep, true); err != nil {
+	if err = createIssueDependencyComment(ctx, user, issue, dep, true); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // RemoveIssueDependency removes a dependency from an issue
 func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	var issueDepToDelete IssueDependency
 
@@ -94,7 +96,7 @@ func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType
 		return ErrUnknownDependencyType{depType}
 	}
 
-	affected, err := sess.Delete(&issueDepToDelete)
+	affected, err := db.GetEngine(ctx).Delete(&issueDepToDelete)
 	if err != nil {
 		return err
 	}
@@ -105,10 +107,10 @@ func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType
 	}
 
 	// Add comment referencing the removed dependency
-	if err = createIssueDependencyComment(sess, user, issue, dep, false); err != nil {
+	if err = createIssueDependencyComment(ctx, user, issue, dep, false); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // Check if the dependency already exists
@@ -141,7 +143,7 @@ func (repo *Repository) IsDependenciesEnabled() bool {
 func (repo *Repository) isDependenciesEnabled(e db.Engine) bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.getUnit(e, UnitTypeIssues); err != nil {
+	if u, err = repo.getUnit(e, unit.TypeIssues); err != nil {
 		log.Trace("%s", err)
 		return setting.Service.DefaultEnableDependencies
 	}

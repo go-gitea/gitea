@@ -4,7 +4,10 @@
 
 package models
 
-import "code.gitea.io/gitea/modules/setting"
+import (
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/setting"
+)
 
 // ___________.__             ___________                     __
 // \__    ___/|__| _____   ___\__    ___/___________    ____ |  | __ ___________
@@ -27,7 +30,7 @@ func (repo *Repository) IsTimetrackerEnabled() bool {
 
 	var u *RepoUnit
 	var err error
-	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+	if u, err = repo.GetUnit(unit.TypeIssues); err != nil {
 		return setting.Service.DefaultEnableTimetracking
 	}
 	return u.IssuesConfig().EnableTimetracker
@@ -37,7 +40,7 @@ func (repo *Repository) IsTimetrackerEnabled() bool {
 func (repo *Repository) AllowOnlyContributorsToTrackTime() bool {
 	var u *RepoUnit
 	var err error
-	if u, err = repo.GetUnit(UnitTypeIssues); err != nil {
+	if u, err = repo.GetUnit(unit.TypeIssues); err != nil {
 		return setting.Service.DefaultAllowOnlyContributorsToTrackTime
 	}
 	return u.IssuesConfig().AllowOnlyContributorsToTrackTime

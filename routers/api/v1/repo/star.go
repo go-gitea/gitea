@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -43,7 +44,7 @@ func ListStargazers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	stargazers, err := ctx.Repo.Repository.GetStargazers(utils.GetListOptions(ctx))
+	stargazers, err := models.GetStargazers(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetStargazers", err)
 		return

@@ -30,7 +30,7 @@ func Home(ctx *context.Context) {
 
 	org := ctx.Org.Organization
 
-	if !models.HasOrgOrUserVisible(org, ctx.User) {
+	if !models.HasOrgOrUserVisible(org.AsUser(), ctx.User) {
 		ctx.NotFound("HasOrgOrUserVisible", nil)
 		return
 	}
@@ -140,8 +140,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
-	ctx.Data["Teams"] = org.Teams
-
+	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 
 	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)

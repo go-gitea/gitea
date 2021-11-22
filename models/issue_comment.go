@@ -7,6 +7,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -15,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -101,20 +103,48 @@ const (
 	CommentTypeProject
 	// 31 Project board changed
 	CommentTypeProjectBoard
-	// Dismiss Review
+	// 32 Dismiss Review
 	CommentTypeDismissReview
+	// 33 Change issue ref
+	CommentTypeChangeIssueRef
 )
 
-// CommentTag defines comment tag type
-type CommentTag int
+// RoleDescriptor defines comment tag type
+type RoleDescriptor int
 
-// Enumerate all the comment tag types
+// Enumerate all the role tags.
 const (
-	CommentTagNone CommentTag = iota
-	CommentTagPoster
-	CommentTagWriter
-	CommentTagOwner
+	RoleDescriptorNone RoleDescriptor = iota
+	RoleDescriptorPoster
+	RoleDescriptorWriter
+	RoleDescriptorOwner
 )
+
+// WithRole enable a specific tag on the RoleDescriptor.
+func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
+	rd |= (1 << role)
+	return rd
+}
+
+func stringToRoleDescriptor(role string) RoleDescriptor {
+	switch role {
+	case "Poster":
+		return RoleDescriptorPoster
+	case "Writer":
+		return RoleDescriptorWriter
+	case "Owner":
+		return RoleDescriptorOwner
+	default:
+		return RoleDescriptorNone
+	}
+}
+
+// HasRole returns if a certain role is enabled on the RoleDescriptor.
+func (rd RoleDescriptor) HasRole(role string) bool {
+	roleDescriptor := stringToRoleDescriptor(role)
+	bitValue := rd & (1 << roleDescriptor)
+	return (bitValue > 0)
+}
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
@@ -170,11 +200,11 @@ type Comment struct {
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
-	Attachments []*Attachment `xorm:"-"`
-	Reactions   ReactionList  `xorm:"-"`
+	Attachments []*repo_model.Attachment `xorm:"-"`
+	Reactions   ReactionList             `xorm:"-"`
 
 	// For view issue page.
-	ShowTag CommentTag `xorm:"-"`
+	ShowRole RoleDescriptor `xorm:"-"`
 
 	Review      *Review `xorm:"-"`
 	ReviewID    int64   `xorm:"index"`
@@ -272,7 +302,7 @@ func (c *Comment) AfterDelete() {
 		return
 	}
 
-	_, err := DeleteAttachmentsByComment(c.ID, true)
+	_, err := repo_model.DeleteAttachmentsByComment(c.ID, true)
 	if err != nil {
 		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
 	}
@@ -455,7 +485,7 @@ func (c *Comment) LoadAttachments() error {
 	}
 
 	var err error
-	c.Attachments, err = getAttachmentsByCommentID(db.GetEngine(db.DefaultContext), c.ID)
+	c.Attachments, err = repo_model.GetAttachmentsByCommentIDCtx(db.DefaultContext, c.ID)
 	if err != nil {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
@@ -464,23 +494,24 @@ func (c *Comment) LoadAttachments() error {
 
 // UpdateAttachments update attachments by UUIDs for the comment
 func (c *Comment) UpdateAttachments(uuids []string) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	defer committer.Close()
+
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
 	}
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = c.IssueID
 		attachments[i].CommentID = c.ID
-		if err := updateAttachment(sess, attachments[i]); err != nil {
+		if err := repo_model.UpdateAttachmentCtx(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
@@ -488,7 +519,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = getUserByID(db.GetEngine(db.DefaultContext), c.AssigneeID)
+		c.Assignee, err = GetUserByIDCtx(db.DefaultContext, c.AssigneeID)
 		if err != nil {
 			if !IsErrUserNotExist(err) {
 				return err
@@ -523,7 +554,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = getUserByID(db.GetEngine(db.DefaultContext), c.ResolveDoerID)
+	c.ResolveDoer, err = GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
 	if err != nil {
 		if IsErrUserNotExist(err) {
 			c.ResolveDoer = NewGhostUser()
@@ -687,7 +718,8 @@ func (c *Comment) LoadPushCommits() (err error) {
 	return err
 }
 
-func createComment(e db.Engine, opts *CreateCommentOptions) (_ *Comment, err error) {
+func createComment(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+	e := db.GetEngine(ctx)
 	var LabelID int64
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
@@ -735,18 +767,19 @@ func createComment(e db.Engine, opts *CreateCommentOptions) (_ *Comment, err err
 		return nil, err
 	}
 
-	if err = updateCommentInfos(e, opts, comment); err != nil {
+	if err = updateCommentInfos(ctx, opts, comment); err != nil {
 		return nil, err
 	}
 
-	if err = comment.addCrossReferences(e, opts.Doer, false); err != nil {
+	if err = comment.addCrossReferences(ctx, opts.Doer, false); err != nil {
 		return nil, err
 	}
 
 	return comment, nil
 }
 
-func updateCommentInfos(e db.Engine, opts *CreateCommentOptions, comment *Comment) (err error) {
+func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
+	e := db.GetEngine(ctx)
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
@@ -769,7 +802,7 @@ func updateCommentInfos(e db.Engine, opts *CreateCommentOptions, comment *Commen
 		}
 
 		// Check attachments
-		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
 		}
@@ -791,7 +824,7 @@ func updateCommentInfos(e db.Engine, opts *CreateCommentOptions, comment *Commen
 	return updateIssueCols(e, opts.Issue, "updated_unix")
 }
 
-func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
+func createDeadlineComment(ctx context.Context, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 	var content string
 	var commentType CommentType
 
@@ -809,7 +842,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return nil, err
 	}
 
@@ -820,7 +853,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		Issue:   issue,
 		Content: content,
 	}
-	comment, err := createComment(e, opts)
+	comment, err := createComment(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -828,12 +861,12 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentIssue *Issue, add bool) (err error) {
+func createIssueDependencyComment(ctx context.Context, doer *User, issue, dependentIssue *Issue, add bool) (err error) {
 	cType := CommentTypeAddDependency
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return
 	}
 
@@ -845,7 +878,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentI
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	}
-	if _, err = createComment(e, opts); err != nil {
+	if _, err = createComment(ctx, opts); err != nil {
 		return
 	}
 
@@ -856,7 +889,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentI
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
 	}
-	_, err = createComment(e, opts)
+	_, err = createComment(ctx, opts)
 	return
 }
 
@@ -900,18 +933,18 @@ type CreateCommentOptions struct {
 
 // CreateComment creates comment of issue or commit.
 func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	comment, err = createComment(sess, opts)
+	comment, err = createComment(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -1040,11 +1073,12 @@ func CountComments(opts *FindCommentsOptions) (int64, error) {
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *Comment, doer *User) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
@@ -1052,10 +1086,10 @@ func UpdateComment(c *Comment, doer *User) error {
 	if err := c.loadIssue(sess); err != nil {
 		return err
 	}
-	if err := c.addCrossReferences(sess, doer, true); err != nil {
+	if err := c.addCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
@@ -1064,17 +1098,17 @@ func UpdateComment(c *Comment, doer *User) error {
 
 // DeleteComment deletes the comment
 func DeleteComment(comment *Comment) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteComment(db.GetEngine(ctx), comment); err != nil {
 		return err
 	}
 
-	if err := deleteComment(sess, comment); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func deleteComment(e db.Engine, comment *Comment) error {
