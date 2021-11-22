@@ -39,25 +39,19 @@
 									{{$class = (printf "%s%s" $class " isWarning")}}
 								{{end}}
 							{{end}}
-							<a class="ui button"
-								data-clipboard-text="{{.ID}}"
-							>
-								{{svg "octicon-copy"}}
-							</a>
 							{{if $.PageIsWiki}}
 								<a href="{{$.RepoLink}}/wiki/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else if $.Reponame}}
 								<a href="{{$.RepoLink}}/commit/{{.ID}}" rel="nofollow" class="{{$class}}">
 							{{else}}
-								<span>
+								<span class="{{$class}}">
 							{{end}}
-									<span class="shortsha">{{ShortSha .ID.String}}</span>
+								<span data-clipboard-text="{{.ID}}">{{svg "octicon-copy"}}</span>
+								<span class="shortsha">{{ShortSha .ID.String}}</span>
 								{{if .Signature}}
 									{{template "repo/shabox_badge" dict "root" $ "verification" .Verification}}
 								{{end}}
-							{{if $.PageIsWiki}}
-								</a>
-							{{else if $.Reponame}}
+							{{if $.Reponame}}
 								</a>
 							{{else}}
 								</span>
