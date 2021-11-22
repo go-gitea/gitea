@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "RubyGems Packages Repository"
-slug: "rubygems"
+slug: "packages/rubygems"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "RubyGems"
-    weight: 60
+    weight: 70
     identifier: "rubygems"
 ---
 

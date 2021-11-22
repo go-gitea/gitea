@@ -1,7 +1,7 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Package Registry"
-slug: "overview"
+slug: "packages/overview"
 draft: false
 toc: false
 menu:
@@ -16,19 +16,22 @@ menu:
 
 The Package Registry can be used as a public or private registry for common package managers.
 
-These package types are supported:
-
-- [Generic]({{< relref "doc/packages/generic.en-us.md" >}})
-- [Composer]({{< relref "doc/packages/composer.en-us.md" >}})
-- [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}})
-- [npm]({{< relref "doc/packages/npm.en-us.md" >}})
-- [Maven]({{< relref "doc/packages/maven.en-us.md" >}})
-- [PyPI]({{< relref "doc/packages/pypi.en-us.md" >}})
-- [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}})
-
 **Table of Contents**
 
 {{< toc >}}
+
+## Supported package managers
+
+The following package managers are currently supported:
+
+| Name | Language | Package client |
+| ---- | -------- | -------------- |
+| [Composer]({{< relref "doc/packages/composer.en-us.md" >}}) | PHP | `composer` |
+| [Generic]({{< relref "doc/packages/generic.en-us.md" >}}) | - | any HTTP client |
+| [Maven]({{< relref "doc/packages/maven.en-us.md" >}}) | Java | `mvn`, `gradle` |
+| [npm]({{< relref "doc/packages/npm.en-us.md" >}}) | JavaScript | `npm` |
+| [NuGet]({{< relref "doc/packages/nuget.en-us.md" >}}) | .NET | `nuget` |
+| [RubyGems]({{< relref "doc/packages/rubygems.en-us.md" >}}) | Ruby | `gem` |
 
 ## View packages
 

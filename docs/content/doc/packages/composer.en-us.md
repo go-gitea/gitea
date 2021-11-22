@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Composer Packages Repository"
-slug: "composer"
+slug: "packages/composer"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "Composer"
-    weight: 15
+    weight: 10
     identifier: "composer"
 ---
 

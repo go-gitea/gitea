@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "NuGet Packages Repository"
-slug: "nuget"
+slug: "packages/nuget"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "NuGet"
-    weight: 20
+    weight: 50
     identifier: "nuget"
 ---
 

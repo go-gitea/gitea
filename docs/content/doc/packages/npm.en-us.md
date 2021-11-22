@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "npm Packages Repository"
-slug: "npm"
+slug: "packages/npm"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "npm"
-    weight: 30
+    weight: 40
     identifier: "npm"
 ---
 

@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Generic Packages Repository"
-slug: "generic"
+slug: "packages/generic"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "Generic"
-    weight: 10
+    weight: 20
     identifier: "generic"
 ---
 

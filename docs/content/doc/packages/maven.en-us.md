@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "Maven Packages Repository"
-slug: "maven"
+slug: "packages/maven"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "Maven"
-    weight: 40
+    weight: 30
     identifier: "maven"
 ---
 

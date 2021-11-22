@@ -1,14 +1,14 @@
 ---
 date: "2021-07-20T00:00:00+00:00"
 title: "PyPI Packages Repository"
-slug: "pypi"
+slug: "packages/pypi"
 draft: false
 toc: false
 menu:
   sidebar:
     parent: "packages"
     name: "PyPI"
-    weight: 50
+    weight: 60
     identifier: "pypi"
 ---
 
