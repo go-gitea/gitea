@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/unknwon/i18n"
 )
@@ -171,18 +172,18 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		if !(st.IsImage() && !st.IsSvgImage()) {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
-		if err = ctxUser.UploadAvatar(data); err != nil {
+		if err = user_service.UploadAvatar(ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
-		if err := ctxUser.GenerateRandomAvatar(); err != nil {
+		if err := models.GenerateRandomAvatar(ctxUser); err != nil {
 			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 		}
 	}
 
-	if err := models.UpdateUserCols(ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 
@@ -203,7 +204,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	if err := ctx.User.DeleteAvatar(); err != nil {
+	if err := user_service.DeleteAvatar(ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 

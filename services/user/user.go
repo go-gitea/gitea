@@ -6,13 +6,18 @@ package user
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
+	"image/png"
+	"io"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -110,4 +115,58 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 	}
 
 	return user_model.DeleteInactiveEmailAddresses(ctx)
+}
+
+// UploadAvatar saves custom avatar for user.
+// FIXME: split uploads to different subdirs in case we have massive users.
+func UploadAvatar(u *models.User, data []byte) error {
+	m, err := avatar.Prepare(data)
+	if err != nil {
+		return err
+	}
+
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	u.UseCustomAvatar = true
+	// Different users can upload same image as avatar
+	// If we prefix it with u.ID, it will be separated
+	// Otherwise, if any of the users delete his avatar
+	// Other users will lose their avatars too.
+	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
+	if err = models.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
+		return fmt.Errorf("updateUser: %v", err)
+	}
+
+	if err := storage.SaveFrom(storage.Avatars, u.CustomAvatarRelativePath(), func(w io.Writer) error {
+		if err := png.Encode(w, *m); err != nil {
+			log.Error("Encode: %v", err)
+		}
+		return err
+	}); err != nil {
+		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
+	}
+
+	return committer.Commit()
+}
+
+// DeleteAvatar deletes the user's custom avatar.
+func DeleteAvatar(u *models.User) error {
+	aPath := u.CustomAvatarRelativePath()
+	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
+	if len(u.Avatar) > 0 {
+		if err := storage.Avatars.Delete(aPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", aPath, err)
+		}
+	}
+
+	u.UseCustomAvatar = false
+	u.Avatar = ""
+	if _, err := db.GetEngine(db.DefaultContext).ID(u.ID).Cols("avatar, use_custom_avatar").Update(u); err != nil {
+		return fmt.Errorf("UpdateUser: %v", err)
+	}
+	return nil
 }

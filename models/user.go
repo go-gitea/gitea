@@ -220,13 +220,13 @@ func (u *User) SetLastLogin() {
 // UpdateDiffViewStyle updates the users diff view style
 func (u *User) UpdateDiffViewStyle(style string) error {
 	u.DiffViewStyle = style
-	return UpdateUserCols(u, "diff_view_style")
+	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
 }
 
 // UpdateTheme updates a users' theme irrespective of the site wide theme
 func (u *User) UpdateTheme(themeName string) error {
 	u.Theme = themeName
-	return UpdateUserCols(u, "theme")
+	return UpdateUserCols(db.DefaultContext, u, "theme")
 }
 
 // GetEmail returns an noreply email, if the user has set to keep his
@@ -661,7 +661,7 @@ func (u *User) EmailNotifications() string {
 // SetEmailNotifications sets the user's email notification preference
 func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
+	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
 		return err
 	}
@@ -1016,8 +1016,8 @@ func UpdateUser(u *User) error {
 }
 
 // UpdateUserCols update user according special columns
-func UpdateUserCols(u *User, cols ...string) error {
-	return updateUserCols(db.GetEngine(db.DefaultContext), u, cols...)
+func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
+	return updateUserCols(db.GetEngine(ctx), u, cols...)
 }
 
 func updateUserCols(e db.Engine, u *User, cols ...string) error {

@@ -246,7 +246,7 @@ func CreateOrganization(org *Organization, owner *User) (err error) {
 	if err = db.Insert(ctx, org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
-	if err = org.AsUser().generateRandomAvatar(db.GetEngine(ctx)); err != nil {
+	if err = generateRandomAvatar(db.GetEngine(ctx), org.AsUser()); err != nil {
 		return fmt.Errorf("generate random avatar: %v", err)
 	}
 
