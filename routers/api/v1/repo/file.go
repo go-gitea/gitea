@@ -625,7 +625,7 @@ func GetFileHistory(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the branch. Default the repository’s default branch (usually master)"
+	//   description: "The name of the ref (branch/tag). Default the repository’s default branch"
 	//   type: string
 	//   required: false
 	// - name: page
