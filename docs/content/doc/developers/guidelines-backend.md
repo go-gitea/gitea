@@ -39,11 +39,12 @@ To maintain understandable code and avoid circular dependencies it is important 
 - `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
 - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
 - `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`.
+- `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
+- `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)
 - `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers. `routers` include `api`, `install`, `private`, `web` the 4 sub packages. `api` conatins routers for `/api/v1` aims to handle RESTful API requests. `install` could only reponse when system is INSTALL mode. `private` will only be invoked by internal sub commands, especially `serv` and `hooks`. `web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
 - `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
 - `templates`: Golang templates for generating the html output.
-- `vendor`: External code that Gitea depends on.
 
 ### Package Dependencies
 
