@@ -302,7 +302,7 @@
 			</div>
 		</div>
 
-		{{if or (.IsRepoAdmin) (.IsIssuePoster)}}
+		{{if and (or (.IsRepoAdmin) (.IsIssuePoster)) (not .Issue.IsPull)}}
 		<div class="ui divider"></div>
 		<div class="ui">
 			<span class="text"><strong>{{.i18n.Tr "repo.issues.confidential"}}</strong></span>

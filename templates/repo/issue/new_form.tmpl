@@ -235,15 +235,17 @@
 						</a>
 					{{end}}
 				</div>
-			<div class="ui divider"></div>
-			<div class="ui checkbox">
-				<input type="checkbox" name="is_confidential">
-				<label>
-					<!-- TODO: Replace it with a better icon! -->
-					{{svg "octicon-archive" 16 "mr-2"}}
-					{{.i18n.Tr "repo.issues.confidential"}}
-				</label>
-			</div>
+			{{if not .PageIsComparePull}}
+				<div class="ui divider"></div>
+				<div class="ui checkbox">
+					<input type="checkbox" name="is_confidential">
+					<label>
+						<!-- TODO: Replace it with a better icon! -->
+						{{svg "octicon-archive" 16 "mr-2"}}
+						{{.i18n.Tr "repo.issues.confidential"}}
+					</label>
+				</div>
+			{{end}}
 		</div>
 		<input type="hidden" name="redirect_after_creation" value="{{.redirect_after_creation}}">
 	</div>
