@@ -63,7 +63,7 @@
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingFingerprint .Fingerprint)}}
-				<div class="ui  segment">
+				<div class="ui segment">
 					<h4>{{$.i18n.Tr "settings.ssh_token_required"}}</h4>
 					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
