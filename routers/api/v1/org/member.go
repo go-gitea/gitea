@@ -192,7 +192,7 @@ func IsPublicMember(ctx *context.APIContext) {
 	}
 	is, err := models.IsPublicMembership(ctx.Org.Organization.ID, userToCheck.ID)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsPublicMember", err)
+		ctx.Error(http.StatusInternalServerError, "IsPublicMembership", err)
 		return
 	}
 	if is {

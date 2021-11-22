@@ -107,7 +107,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !ctxUser.IsVisibleToUser(ctx.User) {
+	if !models.IsUserVisibleToViewer(ctxUser, ctx.User) {
 		ctx.NotFound("user", fmt.Errorf(uname))
 		return
 	}
@@ -232,7 +232,7 @@ func Profile(ctx *context.Context) {
 			Page:     page,
 		})
 		if err != nil {
-			ctx.ServerError("GetFollowers", err)
+			ctx.ServerError("GetUserFollowers", err)
 			return
 		}
 		ctx.Data["Cards"] = items
@@ -244,7 +244,7 @@ func Profile(ctx *context.Context) {
 			Page:     page,
 		})
 		if err != nil {
-			ctx.ServerError("GetFollowing", err)
+			ctx.ServerError("GetUserFollowing", err)
 			return
 		}
 		ctx.Data["Cards"] = items

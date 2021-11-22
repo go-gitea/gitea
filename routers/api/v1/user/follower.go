@@ -93,7 +93,7 @@ func ListFollowers(ctx *context.APIContext) {
 func listUserFollowing(ctx *context.APIContext, u *models.User) {
 	users, err := models.GetUserFollowing(u, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetFollowing", err)
+		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
 		return
 	}
 

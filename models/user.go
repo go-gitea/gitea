@@ -429,12 +429,12 @@ func (u *User) IsPasswordSet() bool {
 	return len(u.Passwd) != 0
 }
 
-// IsVisibleToUser check if viewer is able to see user profile
-func (u *User) IsVisibleToUser(viewer *User) bool {
-	return u.isVisibleToUser(db.GetEngine(db.DefaultContext), viewer)
+// IsUserVisibleToViewer check if viewer is able to see user profile
+func IsUserVisibleToViewer(u *User, viewer *User) bool {
+	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
 }
 
-func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
+func isUserVisibleToViewer(e db.Engine, u *User, viewer *User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}
@@ -659,7 +659,7 @@ func (u *User) EmailNotifications() string {
 }
 
 // SetEmailNotifications sets the user's email notification preference
-func (u *User) SetEmailNotifications(set string) error {
+func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
 	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
@@ -923,25 +923,6 @@ func VerifyUserActiveCode(code string) (user *User) {
 
 		if base.VerifyTimeLimitCode(data, minutes, prefix) {
 			return user
-		}
-	}
-	return nil
-}
-
-// VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
-	minutes := setting.Service.ActiveCodeLives
-
-	if user := getVerifyUser(code); user != nil {
-		// time limit code
-		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
-			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
-				return emailAddress
-			}
 		}
 	}
 	return nil

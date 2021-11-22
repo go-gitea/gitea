@@ -158,7 +158,7 @@ func EmailPost(ctx *context.Context) {
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := ctx.User.SetEmailNotifications(preference); err != nil {
+		if err := models.SetEmailNotifications(ctx.User, preference); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
