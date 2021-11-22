@@ -34,11 +34,10 @@ local prometheus = grafana.prometheus;
                                'Uptime',
                                datasource='$datasource',
                                reducerFunction='last',
-                               graphMode='area',  //none,
-                               colorMode='value',  //background
+                               graphMode='area',
+                               colorMode='value',
                              )
                              .addTarget(prometheus.target(expr='time()-process_start_time_seconds{%s}' % giteaSelector, intervalFactor=1))
-                             // add color
                              + {
                                fieldConfig+: {
                                  defaults+: {

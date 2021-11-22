@@ -1,14 +1,10 @@
 # Gitea Mixin
 
-Gitea Mixin is a set of configurable, reusable, and extensible alerts and
-dashboards based on the metrics exported by the Gitea built-in metrics endpoint. The mixin creates
-recording and alerting rules for Prometheus and suitable dashboard descriptions
-for Grafana.
+Gitea Mixin is a set of configurable Grafana dashboards based on the metrics exported by the Gitea built-in metrics endpoint.
 
 ## Generate config files
 
-You can manually generate the alerts, dashboards and rules files, but first you
-must install some tools:
+You can manually generate dashboards, but first you should install some tools:
 
 ```bash
 go get github.com/jsonnet-bundler/jsonnet-bundler/cmd/jb
@@ -24,8 +20,7 @@ go get github.com/monitoring-mixins/mixtool/cmd/mixtool
 go get github.com/google/go-jsonnet/cmd/jsonnetfmt
 ```
 
-The `prometheus_alerts.yaml` and `prometheus_rules.yaml` file then need to passed
-to your Prometheus server, and the files in `dashboards_out` need to be imported
+The files in `dashboards_out` need to be imported
 into your Grafana server.  The exact details will be depending on your environment.
 
 Edit `config.libsonnet` if required and then build JSON dashboard files for Grafana:

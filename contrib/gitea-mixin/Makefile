@@ -1,6 +1,6 @@
 JSONNET_FMT := jsonnetfmt -n 2 --max-blank-lines 1 --string-style s --comment-style s
 
-default: vendor build dashboards_out prometheus_alerts.yaml prometheus_rules.yaml
+default: vendor build dashboards_out
 
 all: fmt build
 
@@ -21,11 +21,5 @@ lint: build
 dashboards_out: mixin.libsonnet config.libsonnet $(wildcard dashboards/*)
 	@mkdir -p dashboards_out
 	jsonnet -J vendor -m dashboards_out lib/dashboards.jsonnet
-
-prometheus_alerts.yaml: mixin.libsonnet lib/alerts.jsonnet alerts/*.libsonnet
-	jsonnet -J vendor -S lib/alerts.jsonnet > $@
-
-prometheus_rules.yaml: mixin.libsonnet lib/rules.jsonnet rules/*.libsonnet
-	jsonnet -J vendor -S lib/rules.jsonnet > $@
 
 build: vendor
