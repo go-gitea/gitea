@@ -2,15 +2,10 @@
 <div class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		
-		<ul id="displayJobs">
-
-		</ul>
+		<ul id="displayJobs"></ul>
 
 		<!-- display list of timeline -->
-		<div id="displayTimeline" >
-
-		</div>	
+		<div id="displayTimeline"></div>
 	</div>
 
 	<script>
@@ -43,7 +38,7 @@
 		});
 
 		const apiUrl = `${ghHostApiUrl}/${owner}/${repo}/_apis/v1/Message`;
-		
+
 		(async () => {
 			const newjobs = JSON.parse((await (await fetch(apiUrl, {})).text()));
 			let sjobs = newjobs.sort((a, b) => b.requestId - a.requestId);
@@ -78,7 +73,7 @@
 		}
 
 		let timeline = [];
-		
+
 		function setTimeline(f) {
 			timeline = f(timeline);
 		}
@@ -198,14 +193,11 @@
 
 									if (e.record.startLine > 1) {
 										(async () => {
-											console.log('Downloading previous log lines of this step...');
 											const lines = await fetch(`${ghHostApiUrl}/${owner}/${repo}/_apis/v1/TimeLineWebConsoleLog/${item.description}/${e.record.stepId}`, {});
 											if (lines.status === 200) {
 												const missingLines = await lines.json();
 												missingLines.length = e.record.startLine - 1;
 												s.log.content = `${missingLines.reduce((prev, c) => `${(prev.length > 0 ? `${prev}<br/>` : '')}${c.line}`, '')}${s.log.content}`;
-											} else {
-												console.log('No logs to download..., currently fixes itself');
 											}
 										})();
 									}
@@ -251,8 +243,8 @@
 								return timeline;
 							});
 						});
-					} finally {
-						console.log('finally');
+					} catch (error) {
+						console.error(error);
 					}
 
 					return (() => {
@@ -272,7 +264,7 @@
 		#displayJobs {
 			list-style: none;
 
-		}  
+		}
 	</style>
 
 </div>

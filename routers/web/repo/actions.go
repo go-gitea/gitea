@@ -15,7 +15,7 @@ const (
 	tplActions base.TplName = "repo/actions"
 )
 
-// Github Actions for gitea
+// Actions Github Actions for gitea
 func Actions(ctx *context.Context) {
 	/*ctx.Data["Title"] = ctx.Tr("repo.activity")
 	ctx.Data["PageIsActivity"] = true
