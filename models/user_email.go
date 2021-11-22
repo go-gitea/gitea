@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -17,15 +19,15 @@ import (
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(email *user_model.EmailAddress) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := updateActivation(sess, email, true); err != nil {
+	defer committer.Close()
+	if err := updateActivation(db.GetEngine(ctx), email, true); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func updateActivation(e db.Engine, email *user_model.EmailAddress, activate bool) error {
@@ -64,11 +66,12 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 		return ErrUserNotExist{email.UID, "", 0}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// 1. Update user table
 	user.Email = email.Email
@@ -89,7 +92,26 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
+}
+
+// VerifyActiveEmailCode verifies active email code when active account
+func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
+	minutes := setting.Service.ActiveCodeLives
+
+	if user := getVerifyUser(code); user != nil {
+		// time limit code
+		prefix := code[:base.TimeLimitCodeLength]
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
+
+		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
+			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
+				return emailAddress
+			}
+		}
+	}
+	return nil
 }
 
 // SearchEmailOrderBy is used to sort the results from SearchEmails()

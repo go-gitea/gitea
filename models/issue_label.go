@@ -297,11 +297,13 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if label.BelongsToOrg() && label.OrgID != id {
 		return nil
@@ -323,7 +325,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // getLabelByID returns a label by label id

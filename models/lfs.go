@@ -44,27 +44,27 @@ var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	has, err := sess.Get(m)
+	has, err := db.GetByBean(ctx, m)
 	if err != nil {
 		return nil, err
 	}
 
 	if has {
 		m.Existing = true
-		return m, sess.Commit()
+		return m, committer.Commit()
 	}
 
-	if _, err = sess.Insert(m); err != nil {
+	if err = db.Insert(ctx, m); err != nil {
 		return nil, err
 	}
 
-	return m, sess.Commit()
+	return m, committer.Commit()
 }
 
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.
@@ -92,29 +92,28 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 		return 0, ErrLFSObjectNotExist
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return -1, err
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return 0, err
 	}
+	defer committer.Close()
 
 	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
-	if _, err := sess.Delete(m); err != nil {
+	if _, err := db.DeleteByBean(ctx, m); err != nil {
 		return -1, err
 	}
 
-	count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	if err != nil {
 		return count, err
 	}
 
-	return count, sess.Commit()
+	return count, committer.Commit()
 }
 
 // GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
 func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	if page >= 0 && pageSize > 0 {
 		start := 0
@@ -145,11 +144,13 @@ func LFSObjectAccessible(user *User, oid string) (bool, error) {
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
 func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	oids := make([]interface{}, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
@@ -171,20 +172,21 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 		newMetas[i].Size = oidMap[newMetas[i].Oid].Size
 		newMetas[i].RepositoryID = repoID
 	}
-	if _, err := sess.InsertMulti(newMetas); err != nil {
+	if err := db.Insert(ctx, newMetas); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // IterateLFS iterates lfs object
 func IterateLFS(f func(mo *LFSMetaObject) error) error {
 	var start int
 	const batchSize = 100
+	var e = db.GetEngine(db.DefaultContext)
 	for {
 		mos := make([]*LFSMetaObject, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&mos); err != nil {
+		if err := e.Limit(batchSize, start).Find(&mos); err != nil {
 			return err
 		}
 		if len(mos) == 0 {

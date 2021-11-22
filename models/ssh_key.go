@@ -97,11 +97,12 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		return nil, err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
 		return nil, err
@@ -130,7 +131,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
-	return key, sess.Commit()
+	return key, committer.Commit()
 }
 
 // GetPublicKeyByID returns public key by given ID.
@@ -335,20 +336,20 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 		return ErrKeyAccessDenied{doer.ID, key.ID, "public"}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = deletePublicKeys(db.GetEngine(ctx), id); err != nil {
 		return err
 	}
 
-	if err = deletePublicKeys(sess, id); err != nil {
+	if err = committer.Commit(); err != nil {
 		return err
 	}
-
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
+	committer.Close()
 
 	if key.Type == KeyTypePrincipal {
 		return RewriteAllPrincipalKeys()
@@ -360,11 +361,12 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Start session
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return false, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Delete keys marked for deletion
 	var sshKeysNeedUpdate bool
@@ -381,7 +383,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 		sshKeysNeedUpdate = true
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return false, err
 	}
 

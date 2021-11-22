@@ -15,7 +15,7 @@ const fuseOptions = {
   shouldSort: true,
   includeMatches: true,
   matchAllTokens: true,
-  threshold: 0.0, // for parsing diacritics
+  threshold: 0, // for parsing diacritics
   tokenize: true,
   location: 0,
   distance: 100,
@@ -52,7 +52,7 @@ function doSearch() {
     executeSearch(searchQuery);
   } else {
     const para = document.createElement('P');
-    para.innerText = 'Please enter a word or phrase above';
+    para.textContent = 'Please enter a word or phrase above';
     document.getElementById('search-results').appendChild(para);
   }
 }
@@ -60,17 +60,17 @@ function doSearch() {
 function getJSON(url, fn) {
   const request = new XMLHttpRequest();
   request.open('GET', url, true);
-  request.onload = function () {
+  request.addEventListener('load', () => {
     if (request.status >= 200 && request.status < 400) {
       const data = JSON.parse(request.responseText);
       fn(data);
     } else {
       console.error(`Target reached on ${url} with error ${request.status}`);
     }
-  };
-  request.onerror = function () {
+  });
+  request.addEventListener('error', () => {
     console.error(`Connection error ${request.status}`);
-  };
+  });
   request.send();
 }
 
@@ -84,20 +84,20 @@ function executeSearch(searchQuery) {
       populateResults(result);
     } else {
       const para = document.createElement('P');
-      para.innerText = 'No matches found';
+      para.textContent = 'No matches found';
       document.getElementById('search-results').appendChild(para);
     }
   });
 }
 
 function populateResults(result) {
-  result.forEach((value, key) => {
+  for (const [key, value] of result.entries()) {
     const content = value.item.contents;
     let snippet = '';
     const snippetHighlights = [];
     if (fuseOptions.tokenize) {
       snippetHighlights.push(searchQuery);
-      value.matches.forEach((mvalue) => {
+      for (const mvalue of value.matches) {
         if (mvalue.key === 'tags' || mvalue.key === 'categories') {
           snippetHighlights.push(mvalue.value);
         } else if (mvalue.key === 'contents') {
@@ -111,7 +111,7 @@ function populateResults(result) {
             snippetHighlights.push(mvalue.value.substring(mvalue.indices[0][0], mvalue.indices[0][1] - mvalue.indices[0][0] + 1));
           }
         }
-      });
+      }
     }
 
     if (snippet.length < 1) {
@@ -130,10 +130,10 @@ function populateResults(result) {
     });
     document.getElementById('search-results').appendChild(htmlToElement(output));
 
-    snippetHighlights.forEach((snipvalue) => {
+    for (const snipvalue of snippetHighlights) {
       new Mark(document.getElementById(`summary-${key}`)).mark(snipvalue);
-    });
-  });
+    }
+  }
 }
 
 function render(templateString, data) {

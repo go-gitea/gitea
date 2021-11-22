@@ -472,11 +472,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
+	sess := db.GetEngine(db.DefaultContext)
 
 	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
@@ -590,12 +586,12 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	for _, review := range reviews {
 		if _, err := sess.NoAutoTime().Insert(review); err != nil {
@@ -627,7 +623,7 @@ func InsertReviews(reviews []*Review) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // AddReviewRequest add a review request from one reviewer
@@ -920,12 +916,12 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 
 // DeleteReview delete a review and it's code comments
 func DeleteReview(r *Review) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
@@ -959,7 +955,7 @@ func DeleteReview(r *Review) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetCodeCommentsCount return count of CodeComments a Review has

@@ -813,7 +813,6 @@ type ErrInvalidCloneAddr struct {
 	IsPermissionDenied bool
 	LocalPath          bool
 	NotResolvedIP      bool
-	PrivateNet         string
 }
 
 // IsErrInvalidCloneAddr checks if an error is a ErrInvalidCloneAddr.
@@ -825,9 +824,6 @@ func IsErrInvalidCloneAddr(err error) bool {
 func (err *ErrInvalidCloneAddr) Error() string {
 	if err.NotResolvedIP {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: unknown hostname", err.Host)
-	}
-	if len(err.PrivateNet) != 0 {
-		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the host resolve to a private ip address '%s'", err.Host, err.PrivateNet)
 	}
 	if err.IsInvalidPath {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided path is invalid", err.Host)
