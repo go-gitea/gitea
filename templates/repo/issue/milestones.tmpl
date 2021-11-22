@@ -80,8 +80,8 @@
 							{{end}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
-							{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
+							{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" (PrettyNumber .NumOpenIssues)}}
+							{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" (PrettyNumber .NumClosedIssues)}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
 							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
 						</span>

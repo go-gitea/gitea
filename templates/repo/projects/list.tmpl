@@ -47,8 +47,8 @@
 							{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
-							{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
+							{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" (PrettyNumber .NumOpenIssues)}}
+							{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" (PrettyNumber .NumClosedIssues)}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
