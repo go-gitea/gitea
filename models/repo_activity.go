@@ -41,6 +41,8 @@ type ActivityStats struct {
 	Code                        *git.CodeActivityStats
 }
 
+// GetActivityStatsOpts represents the possible options to GetActivityStats
+
 type GetActivityStatsOpts struct {
 	TimeFrom             time.Time
 	UserID               int64
