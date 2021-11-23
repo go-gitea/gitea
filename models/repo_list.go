@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -373,7 +372,6 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	if err != nil {
 		return nil, 0, err
 	}
-	defer sess.Close()
 
 	defaultSize := 50
 	if opts.PageSize > 0 {
@@ -397,7 +395,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	return repos, count, nil
 }
 
-func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*xorm.Session, int64, error) {
+func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -410,7 +408,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 		opts.OrderBy = SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
-	sess := db.NewSession(db.DefaultContext)
+	sess := db.GetEngine(db.DefaultContext)
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -419,14 +417,13 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (*x
 			Where(cond).
 			Count(new(Repository))
 		if err != nil {
-			_ = sess.Close()
 			return nil, 0, fmt.Errorf("Count: %v", err)
 		}
 	}
 
-	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	if opts.PageSize > 0 {
-		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	return sess, count, nil
 }
@@ -495,7 +492,6 @@ func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 	if err != nil {
 		return nil, 0, err
 	}
-	defer sess.Close()
 
 	defaultSize := 50
 	if opts.PageSize > 0 {

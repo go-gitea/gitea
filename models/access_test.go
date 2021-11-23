@@ -90,39 +90,6 @@ func TestHasAccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestUser_GetRepositoryAccesses(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	accesses, err := user1.GetRepositoryAccesses()
-	assert.NoError(t, err)
-	assert.Len(t, accesses, 0)
-
-	user29 := unittest.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
-	accesses, err = user29.GetRepositoryAccesses()
-	assert.NoError(t, err)
-	assert.Len(t, accesses, 2)
-}
-
-func TestUser_GetAccessibleRepositories(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	user1 := unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
-	repos, err := user1.GetAccessibleRepositories(0)
-	assert.NoError(t, err)
-	assert.Len(t, repos, 0)
-
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	repos, err = user2.GetAccessibleRepositories(0)
-	assert.NoError(t, err)
-	assert.Len(t, repos, 4)
-
-	user29 := unittest.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
-	repos, err = user29.GetAccessibleRepositories(0)
-	assert.NoError(t, err)
-	assert.Len(t, repos, 2)
-}
-
 func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())

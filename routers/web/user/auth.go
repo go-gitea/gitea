@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/services/externalaccount"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/markbates/goth"
 	"github.com/tstranex/u2f"
@@ -564,7 +565,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 	// If the user does not have a locale set, we save the current one.
 	if len(u.Language) == 0 {
 		u.Language = ctx.Locale.Language()
-		if err := models.UpdateUserCols(u, "language"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, u, "language"); err != nil {
 			log.Error(fmt.Sprintf("Error updating user language [user: %d, locale: %s]", u.ID, u.Language))
 			return setting.AppSubURL + "/"
 		}
@@ -581,7 +582,7 @@ func handleSignInFull(ctx *context.Context, u *models.User, remember bool, obeyR
 
 	// Register last login
 	u.SetLastLogin()
-	if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, u, "last_login_unix"); err != nil {
 		ctx.ServerError("UpdateUserCols", err)
 		return setting.AppSubURL + "/"
 	}
@@ -736,7 +737,7 @@ func updateAvatarIfNeed(url string, u *models.User) {
 		if err == nil && resp.StatusCode == http.StatusOK {
 			data, err := io.ReadAll(io.LimitReader(resp.Body, setting.Avatar.MaxFileSize+1))
 			if err == nil && int64(len(data)) <= setting.Avatar.MaxFileSize {
-				_ = u.UploadAvatar(data)
+				_ = user_service.UploadAvatar(u, data)
 			}
 		}
 	}
@@ -773,7 +774,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *models.Us
 
 		// Register last login
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, u, "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -1345,7 +1346,7 @@ func handleUserCreated(ctx *context.Context, u *models.User, gothUser *goth.User
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
-		if err := models.UpdateUserCols(u, "is_admin", "is_active", "last_login_unix"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, u, "is_admin", "is_active", "last_login_unix"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -1466,7 +1467,7 @@ func handleAccountActivation(ctx *context.Context, user *models.User) {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
-	if err := models.UpdateUserCols(user, "is_active", "rands"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, user, "is_active", "rands"); err != nil {
 		if models.IsErrUserNotExist(err) {
 			ctx.NotFound("UpdateUserCols", err)
 		} else {
@@ -1726,7 +1727,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 	u.MustChangePassword = false
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -1802,7 +1803,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	u.MustChangePassword = false
 
-	if err := models.UpdateUserCols(u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
