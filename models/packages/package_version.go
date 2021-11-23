@@ -204,7 +204,7 @@ func SearchVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64, error
 		Where(opts.toConds()).
 		Table("package_version").
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Desc("created_unix")
+		Desc("package_version.created_unix")
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
@@ -225,7 +225,7 @@ func SearchLatestVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64,
 		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND package_version.created_unix < pv2.created_unix").
 		Join("INNER", "package", "package.id = package_version.package_id").
 		Where(cond).
-		Desc("created_unix")
+		Desc("package_version.created_unix")
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
