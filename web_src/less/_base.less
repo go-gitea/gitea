@@ -985,6 +985,13 @@ a.ui.card:hover,
     margin: 0 6px;
   }
 
+  .button.copy-commit-sha {
+    border: 1px solid var(--color-light-border);
+    margin-right: 3px;
+    padding: 6px 6px 4px;
+    background: var(--color-light);
+  }
+
   .button.truncate {
     display: inline-block;
     max-width: 100%;
@@ -2095,6 +2102,15 @@ table th[data-sortt-desc] {
 
 .truncated-item-container {
   display: flex !important;
+}
+
+.ellipsis-button {
+  padding: 0 5px 8px !important;
+  display: inline-block !important;
+  user-select: none !important;
+  font-weight: 600 !important;
+  line-height: 6px !important;
+  vertical-align: middle !important;
 }
 
 .truncated-item-name {
