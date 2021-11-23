@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -74,16 +75,16 @@ func isStaring(e db.Engine, userID, repoID int64) bool {
 }
 
 // GetStargazers returns the users that starred the repo.
-func GetStargazers(repo *Repository, opts db.ListOptions) ([]*User, error) {
+func GetStargazers(repo *Repository, opts db.ListOptions) ([]*user_model.User, error) {
 	sess := db.GetEngine(db.DefaultContext).Where("star.repo_id = ?", repo.ID).
 		Join("LEFT", "star", "`user`.id = star.uid")
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 
-		users := make([]*User, 0, opts.PageSize)
+		users := make([]*user_model.User, 0, opts.PageSize)
 		return users, sess.Find(&users)
 	}
 
-	users := make([]*User, 0, 8)
+	users := make([]*user_model.User, 0, 8)
 	return users, sess.Find(&users)
 }

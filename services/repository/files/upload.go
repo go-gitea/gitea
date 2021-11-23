@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -47,7 +48,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 }
 
 // UploadRepoFiles uploads files to the given repository
-func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRepoFileOptions) error {
+func UploadRepoFiles(repo *models.Repository, doer *user_model.User, opts *UploadRepoFileOptions) error {
 	if len(opts.Files) == 0 {
 		return nil
 	}
@@ -67,7 +68,11 @@ func UploadRepoFiles(repo *models.Repository, doer *models.User, opts *UploadRep
 			return err
 		}
 		if lfsLock != nil && lfsLock.OwnerID != doer.ID {
-			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: lfsLock.Owner.Name}
+			u, err := user_model.GetUserByID(lfsLock.OwnerID)
+			if err != nil {
+				return err
+			}
+			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: u.Name}
 		}
 
 		names[i] = upload.Name

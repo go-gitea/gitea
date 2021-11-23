@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -470,7 +471,7 @@ func retrieveProjects(ctx *context.Context, repo *models.Repository) {
 type repoReviewerSelection struct {
 	IsTeam    bool
 	Team      *models.Team
-	User      *models.User
+	User      *user_model.User
 	Review    *models.Review
 	CanChange bool
 	Checked   bool
@@ -503,7 +504,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 		reviewersResult     []*repoReviewerSelection
 		teamReviewersResult []*repoReviewerSelection
 		teamReviewers       []*models.Team
-		reviewers           []*models.User
+		reviewers           []*user_model.User
 	)
 
 	if canChooseReviewer {
@@ -575,7 +576,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 		for _, item := range pullReviews {
 			if item.Review.ReviewerID > 0 {
 				if err = item.Review.LoadReviewer(); err != nil {
-					if models.IsErrUserNotExist(err) {
+					if user_model.IsErrUserNotExist(err) {
 						continue
 					}
 					ctx.ServerError("LoadReviewer", err)
@@ -919,7 +920,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 
 		// Check if the passed assignees actually exists and is assignable
 		for _, aID := range assigneeIDs {
-			assignee, err := models.GetUserByID(aID)
+			assignee, err := user_model.GetUserByID(aID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return nil, nil, 0, 0
@@ -1019,7 +1020,7 @@ func NewIssuePost(ctx *context.Context) {
 }
 
 // roleDescriptor returns the Role Decriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(repo *models.Repository, poster *models.User, issue *models.Issue) (models.RoleDescriptor, error) {
+func roleDescriptor(repo *models.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
 	perm, err := models.GetUserRepoPermission(repo, poster)
 	if err != nil {
 		return models.RoleDescriptorNone, err
@@ -1267,7 +1268,7 @@ func ViewIssue(ctx *context.Context) {
 		ok           bool
 		marked       = make(map[int64]models.RoleDescriptor)
 		comment      *models.Comment
-		participants = make([]*models.User, 1, 10)
+		participants = make([]*user_model.User, 1, 10)
 	)
 	if ctx.Repo.Repository.IsTimetrackerEnabled() {
 		if ctx.IsSigned {
@@ -1430,11 +1431,11 @@ func ViewIssue(ctx *context.Context) {
 				continue
 			}
 			if err = comment.Review.LoadAttributes(); err != nil {
-				if !models.IsErrUserNotExist(err) {
+				if !user_model.IsErrUserNotExist(err) {
 					ctx.ServerError("Review.LoadAttributes", err)
 					return
 				}
-				comment.Review.Reviewer = models.NewGhostUser()
+				comment.Review.Reviewer = user_model.NewGhostUser()
 			}
 			if err = comment.Review.LoadCodeComments(); err != nil {
 				ctx.ServerError("Review.LoadCodeComments", err)
@@ -1833,12 +1834,12 @@ func UpdateIssueAssignee(ctx *context.Context) {
 	for _, issue := range issues {
 		switch action {
 		case "clear":
-			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.User, []*models.User{}); err != nil {
+			if err := issue_service.DeleteNotPassedAssignee(issue, ctx.User, []*user_model.User{}); err != nil {
 				ctx.ServerError("ClearAssignees", err)
 				return
 			}
 		default:
-			assignee, err := models.GetUserByID(assigneeID)
+			assignee, err := user_model.GetUserByID(assigneeID)
 			if err != nil {
 				ctx.ServerError("GetUserByID", err)
 				return
@@ -1949,9 +1950,9 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 			continue
 		}
 
-		reviewer, err := models.GetUserByID(reviewID)
+		reviewer, err := user_model.GetUserByID(reviewID)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				log.Warn(
 					"UpdatePullReviewRequest: requested reviewer [%d] for %-v to %-v#%d is not exist: Error: %v",
 					reviewID, issue.Repo, issue.Index,
@@ -2452,7 +2453,7 @@ func ChangeCommentReaction(ctx *context.Context) {
 	})
 }
 
-func addParticipant(poster *models.User, participants []*models.User) []*models.User {
+func addParticipant(poster *user_model.User, participants []*user_model.User) []*user_model.User {
 	for _, part := range participants {
 		if poster.ID == part.ID {
 			return participants

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -20,7 +21,7 @@ func (repo *Repository) WikiCloneLink() *CloneLink {
 
 // WikiPath returns wiki data path by given user and repository name.
 func WikiPath(userName, repoName string) string {
-	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".wiki.git")
+	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".wiki.git")
 }
 
 // WikiPath returns wiki data path for given repository.

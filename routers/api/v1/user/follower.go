@@ -8,7 +8,6 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -16,7 +15,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
-func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
+func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 	apiUsers := make([]*api.User, len(users))
 	for i := range users {
 		apiUsers[i] = convert.ToUser(users[i], ctx.User)
@@ -24,8 +23,8 @@ func responseAPIUsers(ctx *context.APIContext, users []*models.User) {
 	ctx.JSON(http.StatusOK, &apiUsers)
 }
 
-func listUserFollowers(ctx *context.APIContext, u *models.User) {
-	users, err := models.GetUserFollowers(u, utils.GetListOptions(ctx))
+func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
+	users, err := user_model.GetUserFollowers(u, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
@@ -90,8 +89,8 @@ func ListFollowers(ctx *context.APIContext) {
 	listUserFollowers(ctx, u)
 }
 
-func listUserFollowing(ctx *context.APIContext, u *models.User) {
-	users, err := models.GetUserFollowing(u, utils.GetListOptions(ctx))
+func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
+	users, err := user_model.GetUserFollowing(u, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
 		return
@@ -156,7 +155,7 @@ func ListFollowing(ctx *context.APIContext) {
 	listUserFollowing(ctx, u)
 }
 
-func checkUserFollowing(ctx *context.APIContext, u *models.User, followID int64) {
+func checkUserFollowing(ctx *context.APIContext, u *user_model.User, followID int64) {
 	if user_model.IsFollowing(u.ID, followID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
