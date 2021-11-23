@@ -857,6 +857,10 @@ func NewContext() {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	InternalToken = loadInternalToken(sec)
+	if InstallLock && InternalToken == "" {
+		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		GenerateSaveInternalToken()
+	}
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -968,19 +972,11 @@ func NewContext() {
 
 	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
 	if len(Langs) == 0 {
-		Langs = []string{
-			"en-US", "zh-CN", "zh-HK", "zh-TW", "de-DE", "fr-FR", "nl-NL", "lv-LV",
-			"ru-RU", "uk-UA", "ja-JP", "es-ES", "pt-BR", "pt-PT", "pl-PL", "bg-BG",
-			"it-IT", "fi-FI", "tr-TR", "cs-CZ", "sr-SP", "sv-SE", "ko-KR", "el-GR",
-			"fa-IR", "hu-HU", "id-ID", "ml-IN"}
+		Langs = defaultI18nLangs()
 	}
 	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
 	if len(Names) == 0 {
-		Names = []string{"English", "简体中文", "繁體中文（香港）", "繁體中文（台灣）", "Deutsch",
-			"français", "Nederlands", "latviešu", "русский", "Українська", "日本語",
-			"español", "português do Brasil", "Português de Portugal", "polski", "български",
-			"italiano", "suomi", "Türkçe", "čeština", "српски", "svenska", "한국어", "ελληνικά",
-			"فارسی", "magyar nyelv", "bahasa Indonesia", "മലയാളം"}
+		Names = defaultI18nNames()
 	}
 
 	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
@@ -1047,8 +1043,8 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 
 func loadInternalToken(sec *ini.Section) string {
 	uri := sec.Key("INTERNAL_TOKEN_URI").String()
-	if len(uri) == 0 {
-		return loadOrGenerateInternalToken(sec)
+	if uri == "" {
+		return sec.Key("INTERNAL_TOKEN").String()
 	}
 	tempURI, err := url.Parse(uri)
 	if err != nil {
@@ -1085,21 +1081,17 @@ func loadInternalToken(sec *ini.Section) string {
 	return ""
 }
 
-func loadOrGenerateInternalToken(sec *ini.Section) string {
-	var err error
-	token := sec.Key("INTERNAL_TOKEN").String()
-	if len(token) == 0 {
-		token, err = generate.NewInternalToken()
-		if err != nil {
-			log.Fatal("Error generate internal token: %v", err)
-		}
-
-		// Save secret
-		CreateOrAppendToCustomConf(func(cfg *ini.File) {
-			cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
-		})
+// GenerateSaveInternalToken generates and saves the internal token to app.ini
+func GenerateSaveInternalToken() {
+	token, err := generate.NewInternalToken()
+	if err != nil {
+		log.Fatal("Error generate internal token: %v", err)
 	}
-	return token
+
+	InternalToken = token
+	CreateOrAppendToCustomConf(func(cfg *ini.File) {
+		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
+	})
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
