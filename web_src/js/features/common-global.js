@@ -318,3 +318,12 @@ export function initGlobalButtons() {
     });
   });
 }
+
+export function initNumberFormatting() {
+  const numberFormatter = new Intl.NumberFormat();
+
+  for (const el of document.querySelectorAll('.format-me')) {
+      el.textContent = el.textContent.replace(/\d+/, numberFormatter.format);
+      el.classList.remove('format-me');
+  }
+}
