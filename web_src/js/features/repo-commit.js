@@ -1,6 +1,6 @@
 const {csrfToken} = window.config;
 
-export function initRepoCommitButton() {
+export function initRepoEllipsisButton() {
   $('.ellipsis-button').on('click', function (e) {
     e.preventDefault();
     const expanded = $(this).attr('aria-expanded') === 'true';
