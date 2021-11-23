@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/services/repository/repofiles"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 const (
@@ -244,7 +244,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := repofiles.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &repofiles.UpdateRepoFileOptions{
+	if _, err := files_service.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &files_service.UpdateRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -255,7 +255,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		IsNewFile:    isNewFile,
 		Signoff:      form.Signoff,
 	}); err != nil {
-		// This is where we handle all the errors thrown by repofiles.CreateOrUpdateRepoFile
+		// This is where we handle all the errors thrown by files_service.CreateOrUpdateRepoFile
 		if git.IsErrNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
 		} else if models.IsErrLFSFileLocked(err) {
@@ -369,7 +369,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	diff, err := repofiles.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := files_service.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetDiffPreview: "+err.Error())
 		return
@@ -450,7 +450,7 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &repofiles.DeleteRepoFileOptions{
+	if _, err := files_service.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &files_service.DeleteRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -658,7 +658,7 @@ func UploadFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := repofiles.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &repofiles.UploadRepoFileOptions{
+	if err := files_service.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &files_service.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,

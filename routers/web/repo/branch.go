@@ -25,7 +25,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
-	"code.gitea.io/gitea/services/repository/repofiles"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 const (
@@ -242,7 +242,7 @@ func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranche
 		}
 	}
 
-	divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
+	divergence, divergenceError := files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
 	if divergenceError != nil {
 		ctx.ServerError("CountDivergingCommits", divergenceError)
 		return nil
