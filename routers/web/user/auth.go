@@ -654,7 +654,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 
 			oauth, err := models.GetOAuthByName(oauthProviderName)
 
-			if err == nil {
+			if err != nil {
 				oauth = &models.OAuth{
 					Name: oauthProviderName,
 				}
