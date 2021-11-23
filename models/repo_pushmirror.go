@@ -107,5 +107,6 @@ func PushMirrorsIterate(f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
+		OrderBy("last_update ASC").
 		Iterate(new(PushMirror), f)
 }

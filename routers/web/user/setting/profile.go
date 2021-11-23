@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/unknwon/i18n"
 )
@@ -171,18 +172,18 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		if !(st.IsImage() && !st.IsSvgImage()) {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
-		if err = ctxUser.UploadAvatar(data); err != nil {
+		if err = user_service.UploadAvatar(ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
-		if err := ctxUser.GenerateRandomAvatar(); err != nil {
+		if err := models.GenerateRandomAvatar(ctxUser); err != nil {
 			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 		}
 	}
 
-	if err := models.UpdateUserCols(ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
+	if err := models.UpdateUserCols(db.DefaultContext, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 
@@ -203,7 +204,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	if err := ctx.User.DeleteAvatar(); err != nil {
+	if err := user_service.DeleteAvatar(ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
@@ -301,11 +302,20 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		if err := ctxUser.GetRepositories(db.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
-			ctx.ServerError("GetRepositories", err)
+		userRepos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+			Actor:   ctxUser,
+			Private: true,
+			ListOptions: db.ListOptions{
+				Page:     1,
+				PageSize: setting.UI.Admin.UserPagingNum,
+			},
+			LowerNames: repoNames,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
-		for _, repo := range ctxUser.Repos {
+		for _, repo := range userRepos {
 			if repo.IsFork {
 				if err := repo.GetBaseRepo(); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
@@ -317,16 +327,12 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		var err error
-		var count64 int64
-		ctxUser.Repos, count64, err = models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
-
+		repos, count64, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
-			ctx.ServerError("GetRepositories", err)
+			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
 		count = int(count64)
-		repos := ctxUser.Repos
 
 		for i := range repos {
 			if repos[i].IsFork {
@@ -371,7 +377,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+	if err := models.UpdateUserTheme(ctx.User, form.Theme); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return

@@ -9,8 +9,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/services/mailer"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Authenticate queries if login/password is valid against the LDAP directory pool,
@@ -47,7 +49,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 				cols = append(cols, "is_restricted")
 			}
 			if len(cols) > 0 {
-				err = models.UpdateUserCols(user, cols...)
+				err = models.UpdateUserCols(db.DefaultContext, user, cols...)
 				if err != nil {
 					return nil, err
 				}
@@ -97,7 +99,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 	}
 
 	if err == nil && len(source.AttributeAvatar) > 0 {
-		_ = user.UploadAvatar(sr.Avatar)
+		_ = user_service.UploadAvatar(user, sr.Avatar)
 	}
 
 	return user, err
