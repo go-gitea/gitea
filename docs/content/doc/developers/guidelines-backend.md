@@ -29,7 +29,7 @@ So it's very important to manage these packages. Please take the below guideline
 
 ### Packages List
 
-To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The gitea backend is divided into the following parts:
+To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The Gitea backend is divided into the following parts:
 
 - `build`: Scripts to help build Gitea.
 - `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to mantain Gitea.
@@ -100,7 +100,7 @@ i.e. `servcies/user`, `models/repository`.
 ### Import Alias
 
 Since there are many levels because of package levels, sometimes you will encouter `modules/user`, `models/user`, `services/user`, so we recommand to use import alias. To differ from package variables, use **snake_case** as import package alias.
-i.e. `import user_service "code.gitea.io/gitea/services/user"`
+i.e. `import user_service "code.Gitea.io/Gitea/services/user"`
 
 ### Future Tasks
 
