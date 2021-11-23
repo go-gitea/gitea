@@ -191,9 +191,9 @@ func (r *Repository) BranchNameSubURL() string {
 	case r.IsViewBranch:
 		return "branch/" + r.BranchName
 	case r.IsViewTag:
-		return "tag/" + util.PathEscapeSegments(r.TagName)
+		return "tag/" + r.TagName
 	case r.IsViewCommit:
-		return "commit/" + util.PathEscapeSegments(r.CommitID)
+		return "commit/" + r.CommitID
 	}
 	log.Error("Unknown view type for repo: %v", r)
 	return ""
