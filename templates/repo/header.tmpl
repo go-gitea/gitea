@@ -85,15 +85,23 @@
 						</form>
 					{{end}}
 					{{if and (not .IsEmpty) ($.Permission.CanRead $.UnitTypeCode)}}
-						<div class="ui labeled button{{if not $.IsSigned}} tooltip disabled{{end}}" {{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"{{end}} data-position="top center" data-variation="tiny" tabindex="0">
+						<div class="ui labeled button
+							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0))}}
+								tooltip disabled
+							{{end}}" 
+							{{if not $.IsSigned}}
+								data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"
+							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
+								data-content="{{$.i18n.Tr "repo.fork_from_self"}}"
+							{{end}}
+						data-position="top center" data-variation="tiny" tabindex="0">
 							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}
 										data-modal="#fork-repo-modal"
 									{{else if eq (len $.UserAndOrgForks) 1}}
 										href="{{AppSubUrl}}/{{(index $.UserAndOrgForks 0).FullName}}"
-									{{/*else is not required here, because the button shouldn't link to any site if you
-									can't create a fork, but also doesn't have a fork (which is an impossible scenario)*/}}
+									{{/*else is not required here, because the button shouldn't link to any site if you can't create a fork*/}}
 									{{end}}
 								{{else if eq (len $.UserAndOrgForks) 0}}
 									href="{{AppSubUrl}}/repo/fork/{{.ID}}"
