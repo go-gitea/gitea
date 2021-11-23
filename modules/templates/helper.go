@@ -565,6 +565,12 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 			return AvatarHTML(src, size, class, user.DisplayName())
 		}
 	}
+	if user, ok := item.(*models.Organization); ok {
+		src := (*models.User)(user).AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, user.DisplayName())
+		}
+	}
 	return template.HTML("")
 }
 
