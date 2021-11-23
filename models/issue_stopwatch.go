@@ -13,6 +13,26 @@ import (
 	"xorm.io/xorm"
 )
 
+// ErrIssueStopwatchNotExist represents an error that stopwatch is not exist
+type ErrIssueStopwatchNotExist struct {
+	UserID  int64
+	IssueID int64
+}
+
+func (err ErrIssueStopwatchNotExist) Error() string {
+	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+}
+
+// ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
+type ErrIssueStopwatchAlreadyExist struct {
+	UserID  int64
+	IssueID int64
+}
+
+func (err ErrIssueStopwatchAlreadyExist) Error() string {
+	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+}
+
 // Stopwatch represents a stopwatch for time tracking.
 type Stopwatch struct {
 	ID          int64              `xorm:"pk autoincr"`
@@ -74,91 +94,141 @@ func hasUserStopwatch(e Engine, userID int64) (exists bool, sw *Stopwatch, err e
 	return
 }
 
+// FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore
+func FinishIssueStopwatchIfPossible(user *User, issue *Issue) error {
+	_, exists, err := getStopwatch(x, user.ID, issue.ID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return nil
+	}
+	return FinishIssueStopwatch(user, issue)
+}
+
 // CreateOrStopIssueStopwatch will create or remove a stopwatch and will log it into issue's timeline.
 func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
+	_, exists, err := getStopwatch(x, user.ID, issue.ID)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return FinishIssueStopwatch(user, issue)
+	}
+	return CreateIssueStopwatch(user, issue)
+}
+
+// FinishIssueStopwatch if stopwatch exist then finish it otherwise return an error
+func FinishIssueStopwatch(user *User, issue *Issue) error {
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	if err := createOrStopIssueStopwatch(sess, user, issue); err != nil {
+	if err := finishIssueStopwatch(sess, user, issue); err != nil {
 		return err
 	}
 	return sess.Commit()
 }
 
-func createOrStopIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error {
+func finishIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error {
 	sw, exists, err := getStopwatch(e, user.ID, issue.ID)
 	if err != nil {
 		return err
 	}
+	if !exists {
+		return ErrIssueStopwatchNotExist{
+			UserID:  user.ID,
+			IssueID: issue.ID,
+		}
+	}
+
+	// Create tracked time out of the time difference between start date and actual date
+	timediff := time.Now().Unix() - int64(sw.CreatedUnix)
+
+	// Create TrackedTime
+	tt := &TrackedTime{
+		Created: time.Now(),
+		IssueID: issue.ID,
+		UserID:  user.ID,
+		Time:    timediff,
+	}
+
+	if _, err := e.Insert(tt); err != nil {
+		return err
+	}
+
+	if err := issue.loadRepo(e); err != nil {
+		return err
+	}
+	if _, err := createComment(e, &CreateCommentOptions{
+		Doer:    user,
+		Issue:   issue,
+		Repo:    issue.Repo,
+		Content: SecToTime(timediff),
+		Type:    CommentTypeStopTracking,
+		TimeID:  tt.ID,
+	}); err != nil {
+		return err
+	}
+	_, err = e.Delete(sw)
+	return err
+}
+
+// CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
+func CreateIssueStopwatch(user *User, issue *Issue) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	if err := createIssueStopwatch(sess, user, issue); err != nil {
+		return err
+	}
+	return sess.Commit()
+}
+
+func createIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error {
 	if err := issue.loadRepo(e); err != nil {
 		return err
 	}
 
+	// if another stopwatch is running: stop it
+	exists, sw, err := hasUserStopwatch(e, user.ID)
+	if err != nil {
+		return err
+	}
 	if exists {
-		// Create tracked time out of the time difference between start date and actual date
-		timediff := time.Now().Unix() - int64(sw.CreatedUnix)
-
-		// Create TrackedTime
-		tt := &TrackedTime{
-			Created: time.Now(),
-			IssueID: issue.ID,
-			UserID:  user.ID,
-			Time:    timediff,
-		}
-
-		if _, err := e.Insert(tt); err != nil {
-			return err
-		}
-
-		if _, err := createComment(e, &CreateCommentOptions{
-			Doer:    user,
-			Issue:   issue,
-			Repo:    issue.Repo,
-			Content: SecToTime(timediff),
-			Type:    CommentTypeStopTracking,
-			TimeID:  tt.ID,
-		}); err != nil {
-			return err
-		}
-		if _, err := e.Delete(sw); err != nil {
-			return err
-		}
-	} else {
-		// if another stopwatch is running: stop it
-		exists, sw, err := hasUserStopwatch(e, user.ID)
+		issue, err := getIssueByID(e, sw.IssueID)
 		if err != nil {
 			return err
 		}
-		if exists {
-			issue, err := getIssueByID(e, sw.IssueID)
-			if err != nil {
-				return err
-			}
-			if err := createOrStopIssueStopwatch(e, user, issue); err != nil {
-				return err
-			}
-		}
-
-		// Create stopwatch
-		sw = &Stopwatch{
-			UserID:  user.ID,
-			IssueID: issue.ID,
-		}
-
-		if _, err := e.Insert(sw); err != nil {
+		if err := finishIssueStopwatch(e, user, issue); err != nil {
 			return err
 		}
+	}
 
-		if _, err := createComment(e, &CreateCommentOptions{
-			Doer:  user,
-			Issue: issue,
-			Repo:  issue.Repo,
-			Type:  CommentTypeStartTracking,
-		}); err != nil {
-			return err
-		}
+	// Create stopwatch
+	sw = &Stopwatch{
+		UserID:  user.ID,
+		IssueID: issue.ID,
+	}
+
+	if _, err := e.Insert(sw); err != nil {
+		return err
+	}
+
+	if err := issue.loadRepo(e); err != nil {
+		return err
+	}
+
+	if _, err := createComment(e, &CreateCommentOptions{
+		Doer:  user,
+		Issue: issue,
+		Repo:  issue.Repo,
+		Type:  CommentTypeStartTracking,
+	}); err != nil {
+		return err
 	}
 	return nil
 }

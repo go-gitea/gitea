@@ -13,7 +13,19 @@ import (
 func ChangeStatus(issue *models.Issue, doer *models.User, isClosed bool) (err error) {
 	comment, err := issue.ChangeStatus(doer, isClosed)
 	if err != nil {
-		return
+		// Don't return an error when dependencies are open as this would let the push fail
+		if models.IsErrDependenciesLeft(err) {
+			if isClosed {
+				return models.FinishIssueStopwatchIfPossible(doer, issue)
+			}
+		}
+		return err
+	}
+
+	if isClosed {
+		if err := models.FinishIssueStopwatchIfPossible(doer, issue); err != nil {
+			return err
+		}
 	}
 
 	notification.NotifyIssueChangeStatus(doer, issue, comment, isClosed)
