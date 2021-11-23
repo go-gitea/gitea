@@ -88,7 +88,7 @@
 						<div class="ui labeled button
 							{{if or (not $.IsSigned) (and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0))}}
 								tooltip disabled
-							{{end}}" 
+							{{end}}"
 							{{if not $.IsSigned}}
 								data-content="{{$.i18n.Tr "repo.fork_guest_user"}}"
 							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
