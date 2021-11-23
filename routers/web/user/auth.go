@@ -649,14 +649,28 @@ func SignInOAuthCallback(ctx *context.Context) {
 				ctx.ServerError("CreateUser", err)
 				return
 			}
+
+			oauthProviderName := strings.ToLower(provider)
+
+			oauth, err := models.GetOAuthByName(oauthProviderName)
+
+			if err == nil {
+				oauth = &models.OAuth{
+					Name: oauthProviderName,
+				}
+
+				models.CreateOAuth(oauth)
+			}
+
 			u = &models.User{
-				Name:        getUserName(&gothUser) + "-" + provider,
-				FullName:    gothUser.Name,
-				Email:       gothUser.Email,
-				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:   login.OAuth2,
-				LoginSource: loginSource.ID,
-				LoginName:   gothUser.UserID,
+				Name:          getUserName(&gothUser),
+				FullName:      gothUser.Name,
+				Email:         gothUser.Email,
+				IsActive:      !setting.OAuth2Client.RegisterEmailConfirm,
+				LoginType:     login.OAuth2,
+				LoginSource:   loginSource.ID,
+				LoginName:     gothUser.UserID,
+				OAuthProvider: oauth.ID,
 			}
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
