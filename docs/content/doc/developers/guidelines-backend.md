@@ -35,14 +35,18 @@ To maintain understandable code and avoid circular dependencies it is important 
 - `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to mantain Gitea.
 - `integrations`: Integration tests
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
-- `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
-- `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
-- `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
+  - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
+  - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
+  - `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
 - `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`.
-- `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
-- `modules/git`: Package to interactive with `Git` command line or Gogit package.
+  - `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
+  - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)
-- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers. `routers` include `api`, `install`, `private`, `web` the 4 sub packages. `api` conatins routers for `/api/v1` aims to handle RESTful API requests. `install` could only reponse when system is INSTALL mode. `private` will only be invoked by internal sub commands, especially `serv` and `hooks`. `web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
+- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
+  - `routers/api` Conatins routers for `/api/v1` aims to handle RESTful API requests. 
+  - `routers/install` Could only reponse when system is INSTALL mode. 
+  - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`. 
+  - `routers/web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
 - `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
 - `templates`: Golang templates for generating the html output.
 
@@ -50,7 +54,7 @@ To maintain understandable code and avoid circular dependencies it is important 
 
 Since Golang don't support import cycles, we have to decide the package dependencies carefully. There are some levels between those packages. Below is the ideal package dependencies direction.
 
-`cmd` -> `routers` -> `services` -> `models` -> `models/db` -> `modules`
+`cmd` -> `routers` -> `services` -> `models` -> `modules`
 
 From left to right, left package could depend on right package. The sub packages on the same level could depend on according shi level's rules.
 
