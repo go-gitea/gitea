@@ -334,7 +334,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 			case "You can not import from disallowed hosts.":
 				assert.EqualValues(t, "private-ip", testCase.repoName)
 			default:
-				assert.Fail(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
+				assert.Failf(t, "unexpected error '%v' on url '%s'", respJSON["message"], testCase.cloneURL)
 			}
 		} else {
 			assert.EqualValues(t, testCase.expectedStatus, resp.Code)

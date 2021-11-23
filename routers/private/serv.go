@@ -162,6 +162,14 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 
+		if repo.IsBroken() {
+			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
+				Results: results,
+				Err:     "Repository is in a broken state",
+			})
+			return
+		}
+
 		// We can shortcut at this point if the repo is a mirror
 		if mode > models.AccessModeRead && repo.IsMirror {
 			ctx.JSON(http.StatusForbidden, private.ErrServCommand{
