@@ -1,9 +1,11 @@
 const {csrfToken} = window.config;
 
 export function initRepoCommitButton() {
-  $('.commit-button').on('click', function (e) {
+  $('.ellipsis-button').on('click', function (e) {
     e.preventDefault();
+    const expanded = $(this).attr('aria-expanded') === 'true';
     $(this).parent().find('.commit-body').toggle();
+    $(this).attr('aria-expanded', String(!expanded));
   });
 }
 
