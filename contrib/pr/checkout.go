@@ -215,7 +215,7 @@ func main() {
 		//Use git cli command for windows
 		runCmd("git", "fetch", remoteUpstream, fmt.Sprintf("pull/%s/head:%s", pr, branch))
 	} else {
-		ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
+		ref := fmt.Sprintf(gitea_git.PullPrefix+"%s/head:%s", pr, branchRef)
 		err = repo.Fetch(&git.FetchOptions{
 			RemoteName: remoteUpstream,
 			RefSpecs: []config.RefSpec{

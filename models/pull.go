@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -349,7 +350,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 
 // GetGitRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitRefName() string {
-	return fmt.Sprintf("refs/pull/%d/head", pr.Index)
+	return fmt.Sprintf(git.PullPrefix+"%d/head", pr.Index)
 }
 
 // IsChecking returns true if this pull request is still checking conflict.
