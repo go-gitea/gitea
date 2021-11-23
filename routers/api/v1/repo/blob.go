@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/repofiles"
+	"code.gitea.io/gitea/services/repository/repofiles"
 )
 
 // GetBlob get the blob of a repository file.

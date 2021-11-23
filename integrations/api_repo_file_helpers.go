@@ -6,8 +6,8 @@ package integrations
 
 import (
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/repository/repofiles"
 )
 
 func createFileInBranch(user *models.User, repo *models.Repository, treePath, branchName, content string) (*api.FileResponse, error) {

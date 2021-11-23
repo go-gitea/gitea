@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -83,7 +82,14 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 		},
 	}
 
-	baseBranch, err = repo_module.GetBranch(pr.BaseRepo, pr.BaseBranch)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+		return nil
+	}
+	defer gitRepo.Close()
+
+	baseBranch, err = gitRepo.GetBranch(pr.BaseBranch)
 	if err != nil && !git.IsErrBranchNotExist(err) {
 		log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
 		return nil

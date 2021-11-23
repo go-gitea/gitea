@@ -12,9 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/repofiles"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/repository/repofiles"
 
 	"github.com/stretchr/testify/assert"
 )
