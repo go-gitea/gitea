@@ -522,14 +522,30 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 
+	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink || ctx.Link == ctx.Repo.RepoLink+"/settings" || strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/")
+
 	// Disable everything when the repo is being created
-	if ctx.Repo.Repository.IsBeingCreated() {
+	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
 		ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+		if !isHomeOrSettings {
+			ctx.Redirect(ctx.Repo.RepoLink)
+		}
 		return
 	}
 
 	gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
 	if err != nil {
+		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.Status = models.RepositoryBroken
+			ctx.Repo.Repository.IsEmpty = true
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			// Only allow access to base of repo or settings
+			if !isHomeOrSettings {
+				ctx.Redirect(ctx.Repo.RepoLink)
+			}
+			return
+		}
 		ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
 		return
 	}
@@ -551,6 +567,17 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
+		if strings.Contains(err.Error(), "fatal: not a git repository ") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.Status = models.RepositoryBroken
+			ctx.Repo.Repository.IsEmpty = true
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			// Only allow access to base of repo or settings
+			if !isHomeOrSettings {
+				ctx.Redirect(ctx.Repo.RepoLink)
+			}
+			return
+		}
 		ctx.ServerError("GetTags", err)
 		return
 	}
@@ -919,6 +946,11 @@ func UnitTypes() func(ctx *Context) {
 // IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
 func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 	var issueTemplates []api.IssueTemplate
+
+	if ctx.Repo.Repository.IsEmpty {
+		return issueTemplates
+	}
+
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
