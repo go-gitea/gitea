@@ -196,9 +196,9 @@ func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, err
 		Language:                     cfg.DefaultLanguage,
 		UseCustomAvatar:              true,
 		Avatar:                       avatars.DefaultAvatarLink(),
-		EmailNotificationsPreference: models.EmailNotificationsDisabled,
+		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
 	}
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return nil, err
 	}
 
