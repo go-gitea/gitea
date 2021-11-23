@@ -158,7 +158,7 @@ func finishIssueStopwatch(e *xorm.Session, user *User, issue *Issue) error {
 		return err
 	}
 
-	if err := issue.loadRepo(x); err != nil {
+	if err := issue.loadRepo(e); err != nil {
 		return err
 	}
 	if _, err := createComment(e, &CreateCommentOptions{
