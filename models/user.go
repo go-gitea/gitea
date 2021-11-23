@@ -113,8 +113,6 @@ type User struct {
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
-	OwnedOrgs   []*User       `xorm:"-"`
-	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
 	Rands       string `xorm:"VARCHAR(10)"`
@@ -219,16 +217,16 @@ func (u *User) SetLastLogin() {
 	u.LastLoginUnix = timeutil.TimeStampNow()
 }
 
-// UpdateDiffViewStyle updates the users diff view style
-func (u *User) UpdateDiffViewStyle(style string) error {
+// UpdateUserDiffViewStyle updates the users diff view style
+func UpdateUserDiffViewStyle(u *User, style string) error {
 	u.DiffViewStyle = style
-	return UpdateUserCols(u, "diff_view_style")
+	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
 }
 
-// UpdateTheme updates a users' theme irrespective of the site wide theme
-func (u *User) UpdateTheme(themeName string) error {
+// UpdateUserTheme updates a users' theme irrespective of the site wide theme
+func UpdateUserTheme(u *User, themeName string) error {
 	u.Theme = themeName
-	return UpdateUserCols(u, "theme")
+	return UpdateUserCols(db.DefaultContext, u, "theme")
 }
 
 // GetEmail returns an noreply email, if the user has set to keep his
@@ -254,12 +252,6 @@ func (u *User) IsLocal() bool {
 // IsOAuth2 returns true if user login type is LoginOAuth2.
 func (u *User) IsOAuth2() bool {
 	return u.LoginType == login.OAuth2
-}
-
-// HasForkedRepo checks if user has already forked a repository with given ID.
-func (u *User) HasForkedRepo(repoID int64) bool {
-	_, has := HasForkedRepo(u.ID, repoID)
-	return has
 }
 
 // MaxCreationLimit returns the number of repositories a user is allowed to create
@@ -337,8 +329,8 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	return code
 }
 
-// GetFollowers returns range of user's followers.
-func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
+// GetUserFollowers returns range of user's followers.
+func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.follow_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
@@ -354,13 +346,8 @@ func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
 	return users, sess.Find(&users)
 }
 
-// IsFollowing returns true if user is following followID.
-func (u *User) IsFollowing(followID int64) bool {
-	return user_model.IsFollowing(u.ID, followID)
-}
-
-// GetFollowing returns range of user's following.
-func (u *User) GetFollowing(listOptions db.ListOptions) ([]*User, error) {
+// GetUserFollowing returns range of user's following.
+func GetUserFollowing(u *User, listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.user_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
@@ -442,12 +429,12 @@ func (u *User) IsPasswordSet() bool {
 	return len(u.Passwd) != 0
 }
 
-// IsVisibleToUser check if viewer is able to see user profile
-func (u *User) IsVisibleToUser(viewer *User) bool {
-	return u.isVisibleToUser(db.GetEngine(db.DefaultContext), viewer)
+// IsUserVisibleToViewer check if viewer is able to see user profile
+func IsUserVisibleToViewer(u *User, viewer *User) bool {
+	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
 }
 
-func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
+func isUserVisibleToViewer(e db.Engine, u *User, viewer *User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}
@@ -503,42 +490,11 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
-// IsUserOrgOwner returns true if user is in the owner team of given organization.
-func (u *User) IsUserOrgOwner(orgID int64) bool {
-	isOwner, err := IsOrganizationOwner(orgID, u.ID)
-	if err != nil {
-		log.Error("IsOrganizationOwner: %v", err)
-		return false
-	}
-	return isOwner
-}
-
-// IsPublicMember returns true if user public his/her membership in given organization.
-func (u *User) IsPublicMember(orgID int64) bool {
-	isMember, err := IsPublicMembership(orgID, u.ID)
-	if err != nil {
-		log.Error("IsPublicMembership: %v", err)
-		return false
-	}
-	return isMember
-}
-
 // GetOrganizationCount returns count of membership of organization of the user.
 func GetOrganizationCount(ctx context.Context, u *User) (int64, error) {
 	return db.GetEngine(ctx).
 		Where("uid=?", u.ID).
 		Count(new(OrgUser))
-}
-
-// GetOrganizationCount returns count of membership of organization of user.
-func (u *User) GetOrganizationCount() (int64, error) {
-	return GetOrganizationCount(db.DefaultContext, u)
-}
-
-// GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(listOpts db.ListOptions, names ...string) (err error) {
-	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts, LowerNames: names})
-	return err
 }
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
@@ -644,17 +600,6 @@ func (u *User) GetActiveAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 	return append(ids, ids2...), nil
 }
 
-// GetMirrorRepositories returns mirror repositories that user owns, including private repositories.
-func (u *User) GetMirrorRepositories() ([]*Repository, error) {
-	return GetUserMirrorRepositories(u.ID)
-}
-
-// GetOwnedOrganizations returns all organizations that user owns.
-func (u *User) GetOwnedOrganizations() (err error) {
-	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID)
-	return err
-}
-
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
@@ -714,9 +659,9 @@ func (u *User) EmailNotifications() string {
 }
 
 // SetEmailNotifications sets the user's email notification preference
-func (u *User) SetEmailNotifications(set string) error {
+func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
+	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
 		return err
 	}
@@ -983,25 +928,6 @@ func VerifyUserActiveCode(code string) (user *User) {
 	return nil
 }
 
-// VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
-	minutes := setting.Service.ActiveCodeLives
-
-	if user := getVerifyUser(code); user != nil {
-		// time limit code
-		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
-			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
-				return emailAddress
-			}
-		}
-	}
-	return nil
-}
-
 // ChangeUserName changes all corresponding setting from old user name to new one.
 func ChangeUserName(u *User, newUserName string) (err error) {
 	oldUserName := u.Name
@@ -1090,8 +1016,8 @@ func UpdateUser(u *User) error {
 }
 
 // UpdateUserCols update user according special columns
-func UpdateUserCols(u *User, cols ...string) error {
-	return updateUserCols(db.GetEngine(db.DefaultContext), u, cols...)
+func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
+	return updateUserCols(db.GetEngine(ctx), u, cols...)
 }
 
 func updateUserCols(e db.Engine, u *User, cols ...string) error {
@@ -1227,14 +1153,6 @@ func DeleteUser(ctx context.Context, u *User) (err error) {
 	// ***** START: PublicKey *****
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
-	}
-	err = rewriteAllPublicKeys(e)
-	if err != nil {
-		return err
-	}
-	err = rewriteAllPrincipalKeys(e)
-	if err != nil {
-		return err
 	}
 	// ***** END: PublicKey *****
 

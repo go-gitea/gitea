@@ -125,6 +125,12 @@ func (org *Organization) HomeLink() string {
 	return org.AsUser().HomeLink()
 }
 
+// CanCreateRepo returns if user login can create a repository
+// NOTE: functions calling this assume a failure due to repository count limit; if new checks are added, those functions should be revised
+func (org *Organization) CanCreateRepo() bool {
+	return org.AsUser().CanCreateRepo()
+}
+
 // FindOrgMembersOpts represensts find org members conditions
 type FindOrgMembersOpts struct {
 	db.ListOptions
@@ -240,7 +246,7 @@ func CreateOrganization(org *Organization, owner *User) (err error) {
 	if err = db.Insert(ctx, org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
-	if err = org.AsUser().generateRandomAvatar(db.GetEngine(ctx)); err != nil {
+	if err = generateRandomAvatar(db.GetEngine(ctx), org.AsUser()); err != nil {
 		return fmt.Errorf("generate random avatar: %v", err)
 	}
 
@@ -546,8 +552,8 @@ func CountOrgs(opts FindOrgOptions) (int64, error) {
 		Count(new(User))
 }
 
-func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*User, error) {
-	orgs := make([]*User, 0, 10)
+func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*Organization, error) {
+	orgs := make([]*Organization, 0, 10)
 	return orgs, sess.
 		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
@@ -593,20 +599,20 @@ func HasOrgsVisible(orgs []*Organization, user *User) bool {
 }
 
 // GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
-func GetOwnedOrgsByUserID(userID int64) ([]*User, error) {
+func GetOwnedOrgsByUserID(userID int64) ([]*Organization, error) {
 	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext), userID)
 }
 
 // GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
 // given user ID, ordered descending by the given condition.
-func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*User, error) {
+func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*Organization, error) {
 	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext).Desc(desc), userID)
 }
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
 // are allowed to create repos.
-func GetOrgsCanCreateRepoByUserID(userID int64) ([]*User, error) {
-	orgs := make([]*User, 0, 10)
+func GetOrgsCanCreateRepoByUserID(userID int64) ([]*Organization, error) {
+	orgs := make([]*Organization, 0, 10)
 
 	return orgs, db.GetEngine(db.DefaultContext).Where(builder.In("id", builder.Select("`user`.id").From("`user`").
 		Join("INNER", "`team_user`", "`team_user`.org_id = `user`.id").

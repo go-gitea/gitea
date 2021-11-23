@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -91,6 +93,25 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 	}
 
 	return committer.Commit()
+}
+
+// VerifyActiveEmailCode verifies active email code when active account
+func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
+	minutes := setting.Service.ActiveCodeLives
+
+	if user := getVerifyUser(code); user != nil {
+		// time limit code
+		prefix := code[:base.TimeLimitCodeLength]
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
+
+		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
+			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
+				return emailAddress
+			}
+		}
+	}
+	return nil
 }
 
 // SearchEmailOrderBy is used to sort the results from SearchEmails()
