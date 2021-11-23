@@ -650,7 +650,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			u = &models.User{
-				Name:        getUserName(&gothUser),
+				Name:        getUserName(&gothUser) + "-" + provider,
 				FullName:    gothUser.Name,
 				Email:       gothUser.Email,
 				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
