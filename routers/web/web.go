@@ -236,6 +236,10 @@ func RegisterRoutes(m *web.Route) {
 	if setting.Federation.Enabled {
 		m.Get("/.well-known/nodeinfo", NodeInfoLinks)
 	}
+	m.Get("/.well-known/change-password", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
+	})
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
