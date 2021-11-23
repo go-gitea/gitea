@@ -16,6 +16,7 @@ import (
 	"syscall"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -56,16 +57,22 @@ func confirm() (bool, error) {
 	}
 }
 
-func initDB(ctx context.Context) error {
-	return initDBDisableConsole(ctx, false)
+func ensureInstallLock() {
+	if !setting.InstallLock {
+		log.Fatal("invalid app.ini (no installation flag), please use the correctly installed config file")
+	}
 }
 
-func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
+func initDB(ctx context.Context) error {
 	setting.NewContext()
 	setting.InitDBConfig()
-	setting.NewXORMLogService(disableConsole)
+	setting.NewXORMLogService(false)
+
+	if setting.Database.Type == "" {
+		return errors.New("invalid database settings in app.ini, please use the correctly installed config file")
+	}
 	if err := db.InitEngine(ctx); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+		return fmt.Errorf("cmd.initDB: %v", err)
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 
@@ -17,6 +18,9 @@ import (
 )
 
 func newRequest(ctx context.Context, url, method string) *httplib.Request {
+	if setting.InternalToken == "" {
+		log.Fatal("no internal token, can not send internal request to server. please use correct app.ini")
+	}
 	return httplib.NewRequest(url, method).
 		SetContext(ctx).
 		Header("Authorization",
@@ -44,9 +48,6 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 	})
 	if setting.Protocol == setting.UnixSocket {
 		req.SetTransport(&http.Transport{
-			Dial: func(_, _ string) (net.Conn, error) {
-				return net.Dial("unix", setting.HTTPAddr)
-			},
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
 				return d.DialContext(ctx, "unix", setting.HTTPAddr)
