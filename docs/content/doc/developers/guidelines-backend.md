@@ -56,7 +56,7 @@ Since Golang don't support import cycles, we have to decide the package dependen
 
 `cmd` -> `routers` -> `services` -> `models` -> `modules`
 
-From left to right, left package could depend on right package. The sub packages on the same level could depend on according shi level's rules.
+From left to right, left packages could depend on right packages, but right packages MUST not depend on left packages. The sub packages on the same level could depend on according this level's rules.
 
 **NOTICE**
 
@@ -98,12 +98,12 @@ func UpdateIssue(ctx context.Context, repoID int64) error {
 
 ### Package Name
 
-For the top level package, use a plural as package name, i.e. `services`, `models`, for sub packages, use singular, 
+For the top level package, use a plural as package name, i.e. `services`, `models`, for sub packages, use singular,
 i.e. `servcies/user`, `models/repository`.
 
 ### Import Alias
 
-Since there are many levels because of package levels, sometimes you will encouter `modules/user`, `models/user`, `services/user`, so we recommand to use import alias. To differ from package variables, use **snake_case** as import package alias.
+Since there are many package levels and sub packages, so you will find `modules/user`, `models/user`, `services/user`. When these packages are import into one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So we recommand to always use import alias. To differ from package variables which are commonly use camelCase, just use **snake_case** as import package alias.
 i.e. `import user_service "code.Gitea.io/Gitea/services/user"`
 
 ### Future Tasks
