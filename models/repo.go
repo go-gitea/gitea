@@ -768,7 +768,7 @@ func CanUserForkRepo(user *User, repo *Repository) (bool, error) {
 	if repo.OwnerID != user.ID && !HasForkedRepo(user.ID, repo.ID) {
 		return true, nil
 	}
-	ownedOrgs, err := GetOwnedOrgsByUserID(user.ID)
+	ownedOrgs, err := GetOrgsCanCreateRepoByUserID(user.ID)
 	if err != nil {
 		return false, err
 	}

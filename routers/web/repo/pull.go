@@ -112,9 +112,9 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := models.GetOwnedOrgsByUserID(ctx.User.ID)
+	ownedOrgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetOwnedOrgsByUserID", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	var orgs []*models.Organization
@@ -217,9 +217,9 @@ func ForkPost(ctx *context.Context) {
 
 	// Check ownership of organization.
 	if ctxUser.IsOrganization() {
-		isOwner, err := models.OrgFromUser(ctxUser).IsOwnedBy(ctx.User.ID)
+		isOwner, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
 		} else if !isOwner {
 			ctx.Error(http.StatusForbidden)

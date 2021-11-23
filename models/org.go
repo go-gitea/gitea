@@ -558,7 +558,7 @@ func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*Organization, error)
 		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
 		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
 		Where("`team_user`.uid=?", userID).
-		And("`team`.authorize=?", AccessModeOwner).
+		And("`team`.can_createOrgRepo=?", AccessModeOwner).
 		Asc("`user`.name").
 		Find(&orgs)
 }
