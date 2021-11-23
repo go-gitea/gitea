@@ -107,7 +107,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !ctxUser.IsVisibleToUser(ctx.User) {
+	if !models.IsUserVisibleToViewer(ctxUser, ctx.User) {
 		ctx.NotFound("user", fmt.Errorf(uname))
 		return
 	}
@@ -137,10 +137,16 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	var isFollowing bool
+	if ctx.User != nil && ctxUser != nil {
+		isFollowing = user_model.IsFollowing(ctx.User.ID, ctxUser.ID)
+	}
+
 	ctx.Data["Title"] = ctxUser.DisplayName()
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Owner"] = ctxUser
 	ctx.Data["OpenIDs"] = openIDs
+	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUser(ctxUser, ctx.User)
@@ -167,9 +173,12 @@ func Profile(ctx *context.Context) {
 
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == ctxUser.ID)
 
-	orgs, err := models.GetOrgsByUserID(ctxUser.ID, showPrivate)
+	orgs, err := models.FindOrgs(models.FindOrgOptions{
+		UserID:         ctxUser.ID,
+		IncludePrivate: showPrivate,
+	})
 	if err != nil {
-		ctx.ServerError("GetOrgsByUserIDDesc", err)
+		ctx.ServerError("FindOrgs", err)
 		return
 	}
 
@@ -224,24 +233,24 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
-		items, err := ctxUser.GetFollowers(db.ListOptions{
+		items, err := models.GetUserFollowers(ctxUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
 		if err != nil {
-			ctx.ServerError("GetFollowers", err)
+			ctx.ServerError("GetUserFollowers", err)
 			return
 		}
 		ctx.Data["Cards"] = items
 
 		total = ctxUser.NumFollowers
 	case "following":
-		items, err := ctxUser.GetFollowing(db.ListOptions{
+		items, err := models.GetUserFollowing(ctxUser, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
 		if err != nil {
-			ctx.ServerError("GetFollowing", err)
+			ctx.ServerError("GetUserFollowing", err)
 			return
 		}
 		ctx.Data["Cards"] = items

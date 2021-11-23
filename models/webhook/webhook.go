@@ -507,21 +507,21 @@ func UpdateWebhookLastStatus(w *Webhook) error {
 // deleteWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func deleteWebhook(bean *Webhook) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if count, err := sess.Delete(bean); err != nil {
+	if count, err := db.DeleteByBean(ctx, bean); err != nil {
 		return err
 	} else if count == 0 {
 		return ErrWebhookNotExist{ID: bean.ID}
-	} else if _, err = sess.Delete(&HookTask{HookID: bean.ID}); err != nil {
+	} else if _, err = db.DeleteByBean(ctx, &HookTask{HookID: bean.ID}); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteWebhookByRepoID deletes webhook of repository by given ID.
@@ -542,13 +542,13 @@ func DeleteWebhookByOrgID(orgID, id int64) error {
 
 // DeleteDefaultSystemWebhook deletes an admin-configured default or system webhook (where Org and Repo ID both 0)
 func DeleteDefaultSystemWebhook(id int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	count, err := sess.
+	count, err := db.GetEngine(ctx).
 		Where("repo_id=? AND org_id=?", 0, 0).
 		Delete(&Webhook{ID: id})
 	if err != nil {
@@ -557,11 +557,11 @@ func DeleteDefaultSystemWebhook(id int64) error {
 		return ErrWebhookNotExist{ID: id}
 	}
 
-	if _, err := sess.Delete(&HookTask{HookID: id}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &HookTask{HookID: id}); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // CopyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
