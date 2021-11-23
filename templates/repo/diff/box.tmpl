@@ -112,13 +112,14 @@
 											{{$.i18n.Tr "repo.diff.file_suppressed_line_too_long"}}
 										{{else}}
 											{{$.i18n.Tr "repo.diff.file_suppressed"}}
+											<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.i18n.Tr "repo.diff.load"}}</a>
 										{{end}}
 									{{else}}
 										{{$.i18n.Tr "repo.diff.bin_not_shown"}}
 									{{end}}
 								</div>
 							{{else}}
-								<table class="chroma" data-new-comment-url="{{$.Issue.HTMLURL}}/files/reviews/new_comment">
+								<table class="chroma" data-new-comment-url="{{$.Issue.HTMLURL}}/files/reviews/new_comment" data-path="{{$file.Name}}">
 									{{if $.IsSplitStyle}}
 										{{template "repo/diff/section_split" dict "file" . "root" $}}
 									{{else}}

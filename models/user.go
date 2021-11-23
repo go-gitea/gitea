@@ -22,7 +22,6 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unit"
@@ -32,7 +31,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -115,8 +113,6 @@ type User struct {
 	LoginSource int64 `xorm:"NOT NULL DEFAULT 0"`
 	LoginName   string
 	Type        UserType
-	OwnedOrgs   []*User       `xorm:"-"`
-	Repos       []*Repository `xorm:"-"`
 	Location    string
 	Website     string
 	Rands       string `xorm:"VARCHAR(10)"`
@@ -163,9 +159,6 @@ type User struct {
 	// For organization
 	NumTeams                  int
 	NumMembers                int
-	Teams                     []*Team             `xorm:"-"`
-	Members                   UserList            `xorm:"-"`
-	MembersIsPublic           map[int64]bool      `xorm:"-"`
 	Visibility                structs.VisibleType `xorm:"NOT NULL DEFAULT 0"`
 	RepoAdminChangeTeamAccess bool                `xorm:"NOT NULL DEFAULT false"`
 
@@ -224,16 +217,16 @@ func (u *User) SetLastLogin() {
 	u.LastLoginUnix = timeutil.TimeStampNow()
 }
 
-// UpdateDiffViewStyle updates the users diff view style
-func (u *User) UpdateDiffViewStyle(style string) error {
+// UpdateUserDiffViewStyle updates the users diff view style
+func UpdateUserDiffViewStyle(u *User, style string) error {
 	u.DiffViewStyle = style
-	return UpdateUserCols(u, "diff_view_style")
+	return UpdateUserCols(db.DefaultContext, u, "diff_view_style")
 }
 
-// UpdateTheme updates a users' theme irrespective of the site wide theme
-func (u *User) UpdateTheme(themeName string) error {
+// UpdateUserTheme updates a users' theme irrespective of the site wide theme
+func UpdateUserTheme(u *User, themeName string) error {
 	u.Theme = themeName
-	return UpdateUserCols(u, "theme")
+	return UpdateUserCols(db.DefaultContext, u, "theme")
 }
 
 // GetEmail returns an noreply email, if the user has set to keep his
@@ -259,12 +252,6 @@ func (u *User) IsLocal() bool {
 // IsOAuth2 returns true if user login type is LoginOAuth2.
 func (u *User) IsOAuth2() bool {
 	return u.LoginType == login.OAuth2
-}
-
-// HasForkedRepo checks if user has already forked a repository with given ID.
-func (u *User) HasForkedRepo(repoID int64) bool {
-	_, has := HasForkedRepo(u.ID, repoID)
-	return has
 }
 
 // MaxCreationLimit returns the number of repositories a user is allowed to create
@@ -342,8 +329,8 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 	return code
 }
 
-// GetFollowers returns range of user's followers.
-func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
+// GetUserFollowers returns range of user's followers.
+func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.follow_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
@@ -359,13 +346,8 @@ func (u *User) GetFollowers(listOptions db.ListOptions) ([]*User, error) {
 	return users, sess.Find(&users)
 }
 
-// IsFollowing returns true if user is following followID.
-func (u *User) IsFollowing(followID int64) bool {
-	return user_model.IsFollowing(u.ID, followID)
-}
-
-// GetFollowing returns range of user's following.
-func (u *User) GetFollowing(listOptions db.ListOptions) ([]*User, error) {
+// GetUserFollowing returns range of user's following.
+func GetUserFollowing(u *User, listOptions db.ListOptions) ([]*User, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where("follow.user_id=?", u.ID).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id")
@@ -447,12 +429,12 @@ func (u *User) IsPasswordSet() bool {
 	return len(u.Passwd) != 0
 }
 
-// IsVisibleToUser check if viewer is able to see user profile
-func (u *User) IsVisibleToUser(viewer *User) bool {
-	return u.isVisibleToUser(db.GetEngine(db.DefaultContext), viewer)
+// IsUserVisibleToViewer check if viewer is able to see user profile
+func IsUserVisibleToViewer(u *User, viewer *User) bool {
+	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
 }
 
-func (u *User) isVisibleToUser(e db.Engine, viewer *User) bool {
+func isUserVisibleToViewer(e db.Engine, u *User, viewer *User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}
@@ -508,55 +490,11 @@ func (u *User) IsOrganization() bool {
 	return u.Type == UserTypeOrganization
 }
 
-// IsUserOrgOwner returns true if user is in the owner team of given organization.
-func (u *User) IsUserOrgOwner(orgID int64) bool {
-	isOwner, err := IsOrganizationOwner(orgID, u.ID)
-	if err != nil {
-		log.Error("IsOrganizationOwner: %v", err)
-		return false
-	}
-	return isOwner
-}
-
-// HasMemberWithUserID returns true if user with userID is part of the u organisation.
-func (u *User) HasMemberWithUserID(userID int64) bool {
-	return u.hasMemberWithUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-func (u *User) hasMemberWithUserID(e db.Engine, userID int64) bool {
-	isMember, err := isOrganizationMember(e, u.ID, userID)
-	if err != nil {
-		log.Error("IsOrganizationMember: %v", err)
-		return false
-	}
-	return isMember
-}
-
-// IsPublicMember returns true if user public his/her membership in given organization.
-func (u *User) IsPublicMember(orgID int64) bool {
-	isMember, err := IsPublicMembership(orgID, u.ID)
-	if err != nil {
-		log.Error("IsPublicMembership: %v", err)
-		return false
-	}
-	return isMember
-}
-
-func (u *User) getOrganizationCount(e db.Engine) (int64, error) {
-	return e.
+// GetOrganizationCount returns count of membership of organization of the user.
+func GetOrganizationCount(ctx context.Context, u *User) (int64, error) {
+	return db.GetEngine(ctx).
 		Where("uid=?", u.ID).
 		Count(new(OrgUser))
-}
-
-// GetOrganizationCount returns count of membership of organization of user.
-func (u *User) GetOrganizationCount() (int64, error) {
-	return u.getOrganizationCount(db.GetEngine(db.DefaultContext))
-}
-
-// GetRepositories returns repositories that user owns, including private repositories.
-func (u *User) GetRepositories(listOpts db.ListOptions, names ...string) (err error) {
-	u.Repos, _, err = GetUserRepositories(&SearchRepoOptions{Actor: u, Private: true, ListOptions: listOpts, LowerNames: names})
-	return err
 }
 
 // GetRepositoryIDs returns repositories IDs where user owned and has unittypes
@@ -662,17 +600,6 @@ func (u *User) GetActiveAccessRepoIDs(units ...unit.Type) ([]int64, error) {
 	return append(ids, ids2...), nil
 }
 
-// GetMirrorRepositories returns mirror repositories that user owns, including private repositories.
-func (u *User) GetMirrorRepositories() ([]*Repository, error) {
-	return GetUserMirrorRepositories(u.ID)
-}
-
-// GetOwnedOrganizations returns all organizations that user owns.
-func (u *User) GetOwnedOrganizations() (err error) {
-	u.OwnedOrgs, err = GetOwnedOrgsByUserID(u.ID)
-	return err
-}
-
 // DisplayName returns full name if it's not empty,
 // returns username otherwise.
 func (u *User) DisplayName() string {
@@ -732,9 +659,9 @@ func (u *User) EmailNotifications() string {
 }
 
 // SetEmailNotifications sets the user's email notification preference
-func (u *User) SetEmailNotifications(set string) error {
+func SetEmailNotifications(u *User, set string) error {
 	u.EmailNotificationsPreference = set
-	if err := UpdateUserCols(u, "email_notifications_preference"); err != nil {
+	if err := UpdateUserCols(db.DefaultContext, u, "email_notifications_preference"); err != nil {
 		log.Error("SetEmailNotifications: %v", err)
 		return err
 	}
@@ -1001,25 +928,6 @@ func VerifyUserActiveCode(code string) (user *User) {
 	return nil
 }
 
-// VerifyActiveEmailCode verifies active email code when active account
-func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
-	minutes := setting.Service.ActiveCodeLives
-
-	if user := getVerifyUser(code); user != nil {
-		// time limit code
-		prefix := code[:base.TimeLimitCodeLength]
-		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
-
-		if base.VerifyTimeLimitCode(data, minutes, prefix) {
-			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
-			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
-				return emailAddress
-			}
-		}
-	}
-	return nil
-}
-
 // ChangeUserName changes all corresponding setting from old user name to new one.
 func ChangeUserName(u *User, newUserName string) (err error) {
 	oldUserName := u.Name
@@ -1108,8 +1016,8 @@ func UpdateUser(u *User) error {
 }
 
 // UpdateUserCols update user according special columns
-func UpdateUserCols(u *User, cols ...string) error {
-	return updateUserCols(db.GetEngine(db.DefaultContext), u, cols...)
+func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
+	return updateUserCols(db.GetEngine(ctx), u, cols...)
 }
 
 func updateUserCols(e db.Engine, u *User, cols ...string) error {
@@ -1123,11 +1031,13 @@ func updateUserCols(e db.Engine, u *User, cols ...string) error {
 
 // UpdateUserSetting updates user's settings.
 func UpdateUserSetting(u *User) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
 	if !u.IsOrganization() {
 		if err = checkDupEmail(sess, u); err != nil {
 			return err
@@ -1136,7 +1046,7 @@ func UpdateUserSetting(u *User) (err error) {
 	if err = updateUser(sess, u); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // deleteBeans deletes all given beans, beans should contain delete conditions.
@@ -1149,26 +1059,9 @@ func deleteBeans(e db.Engine, beans ...interface{}) (err error) {
 	return nil
 }
 
-func deleteUser(ctx context.Context, u *User) error {
+// DeleteUser deletes models associated to an user.
+func DeleteUser(ctx context.Context, u *User) (err error) {
 	e := db.GetEngine(ctx)
-	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation.
-
-	// Check ownership of repository.
-	count, err := getRepositoryCount(e, u)
-	if err != nil {
-		return fmt.Errorf("GetRepositoryCount: %v", err)
-	} else if count > 0 {
-		return ErrUserOwnRepos{UID: u.ID}
-	}
-
-	// Check membership of organization.
-	count, err = u.getOrganizationCount(e)
-	if err != nil {
-		return fmt.Errorf("GetOrganizationCount: %v", err)
-	} else if count > 0 {
-		return ErrUserHasOrgs{UID: u.ID}
-	}
 
 	// ***** START: Watch *****
 	watchedRepoIDs := make([]int64, 0, 10)
@@ -1225,6 +1118,7 @@ func deleteUser(ctx context.Context, u *User) error {
 		&TeamUser{UID: u.ID},
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
+		&user_model.Setting{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1260,14 +1154,6 @@ func deleteUser(ctx context.Context, u *User) error {
 	if _, err = e.Delete(&PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
-	err = rewriteAllPublicKeys(e)
-	if err != nil {
-		return err
-	}
-	err = rewriteAllPrincipalKeys(e)
-	if err != nil {
-		return err
-	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
@@ -1301,85 +1187,21 @@ func deleteUser(ctx context.Context, u *User) error {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	// Note: There are something just cannot be roll back,
-	//	so just keep error logs of those operations.
-	path := UserPath(u.Name)
-	if err = util.RemoveAll(path); err != nil {
-		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
-		_ = admin_model.CreateNoticeCtx(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-		return err
-	}
-
-	if len(u.Avatar) > 0 {
-		avatarPath := u.CustomAvatarRelativePath()
-		if err = storage.Avatars.Delete(avatarPath); err != nil {
-			err = fmt.Errorf("Failed to remove %s: %v", avatarPath, err)
-			_ = admin_model.CreateNoticeCtx(ctx, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
-			return err
-		}
-	}
-
 	return nil
 }
 
-// DeleteUser completely and permanently deletes everything of a user,
-// but issues/comments/pulls will be kept and shown as someone has been deleted,
-// unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(u *User) (err error) {
-	if u.IsOrganization() {
-		return fmt.Errorf("%s is an organization not a user", u.Name)
-	}
+// GetInactiveUsers gets all inactive users
+func GetInactiveUsers(ctx context.Context, olderThan time.Duration) ([]*User, error) {
+	var cond builder.Cond = builder.Eq{"is_active": false}
 
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = deleteUser(ctx, u); err != nil {
-		// Note: don't wrapper error here.
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// DeleteInactiveUsers deletes all inactive users and email addresses.
-func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) (err error) {
-	users := make([]*User, 0, 10)
 	if olderThan > 0 {
-		if err = db.GetEngine(db.DefaultContext).
-			Where("is_active = ? and created_unix < ?", false, time.Now().Add(-olderThan).Unix()).
-			Find(&users); err != nil {
-			return fmt.Errorf("get all inactive users: %v", err)
-		}
-	} else {
-		if err = db.GetEngine(db.DefaultContext).
-			Where("is_active = ?", false).
-			Find(&users); err != nil {
-			return fmt.Errorf("get all inactive users: %v", err)
-		}
-	}
-	// FIXME: should only update authorized_keys file once after all deletions.
-	for _, u := range users {
-		select {
-		case <-ctx.Done():
-			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
-		default:
-		}
-		if err = DeleteUser(u); err != nil {
-			// Ignore users that were set inactive by admin.
-			if IsErrUserOwnRepos(err) || IsErrUserHasOrgs(err) {
-				continue
-			}
-			return err
-		}
+		cond = cond.And(builder.Lt{"created_unix": time.Now().Add(-olderThan).Unix()})
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).
-		Where("is_activated = ?", false).
-		Delete(new(user_model.EmailAddress))
-	return err
+	users := make([]*User, 0, 10)
+	return users, db.GetEngine(ctx).
+		Where(cond).
+		Find(&users)
 }
 
 // UserPath returns the path absolute path of user repositories.
@@ -1632,7 +1454,7 @@ type SearchUserOptions struct {
 	IsProhibitLogin    util.OptionalBool
 }
 
-func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
+func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	var cond builder.Cond = builder.Eq{"type": opts.Type}
 	if len(opts.Keyword) > 0 {
 		lowerKeyword := strings.ToLower(opts.Keyword)
@@ -1698,19 +1520,21 @@ func (opts *SearchUserOptions) toSearchQueryBase() (sess *xorm.Session) {
 		cond = cond.And(builder.Eq{"prohibit_login": opts.IsProhibitLogin.IsTrue()})
 	}
 
-	sess = db.NewSession(db.DefaultContext)
-	if !opts.IsTwoFactorEnabled.IsNone() {
-		// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
-		// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
-		if opts.IsTwoFactorEnabled.IsTrue() {
-			cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
-		} else {
-			cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
-		}
-		sess = sess.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id")
+	e := db.GetEngine(db.DefaultContext)
+	if opts.IsTwoFactorEnabled.IsNone() {
+		return e.Where(cond)
 	}
-	sess = sess.Where(cond)
-	return sess
+
+	// 2fa filter uses LEFT JOIN to check whether a user has a 2fa record
+	// TODO: bad performance here, maybe there will be a column "is_2fa_enabled" in the future
+	if opts.IsTwoFactorEnabled.IsTrue() {
+		cond = cond.And(builder.Expr("two_factor.uid IS NOT NULL"))
+	} else {
+		cond = cond.And(builder.Expr("two_factor.uid IS NULL"))
+	}
+
+	return e.Join("LEFT OUTER", "two_factor", "two_factor.uid = `user`.id").
+		Where(cond)
 }
 
 // SearchUsers takes options i.e. keyword and part of user name to search,

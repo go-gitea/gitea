@@ -1,60 +1,62 @@
 const {csrfToken} = window.config;
 
 async function initRepoProjectSortable() {
+  const els = document.querySelectorAll('#project-board > .board');
+  if (!els.length) return;
+
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
-  const boardColumns = document.getElementsByClassName('board-column');
 
-  new Sortable(
-    document.getElementsByClassName('board')[0],
-    {
-      group: 'board-column',
-      draggable: '.board-column',
-      animation: 150,
-      ghostClass: 'card-ghost',
-      onSort: () => {
-        const board = document.getElementsByClassName('board')[0];
-        const boardColumns = board.getElementsByClassName('board-column');
-
-        boardColumns.forEach((column, i) => {
-          if (parseInt($(column).data('sorting')) !== i) {
-            $.ajax({
-              url: $(column).data('url'),
-              data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
-              headers: {
-                'X-Csrf-Token': csrfToken,
-                'X-Remote': true,
-              },
-              contentType: 'application/json',
-              method: 'PUT',
-            });
-          }
-        });
-      },
-    },
-  );
-
-  for (const column of boardColumns) {
-    new Sortable(
-      column.getElementsByClassName('board')[0],
-      {
-        group: 'shared',
-        animation: 150,
-        ghostClass: 'card-ghost',
-        onAdd: (e) => {
-          $.ajax(`${e.to.dataset.url}/${e.item.dataset.issue}`, {
+  // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
+  const mainBoard = els[0];
+  let boardColumns = mainBoard.getElementsByClassName('board-column');
+  new Sortable(mainBoard, {
+    group: 'board-column',
+    draggable: '.board-column',
+    filter: '[data-id="0"]',
+    animation: 150,
+    ghostClass: 'card-ghost',
+    onSort: () => {
+      boardColumns = mainBoard.getElementsByClassName('board-column');
+      for (let i = 0; i < boardColumns.length; i++) {
+        const column = boardColumns[i];
+        if (parseInt($(column).data('sorting')) !== i) {
+          $.ajax({
+            url: $(column).data('url'),
+            data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
             headers: {
               'X-Csrf-Token': csrfToken,
               'X-Remote': true,
             },
             contentType: 'application/json',
-            type: 'POST',
-            error: () => {
-              e.from.insertBefore(e.item, e.from.children[e.oldIndex]);
-            },
+            method: 'PUT',
           });
-        },
+        }
+      }
+    },
+  });
+
+  for (const boardColumn of boardColumns) {
+    const boardCardList = boardColumn.getElementsByClassName('board')[0];
+    new Sortable(boardCardList, {
+      group: 'shared',
+      animation: 150,
+      ghostClass: 'card-ghost',
+      onAdd: ({item, from, to, oldIndex}) => {
+        const url = to.getAttribute('data-url');
+        const issue = item.getAttribute('data-issue');
+        $.ajax(`${url}/${issue}`, {
+          headers: {
+            'X-Csrf-Token': csrfToken,
+            'X-Remote': true,
+          },
+          contentType: 'application/json',
+          type: 'POST',
+          error: () => {
+            from.insertBefore(item, from.children[oldIndex]);
+          },
+        });
       },
-    );
+    });
   }
 }
 

@@ -352,7 +352,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		if opts.RequestedUser.IsOrganization() {
-			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
+			env, err := OrgFromUser(opts.RequestedUser).AccessibleReposEnv(actorID)
 			if err != nil {
 				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 			}
@@ -366,7 +366,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.RequestedTeam != nil {
-		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)

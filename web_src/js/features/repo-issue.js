@@ -167,9 +167,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -182,7 +182,8 @@ export function initRepoIssueCommentDelete() {
 export function initRepoIssueDependencyDelete() {
   // Delete Issue dependency
   $(document).on('click', '.delete-dependency-button', (e) => {
-    const {id, type} = e.currentTarget.dataset;
+    const id = e.currentTarget.getAttribute('data-id');
+    const type = e.currentTarget.getAttribute('data-type');
 
     $('.remove-dependency').modal({
       closable: false,
@@ -348,22 +349,19 @@ export async function updateIssuesMeta(url, action, issueIds, elementId) {
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').on('click', function (event) {
+  $('.re-request-review').on('click', function (e) {
+    e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    event.preventDefault();
     updateIssuesMeta(
       url,
       isChecked ? 'detach' : 'attach',
       issueId,
       id,
-    ).then(() => {
-      window.location.reload();
-    });
-    return false;
+    ).then(() => window.location.reload()); // eslint-disable-line github/no-then
   });
 
   $('.dismiss-review-btn').on('click', function (e) {
@@ -480,14 +478,14 @@ export function initRepoPullRequestReview() {
     $(this).closest('.menu').toggle('visible');
   });
 
-  $('a.add-code-comment').on('click', async function (e) {
+  $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
-    const path = $(this).data('path');
+    const path = $(this).closest('[data-path]').data('path');
     const tr = $(this).closest('tr');
     const lineType = tr.data('line-type');
 
@@ -550,7 +548,10 @@ export function initRepoIssueWipToggle() {
   // Toggle WIP
   $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
     e.preventDefault();
-    const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+    const toggleWip = e.currentTarget.closest('.toggle-wip');
+    const title = toggleWip.getAttribute('data-title');
+    const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
+    const updateUrl = toggleWip.getAttribute('data-update-url');
     await $.post(updateUrl, {
       _csrf: csrfToken,
       title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,

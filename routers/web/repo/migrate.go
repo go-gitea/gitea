@@ -128,10 +128,8 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
-			} else if len(addrErr.PrivateNet) == 0 {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
 			} else {
-				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_private_ip"), tpl, form)
+				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied_blocked"), tpl, form)
 			}
 		case addrErr.IsInvalidPath:
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)

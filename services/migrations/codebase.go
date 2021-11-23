@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/migrations/base"
+	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -46,10 +46,7 @@ func (f *CodebaseDownloaderFactory) New(ctx context.Context, opts base.MigrateOp
 		return nil, fmt.Errorf("invalid path: %s", u.Path)
 	}
 	project := fields[0]
-	repoName := fields[1]
-	if strings.HasSuffix(repoName, ".git") {
-		repoName = repoName[:len(repoName)-4]
-	}
+	repoName := strings.TrimSuffix(fields[1], ".git")
 
 	log.Trace("Create Codebase downloader. BaseURL: %v RepoName: %s", u, repoName)
 
@@ -115,7 +112,7 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 }
 
 // FormatCloneURL add authentification into remote URLs
-func (d *CodebaseDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error) {
+func (d *CodebaseDownloader) FormatCloneURL(opts base.MigrateOptions, remoteAddr string) (string, error) {
 	return opts.CloneAddr, nil
 }
 

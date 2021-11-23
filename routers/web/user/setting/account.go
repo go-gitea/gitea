@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	"code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -73,7 +75,7 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := models.UpdateUserCols(ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := models.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -157,7 +159,7 @@ func EmailPost(ctx *context.Context) {
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := ctx.User.SetEmailNotifications(preference); err != nil {
+		if err := models.SetEmailNotifications(ctx.User, preference); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
@@ -241,7 +243,7 @@ func DeleteAccount(ctx *context.Context) {
 		return
 	}
 
-	if err := models.DeleteUser(ctx.User); err != nil {
+	if err := user.DeleteUser(ctx.User); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("form.still_own_repo"))

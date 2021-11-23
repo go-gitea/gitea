@@ -52,7 +52,9 @@ func TestUserIsPublicMember(t *testing.T) {
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsPublicMember(orgID))
+	is, err := IsPublicMembership(orgID, user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, is)
 }
 
 func TestIsUserOrgOwner(t *testing.T) {
@@ -78,7 +80,9 @@ func TestIsUserOrgOwner(t *testing.T) {
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := GetUserByID(uid)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, user.IsUserOrgOwner(orgID))
+	is, err := IsOrganizationOwner(orgID, user.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, expected, is)
 }
 
 func TestGetUserEmailsByNames(t *testing.T) {
@@ -177,41 +181,6 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{24})
 }
 
-func TestDeleteUser(t *testing.T) {
-	test := func(userID int64) {
-		assert.NoError(t, unittest.PrepareTestDatabase())
-		user := unittest.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
-
-		ownedRepos := make([]*Repository, 0, 10)
-		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&ownedRepos, &Repository{OwnerID: userID}))
-		if len(ownedRepos) > 0 {
-			err := DeleteUser(user)
-			assert.Error(t, err)
-			assert.True(t, IsErrUserOwnRepos(err))
-			return
-		}
-
-		orgUsers := make([]*OrgUser, 0, 10)
-		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&orgUsers, &OrgUser{UID: userID}))
-		for _, orgUser := range orgUsers {
-			if err := RemoveOrgUser(orgUser.OrgID, orgUser.UID); err != nil {
-				assert.True(t, IsErrLastOrgOwner(err))
-				return
-			}
-		}
-		assert.NoError(t, DeleteUser(user))
-		unittest.AssertNotExistsBean(t, &User{ID: userID})
-		unittest.CheckConsistencyFor(t, &User{}, &Repository{})
-	}
-	test(2)
-	test(4)
-	test(8)
-	test(11)
-
-	org := unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	assert.Error(t, DeleteUser(org))
-}
-
 func TestEmailNotificationPreferences(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -233,13 +202,13 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		assert.Equal(t, test.expected, user.EmailNotifications())
 
 		// Try all possible settings
-		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsEnabled))
+		assert.NoError(t, SetEmailNotifications(user, EmailNotificationsEnabled))
 		assert.Equal(t, EmailNotificationsEnabled, user.EmailNotifications())
 
-		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsOnMention))
+		assert.NoError(t, SetEmailNotifications(user, EmailNotificationsOnMention))
 		assert.Equal(t, EmailNotificationsOnMention, user.EmailNotifications())
 
-		assert.NoError(t, user.SetEmailNotifications(EmailNotificationsDisabled))
+		assert.NoError(t, SetEmailNotifications(user, EmailNotificationsDisabled))
 		assert.Equal(t, EmailNotificationsDisabled, user.EmailNotifications())
 	}
 }
@@ -304,9 +273,8 @@ func TestGetOrgRepositoryIDs(t *testing.T) {
 
 func TestNewGitSig(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	sess.Find(&users)
+	err := db.GetEngine(db.DefaultContext).Find(&users)
+	assert.NoError(t, err)
 
 	for _, user := range users {
 		sig := user.NewGitSig()
@@ -319,9 +287,8 @@ func TestNewGitSig(t *testing.T) {
 
 func TestDisplayName(t *testing.T) {
 	users := make([]*User, 0, 20)
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	sess.Find(&users)
+	err := db.GetEngine(db.DefaultContext).Find(&users)
+	assert.NoError(t, err)
 
 	for _, user := range users {
 		displayName := user.DisplayName()
@@ -331,21 +298,6 @@ func TestDisplayName(t *testing.T) {
 		}
 		assert.NotEqual(t, len(strings.TrimSpace(displayName)), 0)
 	}
-}
-
-func TestCreateUser(t *testing.T) {
-	user := &User{
-		Name:               "GiteaBot",
-		Email:              "GiteaBot@gitea.io",
-		Passwd:             ";p['////..-++']",
-		IsAdmin:            false,
-		Theme:              setting.UI.DefaultTheme,
-		MustChangePassword: false,
-	}
-
-	assert.NoError(t, CreateUser(user))
-
-	assert.NoError(t, DeleteUser(user))
 }
 
 func TestCreateUserInvalidEmail(t *testing.T) {
@@ -361,36 +313,6 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 	err := CreateUser(user)
 	assert.Error(t, err)
 	assert.True(t, user_model.IsErrEmailInvalid(err))
-}
-
-func TestCreateUser_Issue5882(t *testing.T) {
-	// Init settings
-	_ = setting.Admin
-
-	passwd := ".//.;1;;//.,-=_"
-
-	tt := []struct {
-		user               *User
-		disableOrgCreation bool
-	}{
-		{&User{Name: "GiteaBot", Email: "GiteaBot@gitea.io", Passwd: passwd, MustChangePassword: false}, false},
-		{&User{Name: "GiteaBot2", Email: "GiteaBot2@gitea.io", Passwd: passwd, MustChangePassword: false}, true},
-	}
-
-	setting.Service.DefaultAllowCreateOrganization = true
-
-	for _, v := range tt {
-		setting.Admin.DisableRegularOrgCreation = v.disableOrgCreation
-
-		assert.NoError(t, CreateUser(v.user))
-
-		u, err := GetUserByEmail(v.user.Email)
-		assert.NoError(t, err)
-
-		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
-
-		assert.NoError(t, DeleteUser(v.user))
-	}
 }
 
 func TestGetUserIDsByNames(t *testing.T) {

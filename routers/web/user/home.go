@@ -47,8 +47,8 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	ctxUser := ctx.User
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
-		ctxUser = ctx.Org.Organization
-		ctx.Data["Teams"] = ctx.Org.Organization.Teams
+		ctxUser = ctx.Org.Organization.AsUser()
+		ctx.Data["Teams"] = ctx.Org.Teams
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
@@ -72,6 +72,8 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
+	cnt, _ := models.GetOrganizationCount(db.DefaultContext, ctxUser)
+	ctx.Data["UserOrgsCount"] = cnt
 
 	var uid int64
 	if ctxUser != nil {
@@ -97,9 +99,9 @@ func Dashboard(ctx *context.Context) {
 	if ctxUser.IsOrganization() {
 		var env models.AccessibleReposEnvironment
 		if ctx.Org.Team != nil {
-			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+			env = models.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
 		} else {
-			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("AccessibleReposEnv", err)
 				return
@@ -111,9 +113,9 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		mirrors, err = ctxUser.GetMirrorRepositories()
+		mirrors, err = models.GetUserMirrorRepositories(ctxUser.ID)
 		if err != nil {
-			ctx.ServerError("GetMirrorRepositories", err)
+			ctx.ServerError("GetUserMirrorRepositories", err)
 			return
 		}
 	}
@@ -756,9 +758,9 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 	var env models.AccessibleReposEnvironment
 
 	if team != nil {
-		env = ctxUser.AccessibleTeamReposEnv(team)
+		env = models.OrgFromUser(ctxUser).AccessibleTeamReposEnv(team)
 	} else {
-		env, err = ctxUser.AccessibleReposEnv(ctxUser.ID)
+		env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctxUser.ID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}

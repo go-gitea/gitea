@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -59,7 +60,7 @@ func neuterCrossReferencesIds(e db.Engine, ids []int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(e db.Engine, doer *User, removeOld bool) error {
+func (issue *Issue) addCrossReferences(stdCtx context.Context, doer *User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -72,10 +73,11 @@ func (issue *Issue) addCrossReferences(e db.Engine, doer *User, removeOld bool) 
 		OrigIssue: issue,
 		RemoveOld: removeOld,
 	}
-	return issue.createCrossReferences(e, ctx, issue.Title, issue.Content)
+	return issue.createCrossReferences(stdCtx, ctx, issue.Title, issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+	e := db.GetEngine(stdCtx)
 	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
@@ -125,7 +127,7 @@ func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesConte
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		_, err := createComment(e, opts)
+		_, err := createComment(stdCtx, opts)
 		if err != nil {
 			return err
 		}
@@ -240,11 +242,11 @@ func (issue *Issue) verifyReferencedIssue(e db.Engine, ctx *crossReferencesConte
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(e db.Engine, doer *User, removeOld bool) error {
+func (comment *Comment) addCrossReferences(stdCtx context.Context, doer *User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}
-	if err := comment.loadIssue(e); err != nil {
+	if err := comment.loadIssue(db.GetEngine(stdCtx)); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{
@@ -254,7 +256,7 @@ func (comment *Comment) addCrossReferences(e db.Engine, doer *User, removeOld bo
 		OrigComment: comment,
 		RemoveOld:   removeOld,
 	}
-	return comment.Issue.createCrossReferences(e, ctx, "", comment.Content)
+	return comment.Issue.createCrossReferences(stdCtx, ctx, "", comment.Content)
 }
 
 func (comment *Comment) neuterCrossReferences(e db.Engine) error {
