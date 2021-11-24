@@ -91,8 +91,7 @@ test('prettyNumber', () => {
   expect(prettyNumber(null)).toEqual('');
   expect(prettyNumber(undefined)).toEqual('');
   expect(prettyNumber('1200')).toEqual('');
-
-  expect(prettyNumber(12345678)).toEqual('12,345,678');
+  expect(prettyNumber(12345678, 'en-US')).toEqual('12,345,678');
   expect(prettyNumber(12345678, 'de-DE')).toEqual('12.345.678');
   expect(prettyNumber(12345678, 'be-BE')).toEqual('12 345 678');
   expect(prettyNumber(12345678, 'hi-IN')).toEqual('1,23,45,678');
