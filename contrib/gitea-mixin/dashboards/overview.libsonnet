@@ -98,7 +98,7 @@ local prometheus = grafana.prometheus;
                               .addTarget(prometheus.target(expr='changes(process_start_time_seconds{%s}[$__rate_interval]) > 0' % [giteaSelector], legendFormat='Restart', intervalFactor=1))
                               .addTargets(
       [
-        prometheus.target(expr='changes(%s{%s}[$__rate_interval]) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=1)
+        prometheus.target(expr='changes(%s{%s}[$__rate_interval]) > 0' % [metric.name, giteaSelector], legendFormat=metric.description, intervalFactor=2)
         for metric in $._config.giteaStatMetrics
       ]
     ),
