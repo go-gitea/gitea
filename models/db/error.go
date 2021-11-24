@@ -4,7 +4,9 @@
 
 package db
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {

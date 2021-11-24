@@ -15,7 +15,7 @@ import (
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
-	unittest.AssertNotExistsBean(t, &models.User{ID: userID})
+	unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
 	unittest.AssertNotExistsBean(t, &user_model.Follow{UserID: userID})
 	unittest.AssertNotExistsBean(t, &user_model.Follow{FollowID: userID})
 	unittest.AssertNotExistsBean(t, &models.Repository{OwnerID: userID})
@@ -38,7 +38,7 @@ func TestUserDeleteAccount(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	assertUserDeleted(t, 8)
-	unittest.CheckConsistencyFor(t, &models.User{})
+	unittest.CheckConsistencyFor(t, &user_model.User{})
 }
 
 func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
@@ -53,5 +53,5 @@ func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusFound)
 
 	// user should not have been deleted, because the user still owns repos
-	unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 }

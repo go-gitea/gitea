@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -113,7 +114,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 }
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
-func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch string) (err error) {
+func ChangeTargetBranch(pr *models.PullRequest, doer *user_model.User, targetBranch string) (err error) {
 	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {
 		return nil
@@ -209,7 +210,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *models.User, targetBranch 
 	return nil
 }
 
-func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *models.User, branch string) error {
+func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
 	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
@@ -231,7 +232,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *m
 
 // AddTestPullRequestTask adds new test tasks by given head/base repository and head/base branch,
 // and generate new patch for testing as needed.
-func AddTestPullRequestTask(doer *models.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
+func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
@@ -494,7 +495,7 @@ func (errs errlist) Error() string {
 }
 
 // CloseBranchPulls close all the pull requests who's head branch is the branch
-func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
+func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error {
 	prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 	if err != nil {
 		return err
@@ -523,7 +524,7 @@ func CloseBranchPulls(doer *models.User, repoID int64, branch string) error {
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
-func CloseRepoBranchesPulls(doer *models.User, repo *models.Repository) error {
+func CloseRepoBranchesPulls(doer *user_model.User, repo *models.Repository) error {
 	branches, _, err := git.GetBranchesByPath(repo.RepoPath(), 0, 0)
 	if err != nil {
 		return err

@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -163,7 +164,7 @@ func setCsvCompareContext(ctx *context.Context) {
 
 // CompareInfo represents the collected results from ParseCompareInfo
 type CompareInfo struct {
-	HeadUser         *models.User
+	HeadUser         *user_model.User
 	HeadRepo         *models.Repository
 	HeadGitRepo      *git.Repository
 	CompareInfo      *git.CompareInfo
@@ -237,9 +238,9 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = models.GetUserByName(headInfos[0])
+			ci.HeadUser, err = user_model.GetUserByName(headInfos[0])
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
+				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
 					ctx.ServerError("GetUserByName", err)
@@ -262,7 +263,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				return nil
 			}
 			if err := ci.HeadRepo.GetOwner(); err != nil {
-				if models.IsErrUserNotExist(err) {
+				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
 					ctx.ServerError("GetUserByName", err)

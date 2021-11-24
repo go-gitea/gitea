@@ -25,7 +25,7 @@ import (
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(u *models.User) error {
+func DeleteUser(u *user_model.User) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
 	}
@@ -72,7 +72,7 @@ func DeleteUser(u *models.User) error {
 
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := models.UserPath(u.Name)
+	path := user_model.UserPath(u.Name)
 	if err := util.RemoveAll(path); err != nil {
 		err = fmt.Errorf("Failed to RemoveAll %s: %v", path, err)
 		_ = admin_model.CreateNotice(db.DefaultContext, admin_model.NoticeTask, fmt.Sprintf("delete user '%s': %v", u.Name, err))
@@ -93,7 +93,7 @@ func DeleteUser(u *models.User) error {
 
 // DeleteInactiveUsers deletes all inactive users and email addresses.
 func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
-	users, err := models.GetInactiveUsers(ctx, olderThan)
+	users, err := user_model.GetInactiveUsers(ctx, olderThan)
 	if err != nil {
 		return err
 	}
@@ -118,7 +118,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 }
 
 // UploadAvatar saves custom avatar for user.
-func UploadAvatar(u *models.User, data []byte) error {
+func UploadAvatar(u *user_model.User, data []byte) error {
 	m, err := avatar.Prepare(data)
 	if err != nil {
 		return err
@@ -136,7 +136,7 @@ func UploadAvatar(u *models.User, data []byte) error {
 	// Otherwise, if any of the users delete his avatar
 	// Other users will lose their avatars too.
 	u.Avatar = fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", u.ID, md5.Sum(data)))))
-	if err = models.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, u, "use_custom_avatar", "avatar"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
@@ -153,7 +153,7 @@ func UploadAvatar(u *models.User, data []byte) error {
 }
 
 // DeleteAvatar deletes the user's custom avatar.
-func DeleteAvatar(u *models.User) error {
+func DeleteAvatar(u *user_model.User) error {
 	aPath := u.CustomAvatarRelativePath()
 	log.Trace("DeleteAvatar[%d]: %s", u.ID, aPath)
 	if len(u.Avatar) > 0 {

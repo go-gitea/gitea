@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -16,7 +17,7 @@ import (
 )
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
-func getWatchedRepos(user *models.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
+func getWatchedRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
 	watchedRepos, total, err := models.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, 0, err
