@@ -232,12 +232,14 @@ func RegisterRoutes(m *web.Route) {
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
-	if setting.Federation.Enabled {
-		m.Get("/.well-known/nodeinfo", NodeInfoLinks)
-	}
-	m.Get("/.well-known/change-password", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
+	m.Group("/.well-known", func() {
+		m.Get("/openid-configuration", user.OIDCWellKnown)
+		if setting.Federation.Enabled {
+			m.Get("/nodeinfo", NodeInfoLinks)
+		}
+		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
+			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
+		})
 	})
 
 	m.Group("/explore", func() {
