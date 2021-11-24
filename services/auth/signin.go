@@ -27,23 +27,20 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 	}
 
 	var user *user_model.User
-	var hasUser bool
 	var err error
 	if strings.Contains(trimmedUsername, "@") { // login with activated email address
 		user, err = user_model.GetUserByEmail(trimmedUsername)
-		if err != nil {
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, nil, err
 		}
-		hasUser = true
 	} else {
-		user = &user_model.User{LowerName: strings.ToLower(trimmedUsername)}
-		hasUser, err = user_model.GetUser(user)
-		if err != nil {
+		user, err = user_model.GetUserByName(trimmedUsername)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, nil, err
 		}
 	}
 
-	if hasUser {
+	if user != nil {
 		source, err := login.GetSourceByID(user.LoginSource)
 		if err != nil {
 			return nil, nil, err
@@ -78,18 +75,12 @@ func UserSignIn(username, password string) (*user_model.User, *login.Source, err
 	}
 
 	for _, source := range sources {
-		if !source.IsActive {
-			// don't try to authenticate non-active sources
-			continue
-		}
-
 		authenticator, ok := source.Cfg.(PasswordAuthenticator)
 		if !ok {
 			continue
 		}
 
 		authUser, err := authenticator.Authenticate(nil, username, password)
-
 		if err == nil {
 			if !authUser.ProhibitLogin {
 				return authUser, source, nil
