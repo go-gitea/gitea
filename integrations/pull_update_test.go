@@ -12,9 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/repofiles"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -97,22 +97,22 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	assert.NotEmpty(t, headRepo)
 
 	//create a commit on base Repo
-	_, err = repofiles.CreateOrUpdateRepoFile(baseRepo, actor, &repofiles.UpdateRepoFileOptions{
+	_, err = files_service.CreateOrUpdateRepoFile(baseRepo, actor, &files_service.UpdateRepoFileOptions{
 		TreePath:  "File_A",
 		Message:   "Add File A",
 		Content:   "File A",
 		IsNewFile: true,
 		OldBranch: "master",
 		NewBranch: "master",
-		Author: &repofiles.IdentityOptions{
+		Author: &files_service.IdentityOptions{
 			Name:  actor.Name,
 			Email: actor.Email,
 		},
-		Committer: &repofiles.IdentityOptions{
+		Committer: &files_service.IdentityOptions{
 			Name:  actor.Name,
 			Email: actor.Email,
 		},
-		Dates: &repofiles.CommitDateOptions{
+		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),
 			Committer: time.Now(),
 		},
@@ -120,22 +120,22 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullReq
 	assert.NoError(t, err)
 
 	//create a commit on head Repo
-	_, err = repofiles.CreateOrUpdateRepoFile(headRepo, actor, &repofiles.UpdateRepoFileOptions{
+	_, err = files_service.CreateOrUpdateRepoFile(headRepo, actor, &files_service.UpdateRepoFileOptions{
 		TreePath:  "File_B",
 		Message:   "Add File on PR branch",
 		Content:   "File B",
 		IsNewFile: true,
 		OldBranch: "master",
 		NewBranch: "newBranch",
-		Author: &repofiles.IdentityOptions{
+		Author: &files_service.IdentityOptions{
 			Name:  actor.Name,
 			Email: actor.Email,
 		},
-		Committer: &repofiles.IdentityOptions{
+		Committer: &files_service.IdentityOptions{
 			Name:  actor.Name,
 			Email: actor.Email,
 		},
-		Dates: &repofiles.CommitDateOptions{
+		Dates: &files_service.CommitDateOptions{
 			Author:    time.Now(),
 			Committer: time.Now(),
 		},
