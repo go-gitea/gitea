@@ -59,7 +59,7 @@ func confirm() (bool, error) {
 
 func ensureInstallLock() {
 	if !setting.InstallLock {
-		log.Fatal("invalid app.ini (no installation flag), please use the correctly installed config file")
+		log.Fatal("invalid installation settings in app.ini (%s), please use the correctly installed config file", setting.CustomConf)
 	}
 }
 
@@ -69,7 +69,7 @@ func initDB(ctx context.Context) error {
 	setting.NewXORMLogService(false)
 
 	if setting.Database.Type == "" {
-		return errors.New("invalid database settings in app.ini, please use the correctly installed config file")
+		return fmt.Errorf("invalid database settings in app.ini (%s), please use the correctly installed config file", setting.CustomConf)
 	}
 	if err := db.InitEngine(ctx); err != nil {
 		return fmt.Errorf("cmd.initDB: %v", err)
