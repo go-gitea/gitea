@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -56,7 +55,7 @@ func registerGarbageCollectRepositories() {
 		Args:    setting.Git.GCArgs,
 	}, func(ctx context.Context, _ *models.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
-		return repo_module.GitGcRepos(ctx, rhcConfig.Timeout, rhcConfig.Args...)
+		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, rhcConfig.Args...)
 	})
 }
 
@@ -96,7 +95,7 @@ func registerReinitMissingRepositories() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return repo_module.ReinitMissingRepositories(ctx)
+		return repo_service.ReinitMissingRepositories(ctx)
 	})
 }
 
@@ -106,7 +105,7 @@ func registerDeleteMissingRepositories() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, user *models.User, _ Config) error {
-		return repo_module.DeleteMissingRepositories(ctx, user)
+		return repo_service.DeleteMissingRepositories(ctx, user)
 	})
 }
 

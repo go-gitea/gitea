@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repofiles
+package files
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -39,7 +39,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	}
 
 	// oldBranch must exist for this operation
-	if _, err := repo_module.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -47,7 +47,7 @@ func DeleteRepoFile(repo *models.Repository, doer *models.User, opts *DeleteRepo
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		newBranch, err := repo_module.GetBranch(repo, opts.NewBranch)
+		newBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
