@@ -164,7 +164,7 @@ func UnsetDefaultEngine() {
 	DefaultContext = nil
 }
 
-// InitEngineWithMigration initializes a new xorm.Engine and set it as db.DefaultContext
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
 // This function must never call .Sync2() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
