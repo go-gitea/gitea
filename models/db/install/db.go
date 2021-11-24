@@ -57,7 +57,7 @@ func HasPostInstallationUsers() (bool, error) {
 		// to debug easily, with non-prod RUN_MODE, we only check the count to 1
 		threshold = 1
 	}
-	res, err := x.Table("user").Cols("id").Where("1=1").Limit(threshold).Query()
+	res, err := x.Table("user").Cols("id").Limit(threshold).Query()
 	if err != nil {
 		return false, err
 	}
