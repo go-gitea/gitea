@@ -23,7 +23,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
+func prepareRepoCommit(repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -215,7 +215,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 			}
 		}()
 
-		if err = prepareRepoCommit(ctx, repo, tmpDir, repoPath, opts); err != nil {
+		if err = prepareRepoCommit(repo, tmpDir, repoPath, opts); err != nil {
 			return fmt.Errorf("prepareRepoCommit: %v", err)
 		}
 

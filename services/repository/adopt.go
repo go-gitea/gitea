@@ -69,7 +69,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 		if err := models.CreateRepository(ctx, doer, u, repo, true); err != nil {
 			return err
 		}
-		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
+		if err := adoptRepository(ctx, repoPath, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
 		if err := repo.CheckDaemonExportOK(ctx); err != nil {
@@ -99,7 +99,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -186,7 +186,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 }
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
-func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error {
+func DeleteUnadoptedRepository(u *user_model.User, repoName string) error {
 	if err := models.IsUsableRepoName(repoName); err != nil {
 		return err
 	}

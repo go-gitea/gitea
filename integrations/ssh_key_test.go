@@ -115,7 +115,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("FailToClone", doGitCloneFail(sshURL))
 
-			t.Run("CreateUserKey", doAPICreateUserKey(ctx, keyname, keyFile, func(t *testing.T, publicKey api.PublicKey) {
+			t.Run("CreateUserKey", doAPICreateUserKey(ctx, keyname, keyFile, func(_ *testing.T, publicKey api.PublicKey) {
 				userKeyPublicKeyID = publicKey.ID
 			}))
 
@@ -186,7 +186,7 @@ func testKeyOnlyOneType(t *testing.T, u *url.URL) {
 
 			t.Run("RecreateRepository", doAPICreateRepository(ctx, false))
 
-			t.Run("CreateUserKey", doAPICreateUserKey(ctx, keyname, keyFile, func(t *testing.T, publicKey api.PublicKey) {
+			t.Run("CreateUserKey", doAPICreateUserKey(ctx, keyname, keyFile, func(_ *testing.T, publicKey api.PublicKey) {
 				userKeyPublicKeyID = publicKey.ID
 			}))
 

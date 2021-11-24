@@ -35,8 +35,8 @@ func registerDeleteRepositoryArchives() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@annually",
-	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return repo_service.DeleteRepositoryArchives(ctx)
+	}, func(_ context.Context, _ *user_model.User, _ Config) error {
+		return repo_service.DeleteRepositoryArchives()
 	})
 }
 
@@ -128,7 +128,7 @@ func registerDeleteOldActions() {
 			Schedule:   "@every 168h",
 		},
 		OlderThan: 365 * 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(_ context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
 		return models.DeleteOldActions(olderThanConfig.OlderThan)
 	})
@@ -146,7 +146,7 @@ func registerUpdateGiteaChecker() {
 			Schedule:   "@every 168h",
 		},
 		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(_ context.Context, _ *user_model.User, config Config) error {
 		updateCheckerConfig := config.(*UpdateCheckerConfig)
 		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
 	})

@@ -156,7 +156,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.Use
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bool) bool {
+func (r *Repository) CanCreateIssueDependencies(isPull bool) bool {
 	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 

@@ -65,7 +65,7 @@ func (l *LocalStorage) Open(path string) (Object, error) {
 }
 
 // Save a file
-func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error) {
+func (l *LocalStorage) Save(path string, r io.Reader, _ int64) (int64, error) {
 	p := filepath.Join(l.dir, path)
 	if err := os.MkdirAll(filepath.Dir(p), os.ModePerm); err != nil {
 		return 0, err
@@ -116,7 +116,7 @@ func (l *LocalStorage) Delete(path string) error {
 }
 
 // URL gets the redirect URL to a file
-func (l *LocalStorage) URL(path, name string) (*url.URL, error) {
+func (l *LocalStorage) URL(_, _ string) (*url.URL, error) {
 	return nil, ErrURLNotSupported
 }
 

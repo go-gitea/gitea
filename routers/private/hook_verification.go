@@ -47,7 +47,7 @@ func verifyCommits(oldCommitID, newCommitID string, repo *git.Repository, env []
 	err = git.NewCommand("rev-list", oldCommitID+"..."+newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+			func(_ context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
 				err := readAndVerifyCommitsFromShaReader(stdoutReader, repo, env)
 				if err != nil {
@@ -91,7 +91,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 	return git.NewCommand("cat-file", "commit", sha).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+			func(_ context.Context, cancel context.CancelFunc) error {
 				_ = stdoutWriter.Close()
 				commit, err := git.CommitFromReader(repo, hash, stdoutReader)
 				if err != nil {

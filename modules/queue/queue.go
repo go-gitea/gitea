@@ -65,7 +65,7 @@ type Queue interface {
 const DummyQueueType Type = "dummy"
 
 // NewDummyQueue creates a new DummyQueue
-func NewDummyQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
+func NewDummyQueue(_ HandlerFunc, _, _ interface{}) (Queue, error) {
 	return &DummyQueue{}, nil
 }
 
@@ -110,7 +110,7 @@ func (*DummyQueue) IsEmpty() bool {
 const ImmediateType Type = "immediate"
 
 // NewImmediate creates a new false queue to execute the function when push
-func NewImmediate(handler HandlerFunc, opts, exemplar interface{}) (Queue, error) {
+func NewImmediate(handler HandlerFunc, _, _ interface{}) (Queue, error) {
 	return &Immediate{
 		handler: handler,
 	}, nil

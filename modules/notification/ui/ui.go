@@ -51,7 +51,7 @@ func (ns *notificationService) Run() {
 	graceful.GetManager().RunWithShutdownFns(ns.issueQueue.Run)
 }
 
-func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, _ *models.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	var opts = issueNotificationOpts{
 		IssueID:              issue.ID,
@@ -88,9 +88,10 @@ func (ns *notificationService) NotifyNewIssue(issue *models.Issue, mentions []*u
 	}
 }
 
-func (ns *notificationService) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+func (ns *notificationService) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, _ bool) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
+		CommentID:            actionComment.ID,
 		NotificationAuthorID: doer.ID,
 	})
 }

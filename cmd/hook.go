@@ -168,7 +168,7 @@ func runHookPreReceive(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("hooks/pre-receive.log", c.Bool("debug"))
+	setup(c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -299,7 +299,7 @@ Gitea or set your environment appropriately.`, "")
 	return nil
 }
 
-func runHookUpdate(c *cli.Context) error {
+func runHookUpdate(_ *cli.Context) error {
 	// Update is empty and is kept only for backwards compatibility
 	return nil
 }
@@ -318,7 +318,7 @@ func runHookPostReceive(c *cli.Context) error {
 		return nil
 	}
 
-	setup("hooks/post-receive.log", c.Bool("debug"))
+	setup(c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
@@ -484,7 +484,7 @@ func pushOptions() map[string]string {
 }
 
 func runHookProcReceive(c *cli.Context) error {
-	setup("hooks/proc-receive.log", c.Bool("debug"))
+	setup(c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {

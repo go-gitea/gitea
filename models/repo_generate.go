@@ -80,7 +80,7 @@ func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository)
 }
 
 // GenerateGitHooks generates git hooks from a template repository
-func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *Repository) error {
+func GenerateGitHooks(templateRepo, generateRepo *Repository) error {
 	generateGitRepo, err := git.OpenRepository(generateRepo.RepoPath())
 	if err != nil {
 		return err

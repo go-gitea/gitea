@@ -33,7 +33,7 @@ func getDeleteRepoFileOptions(repo *models.Repository) *files_service.DeleteRepo
 	}
 }
 
-func getExpectedDeleteFileResponse(u *url.URL) *api.FileResponse {
+func getExpectedDeleteFileResponse() *api.FileResponse {
 	// Just returns fields that don't change, i.e. fields with commit SHAs and dates can't be determined
 	return &api.FileResponse{
 		Content: nil,
@@ -65,7 +65,7 @@ func TestDeleteRepoFile(t *testing.T) {
 	onGiteaRun(t, testDeleteRepoFile)
 }
 
-func testDeleteRepoFile(t *testing.T, u *url.URL) {
+func testDeleteRepoFile(t *testing.T, _ *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
@@ -82,7 +82,7 @@ func testDeleteRepoFile(t *testing.T, u *url.URL) {
 	t.Run("Delete README.md file", func(t *testing.T) {
 		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
 		assert.NoError(t, err)
-		expectedFileResponse := getExpectedDeleteFileResponse(u)
+		expectedFileResponse := getExpectedDeleteFileResponse()
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
 		assert.EqualValues(t, expectedFileResponse.Commit.Message, fileResponse.Commit.Message)
@@ -104,7 +104,7 @@ func TestDeleteRepoFileWithoutBranchNames(t *testing.T) {
 	onGiteaRun(t, testDeleteRepoFileWithoutBranchNames)
 }
 
-func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
+func testDeleteRepoFileWithoutBranchNames(t *testing.T, _ *url.URL) {
 	// setup
 	unittest.PrepareTestEnv(t)
 	ctx := test.MockContext(t, "user2/repo1")
@@ -124,7 +124,7 @@ func testDeleteRepoFileWithoutBranchNames(t *testing.T, u *url.URL) {
 	t.Run("Delete README.md without Branch Name", func(t *testing.T) {
 		fileResponse, err := files_service.DeleteRepoFile(repo, doer, opts)
 		assert.NoError(t, err)
-		expectedFileResponse := getExpectedDeleteFileResponse(u)
+		expectedFileResponse := getExpectedDeleteFileResponse()
 		assert.NotNil(t, fileResponse)
 		assert.Nil(t, fileResponse.Content)
 		assert.EqualValues(t, expectedFileResponse.Commit.Message, fileResponse.Commit.Message)

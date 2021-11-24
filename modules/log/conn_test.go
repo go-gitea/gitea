@@ -103,7 +103,7 @@ func TestConnLoggerBadConfig(t *testing.T) {
 	logger.Close()
 }
 
-func TestConnLoggerCloseBeforeSend(t *testing.T) {
+func TestConnLoggerCloseBeforeSend(_ *testing.T) {
 	protocol := "tcp"
 	address := ":3099"
 

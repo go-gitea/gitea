@@ -1246,7 +1246,7 @@ func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName string) (err error) {
+func ChangeRepositoryName(repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
@@ -1824,7 +1824,7 @@ func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.
-func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
+func DeleteOldRepositoryArchives(olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
 	for {
@@ -1839,7 +1839,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 		}
 
 		for _, archiver := range archivers {
-			if err := deleteOldRepoArchiver(ctx, &archiver); err != nil {
+			if err := deleteOldRepoArchiver(&archiver); err != nil {
 				return err
 			}
 		}
@@ -1854,7 +1854,7 @@ func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) e
 
 var delRepoArchiver = new(RepoArchiver)
 
-func deleteOldRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
+func deleteOldRepoArchiver(archiver *RepoArchiver) error {
 	p, err := archiver.RelativePath()
 	if err != nil {
 		return err

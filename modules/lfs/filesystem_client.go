@@ -39,7 +39,7 @@ func (c *FilesystemClient) objectPath(oid string) string {
 }
 
 // Download reads the specific LFS object from the target path
-func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, callback DownloadCallback) error {
+func (c *FilesystemClient) Download(_ context.Context, objects []Pointer, callback DownloadCallback) error {
 	for _, object := range objects {
 		p := Pointer{object.Oid, object.Size}
 
@@ -58,7 +58,7 @@ func (c *FilesystemClient) Download(ctx context.Context, objects []Pointer, call
 }
 
 // Upload writes the specific LFS object to the target path
-func (c *FilesystemClient) Upload(ctx context.Context, objects []Pointer, callback UploadCallback) error {
+func (c *FilesystemClient) Upload(_ context.Context, objects []Pointer, callback UploadCallback) error {
 	for _, object := range objects {
 		p := Pointer{object.Oid, object.Size}
 

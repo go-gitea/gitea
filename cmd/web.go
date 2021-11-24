@@ -109,7 +109,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Perform pre-initialization
-	needsInstall := install.PreloadSettings(graceful.GetManager().HammerContext())
+	needsInstall := install.PreloadSettings()
 	if needsInstall {
 		// Flag for port number in case first time run conflict
 		if ctx.IsSet("port") {

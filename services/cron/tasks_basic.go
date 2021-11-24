@@ -78,9 +78,9 @@ func registerArchiveCleanup() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(_ context.Context, _ *user_model.User, config Config) error {
 		acConfig := config.(*OlderThanConfig)
-		return models.DeleteOldRepositoryArchives(ctx, acConfig.OlderThan)
+		return models.DeleteOldRepositoryArchives(acConfig.OlderThan)
 	})
 }
 
@@ -106,9 +106,9 @@ func registerDeletedBranchesCleanup() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+	}, func(_ context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		models.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
+		models.RemoveOldDeletedBranches(realConfig.OlderThan)
 		return nil
 	})
 }

@@ -31,7 +31,7 @@ func TestDeleteBranch(t *testing.T) {
 }
 
 func TestUndoDeleteBranch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		deleteBranch(t)
 		htmlDoc, name := branchAction(t, ".undo-button")
 		assert.Contains(t,

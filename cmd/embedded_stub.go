@@ -24,7 +24,7 @@ var (
 	}
 )
 
-func extractorNotImplemented(c *cli.Context) error {
+func extractorNotImplemented(_ *cli.Context) error {
 	err := fmt.Errorf("Sorry: the 'embedded' subcommand is not available in builds without bindata")
 	fmt.Fprintf(os.Stderr, "%s\n", err)
 	return err

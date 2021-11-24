@@ -836,7 +836,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull_service.Merge(pr, ctx.User, models.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", models.MergeStyle(form.Do)))
 			return

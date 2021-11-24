@@ -85,7 +85,7 @@ func NewLevelQueueByteFIFO(connection, prefix string) (*LevelQueueByteFIFO, erro
 }
 
 // PushFunc will push data into the fifo
-func (fifo *LevelQueueByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
+func (fifo *LevelQueueByteFIFO) PushFunc(_ context.Context, data []byte, fn func() error) error {
 	if fn != nil {
 		if err := fn(); err != nil {
 			return err
@@ -95,7 +95,7 @@ func (fifo *LevelQueueByteFIFO) PushFunc(ctx context.Context, data []byte, fn fu
 }
 
 // Pop pops data from the start of the fifo
-func (fifo *LevelQueueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
+func (fifo *LevelQueueByteFIFO) Pop(_ context.Context) ([]byte, error) {
 	data, err := fifo.internal.RPop()
 	if err != nil && err != levelqueue.ErrNotFound {
 		return nil, err
@@ -111,7 +111,7 @@ func (fifo *LevelQueueByteFIFO) Close() error {
 }
 
 // Len returns the length of the fifo
-func (fifo *LevelQueueByteFIFO) Len(ctx context.Context) int64 {
+func (fifo *LevelQueueByteFIFO) Len(_ context.Context) int64 {
 	return fifo.internal.Len()
 }
 

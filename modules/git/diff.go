@@ -293,7 +293,7 @@ func GetAffectedFiles(oldCommitID, newCommitID string, env []string, repo *Repos
 	err = NewCommand("diff", "--name-only", oldCommitID, newCommitID).
 		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
 			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+			func(_ context.Context, _ context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stdoutWriter.Close()
 				defer func() {

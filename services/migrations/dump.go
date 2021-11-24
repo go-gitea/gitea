@@ -69,7 +69,7 @@ func NewRepositoryDumper(ctx context.Context, baseDir, repoOwner, repoName strin
 }
 
 // MaxBatchInsertSize returns the table's max batch insert size
-func (g *RepositoryDumper) MaxBatchInsertSize(tp string) int {
+func (g *RepositoryDumper) MaxBatchInsertSize(_ string) int {
 	return 1000
 }
 

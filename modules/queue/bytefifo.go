@@ -31,12 +31,12 @@ var _ ByteFIFO = &DummyByteFIFO{}
 type DummyByteFIFO struct{}
 
 // PushFunc returns nil
-func (*DummyByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
+func (*DummyByteFIFO) PushFunc(_ context.Context, _ []byte, _ func() error) error {
 	return nil
 }
 
 // Pop returns nil
-func (*DummyByteFIFO) Pop(ctx context.Context) ([]byte, error) {
+func (*DummyByteFIFO) Pop(_ context.Context) ([]byte, error) {
 	return []byte{}, nil
 }
 
@@ -46,7 +46,7 @@ func (*DummyByteFIFO) Close() error {
 }
 
 // Len is always 0
-func (*DummyByteFIFO) Len(ctx context.Context) int64 {
+func (*DummyByteFIFO) Len(_ context.Context) int64 {
 	return 0
 }
 
@@ -58,6 +58,6 @@ type DummyUniqueByteFIFO struct {
 }
 
 // Has always returns false
-func (*DummyUniqueByteFIFO) Has(ctx context.Context, data []byte) (bool, error) {
+func (*DummyUniqueByteFIFO) Has(_ context.Context, _ []byte) (bool, error) {
 	return false, nil
 }

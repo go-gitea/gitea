@@ -411,7 +411,7 @@ func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
 	return fixedup
 }
 
-func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
+func diffToHTML(diffs []diffmatchpatch.Diff, lineType DiffLineType) template.HTML {
 	buf := bytes.NewBuffer(nil)
 	match := ""
 
@@ -580,7 +580,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) tem
 	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, language, diff1[1:]), highlight.Code(diffSection.FileName, language, diff2[1:]), true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
-	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
+	return diffToHTML(diffRecord, diffLine.Type)
 }
 
 // DiffFile represents a file diff.

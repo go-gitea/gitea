@@ -537,7 +537,7 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 }
 
 // IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
-func IsXrefActionable(ref *RenderizableReference, extTracker bool, alphaNum bool) bool {
+func IsXrefActionable(ref *RenderizableReference, extTracker bool) bool {
 	if extTracker {
 		// External issues cannot be automatically closed
 		return false

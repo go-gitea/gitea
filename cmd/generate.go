@@ -55,7 +55,7 @@ var (
 	}
 )
 
-func runGenerateInternalToken(c *cli.Context) error {
+func runGenerateInternalToken(_ *cli.Context) error {
 	internalToken, err := generate.NewInternalToken()
 	if err != nil {
 		return err
@@ -70,7 +70,7 @@ func runGenerateInternalToken(c *cli.Context) error {
 	return nil
 }
 
-func runGenerateLfsJwtSecret(c *cli.Context) error {
+func runGenerateLfsJwtSecret(_ *cli.Context) error {
 	JWTSecretBase64, err := generate.NewJwtSecretBase64()
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func runGenerateLfsJwtSecret(c *cli.Context) error {
 	return nil
 }
 
-func runGenerateSecretKey(c *cli.Context) error {
+func runGenerateSecretKey(_ *cli.Context) error {
 	secretKey, err := generate.NewSecretKey()
 	if err != nil {
 		return err

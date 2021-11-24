@@ -100,7 +100,7 @@ j, ,
 
 type mockReader struct{}
 
-func (r *mockReader) Read(buf []byte) (int, error) {
+func (r *mockReader) Read(_ []byte) (int, error) {
 	return 0, io.ErrShortBuffer
 }
 

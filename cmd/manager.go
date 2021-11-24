@@ -230,7 +230,7 @@ var (
 )
 
 func runRemoveLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	group := c.String("group")
 	if len(group) == 0 {
 		group = log.DEFAULT
@@ -250,7 +250,7 @@ func runRemoveLogger(c *cli.Context) error {
 }
 
 func runAddSMTPLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "smtp"
 	if c.IsSet("host") {
@@ -281,7 +281,7 @@ func runAddSMTPLogger(c *cli.Context) error {
 }
 
 func runAddConnLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "conn"
 	vals["net"] = "tcp"
@@ -308,7 +308,7 @@ func runAddConnLogger(c *cli.Context) error {
 }
 
 func runAddFileLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "file"
 	if c.IsSet("filename") {
@@ -338,7 +338,7 @@ func runAddFileLogger(c *cli.Context) error {
 }
 
 func runAddConsoleLogger(c *cli.Context) error {
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	vals := map[string]interface{}{}
 	mode := "console"
 	if c.IsSet("stderr") && c.Bool("stderr") {
@@ -391,7 +391,7 @@ func runShutdown(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	statusCode, msg := private.Shutdown(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -406,7 +406,7 @@ func runRestart(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	statusCode, msg := private.Restart(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -421,7 +421,7 @@ func runFlushQueues(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	statusCode, msg := private.FlushQueues(ctx, c.Duration("timeout"), c.Bool("non-blocking"))
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -436,7 +436,7 @@ func runPauseLogging(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	statusCode, msg := private.PauseLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -451,7 +451,7 @@ func runResumeLogging(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	statusCode, msg := private.ResumeLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:
@@ -466,7 +466,7 @@ func runReleaseReopenLogging(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("manager", c.Bool("debug"))
+	setup(c.Bool("debug"))
 	statusCode, msg := private.ReleaseReopenLogging(ctx)
 	switch statusCode {
 	case http.StatusInternalServerError:

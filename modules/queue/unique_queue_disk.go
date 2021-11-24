@@ -89,12 +89,12 @@ func NewLevelUniqueQueueByteFIFO(connection, prefix string) (*LevelUniqueQueueBy
 }
 
 // PushFunc pushes data to the end of the fifo and calls the callback if it is added
-func (fifo *LevelUniqueQueueByteFIFO) PushFunc(ctx context.Context, data []byte, fn func() error) error {
+func (fifo *LevelUniqueQueueByteFIFO) PushFunc(_ context.Context, data []byte, fn func() error) error {
 	return fifo.internal.LPushFunc(data, fn)
 }
 
 // Pop pops data from the start of the fifo
-func (fifo *LevelUniqueQueueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
+func (fifo *LevelUniqueQueueByteFIFO) Pop(_ context.Context) ([]byte, error) {
 	data, err := fifo.internal.RPop()
 	if err != nil && err != levelqueue.ErrNotFound {
 		return nil, err
@@ -103,12 +103,12 @@ func (fifo *LevelUniqueQueueByteFIFO) Pop(ctx context.Context) ([]byte, error) {
 }
 
 // Len returns the length of the fifo
-func (fifo *LevelUniqueQueueByteFIFO) Len(ctx context.Context) int64 {
+func (fifo *LevelUniqueQueueByteFIFO) Len(_ context.Context) int64 {
 	return fifo.internal.Len()
 }
 
 // Has returns whether the fifo contains this data
-func (fifo *LevelUniqueQueueByteFIFO) Has(ctx context.Context, data []byte) (bool, error) {
+func (fifo *LevelUniqueQueueByteFIFO) Has(_ context.Context, data []byte) (bool, error) {
 	return fifo.internal.Has(data)
 }
 

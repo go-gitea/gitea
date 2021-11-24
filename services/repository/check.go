@@ -29,7 +29,7 @@ func GitFsck(ctx context.Context, timeout time.Duration, args []string) error {
 		db.DefaultContext,
 		new(models.Repository),
 		builder.Expr("id>0 AND is_fsck_enabled=?", true),
-		func(idx int, bean interface{}) error {
+		func(_ int, bean interface{}) error {
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
@@ -64,7 +64,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
+		func(_ int, bean interface{}) error {
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():
@@ -121,7 +121,7 @@ func gatherMissingRepoRecords(ctx context.Context) ([]*models.Repository, error)
 		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
+		func(_ int, bean interface{}) error {
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():

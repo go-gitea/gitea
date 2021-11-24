@@ -50,7 +50,7 @@ var CmdServ = cli.Command{
 	},
 }
 
-func setup(logPath string, debug bool) {
+func setup(debug bool) {
 	_ = log.DelLogger("console")
 	if debug {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
@@ -98,7 +98,7 @@ func runServ(c *cli.Context) error {
 	defer cancel()
 
 	// FIXME: This needs to internationalised
-	setup("serv.log", c.Bool("debug"))
+	setup(c.Bool("debug"))
 
 	if setting.SSH.Disabled {
 		println("Gitea: SSH has been disabled")

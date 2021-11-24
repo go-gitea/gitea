@@ -187,7 +187,8 @@ func (r *RepositoryRestorer) GetLabels() ([]*base.Label, error) {
 }
 
 // GetIssues returns issues according start and limit
-func (r *RepositoryRestorer) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
+// FIXME: use the provided page and perPage
+func (r *RepositoryRestorer) GetIssues(_, _ int) ([]*base.Issue, bool, error) {
 	var issues = make([]*base.Issue, 0, 10)
 	p := filepath.Join(r.baseDir, "issue.yml")
 	_, err := os.Stat(p)
@@ -238,7 +239,8 @@ func (r *RepositoryRestorer) GetComments(opts base.GetCommentOptions) ([]*base.C
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullRequest, bool, error) {
+// FIXME: use the provided page and perPage
+func (r *RepositoryRestorer) GetPullRequests(_, _ int) ([]*base.PullRequest, bool, error) {
 	var pulls = make([]*base.PullRequest, 0, 10)
 	p := filepath.Join(r.baseDir, "pull_request.yml")
 	_, err := os.Stat(p)

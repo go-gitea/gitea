@@ -132,7 +132,7 @@ func getNewRepoEditOption(opts *api.EditRepoOption) *api.EditRepoOption {
 }
 
 func TestAPIRepoEdit(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		bFalse, bTrue := false, true
 
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16

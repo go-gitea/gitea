@@ -23,7 +23,7 @@ var CmdMigrate = cli.Command{
 	Action:      runMigrate,
 }
 
-func runMigrate(ctx *cli.Context) error {
+func runMigrate(_ *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 

@@ -32,7 +32,7 @@ func (c *CustomProvider) CustomURLSettings() *CustomURLSettings {
 }
 
 // CreateGothProvider creates a GothProvider from this Provider
-func (c *CustomProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
+func (c *CustomProvider) CreateGothProvider(_, callbackURL string, source *Source) (goth.Provider, error) {
 	custom := c.customURLSettings.OverrideWith(source.CustomURLMapping)
 
 	return c.newFn(source.ClientID, source.ClientSecret, callbackURL, custom)

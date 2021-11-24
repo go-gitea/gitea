@@ -5,14 +5,12 @@
 package repository
 
 import (
-	"context"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/storage"
 )
 
 // DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives(ctx context.Context) error {
+func DeleteRepositoryArchives() error {
 	if err := models.DeleteAllRepoArchives(); err != nil {
 		return err
 	}

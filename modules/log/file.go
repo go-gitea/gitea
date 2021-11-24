@@ -225,7 +225,7 @@ func compressOldLogFile(fname string, compressionLevel int) error {
 
 func (log *FileLogger) deleteOldLog() {
 	dir := filepath.Dir(log.Filename)
-	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) (returnErr error) {
+	_ = filepath.Walk(dir, func(path string, info os.FileInfo, _ error) (returnErr error) {
 		defer func() {
 			if r := recover(); r != nil {
 				returnErr = fmt.Errorf("Unable to delete old log '%s', error: %+v", path, r)

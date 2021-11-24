@@ -270,7 +270,7 @@ func (c *Comment) BeforeUpdate() {
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (c *Comment) AfterLoad(session *xorm.Session) {
+func (c *Comment) AfterLoad(_ *xorm.Session) {
 	c.Patch = c.PatchQuoted
 	if len(c.PatchQuoted) > 0 && c.PatchQuoted[0] == '"' {
 		unquoted, err := strconv.Unquote(c.PatchQuoted)
@@ -1358,7 +1358,7 @@ func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch
 		}
 	}
 
-	if err = commitBranchCheck(gitRepo, newCommit, oldCommitID, baseBranch, commitChecks); err != nil {
+	if err = commitBranchCheck(newCommit, oldCommitID, baseBranch, commitChecks); err != nil {
 		return
 	}
 
@@ -1377,7 +1377,7 @@ type commitBranchCheckItem struct {
 	Checked bool
 }
 
-func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endCommitID, baseBranch string, commitList map[string]*commitBranchCheckItem) error {
+func commitBranchCheck(startCommit *git.Commit, endCommitID, baseBranch string, commitList map[string]*commitBranchCheckItem) error {
 	if startCommit.ID.String() == endCommitID {
 		return nil
 	}

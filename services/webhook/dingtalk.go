@@ -186,6 +186,6 @@ func createDingtalkPayload(title, text, singleTitle, singleURL string) *Dingtalk
 }
 
 // GetDingtalkPayload converts a ding talk webhook into a DingtalkPayload
-func GetDingtalkPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetDingtalkPayload(p api.Payloader, event webhook_model.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(DingtalkPayload), p, event)
 }

@@ -123,14 +123,14 @@ func (rw *mockResponseWriter) Size() int {
 	return rw.size
 }
 
-func (rw *mockResponseWriter) Push(target string, opts *http.PushOptions) error {
+func (rw *mockResponseWriter) Push(_ string, _ *http.PushOptions) error {
 	return nil
 }
 
 type mockRender struct {
 }
 
-func (tr *mockRender) TemplateLookup(tmpl string) *template.Template {
+func (tr *mockRender) TemplateLookup(_ string) *template.Template {
 	return nil
 }
 

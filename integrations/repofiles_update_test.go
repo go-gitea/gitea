@@ -184,7 +184,7 @@ func getExpectedFileResponseForRepofilesUpdate(commitID, filename string) *api.F
 
 func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		ctx := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
@@ -220,7 +220,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 
 func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		ctx := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
@@ -253,7 +253,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 
 func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		ctx := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
@@ -303,7 +303,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 // Test opts with branch names removed, should get same results as above test
 func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		ctx := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)
@@ -334,7 +334,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 
 func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 	// setup
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		ctx := test.MockContext(t, "user2/repo1")
 		ctx.SetParams(":id", "1")
 		test.LoadRepo(t, ctx, 1)

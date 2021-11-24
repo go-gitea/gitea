@@ -37,7 +37,7 @@ func iterateRepositories(each func(*models.Repository) error) error {
 	return err
 }
 
-func checkScriptType(logger log.Logger, autofix bool) error {
+func checkScriptType(logger log.Logger, _ bool) error {
 	path, err := exec.LookPath(setting.ScriptType)
 	if err != nil {
 		logger.Critical("ScriptType \"%q\" is not on the current PATH. Error: %v", setting.ScriptType, err)
@@ -72,7 +72,7 @@ func checkHooks(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkUserStarNum(logger log.Logger, autofix bool) error {
+func checkUserStarNum(logger log.Logger, _ bool) error {
 	if err := models.DoctorUserStarNum(); err != nil {
 		logger.Critical("Unable update User Stars numbers")
 		return err

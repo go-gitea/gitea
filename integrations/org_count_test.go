@@ -21,7 +21,7 @@ func TestOrgCounts(t *testing.T) {
 	onGiteaRun(t, testOrgCounts)
 }
 
-func testOrgCounts(t *testing.T, u *url.URL) {
+func testOrgCounts(t *testing.T, _ *url.URL) {
 	orgOwner := "user2"
 	orgName := "testOrg"
 	orgCollaborator := "user4"

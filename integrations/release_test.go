@@ -146,7 +146,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 	assert.Equal(t, 2, releases.Length())
 
 	links := make([]string, 0, 5)
-	releases.Each(func(i int, s *goquery.Selection) {
+	releases.Each(func(_ int, s *goquery.Selection) {
 		link, exist := s.Find(".release-list-title a").Attr("href")
 		if !exist {
 			return
@@ -173,7 +173,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 	assert.Equal(t, 3, releases.Length())
 
 	links := make([]string, 0, 5)
-	releases.Each(func(i int, s *goquery.Selection) {
+	releases.Each(func(_ int, s *goquery.Selection) {
 		link, exist := s.Find(".release-list-title a").Attr("href")
 		if !exist {
 			return
@@ -204,7 +204,7 @@ func TestViewTagsList(t *testing.T) {
 	assert.Equal(t, 3, tags.Length())
 
 	tagNames := make([]string, 0, 5)
-	tags.Each(func(i int, s *goquery.Selection) {
+	tags.Each(func(_ int, s *goquery.Selection) {
 		tagNames = append(tagNames, s.Find(".tag a.df.ac").Text())
 	})
 

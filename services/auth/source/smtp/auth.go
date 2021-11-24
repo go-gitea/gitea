@@ -25,7 +25,7 @@ type loginAuthenticator struct {
 	username, password string
 }
 
-func (auth *loginAuthenticator) Start(server *smtp.ServerInfo) (string, []byte, error) {
+func (auth *loginAuthenticator) Start(_ *smtp.ServerInfo) (string, []byte, error) {
 	return "LOGIN", []byte(auth.username), nil
 }
 

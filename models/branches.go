@@ -5,7 +5,6 @@
 package models
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -581,7 +580,7 @@ func RemoveDeletedBranch(repoID int64, branch string) error {
 }
 
 // RemoveOldDeletedBranches removes old deleted branches
-func RemoveOldDeletedBranches(ctx context.Context, olderThan time.Duration) {
+func RemoveOldDeletedBranches(olderThan time.Duration) {
 	// Nothing to do for shutdown or terminate
 	log.Trace("Doing: DeletedBranchesCleanup")
 

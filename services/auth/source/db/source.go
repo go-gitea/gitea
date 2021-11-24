@@ -13,7 +13,7 @@ import (
 type Source struct{}
 
 // FromDB fills up an OAuth2Config from serialized format.
-func (source *Source) FromDB(bs []byte) error {
+func (source *Source) FromDB(_ []byte) error {
 	return nil
 }
 

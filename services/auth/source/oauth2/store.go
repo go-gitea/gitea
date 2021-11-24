@@ -61,7 +61,7 @@ func (st *SessionsStore) getOrNew(r *http.Request, name string, override bool) (
 }
 
 // Save should persist session to the underlying store implementation.
-func (st *SessionsStore) Save(r *http.Request, w http.ResponseWriter, session *sessions.Session) error {
+func (st *SessionsStore) Save(r *http.Request, _ http.ResponseWriter, session *sessions.Session) error {
 	chiStore := chiSession.GetSession(r)
 
 	if err := chiStore.Set(session.Name(), session); err != nil {

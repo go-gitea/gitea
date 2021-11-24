@@ -50,7 +50,7 @@ func testViewRepo(t *testing.T) {
 
 	var items []file
 
-	files.Each(func(i int, s *goquery.Selection) {
+	files.Each(func(_ int, s *goquery.Selection) {
 		tds := s.Find("td")
 		var f file
 		tds.Each(func(i int, s *goquery.Selection) {
@@ -149,7 +149,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	files := htmlDoc.doc.Find("#repo-files-table > TBODY > TR > TD.name > SPAN.truncate")
-	items := files.Map(func(i int, s *goquery.Selection) string {
+	items := files.Map(func(_ int, s *goquery.Selection) string {
 		cls, _ := s.Find("SVG").Attr("class")
 		file := strings.Trim(s.Find("A").Text(), " \t\n")
 		return fmt.Sprintf("%s: %s", file, cls)

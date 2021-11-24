@@ -15,7 +15,7 @@ import (
 )
 
 // PreloadSettings preloads the configuration to check if we need to run install
-func PreloadSettings(ctx context.Context) bool {
+func PreloadSettings() bool {
 	setting.NewContext()
 	if !setting.InstallLock {
 		log.Info("AppPath: %s", setting.AppPath)

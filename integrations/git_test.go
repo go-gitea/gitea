@@ -664,7 +664,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			_, err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			_, err := git.NewCommand("push", "origin", "HEAD:refs/for/"+baseBranch, "-o", "topic="+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -685,7 +685,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/"+baseBranch+"/test/"+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -738,7 +738,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			_, err := git.NewCommand("push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			_, err := git.NewCommand("push", "origin", "HEAD:refs/for/"+baseBranch, "-o", "topic="+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -750,7 +750,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, err = git.NewCommand("push", "origin", "HEAD:refs/for/"+baseBranch+"/test/"+headBranch).RunInDir(dstPath)
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -763,6 +763,6 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, commit, prMsg.Head.Sha)
 		})
 		t.Run("Merge", doAPIMergePullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index))
-		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, "master"))
+		t.Run("CheckoutMasterAgain", doGitCheckoutBranch(dstPath, baseBranch))
 	}
 }

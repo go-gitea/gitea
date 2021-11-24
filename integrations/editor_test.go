@@ -15,7 +15,7 @@ import (
 )
 
 func TestCreateFile(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 
 		// Request editor page
@@ -39,7 +39,7 @@ func TestCreateFile(t *testing.T) {
 }
 
 func TestCreateFileOnProtectedBranch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 
 		csrf := GetCSRF(t, session, "/user2/repo1/settings/branches")
@@ -151,14 +151,14 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 }
 
 func TestEditFile(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 		testEditFile(t, session, "user2", "repo1", "master", "README.md", "Hello, World (Edited)\n")
 	})
 }
 
 func TestEditFileToNewBranch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user2")
 		testEditFileToNewBranch(t, session, "user2", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited)\n")
 	})

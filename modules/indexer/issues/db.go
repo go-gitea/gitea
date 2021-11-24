@@ -16,12 +16,12 @@ func (db *DBIndexer) Init() (bool, error) {
 }
 
 // Index dummy function
-func (db *DBIndexer) Index(issue []*IndexerData) error {
+func (db *DBIndexer) Index(_ []*IndexerData) error {
 	return nil
 }
 
 // Delete dummy function
-func (db *DBIndexer) Delete(ids ...int64) error {
+func (db *DBIndexer) Delete(_ ...int64) error {
 	return nil
 }
 

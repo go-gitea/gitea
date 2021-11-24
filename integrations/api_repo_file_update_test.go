@@ -104,7 +104,7 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 }
 
 func TestAPIUpdateFile(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16
 		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)       // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)       // owner of neither repos

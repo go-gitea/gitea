@@ -27,7 +27,7 @@ func NewNotifier() base.Notifier {
 	return &mailNotifier{}
 }
 
-func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (m *mailNotifier) NotifyCreateIssueComment(_ *user_model.User, _ *models.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	var act models.ActionType
 	if comment.Type == models.CommentTypeClose {
@@ -53,7 +53,7 @@ func (m *mailNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_mode
 	}
 }
 
-func (m *mailNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+func (m *mailNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, _ *models.Comment, isClosed bool) {
 	var actionType models.ActionType
 	if issue.IsPull {
 		if isClosed {
@@ -92,7 +92,7 @@ func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*
 	}
 }
 
-func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, comment *models.Comment, mentions []*user_model.User) {
+func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, _ *models.Review, comment *models.Comment, mentions []*user_model.User) {
 	var act models.ActionType
 	if comment.Type == models.CommentTypeClose {
 		act = models.ActionCloseIssue
@@ -141,7 +141,7 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user
 	}
 }
 
-func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment) {
+func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, _ *models.PullRequest, comment *models.Comment) {
 	var err error
 	if err = comment.LoadIssue(); err != nil {
 		log.Error("comment.LoadIssue: %v", err)
@@ -165,7 +165,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment, nil)
 }
 
-func (m *mailNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment) {
+func (m *mailNotifier) NotifyPullRevieweDismiss(_ *user_model.User, review *models.Review, comment *models.Comment) {
 	if err := mailer.MailParticipantsComment(comment, models.ActionPullReviewDismissed, review.Issue, nil); err != nil {
 		log.Error("MailParticipantsComment: %v", err)
 	}

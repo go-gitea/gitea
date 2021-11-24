@@ -108,7 +108,7 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 }
 
 func BenchmarkAPICreateFileSmall(b *testing.B) {
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
+	onGiteaRunTB(b, func(t testing.TB, _ *url.URL) {
 		b := t.(*testing.B)
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)     // owner of the repo1 & repo16
 		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
@@ -123,7 +123,7 @@ func BenchmarkAPICreateFileSmall(b *testing.B) {
 func BenchmarkAPICreateFileMedium(b *testing.B) {
 	data := make([]byte, 10*1024*1024)
 
-	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
+	onGiteaRunTB(b, func(t testing.TB, _ *url.URL) {
 		b := t.(*testing.B)
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)     // owner of the repo1 & repo16
 		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
@@ -138,7 +138,7 @@ func BenchmarkAPICreateFileMedium(b *testing.B) {
 }
 
 func TestAPICreateFile(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16
 		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)       // owner of the repo3, is an org
 		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)       // owner of neither repos

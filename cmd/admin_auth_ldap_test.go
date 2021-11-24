@@ -215,11 +215,11 @@ func TestAddLdapBindDn(t *testing.T) {
 				createdLoginSource = loginSource
 				return nil
 			},
-			updateLoginSource: func(loginSource *login.Source) error {
+			updateLoginSource: func(_ *login.Source) error {
 				assert.FailNow(t, "case %d: should not call updateLoginSource", n)
 				return nil
 			},
-			getLoginSourceByID: func(id int64) (*login.Source, error) {
+			getLoginSourceByID: func(_ int64) (*login.Source, error) {
 				assert.FailNow(t, "case %d: should not call getLoginSourceByID", n)
 				return nil, nil
 			},
@@ -446,11 +446,11 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 				createdLoginSource = loginSource
 				return nil
 			},
-			updateLoginSource: func(loginSource *login.Source) error {
+			updateLoginSource: func(_ *login.Source) error {
 				assert.FailNow(t, "case %d: should not call updateLoginSource", n)
 				return nil
 			},
-			getLoginSourceByID: func(id int64) (*login.Source, error) {
+			getLoginSourceByID: func(_ int64) (*login.Source, error) {
 				assert.FailNow(t, "case %d: should not call getLoginSourceByID", n)
 				return nil, nil
 			},
@@ -867,7 +867,7 @@ func TestUpdateLdapBindDn(t *testing.T) {
 			initDB: func(context.Context) error {
 				return nil
 			},
-			createLoginSource: func(loginSource *login.Source) error {
+			createLoginSource: func(_ *login.Source) error {
 				assert.FailNow(t, "case %d: should not call createLoginSource", n)
 				return nil
 			},
@@ -1231,7 +1231,7 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			initDB: func(context.Context) error {
 				return nil
 			},
-			createLoginSource: func(loginSource *login.Source) error {
+			createLoginSource: func(_ *login.Source) error {
 				assert.FailNow(t, "case %d: should not call createLoginSource", n)
 				return nil
 			},

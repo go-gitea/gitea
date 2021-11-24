@@ -22,7 +22,7 @@ var CmdConvert = cli.Command{
 	Action:      runConvert,
 }
 
-func runConvert(ctx *cli.Context) error {
+func runConvert(_ *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
 

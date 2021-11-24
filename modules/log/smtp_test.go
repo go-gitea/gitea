@@ -56,7 +56,7 @@ func TestSMTPLogger(t *testing.T) {
 	var envFrom string
 	var envTo []string
 	var envMsg []byte
-	smtpLogger.sendMailFn = func(addr string, a smtp.Auth, from string, to []string, msg []byte) error {
+	smtpLogger.sendMailFn = func(addr string, _ smtp.Auth, from string, to []string, msg []byte) error {
 		envToHost = addr
 		envFrom = from
 		envTo = to

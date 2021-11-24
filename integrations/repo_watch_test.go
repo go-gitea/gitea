@@ -14,7 +14,7 @@ import (
 )
 
 func TestRepoWatch(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		// Test round-trip auto-watch
 		setting.Service.AutoWatchOnChanges = true
 		session := loginUser(t, "user2")

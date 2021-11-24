@@ -40,7 +40,7 @@ func TestCreateBranch(t *testing.T) {
 	onGiteaRun(t, testCreateBranches)
 }
 
-func testCreateBranches(t *testing.T, giteaURL *url.URL) {
+func testCreateBranches(t *testing.T, _ *url.URL) {
 	tests := []struct {
 		OldRefSubURL   string
 		NewBranch      string

@@ -42,7 +42,7 @@ func (b *Basic) Name() string {
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (b *Basic) Verify(req *http.Request, _ http.ResponseWriter, store DataStore, _ SessionStore) *user_model.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		return nil

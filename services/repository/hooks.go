@@ -25,7 +25,7 @@ func SyncRepositoryHooks(ctx context.Context) error {
 		db.DefaultContext,
 		new(models.Repository),
 		builder.Gt{"id": 0},
-		func(idx int, bean interface{}) error {
+		func(_ int, bean interface{}) error {
 			repo := bean.(*models.Repository)
 			select {
 			case <-ctx.Done():

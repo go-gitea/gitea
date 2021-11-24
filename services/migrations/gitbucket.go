@@ -67,6 +67,6 @@ func (g *GitBucketDownloader) SupportGetRepoComments() bool {
 }
 
 // GetReviews is not supported
-func (g *GitBucketDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
+func (g *GitBucketDownloader) GetReviews(_ base.IssueContext) ([]*base.Review, error) {
 	return nil, &base.ErrNotSupported{Entity: "Reviews"}
 }

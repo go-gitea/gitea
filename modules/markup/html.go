@@ -853,7 +853,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Decorate action keywords if actionable
 		var keyword *html.Node
-		if references.IsXrefActionable(ref, exttrack, alphanum) {
+		if references.IsXrefActionable(ref, exttrack) {
 			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{
@@ -927,7 +927,7 @@ func fullSha1PatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 // emojiShortCodeProcessor for rendering text like :smile: into emoji
-func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
+func emojiShortCodeProcessor(_ *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
 	for node != nil && node != next && start < len(node.Data) {
@@ -961,7 +961,7 @@ func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 // emoji processor to match emoji and add emoji class
-func emojiProcessor(ctx *RenderContext, node *html.Node) {
+func emojiProcessor(_ *RenderContext, node *html.Node) {
 	start := 0
 	next := node.NextSibling
 	for node != nil && node != next && start < len(node.Data) {
@@ -1046,7 +1046,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
-func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
+func emailAddressProcessor(_ *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := emailRegex.FindStringSubmatchIndex(node.Data)
@@ -1062,7 +1062,7 @@ func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
-func linkProcessor(ctx *RenderContext, node *html.Node) {
+func linkProcessor(_ *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := common.LinkRegex.FindStringIndex(node.Data)
@@ -1077,7 +1077,7 @@ func linkProcessor(ctx *RenderContext, node *html.Node) {
 }
 
 func genDefaultLinkProcessor(defaultLink string) processor {
-	return func(ctx *RenderContext, node *html.Node) {
+	return func(_ *RenderContext, node *html.Node) {
 		ch := &html.Node{
 			Parent: node,
 			Type:   html.TextNode,
@@ -1096,7 +1096,7 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 }
 
 // descriptionLinkProcessor creates links for DescriptionHTML
-func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
+func descriptionLinkProcessor(_ *RenderContext, node *html.Node) {
 	next := node.NextSibling
 	for node != nil && node != next {
 		m := common.LinkRegex.FindStringIndex(node.Data)

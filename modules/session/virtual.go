@@ -69,7 +69,7 @@ func (o *VirtualSessionProvider) Read(sid string) (session.RawStore, error) {
 }
 
 // Exist returns true if session with given ID exists.
-func (o *VirtualSessionProvider) Exist(sid string) bool {
+func (o *VirtualSessionProvider) Exist(_ string) bool {
 	return true
 }
 

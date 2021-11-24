@@ -168,7 +168,7 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRe
 
 func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *Comment {
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
-	i := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
+	i := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue, RepoID: repo}).(*Issue)
 	c := &Comment{Type: CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
 	ctx, committer, err := db.TxContext()

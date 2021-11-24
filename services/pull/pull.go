@@ -234,7 +234,7 @@ func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *u
 // and generate new patch for testing as needed.
 func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, isSync bool, oldCommitID, newCommitID string) {
 	log.Trace("AddTestPullRequestTask [head_repo_id: %d, head_branch: %s]: finding pull requests", repoID, branch)
-	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
+	graceful.GetManager().RunWithShutdownContext(func(_ context.Context) {
 		// There is no sensible way to shut this down ":-("
 		// If you don't let it run all the way then you will lose data
 		// FIXME: graceful: AddTestPullRequestTask needs to become a queue!

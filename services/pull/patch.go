@@ -181,7 +181,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
+			func(_ context.Context, _ context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stderrWriter.Close()
 				defer func() {

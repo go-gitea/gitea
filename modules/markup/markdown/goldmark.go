@@ -289,7 +289,7 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
 
-func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderDocument(w util.BufWriter, _ []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*ast.Document)
 
 	if val, has := n.AttributeString("lang"); has {
@@ -314,7 +314,7 @@ func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderDetails(w util.BufWriter, _ []byte, _ ast.Node, entering bool) (ast.WalkStatus, error) {
 	var err error
 	if entering {
 		_, err = w.WriteString("<details>")
@@ -329,7 +329,7 @@ func (r *HTMLRenderer) renderDetails(w util.BufWriter, source []byte, node ast.N
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderSummary(w util.BufWriter, _ []byte, _ ast.Node, entering bool) (ast.WalkStatus, error) {
 	var err error
 	if entering {
 		_, err = w.WriteString("<summary>")
@@ -346,7 +346,7 @@ func (r *HTMLRenderer) renderSummary(w util.BufWriter, source []byte, node ast.N
 
 var validNameRE = regexp.MustCompile("^[a-z ]+$")
 
-func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderIcon(w util.BufWriter, _ []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
 	}
@@ -375,7 +375,7 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, _ []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	n := node.(*TaskCheckBoxListItem)
 	if entering {
 		if n.Attributes() != nil {
@@ -411,6 +411,6 @@ func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byt
 	return ast.WalkContinue, nil
 }
 
-func (r *HTMLRenderer) renderTaskCheckBox(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *HTMLRenderer) renderTaskCheckBox(_ util.BufWriter, _ []byte, _ ast.Node, _ bool) (ast.WalkStatus, error) {
 	return ast.WalkContinue, nil
 }

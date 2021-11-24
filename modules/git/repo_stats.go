@@ -70,7 +70,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	err = NewCommand(args...).RunInDirTimeoutEnvFullPipelineFunc(
 		nil, -1, repo.Path,
 		stdoutWriter, stderr, nil,
-		func(ctx context.Context, cancel context.CancelFunc) error {
+		func(_ context.Context, _ context.CancelFunc) error {
 			_ = stdoutWriter.Close()
 
 			scanner := bufio.NewScanner(stdoutReader)

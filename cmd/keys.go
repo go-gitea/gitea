@@ -65,7 +65,7 @@ func runKeys(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setup("keys.log", false)
+	setup(false)
 
 	authorizedString, err := private.AuthorizedPublicKeyByContent(ctx, content)
 	if err != nil {

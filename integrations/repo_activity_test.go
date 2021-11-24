@@ -17,7 +17,7 @@ import (
 )
 
 func TestRepoActivity(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 
 		session := loginUser(t, "user1")
 

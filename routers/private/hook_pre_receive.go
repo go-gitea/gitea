@@ -123,9 +123,9 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		case strings.HasPrefix(refFullName, git.BranchPrefix):
 			preReceiveBranch(ourCtx, oldCommitID, newCommitID, refFullName)
 		case strings.HasPrefix(refFullName, git.TagPrefix):
-			preReceiveTag(ourCtx, oldCommitID, newCommitID, refFullName)
+			preReceiveTag(ourCtx, refFullName)
 		case git.SupportProcReceive && strings.HasPrefix(refFullName, git.PullRequestPrefix):
-			preReceivePullRequest(ourCtx, oldCommitID, newCommitID, refFullName)
+			preReceivePullRequest(ourCtx, refFullName)
 		default:
 			ourCtx.AssertCanWriteCode()
 		}
@@ -354,7 +354,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	}
 }
 
-func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+func preReceiveTag(ctx *preReceiveContext, refFullName string) {
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
@@ -390,7 +390,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 	}
 }
 
-func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+func preReceivePullRequest(ctx *preReceiveContext, refFullName string) {
 	if !ctx.AssertCreatePullRequest() {
 		return
 	}

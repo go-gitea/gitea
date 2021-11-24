@@ -47,7 +47,7 @@ func (ctx *ChannelContext) Err() error {
 }
 
 // Value returns nil for all calls as no values are or can be associated with this context
-func (ctx *ChannelContext) Value(key interface{}) interface{} {
+func (ctx *ChannelContext) Value(_ interface{}) interface{} {
 	return nil
 }
 

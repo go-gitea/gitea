@@ -46,7 +46,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *models.Repos
 
 		// Git Hooks
 		if opts.GitHooks {
-			if err = models.GenerateGitHooks(ctx, templateRepo, generateRepo); err != nil {
+			if err = models.GenerateGitHooks(templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}

@@ -135,7 +135,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 	return link
 }
 
-func (s *linkifyParser) CloseBlock(parent ast.Node, pc parser.Context) {
+func (s *linkifyParser) CloseBlock(_ ast.Node, _ parser.Context) {
 	// nothing to do
 }
 

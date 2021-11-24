@@ -44,7 +44,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 }
 
 func TestPullCreate(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -72,7 +72,7 @@ func TestPullCreate(t *testing.T) {
 }
 
 func TestPullCreate_TitleEscape(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -134,7 +134,7 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 }
 
 func TestPullBranchDelete(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		defer prepareTestEnv(t)()
 
 		session := loginUser(t, "user1")

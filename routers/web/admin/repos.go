@@ -156,7 +156,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" {
-		if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, dirSplit[1]); err != nil {
+		if err := repo_service.DeleteUnadoptedRepository(ctxUser, dirSplit[1]); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}

@@ -168,7 +168,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, repoName); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctxUser, repoName); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

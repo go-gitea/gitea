@@ -155,6 +155,6 @@ func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetFeishuPayload converts a ding talk webhook into a FeishuPayload
-func GetFeishuPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetFeishuPayload(p api.Payloader, event webhook_model.HookEventType, _ string) (api.Payloader, error) {
 	return convertPayloader(new(FeishuPayload), p, event)
 }

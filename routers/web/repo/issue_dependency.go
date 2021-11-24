@@ -22,7 +22,7 @@ func AddDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}
@@ -81,7 +81,7 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Check if the Repo is allowed to have dependencies
-	if !ctx.Repo.CanCreateIssueDependencies(ctx.User, issue.IsPull) {
+	if !ctx.Repo.CanCreateIssueDependencies(issue.IsPull) {
 		ctx.Error(http.StatusForbidden, "CanCreateIssueDependencies")
 		return
 	}

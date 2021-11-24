@@ -52,7 +52,7 @@ func TestAPIGetContentsList(t *testing.T) {
 	onGiteaRun(t, testAPIGetContentsList)
 }
 
-func testAPIGetContentsList(t *testing.T, u *url.URL) {
+func testAPIGetContentsList(t *testing.T, _ *url.URL) {
 	/*** SETUP ***/
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)       // owner of the repo3, is an org

@@ -30,15 +30,15 @@ func (a *DummyTransferAdapter) Name() string {
 	return "dummy"
 }
 
-func (a *DummyTransferAdapter) Download(ctx context.Context, l *Link) (io.ReadCloser, error) {
+func (a *DummyTransferAdapter) Download(_ context.Context, _ *Link) (io.ReadCloser, error) {
 	return io.NopCloser(bytes.NewBufferString("dummy")), nil
 }
 
-func (a *DummyTransferAdapter) Upload(ctx context.Context, l *Link, p Pointer, r io.Reader) error {
+func (a *DummyTransferAdapter) Upload(_ context.Context, _ *Link, _ Pointer, _ io.Reader) error {
 	return nil
 }
 
-func (a *DummyTransferAdapter) Verify(ctx context.Context, l *Link, p Pointer) error {
+func (a *DummyTransferAdapter) Verify(_ context.Context, _ *Link, _ Pointer) error {
 	return nil
 }
 
@@ -241,7 +241,7 @@ func TestHTTPClientDownload(t *testing.T) {
 		}
 		client.transfers["dummy"] = dummy
 
-		err := client.Download(context.Background(), []Pointer{p}, func(p Pointer, content io.ReadCloser, objectError error) error {
+		err := client.Download(context.Background(), []Pointer{p}, func(_ Pointer, content io.ReadCloser, objectError error) error {
 			if objectError != nil {
 				return objectError
 			}

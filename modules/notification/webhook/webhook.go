@@ -137,7 +137,7 @@ func (m *webhookNotifier) NotifyMigrateRepository(doer *user_model.User, u *user
 	}
 }
 
-func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
+func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, _ *user_model.User, removed bool, _ *models.Comment) {
 	if issue.IsPull {
 		mode, _ := models.AccessLevelUnit(doer, issue.Repo, unit.TypePullRequests)
 
@@ -224,7 +224,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *m
 	}
 }
 
-func (m *webhookNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+func (m *webhookNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, _ *models.Comment, isClosed bool) {
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
 	var err error
 	if issue.IsPull {
@@ -264,7 +264,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *
 	}
 }
 
-func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
+func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue, _ []*user_model.User) {
 	if err := issue.LoadRepo(); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
 		return
@@ -286,7 +286,7 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_m
 	}
 }
 
-func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions []*user_model.User) {
+func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, _ []*user_model.User) {
 	if err := pull.LoadIssue(); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
 		return
@@ -402,7 +402,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *user_model.User, c *models.C
 }
 
 func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, _ []*user_model.User) {
 	mode, _ := models.AccessLevel(doer, repo)
 
 	var err error
@@ -477,7 +477,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *user_model.User, comment *mo
 }
 
 func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
+	_ []*models.Label, _ []*models.Label) {
 	var err error
 
 	if err = issue.LoadRepo(); err != nil {
@@ -521,7 +521,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *
 	}
 }
 
-func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issue *models.Issue, oldMilestoneID int64) {
+func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issue *models.Issue, _ int64) {
 	var hookAction api.HookIssueAction
 	var err error
 	if issue.MilestoneID > 0 {
@@ -655,7 +655,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *user_model.U
 	}
 }
 
-func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*user_model.User) {
+func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, _ *models.Comment, _ []*user_model.User) {
 	var reviewHookType webhook.HookEventType
 
 	switch review.Type {
@@ -769,12 +769,12 @@ func sendReleaseHook(doer *user_model.User, rel *models.Release, action api.Hook
 		return
 	}
 
-	mode, _ := models.AccessLevel(rel.Publisher, rel.Repo)
+	mode, _ := models.AccessLevel(doer, rel.Repo)
 	if err := webhook_services.PrepareWebhooks(rel.Repo, webhook.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToRelease(rel),
 		Repository: convert.ToRepo(rel.Repo, mode),
-		Sender:     convert.ToUser(rel.Publisher, nil),
+		Sender:     convert.ToUser(doer, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}

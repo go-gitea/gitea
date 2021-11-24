@@ -111,7 +111,7 @@ func (o *OAuth2) userIDFromToken(req *http.Request, store DataStore) int64 {
 // or the "Authorization" header and returns the corresponding user object for that ID.
 // If verification is successful returns an existing user object.
 // Returns nil if verification fails.
-func (o *OAuth2) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (o *OAuth2) Verify(req *http.Request, _ http.ResponseWriter, store DataStore, _ SessionStore) *user_model.User {
 	if !db.HasEngine {
 		return nil
 	}

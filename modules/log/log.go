@@ -195,7 +195,7 @@ func IsFatal() bool {
 
 // Pause pauses all the loggers
 func Pause() {
-	NamedLoggers.Range(func(key, value interface{}) bool {
+	NamedLoggers.Range(func(_, value interface{}) bool {
 		logger := value.(*MultiChannelledLogger)
 		logger.Pause()
 		logger.Flush()
@@ -205,7 +205,7 @@ func Pause() {
 
 // Resume resumes all the loggers
 func Resume() {
-	NamedLoggers.Range(func(key, value interface{}) bool {
+	NamedLoggers.Range(func(_, value interface{}) bool {
 		logger := value.(*MultiChannelledLogger)
 		logger.Resume()
 		return true

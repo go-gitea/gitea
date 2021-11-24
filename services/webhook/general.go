@@ -18,7 +18,7 @@ import (
 type linkFormatter = func(string, string) string
 
 // noneLinkFormatter does not create a link but just returns the text
-func noneLinkFormatter(url string, text string) string {
+func noneLinkFormatter(_ string, text string) string {
 	return text
 }
 

@@ -271,7 +271,7 @@ func fixBrokenRepoUnits16961(logger log.Logger, autofix bool) error {
 		builder.Gt{
 			"id": 0,
 		},
-		func(idx int, bean interface{}) error {
+		func(_ int, bean interface{}) error {
 			unit := bean.(*RepoUnit)
 
 			bs := unit.Config

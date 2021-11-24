@@ -522,7 +522,7 @@ func TestAccessibleReposEnv_CountRepos(t *testing.T) {
 func TestAccessibleReposEnv_RepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	org := unittest.AssertExistsAndLoadBean(t, &Organization{ID: 3}).(*Organization)
-	testSuccess := func(userID, _, pageSize int64, expectedRepoIDs []int64) {
+	testSuccess := func(userID, _, _ int64, expectedRepoIDs []int64) {
 		env, err := org.AccessibleReposEnv(userID)
 		assert.NoError(t, err)
 		repoIDs, err := env.RepoIDs(1, 100)

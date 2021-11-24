@@ -91,7 +91,7 @@ type DBProvider struct {
 
 // Init initializes DB session provider.
 // connStr: username:password@protocol(address)/dbname?param=value
-func (p *DBProvider) Init(maxLifetime int64, connStr string) error {
+func (p *DBProvider) Init(maxLifetime int64, _ string) error {
 	p.maxLifetime = maxLifetime
 	return nil
 }

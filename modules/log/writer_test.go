@@ -257,7 +257,7 @@ func TestBrokenRegexp(t *testing.T) {
 	var closed bool
 
 	c := CallbackWriteCloser{
-		callback: func(p []byte, close bool) {
+		callback: func(_ []byte, close bool) {
 			closed = close
 		},
 	}

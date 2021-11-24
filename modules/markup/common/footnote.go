@@ -194,7 +194,7 @@ func (b *footnoteBlockParser) Trigger() []byte {
 	return []byte{'['}
 }
 
-func (b *footnoteBlockParser) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
+func (b *footnoteBlockParser) Open(_ ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
 	line, segment := reader.PeekLine()
 	pos := pc.BlockOffset()
 	if pos < 0 || line[pos] != '[' {
@@ -232,7 +232,7 @@ func (b *footnoteBlockParser) Open(parent ast.Node, reader text.Reader, pc parse
 	return item, parser.HasChildren
 }
 
-func (b *footnoteBlockParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) parser.State {
+func (b *footnoteBlockParser) Continue(_ ast.Node, reader text.Reader, _ parser.Context) parser.State {
 	line, _ := reader.PeekLine()
 	if util.IsBlank(line) {
 		return parser.Continue | parser.HasChildren
@@ -245,7 +245,7 @@ func (b *footnoteBlockParser) Continue(node ast.Node, reader text.Reader, pc par
 	return parser.Continue | parser.HasChildren
 }
 
-func (b *footnoteBlockParser) Close(node ast.Node, reader text.Reader, pc parser.Context) {
+func (b *footnoteBlockParser) Close(node ast.Node, _ text.Reader, pc parser.Context) {
 	var list *FootnoteList
 	if tlist := pc.Get(footnoteListKey); tlist != nil {
 		list = tlist.(*FootnoteList)
@@ -283,7 +283,7 @@ func (s *footnoteParser) Trigger() []byte {
 	return []byte{'!', '['}
 }
 
-func (s *footnoteParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
+func (s *footnoteParser) Parse(_ ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, segment := block.PeekLine()
 	pos := 1
 	if len(line) > 0 && line[0] == '!' {
@@ -349,7 +349,7 @@ func NewFootnoteASTTransformer() parser.ASTTransformer {
 	return defaultFootnoteASTTransformer
 }
 
-func (a *footnoteASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
+func (a *footnoteASTTransformer) Transform(node *ast.Document, _ text.Reader, pc parser.Context) {
 	var list *FootnoteList
 	if tlist := pc.Get(footnoteListKey); tlist != nil {
 		list = tlist.(*FootnoteList)
@@ -458,7 +458,7 @@ func (r *FootnoteHTMLRenderer) renderFootnote(w util.BufWriter, source []byte, n
 	return ast.WalkContinue, nil
 }
 
-func (r *FootnoteHTMLRenderer) renderFootnoteList(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+func (r *FootnoteHTMLRenderer) renderFootnoteList(w util.BufWriter, _ []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	tag := "div"
 	if entering {
 		_, _ = w.WriteString("<")

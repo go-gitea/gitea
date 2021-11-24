@@ -41,7 +41,7 @@ func TestGPGGit(t *testing.T) {
 	defer os.Setenv("GNUPGHOME", oldGNUPGHome)
 
 	// Need to create a root key
-	rootKeyPair, err := importTestingKey(tmpDir, "gitea", "gitea@fake.local")
+	rootKeyPair, err := importTestingKey("gitea", "gitea@fake.local")
 	assert.NoError(t, err)
 	if err != nil {
 		assert.FailNow(t, "Unable to import rootKeyPair")
@@ -326,7 +326,7 @@ func TestGPGGit(t *testing.T) {
 	}, false)
 }
 
-func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
+func crudActionCreateFile(_ *testing.T, ctx APITestContext, user *user_model.User, from, to, path string, callback ...func(*testing.T, api.FileResponse)) func(*testing.T) {
 	return doAPICreateFile(ctx, path, &api.CreateFileOptions{
 		FileOptions: api.FileOptions{
 			BranchName:    from,
@@ -345,7 +345,7 @@ func crudActionCreateFile(t *testing.T, ctx APITestContext, user *user_model.Use
 	}, callback...)
 }
 
-func importTestingKey(tmpDir, name, email string) (*openpgp.Entity, error) {
+func importTestingKey(name, email string) (*openpgp.Entity, error) {
 	if _, _, err := process.GetManager().Exec("gpg --import integrations/private-testing.key", "gpg", "--import", "integrations/private-testing.key"); err != nil {
 		return nil, err
 	}
@@ -366,5 +366,13 @@ func importTestingKey(tmpDir, name, email string) (*openpgp.Entity, error) {
 	}
 
 	// There should only be one entity in this file.
+	if len(keyring) > 1 {
+		return nil, fmt.Errorf("More than one entity in keyring file")
+	}
+
+	if _, ok := keyring[0].Identities[name+" <"+email+">"]; !ok {
+		return nil, fmt.Errorf("Could not found provided identify by name and email")
+	}
+
 	return keyring[0], nil
 }

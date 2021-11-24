@@ -61,7 +61,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("id > 0").BufferSize(setting.Database.IterateBufferSize).
 		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
+			func(_ int, bean interface{}) error {
 				repository := bean.(*Repository)
 				select {
 				case <-ctx.Done():

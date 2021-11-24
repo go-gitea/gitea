@@ -32,7 +32,7 @@ func NewPlainGitDownloader(ownerName, repoName, remoteURL string) *PlainGitDownl
 }
 
 // SetContext set context
-func (g *PlainGitDownloader) SetContext(ctx context.Context) {
+func (g *PlainGitDownloader) SetContext(_ context.Context) {
 }
 
 // GetRepoInfo returns a repository information

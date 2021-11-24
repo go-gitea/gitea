@@ -46,7 +46,7 @@ func (n NullDownloader) GetLabels() ([]*Label, error) {
 }
 
 // GetIssues returns issues according start and limit
-func (n NullDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
+func (n NullDownloader) GetIssues(_, _ int) ([]*Issue, bool, error) {
 	return nil, false, &ErrNotSupported{Entity: "Issues"}
 }
 
@@ -56,12 +56,12 @@ func (n NullDownloader) GetComments(GetCommentOptions) ([]*Comment, bool, error)
 }
 
 // GetPullRequests returns pull requests according page and perPage
-func (n NullDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool, error) {
+func (n NullDownloader) GetPullRequests(_, _ int) ([]*PullRequest, bool, error) {
 	return nil, false, &ErrNotSupported{Entity: "PullRequests"}
 }
 
 // GetReviews returns pull requests review
-func (n NullDownloader) GetReviews(pullRequestContext IssueContext) ([]*Review, error) {
+func (n NullDownloader) GetReviews(_ IssueContext) ([]*Review, error) {
 	return nil, &ErrNotSupported{Entity: "Reviews"}
 }
 

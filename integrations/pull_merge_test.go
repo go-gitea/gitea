@@ -63,7 +63,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 }
 
 func TestPullMerge(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
@@ -85,7 +85,7 @@ func TestPullMerge(t *testing.T) {
 }
 
 func TestPullRebase(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
@@ -107,7 +107,7 @@ func TestPullRebase(t *testing.T) {
 }
 
 func TestPullRebaseMerge(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
@@ -129,7 +129,7 @@ func TestPullRebaseMerge(t *testing.T) {
 }
 
 func TestPullSquash(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		hookTasks, err := webhook.HookTasks(1, 1) //Retrieve previous hook number
 		assert.NoError(t, err)
 		hookTasksLenBefore := len(hookTasks)
@@ -152,7 +152,7 @@ func TestPullSquash(t *testing.T) {
 }
 
 func TestPullCleanUpAfterMerge(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "feature/test", "README.md", "Hello, World (Edited - TestPullCleanUpAfterMerge)\n")
@@ -187,7 +187,7 @@ func TestPullCleanUpAfterMerge(t *testing.T) {
 }
 
 func TestCantMergeWorkInProgress(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFile(t, session, "user1", "repo1", "master", "README.md", "Hello, World (Edited)\n")
@@ -206,7 +206,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 }
 
 func TestCantMergeConflict(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "conflict", "README.md", "Hello, World (Edited Once)\n")
@@ -240,11 +240,11 @@ func TestCantMergeConflict(t *testing.T) {
 		gitRepo, err := git.OpenRepository(models.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
-		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleMerge, "CONFLICT")
+		err = pull.Merge(pr, user1, models.MergeStyleMerge, "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleRebase, "CONFLICT")
+		err = pull.Merge(pr, user1, models.MergeStyleRebase, "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
 		gitRepo.Close()
@@ -252,7 +252,7 @@ func TestCantMergeConflict(t *testing.T) {
 }
 
 func TestCantMergeUnrelated(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 		testEditFileToNewBranch(t, session, "user1", "repo1", "master", "base", "README.md", "Hello, World (Edited Twice)\n")
@@ -328,7 +328,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			BaseBranch: "base",
 		}).(*models.PullRequest)
 
-		err = pull.Merge(pr, user1, gitRepo, models.MergeStyleMerge, "UNRELATED")
+		err = pull.Merge(pr, user1, models.MergeStyleMerge, "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()

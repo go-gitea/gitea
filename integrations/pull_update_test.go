@@ -21,7 +21,7 @@ import (
 )
 
 func TestAPIPullUpdate(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		//Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26}).(*user_model.User)
@@ -49,7 +49,7 @@ func TestAPIPullUpdate(t *testing.T) {
 }
 
 func TestAPIPullUpdateByRebase(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		//Create PR to test
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26}).(*user_model.User)

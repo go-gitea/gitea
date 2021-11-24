@@ -57,7 +57,7 @@ func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
 }
 
 // VerifyLink builds a URL for verifying the object.
-func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
+func (rc *requestContext) VerifyLink() string {
 	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
 }
 
@@ -455,7 +455,7 @@ func buildObjectResponse(rc *requestContext, pointer lfs_module.Pointer, downloa
 			// This is only needed to workaround https://github.com/git-lfs/git-lfs/issues/3662
 			verifyHeader["Accept"] = lfs_module.MediaType
 
-			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(pointer), Header: verifyHeader}
+			rep.Actions["verify"] = &lfs_module.Link{Href: rc.VerifyLink(), Header: verifyHeader}
 		}
 	}
 	return rep

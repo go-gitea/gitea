@@ -106,7 +106,7 @@ func RegeneratePrincipalKeys(t io.StringWriter) error {
 }
 
 func regeneratePrincipalKeys(e db.Engine, t io.StringWriter) error {
-	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(_ int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {

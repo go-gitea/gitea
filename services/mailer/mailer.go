@@ -106,7 +106,7 @@ func LoginAuth(username, password string) smtp.Auth {
 }
 
 // Start start SMTP login auth
-func (a *loginAuth) Start(server *smtp.ServerInfo) (string, []byte, error) {
+func (a *loginAuth) Start(_ *smtp.ServerInfo) (string, []byte, error) {
 	return "LOGIN", []byte{}, nil
 }
 

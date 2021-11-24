@@ -89,7 +89,7 @@ func (l *XORMLogBridge) Level() xormlog.LogLevel {
 }
 
 // SetLevel set the logger level
-func (l *XORMLogBridge) SetLevel(lvl xormlog.LogLevel) {
+func (l *XORMLogBridge) SetLevel(_ xormlog.LogLevel) {
 }
 
 // ShowSQL set if record SQL

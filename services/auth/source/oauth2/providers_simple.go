@@ -30,7 +30,7 @@ type SimpleProvider struct {
 }
 
 // CreateGothProvider creates a GothProvider from this Provider
-func (c *SimpleProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
+func (c *SimpleProvider) CreateGothProvider(_, callbackURL string, source *Source) (goth.Provider, error) {
 	return c.newFn(source.ClientID, source.ClientSecret, callbackURL, c.scopes...), nil
 }
 

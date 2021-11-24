@@ -21,7 +21,7 @@ import (
 )
 
 func TestUserAvatar(t *testing.T) {
-	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+	onGiteaRun(t, func(t *testing.T, _ *url.URL) {
 		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of the repo3, is an org
 
 		seed := user2.Email
