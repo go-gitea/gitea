@@ -313,8 +313,7 @@
 					<label class="tooltip" data-content="{{if .Issue.IsPrivate}}{{.i18n.Tr "repo.issues.confidential.off_popup"}}{{else}}{{.i18n.Tr "repo.issues.confidential.on_popup"}}{{end}}">
 					<button data-tooltip="hi" class="fluid ui button df jc">
 						{{if .Issue.IsPrivate}}
-							<!-- TODO: Replace it with a better icon! -->
-							{{svg "octicon-unmute" 16 "mr-3"}}
+							{{svg "octicon-eye" 16 "mr-3"}}
 							{{.i18n.Tr "repo.issues.confidential.off"}}
 						{{else}}
 							{{.i18n.Tr "repo.issues.confidential.on"}}
