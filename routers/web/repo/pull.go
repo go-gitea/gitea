@@ -215,13 +215,13 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	// Check ownership of organization.
+	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isOwner, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
+		isAllowedToFork, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
+		} else if !isAllowedToFork {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
