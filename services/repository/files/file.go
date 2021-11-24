@@ -2,15 +2,17 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repofiles
+package files
 
 import (
 	"fmt"
 	"net/url"
+	"path"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -80,7 +82,7 @@ func GetFileCommitResponse(repo *models.Repository, commit *git.Commit) (*api.Fi
 }
 
 // GetAuthorAndCommitterUsers Gets the author and committer user objects from the IdentityOptions
-func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models.User) (authorUser, committerUser *models.User) {
+func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *user_model.User) (authorUser, committerUser *user_model.User) {
 	// Committer and author are optional. If they are not the doer (not same email address)
 	// then we use bogus User objects for them to store their FullName and Email.
 	// If only one of the two are provided, we set both of them to it.
@@ -92,7 +94,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 				committerUser.FullName = committer.Name
 			}
 		} else {
-			committerUser = &models.User{
+			committerUser = &user_model.User{
 				FullName: committer.Name,
 				Email:    committer.Email,
 			}
@@ -105,7 +107,7 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 				authorUser.FullName = author.Name
 			}
 		} else {
-			authorUser = &models.User{
+			authorUser = &user_model.User{
 				FullName: author.Name,
 				Email:    author.Email,
 			}
@@ -122,4 +124,17 @@ func GetAuthorAndCommitterUsers(author, committer *IdentityOptions, doer *models
 		committerUser = authorUser // No valid committer so use the author as the committer (was set to a valid user above)
 	}
 	return authorUser, committerUser
+}
+
+// CleanUploadFileName Trims a filename and returns empty string if it is a .git directory
+func CleanUploadFileName(name string) string {
+	// Rebase the filename
+	name = strings.Trim(path.Clean("/"+name), " /")
+	// Git disallows any filenames to have a .git directory in them.
+	for _, part := range strings.Split(name, "/") {
+		if strings.ToLower(part) == ".git" {
+			return ""
+		}
+	}
+	return name
 }

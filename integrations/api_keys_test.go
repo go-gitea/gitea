@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -47,7 +48,7 @@ func TestDeleteDeployKeyNoLogin(t *testing.T) {
 func TestCreateReadOnlyDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -73,7 +74,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 func TestCreateReadWriteDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{Name: "repo1"}).(*models.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -97,7 +98,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 
 func TestCreateUserKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
 
 	session := loginUser(t, "user1")
 	token := url.QueryEscape(getTokenForLoggedInUser(t, session))

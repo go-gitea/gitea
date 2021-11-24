@@ -10,14 +10,15 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/packages"
+	packages_model "code.gitea.io/gitea/models/packages"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // Package contains owner, access mode and optional the package
 type Package struct {
-	Owner      *models.User
+	Owner      *user_model.User
 	AccessMode models.AccessMode
-	Descriptor *packages.PackageDescriptor
+	Descriptor *packages_model.PackageDescriptor
 }
 
 // PackageAssignment returns a middleware to handle Context.Package assignment
@@ -74,9 +75,9 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 			return
 		}
 
-		pv, err := packages.GetVersionByID(ctx, id)
+		pv, err := packages_model.GetVersionByID(ctx, id)
 		if err != nil {
-			if err == packages.ErrPackageNotExist {
+			if err == packages_model.ErrPackageNotExist {
 				errCb(http.StatusNotFound, "GetVersionByID", err)
 			} else {
 				errCb(http.StatusInternalServerError, "GetVersionByID", err)
@@ -84,7 +85,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 			return
 		}
 
-		ctx.Package.Descriptor, err = packages.GetPackageDescriptorCtx(ctx, pv)
+		ctx.Package.Descriptor, err = packages_model.GetPackageDescriptorCtx(ctx, pv)
 		if err != nil {
 			errCb(http.StatusInternalServerError, "GetPackageDescriptorCtx", err)
 			return

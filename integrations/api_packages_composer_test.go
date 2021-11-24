@@ -11,10 +11,10 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/packages/composer"
@@ -24,7 +24,7 @@ import (
 
 func TestPackageComposer(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	vendorName := "gitea"
 	projectName := "composer-package"

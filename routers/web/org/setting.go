@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -61,7 +62,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := models.IsUserExist(org.ID, form.Name)
+		isExist, err := user_model.IsUserExist(org.ID, form.Name)
 		if err != nil {
 			ctx.ServerError("IsUserExist", err)
 			return
@@ -69,8 +70,8 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Data["OrgName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
-		} else if err = models.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			if err == models.ErrUserNameIllegal {
+		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
+			if err == user_model.ErrUserNameIllegal {
 				ctx.Data["OrgName"] = true
 				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
@@ -101,7 +102,7 @@ func SettingsPost(ctx *context.Context) {
 	visibilityChanged := form.Visibility != org.Visibility
 	org.Visibility = form.Visibility
 
-	if err := models.UpdateUser(org.AsUser()); err != nil {
+	if err := user_model.UpdateUser(org.AsUser()); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

@@ -7,11 +7,12 @@ package issue
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *models.Issue, doer *models.User, closed bool) error {
+func ChangeStatus(issue *models.Issue, doer *user_model.User, closed bool) error {
 	comment, err := issue.ChangeStatus(doer, closed)
 	if err != nil {
 		// Don't return an error when dependencies are open as this would let the push fail

@@ -7,9 +7,9 @@ package user
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/golang-jwt/jwt"
@@ -58,7 +58,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Empty(t, oidcToken.Email)
 	assert.False(t, oidcToken.EmailVerified)
 
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	grants, err = login.GetOAuth2GrantsByUserID(user.ID)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -76,7 +77,7 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) {
+func accessLevel(e db.Engine, user *user_model.User, repo *Repository) (AccessMode, error) {
 	mode := AccessModeNone
 	var userID int64
 	restricted := false
@@ -116,12 +117,12 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 }
 
 type userAccess struct {
-	User *User
+	User *user_model.User
 	Mode AccessMode
 }
 
 // updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
+func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
 	} else {

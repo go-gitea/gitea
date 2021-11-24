@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,7 +16,7 @@ import (
 )
 
 // listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
+func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
 	repos, count, err := models.GetUserRepositories(&models.SearchRepoOptions{

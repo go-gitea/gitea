@@ -57,7 +57,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				wasEmpty = repo.IsEmpty
 			}
 
-			option := repo_module.PushUpdateOptions{
+			option := &repo_module.PushUpdateOptions{
 				RefFullName:  refFullName,
 				OldCommitID:  opts.OldCommitIDs[i],
 				NewCommitID:  opts.NewCommitIDs[i],
@@ -66,11 +66,11 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				RepoUserName: ownerName,
 				RepoName:     repoName,
 			}
-			updates = append(updates, &option)
+			updates = append(updates, option)
 			if repo.IsEmpty && option.IsBranch() && (option.BranchName() == "master" || option.BranchName() == "main") {
 				// put the master/main branch first
 				copy(updates[1:], updates)
-				updates[0] = &option
+				updates[0] = option
 			}
 		}
 	}

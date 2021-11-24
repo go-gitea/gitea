@@ -10,9 +10,9 @@ import (
 	"io"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -21,7 +21,7 @@ import (
 
 // PackageInfo describes a package
 type PackageInfo struct {
-	Owner       *models.User
+	Owner       *user_model.User
 	PackageType packages_model.Type
 	Name        string
 	Version     string
@@ -31,7 +31,7 @@ type PackageInfo struct {
 type PackageCreationInfo struct {
 	PackageInfo
 	SemverCompatible bool
-	Creator          *models.User
+	Creator          *user_model.User
 	Metadata         interface{}
 	Properties       map[string]string
 }
@@ -225,7 +225,7 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 }
 
 // DeletePackageVersionByNameAndVersion deletes a package version and all associated files
-func DeletePackageVersionByNameAndVersion(doer *models.User, pvi *PackageInfo) error {
+func DeletePackageVersionByNameAndVersion(doer *user_model.User, pvi *PackageInfo) error {
 	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
 	if err != nil {
 		return err
@@ -235,7 +235,7 @@ func DeletePackageVersionByNameAndVersion(doer *models.User, pvi *PackageInfo) e
 }
 
 // DeletePackageVersion deletes the package version and all associated files
-func DeletePackageVersion(doer *models.User, pv *packages_model.PackageVersion) error {
+func DeletePackageVersion(doer *user_model.User, pv *packages_model.PackageVersion) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -324,7 +324,7 @@ func GetFileStreamByPackageNameAndVersion(pvi *PackageInfo, filename string) (io
 }
 
 // GetFileStreamByPackageVersionID returns the content of the specific package file
-func GetFileStreamByPackageVersionID(owner *models.User, versionID int64, filename string) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersionID(owner *user_model.User, versionID int64, filename string) (io.ReadCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s", owner.ID, versionID, filename)
 
 	pv, err := packages_model.GetVersionByID(db.DefaultContext, versionID)

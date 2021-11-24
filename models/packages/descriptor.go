@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/packages/maven"
@@ -24,11 +25,11 @@ import (
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
 	Package    *Package
-	Owner      *models.User
+	Owner      *user_model.User
 	Repository *models.Repository
 	Version    *PackageVersion
 	SemVer     *version.Version
-	Creator    *models.User
+	Creator    *user_model.User
 	Properties []*PackageVersionProperty
 	Metadata   interface{}
 	Files      []PackageFileDescriptor
@@ -56,7 +57,7 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 	if err != nil {
 		return nil, err
 	}
-	o, err := models.GetUserByIDCtx(ctx, p.OwnerID)
+	o, err := user_model.GetUserByIDCtx(ctx, p.OwnerID)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +65,7 @@ func GetPackageDescriptorCtx(ctx context.Context, pv *PackageVersion) (*PackageD
 	if err != nil && !models.IsErrRepoNotExist(err) {
 		return nil, err
 	}
-	creator, err := models.GetUserByIDCtx(ctx, pv.CreatorID)
+	creator, err := user_model.GetUserByIDCtx(ctx, pv.CreatorID)
 	if err != nil {
 		return nil, err
 	}

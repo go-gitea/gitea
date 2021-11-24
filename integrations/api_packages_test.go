@@ -10,9 +10,9 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +20,7 @@ import (
 
 func TestPackageAPI(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
