@@ -15,7 +15,7 @@
 		<div class="ui compact tiny menu">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
 				{{svg "octicon-project" 16 "mr-2"}}
-				{{.i18n.Tr "repo.issues.open_tab" .OpenCount}}
+				{{.i18n.Tr "repo.issues.open_title" .OpenCount}}
 			</a>
 			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=closed">
 				{{svg "octicon-check" 16 "mr-2"}}
@@ -48,9 +48,9 @@
 						{{end}}
 						<span class="issue-stats">
 							{{svg "octicon-issue-opened"}}
-							<p class="format-me">{{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}</p>
+							<span class="js-format-pretty-number" data-original="{{.NumOpenIssues}}">{{PrettyNumber .NumOpenIssues}}</span>&nbsp;{{$.i18n.Tr "repo.issues.open_title"}}
 							{{svg "octicon-issue-closed"}}
-							<p class="format-me">{{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}</p>
+							<span class="js-format-pretty-number" data-original="{{.NumOpenIssues}}">{{PrettyNumber .NumClosedIssues}}</span>&nbsp;{{$.i18n.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}

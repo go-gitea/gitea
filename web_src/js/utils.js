@@ -58,3 +58,10 @@ export function parseIssueHref(href) {
   const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
   return {owner, repo, type, index};
 }
+
+// pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
+export function prettyNumber(num, locale = 'en-US') {
+  if (typeof num !== 'number') return '';
+  const {format} = new Intl.NumberFormat(locale);
+  return format(num, locale);
+}

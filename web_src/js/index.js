@@ -44,10 +44,10 @@ import {
   initGlobalCommon,
   initGlobalDropzone,
   initGlobalEnterQuickSubmit,
+  initGlobalFormattingReplacement,
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initNumberFormatting,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin-emails.js';
@@ -86,7 +86,7 @@ $(document).ready(() => {
 
   initGlobalButtonClickOnEnter();
   initGlobalButtons();
-  initNumberFormatting();
+  initGlobalFormattingReplacement();
   initGlobalCopyToClipboardListener();
   initGlobalDropzone();
   initGlobalEnterQuickSubmit();
