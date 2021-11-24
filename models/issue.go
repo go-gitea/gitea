@@ -337,11 +337,11 @@ func (issue *Issue) LoadAttributes() error {
 }
 
 // LoadCommentsAsUser loads the comment of the issue, as the user.
-func (issue *Issue) LoadCommentsAsUser(user *User, canSeePrivateIssues bool) error {
+func (issue *Issue) LoadCommentsAsUser(user *user_model.User, canSeePrivateIssues bool) error {
 	return issue.loadCommentsAsUser(db.GetEngine(db.DefaultContext), user, canSeePrivateIssues)
 }
 
-func (issue *Issue) loadCommentsAsUser(e db.Engine, user *User, canSeePrivateIssues bool) (err error) {
+func (issue *Issue) loadCommentsAsUser(e db.Engine, user *user_model.User, canSeePrivateIssues bool) (err error) {
 	var userID int64
 	if user != nil {
 		userID = user.ID
@@ -767,7 +767,7 @@ func (issue *Issue) ChangeTitle(doer *user_model.User, oldTitle string) (err err
 }
 
 // ChangeConfidential changes the confidential of this issue, as the given user.
-func (issue *Issue) ChangeConfidential(doer *User) (err error) {
+func (issue *Issue) ChangeConfidential(doer *user_model.User) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

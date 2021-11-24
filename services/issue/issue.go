@@ -56,7 +56,7 @@ func ChangeTitle(issue *models.Issue, doer *user_model.User, title string) (err 
 }
 
 // ChangeConfidential changes the confidential of this issue, as the given user.
-func ChangeConfidential(issue *models.Issue, doer *models.User, isConfidential bool) (err error) {
+func ChangeConfidential(issue *models.Issue, doer *user_model.User, isConfidential bool) (err error) {
 	if doer == nil {
 		return models.ErrCannotSeePrivateIssue{
 			UserID: -1,
@@ -65,6 +65,7 @@ func ChangeConfidential(issue *models.Issue, doer *models.User, isConfidential b
 			Index:  issue.Index,
 		}
 	}
+	// TODO: remove existing watcher, notifications, etc etc.
 	isUserAdmin, err := models.IsUserRealRepoAdmin(issue.Repo, doer)
 	if err != nil {
 		return
