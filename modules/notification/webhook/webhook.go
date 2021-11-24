@@ -212,7 +212,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *models.User, issue *model
 			},
 			Issue:      convert.ToAPIIssue(issue),
 			Repository: convert.ToRepo(issue.Repo, mode),
-			Sender:     convert.ToUser(issue.Poster, nil),
+			Sender:     convert.ToUser(doer, nil),
 		})
 	}
 
