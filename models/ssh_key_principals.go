@@ -73,7 +73,7 @@ func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
-func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
+func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", ErrSSHDisabled{}
 	}

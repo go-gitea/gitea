@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -22,8 +23,8 @@ import (
 func TestAPIPullUpdate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
-		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-		org26 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26}).(*user_model.User)
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
@@ -50,8 +51,8 @@ func TestAPIPullUpdate(t *testing.T) {
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		//Create PR to test
-		user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-		org26 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 26}).(*models.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26}).(*user_model.User)
 		pr := createOutdatedPR(t, user, org26)
 
 		//Test GetDiverging
@@ -75,7 +76,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 	})
 }
 
-func createOutdatedPR(t *testing.T, actor, forkOrg *models.User) *models.PullRequest {
+func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.PullRequest {
 	baseRepo, err := repo_service.CreateRepository(actor, actor, models.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",

@@ -110,9 +110,9 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	owner, err := models.GetUserByName(username)
+	owner, err := user_model.GetUserByName(username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
 				context.RedirectToUser(ctx, username, redirectUserID)
 			} else {

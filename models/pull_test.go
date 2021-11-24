@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -264,7 +265,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 		},
 	}
 	baseRepo := &Repository{Name: "testRepo", ID: 1}
-	baseRepo.Owner = &User{Name: "testOwner"}
+	baseRepo.Owner = &user_model.User{Name: "testOwner"}
 	baseRepo.Units = []*RepoUnit{&externalTracker}
 
 	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2, BaseRepo: baseRepo}).(*PullRequest)

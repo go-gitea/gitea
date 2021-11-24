@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -26,20 +28,20 @@ import (
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
-var searchOrderByMap = map[string]map[string]models.SearchOrderBy{
+var searchOrderByMap = map[string]map[string]db.SearchOrderBy{
 	"asc": {
-		"alpha":   models.SearchOrderByAlphabetically,
-		"created": models.SearchOrderByOldest,
-		"updated": models.SearchOrderByLeastUpdated,
-		"size":    models.SearchOrderBySize,
-		"id":      models.SearchOrderByID,
+		"alpha":   db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"size":    db.SearchOrderBySize,
+		"id":      db.SearchOrderByID,
 	},
 	"desc": {
-		"alpha":   models.SearchOrderByAlphabeticallyReverse,
-		"created": models.SearchOrderByNewest,
-		"updated": models.SearchOrderByRecentUpdated,
-		"size":    models.SearchOrderBySizeReverse,
-		"id":      models.SearchOrderByIDReverse,
+		"alpha":   db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"size":    db.SearchOrderBySizeReverse,
+		"id":      db.SearchOrderByIDReverse,
 	},
 }
 
@@ -239,7 +241,7 @@ func Search(ctx *context.APIContext) {
 }
 
 // CreateUserRepo create a repository for a user
-func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateRepoOption) {
+func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.CreateRepoOption) {
 	if opt.AutoInit && opt.Readme == "" {
 		opt.Readme = "Default"
 	}
@@ -259,8 +261,8 @@ func CreateUserRepo(ctx *context.APIContext, owner *models.User, opt api.CreateR
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-		} else if models.IsErrNameReserved(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+		} else if db.IsErrNameReserved(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
@@ -374,9 +376,9 @@ func Generate(ctx *context.APIContext) {
 	ctxUser := ctx.User
 	var err error
 	if form.Owner != ctxUser.Name {
-		ctxUser, err = models.GetUserByName(form.Owner)
+		ctxUser, err = user_model.GetUserByName(form.Owner)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusNotFound, map[string]interface{}{
 					"error": "request owner `" + form.Owner + "` does not exist",
 				})
@@ -408,8 +410,8 @@ func Generate(ctx *context.APIContext) {
 	if err != nil {
 		if models.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
-		} else if models.IsErrNameReserved(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+		} else if db.IsErrNameReserved(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateRepository", err)
@@ -648,10 +650,10 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 			switch {
 			case models.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
-			case models.IsErrNameReserved(err):
+			case db.IsErrNameReserved(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
-			case models.IsErrNamePatternNotAllowed(err):
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(models.ErrNamePatternNotAllowed).Pattern), err)
+			case db.IsErrNamePatternNotAllowed(err):
+				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name's pattern is not allowed [name: %s, pattern: %s]", newRepoName, err.(db.ErrNamePatternNotAllowed).Pattern), err)
 			default:
 				ctx.Error(http.StatusUnprocessableEntity, "ChangeRepositoryName", err)
 			}

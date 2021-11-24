@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -19,7 +20,7 @@ import (
 	"code.gitea.io/gitea/services/org"
 )
 
-func listUserOrgs(ctx *context.APIContext, u *models.User) {
+func listUserOrgs(ctx *context.APIContext, u *user_model.User) {
 	listOptions := utils.GetListOptions(ctx)
 	showPrivate := ctx.IsSigned && (ctx.User.IsAdmin || ctx.User.ID == u.ID)
 
@@ -130,12 +131,12 @@ func GetUserOrgsPermissions(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	var u *models.User
+	var u *user_model.User
 	if u = user.GetUserByParams(ctx); u == nil {
 		return
 	}
 
-	var o *models.User
+	var o *user_model.User
 	if o = user.GetUserByParamsName(ctx, ":org"); o == nil {
 		return
 	}
@@ -206,11 +207,11 @@ func GetAll(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	publicOrgs, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+	publicOrgs, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.User,
 		ListOptions: listOptions,
-		Type:        models.UserTypeOrganization,
-		OrderBy:     models.SearchOrderByAlphabetically,
+		Type:        user_model.UserTypeOrganization,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		Visible:     vMode,
 	})
 	if err != nil {
@@ -266,15 +267,15 @@ func Create(ctx *context.APIContext) {
 		Website:                   form.Website,
 		Location:                  form.Location,
 		IsActive:                  true,
-		Type:                      models.UserTypeOrganization,
+		Type:                      user_model.UserTypeOrganization,
 		Visibility:                visibility,
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 	if err := models.CreateOrganization(org, ctx.User); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+		if user_model.IsErrUserAlreadyExist(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
@@ -344,7 +345,7 @@ func Edit(ctx *context.APIContext) {
 	if form.RepoAdminChangeTeamAccess != nil {
 		org.RepoAdminChangeTeamAccess = *form.RepoAdminChangeTeamAccess
 	}
-	if err := models.UpdateUserCols(db.DefaultContext, org.AsUser(),
+	if err := user_model.UpdateUserCols(db.DefaultContext, org.AsUser(),
 		"full_name", "description", "website", "location",
 		"visibility", "repo_admin_change_team_access",
 	); err != nil {

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -17,7 +18,7 @@ import (
 )
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
+func CreateNewBranch(doer *user_model.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
 	// Check if branch name can be used
 	if err := checkBranchName(repo, branchName); err != nil {
 		return err
@@ -99,7 +100,7 @@ func checkBranchName(repo *models.Repository, name string) error {
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(doer *models.User, repo *models.Repository, commit, branchName string) (err error) {
+func CreateNewBranchFromCommit(doer *user_model.User, repo *models.Repository, commit, branchName string) (err error) {
 	// Check if branch name can be used
 	if err := checkBranchName(repo, branchName); err != nil {
 		return err
@@ -120,7 +121,7 @@ func CreateNewBranchFromCommit(doer *models.User, repo *models.Repository, commi
 }
 
 // RenameBranch rename a branch
-func RenameBranch(repo *models.Repository, doer *models.User, gitRepo *git.Repository, from, to string) (string, error) {
+func RenameBranch(repo *models.Repository, doer *user_model.User, gitRepo *git.Repository, from, to string) (string, error) {
 	if from == to {
 		return "target_exist", nil
 	}
@@ -164,7 +165,7 @@ var (
 )
 
 // DeleteBranch delete branch
-func DeleteBranch(doer *models.User, repo *models.Repository, gitRepo *git.Repository, branchName string) error {
+func DeleteBranch(doer *user_model.User, repo *models.Repository, gitRepo *git.Repository, branchName string) error {
 	if branchName == repo.DefaultBranch {
 		return ErrBranchIsDefault
 	}

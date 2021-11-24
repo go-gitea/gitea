@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -39,7 +40,7 @@ var (
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
 	ctx            context.Context
-	doer           *models.User
+	doer           *user_model.User
 	repoOwner      string
 	repoName       string
 	repo           *models.Repository
@@ -54,7 +55,7 @@ type GiteaLocalUploader struct {
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
-func NewGiteaLocalUploader(ctx context.Context, doer *models.User, repoOwner, repoName string) *GiteaLocalUploader {
+func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner, repoName string) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
 		ctx:         ctx,
 		doer:        doer,
@@ -87,7 +88,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
-	owner, err := models.GetUserByName(g.repoOwner)
+	owner, err := user_model.GetUserByName(g.repoOwner)
 	if err != nil {
 		return err
 	}

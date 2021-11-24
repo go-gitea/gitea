@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package user
 
 import (
+	"context"
 	"crypto/md5"
 	"fmt"
 	"image/png"
@@ -26,10 +27,11 @@ func (u *User) CustomAvatarRelativePath() string {
 
 // GenerateRandomAvatar generates a random avatar for user.
 func GenerateRandomAvatar(u *User) error {
-	return generateRandomAvatar(db.GetEngine(db.DefaultContext), u)
+	return GenerateRandomAvatarCtx(db.DefaultContext, u)
 }
 
-func generateRandomAvatar(e db.Engine, u *User) error {
+// GenerateRandomAvatarCtx generates a random avatar for user.
+func GenerateRandomAvatarCtx(ctx context.Context, u *User) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -52,7 +54,7 @@ func generateRandomAvatar(e db.Engine, u *User) error {
 		return fmt.Errorf("Failed to create dir %s: %v", u.CustomAvatarRelativePath(), err)
 	}
 
-	if _, err := e.ID(u.ID).Cols("avatar").Update(u); err != nil {
+	if _, err := db.GetEngine(ctx).ID(u.ID).Cols("avatar").Update(u); err != nil {
 		return err
 	}
 
