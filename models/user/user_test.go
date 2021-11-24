@@ -60,7 +60,7 @@ func TestSearchUsers(t *testing.T) {
 	testSuccess := func(opts *SearchUserOptions, expectedUserOrOrgIDs []int64) {
 		users, _, err := SearchUsers(opts)
 		assert.NoError(t, err)
-		if assert.Len(t, users, len(expectedUserOrOrgIDs)) {
+		if assert.Len(t, users, len(expectedUserOrOrgIDs), opts) {
 			for i, expectedID := range expectedUserOrOrgIDs {
 				assert.EqualValues(t, expectedID, users[i].ID)
 			}
@@ -333,35 +333,6 @@ func TestNewUserRedirect3(t *testing.T) {
 		LowerName:      user.LowerName,
 		RedirectUserID: user.ID,
 	})
-}
-
-func TestFollowUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, FollowUser(followerID, followedID))
-		unittest.AssertExistsAndLoadBean(t, &Follow{UserID: followerID, FollowID: followedID})
-	}
-	testSuccess(4, 2)
-	testSuccess(5, 2)
-
-	assert.NoError(t, FollowUser(2, 2))
-
-	unittest.CheckConsistencyFor(t, &User{})
-}
-
-func TestUnfollowUser(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	testSuccess := func(followerID, followedID int64) {
-		assert.NoError(t, UnfollowUser(followerID, followedID))
-		unittest.AssertNotExistsBean(t, &Follow{UserID: followerID, FollowID: followedID})
-	}
-	testSuccess(4, 2)
-	testSuccess(5, 2)
-	testSuccess(2, 2)
-
-	unittest.CheckConsistencyFor(t, &User{})
 }
 
 func TestGetUserByOpenID(t *testing.T) {
