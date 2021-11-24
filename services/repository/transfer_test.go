@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/util"
@@ -30,9 +31,9 @@ func TestTransferOwnership(t *testing.T) {
 
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
-	repo.Owner = unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	assert.NoError(t, TransferOwnership(doer, doer, repo, nil))
 
 	transferredRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
@@ -51,16 +52,16 @@ func TestTransferOwnership(t *testing.T) {
 		Content:   "user3/repo3",
 	})
 
-	unittest.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &models.Repository{}, &user_model.User{}, &models.Team{})
 }
 
 func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	doer := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)
-	recipient := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 5}).(*models.User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	recipient := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
-	repo.Owner = unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	hasAccess, err := models.HasAccess(recipient.ID, repo)
 	assert.NoError(t, err)
@@ -72,5 +73,5 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, hasAccess)
 
-	unittest.CheckConsistencyFor(t, &models.Repository{}, &models.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &models.Repository{}, &user_model.User{}, &models.Team{})
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -23,7 +24,7 @@ func registerDeleteInactiveUsers() {
 			Schedule:   "@annually",
 		},
 		OlderThan: 0 * time.Second,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
 		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
 	})
@@ -34,7 +35,7 @@ func registerDeleteRepositoryArchives() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@annually",
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return repo_service.DeleteRepositoryArchives(ctx)
 	})
 }
@@ -53,7 +54,7 @@ func registerGarbageCollectRepositories() {
 		},
 		Timeout: time.Duration(setting.Git.Timeout.GC) * time.Second,
 		Args:    setting.Git.GCArgs,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
 		return repo_service.GitGcRepos(ctx, rhcConfig.Timeout, rhcConfig.Args...)
 	})
@@ -64,7 +65,7 @@ func registerRewriteAllPublicKeys() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(_ context.Context, _ *models.User, _ Config) error {
+	}, func(_ context.Context, _ *user_model.User, _ Config) error {
 		return models.RewriteAllPublicKeys()
 	})
 }
@@ -74,7 +75,7 @@ func registerRewriteAllPrincipalKeys() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(_ context.Context, _ *models.User, _ Config) error {
+	}, func(_ context.Context, _ *user_model.User, _ Config) error {
 		return models.RewriteAllPrincipalKeys()
 	})
 }
@@ -84,7 +85,7 @@ func registerRepositoryUpdateHook() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return repo_service.SyncRepositoryHooks(ctx)
 	})
 }
@@ -94,7 +95,7 @@ func registerReinitMissingRepositories() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return repo_service.ReinitMissingRepositories(ctx)
 	})
 }
@@ -104,7 +105,7 @@ func registerDeleteMissingRepositories() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, user *models.User, _ Config) error {
+	}, func(ctx context.Context, user *user_model.User, _ Config) error {
 		return repo_service.DeleteMissingRepositories(ctx, user)
 	})
 }
@@ -114,7 +115,7 @@ func registerRemoveRandomAvatars() {
 		Enabled:    false,
 		RunAtStart: false,
 		Schedule:   "@every 72h",
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return models.RemoveRandomAvatars(ctx)
 	})
 }
@@ -127,7 +128,7 @@ func registerDeleteOldActions() {
 			Schedule:   "@every 168h",
 		},
 		OlderThan: 365 * 24 * time.Hour,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
 		return models.DeleteOldActions(olderThanConfig.OlderThan)
 	})
@@ -145,7 +146,7 @@ func registerUpdateGiteaChecker() {
 			Schedule:   "@every 168h",
 		},
 		HTTPEndpoint: "https://dl.gitea.io/gitea/version.json",
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		updateCheckerConfig := config.(*UpdateCheckerConfig)
 		return updatechecker.GiteaUpdateChecker(updateCheckerConfig.HTTPEndpoint)
 	})

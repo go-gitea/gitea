@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,9 +20,9 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	testSuccess := func(repoID, userID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		assert.NoError(t, repo.GetOwner())
-		user := unittest.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
 		assert.NoError(t, repo.AddCollaborator(user))
-		unittest.CheckConsistencyFor(t, &Repository{ID: repoID}, &User{ID: userID})
+		unittest.CheckConsistencyFor(t, &Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
 	testSuccess(1, 4)

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -56,16 +56,16 @@ func (r *ReverseProxy) Name() string {
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
-	user, err := models.GetUserByName(username)
+	user, err := user_model.GetUserByName(username)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
+		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
 			log.Error("GetUserByName: %v", err)
 			return nil
 		}
@@ -91,7 +91,7 @@ func (r *ReverseProxy) isAutoRegisterAllowed() bool {
 
 // newUser creates a new user object for the purpose of automatic registration
 // and populates its name and email with the information present in request headers.
-func (r *ReverseProxy) newUser(req *http.Request) *models.User {
+func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
@@ -105,12 +105,12 @@ func (r *ReverseProxy) newUser(req *http.Request) *models.User {
 		}
 	}
 
-	user := &models.User{
+	user := &user_model.User{
 		Name:     username,
 		Email:    email,
 		IsActive: true,
 	}
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		// FIXME: should I create a system notice?
 		log.Error("CreateUser: %v", err)
 		return nil

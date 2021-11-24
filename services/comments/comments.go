@@ -8,12 +8,13 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *models.User, repo *models.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
+func CreateIssueComment(doer *user_model.User, repo *models.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
 	comment, err := models.CreateComment(&models.CreateCommentOptions{
 		Type:        models.CommentTypeComment,
 		Doer:        doer,
@@ -37,7 +38,7 @@ func CreateIssueComment(doer *models.User, repo *models.Repository, issue *model
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(c *models.Comment, doer *models.User, oldContent string) error {
+func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) error {
 	var needsContentHistory = c.Content != oldContent &&
 		(c.Type == models.CommentTypeComment || c.Type == models.CommentTypeReview || c.Type == models.CommentTypeCode)
 	if needsContentHistory {
@@ -70,7 +71,7 @@ func UpdateComment(c *models.Comment, doer *models.User, oldContent string) erro
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(doer *models.User, comment *models.Comment) error {
+func DeleteComment(doer *user_model.User, comment *models.Comment) error {
 	if err := models.DeleteComment(comment); err != nil {
 		return err
 	}

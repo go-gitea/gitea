@@ -7,6 +7,7 @@ package models
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -36,7 +37,7 @@ const (
 )
 
 // CreateIssueDependency creates a new dependency for an issue
-func CreateIssueDependency(user *User, issue, dep *Issue) error {
+func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -78,7 +79,7 @@ func CreateIssueDependency(user *User, issue, dep *Issue) error {
 }
 
 // RemoveIssueDependency removes a dependency from an issue
-func RemoveIssueDependency(user *User, issue, dep *Issue, depType DependencyType) (err error) {
+func RemoveIssueDependency(user *user_model.User, issue, dep *Issue, depType DependencyType) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

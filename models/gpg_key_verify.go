@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -104,7 +105,7 @@ func VerifyGPGKey(ownerID int64, keyID, token, signature string) (string, error)
 }
 
 // VerificationToken returns token for the user that will be valid in minutes (time)
-func VerificationToken(user *User, minutes int) string {
+func VerificationToken(user *user_model.User, minutes int) string {
 	return base.EncodeSha256(
 		time.Now().Truncate(1*time.Minute).Add(time.Duration(minutes)*time.Minute).Format(time.RFC1123Z) + ":" +
 			user.CreatedUnix.FormatLong() + ":" +

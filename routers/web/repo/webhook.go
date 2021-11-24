@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -1149,7 +1150,7 @@ func TestWebhook(ctx *context.Context) {
 	// Grab latest commit or fake one if it's empty repository.
 	commit := ctx.Repo.Commit
 	if commit == nil {
-		ghost := models.NewGhostUser()
+		ghost := user_model.NewGhostUser()
 		commit = &git.Commit{
 			ID:            git.MustIDFromString(git.EmptySHA),
 			Author:        ghost.NewGitSig(),

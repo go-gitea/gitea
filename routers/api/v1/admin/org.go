@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -61,15 +63,15 @@ func CreateOrg(ctx *context.APIContext) {
 		Website:     form.Website,
 		Location:    form.Location,
 		IsActive:    true,
-		Type:        models.UserTypeOrganization,
+		Type:        user_model.UserTypeOrganization,
 		Visibility:  visibility,
 	}
 
 	if err := models.CreateOrganization(org, u); err != nil {
-		if models.IsErrUserAlreadyExist(err) ||
-			models.IsErrNameReserved(err) ||
-			models.IsErrNameCharsNotAllowed(err) ||
-			models.IsErrNamePatternNotAllowed(err) {
+		if user_model.IsErrUserAlreadyExist(err) ||
+			db.IsErrNameReserved(err) ||
+			db.IsErrNameCharsNotAllowed(err) ||
+			db.IsErrNamePatternNotAllowed(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "CreateOrganization", err)
@@ -104,10 +106,10 @@ func GetAllOrgs(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	users, maxResults, err := models.SearchUsers(&models.SearchUserOptions{
+	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
 		Actor:       ctx.User,
-		Type:        models.UserTypeOrganization,
-		OrderBy:     models.SearchOrderByAlphabetically,
+		Type:        user_model.UserTypeOrganization,
+		OrderBy:     db.SearchOrderByAlphabetically,
 		ListOptions: listOptions,
 		Visible:     []api.VisibleType{api.VisibleTypePublic, api.VisibleTypeLimited, api.VisibleTypePrivate},
 	})

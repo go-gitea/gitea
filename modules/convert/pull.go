@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -16,7 +17,7 @@ import (
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullRequest {
+func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
