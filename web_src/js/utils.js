@@ -63,5 +63,5 @@ export function parseIssueHref(href) {
 export function prettyNumber(num, locale = 'en-US') {
   if (typeof num !== 'number') return '';
   const {format} = new Intl.NumberFormat(locale);
-  return format(num, locale);
+  return format(num);
 }
