@@ -553,18 +553,24 @@ func SVG(icon string, others ...interface{}) template.HTML {
 func Avatar(item interface{}, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	if user, ok := item.(*models.User); ok {
-		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+	switch t := item.(type) {
+	case *models.User:
+		src := t.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
 		if src != "" {
-			return AvatarHTML(src, size, class, user.DisplayName())
+			return AvatarHTML(src, size, class, t.DisplayName())
+		}
+	case *models.Collaborator:
+		src := t.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.DisplayName())
+		}
+	case *models.Organization:
+		src := t.AsUser().AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
 	}
-	if user, ok := item.(*models.Collaborator); ok {
-		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, user.DisplayName())
-		}
-	}
+
 	return template.HTML("")
 }
 
