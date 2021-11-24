@@ -23,6 +23,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -666,7 +667,7 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) error {
+func (diff *Diff) LoadComments(issue *models.Issue, currentUser *user_model.User) error {
 	allComments, err := models.FetchCodeComments(issue, currentUser)
 	if err != nil {
 		return err
@@ -694,8 +695,11 @@ func (diff *Diff) LoadComments(issue *models.Issue, currentUser *models.User) er
 const cmdDiffHead = "diff --git "
 
 // ParsePatch builds a Diff object from a io.Reader and some parameters.
-func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader) (*Diff, error) {
+func ParsePatch(maxLines, maxLineCharacters, maxFiles int, reader io.Reader, skipToFile string) (*Diff, error) {
+	log.Debug("ParsePatch(%d, %d, %d, ..., %s)", maxLines, maxLineCharacters, maxFiles, skipToFile)
 	var curFile *DiffFile
+
+	skipping := skipToFile != ""
 
 	diff := &Diff{Files: make([]*DiffFile, 0)}
 
@@ -721,24 +725,36 @@ parsingLoop:
 		// 1. A patch file always begins with `diff --git ` + `a/path b/path` (possibly quoted)
 		// if it does not we have bad input!
 		if !strings.HasPrefix(line, cmdDiffHead) {
-			return diff, fmt.Errorf("Invalid first file line: %s", line)
+			return diff, fmt.Errorf("invalid first file line: %s", line)
 		}
 
-		// TODO: Handle skipping first n files
-		if len(diff.Files) >= maxFiles {
-
+		if maxFiles > -1 && len(diff.Files) >= maxFiles {
 			lastFile := createDiffFile(diff, line)
 			diff.End = lastFile.Name
 			diff.IsIncomplete = true
 			_, err := io.Copy(io.Discard, reader)
 			if err != nil {
 				// By the definition of io.Copy this never returns io.EOF
-				return diff, fmt.Errorf("Copy: %v", err)
+				return diff, fmt.Errorf("error during io.Copy: %w", err)
 			}
 			break parsingLoop
 		}
 
 		curFile = createDiffFile(diff, line)
+		if skipping {
+			if curFile.Name != skipToFile {
+				line, err = skipToNextDiffHead(input)
+				if err != nil {
+					if err == io.EOF {
+						return diff, nil
+					}
+					return diff, err
+				}
+				continue
+			}
+			skipping = false
+		}
+
 		diff.Files = append(diff.Files, curFile)
 
 		// 2. It is followed by one or more extended header lines:
@@ -892,7 +908,7 @@ parsingLoop:
 					lineBytes, isFragment, err = input.ReadLine()
 					if err != nil {
 						// Now by the definition of ReadLine this cannot be io.EOF
-						return diff, fmt.Errorf("Unable to ReadLine: %v", err)
+						return diff, fmt.Errorf("unable to ReadLine: %w", err)
 					}
 					_, _ = sb.Write(lineBytes)
 				}
@@ -955,6 +971,36 @@ parsingLoop:
 	return diff, nil
 }
 
+func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
+	// need to skip until the next cmdDiffHead
+	isFragment, wasFragment := false, false
+	var lineBytes []byte
+	for {
+		lineBytes, isFragment, err = input.ReadLine()
+		if err != nil {
+			return
+		}
+		if wasFragment {
+			wasFragment = isFragment
+			continue
+		}
+		if bytes.HasPrefix(lineBytes, []byte(cmdDiffHead)) {
+			break
+		}
+		wasFragment = isFragment
+	}
+	line = string(lineBytes)
+	if isFragment {
+		var tail string
+		tail, err = input.ReadString('\n')
+		if err != nil {
+			return
+		}
+		line += tail
+	}
+	return
+}
+
 func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
 	sb := strings.Builder{}
 
@@ -974,7 +1020,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			_, isFragment, err = input.ReadLine()
 			if err != nil {
 				// Now by the definition of ReadLine this cannot be io.EOF
-				err = fmt.Errorf("Unable to ReadLine: %v", err)
+				err = fmt.Errorf("unable to ReadLine: %w", err)
 				return
 			}
 		}
@@ -984,7 +1030,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			if err == io.EOF {
 				return
 			}
-			err = fmt.Errorf("Unable to ReadLine: %v", err)
+			err = fmt.Errorf("unable to ReadLine: %w", err)
 			return
 		}
 		if lineBytes[0] == 'd' {
@@ -994,7 +1040,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 
 		switch lineBytes[0] {
 		case '@':
-			if curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount >= maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1006,7 +1052,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("Unable to ReadLine: %v", err)
+					err = fmt.Errorf("unable to ReadLine: %w", err)
 					return
 				}
 				_, _ = sb.Write(lineBytes)
@@ -1031,13 +1077,13 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			rightLine = lineSectionInfo.RightIdx
 			continue
 		case '\\':
-			if curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount >= maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
 			// This is used only to indicate that the current file does not have a terminal newline
 			if !bytes.Equal(lineBytes, []byte("\\ No newline at end of file")) {
-				err = fmt.Errorf("Unexpected line in hunk: %s", string(lineBytes))
+				err = fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 				return
 			}
 			// Technically this should be the end the file!
@@ -1046,7 +1092,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		case '+':
 			curFileLinesCount++
 			curFile.Addition++
-			if curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount >= maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1070,7 +1116,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		case '-':
 			curFileLinesCount++
 			curFile.Deletion++
-			if curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount >= maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1090,7 +1136,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			curSection.Lines = append(curSection.Lines, diffLine)
 		case ' ':
 			curFileLinesCount++
-			if curFileLinesCount >= maxLines {
+			if maxLines > -1 && curFileLinesCount >= maxLines {
 				curFile.IsIncomplete = true
 				continue
 			}
@@ -1106,7 +1152,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			curSection.Lines = append(curSection.Lines, diffLine)
 		default:
 			// This is unexpected
-			err = fmt.Errorf("Unexpected line in hunk: %s", string(lineBytes))
+			err = fmt.Errorf("unexpected line in hunk: %s", string(lineBytes))
 			return
 		}
 
@@ -1118,7 +1164,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 				lineBytes, isFragment, err = input.ReadLine()
 				if err != nil {
 					// Now by the definition of ReadLine this cannot be io.EOF
-					err = fmt.Errorf("Unable to ReadLine: %v", err)
+					err = fmt.Errorf("unable to ReadLine: %w", err)
 					return
 				}
 			}
@@ -1234,13 +1280,25 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	return name[2:], ambiguity
 }
 
-// GetDiffRangeWithWhitespaceBehavior builds a Diff between two commits of a repository.
+// DiffOptions represents the options for a DiffRange
+type DiffOptions struct {
+	BeforeCommitID     string
+	AfterCommitID      string
+	SkipTo             string
+	MaxLines           int
+	MaxLineCharacters  int
+	MaxFiles           int
+	WhitespaceBehavior string
+	DirectComparison   bool
+}
+
+// GetDiff builds a Diff between two commits of a repository.
 // Passing the empty string as beforeCommitID returns a diff from the parent commit.
 // The whitespaceBehavior is either an empty string or a git flag
-func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID, afterCommitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
+func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	repoPath := gitRepo.Path
 
-	commit, err := gitRepo.GetCommit(afterCommitID)
+	commit, err := gitRepo.GetCommit(opts.AfterCommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -1249,39 +1307,54 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	defer cancel()
 
 	argsLength := 6
-	if len(whitespaceBehavior) > 0 {
+	if len(opts.WhitespaceBehavior) > 0 {
 		argsLength++
 	}
-	if len(skipTo) > 0 {
+	if len(opts.SkipTo) > 0 {
 		argsLength++
+	}
+	if len(files) > 0 {
+		argsLength += len(files) + 1
 	}
 
 	diffArgs := make([]string, 0, argsLength)
-	if (len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
+	if (len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA) && commit.ParentCount() == 0 {
 		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
-		if len(whitespaceBehavior) != 0 {
-			diffArgs = append(diffArgs, whitespaceBehavior)
+		if len(opts.WhitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
 		}
 		// append empty tree ref
 		diffArgs = append(diffArgs, "4b825dc642cb6eb9a060e54bf8d69288fbee4904")
-		diffArgs = append(diffArgs, afterCommitID)
+		diffArgs = append(diffArgs, opts.AfterCommitID)
 	} else {
-		actualBeforeCommitID := beforeCommitID
+		actualBeforeCommitID := opts.BeforeCommitID
 		if len(actualBeforeCommitID) == 0 {
 			parentCommit, _ := commit.Parent(0)
 			actualBeforeCommitID = parentCommit.ID.String()
 		}
 		diffArgs = append(diffArgs, "diff", "--src-prefix=\\a/", "--dst-prefix=\\b/", "-M")
-		if len(whitespaceBehavior) != 0 {
-			diffArgs = append(diffArgs, whitespaceBehavior)
+		if len(opts.WhitespaceBehavior) != 0 {
+			diffArgs = append(diffArgs, opts.WhitespaceBehavior)
 		}
 		diffArgs = append(diffArgs, actualBeforeCommitID)
-		diffArgs = append(diffArgs, afterCommitID)
-		beforeCommitID = actualBeforeCommitID
+		diffArgs = append(diffArgs, opts.AfterCommitID)
+		opts.BeforeCommitID = actualBeforeCommitID
 	}
-	if skipTo != "" {
-		diffArgs = append(diffArgs, "--skip-to="+skipTo)
+
+	// In git 2.31, git diff learned --skip-to which we can use to shortcut skip to file
+	// so if we are using at least this version of git we don't have to tell ParsePatch to do
+	// the skipping for us
+	parsePatchSkipToFile := opts.SkipTo
+	if opts.SkipTo != "" && git.CheckGitVersionAtLeast("2.31") == nil {
+		diffArgs = append(diffArgs, "--skip-to="+opts.SkipTo)
+		parsePatchSkipToFile = ""
 	}
+
+	if len(files) > 0 {
+		diffArgs = append(diffArgs, "--")
+		diffArgs = append(diffArgs, files...)
+	}
+
 	cmd := exec.CommandContext(ctx, git.GitExecutable, diffArgs...)
 
 	cmd.Dir = repoPath
@@ -1289,26 +1362,26 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, fmt.Errorf("StdoutPipe: %v", err)
+		return nil, fmt.Errorf("error creating StdoutPipe: %w", err)
 	}
 
 	if err = cmd.Start(); err != nil {
-		return nil, fmt.Errorf("Start: %v", err)
+		return nil, fmt.Errorf("error during Start: %w", err)
 	}
 
 	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
 	defer process.GetManager().Remove(pid)
 
-	diff, err := ParsePatch(maxLines, maxLineCharacters, maxFiles, stdout)
+	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, stdout, parsePatchSkipToFile)
 	if err != nil {
-		return nil, fmt.Errorf("ParsePatch: %v", err)
+		return nil, fmt.Errorf("unable to ParsePatch: %w", err)
 	}
-	diff.Start = skipTo
+	diff.Start = opts.SkipTo
 
 	var checker *git.CheckAttributeReader
 
 	if git.CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(afterCommitID)
+		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(opts.AfterCommitID)
 		if err == nil {
 			defer deleteTemporaryFile()
 
@@ -1320,12 +1393,12 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 			}
 			ctx, cancel := context.WithCancel(git.DefaultContext)
 			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
 			} else {
 				go func() {
 					err := checker.Run()
 					if err != nil && err != ctx.Err() {
-						log.Error("Unable to open checker for %s. Error: %v", afterCommitID, err)
+						log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
 					}
 					cancel()
 				}()
@@ -1376,30 +1449,30 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 			diffFile.IsGenerated = analyze.IsGenerated(diffFile.Name)
 		}
 
-		tailSection := diffFile.GetTailSection(gitRepo, beforeCommitID, afterCommitID)
+		tailSection := diffFile.GetTailSection(gitRepo, opts.BeforeCommitID, opts.AfterCommitID)
 		if tailSection != nil {
 			diffFile.Sections = append(diffFile.Sections, tailSection)
 		}
 	}
 
 	if err = cmd.Wait(); err != nil {
-		return nil, fmt.Errorf("Wait: %v", err)
+		return nil, fmt.Errorf("error during cmd.Wait: %w", err)
 	}
 
 	separator := "..."
-	if directComparison {
+	if opts.DirectComparison {
 		separator = ".."
 	}
 
-	shortstatArgs := []string{beforeCommitID + separator + afterCommitID}
-	if len(beforeCommitID) == 0 || beforeCommitID == git.EmptySHA {
-		shortstatArgs = []string{git.EmptyTreeSHA, afterCommitID}
+	shortstatArgs := []string{opts.BeforeCommitID + separator + opts.AfterCommitID}
+	if len(opts.BeforeCommitID) == 0 || opts.BeforeCommitID == git.EmptySHA {
+		shortstatArgs = []string{git.EmptyTreeSHA, opts.AfterCommitID}
 	}
 	diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// git >= 2.28 now returns an error if base and head have become unrelated.
 		// previously it would return the results of git diff --shortstat base head so let's try that...
-		shortstatArgs = []string{beforeCommitID, afterCommitID}
+		shortstatArgs = []string{opts.BeforeCommitID, opts.AfterCommitID}
 		diff.NumFiles, diff.TotalAddition, diff.TotalDeletion, err = git.GetDiffShortStat(repoPath, shortstatArgs...)
 	}
 	if err != nil {
@@ -1409,16 +1482,10 @@ func GetDiffRangeWithWhitespaceBehavior(gitRepo *git.Repository, beforeCommitID,
 	return diff, nil
 }
 
-// GetDiffCommitWithWhitespaceBehavior builds a Diff representing the given commitID.
-// The whitespaceBehavior is either an empty string or a git flag
-func GetDiffCommitWithWhitespaceBehavior(gitRepo *git.Repository, commitID, skipTo string, maxLines, maxLineCharacters, maxFiles int, whitespaceBehavior string, directComparison bool) (*Diff, error) {
-	return GetDiffRangeWithWhitespaceBehavior(gitRepo, "", commitID, skipTo, maxLines, maxLineCharacters, maxFiles, whitespaceBehavior, directComparison)
-}
-
 // CommentAsDiff returns c.Patch as *Diff
 func CommentAsDiff(c *models.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch))
+		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
 		log.Error("Unable to parse patch: %v", err)
 		return nil, err

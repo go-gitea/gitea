@@ -52,7 +52,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	var err error
 	ctx.Org.Organization, err = models.GetOrgByName(orgName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
@@ -68,6 +68,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	org := ctx.Org.Organization
 	ctx.Data["Org"] = org
+
+	teams, err := org.LoadTeams()
+	if err != nil {
+		ctx.ServerError("LoadTeams", err)
+	}
+	ctx.Data["OrgTeams"] = teams
 
 	// Admin has super access.
 	if ctx.IsSigned && ctx.User.IsAdmin {
@@ -102,7 +108,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		}
 	} else {
 		// Fake data.
-		ctx.Data["SignedUser"] = &models.User{}
+		ctx.Data["SignedUser"] = &user_model.User{}
 	}
 	if (requireMember && !ctx.Org.IsMember) ||
 		(requireOwner && !ctx.Org.IsOwner) {
@@ -111,6 +117,10 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsPublicMember"] = func(uid int64) bool {
+		is, _ := models.IsPublicMembership(ctx.Org.Organization.ID, uid)
+		return is
+	}
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
 
 	ctx.Org.OrgLink = org.AsUser().OrganisationLink()

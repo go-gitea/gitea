@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -78,7 +79,7 @@ type PullRequest struct {
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
 	MergerID       int64              `xorm:"INDEX"`
-	Merger         *User              `xorm:"-"`
+	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
@@ -109,10 +110,10 @@ func (pr *PullRequest) MustHeadUserName() string {
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = getUserByID(e, pr.MergerID)
-		if IsErrUserNotExist(err) {
+		pr.Merger, err = user_model.GetUserByIDEngine(e, pr.MergerID)
+		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
-			pr.Merger = NewGhostUser()
+			pr.Merger = user_model.NewGhostUser()
 		} else if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", pr.MergerID, err)
 		}
@@ -285,11 +286,12 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
 	reviews, err := findReviews(sess, FindReviewOptions{
@@ -309,7 +311,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 			break
 		}
 
-		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
+		if err := review.loadReviewer(sess); err != nil && !user_model.IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
@@ -326,7 +328,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		}
 		reviewersWritten++
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request

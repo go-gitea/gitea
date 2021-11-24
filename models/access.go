@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -76,7 +77,7 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) {
+func accessLevel(e db.Engine, user *user_model.User, repo *Repository) (AccessMode, error) {
 	mode := AccessModeNone
 	var userID int64
 	restricted := false
@@ -105,66 +106,6 @@ func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) 
 	return a.Mode, nil
 }
 
-type repoAccess struct {
-	Access     `xorm:"extends"`
-	Repository `xorm:"extends"`
-}
-
-func (repoAccess) TableName() string {
-	return "access"
-}
-
-// GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
-func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	rows, err := db.GetEngine(db.DefaultContext).
-		Join("INNER", "repository", "repository.id = access.repo_id").
-		Where("access.user_id = ?", user.ID).
-		And("repository.owner_id <> ?", user.ID).
-		Rows(new(repoAccess))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	repos := make(map[*Repository]AccessMode, 10)
-	ownerCache := make(map[int64]*User, 10)
-	for rows.Next() {
-		var repo repoAccess
-		err = rows.Scan(&repo)
-		if err != nil {
-			return nil, err
-		}
-
-		var ok bool
-		if repo.Owner, ok = ownerCache[repo.OwnerID]; !ok {
-			if err = repo.GetOwner(); err != nil {
-				return nil, err
-			}
-			ownerCache[repo.OwnerID] = repo.Owner
-		}
-
-		repos[&repo.Repository] = repo.Access.Mode
-	}
-	return repos, nil
-}
-
-// GetAccessibleRepositories finds repositories which the user has access but does not own.
-// If limit is smaller than 1 means returns all found results.
-func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Where("owner_id !=? ", user.ID).
-		Desc("updated_unix")
-	if limit > 0 {
-		sess.Limit(limit)
-		repos = make([]*Repository, 0, limit)
-	} else {
-		repos = make([]*Repository, 0, 10)
-	}
-	return repos, sess.
-		Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).
-		Find(&repos)
-}
-
 func maxAccessMode(modes ...AccessMode) AccessMode {
 	max := AccessModeNone
 	for _, mode := range modes {
@@ -176,12 +117,12 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 }
 
 type userAccess struct {
-	User *User
+	User *user_model.User
 	Mode AccessMode
 }
 
 // updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
+func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
 	} else {

@@ -9,11 +9,11 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Reaction represents a reactions on issues and comments.
@@ -25,7 +25,7 @@ type Reaction struct {
 	UserID           int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
 	OriginalAuthorID int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
 	OriginalAuthor   string             `xorm:"INDEX UNIQUE(s)"`
-	User             *User              `xorm:"-"`
+	User             *user_model.User   `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
@@ -102,7 +102,7 @@ func findReactions(e db.Engine, opts FindReactionsOptions) ([]*Reaction, error) 
 	return reactions, e.Find(&reactions)
 }
 
-func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
+func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 	reaction := &Reaction{
 		Type:    opts.Type,
 		UserID:  opts.Doer.ID,
@@ -137,7 +137,7 @@ func createReaction(e *xorm.Session, opts *ReactionOptions) (*Reaction, error) {
 // ReactionOptions defines options for creating or deleting reactions
 type ReactionOptions struct {
 	Type    string
-	Doer    *User
+	Doer    *user_model.User
 	Issue   *Issue
 	Comment *Comment
 }
@@ -148,25 +148,25 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	reaction, err := createReaction(sess, opts)
+	reaction, err := createReaction(db.GetEngine(ctx), opts)
 	if err != nil {
 		return reaction, err
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return nil, err
 	}
 	return reaction, nil
 }
 
 // CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(doer *User, issue *Issue, content string) (*Reaction, error) {
+func CreateIssueReaction(doer *user_model.User, issue *Issue, content string) (*Reaction, error) {
 	return CreateReaction(&ReactionOptions{
 		Type:  content,
 		Doer:  doer,
@@ -175,7 +175,7 @@ func CreateIssueReaction(doer *User, issue *Issue, content string) (*Reaction, e
 }
 
 // CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(doer *User, issue *Issue, comment *Comment, content string) (*Reaction, error) {
+func CreateCommentReaction(doer *user_model.User, issue *Issue, comment *Comment, content string) (*Reaction, error) {
 	return CreateReaction(&ReactionOptions{
 		Type:    content,
 		Doer:    doer,
@@ -203,21 +203,21 @@ func deleteReaction(e db.Engine, opts *ReactionOptions) error {
 
 // DeleteReaction deletes reaction for issue or comment.
 func DeleteReaction(opts *ReactionOptions) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteReaction(db.GetEngine(ctx), opts); err != nil {
 		return err
 	}
 
-	if err := deleteReaction(sess, opts); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteIssueReaction deletes a reaction on issue.
-func DeleteIssueReaction(doer *User, issue *Issue, content string) error {
+func DeleteIssueReaction(doer *user_model.User, issue *Issue, content string) error {
 	return DeleteReaction(&ReactionOptions{
 		Type:  content,
 		Doer:  doer,
@@ -226,7 +226,7 @@ func DeleteIssueReaction(doer *User, issue *Issue, content string) error {
 }
 
 // DeleteCommentReaction deletes a reaction on comment.
-func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content string) error {
+func DeleteCommentReaction(doer *user_model.User, issue *Issue, comment *Comment, content string) error {
 	return DeleteReaction(&ReactionOptions{
 		Type:    content,
 		Doer:    doer,
@@ -236,11 +236,11 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 }
 
 // LoadUser load user of reaction
-func (r *Reaction) LoadUser() (*User, error) {
+func (r *Reaction) LoadUser() (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := GetUserByIDCtx(db.DefaultContext, r.UserID)
+	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -286,13 +286,13 @@ func (list ReactionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*User, error) {
+func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*user_model.User, error) {
 	if len(list) == 0 {
 		return nil, nil
 	}
 
 	userIDs := list.getUserIDs()
-	userMaps := make(map[int64]*User, len(userIDs))
+	userMaps := make(map[int64]*user_model.User, len(userIDs))
 	err := e.
 		In("id", userIDs).
 		Find(&userMaps)
@@ -302,18 +302,18 @@ func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*User, erro
 
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
-			reaction.User = NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
+			reaction.User = user_model.NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
 		} else if user, ok := userMaps[reaction.UserID]; ok {
 			reaction.User = user
 		} else {
-			reaction.User = NewGhostUser()
+			reaction.User = user_model.NewGhostUser()
 		}
 	}
 	return valuesUser(userMaps), nil
 }
 
 // LoadUsers loads reactions' all users
-func (list ReactionList) LoadUsers(repo *Repository) ([]*User, error) {
+func (list ReactionList) LoadUsers(repo *Repository) ([]*user_model.User, error) {
 	return list.loadUsers(db.GetEngine(db.DefaultContext), repo)
 }
 

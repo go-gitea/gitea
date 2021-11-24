@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -108,23 +109,23 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !ctx.User.HasForkedRepo(forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !models.HasForkedRepo(ctx.User.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	if err := ctx.User.GetOwnedOrganizations(); err != nil {
-		ctx.ServerError("GetOwnedOrganizations", err)
+	ownedOrgs, err := models.GetOwnedOrgsByUserID(ctx.User.ID)
+	if err != nil {
+		ctx.ServerError("GetOwnedOrgsByUserID", err)
 		return nil
 	}
-	var orgs []*models.User
-	for _, org := range ctx.User.OwnedOrgs {
-		if forkRepo.OwnerID != org.ID && !org.HasForkedRepo(forkRepo.ID) {
+	var orgs []*models.Organization
+	for _, org := range ownedOrgs {
+		if forkRepo.OwnerID != org.ID && !models.HasForkedRepo(org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
 
 	var traverseParentRepo = forkRepo
-	var err error
 	for {
 		if ctx.User.ID == traverseParentRepo.OwnerID {
 			canForkToUser = false
@@ -200,8 +201,8 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo, has := models.HasForkedRepo(ctxUser.ID, traverseParentRepo.ID)
-		if has {
+		repo := models.GetForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		if repo != nil {
 			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
 		}
@@ -237,10 +238,10 @@ func ForkPost(ctx *context.Context) {
 		switch {
 		case models.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
-		case models.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplFork, &form)
-		case models.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
+		case db.IsErrNameReserved(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
@@ -633,10 +634,24 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["AfterCommitID"] = endCommitID
 
-	diff, err := gitdiff.GetDiffRangeWithWhitespaceBehavior(gitRepo,
-		startCommitID, endCommitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)), false)
+	fileOnly := ctx.FormBool("file-only")
+
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	files := ctx.FormStrings("files")
+	if fileOnly && (len(files) == 2 || len(files) == 1) {
+		maxLines, maxFiles = -1, -1
+	}
+
+	diff, err := gitdiff.GetDiff(gitRepo,
+		&gitdiff.DiffOptions{
+			BeforeCommitID:     startCommitID,
+			AfterCommitID:      endCommitID,
+			SkipTo:             ctx.FormString("skip-to"),
+			MaxLines:           maxLines,
+			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+			MaxFiles:           maxFiles,
+			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+		}, ctx.FormStrings("files")...)
 	if err != nil {
 		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
 		return
@@ -1010,7 +1025,7 @@ func MergePullRequest(ctx *context.Context) {
 	ctx.Redirect(issue.Link())
 }
 
-func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
+func stopTimerIfAvailable(user *user_model.User, issue *models.Issue) error {
 
 	if models.StopwatchExists(user.ID, issue.ID) {
 		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
@@ -1171,9 +1186,9 @@ func TriggerTask(ctx *context.Context) {
 		return
 	}
 
-	pusher, err := models.GetUserByID(pusherID)
+	pusher, err := user_model.GetUserByID(pusherID)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetUserByID", err)

@@ -310,6 +310,42 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
+- `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
+- `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
+- `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the prefered curves,
+- `SSL_CIPHER_SUITES`: **ecdhe_ecdsa_with_aes_256_gcm_sha384,ecdhe_rsa_with_aes_256_gcm_sha384,ecdhe_ecdsa_with_aes_128_gcm_sha256,ecdhe_rsa_with_aes_128_gcm_sha256,ecdhe_ecdsa_with_chacha20_poly1305,ecdhe_rsa_with_chacha20_poly1305**: Set the preferred cipher suites.
+  - If there is not hardware support for AES suites by default the cha cha suites will be preferred over the AES suites
+  - supported suites as of go 1.17 are:
+    - TLS 1.0 - 1.2 cipher suites
+      - "rsa_with_rc4_128_sha"
+      - "rsa_with_3des_ede_cbc_sha"
+      - "rsa_with_aes_128_cbc_sha"
+      - "rsa_with_aes_256_cbc_sha"
+      - "rsa_with_aes_128_cbc_sha256"
+      - "rsa_with_aes_128_gcm_sha256"
+      - "rsa_with_aes_256_gcm_sha384"
+      - "ecdhe_ecdsa_with_rc4_128_sha"
+      - "ecdhe_ecdsa_with_aes_128_cbc_sha"
+      - "ecdhe_ecdsa_with_aes_256_cbc_sha"
+      - "ecdhe_rsa_with_rc4_128_sha"
+      - "ecdhe_rsa_with_3des_ede_cbc_sha"
+      - "ecdhe_rsa_with_aes_128_cbc_sha"
+      - "ecdhe_rsa_with_aes_256_cbc_sha"
+      - "ecdhe_ecdsa_with_aes_128_cbc_sha256"
+      - "ecdhe_rsa_with_aes_128_cbc_sha256"
+      - "ecdhe_rsa_with_aes_128_gcm_sha256"
+      - "ecdhe_ecdsa_with_aes_128_gcm_sha256"
+      - "ecdhe_rsa_with_aes_256_gcm_sha384"
+      - "ecdhe_ecdsa_with_aes_256_gcm_sha384"
+      - "ecdhe_rsa_with_chacha20_poly1305_sha256"
+      - "ecdhe_ecdsa_with_chacha20_poly1305_sha256"
+    - TLS 1.3 cipher suites
+      - "aes_128_gcm_sha256"
+      - "aes_256_gcm_sha384"
+      - "chacha20_poly1305_sha256"
+    - Aliased names
+      - "ecdhe_rsa_with_chacha20_poly1305" is an alias for "ecdhe_rsa_with_chacha20_poly1305_sha256"
+      - "ecdhe_ecdsa_with_chacha20_poly1305" is alias for "ecdhe_ecdsa_with_chacha20_poly1305_sha256"
 - `ENABLE_LETSENCRYPT`: **false**: If enabled you must set `DOMAIN` to valid internet facing domain (ensure DNS is set and port 80 is accessible by letsencrypt validation server).
    By using Lets Encrypt **you must consent** to their [terms of service](https://letsencrypt.org/documents/LE-SA-v1.2-November-15-2017.pdf).
 - `LETSENCRYPT_ACCEPTTOS`: **false**: This is an explicit check that you accept the terms of service for Let's Encrypt.
@@ -606,6 +642,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
   - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
 - `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
    the "Name" \<email@example.com\> format.
+- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
    - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
@@ -792,6 +829,8 @@ NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take ef
 
 - `SCHEDULE`: **@every 10m**: Cron syntax for scheduling update mirrors, e.g. `@every 3h`.
 - `NO_SUCCESS_NOTICE`: **true**: The cron task for update mirrors success report is not very useful - as it just means that the mirrors have been queued. Therefore this is turned off by default.
+- `PULL_LIMIT`: **50**: Limit the number of mirrors added to the queue to this number (negative values mean no limit, 0 will result in no mirrors being queued effectively disabling pull mirror updating).
+- `PUSH_LIMIT`: **50**: Limit the number of mirrors added to the queue to this number (negative values mean no limit, 0 will result in no mirrors being queued effectively disabling push mirror updating).
 
 #### Cron - Repository Health Check (`cron.repo_health_check`)
 
@@ -1009,7 +1048,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
 - `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
-- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option will be ignored.
+- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option has a higher priority to deny domains.
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
 

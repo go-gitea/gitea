@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -44,9 +45,6 @@ import (
 var (
 	// ErrMirrorNotExist mirror does not exist error
 	ErrMirrorNotExist = errors.New("Mirror does not exist")
-
-	// ErrNameEmpty name is empty error
-	ErrNameEmpty = errors.New("Name is empty")
 )
 
 var (
@@ -146,6 +144,7 @@ const (
 	RepositoryReady           RepositoryStatus = iota // a normal repository
 	RepositoryBeingMigrated                           // repository is migrating
 	RepositoryPendingTransfer                         // repository pending in ownership transfer state
+	RepositoryBroken                                  // repository is in a permanently broken state
 )
 
 // TrustModelType defines the types of trust model for this repository
@@ -194,7 +193,7 @@ type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
 	OwnerID             int64 `xorm:"UNIQUE(s) index"`
 	OwnerName           string
-	Owner               *User              `xorm:"-"`
+	Owner               *user_model.User   `xorm:"-"`
 	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
 	Description         string             `xorm:"TEXT"`
@@ -289,6 +288,11 @@ func (repo *Repository) IsBeingCreated() bool {
 	return repo.IsBeingMigrated()
 }
 
+// IsBroken indicates that repository is broken
+func (repo *Repository) IsBroken() bool {
+	return repo.Status == RepositoryBroken
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
@@ -302,11 +306,11 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
-// MustOwner always returns a valid *User object to avoid
+// MustOwner always returns a valid *user_model.User object to avoid
 // conceptually impossible error handling.
 // It creates a fake object that contains error details
 // when error occurs.
-func (repo *Repository) MustOwner() *User {
+func (repo *Repository) MustOwner() *user_model.User {
 	return repo.mustOwner(db.GetEngine(db.DefaultContext))
 }
 
@@ -358,11 +362,11 @@ func (repo *Repository) getUnits(e db.Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(user *User, unitType unit.Type) bool {
+func (repo *Repository) CheckUnitUser(user *user_model.User, unitType unit.Type) bool {
 	return repo.checkUnitUser(db.GetEngine(db.DefaultContext), user, unitType)
 }
 
-func (repo *Repository) checkUnitUser(e db.Engine, user *User, unitType unit.Type) bool {
+func (repo *Repository) checkUnitUser(e db.Engine, user *user_model.User, unitType unit.Type) bool {
 	if user.IsAdmin {
 		return true
 	}
@@ -459,7 +463,7 @@ func (repo *Repository) getOwner(e db.Engine) (err error) {
 		return nil
 	}
 
-	repo.Owner, err = getUserByID(e, repo.OwnerID)
+	repo.Owner, err = user_model.GetUserByIDEngine(e, repo.OwnerID)
 	return err
 }
 
@@ -468,9 +472,9 @@ func (repo *Repository) GetOwner() error {
 	return repo.getOwner(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) mustOwner(e db.Engine) *User {
+func (repo *Repository) mustOwner(e db.Engine) *user_model.User {
 	if err := repo.getOwner(e); err != nil {
-		return &User{
+		return &user_model.User{
 			Name:     "error",
 			FullName: err.Error(),
 		}
@@ -531,7 +535,7 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 	return repo.DocumentRenderingMetas
 }
 
-func (repo *Repository) getAssignees(e db.Engine) (_ []*User, err error) {
+func (repo *Repository) getAssignees(e db.Engine) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -545,7 +549,7 @@ func (repo *Repository) getAssignees(e db.Engine) (_ []*User, err error) {
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*User, 0, len(accesses)+1)
+	users := make([]*user_model.User, 0, len(accesses)+1)
 	if len(accesses) > 0 {
 		userIDs := make([]int64, len(accesses))
 		for i := 0; i < len(accesses); i++ {
@@ -565,17 +569,17 @@ func (repo *Repository) getAssignees(e db.Engine) (_ []*User, err error) {
 
 // GetAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
-func (repo *Repository) GetAssignees() (_ []*User, err error) {
+func (repo *Repository) GetAssignees() (_ []*user_model.User, err error) {
 	return repo.getAssignees(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*User, error) {
+func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*user_model.User, error) {
 	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
 	if err := repo.getOwner(e); err != nil {
 		return nil, err
 	}
 
-	var users []*User
+	var users []*user_model.User
 
 	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
@@ -617,7 +621,7 @@ func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*Us
 // * for public repositories this returns all users that have read access or higher to the repository,
 // all repo watchers and all organization members.
 // TODO: may be we should have a busy choice for users to block review request to them.
-func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
+func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*user_model.User, error) {
 	return repo.getReviewers(db.GetEngine(db.DefaultContext), doerID, posterID)
 }
 
@@ -754,19 +758,20 @@ func (repo *Repository) UpdateSize(ctx context.Context) error {
 	return repo.updateSize(db.GetEngine(ctx))
 }
 
-// CanUserFork returns true if specified user can fork repository.
-func (repo *Repository) CanUserFork(user *User) (bool, error) {
+// CanUserForkRepo returns true if specified user can fork repository.
+func CanUserForkRepo(user *user_model.User, repo *Repository) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
-	if repo.OwnerID != user.ID && !user.HasForkedRepo(repo.ID) {
+	if repo.OwnerID != user.ID && !HasForkedRepo(user.ID, repo.ID) {
 		return true, nil
 	}
-	if err := user.GetOwnedOrganizations(); err != nil {
+	ownedOrgs, err := GetOwnedOrgsByUserID(user.ID)
+	if err != nil {
 		return false, err
 	}
-	for _, org := range user.OwnedOrgs {
-		if repo.OwnerID != org.ID && !org.HasForkedRepo(repo.ID) {
+	for _, org := range ownedOrgs {
+		if repo.OwnerID != org.ID && !HasForkedRepo(org.ID, repo.ID) {
 			return true, nil
 		}
 	}
@@ -774,7 +779,7 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 }
 
 // CanUserDelete returns true if user could delete the repository
-func (repo *Repository) CanUserDelete(user *User) (bool, error) {
+func (repo *Repository) CanUserDelete(user *user_model.User) (bool, error) {
 	if user.IsAdmin || user.ID == repo.OwnerID {
 		return true, nil
 	}
@@ -811,12 +816,12 @@ func (repo *Repository) CanEnableEditor() bool {
 }
 
 // GetReaders returns all users that have explicit read access or higher to the repository.
-func (repo *Repository) GetReaders() (_ []*User, err error) {
+func (repo *Repository) GetReaders() (_ []*user_model.User, err error) {
 	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), AccessModeRead)
 }
 
 // GetWriters returns all users that have write access to the repository.
-func (repo *Repository) GetWriters() (_ []*User, err error) {
+func (repo *Repository) GetWriters() (_ []*user_model.User, err error) {
 	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), AccessModeWrite)
 }
 
@@ -829,7 +834,7 @@ func (repo *Repository) IsReader(userID int64) (bool, error) {
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
-func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode AccessMode) (_ []*User, err error) {
+func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode AccessMode) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -841,7 +846,7 @@ func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode AccessMode) (_ 
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*User, 0, len(accesses)+1)
+	users := make([]*user_model.User, 0, len(accesses)+1)
 	if len(accesses) > 0 {
 		userIDs := make([]int64, len(accesses))
 		for i := 0; i < len(accesses); i++ {
@@ -877,7 +882,7 @@ func (repo *Repository) ReadBy(userID int64) error {
 	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repo.ID)
 }
 
-func isRepositoryExist(e db.Engine, u *User, repoName string) (bool, error) {
+func isRepositoryExist(e db.Engine, u *user_model.User, repoName string) (bool, error) {
 	has, err := e.Get(&Repository{
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
@@ -890,7 +895,7 @@ func isRepositoryExist(e db.Engine, u *User, repoName string) (bool, error) {
 }
 
 // IsRepositoryExist returns true if the repository with given name under user has already existed.
-func IsRepositoryExist(u *User, repoName string) (bool, error) {
+func IsRepositoryExist(u *user_model.User, repoName string) (bool, error) {
 	return isRepositoryExist(db.GetEngine(db.DefaultContext), u, repoName)
 }
 
@@ -944,7 +949,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) error {
+func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -1034,15 +1039,15 @@ var (
 
 // IsUsableRepoName returns true when repository is usable
 func IsUsableRepoName(name string) error {
-	if alphaDashDotPattern.MatchString(name) {
+	if db.AlphaDashDotPattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
-		return ErrNameCharsNotAllowed{Name: name}
+		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
+	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, overwriteOrAdopt bool) (err error) {
+func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *Repository, overwriteOrAdopt bool) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
@@ -1108,11 +1113,11 @@ func CreateRepository(ctx context.Context, doer, u *User, repo *Repository, over
 
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
-	if err = updateUserCols(db.GetEngine(ctx), u, "last_repo_visibility"); err != nil {
+	if err = user_model.UpdateUserColsEngine(db.GetEngine(ctx), u, "last_repo_visibility"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	if _, err = db.GetEngine(ctx).Incr("num_repos").ID(u.ID).Update(new(User)); err != nil {
+	if _, err = db.GetEngine(ctx).Incr("num_repos").ID(u.ID).Update(new(user_model.User)); err != nil {
 		return fmt.Errorf("increment user total_repos: %v", err)
 	}
 	u.NumRepos++
@@ -1225,7 +1230,7 @@ func CountUserRepositories(userID int64, private bool) int64 {
 
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string {
-	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".git")
+	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".git")
 }
 
 // IncrementRepoForkNum increment repository fork number
@@ -1241,7 +1246,7 @@ func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
+func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
@@ -1276,17 +1281,17 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
 	}
+	defer committer.Close()
 
-	if err := newRepoRedirect(sess, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+	if err := newRepoRedirect(db.GetEngine(ctx), repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func getRepositoriesByForkID(e db.Engine, forkID int64) ([]*Repository, error) {
@@ -1367,17 +1372,17 @@ func UpdateRepositoryCtx(ctx context.Context, repo *Repository, visibilityChange
 
 // UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = updateRepository(sess, repo, visibilityChanged); err != nil {
+	if err = updateRepository(db.GetEngine(ctx), repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
@@ -1385,19 +1390,19 @@ func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
 	if ownerID == 0 {
 		return nil
 	}
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if _, err := sess.Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
 		OwnerName: ownerName,
 	}); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UpdateRepositoryUpdatedTime updates a repository's updated time
@@ -1408,41 +1413,42 @@ func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
 
 // UpdateRepositoryUnits updates a repository's units
 func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	// Delete existing settings of units before adding again
 	for _, u := range units {
 		deleteUnitTypes = append(deleteUnitTypes, u.Type)
 	}
 
-	if _, err = sess.Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
+	if _, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
 	if len(units) > 0 {
-		if _, err = sess.Insert(units); err != nil {
+		if err = db.Insert(ctx, units); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepository(doer *User, uid, repoID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// In case is a organization.
-	org, err := getUserByID(sess, uid)
+	org, err := user_model.GetUserByIDEngine(sess, uid)
 	if err != nil {
 		return err
 	}
@@ -1639,11 +1645,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return err
 	}
 
-	sess.Close()
+	committer.Close()
 
 	// We should always delete the files after the database transaction succeed. If
 	// we delete the file but the database rollback, the repository will be broken.
@@ -1769,15 +1775,14 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
@@ -1795,11 +1800,11 @@ func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
 	return e.Count(&Repository{OwnerID: ownerID})
 }
 
-func getPublicRepositoryCount(e db.Engine, u *User) (int64, error) {
+func getPublicRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
 	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
 }
 
-func getPrivateRepositoryCount(e db.Engine, u *User) (int64, error) {
+func getPrivateRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
 	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
 }
 
@@ -1809,12 +1814,12 @@ func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *User) (int64, error) {
+func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
 	return getPublicRepositoryCount(db.GetEngine(db.DefaultContext), u)
 }
 
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *User) (int64, error) {
+func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
 	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
 }
 
@@ -2036,13 +2041,25 @@ func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
 //  \___  / \____/|__|  |__|_ \
 //      \/                   \/
 
-// HasForkedRepo checks if given user has already forked a repository with given ID.
-func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
+// GetForkedRepo checks if given user has already forked a repository with given ID.
+func GetForkedRepo(ownerID, repoID int64) *Repository {
 	repo := new(Repository)
 	has, _ := db.GetEngine(db.DefaultContext).
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Get(repo)
-	return repo, has
+	if has {
+		return repo
+	}
+	return nil
+}
+
+// HasForkedRepo checks if given user has already forked a repository with given ID.
+func HasForkedRepo(ownerID, repoID int64) bool {
+	has, _ := db.GetEngine(db.DefaultContext).
+		Table("repository").
+		Where("owner_id=? AND fork_id=?", ownerID, repoID).
+		Exist()
+	return has
 }
 
 // CopyLFS copies LFS data from one repo to another
@@ -2136,32 +2153,36 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
+func updateUserStarNumbers(users []user_model.User) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, user := range users {
+		if _, err = db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+			return err
+		}
+	}
+
+	return committer.Commit()
+}
+
 // DoctorUserStarNum recalculate Stars number for all user
 func DoctorUserStarNum() (err error) {
 	const batchSize = 100
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
 
 	for start := 0; ; start += batchSize {
-		users := make([]User, 0, batchSize)
-		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+		users := make([]user_model.User, 0, batchSize)
+		if err = db.GetEngine(db.DefaultContext).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
 			return
 		}
 		if len(users) == 0 {
 			break
 		}
 
-		if err = sess.Begin(); err != nil {
-			return
-		}
-
-		for _, user := range users {
-			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-				return
-			}
-		}
-
-		if err = sess.Commit(); err != nil {
+		if err = updateUserStarNumbers(users); err != nil {
 			return
 		}
 	}
