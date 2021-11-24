@@ -859,7 +859,7 @@ func NewContext() {
 	InternalToken = loadInternalToken(sec)
 	if InstallLock && InternalToken == "" {
 		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
-		GenerateSaveInternalToken()
+		generateSaveInternalToken()
 	}
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
@@ -1081,8 +1081,8 @@ func loadInternalToken(sec *ini.Section) string {
 	return ""
 }
 
-// GenerateSaveInternalToken generates and saves the internal token to app.ini
-func GenerateSaveInternalToken() {
+// generateSaveInternalToken generates and saves the internal token to app.ini
+func generateSaveInternalToken() {
 	token, err := generate.NewInternalToken()
 	if err != nil {
 		log.Fatal("Error generate internal token: %v", err)
