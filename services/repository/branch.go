@@ -43,6 +43,20 @@ func CreateNewBranch(doer *models.User, repo *models.Repository, oldBranchName, 
 	return nil
 }
 
+// GetBranch returns a branch by its name
+func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
+	if len(branch) == 0 {
+		return nil, fmt.Errorf("GetBranch: empty string for branch")
+	}
+	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
+	return gitRepo.GetBranch(branch)
+}
+
 // GetBranches returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
 func GetBranches(repo *models.Repository, skip, limit int) ([]*git.Branch, int, error) {
