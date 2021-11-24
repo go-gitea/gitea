@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -46,7 +47,7 @@ func WikiRemoteURL(remote string) string {
 }
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
-func MigrateRepositoryGitData(ctx context.Context, u *models.User,
+func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	repo *models.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*models.Repository, error) {
@@ -307,12 +308,12 @@ func PushUpdateAddTag(repo *models.Repository, gitRepo *git.Repository, tagName 
 		sig = commit.Committer
 	}
 
-	var author *models.User
+	var author *user_model.User
 	var createdAt = time.Unix(1, 0)
 
 	if sig != nil {
-		author, err = models.GetUserByEmail(sig.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
+		author, err = user_model.GetUserByEmail(sig.Email)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return fmt.Errorf("GetUserByEmail: %v", err)
 		}
 		createdAt = sig.When

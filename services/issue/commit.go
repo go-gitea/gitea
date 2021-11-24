@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
 )
@@ -72,7 +73,7 @@ func timeLogToAmount(str string) int64 {
 	return a
 }
 
-func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLog string) error {
+func issueAddTime(issue *models.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeLogToAmount(timeLog)
 	if amount == 0 {
 		return nil
@@ -96,7 +97,7 @@ func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
+func UpdateIssuesCommit(doer *user_model.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]

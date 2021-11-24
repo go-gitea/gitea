@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -147,7 +148,7 @@ func (prs PullRequestList) LoadAttributes() error {
 	return prs.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
-func (prs PullRequestList) invalidateCodeComments(e db.Engine, doer *User, repo *git.Repository, branch string) error {
+func (prs PullRequestList) invalidateCodeComments(e db.Engine, doer *user_model.User, repo *git.Repository, branch string) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -168,6 +169,6 @@ func (prs PullRequestList) invalidateCodeComments(e db.Engine, doer *User, repo 
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change
-func (prs PullRequestList) InvalidateCodeComments(doer *User, repo *git.Repository, branch string) error {
+func (prs PullRequestList) InvalidateCodeComments(doer *user_model.User, repo *git.Repository, branch string) error {
 	return prs.invalidateCodeComments(db.GetEngine(db.DefaultContext), doer, repo, branch)
 }

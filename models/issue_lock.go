@@ -4,11 +4,14 @@
 
 package models
 
-import "code.gitea.io/gitea/models/db"
+import (
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+)
 
 // IssueLockOptions defines options for locking and/or unlocking an issue/PR
 type IssueLockOptions struct {
-	Doer   *User
+	Doer   *user_model.User
 	Issue  *Issue
 	Reason string
 }

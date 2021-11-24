@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -48,9 +49,9 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	results.Key = key
 
 	if key.Type == models.KeyTypeUser || key.Type == models.KeyTypePrincipal {
-		user, err := models.GetUserByID(key.OwnerID)
+		user, err := user_model.GetUserByID(key.OwnerID)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusUnauthorized, private.Response{
 					Err: fmt.Sprintf("Cannot find owner with id: %d for key: %d", key.OwnerID, keyID),
 				})
@@ -105,7 +106,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
-	owner, err := models.GetUserByName(results.OwnerName)
+	owner, err := user_model.GetUserByName(results.OwnerName)
 	if err != nil {
 		log.Error("Unable to get repository owner: %s/%s Error: %v", results.OwnerName, results.RepoName, err)
 		ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
@@ -162,6 +163,14 @@ func ServCommand(ctx *context.PrivateContext) {
 			return
 		}
 
+		if repo.IsBroken() {
+			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
+				Results: results,
+				Err:     "Repository is in a broken state",
+			})
+			return
+		}
+
 		// We can shortcut at this point if the repo is a mirror
 		if mode > models.AccessModeRead && repo.IsMirror {
 			ctx.JSON(http.StatusForbidden, private.ErrServCommand{
@@ -206,7 +215,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	// So now we need to check if the key is a deploy key
 	// We'll keep hold of the deploy key here for permissions checking
 	var deployKey *models.DeployKey
-	var user *models.User
+	var user *user_model.User
 	if key.Type == models.KeyTypeDeploy {
 		results.IsDeployKey = true
 
@@ -240,9 +249,9 @@ func ServCommand(ctx *context.PrivateContext) {
 	} else {
 		// Get the user represented by the Key
 		var err error
-		user, err = models.GetUserByID(key.OwnerID)
+		user, err = user_model.GetUserByID(key.OwnerID)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
 					Results: results,
 					Err:     fmt.Sprintf("Public Key: %d:%s owner %d does not exist.", key.ID, key.Name, key.OwnerID),
@@ -325,7 +334,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// We already know we aren't using a deploy key
 	if !repoExist {
-		owner, err := models.GetUserByName(ownerName)
+		owner, err := user_model.GetUserByName(ownerName)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,

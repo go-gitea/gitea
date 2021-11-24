@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/unknwon/i18n"
 )
@@ -48,7 +49,7 @@ func Profile(ctx *context.Context) {
 }
 
 // HandleUsernameChange handle username changes from user settings and admin interface
-func HandleUsernameChange(ctx *context.Context, user *models.User, newName string) error {
+func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName string) error {
 	// Non-local users are not allowed to change their username.
 	if !user.IsLocal() {
 		ctx.Flash.Error(ctx.Tr("form.username_change_not_local_user"))
@@ -57,17 +58,17 @@ func HandleUsernameChange(ctx *context.Context, user *models.User, newName strin
 
 	// Check if user name has been changed
 	if user.LowerName != strings.ToLower(newName) {
-		if err := models.ChangeUserName(user, newName); err != nil {
+		if err := user_model.ChangeUserName(user, newName); err != nil {
 			switch {
-			case models.IsErrUserAlreadyExist(err):
+			case user_model.IsErrUserAlreadyExist(err):
 				ctx.Flash.Error(ctx.Tr("form.username_been_taken"))
 			case user_model.IsErrEmailAlreadyUsed(err):
 				ctx.Flash.Error(ctx.Tr("form.email_been_used"))
-			case models.IsErrNameReserved(err):
+			case db.IsErrNameReserved(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_reserved", newName))
-			case models.IsErrNamePatternNotAllowed(err):
+			case db.IsErrNamePatternNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_pattern_not_allowed", newName))
-			case models.IsErrNameCharsNotAllowed(err):
+			case db.IsErrNameCharsNotAllowed(err):
 				ctx.Flash.Error(ctx.Tr("user.form.name_chars_not_allowed", newName))
 			default:
 				ctx.ServerError("ChangeUserName", err)
@@ -120,7 +121,7 @@ func ProfilePost(ctx *context.Context) {
 	ctx.User.Description = form.Description
 	ctx.User.KeepActivityPrivate = form.KeepActivityPrivate
 	ctx.User.Visibility = form.Visibility
-	if err := models.UpdateUserSetting(ctx.User); err != nil {
+	if err := user_model.UpdateUserSetting(ctx.User); err != nil {
 		if _, ok := err.(user_model.ErrEmailAlreadyUsed); ok {
 			ctx.Flash.Error(ctx.Tr("form.email_been_used"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings")
@@ -140,7 +141,7 @@ func ProfilePost(ctx *context.Context) {
 
 // UpdateAvatarSetting update user's avatar
 // FIXME: limit size.
-func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *models.User) error {
+func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *user_model.User) error {
 	ctxUser.UseCustomAvatar = form.Source == forms.AvatarLocal
 	if len(form.Gravatar) > 0 {
 		if form.Avatar != nil {
@@ -171,18 +172,18 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 		if !(st.IsImage() && !st.IsSvgImage()) {
 			return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 		}
-		if err = ctxUser.UploadAvatar(data); err != nil {
+		if err = user_service.UploadAvatar(ctxUser, data); err != nil {
 			return fmt.Errorf("UploadAvatar: %v", err)
 		}
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
-		if err := ctxUser.GenerateRandomAvatar(); err != nil {
+		if err := user_model.GenerateRandomAvatar(ctxUser); err != nil {
 			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 		}
 	}
 
-	if err := models.UpdateUserCols(ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
+	if err := user_model.UpdateUserCols(db.DefaultContext, ctxUser, "avatar", "avatar_email", "use_custom_avatar"); err != nil {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 
@@ -203,7 +204,7 @@ func AvatarPost(ctx *context.Context) {
 
 // DeleteAvatar render delete avatar page
 func DeleteAvatar(ctx *context.Context) {
-	if err := ctx.User.DeleteAvatar(); err != nil {
+	if err := user_service.DeleteAvatar(ctx.User); err != nil {
 		ctx.Flash.Error(err.Error())
 	}
 
@@ -214,12 +215,34 @@ func DeleteAvatar(ctx *context.Context) {
 func Organization(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsOrganization"] = true
-	orgs, err := models.GetOrgsByUserID(ctx.User.ID, ctx.IsSigned)
+
+	opts := models.FindOrgOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.Admin.UserPagingNum,
+			Page:     ctx.FormInt("page"),
+		},
+		UserID:         ctx.User.ID,
+		IncludePrivate: ctx.IsSigned,
+	}
+
+	if opts.Page <= 0 {
+		opts.Page = 1
+	}
+
+	orgs, err := models.FindOrgs(opts)
 	if err != nil {
-		ctx.ServerError("GetOrgsByUserID", err)
+		ctx.ServerError("FindOrgs", err)
+		return
+	}
+	total, err := models.CountOrgs(opts)
+	if err != nil {
+		ctx.ServerError("CountOrgs", err)
 		return
 	}
 	ctx.Data["Orgs"] = orgs
+	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
+	pager.SetDefaultParams(ctx)
+	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsOrganization)
 }
 
@@ -250,7 +273,7 @@ func Repos(ctx *context.Context) {
 		repoNames := make([]string, 0, setting.UI.Admin.UserPagingNum)
 		repos := map[string]*models.Repository{}
 		// We're going to iterate by pagesize.
-		root := models.UserPath(ctxUser.Name)
+		root := user_model.UserPath(ctxUser.Name)
 		if err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				if os.IsNotExist(err) {
@@ -279,11 +302,20 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		if err := ctxUser.GetRepositories(db.ListOptions{Page: 1, PageSize: setting.UI.Admin.UserPagingNum}, repoNames...); err != nil {
-			ctx.ServerError("GetRepositories", err)
+		userRepos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+			Actor:   ctxUser,
+			Private: true,
+			ListOptions: db.ListOptions{
+				Page:     1,
+				PageSize: setting.UI.Admin.UserPagingNum,
+			},
+			LowerNames: repoNames,
+		})
+		if err != nil {
+			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
-		for _, repo := range ctxUser.Repos {
+		for _, repo := range userRepos {
 			if repo.IsFork {
 				if err := repo.GetBaseRepo(); err != nil {
 					ctx.ServerError("GetBaseRepo", err)
@@ -295,16 +327,12 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		var err error
-		var count64 int64
-		ctxUser.Repos, count64, err = models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
-
+		repos, count64, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
-			ctx.ServerError("GetRepositories", err)
+			ctx.ServerError("GetUserRepositories", err)
 			return
 		}
 		count = int(count64)
-		repos := ctxUser.Repos
 
 		for i := range repos {
 			if repos[i].IsFork {
@@ -349,7 +377,7 @@ func UpdateUIThemePost(ctx *context.Context) {
 		return
 	}
 
-	if err := ctx.User.UpdateTheme(form.Theme); err != nil {
+	if err := user_model.UpdateUserTheme(ctx.User, form.Theme); err != nil {
 		ctx.Flash.Error(ctx.Tr("settings.theme_update_error"))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 		return
@@ -375,7 +403,7 @@ func UpdateUserLang(ctx *context.Context) {
 		ctx.User.Language = form.Language
 	}
 
-	if err := models.UpdateUserSetting(ctx.User); err != nil {
+	if err := user_model.UpdateUserSetting(ctx.User); err != nil {
 		ctx.ServerError("UpdateUserSetting", err)
 		return
 	}

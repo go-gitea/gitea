@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -30,8 +31,8 @@ type Team struct {
 	Name                    string
 	Description             string
 	Authorize               AccessMode
-	Repos                   []*Repository `xorm:"-"`
-	Members                 []*User       `xorm:"-"`
+	Repos                   []*Repository      `xorm:"-"`
+	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
 	NumMembers              int
 	Units                   []*TeamUnit `xorm:"-"`
@@ -457,7 +458,7 @@ func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
 func IsUsableTeamName(name string) error {
 	switch name {
 	case "new":
-		return ErrNameReserved{name}
+		return db.ErrNameReserved{Name: name}
 	default:
 		return nil
 	}
@@ -474,7 +475,7 @@ func NewTeam(t *Team) (err error) {
 		return err
 	}
 
-	has, err := db.GetEngine(db.DefaultContext).ID(t.OrgID).Get(new(User))
+	has, err := db.GetEngine(db.DefaultContext).ID(t.OrgID).Get(new(user_model.User))
 	if err != nil {
 		return err
 	}
@@ -761,14 +762,14 @@ func getTeamUsersByTeamID(e db.Engine, teamID int64) ([]*TeamUser, error) {
 		Find(&teamUsers)
 }
 
-func getTeamMembers(e db.Engine, teamID int64) (_ []*User, err error) {
+func getTeamMembers(e db.Engine, teamID int64) (_ []*user_model.User, err error) {
 	teamUsers, err := getTeamUsersByTeamID(e, teamID)
 	if err != nil {
 		return nil, fmt.Errorf("get team-users: %v", err)
 	}
-	members := make([]*User, len(teamUsers))
+	members := make([]*user_model.User, len(teamUsers))
 	for i, teamUser := range teamUsers {
-		member, err := getUserByID(e, teamUser.UID)
+		member, err := user_model.GetUserByIDEngine(e, teamUser.UID)
 		if err != nil {
 			return nil, fmt.Errorf("get user '%d': %v", teamUser.UID, err)
 		}
@@ -781,7 +782,7 @@ func getTeamMembers(e db.Engine, teamID int64) (_ []*User, err error) {
 }
 
 // GetTeamMembers returns all members in given team of organization.
-func GetTeamMembers(teamID int64) ([]*User, error) {
+func GetTeamMembers(teamID int64) ([]*user_model.User, error) {
 	return getTeamMembers(db.GetEngine(db.DefaultContext), teamID)
 }
 

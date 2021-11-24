@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -18,9 +19,9 @@ import (
 type RepoTransfer struct {
 	ID          int64 `xorm:"pk autoincr"`
 	DoerID      int64
-	Doer        *User `xorm:"-"`
+	Doer        *user_model.User `xorm:"-"`
 	RecipientID int64
-	Recipient   *User `xorm:"-"`
+	Recipient   *user_model.User `xorm:"-"`
 	RepoID      int64
 	TeamIDs     []int64
 	Teams       []*Team `xorm:"-"`
@@ -36,7 +37,7 @@ func init() {
 // LoadAttributes fetches the transfer recipient from the database
 func (r *RepoTransfer) LoadAttributes() error {
 	if r.Recipient == nil {
-		u, err := GetUserByID(r.RecipientID)
+		u, err := user_model.GetUserByID(r.RecipientID)
 		if err != nil {
 			return err
 		}
@@ -60,7 +61,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 	}
 
 	if r.Doer == nil {
-		u, err := GetUserByID(r.DoerID)
+		u, err := user_model.GetUserByID(r.DoerID)
 		if err != nil {
 			return err
 		}
@@ -74,7 +75,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 // CanUserAcceptTransfer checks if the user has the rights to accept/decline a repo transfer.
 // For user, it checks if it's himself
 // For organizations, it checks if the user is able to create repos
-func (r *RepoTransfer) CanUserAcceptTransfer(u *User) bool {
+func (r *RepoTransfer) CanUserAcceptTransfer(u *user_model.User) bool {
 	if err := r.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return false
@@ -150,7 +151,7 @@ func TestRepositoryReadyForTransfer(status RepositoryStatus) error {
 
 // CreatePendingRepositoryTransfer transfer a repo from one owner to a new one.
 // it marks the repository transfer as "pending"
-func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams []*Team) error {
+func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int64, teams []*Team) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -201,7 +202,7 @@ func CreatePendingRepositoryTransfer(doer, newOwner *User, repoID int64, teams [
 }
 
 // TransferOwnership transfers all corresponding repository items from old user to new one.
-func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err error) {
+func TransferOwnership(doer *user_model.User, newOwnerName string, repo *Repository) (err error) {
 	repoRenamed := false
 	wikiRenamed := false
 	oldOwnerName := doer.Name
@@ -242,7 +243,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 
 	sess := db.GetEngine(ctx)
 
-	newOwner, err := getUserByName(sess, newOwnerName)
+	newOwner, err := user_model.GetUserByNameCtx(ctx, newOwnerName)
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
@@ -371,7 +372,7 @@ func TransferOwnership(doer *User, newOwnerName string, repo *Repository) (err e
 	}
 
 	// Rename remote repository to new path and delete local copy.
-	dir := UserPath(newOwner.Name)
+	dir := user_model.UserPath(newOwner.Name)
 
 	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
 		return fmt.Errorf("Failed to create dir %s: %v", dir, err)

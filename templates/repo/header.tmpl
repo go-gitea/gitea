@@ -40,7 +40,7 @@
 				{{if .IsFork}}<div class="fork-flag">{{$.i18n.Tr "repo.forked_from"}} <a href="{{.BaseRepo.Link}}">{{.BaseRepo.FullName}}</a></div>{{end}}
 				{{if .IsGenerated}}<div class="fork-flag">{{$.i18n.Tr "repo.generated_from"}} <a href="{{.TemplateRepo.Link}}">{{.TemplateRepo.FullName}}</a></div>{{end}}
 			</div>
-			{{if not .IsBeingCreated}}
+			{{if not (or .IsBeingCreated .IsBroken)}}
 				<div class="repo-buttons">
 					{{if $.RepoTransfer}}
 						<form method="post" action="{{$.RepoLink}}/action/accept_transfer?redirect_to={{$.RepoLink}}">
@@ -100,7 +100,7 @@
 	</div><!-- end container -->
 {{end}}
 	<div class="ui tabs container">
-		{{if not .Repository.IsBeingCreated}}
+		{{if not (or .Repository.IsBeingCreated .Repository.IsBroken)}}
 			<div class="ui tabular stackable menu navbar">
 				{{if .Permission.CanRead $.UnitTypeCode}}
 				<a class="{{if .PageIsViewCode}}active{{end}} item" href="{{.RepoLink}}{{if (ne .BranchName .Repository.DefaultBranch)}}/src/{{.BranchNameSubURL}}{{end}}">
@@ -175,6 +175,14 @@
 						</a>
 					</div>
 				{{end}}
+			</div>
+		{{else if .Permission.IsAdmin}}
+			<div class="ui tabular stackable menu navbar">
+				<div class="right menu">
+					<a class="{{if .PageIsSettings}}active{{end}} item" href="{{.RepoLink}}/settings">
+						{{svg "octicon-tools"}} {{.i18n.Tr "repo.settings"}}
+					</a>
+				</div>
 			</div>
 		{{end}}
 	</div>

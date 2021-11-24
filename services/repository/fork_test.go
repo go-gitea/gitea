@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,7 +18,7 @@ func TestForkRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// user 13 has already forked repo10
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 13}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 10}).(*models.Repository)
 
 	fork, err := ForkRepository(user, user, models.ForkRepoOptions{

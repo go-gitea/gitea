@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -124,7 +125,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				description = opts.GitPushOptions["description"]
 			}
 
-			pusher, err := models.GetUserByID(opts.UserID)
+			pusher, err := user_model.GetUserByID(opts.UserID)
 			if err != nil {
 				log.Error("Failed to get user. Error: %v", err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -232,7 +233,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		pull_service.AddToTaskQueue(pr)
-		pusher, err := models.GetUserByID(opts.UserID)
+		pusher, err := user_model.GetUserByID(opts.UserID)
 		if err != nil {
 			log.Error("Failed to get user. Error: %v", err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
@@ -268,7 +269,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 }
 
 // UserNameChanged hanle user name change for agit flow pull
-func UserNameChanged(user *models.User, newName string) error {
+func UserNameChanged(user *user_model.User, newName string) error {
 	pulls, err := models.GetAllUnmergedAgitPullRequestByPoster(user.ID)
 	if err != nil {
 		return err

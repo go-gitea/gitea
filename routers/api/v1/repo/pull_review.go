@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -554,7 +555,7 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 		return nil, nil, true
 	}
 
-	if err := review.LoadAttributes(); err != nil && !models.IsErrUserNotExist(err) {
+	if err := review.LoadAttributes(); err != nil && !user_model.IsErrUserNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "ReviewLoadAttributes", err)
 		return nil, nil, true
 	}
@@ -659,7 +660,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	reviewers := make([]*models.User, 0, len(opts.Reviewers))
+	reviewers := make([]*user_model.User, 0, len(opts.Reviewers))
 
 	permDoer, err := models.GetUserRepoPermission(pr.Issue.Repo, ctx.User)
 	if err != nil {
@@ -668,15 +669,15 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 	}
 
 	for _, r := range opts.Reviewers {
-		var reviewer *models.User
+		var reviewer *user_model.User
 		if strings.Contains(r, "@") {
-			reviewer, err = models.GetUserByEmail(r)
+			reviewer, err = user_model.GetUserByEmail(r)
 		} else {
-			reviewer, err = models.GetUserByName(r)
+			reviewer, err = user_model.GetUserByName(r)
 		}
 
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.NotFound("UserNotExist", fmt.Sprintf("User '%s' not exist", r))
 				return
 			}

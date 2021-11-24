@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -32,14 +33,14 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Get an admin user.
-	user, err := models.GetUserByID(1)
+	user, err := user_model.GetUserByID(1)
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
 	org := &models.Organization{
 		Name:       "All_repo",
 		IsActive:   true,
-		Type:       models.UserTypeOrganization,
+		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
 	assert.NoError(t, models.CreateOrganization(org, user), "CreateOrganization")
