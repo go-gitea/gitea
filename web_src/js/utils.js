@@ -26,9 +26,8 @@ export function isObject(obj) {
 
 // returns whether a dark theme is enabled
 export function isDarkTheme() {
-  const isDarkTheme = window.getComputedStyle(document.documentElement)
-    .getPropertyValue('--is-dark-theme').trim().toLowerCase();
-  return isDarkTheme === 'true';
+  const style = window.getComputedStyle(document.documentElement);
+  return style.getPropertyValue('--is-dark-theme').trim().toLowerCase() === 'true';
 }
 
 // removes duplicate elements in an array
