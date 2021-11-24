@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	db_install "code.gitea.io/gitea/models/db/install"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -186,18 +187,17 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 		return false
 	}
 
-	e := db.GetEngine(db.DefaultContext)
-	_, err = e.Exec("SELECT 1")
+	err = db_install.CheckDatabaseConnection()
 	if err != nil {
 		ctx.Data["Err_DbSetting"] = true
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, form)
 		return false
 	}
 
-	var installedDbVersion int64
-	has, _ := e.Table("version").Cols("`version`").Get(&installedDbVersion)
-	if has && installedDbVersion > 0 {
-		log.Error("The database is likely to have been installed by a Gitea before, database migration version=%d", installedDbVersion)
+	hasPostInstallationUser := db_install.HasPostInstallationUsers()
+	dbMigrationVersion := db_install.GetMigrationVersion()
+	if hasPostInstallationUser && dbMigrationVersion > 0 {
+		log.Error("The database is likely to have been used by a Gitea before, database migration version=%d", dbMigrationVersion)
 		confirmed := form.ReinstallConfirmFirst && form.ReinstallConfirmSecond && form.ReinstallConfirmThird
 		if !confirmed {
 			ctx.Data["Err_DbInstalledBefore"] = true
@@ -205,7 +205,6 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 			return false
 		}
 	}
-
 	return true
 }
 
@@ -389,12 +388,12 @@ func SubmitInstall(ctx *context.Context) {
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
 		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
-		var secretKey string
-		if secretKey, err = generate.NewJwtSecretBase64(); err != nil {
+		var lfsJwtSecret string
+		if lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
 			return
 		}
-		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(secretKey)
+		cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(lfsJwtSecret)
 	} else {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
@@ -443,12 +442,16 @@ func SubmitInstall(ctx *context.Context) {
 	}
 	cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(internalToken)
 
-	var secretKey string
-	if secretKey, err = generate.NewSecretKey(); err != nil {
-		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
-		return
+	// if there is already a SECRET_KEY, we should not overwrite it, otherwise the encrypted data will not be able to be decrypted
+	if setting.SecretKey == "" {
+		var secretKey string
+		if secretKey, err = generate.NewSecretKey(); err != nil {
+			ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+			return
+		}
+		cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
 	}
-	cfg.Section("security").Key("SECRET_KEY").SetValue(secretKey)
+
 	if len(form.PasswordAlgorithm) > 0 {
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
 	}

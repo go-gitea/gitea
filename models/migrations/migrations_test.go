@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -85,21 +86,11 @@ func removeAllWithRetry(dir string) error {
 	return err
 }
 
-// newEngine sets the xorm.Engine
-func newEngine() (*xorm.Engine, error) {
-	x, err := db.NewEngine()
-	if err != nil {
-		return x, fmt.Errorf("Failed to connect to database: %v", err)
+func newXORMEngine() (*xorm.Engine, error) {
+	if err := db.InitEngine(context.Background()); err != nil {
+		return nil, err
 	}
-
-	x.SetMapper(names.GonicMapper{})
-	// WARNING: for serv command, MUST remove the output to os.stdout,
-	// so use log file to instead print to stdout.
-	x.SetLogger(db.NewXORMLogger(setting.Database.LogSQL))
-	x.ShowSQL(setting.Database.LogSQL)
-	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	x := db.DefaultContext.(*db.Context).Engine().(*xorm.Engine)
 	return x, nil
 }
 
@@ -213,7 +204,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		return nil, deferFn
 	}
 
-	x, err := newEngine()
+	x, err := newXORMEngine()
 	assert.NoError(t, err)
 	if x != nil {
 		oldDefer := deferFn

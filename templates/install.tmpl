@@ -91,27 +91,29 @@
 						</div>
 					</div>
 
-					<div class="{{if not .Err_DbInstalledBefore}}hide{{end}}">
+					{{if .Err_DbInstalledBefore}}
+					<div>
 						<p class="detail-message">{{.i18n.Tr "install.reinstall_confirm_message"}}</p>
 						<div class="reinstall-confirm">
 							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "install.reinstall_confirm_check_1"}}</strong></label>
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_1"}}</label>
 								<input name="reinstall_confirm_first" type="checkbox">
 							</div>
 						</div>
 						<div class="reinstall-confirm">
 							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "install.reinstall_confirm_check_2"}}</strong></label>
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_2"}}</label>
 								<input name="reinstall_confirm_second" type="checkbox">
 							</div>
 						</div>
 						<div class="reinstall-confirm">
 							<div class="ui checkbox">
-								<label><strong>{{.i18n.Tr "install.reinstall_confirm_check_3"}}</strong></label>
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_3"}}</label>
 								<input name="reinstall_confirm_third" type="checkbox">
 							</div>
 						</div>
 					</div>
+					{{end}}
 
 					<!-- General Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.general_title"}}</h4>

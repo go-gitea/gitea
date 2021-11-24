@@ -91,8 +91,8 @@ func init() {
 	}
 }
 
-// NewEngine returns a new xorm engine from the configuration
-func NewEngine() (*xorm.Engine, error) {
+// newXORMEngine returns a new XORM engine from the configuration
+func newXORMEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -127,22 +127,22 @@ func SyncAllTables() error {
 
 // InitEngine initializes the xorm.Engine and set it as db.DefaultContext
 func InitEngine(ctx context.Context) error {
-	eng, err := NewEngine()
+	xormEngine, err := newXORMEngine()
 	if err != nil {
-		return fmt.Errorf("Failed to connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	eng.SetMapper(names.GonicMapper{})
+	xormEngine.SetMapper(names.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	eng.SetLogger(NewXORMLogger(setting.Database.LogSQL))
-	eng.ShowSQL(setting.Database.LogSQL)
-	eng.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	eng.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	eng.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
-	eng.SetDefaultContext(ctx)
+	xormEngine.SetLogger(NewXORMLogger(setting.Database.LogSQL))
+	xormEngine.ShowSQL(setting.Database.LogSQL)
+	xormEngine.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	xormEngine.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	xormEngine.SetDefaultContext(ctx)
 
-	SetDefaultEngine(ctx, eng)
+	SetDefaultEngine(ctx, xormEngine)
 	return nil
 }
 
@@ -156,6 +156,9 @@ func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
 }
 
 // UnsetDefaultEngine closes and unsets the default engine
+// We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `x` and DefaultContext without close
+// Global database engine related functions are all racy and there is no graceful close right now.
 func UnsetDefaultEngine() {
 	if x != nil {
 		_ = x.Close()
