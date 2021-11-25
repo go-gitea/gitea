@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
@@ -30,12 +31,12 @@ import (
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
-	ID               int64       `xorm:"pk autoincr"`
-	RepoID           int64       `xorm:"INDEX UNIQUE(repo_index)"`
-	Repo             *Repository `xorm:"-"`
-	Index            int64       `xorm:"UNIQUE(repo_index)"` // Index in one repository.
-	PosterID         int64       `xorm:"INDEX"`
-	Poster           *User       `xorm:"-"`
+	ID               int64            `xorm:"pk autoincr"`
+	RepoID           int64            `xorm:"INDEX UNIQUE(repo_index)"`
+	Repo             *Repository      `xorm:"-"`
+	Index            int64            `xorm:"UNIQUE(repo_index)"` // Index in one repository.
+	PosterID         int64            `xorm:"INDEX"`
+	Poster           *user_model.User `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64      `xorm:"index"`
 	Title            string     `xorm:"name"`
@@ -46,12 +47,12 @@ type Issue struct {
 	Milestone        *Milestone `xorm:"-"`
 	Project          *Project   `xorm:"-"`
 	Priority         int
-	AssigneeID       int64        `xorm:"-"`
-	Assignee         *User        `xorm:"-"`
-	IsClosed         bool         `xorm:"INDEX"`
-	IsRead           bool         `xorm:"-"`
-	IsPull           bool         `xorm:"INDEX"` // Indicates whether is a pull request or not.
-	PullRequest      *PullRequest `xorm:"-"`
+	AssigneeID       int64            `xorm:"-"`
+	Assignee         *user_model.User `xorm:"-"`
+	IsClosed         bool             `xorm:"INDEX"`
+	IsRead           bool             `xorm:"-"`
+	IsPull           bool             `xorm:"INDEX"` // Indicates whether is a pull request or not.
+	PullRequest      *PullRequest     `xorm:"-"`
 	NumComments      int
 	Ref              string
 
@@ -65,7 +66,7 @@ type Issue struct {
 	Comments         []*Comment               `xorm:"-"`
 	Reactions        ReactionList             `xorm:"-"`
 	TotalTrackedTime int64                    `xorm:"-"`
-	Assignees        []*User                  `xorm:"-"`
+	Assignees        []*user_model.User       `xorm:"-"`
 
 	// IsLocked limits commenting abilities to users on an issue
 	// with write access
@@ -177,11 +178,11 @@ func (issue *Issue) LoadPoster() error {
 
 func (issue *Issue) loadPoster(e db.Engine) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = getUserByID(e, issue.PosterID)
+		issue.Poster, err = user_model.GetUserByIDEngine(e, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
-			issue.Poster = NewGhostUser()
-			if !IsErrUserNotExist(err) {
+			issue.Poster = user_model.NewGhostUser()
+			if !user_model.IsErrUserNotExist(err) {
 				return fmt.Errorf("getUserByID.(poster) [%d]: %v", issue.PosterID, err)
 			}
 			err = nil
@@ -428,11 +429,11 @@ func (issue *Issue) HasLabel(labelID int64) bool {
 	return issue.hasLabel(db.GetEngine(db.DefaultContext), labelID)
 }
 
-func (issue *Issue) addLabel(ctx context.Context, label *Label, doer *User) error {
+func (issue *Issue) addLabel(ctx context.Context, label *Label, doer *user_model.User) error {
 	return newIssueLabel(ctx, issue, label, doer)
 }
 
-func (issue *Issue) addLabels(ctx context.Context, labels []*Label, doer *User) error {
+func (issue *Issue) addLabels(ctx context.Context, labels []*Label, doer *user_model.User) error {
 	return newIssueLabels(ctx, issue, labels, doer)
 }
 
@@ -448,11 +449,11 @@ func (issue *Issue) getLabels(e db.Engine) (err error) {
 	return nil
 }
 
-func (issue *Issue) removeLabel(ctx context.Context, doer *User, label *Label) error {
+func (issue *Issue) removeLabel(ctx context.Context, doer *user_model.User, label *Label) error {
 	return deleteIssueLabel(ctx, issue, label, doer)
 }
 
-func (issue *Issue) clearLabels(ctx context.Context, doer *User) (err error) {
+func (issue *Issue) clearLabels(ctx context.Context, doer *user_model.User) (err error) {
 	if err = issue.getLabels(db.GetEngine(ctx)); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
@@ -468,7 +469,7 @@ func (issue *Issue) clearLabels(ctx context.Context, doer *User) (err error) {
 
 // ClearLabels removes all issue labels as the given user.
 // Triggers appropriate WebHooks, if any.
-func (issue *Issue) ClearLabels(doer *User) (err error) {
+func (issue *Issue) ClearLabels(doer *user_model.User) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -516,7 +517,7 @@ func (ts labelSorter) Swap(i, j int) {
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
 // Triggers appropriate WebHooks, if any.
-func (issue *Issue) ReplaceLabels(labels []*Label, doer *User) (err error) {
+func (issue *Issue) ReplaceLabels(labels []*Label, doer *user_model.User) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -598,7 +599,7 @@ func updateIssueCols(e db.Engine, issue *Issue, cols ...string) error {
 	return nil
 }
 
-func (issue *Issue) changeStatus(ctx context.Context, doer *User, isClosed, isMergePull bool) (*Comment, error) {
+func (issue *Issue) changeStatus(ctx context.Context, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
 	currentIssue, err := getIssueByID(db.GetEngine(ctx), issue.ID)
 	if err != nil {
@@ -621,7 +622,7 @@ func (issue *Issue) changeStatus(ctx context.Context, doer *User, isClosed, isMe
 	return issue.doChangeStatus(ctx, doer, isMergePull)
 }
 
-func (issue *Issue) doChangeStatus(ctx context.Context, doer *User, isMergePull bool) (*Comment, error) {
+func (issue *Issue) doChangeStatus(ctx context.Context, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	e := db.GetEngine(ctx)
 	// Check for open dependencies
 	if issue.IsClosed && issue.Repo.isDependenciesEnabled(e) {
@@ -684,7 +685,7 @@ func (issue *Issue) doChangeStatus(ctx context.Context, doer *User, isMergePull 
 }
 
 // ChangeStatus changes issue status to open or closed.
-func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
+func (issue *Issue) ChangeStatus(doer *user_model.User, isClosed bool) (*Comment, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
@@ -711,7 +712,7 @@ func (issue *Issue) ChangeStatus(doer *User, isClosed bool) (*Comment, error) {
 }
 
 // ChangeTitle changes the title of this issue, as the given user.
-func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
+func (issue *Issue) ChangeTitle(doer *user_model.User, oldTitle string) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -745,7 +746,7 @@ func (issue *Issue) ChangeTitle(doer *User, oldTitle string) (err error) {
 }
 
 // ChangeRef changes the branch of this issue, as the given user.
-func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
+func (issue *Issue) ChangeRef(doer *user_model.User, oldRef string) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -778,7 +779,7 @@ func (issue *Issue) ChangeRef(doer *User, oldRef string) (err error) {
 }
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
-func AddDeletePRBranchComment(doer *User, repo *Repository, issueID int64, branchName string) error {
+func AddDeletePRBranchComment(doer *user_model.User, repo *Repository, issueID int64, branchName string) error {
 	issue, err := getIssueByID(db.GetEngine(db.DefaultContext), issueID)
 	if err != nil {
 		return err
@@ -823,7 +824,7 @@ func (issue *Issue) UpdateAttachments(uuids []string) (err error) {
 }
 
 // ChangeContent changes issue content, as the given user.
-func (issue *Issue) ChangeContent(doer *User, content string) (err error) {
+func (issue *Issue) ChangeContent(doer *user_model.User, content string) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -922,7 +923,7 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
-func newIssue(ctx context.Context, doer *User, opts NewIssueOptions) (err error) {
+func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
 	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
@@ -1380,7 +1381,7 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 }
 
 // GetRepoIDsForIssuesOptions find all repo ids for the given options
-func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *User) ([]int64, error) {
+func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 5)
 	e := db.GetEngine(db.DefaultContext)
 
@@ -1455,7 +1456,7 @@ func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 }
 
 // IsUserParticipantsOfIssue return true if user is participants of an issue
-func IsUserParticipantsOfIssue(user *User, issue *Issue) bool {
+func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
 	userIDs, err := issue.getParticipantIDsByIssue(db.GetEngine(db.DefaultContext))
 	if err != nil {
 		log.Error(err.Error())
@@ -1465,7 +1466,7 @@ func IsUserParticipantsOfIssue(user *User, issue *Issue) bool {
 }
 
 // UpdateIssueMentions updates issue-user relations for mentioned users.
-func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*User) error {
+func UpdateIssueMentions(ctx context.Context, issueID int64, mentions []*user_model.User) error {
 	if len(mentions) == 0 {
 		return nil
 	}
@@ -1843,7 +1844,7 @@ func SearchIssueIDsByKeyword(kw string, repoIDs []int64, limit, start int) (int6
 // UpdateIssueByAPI updates all allowed fields of given issue.
 // If the issue status is changed a statusChangeComment is returned
 // similarly if the title is changed the titleChanged bool is set to true
-func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, titleChanged bool, err error) {
+func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment *Comment, titleChanged bool, err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, false, err
@@ -1898,7 +1899,7 @@ func UpdateIssueByAPI(issue *Issue, doer *User) (statusChangeComment *Comment, t
 }
 
 // UpdateIssueDeadline updates an issue deadline and adds comments. Setting a deadline to 0 means deleting it.
-func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *User) (err error) {
+func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *user_model.User) (err error) {
 	// if the deadline hasn't changed do nothing
 	if issue.DeadlineUnix == deadlineUnix {
 		return nil
@@ -2017,7 +2018,7 @@ func (issue *Issue) updateClosedNum(e db.Engine) (err error) {
 }
 
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
-func (issue *Issue) FindAndUpdateIssueMentions(ctx context.Context, doer *User, content string) (mentions []*User, err error) {
+func (issue *Issue) FindAndUpdateIssueMentions(ctx context.Context, doer *user_model.User, content string) (mentions []*user_model.User, err error) {
 	rawMentions := references.FindAllMentionsMarkdown(content)
 	mentions, err = issue.ResolveMentionsByVisibility(ctx, doer, rawMentions)
 	if err != nil {
@@ -2031,7 +2032,7 @@ func (issue *Issue) FindAndUpdateIssueMentions(ctx context.Context, doer *User, 
 
 // ResolveMentionsByVisibility returns the users mentioned in an issue, removing those that
 // don't have access to reading it. Teams are expanded into their users, but organizations are ignored.
-func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User, mentions []string) (users []*User, err error) {
+func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *user_model.User, mentions []string) (users []*user_model.User, err error) {
 	if len(mentions) == 0 {
 		return
 	}
@@ -2100,7 +2101,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 				}
 			}
 			if len(checked) != 0 {
-				teamusers := make([]*User, 0, 20)
+				teamusers := make([]*user_model.User, 0, 20)
 				if err := db.GetEngine(ctx).
 					Join("INNER", "team_user", "team_user.uid = `user`.id").
 					In("`team_user`.team_id", checked).
@@ -2110,7 +2111,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 					return nil, fmt.Errorf("get teams users: %v", err)
 				}
 				if len(teamusers) > 0 {
-					users = make([]*User, 0, len(teamusers))
+					users = make([]*user_model.User, 0, len(teamusers))
 					for _, user := range teamusers {
 						if already, ok := resolved[user.LowerName]; !ok || !already {
 							users = append(users, user)
@@ -2134,10 +2135,10 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *User,
 	}
 
 	if users == nil {
-		users = make([]*User, 0, len(mentionUsers))
+		users = make([]*user_model.User, 0, len(mentionUsers))
 	}
 
-	unchecked := make([]*User, 0, len(mentionUsers))
+	unchecked := make([]*user_model.User, 0, len(mentionUsers))
 	if err := db.GetEngine(ctx).
 		Where("`user`.is_active = ?", true).
 		And("`user`.prohibit_login = ?", false).

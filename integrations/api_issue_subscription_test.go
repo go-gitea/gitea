@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func TestAPIIssueSubscriptions(t *testing.T) {
 	issue4 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 4}).(*models.Issue)
 	issue5 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 8}).(*models.Issue)
 
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: issue1.PosterID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue1.PosterID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)

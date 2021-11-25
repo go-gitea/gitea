@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
@@ -15,15 +16,15 @@ import (
 
 // TrackedTime represents a time that was spent for a specific issue.
 type TrackedTime struct {
-	ID          int64     `xorm:"pk autoincr"`
-	IssueID     int64     `xorm:"INDEX"`
-	Issue       *Issue    `xorm:"-"`
-	UserID      int64     `xorm:"INDEX"`
-	User        *User     `xorm:"-"`
-	Created     time.Time `xorm:"-"`
-	CreatedUnix int64     `xorm:"created"`
-	Time        int64     `xorm:"NOT NULL"`
-	Deleted     bool      `xorm:"NOT NULL DEFAULT false"`
+	ID          int64            `xorm:"pk autoincr"`
+	IssueID     int64            `xorm:"INDEX"`
+	Issue       *Issue           `xorm:"-"`
+	UserID      int64            `xorm:"INDEX"`
+	User        *user_model.User `xorm:"-"`
+	Created     time.Time        `xorm:"-"`
+	CreatedUnix int64            `xorm:"created"`
+	Time        int64            `xorm:"NOT NULL"`
+	Deleted     bool             `xorm:"NOT NULL DEFAULT false"`
 }
 
 func init() {
@@ -55,7 +56,7 @@ func (t *TrackedTime) loadAttributes(e db.Engine) (err error) {
 		}
 	}
 	if t.User == nil {
-		t.User, err = getUserByID(e, t.UserID)
+		t.User, err = user_model.GetUserByIDEngine(e, t.UserID)
 		if err != nil {
 			return
 		}
@@ -153,7 +154,7 @@ func GetTrackedSeconds(opts FindTrackedTimesOptions) (int64, error) {
 }
 
 // AddTime will add the given time (in seconds) to the issue
-func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
@@ -184,7 +185,7 @@ func AddTime(user *User, issue *Issue, amount int64, created time.Time) (*Tracke
 	return t, committer.Commit()
 }
 
-func addTime(e db.Engine, user *User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
+func addTime(e db.Engine, user *user_model.User, issue *Issue, amount int64, created time.Time) (*TrackedTime, error) {
 	if created.IsZero() {
 		created = time.Now()
 	}
@@ -202,7 +203,7 @@ func addTime(e db.Engine, user *User, issue *Issue, amount int64, created time.T
 }
 
 // TotalTimes returns the spent time for each user by an issue
-func TotalTimes(options *FindTrackedTimesOptions) (map[*User]string, error) {
+func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, error) {
 	trackedTimes, err := GetTrackedTimes(options)
 	if err != nil {
 		return nil, err
@@ -213,12 +214,12 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*User]string, error) {
 		totalTimesByUser[t.UserID] += t.Time
 	}
 
-	totalTimes := make(map[*User]string)
+	totalTimes := make(map[*user_model.User]string)
 	// Fetching User and making time human readable
 	for userID, total := range totalTimesByUser {
-		user, err := GetUserByID(userID)
+		user, err := user_model.GetUserByID(userID)
 		if err != nil {
-			if IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				continue
 			}
 			return nil, err
@@ -229,7 +230,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*User]string, error) {
 }
 
 // DeleteIssueUserTimes deletes times for issue
-func DeleteIssueUserTimes(issue *Issue, user *User) error {
+func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -18,8 +18,8 @@ import (
 func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
-	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
+	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
 
 	setting.Migrations.AllowedDomains = "github.com"
 	setting.Migrations.AllowLocalNetworks = false

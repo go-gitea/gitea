@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -25,7 +26,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	var sshKeysNeedUpdate bool
 
 	// Find all users with this login type - FIXME: Should this be an iterator?
-	users, err := models.GetUsersBySource(source.loginSource)
+	users, err := user_model.GetUsersBySource(source.loginSource)
 	if err != nil {
 		log.Error("SyncExternalUsers: %v", err)
 		return err
@@ -83,7 +84,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			su.Mail = fmt.Sprintf("%s@localhost", su.Username)
 		}
 
-		var usr *models.User
+		var usr *user_model.User
 		for userPos < len(users) && users[userPos].LowerName < su.LowerName {
 			userPos++
 		}
@@ -97,7 +98,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		if usr == nil {
 			log.Trace("SyncExternalUsers[%s]: Creating user %s", source.loginSource.Name, su.Username)
 
-			usr = &models.User{
+			usr = &user_model.User{
 				LowerName:    su.LowerName,
 				Name:         su.Username,
 				FullName:     fullName,
@@ -110,7 +111,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				IsActive:     true,
 			}
 
-			err = models.CreateUser(usr)
+			err = user_model.CreateUser(usr)
 
 			if err != nil {
 				log.Error("SyncExternalUsers[%s]: Error creating user %s: %v", source.loginSource.Name, su.Username, err)
@@ -153,7 +154,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				}
 				usr.IsActive = true
 
-				err = models.UpdateUserCols(db.DefaultContext, usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
+				err = user_model.UpdateUserCols(db.DefaultContext, usr, "full_name", "email", "is_admin", "is_restricted", "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error updating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}
@@ -194,7 +195,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 				log.Trace("SyncExternalUsers[%s]: Deactivating user %s", source.loginSource.Name, usr.Name)
 
 				usr.IsActive = false
-				err = models.UpdateUserCols(db.DefaultContext, usr, "is_active")
+				err = user_model.UpdateUserCols(db.DefaultContext, usr, "is_active")
 				if err != nil {
 					log.Error("SyncExternalUsers[%s]: Error deactivating user %s: %v", source.loginSource.Name, usr.Name, err)
 				}

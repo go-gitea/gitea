@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/auth/pam"
@@ -20,11 +19,11 @@ import (
 
 // Authenticate queries if login/password is valid against the PAM,
 // and create a local user if success when enabled.
-func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
+func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
 	pamLogin, err := pam.Auth(source.ServiceName, userName, password)
 	if err != nil {
 		if strings.Contains(err.Error(), "Authentication failure") {
-			return nil, models.ErrUserNotExist{Name: userName}
+			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 		return nil, err
 	}
@@ -51,7 +50,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		}
 	}
 
-	user = &models.User{
+	user = &user_model.User{
 		LowerName:   strings.ToLower(username),
 		Name:        username,
 		Email:       email,
@@ -62,7 +61,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		IsActive:    true,
 	}
 
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return user, err
 	}
 
