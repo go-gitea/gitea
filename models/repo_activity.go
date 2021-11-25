@@ -278,8 +278,17 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time, canRead
 	var err error
 	var count int64
 
+	activityStreamOptions := &activityStreamOpts{
+		fromTime:             fromTime,
+		userID:               userID,
+		repoID:               repoID,
+		closed:               true,
+		unresolved:           false,
+		canReadPrivateIssues: canReadPrivateIssues,
+	}
+
 	// Closed issues
-	sess := issuesForActivityStatement(repoID, fromTime, true, false, canReadPrivateIssues, userID)
+	sess := issuesForActivityStatement(activityStreamOptions)
 	sess.OrderBy("issue.closed_unix DESC")
 	stats.ClosedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
@@ -287,14 +296,16 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time, canRead
 	}
 
 	// Closed issue authors
-	sess = issuesForActivityStatement(repoID, fromTime, true, false, canReadPrivateIssues, userID)
+	sess = issuesForActivityStatement(activityStreamOptions)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
 	stats.ClosedIssueAuthorCount = count
 
+	activityStreamOptions.closed = false
+
 	// New issues
-	sess = issuesForActivityStatement(repoID, fromTime, false, false, canReadPrivateIssues, userID)
+	sess = issuesForActivityStatement(activityStreamOptions)
 	sess.OrderBy("issue.created_unix ASC")
 	stats.OpenedIssues = make(IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
@@ -302,7 +313,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time, canRead
 	}
 
 	// Opened issue authors
-	sess = issuesForActivityStatement(repoID, fromTime, false, false, canReadPrivateIssues, userID)
+	sess = issuesForActivityStatement(activityStreamOptions)
 	if _, err = sess.Select("count(distinct issue.poster_id) as `count`").Table("issue").Get(&count); err != nil {
 		return err
 	}
@@ -317,7 +328,14 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 	if !issues && !prs {
 		return nil
 	}
-	sess := issuesForActivityStatement(repoID, fromTime, false, true, canReadPrivateIssues, userID)
+	sess := issuesForActivityStatement(&activityStreamOpts{
+		fromTime:             fromTime,
+		userID:               userID,
+		repoID:               repoID,
+		closed:               false,
+		unresolved:           true,
+		canReadPrivateIssues: canReadPrivateIssues,
+	})
 	if !issues || !prs {
 		sess.And("issue.is_pull = ?", prs)
 	}
@@ -326,24 +344,33 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 	return sess.Find(&stats.UnresolvedIssues)
 }
 
-func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool, canReadPrivateIssues bool, userID int64) *xorm.Session {
-	sess := db.GetEngine(db.DefaultContext).Where("issue.repo_id = ?", repoID).
-		And("issue.is_closed = ?", closed)
+type activityStreamOpts struct {
+	fromTime             time.Time
+	userID               int64
+	repoID               int64
+	closed               bool
+	unresolved           bool
+	canReadPrivateIssues bool
+}
 
-	if !unresolved {
+func issuesForActivityStatement(opts *activityStreamOpts) *xorm.Session {
+	sess := db.GetEngine(db.DefaultContext).Where("issue.repo_id = ?", opts.repoID).
+		And("issue.is_closed = ?", opts.closed)
+
+	if !opts.unresolved {
 		sess.And("issue.is_pull = ?", false)
-		if closed {
-			sess.And("issue.closed_unix >= ?", fromTime.Unix())
+		if opts.closed {
+			sess.And("issue.closed_unix >= ?", opts.fromTime.Unix())
 		} else {
-			sess.And("issue.created_unix >= ?", fromTime.Unix())
+			sess.And("issue.created_unix >= ?", opts.fromTime.Unix())
 		}
 	} else {
-		sess.And("issue.created_unix < ?", fromTime.Unix())
-		sess.And("issue.updated_unix >= ?", fromTime.Unix())
+		sess.And("issue.created_unix < ?", opts.fromTime.Unix())
+		sess.And("issue.updated_unix >= ?", opts.fromTime.Unix())
 	}
 
-	if !canReadPrivateIssues {
-		if userID == 0 {
+	if !opts.canReadPrivateIssues {
+		if opts.userID == 0 {
 			sess.And("issue.is_private = ?", false)
 		} else {
 			// Allow to see private issues if the user is the poster of it.
@@ -352,7 +379,7 @@ func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unreso
 					builder.Eq{"`issue`.is_private": false},
 					builder.And(
 						builder.Eq{"`issue`.is_private": true},
-						builder.In("`issue`.poster_id", userID),
+						builder.In("`issue`.poster_id", opts.userID),
 					),
 				),
 			)
