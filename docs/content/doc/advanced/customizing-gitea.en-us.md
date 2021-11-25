@@ -337,6 +337,9 @@ Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gi
 
 The `arc-green` theme source can be found [here](https://github.com/go-gitea/gitea/blob/main/web_src/less/themes/theme-arc-green.less).
 
+If your custom theme is considered a dark theme, set the global css variable `--is-dark-theme` to `true`.
+This allows gitea to adjust the Monaco code editor's theme accordingly.
+
 ## Customizing fonts
 
 Fonts can be customized using CSS variables:
