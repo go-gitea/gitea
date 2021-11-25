@@ -16,7 +16,7 @@ import (
 
 	_ "code.gitea.io/gitea/services/auth/source/db"   // register the sources (and below)
 	_ "code.gitea.io/gitea/services/auth/source/ldap" // register the ldap source
-	_ "code.gitea.io/gitea/services/auth/source/pam" // register the pam source
+	_ "code.gitea.io/gitea/services/auth/source/pam"  // register the pam source
 	_ "code.gitea.io/gitea/services/auth/source/sspi" // register the sspi source
 )
 
