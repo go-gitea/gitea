@@ -102,6 +102,11 @@
 					</a>
 					<div class="content">
 						<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+							{{if .Issue.IsPrivate}}
+								<div class="ui orange message">
+									{{.i18n.Tr "repo.issues.confidential.warning"}}
+								</div>
+							{{end}}
 							{{template "repo/issue/comment_tab" .}}
 							{{.CsrfTokenHtml}}
 							<input id="status" name="status" type="hidden">
@@ -153,6 +158,11 @@
 						</a>
 						<div class="content">
 							<form class="ui segment form" id="comment-form" action="{{$.RepoLink}}/issues/{{.Issue.Index}}/comments" method="post">
+								{{if .Issue.IsPrivate}}
+									<div class="ui message orange">
+										{{.i18n.Tr "repo.issues.confidential.warning"}}
+									</div>
+								{{end}}
 								{{template "repo/issue/comment_tab" .}}
 								{{.CsrfTokenHtml}}
 								<input id="status" name="status" type="hidden">

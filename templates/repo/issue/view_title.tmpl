@@ -101,5 +101,12 @@
 			{{$.i18n.Tr "repo.issues.num_comments" .Issue.NumComments}}
 		</span>
 	{{end}}
+	{{if .Issue.IsPrivate }}
+		·
+		<div class="ui orange large label">
+			{{svg "octicon-eye-closed" 16 "mr-2"}}
+			<span>{{$.i18n.Tr "repo.issues.confidential.title_bar"}}</span>
+		</div>
+	{{end}}
 	<div class="ui divider"></div>
 </div>
