@@ -454,6 +454,19 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 	return t.unitEnabled(db.GetEngine(db.DefaultContext), tp)
 }
 
+func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) AccessMode {
+	if err := t.getUnits(e); err != nil {
+		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
+	}
+
+	for _, unit := range t.Units {
+		if unit.Type == tp {
+			return unit.Authorize
+		}
+	}
+	return AccessModeNone
+}
+
 func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
 	if err := t.getUnits(e); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
@@ -1033,10 +1046,11 @@ func GetTeamsWithAccessToRepo(orgID, repoID int64, mode perm.AccessMode) ([]*Tea
 
 // TeamUnit describes all units of a repository
 type TeamUnit struct {
-	ID     int64     `xorm:"pk autoincr"`
-	OrgID  int64     `xorm:"INDEX"`
-	TeamID int64     `xorm:"UNIQUE(s)"`
-	Type   unit.Type `xorm:"UNIQUE(s)"`
+	ID        int64     `xorm:"pk autoincr"`
+	OrgID     int64     `xorm:"INDEX"`
+	TeamID    int64     `xorm:"UNIQUE(s)"`
+	Type      unit.Type `xorm:"UNIQUE(s)"`
+	Authorize AccessMode
 }
 
 // Unit returns Unit
