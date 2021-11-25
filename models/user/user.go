@@ -866,14 +866,13 @@ func UpdateUserSetting(u *User) (err error) {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if !u.IsOrganization() {
-		if err = checkDupEmail(sess, u); err != nil {
+		if err = checkDupEmail(db.GetEngine(ctx), u); err != nil {
 			return err
 		}
 	}
-	if err = updateUser(sess, u); err != nil {
+	if err = updateUser(ctx, u, false); err != nil {
 		return err
 	}
 	return committer.Commit()
