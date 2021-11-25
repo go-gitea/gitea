@@ -44,7 +44,7 @@ function filterRepoFiles(keys) {
     $('#repo-find-files-table tbody').empty();
 
     let hit = false;
-    const treeLink = $('#treeLink').val();
+    const treeLink = $('#tree-link').val();
     for (let i = 0; i < files.length; i++) {
       if (i >= threshold) break;
 
@@ -119,7 +119,7 @@ function generateTr(treeLink, filename) {
 }
 
 function loadDefaultDataByFiles() {
-  const treeLink = $('#treeLink').val();
+  const treeLink = $('#tree-link').val();
 
   for (let i = 0; i < files.length; i++) {
     if (i >= threshold) break;
@@ -129,9 +129,9 @@ function loadDefaultDataByFiles() {
 }
 
 async function fetchRepoFiles() {
-  const ownerName = $('#ownerName').val();
-  const repoName = $('#repoName').val();
-  const branchName = $('#branchName').val();
+  const ownerName = $('#owner-name').val();
+  const repoName = $('#repo-name').val();
+  const branchName = $('#branch-name').val();
   const data = await $.ajax({
     type: 'GET',
     url: `${appSubUrl}/api/v1/repos/${ownerName}/${repoName}/find/${branchName}`,
