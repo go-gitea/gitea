@@ -33,7 +33,7 @@ func GetMigrationVersion() (int64, error) {
 	if !exist {
 		return 0, nil
 	}
-	_, err = x.Table("version").Cols("`version`").Get(&installedDbVersion)
+	_, err = x.Table("version").Cols("version").Get(&installedDbVersion)
 	if err != nil {
 		return 0, err
 	}
