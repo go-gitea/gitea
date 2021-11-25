@@ -1350,20 +1350,7 @@ func (opts *IssuesOptions) setupSession(sess *xorm.Session) {
 	}
 
 	if !opts.CanSeePrivate {
-		if opts.UserID == 0 {
-			sess.And("issue.is_private=?", false)
-		} else {
-			// Allow to see private issues if the user is the poster of it.
-			sess.And(
-				builder.Or(
-					builder.Eq{"`issue`.is_private": false},
-					builder.And(
-						builder.Eq{"`issue`.is_private": true},
-						builder.In("`issue`.poster_id", opts.UserID),
-					),
-				),
-			)
-		}
+		applyPosterPrivateIssues(sess, opts.UserID)
 	}
 
 	switch opts.IsPull {
@@ -1430,6 +1417,27 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+}
+
+func applyPosterPrivateIssues(sess *xorm.Session, userID int64) *xorm.Session {
+	if userID == 0 {
+		return sess.And("issue.is_private=?", false)
+	}
+	// OR:
+	// All non-private issues by default
+	// All issues that satisfy the condtion
+	// 	AND:
+	// 	All private issues
+	// 	That are in the group of where the user is the poster.
+	return sess.And(
+		builder.Or(
+			builder.Eq{"`issue`.is_private": false},
+			builder.And(
+				builder.Eq{"`issue`.is_private": true},
+				builder.In("`issue`.poster_id", userID),
+			),
+		),
+	)
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1689,21 +1697,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 		}
 
 		if !opts.CanSeePrivate {
-			if opts.UserID != 0 {
-				// Allow to see private issues if the user is the poster of it.
-				sess.And(
-					builder.Or(
-						builder.Eq{"`issue`.is_private": false},
-						builder.And(
-							builder.Eq{"`issue`.is_private": true},
-							builder.In("`issue`.poster_id", opts.UserID),
-						),
-					),
-				)
-
-			} else {
-				sess.And("issue.is_private=?", false)
-			}
+			applyPosterPrivateIssues(sess, opts.UserID)
 		}
 
 		switch opts.IsPull {
