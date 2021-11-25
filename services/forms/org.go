@@ -8,7 +8,6 @@ package forms
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -66,7 +65,6 @@ type CreateTeamForm struct {
 	TeamName         string `binding:"Required;AlphaDashDot;MaxSize(30)"`
 	Description      string `binding:"MaxSize(255)"`
 	Permission       string
-	Units            []unit.Type
 	RepoAccess       string
 	CanCreateOrgRepo bool
 }

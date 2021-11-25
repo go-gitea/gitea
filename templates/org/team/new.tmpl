@@ -56,16 +56,9 @@
 								<br>
 								<div class="field">
 									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="read" {{if or .PageIsOrgTeamsNew (eq .Team.Authorize 1)}}checked{{end}}>
-										<label>{{.i18n.Tr "org.teams.read_access"}}</label>
-										<span class="help">{{.i18n.Tr "org.teams.read_access_helper"}}</span>
-									</div>
-								</div>
-								<div class="field">
-									<div class="ui radio checkbox">
-										<input type="radio" name="permission" value="write" {{if eq .Team.Authorize 2}}checked{{end}}>
-										<label>{{.i18n.Tr "org.teams.write_access"}}</label>
-										<span class="help">{{.i18n.Tr "org.teams.write_access_helper"}}</span>
+										<input type="radio" name="permission" value="{{if .PageIsOrgTeamsNew}}read{{else}}{{.Team.Authorize}}{{end}}" {{if or .PageIsOrgTeamsNew (eq .Team.Authorize 1) (eq .Team.Authorize 2)}}checked{{end}}>
+										<label>{{.i18n.Tr "org.teams.general_access"}}</label>
+										<span class="help">{{.i18n.Tr "org.teams.general_access_helper"}}</span>
 									</div>
 								</div>
 								<div class="field">
@@ -80,41 +73,44 @@
 
 							<div class="team-units required grouped field"{{if eq .Team.Authorize 3}} style="display: none"{{end}}>
 								<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
-								<br>
 								<table class="ui celled table">
 									<thead>
-										<tr><th>Unit</th><th>{{.i18n.Tr "org.teams.none_access"}}</th><th>{{.i18n.Tr "org.teams.read_access"}}</th><th>{{.i18n.Tr "org.teams.write_access"}}</th></tr>
+										<tr><th>{{.i18n.Tr "units.unit"}}</th>
+										<th><div data-content="{{.i18n.Tr "org.teams.none_access_helper"}}">{{.i18n.Tr "org.teams.none_access"}}</div></th>
+										<th>{{.i18n.Tr "org.teams.read_access"}}</th>
+										<th>{{.i18n.Tr "org.teams.write_access"}}</th></tr>
 									</thead>
 									<tbody>
 										{{range $t, $unit := $.Units}}
-										<tr><td>
-										{{if $unit.Type.UnitGlobalDisabled}}
-										<div class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
-										{{else}}
-										<div class="field">
-										{{end}}
-											<div class="ui">
-												<label>{{$.i18n.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.i18n.Tr "org.team_unit_disabled"}}{{end}}</label>
-												<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
+										<tr>
+											<td>
+											{{if $unit.Type.UnitGlobalDisabled}}
+											<div class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}">
+											{{else}}
+											<div class="field">
+											{{end}}
+												<div class="ui">
+													<label>{{$.i18n.Tr $unit.NameKey}}{{if $unit.Type.UnitGlobalDisabled}} {{$.i18n.Tr "org.team_unit_disabled"}}{{end}}</label>
+													<span class="help">{{$.i18n.Tr $unit.DescKey}}</span>
+												</div>
 											</div>
-										</div>
-										</td>
-										<td>
-
-											<div class="ui radio checkbox">
-												<input type="radio" class="hidden" name="unit_{{$t}}" value="{{$unit.Type.Value}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
-											</div>
-										</td>
-										<td>
-											<div class="ui radio checkbox">
-												<input type="radio" class="hidden" name="unit_{{$t}}" value="{{$unit.Type.Value}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
-											</div>
-										</td>
-										<td>
-											<div class="ui radio checkbox">
-												<input type="radio" class="hidden" name="unit_{{$t}}" value="{{$unit.Type.Value}}"{{if or (eq $.Team.ID 0) ($.Team.UnitEnabled $unit.Type)}} checked{{end}}>
-											</div>
-										</td>
+											</td>
+											<td>
+												<div class="ui radio checkbox">
+													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="0"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 0)}} checked{{end}}>
+												</div>
+											</td>
+											<td>
+												<div class="ui radio checkbox">
+													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}}>
+												</div>
+											</td>
+											<td>
+												<div class="ui radio checkbox">
+													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 2)}} checked{{end}}>
+												</div>
+											</td>
+										</tr>
 										{{end}}
 									</tbody>
 								</table>

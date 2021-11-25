@@ -454,19 +454,6 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 	return t.unitEnabled(db.GetEngine(db.DefaultContext), tp)
 }
 
-func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) AccessMode {
-	if err := t.getUnits(e); err != nil {
-		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
-	}
-
-	for _, unit := range t.Units {
-		if unit.Type == tp {
-			return unit.Authorize
-		}
-	}
-	return AccessModeNone
-}
-
 func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
 	if err := t.getUnits(e); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
@@ -478,6 +465,24 @@ func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
 		}
 	}
 	return false
+}
+
+// UnitAccessMode returns if the team has the given unit type enabled
+func (t *Team) UnitAccessMode(tp unit.Type) AccessMode {
+	return t.unitAccessMode(db.GetEngine(db.DefaultContext), tp)
+}
+
+func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) AccessMode {
+	if err := t.getUnits(e); err != nil {
+		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
+	}
+
+	for _, unit := range t.Units {
+		if unit.Type == tp {
+			return unit.Authorize
+		}
+	}
+	return AccessModeNone
 }
 
 // IsUsableTeamName tests if a name could be as team name
