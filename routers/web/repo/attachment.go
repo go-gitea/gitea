@@ -115,14 +115,16 @@ func GetAttachment(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		issue, err := models.GetIssueByID(attach.IssueID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetIssueByID", err.Error())
-			return
-		}
-		if issue.IsPrivate && !(perm.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
-			ctx.Error(http.StatusNotFound)
-			return
+		if attach.IssueID != 0 {
+			issue, err := models.GetIssueByID(attach.IssueID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "GetIssueByID", err.Error())
+				return
+			}
+			if issue.IsPrivate && !(perm.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+				ctx.Error(http.StatusNotFound)
+				return
+			}
 		}
 	}
 
