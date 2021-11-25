@@ -252,8 +252,7 @@ func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 			if uid != key.OwnerID {
 				userEmails, _ = user_model.GetEmailAddresses(key.OwnerID)
 				uid = key.OwnerID
-				user = &user_model.User{ID: uid}
-				_, _ = user_model.GetUser(user)
+				user, _ = user_model.GetUserByID(uid)
 			}
 			for _, e := range userEmails {
 				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
