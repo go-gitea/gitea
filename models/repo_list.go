@@ -12,10 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-<<<<<<< HEAD
 	user_model "code.gitea.io/gitea/models/user"
-=======
->>>>>>> f548ff512 (Fix test)
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -311,7 +308,7 @@ func userOrgPublicRepoCondPrivate(userID int64) builder.Cond {
 				Join("INNER", "`user`", "`user`.id = `org_user`.org_id").
 				Where(builder.Eq{
 					"`org_user`.uid":    userID,
-					"`user`.type":       UserTypeOrganization,
+					"`user`.type":       user_model.UserTypeOrganization,
 					"`user`.visibility": structs.VisibleTypePrivate,
 				}),
 		),

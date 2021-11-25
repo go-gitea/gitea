@@ -1186,9 +1186,9 @@ type IssuesOptions struct {
 	// prioritize issues from this repo
 	PriorityRepoID int64
 	IsArchived     util.OptionalBool
-	Org            *Organization // issues permission scope
-	Team           *Team         // issues permission scope
-	User           *User         // issues permission scope
+	Org            *Organization    // issues permission scope
+	Team           *Team            // issues permission scope
+	User           *user_model.User // issues permission scope
 }
 
 // sortIssuesSession sort an issues-related session based on the provided
