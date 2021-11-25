@@ -774,7 +774,7 @@ func sendReleaseHook(doer *user_model.User, rel *models.Release, action api.Hook
 		Action:     action,
 		Release:    convert.ToRelease(rel),
 		Repository: convert.ToRepo(rel.Repo, mode),
-		Sender:     convert.ToUser(doer, nil),
+		Sender:     convert.ToUser(doer, doer),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
