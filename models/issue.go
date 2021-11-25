@@ -766,8 +766,8 @@ func (issue *Issue) ChangeTitle(doer *user_model.User, oldTitle string) (err err
 	return committer.Commit()
 }
 
-// ChangeConfidential changes the confidential of this issue, as the given user.
-func (issue *Issue) ChangeConfidential(doer *user_model.User) (err error) {
+// ChangePrivate changes the private status of the issue, as the given user.
+func (issue *Issue) ChangePrivate(doer *user_model.User, isConfidential bool) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -795,6 +795,15 @@ func (issue *Issue) ChangeConfidential(doer *user_model.User) (err error) {
 	}
 	if err = issue.addCrossReferences(ctx, doer, true); err != nil {
 		return err
+	}
+
+	engine := db.GetEngine(ctx)
+	if isConfidential {
+		_, err = engine.Exec("UPDATE `repository` SET num_private_issues = num_private_issues + 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = engine.Exec("UPDATE `repository` SET num_issues = num_issues - 1 WHERE id = ?", opts.Issue.RepoID)
+	} else {
+		_, err = engine.Exec("UPDATE `repository` SET num_private_issues = num_private_issues - 1 WHERE id = ?", opts.Issue.RepoID)
+		_, err = engine.Exec("UPDATE `repository` SET num_issues = num_issues + 1 WHERE id = ?", opts.Issue.RepoID)
 	}
 
 	return committer.Commit()

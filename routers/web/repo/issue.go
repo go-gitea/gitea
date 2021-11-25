@@ -1783,8 +1783,8 @@ func IssuePrivate(ctx *context.Context) {
 
 	isConfidential := ctx.FormBool("is_confidential")
 
-	if err := issue_service.ChangeConfidential(issue, ctx.User, isConfidential); err != nil {
-		ctx.ServerError("ChangeConfidential", err)
+	if err := issue_service.ChangePrivate(issue, ctx.User, isConfidential); err != nil {
+		ctx.ServerError("ChangePrivate", err)
 		return
 	}
 
