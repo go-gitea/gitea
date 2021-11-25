@@ -206,6 +206,7 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_table", "version", err), tplInstall, form)
 		return false
 	}
+
 	if hasPostInstallationUser && dbMigrationVersion > 0 {
 		log.Error("The database is likely to have been used by a Gitea before, database migration version=%d", dbMigrationVersion)
 		confirmed := form.ReinstallConfirmFirst && form.ReinstallConfirmSecond && form.ReinstallConfirmThird
@@ -214,7 +215,13 @@ func checkDatabase(ctx *context.Context, form *forms.InstallForm) bool {
 			ctx.RenderWithErr(ctx.Tr("install.reinstall_error"), tplInstall, form)
 			return false
 		}
+		log.Info("User confirmed to continue to install Gitea in an existing database")
 	}
+
+	if hasPostInstallationUser || dbMigrationVersion > 0 {
+		log.Info("Gitea will be installed in a database with: hasPostInstallationUser=%v, dbMigrationVersion=%v, confirmed=%v", hasPostInstallationUser, dbMigrationVersion)
+	}
+
 	return true
 }
 
