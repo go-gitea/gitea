@@ -38,7 +38,7 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 	// The first element in the list is chosen to be the default language automatically.
 	if len(lang) == 0 {
 		tags, _, _ := language.ParseAcceptLanguage(req.Header.Get("Accept-Language"))
-		tag, _, _ := translation.Match(tags...)
+		tag := translation.Match(tags...)
 		lang = tag.String()
 	}
 

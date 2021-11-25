@@ -6,14 +6,18 @@ import (
 )
 
 // Idris lexer.
-var Idris = internal.Register(MustNewLexer(
+var Idris = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Idris",
 		Aliases:   []string{"idris", "idr"},
 		Filenames: []string{"*.idr"},
 		MimeTypes: []string{"text/x-idris"},
 	},
-	Rules{
+	idrisRules,
+))
+
+func idrisRules() Rules {
+	return Rules{
 		"root": {
 			{`^(\s*)(%lib|link|flag|include|hide|freeze|access|default|logging|dynamic|name|error_handlers|language)`, ByGroups(Text, KeywordReserved), nil},
 			{`(\s*)(--(?![!#$%&*+./<=>?@^|_~:\\]).*?)$`, ByGroups(Text, CommentSingle), nil},
@@ -76,5 +80,5 @@ var Idris = internal.Register(MustNewLexer(
 			{`\d+`, LiteralStringEscape, Pop(1)},
 			{`\s+\\`, LiteralStringEscape, Pop(1)},
 		},
-	},
-))
+	}
+}

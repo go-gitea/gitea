@@ -14,13 +14,20 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/oauth2"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	pwd "code.gitea.io/gitea/modules/password"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
+	auth_service "code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
+	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli"
 )
@@ -287,6 +294,10 @@ var (
 			Value: "",
 			Usage: "Custom icon URL for OAuth2 login source",
 		},
+		cli.BoolFlag{
+			Name:  "skip-local-2fa",
+			Usage: "Set to true to skip local 2fa for users authenticated by this source",
+		},
 	}
 
 	microcmdAuthUpdateOauth = cli.Command{
@@ -331,7 +342,10 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	if !pwd.IsComplexEnough(c.String("password")) {
@@ -345,7 +359,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := models.GetUserByName(uname)
+	user, err := user_model.GetUserByName(uname)
 	if err != nil {
 		return err
 	}
@@ -353,7 +367,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -385,7 +399,10 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -408,7 +425,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := models.CountUsers(); n == 0 {
+	if n := user_model.CountUsers(); n == 0 {
 		changePassword = false
 	}
 
@@ -416,7 +433,7 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
@@ -426,7 +443,7 @@ func runCreateUser(c *cli.Context) error {
 		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := models.CreateUser(u); err != nil {
+	if err := user_model.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
@@ -448,11 +465,14 @@ func runCreateUser(c *cli.Context) error {
 }
 
 func runListUsers(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	users, err := models.GetAllUsers()
+	users, err := user_model.GetAllUsers()
 
 	if err != nil {
 		return err
@@ -485,18 +505,25 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("You must provide the id, username or email of a user to delete")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	if err := storage.Init(); err != nil {
 		return err
 	}
 
 	var err error
-	var user *models.User
+	var user *user_model.User
 	if c.IsSet("email") {
-		user, err = models.GetUserByEmail(c.String("email"))
+		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = models.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(c.String("username"))
 	} else {
-		user, err = models.GetUserByID(c.Int64("id"))
+		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
 	if err != nil {
 		return err
@@ -509,18 +536,21 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return models.DeleteUser(user)
+	return user_service.DeleteUser(user)
 }
 
-func runRepoSyncReleases(c *cli.Context) error {
-	if err := initDB(); err != nil {
+func runRepoSyncReleases(_ *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
 		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{
+			ListOptions: db.ListOptions{
 				PageSize: models.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
@@ -578,21 +608,27 @@ func getReleaseCount(id int64) (int64, error) {
 	)
 }
 
-func runRegenerateHooks(c *cli.Context) error {
-	if err := initDB(); err != nil {
+func runRegenerateHooks(_ *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
+	return repo_service.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
-func runRegenerateKeys(c *cli.Context) error {
-	if err := initDB(); err != nil {
+func runRegenerateKeys(_ *cli.Context) error {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	return models.RewriteAllPublicKeys()
 }
 
-func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
+func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 	var customURLMapping *oauth2.CustomURLMapping
 	if c.IsSet("use-custom-urls") {
 		customURLMapping = &oauth2.CustomURLMapping{
@@ -604,26 +640,30 @@ func parseOAuth2Config(c *cli.Context) *models.OAuth2Config {
 	} else {
 		customURLMapping = nil
 	}
-	return &models.OAuth2Config{
+	return &oauth2.Source{
 		Provider:                      c.String("provider"),
 		ClientID:                      c.String("key"),
 		ClientSecret:                  c.String("secret"),
 		OpenIDConnectAutoDiscoveryURL: c.String("auto-discover-url"),
 		CustomURLMapping:              customURLMapping,
 		IconURL:                       c.String("icon-url"),
+		SkipLocalTwoFA:                c.Bool("skip-local-2fa"),
 	}
 }
 
 func runAddOauth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	return models.CreateLoginSource(&models.LoginSource{
-		Type:      models.LoginOAuth2,
-		Name:      c.String("name"),
-		IsActived: true,
-		Cfg:       parseOAuth2Config(c),
+	return login.CreateSource(&login.Source{
+		Type:     login.OAuth2,
+		Name:     c.String("name"),
+		IsActive: true,
+		Cfg:      parseOAuth2Config(c),
 	})
 }
 
@@ -632,16 +672,19 @@ func runUpdateOauth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	source, err := login.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	oAuth2Config := source.OAuth2()
+	oAuth2Config := source.Cfg.(*oauth2.Source)
 
 	if c.IsSet("name") {
 		source.Name = c.String("name")
@@ -695,15 +738,18 @@ func runUpdateOauth(c *cli.Context) error {
 	oAuth2Config.CustomURLMapping = customURLMapping
 	source.Cfg = oAuth2Config
 
-	return models.UpdateSource(source)
+	return login.UpdateSource(source)
 }
 
 func runListAuth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	loginSources, err := models.LoginSources()
+	loginSources, err := login.Sources()
 
 	if err != nil {
 		return err
@@ -723,7 +769,7 @@ func runListAuth(c *cli.Context) error {
 	w := tabwriter.NewWriter(os.Stdout, c.Int("min-width"), c.Int("tab-width"), c.Int("padding"), padChar, flags)
 	fmt.Fprintf(w, "ID\tName\tType\tEnabled\n")
 	for _, source := range loginSources {
-		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, models.LoginNames[source.Type], source.IsActived)
+		fmt.Fprintf(w, "%d\t%s\t%s\t%t\n", source.ID, source.Name, source.Type.String(), source.IsActive)
 	}
 	w.Flush()
 
@@ -735,14 +781,17 @@ func runDeleteAuth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	source, err := models.GetLoginSourceByID(c.Int64("id"))
+	source, err := login.GetSourceByID(c.Int64("id"))
 	if err != nil {
 		return err
 	}
 
-	return models.DeleteSource(source)
+	return auth_service.DeleteLoginSource(source)
 }

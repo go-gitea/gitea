@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	models.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, filepath.Join("..", "..", ".."))
 }
 
 func testIndexer(name string, t *testing.T, indexer Indexer) {
@@ -67,7 +67,7 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 				total, res, langs, err := indexer.Search(kw.RepoIDs, "", kw.Keyword, 1, 10, false)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(kw.IDs), total)
-				assert.EqualValues(t, kw.Langs, len(langs))
+				assert.Len(t, langs, kw.Langs)
 
 				var ids = make([]int64, 0, len(res))
 				for _, hit := range res {

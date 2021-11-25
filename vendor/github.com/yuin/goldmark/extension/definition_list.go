@@ -138,7 +138,7 @@ func (b *definitionDescriptionParser) Open(parent gast.Node, reader text.Reader,
 		para.Parent().RemoveChild(para.Parent(), para)
 	}
 	cpos, padding := util.IndentPosition(line[pos+1:], pos+1, list.Offset-pos-1)
-	reader.AdvanceAndSetPadding(cpos, padding)
+	reader.AdvanceAndSetPadding(cpos+1, padding)
 
 	return ast.NewDefinitionDescription(), parser.HasChildren
 }

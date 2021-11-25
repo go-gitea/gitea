@@ -5,9 +5,14 @@
 package convert
 
 import (
+	"fmt"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -25,17 +30,20 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	if err := issue.LoadRepo(); err != nil {
 		return &api.Issue{}
 	}
+	if err := issue.Repo.GetOwner(); err != nil {
+		return &api.Issue{}
+	}
 
 	apiIssue := &api.Issue{
 		ID:       issue.ID,
 		URL:      issue.APIURL(),
 		HTMLURL:  issue.HTMLURL(),
 		Index:    issue.Index,
-		Poster:   ToUser(issue.Poster, false, false),
+		Poster:   ToUser(issue.Poster, nil),
 		Title:    issue.Title,
 		Body:     issue.Content,
 		Ref:      issue.Ref,
-		Labels:   ToLabelList(issue.Labels),
+		Labels:   ToLabelList(issue.Labels, issue.Repo, issue.Repo.Owner),
 		State:    issue.State(),
 		IsLocked: issue.IsLocked,
 		Comments: issue.NumComments,
@@ -66,9 +74,9 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 	}
 	if len(issue.Assignees) > 0 {
 		for _, assignee := range issue.Assignees {
-			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, false, false))
+			apiIssue.Assignees = append(apiIssue.Assignees, ToUser(assignee, nil))
 		}
-		apiIssue.Assignee = ToUser(issue.Assignees[0], false, false) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
+		apiIssue.Assignee = ToUser(issue.Assignees[0], nil) // For compatibility, we're keeping the first assignee as `apiIssue.Assignee`
 	}
 	if issue.IsPull {
 		if err := issue.LoadPullRequest(); err != nil {
@@ -168,20 +176,37 @@ func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 }
 
 // ToLabel converts Label to API format
-func ToLabel(label *models.Label) *api.Label {
-	return &api.Label{
+func ToLabel(label *models.Label, repo *models.Repository, org *user_model.User) *api.Label {
+	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
 		Color:       strings.TrimLeft(label.Color, "#"),
 		Description: label.Description,
 	}
+
+	// calculate URL
+	if label.BelongsToRepo() && repo != nil {
+		if repo != nil {
+			result.URL = fmt.Sprintf("%s/labels/%d", repo.APIURL(), label.ID)
+		} else {
+			log.Error("ToLabel did not get repo to calculate url for label with id '%d'", label.ID)
+		}
+	} else { // BelongsToOrg
+		if org != nil {
+			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, url.PathEscape(org.Name), label.ID)
+		} else {
+			log.Error("ToLabel did not get org to calculate url for label with id '%d'", label.ID)
+		}
+	}
+
+	return result
 }
 
 // ToLabelList converts list of Label to API format
-func ToLabelList(labels []*models.Label) []*api.Label {
+func ToLabelList(labels []*models.Label, repo *models.Repository, org *user_model.User) []*api.Label {
 	result := make([]*api.Label, len(labels))
 	for i := range labels {
-		result[i] = ToLabel(labels[i])
+		result[i] = ToLabel(labels[i], repo, org)
 	}
 	return result
 }

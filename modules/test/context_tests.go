@@ -14,11 +14,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/web/middleware"
 
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/unrolled/render"
 )
@@ -52,9 +54,9 @@ func MockContext(t *testing.T, path string) *context.Context {
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = models.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
 	var err error
-	ctx.Repo.Owner, err = models.GetUserByID(ctx.Repo.Repository.OwnerID)
+	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
 	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.User)
@@ -77,7 +79,7 @@ func LoadRepoCommit(t *testing.T, ctx *context.Context) {
 
 // LoadUser load a user into a test context.
 func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
-	ctx.User = models.AssertExistsAndLoadBean(t, &models.User{ID: userID}).(*models.User)
+	ctx.User = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
 }
 
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has

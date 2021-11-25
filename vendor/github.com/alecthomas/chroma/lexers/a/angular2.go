@@ -6,14 +6,18 @@ import (
 )
 
 // Angular2 lexer.
-var Angular2 = internal.Register(MustNewLexer(
+var Angular2 = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Angular2",
 		Aliases:   []string{"ng2"},
 		Filenames: []string{},
 		MimeTypes: []string{},
 	},
-	Rules{
+	angular2Rules,
+))
+
+func angular2Rules() Rules {
+	return Rules{
 		"root": {
 			{`[^{([*#]+`, Other, nil},
 			{`(\{\{)(\s*)`, ByGroups(CommentPreproc, Text), Push("ngExpression")},
@@ -38,5 +42,5 @@ var Angular2 = internal.Register(MustNewLexer(
 			{`'.*?'`, LiteralString, Pop(1)},
 			{`[^\s>]+`, LiteralString, Pop(1)},
 		},
-	},
-))
+	}
+}

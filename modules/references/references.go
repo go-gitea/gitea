@@ -5,6 +5,7 @@
 package references
 
 import (
+	"bytes"
 	"net/url"
 	"regexp"
 	"strconv"
@@ -14,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/mdstripper"
 	"code.gitea.io/gitea/modules/setting"
+
+	"github.com/yuin/goldmark/util"
 )
 
 var (
@@ -29,7 +32,7 @@ var (
 	// mentionPattern matches all mentions in the form of "@user" or "@org/team"
 	mentionPattern = regexp.MustCompile(`(?:\s|^|\(|\[)(@[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_]+\/?[0-9a-zA-Z-_]+|@[0-9a-zA-Z-_][0-9a-zA-Z-_.]+\/?[0-9a-zA-Z-_.]+[0-9a-zA-Z-_])(?:\s|[:,;.?!]\s|[:,;.?!]?$|\)|\])`)
 	// issueNumericPattern matches string that references to a numeric issue, e.g. #1287
-	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
+	issueNumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[|\')([#!][0-9]+)(?:\s|$|\)|\]|[:;,.?!]\s|[:;,.?!]$)`)
 	// issueAlphanumericPattern matches string that references to an alphanumeric issue, e.g. ABC-1234
 	issueAlphanumericPattern = regexp.MustCompile(`(?:\s|^|\(|\[)([A-Z]{1,10}-[1-9][0-9]*)(?:\s|$|\)|\]|:|\.(\s|$))`)
 	// crossReferenceIssueNumericPattern matches string that references a numeric issue in a different repository
@@ -296,7 +299,7 @@ func convertFullHTMLReferencesToShortRefs(re *regexp.Regexp, contentBytes *[]byt
 
 		// our new section has length endPos - match[3]
 		// our old section has length match[9] - match[3]
-		(*contentBytes) = (*contentBytes)[:len((*contentBytes))-match[9]+endPos]
+		*contentBytes = (*contentBytes)[:len(*contentBytes)-match[9]+endPos]
 		pos = endPos
 	}
 }
@@ -321,7 +324,7 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 			return false, nil
 		}
 	}
-	r := getCrossReference([]byte(content), match[2], match[3], false, prOnly)
+	r := getCrossReference(util.StringToReadOnlyBytes(content), match[2], match[3], false, prOnly)
 	if r == nil {
 		return false, nil
 	}
@@ -465,18 +468,17 @@ func findAllIssueReferencesBytes(content []byte, links []string) []*rawReference
 }
 
 func getCrossReference(content []byte, start, end int, fromLink bool, prOnly bool) *rawReference {
-	refid := string(content[start:end])
-	sep := strings.IndexAny(refid, "#!")
+	sep := bytes.IndexAny(content[start:end], "#!")
 	if sep < 0 {
 		return nil
 	}
-	isPull := refid[sep] == '!'
+	isPull := content[start+sep] == '!'
 	if prOnly && !isPull {
 		return nil
 	}
-	repo := refid[:sep]
-	issue := refid[sep+1:]
-	index, err := strconv.ParseInt(issue, 10, 64)
+	repo := string(content[start : start+sep])
+	issue := string(content[start+sep+1 : end])
+	index, err := strconv.ParseInt(string(issue), 10, 64)
 	if err != nil {
 		return nil
 	}

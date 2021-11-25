@@ -159,14 +159,17 @@ func UseDropConstraint() func(*Loader) error {
 // SkipResetSequences prevents Loader from reseting sequences after loading
 // fixtures.
 //
-// Only valid for PostgreSQL. Returns an error otherwise.
+// Only valid for PostgreSQL and MySQL. Returns an error otherwise.
 func SkipResetSequences() func(*Loader) error {
 	return func(l *Loader) error {
-		pgHelper, ok := l.helper.(*postgreSQL)
-		if !ok {
-			return fmt.Errorf("testfixtures: SkipResetSequences is only valid for PostgreSQL databases")
+		switch helper := l.helper.(type) {
+		case *postgreSQL:
+			helper.skipResetSequences = true
+		case *mySQL:
+			helper.skipResetSequences = true
+		default:
+			return fmt.Errorf("testfixtures: SkipResetSequences is valid for PostgreSQL and MySQL databases")
 		}
-		pgHelper.skipResetSequences = true
 		return nil
 	}
 }
@@ -175,14 +178,17 @@ func SkipResetSequences() func(*Loader) error {
 //
 // Defaults to 10000.
 //
-// Only valid for PostgreSQL. Returns an error otherwise.
+// Only valid for PostgreSQL and MySQL. Returns an error otherwise.
 func ResetSequencesTo(value int64) func(*Loader) error {
 	return func(l *Loader) error {
-		pgHelper, ok := l.helper.(*postgreSQL)
-		if !ok {
-			return fmt.Errorf("testfixtures: ResetSequencesTo is only valid for PostgreSQL databases")
+		switch helper := l.helper.(type) {
+		case *postgreSQL:
+			helper.resetSequencesTo = value
+		case *mySQL:
+			helper.resetSequencesTo = value
+		default:
+			return fmt.Errorf("testfixtures: ResetSequencesTo is only valid for PostgreSQL and MySQL databases")
 		}
-		pgHelper.resetSequencesTo = value
 		return nil
 	}
 }

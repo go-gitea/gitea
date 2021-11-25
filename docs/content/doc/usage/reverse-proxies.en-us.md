@@ -43,13 +43,15 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /git/ { # Note: Trailing slash
-        proxy_pass http://localhost:3000/; # Note: Trailing slash
+    # Note: Trailing slash
+    location /git/ { 
+        # Note: Trailing slash
+        proxy_pass http://localhost:3000/;
     }
 }
 ```
 
-Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
 
 ## Nginx and serve static resources directly
 
@@ -78,7 +80,7 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /_/static {
+    location /_/static/assets {
         alias /path/to/gitea/public;
     }
 
@@ -120,6 +122,14 @@ server {
 }
 ```
 
+## Resolving Error: 413 Request Entity Too Large
+
+This error indicates nginx is configured to restrict the file upload size.
+
+In your nginx config file containing your Gitea proxy directive, find the `location { ... }` block for Gitea and add the line
+`client_max_body_size 16M;` to set this limit to 16 megabytes or any other number of choice.
+
+
 ## Apache HTTPD
 
 If you want Apache HTTPD to serve your Gitea instance, you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
@@ -131,11 +141,10 @@ If you want Apache HTTPD to serve your Gitea instance, you can add the following
     ProxyRequests off
     AllowEncodedSlashes NoDecode
     ProxyPass / http://localhost:3000/ nocanon
-    ProxyPassReverse / http://localhost:3000/
 </VirtualHost>
 ```
 
-Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 If you wish to use Let's Encrypt with webroot validation, add the line `ProxyPass /.well-known !` before `ProxyPass` to disable proxying these requests to Gitea.
 
@@ -153,13 +162,12 @@ In case you already have a site, and you want Gitea to share the domain name, yo
     AllowEncodedSlashes NoDecode
     # Note: no trailing slash after either /git or port
     ProxyPass /git http://localhost:3000 nocanon
-    ProxyPassReverse /git http://localhost:3000
 </VirtualHost>
 ```
 
-Then set `[server] ROOT_URL = http://git.example.com/git/` in your configuration.
+Then you **MUST** set something like `[server] ROOT_URL = http://git.example.com/git/` correctly in your configuration.
 
-Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`
+Note: The following Apache HTTPD mods must be enabled: `proxy`, `proxy_http`.
 
 ## Caddy
 
@@ -221,12 +229,28 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
+    <system.web>
+        <httpRuntime requestPathInvalidCharacters="" />
+    </system.web>
     <system.webServer>
+        <security>
+          <requestFiltering>
+            <hiddenSegments>
+              <clear />
+            </hiddenSegments>
+            <denyUrlSequences>
+              <clear />
+            </denyUrlSequences>
+            <fileExtensions allowUnlisted="true">
+              <clear />
+            </fileExtensions>
+          </requestFiltering>
+        </security>
         <rewrite>
-            <rules>
+            <rules useOriginalURLEncoding="false">
                 <rule name="ReverseProxyInboundRule1" stopProcessing="true">
                     <match url="(.*)" />
-                    <action type="Rewrite" url="http://127.0.0.1:3000/{R:1}" />
+                    <action type="Rewrite" url="http://127.0.0.1:3000{UNENCODED_URL}" />
                     <serverVariables>
                         <set name="HTTP_X_ORIGINAL_ACCEPT_ENCODING" value="HTTP_ACCEPT_ENCODING" />
                         <set name="HTTP_ACCEPT_ENCODING" value="" />
@@ -255,6 +279,63 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
             </outboundRules>
         </rewrite>
         <urlCompression doDynamicCompression="true" />
+        <handlers>
+          <clear />
+          <add name="StaticFile" path="*" verb="*" modules="StaticFileModule,DefaultDocumentModule,DirectoryListingModule" resourceType="Either" requireAccess="Read" />
+        </handlers>
+        <!-- Map all extensions to the same MIME type, so all files can be
+               downloaded. -->
+        <staticContent>
+          <clear />
+          <mimeMap fileExtension="*" mimeType="application/octet-stream" />
+        </staticContent>
     </system.webServer>
 </configuration>
 ```
+
+## HAProxy
+
+If you want HAProxy to serve your Gitea instance, you can add the following to your HAProxy configuration
+
+add an acl in the frontend section to redirect calls to gitea.example.com to the correct backend
+```
+frontend http-in
+    ...
+    acl acl_gitea hdr(host) -i gitea.example.com
+    use_backend gitea if acl_gitea
+    ...
+```
+
+add the previously defined backend section
+```
+backend gitea
+    server localhost:3000 check
+```
+
+If you redirect the http content to https, the configuration work the same way, just remember that the connexion between HAProxy and Gitea will be done via http so you do not have to enable https in Gitea's configuration.
+
+## HAProxy with a sub-path
+
+In case you already have a site, and you want Gitea to share the domain name, you can setup HAProxy to serve Gitea under a sub-path by adding the following to you HAProxy configuration:
+
+```
+frontend http-in
+    ...
+    acl acl_gitea path_beg /gitea
+    use_backend gitea if acl_gitea
+    ...
+```
+
+With that configuration http://example.com/gitea/ will redirect to your Gitea instance.
+
+then for the backend section
+```
+backend gitea
+    http-request replace-path /gitea\/?(.*) \/\1
+    server localhost:3000 check
+```
+
+The added http-request will automatically add a trailing slash if needed and internally remove /gitea from the path to allow it to work correctly with Gitea by setting properly http://example.com/gitea as the root.
+
+Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.
+

@@ -7,7 +7,6 @@ package storage
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -66,7 +65,7 @@ func (l *LocalStorage) Open(path string) (Object, error) {
 }
 
 // Save a file
-func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
+func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error) {
 	p := filepath.Join(l.dir, path)
 	if err := os.MkdirAll(filepath.Dir(p), os.ModePerm); err != nil {
 		return 0, err
@@ -76,7 +75,7 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 	if err := os.MkdirAll(l.tmpdir, os.ModePerm); err != nil {
 		return 0, err
 	}
-	tmp, err := ioutil.TempFile(l.tmpdir, "upload-*")
+	tmp, err := os.CreateTemp(l.tmpdir, "upload-*")
 	if err != nil {
 		return 0, err
 	}
@@ -96,7 +95,7 @@ func (l *LocalStorage) Save(path string, r io.Reader) (int64, error) {
 		return 0, err
 	}
 
-	if err := os.Rename(tmp.Name(), p); err != nil {
+	if err := util.Rename(tmp.Name(), p); err != nil {
 		return 0, err
 	}
 

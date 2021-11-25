@@ -6,14 +6,15 @@ package repository
 
 import (
 	"bytes"
+	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -22,7 +23,7 @@ import (
 	"github.com/unknwon/com"
 )
 
-func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -58,7 +59,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 		"CloneURL.HTTPS": cloneLink.HTTPS,
 		"OwnerName":      repo.OwnerName,
 	}
-	if err = ioutil.WriteFile(filepath.Join(tmpDir, "README.md"),
+	if err = os.WriteFile(filepath.Join(tmpDir, "README.md"),
 		[]byte(com.Expand(string(data), match)), 0644); err != nil {
 		return fmt.Errorf("write README.md: %v", err)
 	}
@@ -78,7 +79,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 		}
 
 		if buf.Len() > 0 {
-			if err = ioutil.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0644); err != nil {
+			if err = os.WriteFile(filepath.Join(tmpDir, ".gitignore"), buf.Bytes(), 0644); err != nil {
 				return fmt.Errorf("write .gitignore: %v", err)
 			}
 		}
@@ -91,7 +92,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 			return fmt.Errorf("GetRepoInitFile[%s]: %v", opts.License, err)
 		}
 
-		if err = ioutil.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0644); err != nil {
+		if err = os.WriteFile(filepath.Join(tmpDir, "LICENSE"), data, 0644); err != nil {
 			return fmt.Errorf("write LICENSE: %v", err)
 		}
 	}
@@ -100,7 +101,7 @@ func prepareRepoCommit(ctx models.DBContext, repo *models.Repository, tmpDir, re
 }
 
 // initRepoCommit temporarily changes with work directory.
-func initRepoCommit(tmpPath string, repo *models.Repository, u *models.User, defaultBranch string) (err error) {
+func initRepoCommit(tmpPath string, repo *models.Repository, u *user_model.User, defaultBranch string) (err error) {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	sig := u.NewGitSig()
@@ -196,101 +197,15 @@ func checkInitRepository(owner, name string) (err error) {
 	return nil
 }
 
-func adoptRepository(ctx models.DBContext, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
-	isExist, err := util.IsExist(repoPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-		return err
-	}
-	if !isExist {
-		return fmt.Errorf("adoptRepository: path does not already exist: %s", repoPath)
-	}
-
-	if err := createDelegateHooks(repoPath); err != nil {
-		return fmt.Errorf("createDelegateHooks: %v", err)
-	}
-
-	// Re-fetch the repository from database before updating it (else it would
-	// override changes that were done earlier with sql)
-	if repo, err = models.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
-		return fmt.Errorf("getRepositoryByID: %v", err)
-	}
-
-	repo.IsEmpty = false
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("openRepository: %v", err)
-	}
-	defer gitRepo.Close()
-	if len(opts.DefaultBranch) > 0 {
-		repo.DefaultBranch = opts.DefaultBranch
-
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-			return fmt.Errorf("setDefaultBranch: %v", err)
-		}
-	} else {
-		repo.DefaultBranch, err = gitRepo.GetDefaultBranch()
-		if err != nil {
-			repo.DefaultBranch = setting.Repository.DefaultBranch
-			if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-				return fmt.Errorf("setDefaultBranch: %v", err)
-			}
-		}
-
-		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
-	}
-	branches, _, _ := gitRepo.GetBranches(0, 0)
-	found := false
-	hasDefault := false
-	hasMaster := false
-	hasMain := false
-	for _, branch := range branches {
-		if branch == repo.DefaultBranch {
-			found = true
-			break
-		} else if branch == setting.Repository.DefaultBranch {
-			hasDefault = true
-		} else if branch == "master" {
-			hasMaster = true
-		} else if branch == "main" {
-			hasMain = true
-		}
-	}
-	if !found {
-		if hasDefault {
-			repo.DefaultBranch = setting.Repository.DefaultBranch
-		} else if hasMaster {
-			repo.DefaultBranch = "master"
-		} else if hasMain {
-			repo.DefaultBranch = "main"
-		} else if len(branches) > 0 {
-			repo.DefaultBranch = branches[0]
-		} else {
-			repo.IsEmpty = true
-			repo.DefaultBranch = setting.Repository.DefaultBranch
-		}
-
-		if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
-			return fmt.Errorf("setDefaultBranch: %v", err)
-		}
-	}
-
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
-	}
-
-	return nil
-}
-
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx models.DBContext, repoPath string, u *models.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
 	if err = checkInitRepository(repo.OwnerName, repo.Name); err != nil {
 		return err
 	}
 
 	// Initialize repository according to user's choice.
 	if opts.AutoInit {
-		tmpDir, err := ioutil.TempDir(os.TempDir(), "gitea-"+repo.Name)
+		tmpDir, err := os.MkdirTemp(os.TempDir(), "gitea-"+repo.Name)
 		if err != nil {
 			return fmt.Errorf("Failed to create temp dir for repository %s: %v", repo.RepoPath(), err)
 		}

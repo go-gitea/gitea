@@ -10,11 +10,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -23,7 +23,7 @@ import (
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
-func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error {
+func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch, binary bool) error {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
@@ -34,7 +34,7 @@ func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch bool) error 
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 	defer gitRepo.Close()
-	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch); err != nil {
+	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 	}
@@ -100,7 +100,7 @@ func TestPatch(pr *models.PullRequest) error {
 
 func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
 	// 1. Create a plain patch from head to base
-	tmpPatchFile, err := ioutil.TempFile("", "patch")
+	tmpPatchFile, err := os.CreateTemp("", "patch")
 	if err != nil {
 		log.Error("Unable to create temporary patch file! Error: %v", err)
 		return false, fmt.Errorf("Unable to create temporary patch file! Error: %v", err)
@@ -109,7 +109,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 		_ = util.Remove(tmpPatchFile.Name())
 	}()
 
-	if err := gitRepo.GetDiff(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
+	if err := gitRepo.GetDiffBinary(pr.MergeBase, "tracking", tmpPatchFile); err != nil {
 		tmpPatchFile.Close()
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return false, fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
@@ -143,7 +143,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	}
 
 	// 4. Now get the pull request configuration to check if we need to ignore whitespace
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return false, err
 	}
@@ -245,68 +245,57 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 // CheckFileProtection check file Protection
 func CheckFileProtection(oldCommitID, newCommitID string, patterns []glob.Glob, limit int, env []string, repo *git.Repository) ([]string, error) {
-	// 1. If there are no patterns short-circuit and just return nil
 	if len(patterns) == 0 {
 		return nil, nil
 	}
-
-	// 2. Prep the pipe
-	stdoutReader, stdoutWriter, err := os.Pipe()
+	affectedFiles, err := git.GetAffectedFiles(oldCommitID, newCommitID, env, repo)
 	if err != nil {
-		log.Error("Unable to create os.Pipe for %s", repo.Path)
 		return nil, err
 	}
-	defer func() {
-		_ = stdoutReader.Close()
-		_ = stdoutWriter.Close()
-	}()
-
 	changedProtectedFiles := make([]string, 0, limit)
-
-	// 3. Run `git diff --name-only` to get the names of the changed files
-	err = git.NewCommand("diff", "--name-only", oldCommitID, newCommitID).
-		RunInDirTimeoutEnvFullPipelineFunc(env, -1, repo.Path,
-			stdoutWriter, nil, nil,
-			func(ctx context.Context, cancel context.CancelFunc) error {
-				// Close the writer end of the pipe to begin processing
-				_ = stdoutWriter.Close()
-				defer func() {
-					// Close the reader on return to terminate the git command if necessary
-					_ = stdoutReader.Close()
-				}()
-
-				// Now scan the output from the command
-				scanner := bufio.NewScanner(stdoutReader)
-				for scanner.Scan() {
-					path := strings.TrimSpace(scanner.Text())
-					if len(path) == 0 {
-						continue
-					}
-					lpath := strings.ToLower(path)
-					for _, pat := range patterns {
-						if pat.Match(lpath) {
-							changedProtectedFiles = append(changedProtectedFiles, path)
-							break
-						}
-					}
-					if len(changedProtectedFiles) >= limit {
-						break
-					}
-				}
-
-				if len(changedProtectedFiles) > 0 {
-					return models.ErrFilePathProtected{
-						Path: changedProtectedFiles[0],
-					}
-				}
-				return scanner.Err()
-			})
-	// 4. log real errors if there are any...
-	if err != nil && !models.IsErrFilePathProtected(err) {
-		log.Error("Unable to check file protection for commits from %s to %s in %s: %v", oldCommitID, newCommitID, repo.Path, err)
+	for _, affectedFile := range affectedFiles {
+		lpath := strings.ToLower(affectedFile)
+		for _, pat := range patterns {
+			if pat.Match(lpath) {
+				changedProtectedFiles = append(changedProtectedFiles, lpath)
+				break
+			}
+		}
+		if len(changedProtectedFiles) >= limit {
+			break
+		}
 	}
-
+	if len(changedProtectedFiles) > 0 {
+		err = models.ErrFilePathProtected{
+			Path: changedProtectedFiles[0],
+		}
+	}
 	return changedProtectedFiles, err
+}
+
+// CheckUnprotectedFiles check if the commit only touches unprotected files
+func CheckUnprotectedFiles(oldCommitID, newCommitID string, patterns []glob.Glob, env []string, repo *git.Repository) (bool, error) {
+	if len(patterns) == 0 {
+		return false, nil
+	}
+	affectedFiles, err := git.GetAffectedFiles(oldCommitID, newCommitID, env, repo)
+	if err != nil {
+		return false, err
+	}
+	for _, affectedFile := range affectedFiles {
+		lpath := strings.ToLower(affectedFile)
+		unprotected := false
+		for _, pat := range patterns {
+			if pat.Match(lpath) {
+				unprotected = true
+				break
+			}
+		}
+		if !unprotected {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results

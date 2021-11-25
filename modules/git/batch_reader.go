@@ -7,28 +7,49 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
+	"fmt"
 	"io"
 	"math"
+	"runtime"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/log"
+
+	"github.com/djherbis/buffer"
+	"github.com/djherbis/nio/v3"
 )
 
-// CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
-func CatFileBatch(repoPath string) (*io.PipeWriter, *bufio.Reader, func()) {
-	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
-	// so let's create a batch stdin and stdout
+// WriteCloserError wraps an io.WriteCloser with an additional CloseWithError function
+type WriteCloserError interface {
+	io.WriteCloser
+	CloseWithError(err error) error
+}
+
+// CatFileBatchCheck opens git cat-file --batch-check in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func CatFileBatchCheck(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
 	batchStdinReader, batchStdinWriter := io.Pipe()
 	batchStdoutReader, batchStdoutWriter := io.Pipe()
+	ctx, ctxCancel := context.WithCancel(DefaultContext)
+	closed := make(chan struct{})
 	cancel := func() {
 		_ = batchStdinReader.Close()
 		_ = batchStdinWriter.Close()
 		_ = batchStdoutReader.Close()
 		_ = batchStdoutWriter.Close()
+		ctxCancel()
+		<-closed
 	}
+
+	_, filename, line, _ := runtime.Caller(2)
+	filename = strings.TrimPrefix(filename, callerPrefix)
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand("cat-file", "--batch").RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+		err := NewCommandContext(ctx, "cat-file", "--batch-check").
+			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -36,10 +57,52 @@ func CatFileBatch(repoPath string) (*io.PipeWriter, *bufio.Reader, func()) {
 			_ = batchStdoutWriter.Close()
 			_ = batchStdinReader.Close()
 		}
+		close(closed)
+	}()
+
+	// For simplicities sake we'll use a buffered reader to read from the cat-file --batch-check
+	batchReader := bufio.NewReader(batchStdoutReader)
+
+	return batchStdinWriter, batchReader, cancel
+}
+
+// CatFileBatch opens git cat-file --batch in the provided repo and returns a stdin pipe, a stdout reader and cancel function
+func CatFileBatch(repoPath string) (WriteCloserError, *bufio.Reader, func()) {
+	// We often want to feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
+	// so let's create a batch stdin and stdout
+	batchStdinReader, batchStdinWriter := io.Pipe()
+	batchStdoutReader, batchStdoutWriter := nio.Pipe(buffer.New(32 * 1024))
+	ctx, ctxCancel := context.WithCancel(DefaultContext)
+	closed := make(chan struct{})
+	cancel := func() {
+		_ = batchStdinReader.Close()
+		_ = batchStdinWriter.Close()
+		_ = batchStdoutReader.Close()
+		_ = batchStdoutWriter.Close()
+		ctxCancel()
+		<-closed
+	}
+
+	_, filename, line, _ := runtime.Caller(2)
+	filename = strings.TrimPrefix(filename, callerPrefix)
+
+	go func() {
+		stderr := strings.Builder{}
+		err := NewCommandContext(ctx, "cat-file", "--batch").
+			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
+			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+		if err != nil {
+			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
+			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
+		} else {
+			_ = batchStdoutWriter.Close()
+			_ = batchStdinReader.Close()
+		}
+		close(closed)
 	}()
 
 	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
-	batchReader := bufio.NewReader(batchStdoutReader)
+	batchReader := bufio.NewReaderSize(batchStdoutReader, 32*1024)
 
 	return batchStdinWriter, batchReader, cancel
 }
@@ -47,26 +110,37 @@ func CatFileBatch(repoPath string) (*io.PipeWriter, *bufio.Reader, func()) {
 // ReadBatchLine reads the header line from cat-file --batch
 // We expect:
 // <sha> SP <type> SP <size> LF
+// sha is a 40byte not 20byte here
 func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err error) {
-	sha, err = rd.ReadBytes(' ')
+	typ, err = rd.ReadString('\n')
 	if err != nil {
 		return
 	}
-	sha = sha[:len(sha)-1]
-
-	typ, err = rd.ReadString(' ')
-	if err != nil {
+	if len(typ) == 1 {
+		typ, err = rd.ReadString('\n')
+		if err != nil {
+			return
+		}
+	}
+	idx := strings.IndexByte(typ, ' ')
+	if idx < 0 {
+		log.Debug("missing space typ: %s", typ)
+		err = ErrNotExist{ID: string(sha)}
 		return
 	}
-	typ = typ[:len(typ)-1]
+	sha = []byte(typ[:idx])
+	typ = typ[idx+1:]
 
-	var sizeStr string
-	sizeStr, err = rd.ReadString('\n')
-	if err != nil {
+	idx = strings.IndexByte(typ, ' ')
+	if idx < 0 {
+		err = ErrNotExist{ID: string(sha)}
 		return
 	}
 
-	size, err = strconv.ParseInt(sizeStr[:len(sizeStr)-1], 10, 64)
+	sizeStr := typ[idx+1 : len(typ)-1]
+	typ = typ[:idx]
+
+	size, err = strconv.ParseInt(sizeStr, 10, 64)
 	return
 }
 
@@ -93,7 +167,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the tag
-	discard := size - n
+	discard := size - n + 1
 	for discard > math.MaxInt32 {
 		_, err := rd.Discard(math.MaxInt32)
 		if err != nil {
@@ -128,7 +202,7 @@ headerLoop:
 	}
 
 	// Discard the rest of the commit
-	discard := size - n
+	discard := size - n + 1
 	for discard > math.MaxInt32 {
 		_, err := rd.Discard(math.MaxInt32)
 		if err != nil {
@@ -149,68 +223,18 @@ headerLoop:
 // constant hextable to help quickly convert between 20byte and 40byte hashes
 const hextable = "0123456789abcdef"
 
-// to40ByteSHA converts a 20-byte SHA in a 40-byte slice into a 40-byte sha in place
-// without allocations. This is at least 100x quicker that hex.EncodeToString
-// NB This requires that sha is a 40-byte slice
-func to40ByteSHA(sha []byte) []byte {
+// To40ByteSHA converts a 20-byte SHA into a 40-byte sha. Input and output can be the
+// same 40 byte slice to support in place conversion without allocations.
+// This is at least 100x quicker that hex.EncodeToString
+// NB This requires that out is a 40-byte slice
+func To40ByteSHA(sha, out []byte) []byte {
 	for i := 19; i >= 0; i-- {
 		v := sha[i]
 		vhi, vlo := v>>4, v&0x0f
 		shi, slo := hextable[vhi], hextable[vlo]
-		sha[i*2], sha[i*2+1] = shi, slo
+		out[i*2], out[i*2+1] = shi, slo
 	}
-	return sha
-}
-
-// ParseTreeLineSkipMode reads an entry from a tree in a cat-file --batch stream
-// This simply skips the mode - saving a substantial amount of time and carefully avoids allocations - except where fnameBuf is too small.
-// It is recommended therefore to pass in an fnameBuf large enough to avoid almost all allocations
-//
-// Each line is composed of:
-// <mode-in-ascii-dropping-initial-zeros> SP <fname> NUL <20-byte SHA>
-//
-// We don't attempt to convert the 20-byte SHA to 40-byte SHA to save a lot of time
-func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sha []byte, n int, err error) {
-	var readBytes []byte
-	// Skip the Mode
-	readBytes, err = rd.ReadSlice(' ') // NB: DOES NOT ALLOCATE SIMPLY RETURNS SLICE WITHIN READER BUFFER
-	if err != nil {
-		return
-	}
-	n += len(readBytes)
-
-	// Deal with the fname
-	readBytes, err = rd.ReadSlice('\x00')
-	copy(fnameBuf, readBytes)
-	if len(fnameBuf) > len(readBytes) {
-		fnameBuf = fnameBuf[:len(readBytes)] // cut the buf the correct size
-	} else {
-		fnameBuf = append(fnameBuf, readBytes[len(fnameBuf):]...) // extend the buf and copy in the missing bits
-	}
-	for err == bufio.ErrBufferFull { // Then we need to read more
-		readBytes, err = rd.ReadSlice('\x00')
-		fnameBuf = append(fnameBuf, readBytes...) // there is little point attempting to avoid allocations here so just extend
-	}
-	n += len(fnameBuf)
-	if err != nil {
-		return
-	}
-	fnameBuf = fnameBuf[:len(fnameBuf)-1] // Drop the terminal NUL
-	fname = fnameBuf                      // set the returnable fname to the slice
-
-	// Now deal with the 20-byte SHA
-	idx := 0
-	for idx < 20 {
-		read := 0
-		read, err = rd.Read(shaBuf[idx:20])
-		n += read
-		if err != nil {
-			return
-		}
-		idx += read
-	}
-	sha = shaBuf
-	return
+	return out
 }
 
 // ParseTreeLine reads an entry from a tree in a cat-file --batch stream
@@ -224,23 +248,31 @@ func ParseTreeLineSkipMode(rd *bufio.Reader, fnameBuf, shaBuf []byte) (fname, sh
 func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fname, sha []byte, n int, err error) {
 	var readBytes []byte
 
-	// Read the Mode
-	readBytes, err = rd.ReadSlice(' ')
+	// Read the Mode & fname
+	readBytes, err = rd.ReadSlice('\x00')
 	if err != nil {
 		return
 	}
-	n += len(readBytes)
-	copy(modeBuf, readBytes)
-	if len(modeBuf) > len(readBytes) {
-		modeBuf = modeBuf[:len(readBytes)]
-	} else {
-		modeBuf = append(modeBuf, readBytes[len(modeBuf):]...)
+	idx := bytes.IndexByte(readBytes, ' ')
+	if idx < 0 {
+		log.Debug("missing space in readBytes ParseTreeLine: %s", readBytes)
 
+		err = &ErrNotExist{}
+		return
 	}
-	mode = modeBuf[:len(modeBuf)-1] // Drop the SP
+
+	n += idx + 1
+	copy(modeBuf, readBytes[:idx])
+	if len(modeBuf) >= idx {
+		modeBuf = modeBuf[:idx]
+	} else {
+		modeBuf = append(modeBuf, readBytes[len(modeBuf):idx]...)
+	}
+	mode = modeBuf
+
+	readBytes = readBytes[idx+1:]
 
 	// Deal with the fname
-	readBytes, err = rd.ReadSlice('\x00')
 	copy(fnameBuf, readBytes)
 	if len(fnameBuf) > len(readBytes) {
 		fnameBuf = fnameBuf[:len(readBytes)]
@@ -259,7 +291,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	fname = fnameBuf
 
 	// Deal with the 20-byte SHA
-	idx := 0
+	idx = 0
 	for idx < 20 {
 		read := 0
 		read, err = rd.Read(shaBuf[idx:20])
@@ -271,4 +303,11 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	}
 	sha = shaBuf
 	return
+}
+
+var callerPrefix string
+
+func init() {
+	_, filename, _, _ := runtime.Caller(0)
+	callerPrefix = strings.TrimSuffix(filename, "modules/git/batch_reader.go")
 }

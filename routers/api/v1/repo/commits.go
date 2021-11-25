@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -143,11 +144,11 @@ func GetAllCommits(ctx *context.APIContext) {
 		listOptions.Page = 1
 	}
 
-	if listOptions.PageSize > git.CommitsRangeSize {
-		listOptions.PageSize = git.CommitsRangeSize
+	if listOptions.PageSize > setting.Git.CommitsRangeSize {
+		listOptions.PageSize = setting.Git.CommitsRangeSize
 	}
 
-	sha := ctx.Query("sha")
+	sha := ctx.FormString("sha")
 
 	var baseCommit *git.Commit
 	if len(sha) == 0 {
@@ -188,23 +189,20 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	userCache := make(map[string]*models.User)
+	userCache := make(map[string]*user_model.User)
 
-	apiCommits := make([]*api.Commit, commits.Len())
-
-	i := 0
-	for commitPointer := commits.Front(); commitPointer != nil; commitPointer = commitPointer.Next() {
-		commit := commitPointer.Value.(*git.Commit)
-
+	apiCommits := make([]*api.Commit, len(commits))
+	for i, commit := range commits {
 		// Create json struct
 		apiCommits[i], err = convert.ToCommit(ctx.Repo.Repository, commit, userCache)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "toCommit", err)
 			return
 		}
-
-		i++
 	}
+
+	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
+	ctx.SetTotalCountHeader(commitsCountTotal)
 
 	// kept for backwards compatibility
 	ctx.Header().Set("X-Page", strconv.Itoa(listOptions.Page))
@@ -212,10 +210,57 @@ func GetAllCommits(ctx *context.APIContext) {
 	ctx.Header().Set("X-Total", strconv.FormatInt(commitsCountTotal, 10))
 	ctx.Header().Set("X-PageCount", strconv.Itoa(pageCount))
 	ctx.Header().Set("X-HasMore", strconv.FormatBool(listOptions.Page < pageCount))
-
-	ctx.SetLinkHeader(int(commitsCountTotal), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", commitsCountTotal))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, X-PerPage, X-Total, X-PageCount, X-HasMore, Link")
+	ctx.AppendAccessControlExposeHeaders("X-Page", "X-PerPage", "X-Total", "X-PageCount", "X-HasMore")
 
 	ctx.JSON(http.StatusOK, &apiCommits)
+}
+
+// DownloadCommitDiffOrPatch render a commit's raw diff or patch
+func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/git/commits/{sha}.{diffType} repository repoDownloadCommitDiffOrPatch
+	// ---
+	// summary: Get a commit's diff or patch
+	// produces:
+	// - text/plain
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: sha
+	//   in: path
+	//   description: SHA of the commit to get
+	//   type: string
+	//   required: true
+	// - name: diffType
+	//   in: path
+	//   description: whether the output is diff or patch
+	//   type: string
+	//   enum: [diff, patch]
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/string"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if err := git.GetRawDiff(
+		repoPath,
+		ctx.Params(":sha"),
+		git.RawDiffType(ctx.Params(":diffType")),
+		ctx.Resp,
+	); err != nil {
+		if git.IsErrNotExist(err) {
+			ctx.NotFound(ctx.Params(":sha"))
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "DownloadCommitDiffOrPatch", err)
+		return
+	}
 }

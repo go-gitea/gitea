@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
@@ -9,10 +10,13 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 	"math"
+	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
 )
@@ -21,15 +25,11 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := CatFileBatch(repo.Path)
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
 	defer cancel()
 
 	writeID := func(id string) error {
-		_, err := batchStdinWriter.Write([]byte(id))
-		if err != nil {
-			return err
-		}
-		_, err = batchStdinWriter.Write([]byte{'\n'})
+		_, err := batchStdinWriter.Write([]byte(id + "\n"))
 		return err
 	}
 
@@ -38,19 +38,22 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	}
 	shaBytes, typ, size, err := ReadBatchLine(batchReader)
 	if typ != "commit" {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}
 	}
 
 	sha, err := NewIDFromString(string(shaBytes))
 	if err != nil {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
 		return nil, ErrNotExist{commitID, ""}
 	}
 
 	commit, err := CommitFromReader(repo, sha, io.LimitReader(batchReader, size))
 	if err != nil {
-		log("Unable to get commit for: %s. Err: %v", commitID, err)
+		log.Debug("Unable to get commit for: %s. Err: %v", commitID, err)
+		return nil, err
+	}
+	if _, err = batchReader.Discard(1); err != nil {
 		return nil, err
 	}
 
@@ -61,13 +64,93 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
+	var checker *CheckAttributeReader
+
+	if CheckGitVersionAtLeast("1.7.8") == nil {
+		indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+			checker = &CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+				Repo:       repo,
+				IndexFile:  indexFilename,
+				WorkTree:   worktree,
+			}
+			ctx, cancel := context.WithCancel(DefaultContext)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			} else {
+				go func() {
+					err = checker.Run()
+					if err != nil {
+						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+						cancel()
+					}
+				}()
+			}
+			defer cancel()
+		}
+	}
+
 	contentBuf := bytes.Buffer{}
 	var content []byte
 	sizes := make(map[string]int64)
 	for _, f := range entries {
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
-		if f.Size() == 0 || enry.IsVendor(f.Name()) || enry.IsDotFile(f.Name()) ||
+
+		if f.Size() == 0 {
+			continue
+		}
+
+		notVendored := false
+		notGenerated := false
+
+		if checker != nil {
+			attrs, err := checker.CheckPath(f.Name())
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						continue
+					}
+					notVendored = vendored == "false"
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						continue
+					}
+					notGenerated = generated == "false"
+				}
+				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					// group languages, such as Pug -> HTML; SCSS -> CSS
+					group := enry.GetLanguageGroup(language)
+					if len(group) != 0 {
+						language = group
+					}
+
+					sizes[language] += f.Size()
+					continue
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
+					// strip off a ? if present
+					if idx := strings.IndexByte(language, '?'); idx >= 0 {
+						language = language[:idx]
+					}
+					if len(language) != 0 {
+						// group languages, such as Pug -> HTML; SCSS -> CSS
+						group := enry.GetLanguageGroup(language)
+						if len(group) != 0 {
+							language = group
+						}
+
+						sizes[language] += f.Size()
+						continue
+					}
+				}
+
+			}
+		}
+
+		if (!notVendored && analyze.IsVendor(f.Name())) || enry.IsDotFile(f.Name()) ||
 			enry.IsDocumentation(f.Name()) || enry.IsConfiguration(f.Name()) {
 			continue
 		}
@@ -80,15 +163,15 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 			}
 			_, _, size, err := ReadBatchLine(batchReader)
 			if err != nil {
-				log("Error reading blob: %s Err: %v", f.ID.String(), err)
+				log.Debug("Error reading blob: %s Err: %v", f.ID.String(), err)
 				return nil, err
 			}
 
 			sizeToRead := size
-			discard := int64(0)
+			discard := int64(1)
 			if size > fileSizeLimit {
 				sizeToRead = fileSizeLimit
-				discard = size - fileSizeLimit
+				discard = size - fileSizeLimit + 1
 			}
 
 			_, err = contentBuf.ReadFrom(io.LimitReader(batchReader, sizeToRead))
@@ -101,11 +184,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				return nil, err
 			}
 		}
-		if enry.IsGenerated(f.Name(), content) {
+		if !notGenerated && enry.IsGenerated(f.Name(), content) {
 			continue
 		}
 
-		// TODO: Use .gitattributes file for linguist overrides
 		// FIXME: Why can't we split this and the IsGenerated tests to avoid reading the blob unless absolutely necessary?
 		// - eg. do the all the detection tests using filename first before reading content.
 		language := analyze.GetCodeLanguage(f.Name(), content)
@@ -120,7 +202,6 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		}
 
 		sizes[language] += f.Size()
-
 		continue
 	}
 

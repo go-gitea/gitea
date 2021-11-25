@@ -6,14 +6,18 @@ import (
 )
 
 // Tex lexer.
-var TeX = internal.Register(MustNewLexer(
+var TeX = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TeX",
 		Aliases:   []string{"tex", "latex"},
 		Filenames: []string{"*.tex", "*.aux", "*.toc"},
 		MimeTypes: []string{"text/x-tex", "text/x-latex"},
 	},
-	Rules{
+	texRules,
+))
+
+func texRules() Rules {
+	return Rules{
 		"general": {
 			{`%.*?\n`, Comment, nil},
 			{`[{}]`, NameBuiltin, nil},
@@ -52,5 +56,5 @@ var TeX = internal.Register(MustNewLexer(
 			{`\*`, Keyword, nil},
 			Default(Pop(1)),
 		},
-	},
-))
+	}
+}

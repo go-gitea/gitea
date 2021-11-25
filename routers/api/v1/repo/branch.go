@@ -6,15 +6,15 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -53,7 +53,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, branchName)
+	branch, err := repo_service.GetBranch(ctx.Repo.Repository, branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -117,60 +117,18 @@ func DeleteBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	if ctx.Repo.Repository.DefaultBranch == branchName {
-		ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
-		return
-	}
-
-	isProtected, err := ctx.Repo.Repository.IsProtectedBranch(branchName, ctx.User)
-	if err != nil {
-		ctx.InternalServerError(err)
-		return
-	}
-	if isProtected {
-		ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
-		return
-	}
-
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, branchName)
-	if err != nil {
-		if git.IsErrBranchNotExist(err) {
+	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+		switch {
+		case git.IsErrBranchNotExist(err):
 			ctx.NotFound(err)
-		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBranch", err)
+		case errors.Is(err, repo_service.ErrBranchIsDefault):
+			ctx.Error(http.StatusForbidden, "DefaultBranch", fmt.Errorf("can not delete default branch"))
+		case errors.Is(err, repo_service.ErrBranchIsProtected):
+			ctx.Error(http.StatusForbidden, "IsProtectedBranch", fmt.Errorf("branch protected"))
+		default:
+			ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
 		}
 		return
-	}
-
-	c, err := branch.GetCommit()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetCommit", err)
-		return
-	}
-
-	if err := ctx.Repo.GitRepo.DeleteBranch(branchName, git.DeleteBranchOptions{
-		Force: true,
-	}); err != nil {
-		ctx.Error(http.StatusInternalServerError, "DeleteBranch", err)
-		return
-	}
-
-	// Don't return error below this
-	if err := repo_service.PushUpdate(
-		&repo_module.PushUpdateOptions{
-			RefFullName:  git.BranchPrefix + branchName,
-			OldCommitID:  c.ID.String(),
-			NewCommitID:  git.EmptySHA,
-			PusherID:     ctx.User.ID,
-			PusherName:   ctx.User.Name,
-			RepoUserName: ctx.Repo.Owner.Name,
-			RepoName:     ctx.Repo.Repository.Name,
-		}); err != nil {
-		log.Error("Update: %v", err)
-	}
-
-	if err := ctx.Repo.Repository.AddDeletedBranch(branchName, c.ID.String(), ctx.User.ID); err != nil {
-		log.Warn("AddDeletedBranch: %v", err)
 	}
 
 	ctx.Status(http.StatusNoContent)
@@ -218,7 +176,7 @@ func CreateBranch(ctx *context.APIContext) {
 		opt.OldBranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	err := repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
+	err := repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, opt.OldBranchName, opt.BranchName)
 
 	if err != nil {
 		if models.IsErrBranchDoesNotExist(err) {
@@ -240,7 +198,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := repo_module.GetBranch(ctx.Repo.Repository, opt.BranchName)
+	branch, err := repo_service.GetBranch(ctx.Repo.Repository, opt.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
@@ -299,7 +257,7 @@ func ListBranches(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 	skip, _ := listOptions.GetStartEnd()
-	branches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
+	branches, totalNumOfBranches, err := repo_service.GetBranches(ctx.Repo.Repository, skip, listOptions.PageSize)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranches", err)
 		return
@@ -324,9 +282,8 @@ func ListBranches(ctx *context.APIContext) {
 		}
 	}
 
-	ctx.SetLinkHeader(int(totalNumOfBranches), listOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", fmt.Sprintf("%d", totalNumOfBranches))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
+	ctx.SetTotalCountHeader(int64(totalNumOfBranches))
 	ctx.JSON(http.StatusOK, &apiBranches)
 }
 
@@ -467,27 +424,27 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		requiredApprovals = form.RequiredApprovals
 	}
 
-	whitelistUsers, err := models.GetUserIDsByNames(form.PushWhitelistUsernames, false)
+	whitelistUsers, err := user_model.GetUserIDsByNames(form.PushWhitelistUsernames, false)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	mergeWhitelistUsers, err := models.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
+	mergeWhitelistUsers, err := user_model.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "GetUserIDsByNames", err)
 		return
 	}
-	approvalsWhitelistUsers, err := models.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
+	approvalsWhitelistUsers, err := user_model.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
 			return
 		}
@@ -541,6 +498,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		DismissStaleApprovals:         form.DismissStaleApprovals,
 		RequireSignedCommits:          form.RequireSignedCommits,
 		ProtectedFilePatterns:         form.ProtectedFilePatterns,
+		UnprotectedFilePatterns:       form.UnprotectedFilePatterns,
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
@@ -686,15 +644,19 @@ func EditBranchProtection(ctx *context.APIContext) {
 		protectBranch.ProtectedFilePatterns = *form.ProtectedFilePatterns
 	}
 
+	if form.UnprotectedFilePatterns != nil {
+		protectBranch.UnprotectedFilePatterns = *form.UnprotectedFilePatterns
+	}
+
 	if form.BlockOnOutdatedBranch != nil {
 		protectBranch.BlockOnOutdatedBranch = *form.BlockOnOutdatedBranch
 	}
 
 	var whitelistUsers []int64
 	if form.PushWhitelistUsernames != nil {
-		whitelistUsers, err = models.GetUserIDsByNames(form.PushWhitelistUsernames, false)
+		whitelistUsers, err = user_model.GetUserIDsByNames(form.PushWhitelistUsernames, false)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
 				return
 			}
@@ -706,9 +668,9 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 	var mergeWhitelistUsers []int64
 	if form.MergeWhitelistUsernames != nil {
-		mergeWhitelistUsers, err = models.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
+		mergeWhitelistUsers, err = user_model.GetUserIDsByNames(form.MergeWhitelistUsernames, false)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
 				return
 			}
@@ -720,9 +682,9 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 	var approvalsWhitelistUsers []int64
 	if form.ApprovalsWhitelistUsernames != nil {
-		approvalsWhitelistUsers, err = models.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
+		approvalsWhitelistUsers, err = user_model.GetUserIDsByNames(form.ApprovalsWhitelistUsernames, false)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "User does not exist", err)
 				return
 			}

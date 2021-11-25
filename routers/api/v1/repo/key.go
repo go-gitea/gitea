@@ -8,6 +8,7 @@ package repo
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
@@ -33,8 +34,8 @@ func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repo
 	return apiKey, nil
 }
 
-func composeDeployKeysAPILink(repoPath string) string {
-	return setting.AppURL + "api/v1/repos/" + repoPath + "/keys/"
+func composeDeployKeysAPILink(owner, name string) string {
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(owner) + "/" + url.PathEscape(name) + "/keys/"
 }
 
 // ListDeployKeys list all the deploy keys of a repository
@@ -75,26 +76,29 @@ func ListDeployKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/DeployKeyList"
 
-	var keys []*models.DeployKey
-	var err error
-
-	fingerprint := ctx.Query("fingerprint")
-	keyID := ctx.QueryInt64("key_id")
-	if fingerprint != "" || keyID != 0 {
-		keys, err = models.SearchDeployKeys(ctx.Repo.Repository.ID, keyID, fingerprint)
-	} else {
-		keys, err = models.ListDeployKeys(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &models.ListDeployKeysOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+		KeyID:       ctx.FormInt64("key_id"),
+		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
+	keys, err := models.ListDeployKeys(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "ListDeployKeys", err)
+		ctx.InternalServerError(err)
 		return
 	}
 
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
+	count, err := models.CountDeployKeys(opts)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKeys := make([]*api.DeployKey, len(keys))
 	for i := range keys {
-		if err = keys[i].GetContent(); err != nil {
+		if err := keys[i].GetContent(); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetContent", err)
 			return
 		}
@@ -104,6 +108,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		}
 	}
 
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 
@@ -150,7 +155,7 @@ func GetDeployKey(ctx *context.APIContext) {
 		return
 	}
 
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKey := convert.ToDeployKey(apiLink, key)
 	if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
 		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Repo.Repository)
@@ -229,7 +234,7 @@ func CreateDeployKey(ctx *context.APIContext) {
 	}
 
 	key.Content = content
-	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name + "/" + ctx.Repo.Repository.Name)
+	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	ctx.JSON(http.StatusCreated, convert.ToDeployKey(apiLink, key))
 }
 

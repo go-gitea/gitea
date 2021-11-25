@@ -13,14 +13,13 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
 
 	ini "gopkg.in/ini.v1"
 )
 
 var filenameSuffix = ""
-
 var descriptionLock = sync.RWMutex{}
 var logDescriptions = make(map[string]*LogDescription)
 
@@ -94,7 +93,7 @@ type defaultLogOptions struct {
 
 func newDefaultLogOptions() defaultLogOptions {
 	return defaultLogOptions{
-		levelName:      LogLevel,
+		levelName:      LogLevel.String(),
 		flags:          "stdflags",
 		filename:       filepath.Join(LogRootPath, "gitea.log"),
 		bufferLength:   10000,
@@ -115,19 +114,18 @@ type LogDescription struct {
 	SubLogDescriptions []SubLogDescription
 }
 
-func getLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("info")
-	return log.FromString(value).String()
+func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.Level {
+	value := section.Key(key).MustString(defaultValue.String())
+	return log.FromString(value)
 }
 
 func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("none")
+	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
-	levelName = getLogLevel(sec, "LEVEL", LogLevel)
-	level := log.FromString(levelName)
+	level := getLogLevel(sec, "LEVEL", LogLevel)
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
@@ -204,8 +202,6 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	}
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
@@ -288,6 +284,7 @@ func newLogService() {
 
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
 
 	description := LogDescription{
 		Name: log.DEFAULT,

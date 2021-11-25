@@ -155,7 +155,7 @@ func (e *fastEncL2) Encode(dst *tokens, src []byte) {
 
 			// Store every second hash in-between, but offset by 1.
 			for i := s - l + 2; i < s-5; i += 7 {
-				x := load6432(src, int32(i))
+				x := load6432(src, i)
 				nextHash := hash4u(uint32(x), bTableBits)
 				e.table[nextHash] = tableEntry{offset: e.cur + i}
 				// Skip one

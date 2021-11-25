@@ -9,7 +9,9 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +27,7 @@ func TestOAuth2Application(t *testing.T) {
 }
 
 func testAPICreateOAuth2Application(t *testing.T) {
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	appBody := api.CreateOAuth2ApplicationOptions{
 		Name: "test-app-1",
 		RedirectURIs: []string{
@@ -45,21 +47,21 @@ func testAPICreateOAuth2Application(t *testing.T) {
 	assert.Len(t, createdApp.ClientID, 36)
 	assert.NotEmpty(t, createdApp.Created)
 	assert.EqualValues(t, appBody.RedirectURIs[0], createdApp.RedirectURIs[0])
-	models.AssertExistsAndLoadBean(t, &models.OAuth2Application{UID: user.ID, Name: createdApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{UID: user.ID, Name: createdApp.Name})
 }
 
 func testAPIListOAuth2Applications(t *testing.T) {
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	existApp := models.AssertExistsAndLoadBean(t, &models.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-	}).(*models.OAuth2Application)
+	}).(*login.OAuth2Application)
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2?token=%s", token)
 	req := NewRequest(t, "GET", urlStr)
@@ -74,38 +76,42 @@ func testAPIListOAuth2Applications(t *testing.T) {
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
-	models.AssertExistsAndLoadBean(t, &models.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 
 func testAPIDeleteOAuth2Application(t *testing.T) {
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	oldApp := models.AssertExistsAndLoadBean(t, &models.OAuth2Application{
+	oldApp := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
-	}).(*models.OAuth2Application)
+	}).(*login.OAuth2Application)
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", oldApp.ID, token)
 	req := NewRequest(t, "DELETE", urlStr)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
-	models.AssertNotExistsBean(t, &models.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
+	unittest.AssertNotExistsBean(t, &login.OAuth2Application{UID: oldApp.UID, Name: oldApp.Name})
+
+	// Delete again will return not found
+	req = NewRequest(t, "DELETE", urlStr)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
 func testAPIGetOAuth2Application(t *testing.T) {
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	existApp := models.AssertExistsAndLoadBean(t, &models.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-	}).(*models.OAuth2Application)
+	}).(*login.OAuth2Application)
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", existApp.ID, token)
 	req := NewRequest(t, "GET", urlStr)
@@ -119,21 +125,21 @@ func testAPIGetOAuth2Application(t *testing.T) {
 	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
-	assert.EqualValues(t, len(expectedApp.RedirectURIs), 1)
+	assert.Len(t, expectedApp.RedirectURIs, 1)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
-	models.AssertExistsAndLoadBean(t, &models.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }
 
 func testAPIUpdateOAuth2Application(t *testing.T) {
-	user := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	existApp := models.AssertExistsAndLoadBean(t, &models.OAuth2Application{
+	existApp := unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-	}).(*models.OAuth2Application)
+	}).(*login.OAuth2Application)
 
 	appBody := api.CreateOAuth2ApplicationOptions{
 		Name: "test-app-1",
@@ -152,8 +158,8 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 	DecodeJSON(t, resp, &app)
 	expectedApp := app
 
-	assert.EqualValues(t, len(expectedApp.RedirectURIs), 2)
+	assert.Len(t, expectedApp.RedirectURIs, 2)
 	assert.EqualValues(t, expectedApp.RedirectURIs[0], appBody.RedirectURIs[0])
 	assert.EqualValues(t, expectedApp.RedirectURIs[1], appBody.RedirectURIs[1])
-	models.AssertExistsAndLoadBean(t, &models.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
+	unittest.AssertExistsAndLoadBean(t, &login.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }

@@ -6,14 +6,18 @@ import (
 )
 
 // Termcap lexer.
-var Termcap = internal.Register(MustNewLexer(
+var Termcap = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Termcap",
 		Aliases:   []string{"termcap"},
 		Filenames: []string{"termcap", "termcap.src"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	termcapRules,
+))
+
+func termcapRules() Rules {
+	return Rules{
 		"root": {
 			{`^#.*$`, Comment, nil},
 			{`^[^\s#:|]+`, NameTag, Push("names")},
@@ -38,5 +42,5 @@ var Termcap = internal.Register(MustNewLexer(
 			{`[^:\\]+`, Literal, nil},
 			{`.`, Literal, nil},
 		},
-	},
-))
+	}
+}

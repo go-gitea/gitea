@@ -5,12 +5,14 @@
 package models
 
 import (
-	"container/list"
 	"crypto/sha1"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,14 +33,94 @@ type CommitStatus struct {
 	Description string                `xorm:"TEXT"`
 	ContextHash string                `xorm:"char(40) index"`
 	Context     string                `xorm:"TEXT"`
-	Creator     *User                 `xorm:"-"`
+	Creator     *user_model.User      `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
-func (status *CommitStatus) loadAttributes(e Engine) (err error) {
+func init() {
+	db.RegisterModel(new(CommitStatus))
+	db.RegisterModel(new(CommitStatusIndex))
+}
+
+// upsertCommitStatusIndex the function will not return until it acquires the lock or receives an error.
+func upsertCommitStatusIndex(e db.Engine, repoID int64, sha string) (err error) {
+	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
+	// that ensures that the key is actually locked.
+	switch {
+	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
+		_, err = e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+			"VALUES (?,?,1) ON CONFLICT (repo_id,sha) DO UPDATE SET max_index = `commit_status_index`.max_index+1",
+			repoID, sha)
+	case setting.Database.UseMySQL:
+		_, err = e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+			"VALUES (?,?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
+			repoID, sha)
+	case setting.Database.UseMSSQL:
+		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
+		_, err = e.Exec("MERGE `commit_status_index` WITH (HOLDLOCK) as target "+
+			"USING (SELECT ? AS repo_id, ? AS sha) AS src "+
+			"ON src.repo_id = target.repo_id AND src.sha = target.sha "+
+			"WHEN MATCHED THEN UPDATE SET target.max_index = target.max_index+1 "+
+			"WHEN NOT MATCHED THEN INSERT (repo_id, sha, max_index) "+
+			"VALUES (src.repo_id, src.sha, 1);",
+			repoID, sha)
+	default:
+		return fmt.Errorf("database type not supported")
+	}
+	return
+}
+
+// GetNextCommitStatusIndex retried 3 times to generate a resource index
+func GetNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
+	for i := 0; i < db.MaxDupIndexAttempts; i++ {
+		idx, err := getNextCommitStatusIndex(repoID, sha)
+		if err == db.ErrResouceOutdated {
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+		return idx, nil
+	}
+	return 0, db.ErrGetResourceIndexFailed
+}
+
+// getNextCommitStatusIndex return the next index
+func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
+	ctx, commiter, err := db.TxContext()
+	if err != nil {
+		return 0, err
+	}
+	defer commiter.Close()
+
+	var preIdx int64
+	_, err = ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?", repoID, sha).Get(&preIdx)
+	if err != nil {
+		return 0, err
+	}
+
+	if err := upsertCommitStatusIndex(ctx.Engine(), repoID, sha); err != nil {
+		return 0, err
+	}
+
+	var curIdx int64
+	has, err := ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ? AND max_index=?", repoID, sha, preIdx+1).Get(&curIdx)
+	if err != nil {
+		return 0, err
+	}
+	if !has {
+		return 0, db.ErrResouceOutdated
+	}
+	if err := commiter.Commit(); err != nil {
+		return 0, err
+	}
+	return curIdx, nil
+}
+
+func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 	if status.Repo == nil {
 		status.Repo, err = getRepositoryByID(e, status.RepoID)
 		if err != nil {
@@ -46,7 +128,7 @@ func (status *CommitStatus) loadAttributes(e Engine) (err error) {
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = getUserByID(e, status.CreatorID)
+		status.Creator, err = user_model.GetUserByIDEngine(e, status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", status.CreatorID, err)
 		}
@@ -56,9 +138,8 @@ func (status *CommitStatus) loadAttributes(e Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadAttributes(x)
-	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
-		setting.AppURL, status.Repo.FullName(), status.SHA)
+	_ = status.loadAttributes(db.GetEngine(db.DefaultContext))
+	return status.Repo.APIURL() + "/statuses/" + url.PathEscape(status.SHA)
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
@@ -83,7 +164,7 @@ func CalcCommitStatus(statuses []*CommitStatus) *CommitStatus {
 
 // CommitStatusOptions holds the options for query commit statuses
 type CommitStatusOptions struct {
-	ListOptions
+	db.ListOptions
 	State    string
 	SortType string
 }
@@ -98,7 +179,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
-	countSession = opts.setSessionPagination(countSession)
+	countSession = db.SetSessionPagination(countSession, opts)
 	maxResults, err := countSession.Count(new(CommitStatus))
 	if err != nil {
 		log.Error("Count PRs: %v", err)
@@ -107,13 +188,13 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 
 	statuses := make([]*CommitStatus, 0, opts.PageSize)
 	findSession := listCommitStatusesStatement(repo, sha, opts)
-	findSession = opts.setSessionPagination(findSession)
+	findSession = db.SetSessionPagination(findSession, opts)
 	sortCommitStatusesSession(findSession, opts.SortType)
 	return statuses, maxResults, findSession.Find(&statuses)
 }
 
 func listCommitStatusesStatement(repo *Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
-	sess := x.Where("repo_id = ?", repo.ID).And("sha = ?", sha)
+	sess := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
 		sess.And("state = ?", opts.State)
@@ -138,19 +219,27 @@ func sortCommitStatusesSession(sess *xorm.Session, sortType string) {
 	}
 }
 
-// GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
-	return getLatestCommitStatus(x, repoID, sha, listOptions)
+// CommitStatusIndex represents a table for commit status index
+type CommitStatusIndex struct {
+	ID       int64
+	RepoID   int64  `xorm:"unique(repo_sha)"`
+	SHA      string `xorm:"unique(repo_sha)"`
+	MaxIndex int64  `xorm:"index"`
 }
 
-func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListOptions) ([]*CommitStatus, error) {
+// GetLatestCommitStatus returns all statuses with a unique context for a given commit.
+func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
+	return getLatestCommitStatus(db.GetEngine(db.DefaultContext), repoID, sha, listOptions)
+}
+
+func getLatestCommitStatus(e db.Engine, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, error) {
 	ids := make([]int64, 0, 10)
 	sess := e.Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
 		Select("max( id ) as id").
 		GroupBy("context_hash").OrderBy("max( id ) desc")
 
-	sess = listOptions.setSessionPagination(sess)
+	sess = db.SetSessionPagination(sess, &listOptions)
 
 	err := sess.Find(&ids)
 	if err != nil {
@@ -160,14 +249,14 @@ func getLatestCommitStatus(e Engine, repoID int64, sha string, listOptions ListO
 	if len(ids) == 0 {
 		return statuses, nil
 	}
-	return statuses, x.In("id", ids).Find(&statuses)
+	return statuses, e.In("id", ids).Find(&statuses)
 }
 
 // FindRepoRecentCommitStatusContexts returns repository's recent commit status contexts
 func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]string, error) {
 	start := timeutil.TimeStampNow().AddDuration(-before)
 	ids := make([]int64, 0, 10)
-	if err := x.Table("commit_status").
+	if err := db.GetEngine(db.DefaultContext).Table("commit_status").
 		Where("repo_id = ?", repoID).
 		And("updated_unix >= ?", start).
 		Select("max( id ) as id").
@@ -180,13 +269,13 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 	if len(ids) == 0 {
 		return contexts, nil
 	}
-	return contexts, x.Select("context").Table("commit_status").In("id", ids).Find(&contexts)
+	return contexts, db.GetEngine(db.DefaultContext).Select("context").Table("commit_status").In("id", ids).Find(&contexts)
 }
 
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
 	Repo         *Repository
-	Creator      *User
+	Creator      *user_model.User
 	SHA          string
 	CommitStatus *CommitStatus
 }
@@ -202,12 +291,17 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 		return fmt.Errorf("NewCommitStatus[%s, %s]: no user specified", repoPath, opts.SHA)
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
+	// Get the next Status Index
+	idx, err := GetNextCommitStatusIndex(opts.Repo.ID, opts.SHA)
+	if err != nil {
+		return fmt.Errorf("generate commit status index failed: %v", err)
+	}
 
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", opts.Repo.ID, opts.Creator.ID, opts.SHA, err)
 	}
+	defer committer.Close()
 
 	opts.CommitStatus.Description = strings.TrimSpace(opts.CommitStatus.Description)
 	opts.CommitStatus.Context = strings.TrimSpace(opts.CommitStatus.Context)
@@ -215,38 +309,17 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 	opts.CommitStatus.SHA = opts.SHA
 	opts.CommitStatus.CreatorID = opts.Creator.ID
 	opts.CommitStatus.RepoID = opts.Repo.ID
-
-	// Get the next Status Index
-	var nextIndex int64
-	lastCommitStatus := &CommitStatus{
-		SHA:    opts.SHA,
-		RepoID: opts.Repo.ID,
-	}
-	has, err := sess.Desc("index").Limit(1).Get(lastCommitStatus)
-	if err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("NewCommitStatus: sess.Rollback: %v", err)
-		}
-		return fmt.Errorf("NewCommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
-	}
-	if has {
-		log.Debug("NewCommitStatus[%s, %s]: found", repoPath, opts.SHA)
-		nextIndex = lastCommitStatus.Index
-	}
-	opts.CommitStatus.Index = nextIndex + 1
+	opts.CommitStatus.Index = idx
 	log.Debug("NewCommitStatus[%s, %s]: %d", repoPath, opts.SHA, opts.CommitStatus.Index)
 
 	opts.CommitStatus.ContextHash = hashCommitStatusContext(opts.CommitStatus.Context)
 
 	// Insert new CommitStatus
-	if _, err = sess.Insert(opts.CommitStatus); err != nil {
-		if err := sess.Rollback(); err != nil {
-			log.Error("Insert CommitStatus: sess.Rollback: %v", err)
-		}
+	if _, err = db.GetEngine(ctx).Insert(opts.CommitStatus); err != nil {
 		return fmt.Errorf("Insert CommitStatus[%s, %s]: %v", repoPath, opts.SHA, err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // SignCommitWithStatuses represents a commit with validation of signature and status state.
@@ -257,18 +330,14 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List {
-	var (
-		newCommits = list.New()
-		e          = oldCommits.Front()
-	)
+func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *Repository) []*SignCommitWithStatuses {
+	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
-	for e != nil {
-		c := e.Value.(SignCommit)
-		commit := SignCommitWithStatuses{
-			SignCommit: &c,
+	for _, c := range oldCommits {
+		commit := &SignCommitWithStatuses{
+			SignCommit: c,
 		}
-		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), ListOptions{})
+		statuses, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
@@ -276,8 +345,7 @@ func ParseCommitsWithStatus(oldCommits *list.List, repo *Repository) *list.List 
 			commit.Status = CalcCommitStatus(statuses)
 		}
 
-		newCommits.PushBack(commit)
-		e = e.Next()
+		newCommits = append(newCommits, commit)
 	}
 	return newCommits
 }

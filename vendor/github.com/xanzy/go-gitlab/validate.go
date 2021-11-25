@@ -33,8 +33,9 @@ type ValidateService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ce/api/lint.html
 type LintResult struct {
-	Status string   `json:"status"`
-	Errors []string `json:"errors"`
+	Status   string   `json:"status"`
+	Errors   []string `json:"errors"`
+	Warnings []string `json:"warnings"`
 }
 
 // ProjectLintResult represents the linting results by project.

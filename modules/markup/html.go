@@ -6,12 +6,13 @@ package markup
 
 import (
 	"bytes"
-	"fmt"
+	"io"
 	"net/url"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -64,14 +65,11 @@ var (
 	blackfridayExtRegex = regexp.MustCompile(`[^:]*:user-content-`)
 
 	// EmojiShortCodeRegex find emoji by alias like :smile:
-	EmojiShortCodeRegex = regexp.MustCompile(`\:[\w\+\-]+\:{1}`)
+	EmojiShortCodeRegex = regexp.MustCompile(`:[\w\+\-]+:`)
 )
 
 // CSS class for action keywords (e.g. "closes: #1")
 const keywordClass = "issue-keyword"
-
-// regexp for full links to issues/pulls
-var issueFullPattern *regexp.Regexp
 
 // IsLink reports whether link fits valid format.
 func IsLink(link []byte) bool {
@@ -87,11 +85,17 @@ func isLinkStr(link string) bool {
 	return validLinksPattern.MatchString(link)
 }
 
+// regexp for full links to issues/pulls
+var issueFullPattern *regexp.Regexp
+
+// Once for to prevent races
+var issueFullPatternOnce sync.Once
+
 func getIssueFullPattern() *regexp.Regexp {
-	if issueFullPattern == nil {
+	issueFullPatternOnce.Do(func() {
 		issueFullPattern = regexp.MustCompile(regexp.QuoteMeta(setting.AppURL) +
-			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#]\S+.(\S+)?)?\b`)
-	}
+			`\w+/\w+/(?:issues|pulls)/((?:\w{1,10}-)?[1-9][0-9]*)([\?|#](\S+)?)?\b`)
+	})
 	return issueFullPattern
 }
 
@@ -144,7 +148,7 @@ func (p *postProcessError) Error() string {
 	return "PostProcess: " + p.context + ", " + p.err.Error()
 }
 
-type processor func(ctx *postProcessCtx, node *html.Node)
+type processor func(ctx *RenderContext, node *html.Node)
 
 var defaultProcessors = []processor{
 	fullIssuePatternProcessor,
@@ -159,34 +163,17 @@ var defaultProcessors = []processor{
 	emojiShortCodeProcessor,
 }
 
-type postProcessCtx struct {
-	metas          map[string]string
-	urlPrefix      string
-	isWikiMarkdown bool
-
-	// processors used by this context.
-	procs []processor
-}
-
 // PostProcess does the final required transformations to the passed raw HTML
 // data, and ensures its validity. Transformations include: replacing links and
 // emails with HTML links, parsing shortlinks in the format of [[Link]], like
 // MediaWiki, linking issues in the format #ID, and mentions in the format
 // @user, and others.
 func PostProcess(
-	rawHTML []byte,
-	urlPrefix string,
-	metas map[string]string,
-	isWikiMarkdown bool,
-) ([]byte, error) {
-	// create the context from the parameters
-	ctx := &postProcessCtx{
-		metas:          metas,
-		urlPrefix:      urlPrefix,
-		isWikiMarkdown: isWikiMarkdown,
-		procs:          defaultProcessors,
-	}
-	return ctx.postProcess(rawHTML)
+	ctx *RenderContext,
+	input io.Reader,
+	output io.Writer,
+) error {
+	return postProcess(ctx, defaultProcessors, input, output)
 }
 
 var commitMessageProcessors = []processor{
@@ -205,23 +192,18 @@ var commitMessageProcessors = []processor{
 // the shortLinkProcessor and will add a defaultLinkProcessor if defaultLink is
 // set, which changes every text node into a link to the passed default link.
 func RenderCommitMessage(
-	rawHTML []byte,
-	urlPrefix, defaultLink string,
-	metas map[string]string,
-) ([]byte, error) {
-	ctx := &postProcessCtx{
-		metas:     metas,
-		urlPrefix: urlPrefix,
-		procs:     commitMessageProcessors,
-	}
-	if defaultLink != "" {
+	ctx *RenderContext,
+	content string,
+) (string, error) {
+	var procs = commitMessageProcessors
+	if ctx.DefaultLink != "" {
 		// we don't have to fear data races, because being
 		// commitMessageProcessors of fixed len and cap, every time we append
 		// something to it the slice is realloc+copied, so append always
 		// generates the slice ex-novo.
-		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
 	}
-	return ctx.postProcess(rawHTML)
+	return renderProcessString(ctx, procs, content)
 }
 
 var commitMessageSubjectProcessors = []processor{
@@ -245,83 +227,73 @@ var emojiProcessors = []processor{
 // emailAddressProcessor, will add a defaultLinkProcessor if defaultLink is set,
 // which changes every text node into a link to the passed default link.
 func RenderCommitMessageSubject(
-	rawHTML []byte,
-	urlPrefix, defaultLink string,
-	metas map[string]string,
-) ([]byte, error) {
-	ctx := &postProcessCtx{
-		metas:     metas,
-		urlPrefix: urlPrefix,
-		procs:     commitMessageSubjectProcessors,
-	}
-	if defaultLink != "" {
+	ctx *RenderContext,
+	content string,
+) (string, error) {
+	var procs = commitMessageSubjectProcessors
+	if ctx.DefaultLink != "" {
 		// we don't have to fear data races, because being
 		// commitMessageSubjectProcessors of fixed len and cap, every time we
 		// append something to it the slice is realloc+copied, so append always
 		// generates the slice ex-novo.
-		ctx.procs = append(ctx.procs, genDefaultLinkProcessor(defaultLink))
+		procs = append(procs, genDefaultLinkProcessor(ctx.DefaultLink))
 	}
-	return ctx.postProcess(rawHTML)
+	return renderProcessString(ctx, procs, content)
 }
 
 // RenderIssueTitle to process title on individual issue/pull page
 func RenderIssueTitle(
-	rawHTML []byte,
-	urlPrefix string,
-	metas map[string]string,
-) ([]byte, error) {
-	ctx := &postProcessCtx{
-		metas:     metas,
-		urlPrefix: urlPrefix,
-		procs: []processor{
-			issueIndexPatternProcessor,
-			sha1CurrentPatternProcessor,
-			emojiShortCodeProcessor,
-			emojiProcessor,
-		},
+	ctx *RenderContext,
+	title string,
+) (string, error) {
+	return renderProcessString(ctx, []processor{
+		issueIndexPatternProcessor,
+		sha1CurrentPatternProcessor,
+		emojiShortCodeProcessor,
+		emojiProcessor,
+	}, title)
+}
+
+func renderProcessString(ctx *RenderContext, procs []processor, content string) (string, error) {
+	var buf strings.Builder
+	if err := postProcess(ctx, procs, strings.NewReader(content), &buf); err != nil {
+		return "", err
 	}
-	return ctx.postProcess(rawHTML)
+	return buf.String(), nil
 }
 
 // RenderDescriptionHTML will use similar logic as PostProcess, but will
 // use a single special linkProcessor.
 func RenderDescriptionHTML(
-	rawHTML []byte,
-	urlPrefix string,
-	metas map[string]string,
-) ([]byte, error) {
-	ctx := &postProcessCtx{
-		metas:     metas,
-		urlPrefix: urlPrefix,
-		procs: []processor{
-			descriptionLinkProcessor,
-			emojiShortCodeProcessor,
-			emojiProcessor,
-		},
-	}
-	return ctx.postProcess(rawHTML)
+	ctx *RenderContext,
+	content string,
+) (string, error) {
+	return renderProcessString(ctx, []processor{
+		descriptionLinkProcessor,
+		emojiShortCodeProcessor,
+		emojiProcessor,
+	}, content)
 }
 
 // RenderEmoji for when we want to just process emoji and shortcodes
-// in various places it isn't already run through the normal markdown procesor
+// in various places it isn't already run through the normal markdown processor
 func RenderEmoji(
-	rawHTML []byte,
-) ([]byte, error) {
-	ctx := &postProcessCtx{
-		procs: emojiProcessors,
-	}
-	return ctx.postProcess(rawHTML)
+	content string,
+) (string, error) {
+	return renderProcessString(&RenderContext{}, emojiProcessors, content)
 }
 
-var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL][ />])|(/?[hH][eE][aA][dD][ />]))`)
+var tagCleaner = regexp.MustCompile(`<((?:/?\w+/\w+)|(?:/[\w ]+/)|(/?[hH][tT][mM][lL]\b)|(/?[hH][eE][aA][dD]\b))`)
 var nulCleaner = strings.NewReplacer("\000", "")
 
-func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
-	if ctx.procs == nil {
-		ctx.procs = defaultProcessors
+func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
+	defer ctx.Cancel()
+	// FIXME: don't read all content to memory
+	rawHTML, err := io.ReadAll(input)
+	if err != nil {
+		return err
 	}
 
-	// give a generous extra 50 bytes
 	res := bytes.NewBuffer(make([]byte, 0, len(rawHTML)+50))
 	// prepend "<html><body>"
 	_, _ = res.WriteString("<html><body>")
@@ -333,27 +305,26 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 	_, _ = res.WriteString("</body></html>")
 
 	// parse the HTML
-	nodes, err := html.ParseFragment(res, nil)
+	node, err := html.Parse(res)
 	if err != nil {
-		return nil, &postProcessError{"invalid HTML", err}
+		return &postProcessError{"invalid HTML", err}
 	}
 
-	for _, node := range nodes {
-		ctx.visitNode(node, true)
+	if node.Type == html.DocumentNode {
+		node = node.FirstChild
 	}
 
-	newNodes := make([]*html.Node, 0, len(nodes))
+	visitNode(ctx, procs, node, true)
 
-	for _, node := range nodes {
-		if node.Data == "html" {
-			node = node.FirstChild
-			for node != nil && node.Data != "body" {
-				node = node.NextSibling
-			}
+	newNodes := make([]*html.Node, 0, 5)
+
+	if node.Data == "html" {
+		node = node.FirstChild
+		for node != nil && node.Data != "body" {
+			node = node.NextSibling
 		}
-		if node == nil {
-			continue
-		}
+	}
+	if node != nil {
 		if node.Data == "body" {
 			child := node.FirstChild
 			for child != nil {
@@ -365,25 +336,17 @@ func (ctx *postProcessCtx) postProcess(rawHTML []byte) ([]byte, error) {
 		}
 	}
 
-	nodes = newNodes
-
-	// Create buffer in which the data will be placed again. We know that the
-	// length will be at least that of res; to spare a few alloc+copy, we
-	// reuse res, resetting its length to 0.
-	res.Reset()
 	// Render everything to buf.
-	for _, node := range nodes {
-		err = html.Render(res, node)
+	for _, node := range newNodes {
+		err = html.Render(output, node)
 		if err != nil {
-			return nil, &postProcessError{"error rendering processed HTML", err}
+			return &postProcessError{"error rendering processed HTML", err}
 		}
 	}
-
-	// Everything done successfully, return parsed data.
-	return res.Bytes(), nil
+	return nil
 }
 
-func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
+func visitNode(ctx *RenderContext, procs []processor, node *html.Node, visitText bool) {
 	// Add user-content- to IDs if they don't already have them
 	for idx, attr := range node.Attr {
 		if attr.Key == "id" && !(strings.HasPrefix(attr.Val, "user-content-") || blackfridayExtRegex.MatchString(attr.Val)) {
@@ -399,28 +362,24 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 	switch node.Type {
 	case html.TextNode:
 		if visitText {
-			ctx.textNode(node)
+			textNode(ctx, procs, node)
 		}
 	case html.ElementNode:
 		if node.Data == "img" {
-			attrs := node.Attr
-			for idx, attr := range attrs {
+			for i, attr := range node.Attr {
 				if attr.Key != "src" {
 					continue
 				}
-				link := []byte(attr.Val)
-				if len(link) > 0 && !IsLink(link) {
-					prefix := ctx.urlPrefix
-					if ctx.isWikiMarkdown {
+				if len(attr.Val) > 0 && !isLinkStr(attr.Val) && !strings.HasPrefix(attr.Val, "data:image/") {
+					prefix := ctx.URLPrefix
+					if ctx.IsWiki {
 						prefix = util.URLJoin(prefix, "wiki", "raw")
 					}
 					prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-					lnk := string(link)
-					lnk = util.URLJoin(prefix, lnk)
-					link = []byte(lnk)
+					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
-				node.Attr[idx].Val = string(link)
+				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
 			visitText = false
@@ -449,7 +408,7 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 			}
 		}
 		for n := node.FirstChild; n != nil; n = n.NextSibling {
-			ctx.visitNode(n, visitText)
+			visitNode(ctx, procs, n, visitText)
 		}
 	}
 	// ignore everything else
@@ -457,8 +416,8 @@ func (ctx *postProcessCtx) visitNode(node *html.Node, visitText bool) {
 
 // textNode runs the passed node through various processors, in order to handle
 // all kinds of special links handled by the post-processing.
-func (ctx *postProcessCtx) textNode(node *html.Node) {
-	for _, processor := range ctx.procs {
+func textNode(ctx *RenderContext, procs []processor, node *html.Node) {
+	for _, processor := range procs {
 		processor(ctx, node)
 	}
 }
@@ -503,17 +462,14 @@ func createEmoji(content, class, name string) *html.Node {
 	return span
 }
 
-func createCustomEmoji(alias, class string) *html.Node {
-
+func createCustomEmoji(alias string) *html.Node {
 	span := &html.Node{
 		Type: html.ElementNode,
 		Data: atom.Span.String(),
 		Attr: []html.Attribute{},
 	}
-	if class != "" {
-		span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: class})
-		span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
-	}
+	span.Attr = append(span.Attr, html.Attribute{Key: "class", Val: "emoji"})
+	span.Attr = append(span.Attr, html.Attribute{Key: "aria-label", Val: alias})
 
 	img := &html.Node{
 		Type:     html.ElementNode,
@@ -521,10 +477,8 @@ func createCustomEmoji(alias, class string) *html.Node {
 		Data:     "img",
 		Attr:     []html.Attribute{},
 	}
-	if class != "" {
-		img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: fmt.Sprintf(`:%s:`, alias)})
-		img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: fmt.Sprintf(`%s/img/emoji/%s.png`, setting.StaticURLPrefix, alias)})
-	}
+	img.Attr = append(img.Attr, html.Attribute{Key: "alt", Val: ":" + alias + ":"})
+	img.Attr = append(img.Attr, html.Attribute{Key: "src", Val: setting.StaticURLPrefix + "/assets/img/emoji/" + alias + ".png"})
 
 	span.AppendChild(img)
 	return span
@@ -609,431 +563,521 @@ func replaceContentList(node *html.Node, i, j int, newNodes []*html.Node) {
 	}
 }
 
-func mentionProcessor(ctx *postProcessCtx, node *html.Node) {
-	// We replace only the first mention; other mentions will be addressed later
-	found, loc := references.FindFirstMentionBytes([]byte(node.Data))
-	if !found {
-		return
-	}
-	mention := node.Data[loc.Start:loc.End]
-	var teams string
-	teams, ok := ctx.metas["teams"]
-	// FIXME: util.URLJoin may not be necessary here:
-	// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
-	// is an AppSubURL link we can probably fallback to concatenation.
-	// team mention should follow @orgName/teamName style
-	if ok && strings.Contains(mention, "/") {
-		mentionOrgAndTeam := strings.Split(mention, "/")
-		if mentionOrgAndTeam[0][1:] == ctx.metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
-			replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+func mentionProcessor(ctx *RenderContext, node *html.Node) {
+	start := 0
+	next := node.NextSibling
+	for node != nil && node != next && start < len(node.Data) {
+		// We replace only the first mention; other mentions will be addressed later
+		found, loc := references.FindFirstMentionBytes([]byte(node.Data[start:]))
+		if !found {
+			return
 		}
-		return
+		loc.Start += start
+		loc.End += start
+		mention := node.Data[loc.Start:loc.End]
+		var teams string
+		teams, ok := ctx.Metas["teams"]
+		// FIXME: util.URLJoin may not be necessary here:
+		// - setting.AppURL is defined to have a terminal '/' so unless mention[1:]
+		// is an AppSubURL link we can probably fallback to concatenation.
+		// team mention should follow @orgName/teamName style
+		if ok && strings.Contains(mention, "/") {
+			mentionOrgAndTeam := strings.Split(mention, "/")
+			if mentionOrgAndTeam[0][1:] == ctx.Metas["org"] && strings.Contains(teams, ","+strings.ToLower(mentionOrgAndTeam[1])+",") {
+				replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, "org", ctx.Metas["org"], "teams", mentionOrgAndTeam[1]), mention, "mention"))
+				node = node.NextSibling.NextSibling
+				start = 0
+				continue
+			}
+			start = loc.End
+			continue
+		}
+		replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
+		node = node.NextSibling.NextSibling
+		start = 0
 	}
-	replaceContent(node, loc.Start, loc.End, createLink(util.URLJoin(setting.AppURL, mention[1:]), mention, "mention"))
 }
 
-func shortLinkProcessor(ctx *postProcessCtx, node *html.Node) {
+func shortLinkProcessor(ctx *RenderContext, node *html.Node) {
 	shortLinkProcessorFull(ctx, node, false)
 }
 
-func shortLinkProcessorFull(ctx *postProcessCtx, node *html.Node, noLink bool) {
-	m := shortLinkPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
+func shortLinkProcessorFull(ctx *RenderContext, node *html.Node, noLink bool) {
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := shortLinkPattern.FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
+		}
 
-	content := node.Data[m[2]:m[3]]
-	tail := node.Data[m[4]:m[5]]
-	props := make(map[string]string)
+		content := node.Data[m[2]:m[3]]
+		tail := node.Data[m[4]:m[5]]
+		props := make(map[string]string)
 
-	// MediaWiki uses [[link|text]], while GitHub uses [[text|link]]
-	// It makes page handling terrible, but we prefer GitHub syntax
-	// And fall back to MediaWiki only when it is obvious from the look
-	// Of text and link contents
-	sl := strings.Split(content, "|")
-	for _, v := range sl {
-		if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
-			// There is no equal in this argument; this is a mandatory arg
-			if props["name"] == "" {
-				if isLinkStr(v) {
-					// If we clearly see it is a link, we save it so
+		// MediaWiki uses [[link|text]], while GitHub uses [[text|link]]
+		// It makes page handling terrible, but we prefer GitHub syntax
+		// And fall back to MediaWiki only when it is obvious from the look
+		// Of text and link contents
+		sl := strings.Split(content, "|")
+		for _, v := range sl {
+			if equalPos := strings.IndexByte(v, '='); equalPos == -1 {
+				// There is no equal in this argument; this is a mandatory arg
+				if props["name"] == "" {
+					if isLinkStr(v) {
+						// If we clearly see it is a link, we save it so
 
-					// But first we need to ensure, that if both mandatory args provided
-					// look like links, we stick to GitHub syntax
-					if props["link"] != "" {
-						props["name"] = props["link"]
+						// But first we need to ensure, that if both mandatory args provided
+						// look like links, we stick to GitHub syntax
+						if props["link"] != "" {
+							props["name"] = props["link"]
+						}
+
+						props["link"] = strings.TrimSpace(v)
+					} else {
+						props["name"] = v
 					}
-
-					props["link"] = strings.TrimSpace(v)
 				} else {
-					props["name"] = v
+					props["link"] = strings.TrimSpace(v)
 				}
 			} else {
-				props["link"] = strings.TrimSpace(v)
-			}
-		} else {
-			// There is an equal; optional argument.
+				// There is an equal; optional argument.
 
-			sep := strings.IndexByte(v, '=')
-			key, val := v[:sep], html.UnescapeString(v[sep+1:])
+				sep := strings.IndexByte(v, '=')
+				key, val := v[:sep], html.UnescapeString(v[sep+1:])
 
-			// When parsing HTML, x/net/html will change all quotes which are
-			// not used for syntax into UTF-8 quotes. So checking val[0] won't
-			// be enough, since that only checks a single byte.
-			if len(val) > 1 {
-				if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
-					(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
-					const lenQuote = len("‘")
-					val = val[lenQuote : len(val)-lenQuote]
-				} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
-					(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
-					val = val[1 : len(val)-1]
-				} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
-					const lenQuote = len("‘")
-					val = val[1 : len(val)-lenQuote]
+				// When parsing HTML, x/net/html will change all quotes which are
+				// not used for syntax into UTF-8 quotes. So checking val[0] won't
+				// be enough, since that only checks a single byte.
+				if len(val) > 1 {
+					if (strings.HasPrefix(val, "“") && strings.HasSuffix(val, "”")) ||
+						(strings.HasPrefix(val, "‘") && strings.HasSuffix(val, "’")) {
+						const lenQuote = len("‘")
+						val = val[lenQuote : len(val)-lenQuote]
+					} else if (strings.HasPrefix(val, "\"") && strings.HasSuffix(val, "\"")) ||
+						(strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'")) {
+						val = val[1 : len(val)-1]
+					} else if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "’") {
+						const lenQuote = len("‘")
+						val = val[1 : len(val)-lenQuote]
+					}
 				}
+				props[key] = val
 			}
-			props[key] = val
 		}
-	}
 
-	var name, link string
-	if props["link"] != "" {
-		link = props["link"]
-	} else if props["name"] != "" {
-		link = props["name"]
-	}
-	if props["title"] != "" {
-		name = props["title"]
-	} else if props["name"] != "" {
-		name = props["name"]
-	} else {
-		name = link
-	}
-
-	name += tail
-	image := false
-	switch ext := filepath.Ext(link); ext {
-	// fast path: empty string, ignore
-	case "":
-		break
-	case ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".gif", ".bmp", ".ico", ".svg":
-		image = true
-	}
-
-	childNode := &html.Node{}
-	linkNode := &html.Node{
-		FirstChild: childNode,
-		LastChild:  childNode,
-		Type:       html.ElementNode,
-		Data:       "a",
-		DataAtom:   atom.A,
-	}
-	childNode.Parent = linkNode
-	absoluteLink := isLinkStr(link)
-	if !absoluteLink {
-		if image {
-			link = strings.ReplaceAll(link, " ", "+")
+		var name, link string
+		if props["link"] != "" {
+			link = props["link"]
+		} else if props["name"] != "" {
+			link = props["name"]
+		}
+		if props["title"] != "" {
+			name = props["title"]
+		} else if props["name"] != "" {
+			name = props["name"]
 		} else {
-			link = strings.ReplaceAll(link, " ", "-")
-		}
-		if !strings.Contains(link, "/") {
-			link = url.PathEscape(link)
-		}
-	}
-	urlPrefix := ctx.urlPrefix
-	if image {
-		if !absoluteLink {
-			if IsSameDomain(urlPrefix) {
-				urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
-			}
-			if ctx.isWikiMarkdown {
-				link = util.URLJoin("wiki", "raw", link)
-			}
-			link = util.URLJoin(urlPrefix, link)
-		}
-		title := props["title"]
-		if title == "" {
-			title = props["alt"]
-		}
-		if title == "" {
-			title = path.Base(name)
-		}
-		alt := props["alt"]
-		if alt == "" {
-			alt = name
+			name = link
 		}
 
-		// make the childNode an image - if we can, we also place the alt
-		childNode.Type = html.ElementNode
-		childNode.Data = "img"
-		childNode.DataAtom = atom.Img
-		childNode.Attr = []html.Attribute{
-			{Key: "src", Val: link},
-			{Key: "title", Val: title},
-			{Key: "alt", Val: alt},
+		name += tail
+		image := false
+		switch ext := filepath.Ext(link); ext {
+		// fast path: empty string, ignore
+		case "":
+			// leave image as false
+		case ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp", ".gif", ".bmp", ".ico", ".svg":
+			image = true
 		}
-		if alt == "" {
-			childNode.Attr = childNode.Attr[:2]
+
+		childNode := &html.Node{}
+		linkNode := &html.Node{
+			FirstChild: childNode,
+			LastChild:  childNode,
+			Type:       html.ElementNode,
+			Data:       "a",
+			DataAtom:   atom.A,
 		}
-	} else {
+		childNode.Parent = linkNode
+		absoluteLink := isLinkStr(link)
 		if !absoluteLink {
-			if ctx.isWikiMarkdown {
-				link = util.URLJoin("wiki", link)
+			if image {
+				link = strings.ReplaceAll(link, " ", "+")
+			} else {
+				link = strings.ReplaceAll(link, " ", "-")
 			}
-			link = util.URLJoin(urlPrefix, link)
+			if !strings.Contains(link, "/") {
+				link = url.PathEscape(link)
+			}
 		}
-		childNode.Type = html.TextNode
-		childNode.Data = name
+		urlPrefix := ctx.URLPrefix
+		if image {
+			if !absoluteLink {
+				if IsSameDomain(urlPrefix) {
+					urlPrefix = strings.Replace(urlPrefix, "/src/", "/raw/", 1)
+				}
+				if ctx.IsWiki {
+					link = util.URLJoin("wiki", "raw", link)
+				}
+				link = util.URLJoin(urlPrefix, link)
+			}
+			title := props["title"]
+			if title == "" {
+				title = props["alt"]
+			}
+			if title == "" {
+				title = path.Base(name)
+			}
+			alt := props["alt"]
+			if alt == "" {
+				alt = name
+			}
+
+			// make the childNode an image - if we can, we also place the alt
+			childNode.Type = html.ElementNode
+			childNode.Data = "img"
+			childNode.DataAtom = atom.Img
+			childNode.Attr = []html.Attribute{
+				{Key: "src", Val: link},
+				{Key: "title", Val: title},
+				{Key: "alt", Val: alt},
+			}
+			if alt == "" {
+				childNode.Attr = childNode.Attr[:2]
+			}
+		} else {
+			if !absoluteLink {
+				if ctx.IsWiki {
+					link = util.URLJoin("wiki", link)
+				}
+				link = util.URLJoin(urlPrefix, link)
+			}
+			childNode.Type = html.TextNode
+			childNode.Data = name
+		}
+		if noLink {
+			linkNode = childNode
+		} else {
+			linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
+		}
+		replaceContent(node, m[0], m[1], linkNode)
+		node = node.NextSibling.NextSibling
 	}
-	if noLink {
-		linkNode = childNode
-	} else {
-		linkNode.Attr = []html.Attribute{{Key: "href", Val: link}}
-	}
-	replaceContent(node, m[0], m[1], linkNode)
 }
 
-func fullIssuePatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	if ctx.metas == nil {
+func fullIssuePatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil {
 		return
 	}
-	m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
-	link := node.Data[m[0]:m[1]]
-	id := "#" + node.Data[m[2]:m[3]]
 
-	// extract repo and org name from matched link like
-	// http://localhost:3000/gituser/myrepo/issues/1
-	linkParts := strings.Split(path.Clean(link), "/")
-	matchOrg := linkParts[len(linkParts)-4]
-	matchRepo := linkParts[len(linkParts)-3]
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := getIssueFullPattern().FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
+		}
+		link := node.Data[m[0]:m[1]]
+		id := "#" + node.Data[m[2]:m[3]]
 
-	if matchOrg == ctx.metas["user"] && matchRepo == ctx.metas["repo"] {
-		// TODO if m[4]:m[5] is not nil, then link is to a comment,
-		// and we should indicate that in the text somehow
-		replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
+		// extract repo and org name from matched link like
+		// http://localhost:3000/gituser/myrepo/issues/1
+		linkParts := strings.Split(link, "/")
+		matchOrg := linkParts[len(linkParts)-4]
+		matchRepo := linkParts[len(linkParts)-3]
 
-	} else {
-		orgRepoID := matchOrg + "/" + matchRepo + id
-		replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
+		if matchOrg == ctx.Metas["user"] && matchRepo == ctx.Metas["repo"] {
+			// TODO if m[4]:m[5] is not nil, then link is to a comment,
+			// and we should indicate that in the text somehow
+			replaceContent(node, m[0], m[1], createLink(link, id, "ref-issue"))
+		} else {
+			orgRepoID := matchOrg + "/" + matchRepo + id
+			replaceContent(node, m[0], m[1], createLink(link, orgRepoID, "ref-issue"))
+		}
+		node = node.NextSibling.NextSibling
 	}
 }
 
-func issueIndexPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	if ctx.metas == nil {
+func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil {
 		return
 	}
-
 	var (
 		found bool
 		ref   *references.RenderizableReference
 	)
 
-	_, exttrack := ctx.metas["format"]
-	alphanum := ctx.metas["style"] == IssueNameStyleAlphanumeric
+	next := node.NextSibling
+	for node != nil && node != next {
+		_, exttrack := ctx.Metas["format"]
+		alphanum := ctx.Metas["style"] == IssueNameStyleAlphanumeric
 
-	// Repos with external issue trackers might still need to reference local PRs
-	// We need to concern with the first one that shows up in the text, whichever it is
-	found, ref = references.FindRenderizableReferenceNumeric(node.Data, exttrack && alphanum)
-	if exttrack && alphanum {
-		if found2, ref2 := references.FindRenderizableReferenceAlphanumeric(node.Data); found2 {
-			if !found || ref2.RefLocation.Start < ref.RefLocation.Start {
-				found = true
-				ref = ref2
+		// Repos with external issue trackers might still need to reference local PRs
+		// We need to concern with the first one that shows up in the text, whichever it is
+		found, ref = references.FindRenderizableReferenceNumeric(node.Data, exttrack && alphanum)
+		if exttrack && alphanum {
+			if found2, ref2 := references.FindRenderizableReferenceAlphanumeric(node.Data); found2 {
+				if !found || ref2.RefLocation.Start < ref.RefLocation.Start {
+					found = true
+					ref = ref2
+				}
 			}
 		}
-	}
-	if !found {
-		return
-	}
-
-	var link *html.Node
-	reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-	if exttrack && !ref.IsPull {
-		ctx.metas["index"] = ref.Issue
-		link = createLink(com.Expand(ctx.metas["format"], ctx.metas), reftext, "ref-issue")
-	} else {
-		// Path determines the type of link that will be rendered. It's unknown at this point whether
-		// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
-		// Gitea will redirect on click as appropriate.
-		path := "issues"
-		if ref.IsPull {
-			path = "pulls"
+		if !found {
+			return
 		}
-		if ref.Owner == "" {
-			link = createLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], path, ref.Issue), reftext, "ref-issue")
+
+		var link *html.Node
+		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
+		if exttrack && !ref.IsPull {
+			ctx.Metas["index"] = ref.Issue
+			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue ref-external-issue")
 		} else {
-			link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
+			// Path determines the type of link that will be rendered. It's unknown at this point whether
+			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
+			// Gitea will redirect on click as appropriate.
+			path := "issues"
+			if ref.IsPull {
+				path = "pulls"
+			}
+			if ref.Owner == "" {
+				link = createLink(util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], path, ref.Issue), reftext, "ref-issue")
+			} else {
+				link = createLink(util.URLJoin(setting.AppURL, ref.Owner, ref.Name, path, ref.Issue), reftext, "ref-issue")
+			}
 		}
-	}
 
-	if ref.Action == references.XRefActionNone {
-		replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
-		return
-	}
+		if ref.Action == references.XRefActionNone {
+			replaceContent(node, ref.RefLocation.Start, ref.RefLocation.End, link)
+			node = node.NextSibling.NextSibling
+			continue
+		}
 
-	// Decorate action keywords if actionable
-	var keyword *html.Node
-	if references.IsXrefActionable(ref, exttrack, alphanum) {
-		keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
-	} else {
-		keyword = &html.Node{
+		// Decorate action keywords if actionable
+		var keyword *html.Node
+		if references.IsXrefActionable(ref, exttrack, alphanum) {
+			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
+		} else {
+			keyword = &html.Node{
+				Type: html.TextNode,
+				Data: node.Data[ref.ActionLocation.Start:ref.ActionLocation.End],
+			}
+		}
+		spaces := &html.Node{
 			Type: html.TextNode,
-			Data: node.Data[ref.ActionLocation.Start:ref.ActionLocation.End],
+			Data: node.Data[ref.ActionLocation.End:ref.RefLocation.Start],
 		}
+		replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
+		node = node.NextSibling.NextSibling.NextSibling.NextSibling
 	}
-	spaces := &html.Node{
-		Type: html.TextNode,
-		Data: node.Data[ref.ActionLocation.End:ref.RefLocation.Start],
-	}
-	replaceContentList(node, ref.ActionLocation.Start, ref.RefLocation.End, []*html.Node{keyword, spaces, link})
 }
 
 // fullSha1PatternProcessor renders SHA containing URLs
-func fullSha1PatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	if ctx.metas == nil {
-		return
-	}
-	m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
+func fullSha1PatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil {
 		return
 	}
 
-	urlFull := node.Data[m[0]:m[1]]
-	text := base.ShortSha(node.Data[m[2]:m[3]])
-
-	// 3rd capture group matches a optional path
-	subpath := ""
-	if m[5] > 0 {
-		subpath = node.Data[m[4]:m[5]]
-	}
-
-	// 4th capture group matches a optional url hash
-	hash := ""
-	if m[7] > 0 {
-		hash = node.Data[m[6]:m[7]][1:]
-	}
-
-	start := m[0]
-	end := m[1]
-
-	// If url ends in '.', it's very likely that it is not part of the
-	// actual url but used to finish a sentence.
-	if strings.HasSuffix(urlFull, ".") {
-		end--
-		urlFull = urlFull[:len(urlFull)-1]
-		if hash != "" {
-			hash = hash[:len(hash)-1]
-		} else if subpath != "" {
-			subpath = subpath[:len(subpath)-1]
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := anySHA1Pattern.FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
 		}
-	}
 
-	if subpath != "" {
-		text += subpath
-	}
+		urlFull := node.Data[m[0]:m[1]]
+		text := base.ShortSha(node.Data[m[2]:m[3]])
 
-	if hash != "" {
-		text += " (" + hash + ")"
-	}
+		// 3rd capture group matches a optional path
+		subpath := ""
+		if m[5] > 0 {
+			subpath = node.Data[m[4]:m[5]]
+		}
 
-	replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+		// 4th capture group matches a optional url hash
+		hash := ""
+		if m[7] > 0 {
+			hash = node.Data[m[6]:m[7]][1:]
+		}
+
+		start := m[0]
+		end := m[1]
+
+		// If url ends in '.', it's very likely that it is not part of the
+		// actual url but used to finish a sentence.
+		if strings.HasSuffix(urlFull, ".") {
+			end--
+			urlFull = urlFull[:len(urlFull)-1]
+			if hash != "" {
+				hash = hash[:len(hash)-1]
+			} else if subpath != "" {
+				subpath = subpath[:len(subpath)-1]
+			}
+		}
+
+		if subpath != "" {
+			text += subpath
+		}
+
+		if hash != "" {
+			text += " (" + hash + ")"
+		}
+
+		replaceContent(node, start, end, createCodeLink(urlFull, text, "commit"))
+		node = node.NextSibling.NextSibling
+	}
 }
 
 // emojiShortCodeProcessor for rendering text like :smile: into emoji
-func emojiShortCodeProcessor(ctx *postProcessCtx, node *html.Node) {
-
-	m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
-
-	alias := node.Data[m[0]:m[1]]
-	alias = strings.ReplaceAll(alias, ":", "")
-	converted := emoji.FromAlias(alias)
-	if converted == nil {
-		// check if this is a custom reaction
-		s := strings.Join(setting.UI.Reactions, " ") + "gitea"
-		if strings.Contains(s, alias) {
-			replaceContent(node, m[0], m[1], createCustomEmoji(alias, "emoji"))
+func emojiShortCodeProcessor(ctx *RenderContext, node *html.Node) {
+	start := 0
+	next := node.NextSibling
+	for node != nil && node != next && start < len(node.Data) {
+		m := EmojiShortCodeRegex.FindStringSubmatchIndex(node.Data[start:])
+		if m == nil {
 			return
 		}
-		return
-	}
+		m[0] += start
+		m[1] += start
 
-	replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+		start = m[1]
+
+		alias := node.Data[m[0]:m[1]]
+		alias = strings.ReplaceAll(alias, ":", "")
+		converted := emoji.FromAlias(alias)
+		if converted == nil {
+			// check if this is a custom reaction
+			if _, exist := setting.UI.CustomEmojisMap[alias]; exist {
+				replaceContent(node, m[0], m[1], createCustomEmoji(alias))
+				node = node.NextSibling.NextSibling
+				start = 0
+				continue
+			}
+			continue
+		}
+
+		replaceContent(node, m[0], m[1], createEmoji(converted.Emoji, "emoji", converted.Description))
+		node = node.NextSibling.NextSibling
+		start = 0
+	}
 }
 
 // emoji processor to match emoji and add emoji class
-func emojiProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emoji.FindEmojiSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
+func emojiProcessor(ctx *RenderContext, node *html.Node) {
+	start := 0
+	next := node.NextSibling
+	for node != nil && node != next && start < len(node.Data) {
+		m := emoji.FindEmojiSubmatchIndex(node.Data[start:])
+		if m == nil {
+			return
+		}
+		m[0] += start
+		m[1] += start
 
-	codepoint := node.Data[m[0]:m[1]]
-	val := emoji.FromCode(codepoint)
-	if val != nil {
-		replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+		codepoint := node.Data[m[0]:m[1]]
+		start = m[1]
+		val := emoji.FromCode(codepoint)
+		if val != nil {
+			replaceContent(node, m[0], m[1], createEmoji(codepoint, "emoji", val.Description))
+			node = node.NextSibling.NextSibling
+			start = 0
+		}
 	}
 }
 
 // sha1CurrentPatternProcessor renders SHA1 strings to corresponding links that
 // are assumed to be in the same repository.
-func sha1CurrentPatternProcessor(ctx *postProcessCtx, node *html.Node) {
-	if ctx.metas == nil || ctx.metas["user"] == "" || ctx.metas["repo"] == "" || ctx.metas["repoPath"] == "" {
-		return
-	}
-	m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return
-	}
-	hash := node.Data[m[2]:m[3]]
-	// The regex does not lie, it matches the hash pattern.
-	// However, a regex cannot know if a hash actually exists or not.
-	// We could assume that a SHA1 hash should probably contain alphas AND numerics
-	// but that is not always the case.
-	// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
-	// as used by git and github for linking and thus we have to do similar.
-	// Because of this, we check to make sure that a matched hash is actually
-	// a commit in the repository before making it a link.
-	if _, err := git.NewCommand("rev-parse", "--verify", hash).RunInDirBytes(ctx.metas["repoPath"]); err != nil {
-		if !strings.Contains(err.Error(), "fatal: Needed a single revision") {
-			log.Debug("sha1CurrentPatternProcessor git rev-parse: %v", err)
-		}
+func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
+	if ctx.Metas == nil || ctx.Metas["user"] == "" || ctx.Metas["repo"] == "" || ctx.Metas["repoPath"] == "" {
 		return
 	}
 
-	replaceContent(node, m[2], m[3],
-		createCodeLink(util.URLJoin(setting.AppURL, ctx.metas["user"], ctx.metas["repo"], "commit", hash), base.ShortSha(hash), "commit"))
+	start := 0
+	next := node.NextSibling
+	if ctx.ShaExistCache == nil {
+		ctx.ShaExistCache = make(map[string]bool)
+	}
+	for node != nil && node != next && start < len(node.Data) {
+		m := sha1CurrentPattern.FindStringSubmatchIndex(node.Data[start:])
+		if m == nil {
+			return
+		}
+		m[2] += start
+		m[3] += start
+
+		hash := node.Data[m[2]:m[3]]
+		// The regex does not lie, it matches the hash pattern.
+		// However, a regex cannot know if a hash actually exists or not.
+		// We could assume that a SHA1 hash should probably contain alphas AND numerics
+		// but that is not always the case.
+		// Although unlikely, deadbeef and 1234567 are valid short forms of SHA1 hash
+		// as used by git and github for linking and thus we have to do similar.
+		// Because of this, we check to make sure that a matched hash is actually
+		// a commit in the repository before making it a link.
+
+		// check cache first
+		exist, inCache := ctx.ShaExistCache[hash]
+		if !inCache {
+			if ctx.GitRepo == nil {
+				var err error
+				ctx.GitRepo, err = git.OpenRepository(ctx.Metas["repoPath"])
+				if err != nil {
+					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
+					return
+				}
+				ctx.AddCancel(func() {
+					ctx.GitRepo.Close()
+					ctx.GitRepo = nil
+				})
+			}
+
+			exist = ctx.GitRepo.IsObjectExist(hash)
+			ctx.ShaExistCache[hash] = exist
+		}
+
+		if !exist {
+			start = m[3]
+			continue
+		}
+
+		replaceContent(node, m[2], m[3],
+			createCodeLink(util.URLJoin(setting.AppURL, ctx.Metas["user"], ctx.Metas["repo"], "commit", hash), base.ShortSha(hash), "commit"))
+		start = 0
+		node = node.NextSibling.NextSibling
+	}
 }
 
 // emailAddressProcessor replaces raw email addresses with a mailto: link.
-func emailAddressProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := emailRegex.FindStringSubmatchIndex(node.Data)
-	if m == nil {
-		return
+func emailAddressProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := emailRegex.FindStringSubmatchIndex(node.Data)
+		if m == nil {
+			return
+		}
+
+		mail := node.Data[m[2]:m[3]]
+		replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail, "mailto"))
+		node = node.NextSibling.NextSibling
 	}
-	mail := node.Data[m[2]:m[3]]
-	replaceContent(node, m[2], m[3], createLink("mailto:"+mail, mail, "mailto"))
 }
 
 // linkProcessor creates links for any HTTP or HTTPS URL not captured by
 // markdown.
-func linkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := common.LinkRegex.FindStringIndex(node.Data)
-	if m == nil {
-		return
+func linkProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := common.LinkRegex.FindStringIndex(node.Data)
+		if m == nil {
+			return
+		}
+
+		uri := node.Data[m[0]:m[1]]
+		replaceContent(node, m[0], m[1], createLink(uri, uri, "link"))
+		node = node.NextSibling.NextSibling
 	}
-	uri := node.Data[m[0]:m[1]]
-	replaceContent(node, m[0], m[1], createLink(uri, uri, "link"))
 }
 
 func genDefaultLinkProcessor(defaultLink string) processor {
-	return func(ctx *postProcessCtx, node *html.Node) {
+	return func(ctx *RenderContext, node *html.Node) {
 		ch := &html.Node{
 			Parent: node,
 			Type:   html.TextNode,
@@ -1052,13 +1096,18 @@ func genDefaultLinkProcessor(defaultLink string) processor {
 }
 
 // descriptionLinkProcessor creates links for DescriptionHTML
-func descriptionLinkProcessor(ctx *postProcessCtx, node *html.Node) {
-	m := common.LinkRegex.FindStringIndex(node.Data)
-	if m == nil {
-		return
+func descriptionLinkProcessor(ctx *RenderContext, node *html.Node) {
+	next := node.NextSibling
+	for node != nil && node != next {
+		m := common.LinkRegex.FindStringIndex(node.Data)
+		if m == nil {
+			return
+		}
+
+		uri := node.Data[m[0]:m[1]]
+		replaceContent(node, m[0], m[1], createDescriptionLink(uri, uri))
+		node = node.NextSibling.NextSibling
 	}
-	uri := node.Data[m[0]:m[1]]
-	replaceContent(node, m[0], m[1], createDescriptionLink(uri, uri))
 }
 
 func createDescriptionLink(href, content string) *html.Node {

@@ -38,7 +38,7 @@ type delayedStarter struct {
 }
 
 // setInternal must be called with the lock locked.
-func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), handle HandlerFunc, exemplar interface{}) error {
+func (q *delayedStarter) setInternal(atShutdown func(func()), handle HandlerFunc, exemplar interface{}) error {
 	var ctx context.Context
 	var cancel context.CancelFunc
 	if q.timeout > 0 {
@@ -49,9 +49,7 @@ func (q *delayedStarter) setInternal(atShutdown func(context.Context, func()), h
 
 	defer cancel()
 	// Ensure we also stop at shutdown
-	atShutdown(ctx, func() {
-		cancel()
-	})
+	atShutdown(cancel)
 
 	i := 1
 	for q.internal == nil {
@@ -221,7 +219,7 @@ func (q *WrappedQueue) IsEmpty() bool {
 }
 
 // Run starts to run the queue and attempts to create the internal queue
-func (q *WrappedQueue) Run(atShutdown, atTerminate func(context.Context, func())) {
+func (q *WrappedQueue) Run(atShutdown, atTerminate func(func())) {
 	log.Debug("WrappedQueue: %s Starting", q.name)
 	q.lock.Lock()
 	if q.internal == nil {

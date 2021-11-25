@@ -6,6 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -13,50 +14,50 @@ import (
 type Notifier interface {
 	Run()
 
-	NotifyCreateRepository(doer *models.User, u *models.User, repo *models.Repository)
-	NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository)
-	NotifyDeleteRepository(doer *models.User, repo *models.Repository)
-	NotifyForkRepository(doer *models.User, oldRepo, repo *models.Repository)
-	NotifyRenameRepository(doer *models.User, repo *models.Repository, oldRepoName string)
-	NotifyTransferRepository(doer *models.User, repo *models.Repository, oldOwnerName string)
+	NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository)
+	NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository)
+	NotifyDeleteRepository(doer *user_model.User, repo *models.Repository)
+	NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository)
+	NotifyRenameRepository(doer *user_model.User, repo *models.Repository, oldRepoName string)
+	NotifyTransferRepository(doer *user_model.User, repo *models.Repository, oldOwnerName string)
 
-	NotifyNewIssue(issue *models.Issue, mentions []*models.User)
-	NotifyIssueChangeStatus(*models.User, *models.Issue, *models.Comment, bool)
-	NotifyIssueChangeMilestone(doer *models.User, issue *models.Issue, oldMilestoneID int64)
-	NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment)
-	NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment)
-	NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string)
-	NotifyIssueClearLabels(doer *models.User, issue *models.Issue)
-	NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string)
-	NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string)
-	NotifyIssueChangeLabels(doer *models.User, issue *models.Issue,
+	NotifyNewIssue(issue *models.Issue, mentions []*user_model.User)
+	NotifyIssueChangeStatus(*user_model.User, *models.Issue, *models.Comment, bool)
+	NotifyIssueChangeMilestone(doer *user_model.User, issue *models.Issue, oldMilestoneID int64)
+	NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment)
+	NotifyPullReviewRequest(doer *user_model.User, issue *models.Issue, reviewer *user_model.User, isRequest bool, comment *models.Comment)
+	NotifyIssueChangeContent(doer *user_model.User, issue *models.Issue, oldContent string)
+	NotifyIssueClearLabels(doer *user_model.User, issue *models.Issue)
+	NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string)
+	NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldRef string)
+	NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
 		addedLabels []*models.Label, removedLabels []*models.Label)
 
-	NotifyNewPullRequest(pr *models.PullRequest, mentions []*models.User)
-	NotifyMergePullRequest(*models.PullRequest, *models.User)
-	NotifyPullRequestSynchronized(doer *models.User, pr *models.PullRequest)
-	NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*models.User)
-	NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*models.User)
-	NotifyPullRequestChangeTargetBranch(doer *models.User, pr *models.PullRequest, oldBranch string)
-	NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment)
-	NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment)
+	NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User)
+	NotifyMergePullRequest(*models.PullRequest, *user_model.User)
+	NotifyPullRequestSynchronized(doer *user_model.User, pr *models.PullRequest)
+	NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*user_model.User)
+	NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*user_model.User)
+	NotifyPullRequestChangeTargetBranch(doer *user_model.User, pr *models.PullRequest, oldBranch string)
+	NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment)
+	NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment)
 
-	NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-		issue *models.Issue, comment *models.Comment, mentions []*models.User)
-	NotifyUpdateComment(*models.User, *models.Comment, string)
-	NotifyDeleteComment(*models.User, *models.Comment)
+	NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+		issue *models.Issue, comment *models.Comment, mentions []*user_model.User)
+	NotifyUpdateComment(*user_model.User, *models.Comment, string)
+	NotifyDeleteComment(*user_model.User, *models.Comment)
 
 	NotifyNewRelease(rel *models.Release)
-	NotifyUpdateRelease(doer *models.User, rel *models.Release)
-	NotifyDeleteRelease(doer *models.User, rel *models.Release)
+	NotifyUpdateRelease(doer *user_model.User, rel *models.Release)
+	NotifyDeleteRelease(doer *user_model.User, rel *models.Release)
 
-	NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifyCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
-	NotifyDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
+	NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
+	NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
+	NotifyDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
 
-	NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifySyncCreateRef(doer *models.User, repo *models.Repository, refType, refFullName string)
-	NotifySyncDeleteRef(doer *models.User, repo *models.Repository, refType, refFullName string)
+	NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
+	NotifySyncCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
+	NotifySyncDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
 
-	NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository)
+	NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository)
 }

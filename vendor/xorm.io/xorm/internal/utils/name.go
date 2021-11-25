@@ -8,6 +8,7 @@ import (
 	"fmt"
 )
 
+// IndexName returns index name
 func IndexName(tableName, idxName string) string {
 	return fmt.Sprintf("IDX_%v_%v", tableName, idxName)
 }

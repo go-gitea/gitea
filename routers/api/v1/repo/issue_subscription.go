@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -114,9 +115,9 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := models.GetUserByName(ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx.Params(":user"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -279,7 +280,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for i := range users {
-		apiUsers[i] = convert.ToUser(users[i], ctx.IsSigned, false)
+		apiUsers[i] = convert.ToUser(users[i], ctx.User)
 	}
 
 	ctx.JSON(http.StatusOK, apiUsers)

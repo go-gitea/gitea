@@ -7,11 +7,14 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -26,31 +29,32 @@ type ActionType int
 
 // Possible action types.
 const (
-	ActionCreateRepo          ActionType = iota + 1 // 1
-	ActionRenameRepo                                // 2
-	ActionStarRepo                                  // 3
-	ActionWatchRepo                                 // 4
-	ActionCommitRepo                                // 5
-	ActionCreateIssue                               // 6
-	ActionCreatePullRequest                         // 7
-	ActionTransferRepo                              // 8
-	ActionPushTag                                   // 9
-	ActionCommentIssue                              // 10
-	ActionMergePullRequest                          // 11
-	ActionCloseIssue                                // 12
-	ActionReopenIssue                               // 13
-	ActionClosePullRequest                          // 14
-	ActionReopenPullRequest                         // 15
-	ActionDeleteTag                                 // 16
-	ActionDeleteBranch                              // 17
-	ActionMirrorSyncPush                            // 18
-	ActionMirrorSyncCreate                          // 19
-	ActionMirrorSyncDelete                          // 20
-	ActionApprovePullRequest                        // 21
-	ActionRejectPullRequest                         // 22
-	ActionCommentPull                               // 23
-	ActionPublishRelease                            // 24
-	ActionPullReviewDismissed                       // 25
+	ActionCreateRepo                ActionType = iota + 1 // 1
+	ActionRenameRepo                                      // 2
+	ActionStarRepo                                        // 3
+	ActionWatchRepo                                       // 4
+	ActionCommitRepo                                      // 5
+	ActionCreateIssue                                     // 6
+	ActionCreatePullRequest                               // 7
+	ActionTransferRepo                                    // 8
+	ActionPushTag                                         // 9
+	ActionCommentIssue                                    // 10
+	ActionMergePullRequest                                // 11
+	ActionCloseIssue                                      // 12
+	ActionReopenIssue                                     // 13
+	ActionClosePullRequest                                // 14
+	ActionReopenPullRequest                               // 15
+	ActionDeleteTag                                       // 16
+	ActionDeleteBranch                                    // 17
+	ActionMirrorSyncPush                                  // 18
+	ActionMirrorSyncCreate                                // 19
+	ActionMirrorSyncDelete                                // 20
+	ActionApprovePullRequest                              // 21
+	ActionRejectPullRequest                               // 22
+	ActionCommentPull                                     // 23
+	ActionPublishRelease                                  // 24
+	ActionPullReviewDismissed                             // 25
+	ActionPullRequestReadyForReview                       // 26
 )
 
 // Action represents user operation type and other information to
@@ -60,17 +64,21 @@ type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64       `xorm:"INDEX"` // Action user id.
-	ActUser     *User       `xorm:"-"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	CommentID   int64       `xorm:"INDEX"`
-	Comment     *Comment    `xorm:"-"`
-	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	ActUserID   int64            `xorm:"INDEX"` // Action user id.
+	ActUser     *user_model.User `xorm:"-"`
+	RepoID      int64            `xorm:"INDEX"`
+	Repo        *Repository      `xorm:"-"`
+	CommentID   int64            `xorm:"INDEX"`
+	Comment     *Comment         `xorm:"-"`
+	IsDeleted   bool             `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+}
+
+func init() {
+	db.RegisterModel(new(Action))
 }
 
 // GetOpType gets the ActionType of this action.
@@ -84,11 +92,11 @@ func (a *Action) LoadActUser() {
 		return
 	}
 	var err error
-	a.ActUser, err = GetUserByID(a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(a.ActUserID)
 	if err == nil {
 		return
-	} else if IsErrUserNotExist(err) {
-		a.ActUser = NewGhostUser()
+	} else if user_model.IsErrUserNotExist(err) {
+		a.ActUser = user_model.NewGhostUser()
 	} else {
 		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
 	}
@@ -179,10 +187,8 @@ func (a *Action) ShortRepoPath() string {
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink() string {
-	if len(setting.AppSubURL) > 0 {
-		return path.Join(setting.AppSubURL, a.GetRepoPath())
-	}
-	return "/" + a.GetRepoPath()
+	// path.Join will skip empty strings
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
@@ -202,10 +208,10 @@ func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(x)
+	return a.getCommentLink(db.GetEngine(db.DefaultContext))
 }
 
-func (a *Action) getCommentLink(e Engine) string {
+func (a *Action) getCommentLink(e db.Engine) string {
 	if a == nil {
 		return "#"
 	}
@@ -289,13 +295,13 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User  // the user we want activity for
-	RequestedTeam   *Team  // the team we want activity for
-	Actor           *User  // the user viewing the activity
-	IncludePrivate  bool   // include private actions
-	OnlyPerformedBy bool   // only actions performed by requested user
-	IncludeDeleted  bool   // include deleted actions
-	Date            string // the day we want activity for: YYYY-MM-DD
+	RequestedUser   *user_model.User // the user we want activity for
+	RequestedTeam   *Team            // the team we want activity for
+	Actor           *user_model.User // the user viewing the activity
+	IncludePrivate  bool             // include private actions
+	OnlyPerformedBy bool             // only actions performed by requested user
+	IncludeDeleted  bool             // include deleted actions
+	Date            string           // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -311,7 +317,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 
 	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
 
-	if err := x.Limit(setting.UI.FeedPagingNum).Desc("id").Where(cond).Find(&actions); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -322,7 +328,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	return actions, nil
 }
 
-func activityReadable(user, doer *User) bool {
+func activityReadable(user, doer *user_model.User) bool {
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID
@@ -347,7 +353,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		if opts.RequestedUser.IsOrganization() {
-			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
+			env, err := OrgFromUser(opts.RequestedUser).AccessibleReposEnv(actorID)
 			if err != nil {
 				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 			}
@@ -361,7 +367,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.RequestedTeam != nil {
-		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
@@ -382,7 +388,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.Date != "" {
-		dateLow, err := time.Parse("2006-01-02", opts.Date)
+		dateLow, err := time.ParseInLocation("2006-01-02", opts.Date, setting.DefaultUILocation)
 		if err != nil {
 			log.Warn("Unable to parse %s, filter not applied: %v", opts.Date, err)
 		} else {
@@ -394,4 +400,14 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	return cond, nil
+}
+
+// DeleteOldActions deletes all old actions from database.
+func DeleteOldActions(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
+	return
 }

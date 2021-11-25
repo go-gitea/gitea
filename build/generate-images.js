@@ -1,12 +1,12 @@
-#!/usr/bin/env node
-'use strict';
+import imageminZopfli from 'imagemin-zopfli';
+import {optimize} from 'svgo';
+import {fabric} from 'fabric';
+import fs from 'fs';
+import {resolve, dirname} from 'path';
+import {fileURLToPath} from 'url';
 
-const imageminZopfli = require('imagemin-zopfli');
-const {optimize, extendDefaultPlugins} = require('svgo');
-const {fabric} = require('fabric');
-const {readFile, writeFile} = require('fs').promises;
-const {resolve} = require('path');
-
+const {readFile, writeFile} = fs.promises;
+const __dirname = dirname(fileURLToPath(import.meta.url));
 const logoFile = resolve(__dirname, '../assets/logo.svg');
 
 function exit(err) {
@@ -25,13 +25,14 @@ function loadSvg(svg) {
 async function generate(svg, outputFile, {size, bg}) {
   if (outputFile.endsWith('.svg')) {
     const {data} = optimize(svg, {
-      plugins: extendDefaultPlugins([
+      plugins: [
+        'preset-default',
         'removeDimensions',
         {
           name: 'addAttributesToSVGElement',
           params: {attributes: [{width: size}, {height: size}]}
         },
-      ]),
+      ],
     });
     await writeFile(outputFile, data);
     return;
@@ -79,5 +80,5 @@ async function main() {
   ]);
 }
 
-main().then(exit).catch(exit);
+main().then(exit).catch(exit); // eslint-disable-line github/no-then
 

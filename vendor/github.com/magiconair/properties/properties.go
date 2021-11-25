@@ -637,7 +637,7 @@ func (p *Properties) WriteComment(w io.Writer, prefix string, enc Encoding) (n i
 					}
 
 					for _, c := range comments {
-						x, err = fmt.Fprintf(w, "%s%s\n", prefix, encode(c, "", enc))
+						x, err = fmt.Fprintf(w, "%s%s\n", prefix, c)
 						if err != nil {
 							return
 						}

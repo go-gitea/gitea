@@ -1,22 +1,30 @@
-const {UseServiceWorker, AppSubUrl, AppVer} = window.config;
-const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
+import {joinPaths} from '../utils.js';
 
-async function unregister() {
-  const registrations = await navigator.serviceWorker.getRegistrations();
-  await Promise.all(registrations.map((registration) => {
-    return registration.active && registration.unregister();
-  }));
+const {useServiceWorker, assetUrlPrefix, appVer} = window.config;
+const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
+const workerAssetPath = joinPaths(assetUrlPrefix, 'serviceworker.js');
+
+async function unregisterAll() {
+  for (const registration of await navigator.serviceWorker.getRegistrations()) {
+    if (registration.active) await registration.unregister();
+  }
+}
+
+async function unregisterOtherWorkers() {
+  for (const registration of await navigator.serviceWorker.getRegistrations()) {
+    const scriptURL = registration.active?.scriptURL || '';
+    if (!scriptURL.endsWith(workerAssetPath)) await registration.unregister();
+  }
 }
 
 async function invalidateCache() {
-  const cacheKeys = await caches.keys();
-  await Promise.all(cacheKeys.map((key) => {
-    return key.startsWith(cachePrefix) && caches.delete(key);
-  }));
+  for (const key of await caches.keys()) {
+    if (key.startsWith(cachePrefix)) caches.delete(key);
+  }
 }
 
 async function checkCacheValidity() {
-  const cacheKey = AppVer;
+  const cacheKey = appVer;
   const storedCacheKey = localStorage.getItem('staticCacheKey');
 
   // invalidate cache if it belongs to a different gitea version
@@ -29,25 +37,20 @@ async function checkCacheValidity() {
 export default async function initServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
 
-  if (UseServiceWorker) {
+  if (useServiceWorker) {
+    // unregister all service workers where scriptURL does not match the current one
+    await unregisterOtherWorkers();
     try {
-      // normally we'd serve the service worker as a static asset from StaticUrlPrefix but
-      // the spec strictly requires it to be same-origin so it has to be AppSubUrl to work
-      await Promise.all([
-        checkCacheValidity(),
-        navigator.serviceWorker.register(`${AppSubUrl}/serviceworker.js`),
-      ]);
+      // the spec strictly requires it to be same-origin so the AssetUrlPrefix should contain AppSubUrl
+      await checkCacheValidity();
+      await navigator.serviceWorker.register(workerAssetPath);
     } catch (err) {
       console.error(err);
-      await Promise.all([
-        invalidateCache(),
-        unregister(),
-      ]);
+      await invalidateCache();
+      await unregisterAll();
     }
   } else {
-    await Promise.all([
-      invalidateCache(),
-      unregister(),
-    ]);
+    await invalidateCache();
+    await unregisterAll();
   }
 }

@@ -9,8 +9,10 @@ import (
 	"os"
 	"strconv"
 
+	gitea_bleve "code.gitea.io/gitea/modules/indexer/bleve"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+
 	"github.com/blevesearch/bleve/v2"
 	"github.com/blevesearch/bleve/v2/analysis/analyzer/custom"
 	"github.com/blevesearch/bleve/v2/analysis/token/lowercase"
@@ -197,7 +199,7 @@ func (b *BleveIndexer) Close() {
 
 // Index will save the index data
 func (b *BleveIndexer) Index(issues []*IndexerData) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, issue := range issues {
 		if err := batch.Index(indexerID(issue.ID), struct {
 			RepoID   int64
@@ -218,7 +220,7 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 
 // Delete deletes indexes by ids
 func (b *BleveIndexer) Delete(ids ...int64) error {
-	batch := rupture.NewFlushingBatch(b.indexer, maxBatchSize)
+	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	for _, id := range ids {
 		if err := batch.Delete(indexerID(id)); err != nil {
 			return err

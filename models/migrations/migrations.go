@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -187,7 +188,7 @@ var migrations = []Migration{
 	// v122 -> v123
 	NewMigration("Add Require Signed Commits to ProtectedBranch", addRequireSignedCommits),
 	// v123 -> v124
-	NewMigration("Add original informations for reactions", addReactionOriginals),
+	NewMigration("Add original information for reactions", addReactionOriginals),
 	// v124 -> v125
 	NewMigration("Add columns to user and repository", addUserRepoMissingColumns),
 	// v125 -> v126
@@ -302,6 +303,62 @@ var migrations = []Migration{
 	NewMigration("Remove invalid labels from comments", removeInvalidLabels),
 	// v177 -> v178
 	NewMigration("Delete orphaned IssueLabels", deleteOrphanedIssueLabels),
+
+	// Gitea 1.14.0 ends at v178
+
+	// v178 -> v179
+	NewMigration("Add LFS columns to Mirror", addLFSMirrorColumns),
+	// v179 -> v180
+	NewMigration("Convert avatar url to text", convertAvatarURLToText),
+	// v180 -> v181
+	NewMigration("Delete credentials from past migrations", deleteMigrationCredentials),
+	// v181 -> v182
+	NewMigration("Always save primary email on email address table", addPrimaryEmail2EmailAddress),
+	// v182 -> v183
+	NewMigration("Add issue resource index table", addIssueResourceIndexTable),
+	// v183 -> v184
+	NewMigration("Create PushMirror table", createPushMirrorTable),
+	// v184 -> v185
+	NewMigration("Rename Task errors to message", renameTaskErrorsToMessage),
+	// v185 -> v186
+	NewMigration("Add new table repo_archiver", addRepoArchiver),
+	// v186 -> v187
+	NewMigration("Create protected tag table", createProtectedTagTable),
+	// v187 -> v188
+	NewMigration("Drop unneeded webhook related columns", dropWebhookColumns),
+	// v188 -> v189
+	NewMigration("Add key is verified to gpg key", addKeyIsVerified),
+
+	// Gitea 1.15.0 ends at v189
+
+	// v189 -> v190
+	NewMigration("Unwrap ldap.Sources", unwrapLDAPSourceCfg),
+	// v190 -> v191
+	NewMigration("Add agit flow pull request support", addAgitFlowPullRequest),
+	// v191 -> v192
+	NewMigration("Alter issue/comment table TEXT fields to LONGTEXT", alterIssueAndCommentTextFieldsToLongText),
+	// v192 -> v193
+	NewMigration("RecreateIssueResourceIndexTable to have a primary key instead of an unique index", recreateIssueResourceIndexTable),
+	// v193 -> v194
+	NewMigration("Add repo id column for attachment table", addRepoIDForAttachment),
+	// v194 -> v195
+	NewMigration("Add Branch Protection Unprotected Files Column", addBranchProtectionUnprotectedFilesColumn),
+	// v195 -> v196
+	NewMigration("Add table commit_status_index", addTableCommitStatusIndex),
+	// v196 -> v197
+	NewMigration("Add Color to ProjectBoard table", addColorColToProjectBoard),
+	// v197 -> v198
+	NewMigration("Add renamed_branch table", addRenamedBranchTable),
+	// v198 -> v199
+	NewMigration("Add issue content history table", addTableIssueContentHistory),
+	// v199 -> v200
+	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	// v200 -> v201
+	NewMigration("Add table app_state", addTableAppState),
+	// v201 -> v202
+	NewMigration("Drop table remote_version (if exists)", dropTableRemoteVersion),
+	// v202 -> v203
+	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -395,7 +452,7 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 		// Reset the mapper between each migration - migrations are not supposed to depend on each other
 		x.SetMapper(names.GonicMapper{})
 		if err = m.Migrate(x); err != nil {
-			return fmt.Errorf("do migrate: %v", err)
+			return fmt.Errorf("migration[%d]: %s failed: %v", v+int64(i), m.Description(), err)
 		}
 		currentVersion.Version = v + int64(i) + 1
 		if _, err = x.ID(1).Update(currentVersion); err != nil {
@@ -565,9 +622,24 @@ func recreateTable(sess *xorm.Session, bean interface{}) error {
 			return err
 		}
 
+		if err := sess.Table(tempTableName).DropIndexes(bean); err != nil {
+			log.Error("Unable to drop indexes on temporary table %s. Error: %v", tempTableName, err)
+			return err
+		}
+
 		// SQLite and MySQL will move all the constraints from the temporary table to the new table
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` RENAME TO `%s`", tempTableName, tableName)); err != nil {
 			log.Error("Unable to rename %s to %s. Error: %v", tempTableName, tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateIndexes(bean); err != nil {
+			log.Error("Unable to recreate indexes on table %s. Error: %v", tableName, err)
+			return err
+		}
+
+		if err := sess.Table(tableName).CreateUniques(bean); err != nil {
+			log.Error("Unable to recreate uniques on table %s. Error: %v", tableName, err)
 			return err
 		}
 	case setting.Database.UsePostgreSQL:
@@ -722,8 +794,14 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		tableSQL := string(res[0]["sql"])
 
+		// Get the string offset for column definitions: `CREATE TABLE ( column-definitions... )`
+		columnDefinitionsIndex := strings.Index(tableSQL, "(")
+		if columnDefinitionsIndex < 0 {
+			return errors.New("couldn't find column definitions")
+		}
+
 		// Separate out the column definitions
-		tableSQL = tableSQL[strings.Index(tableSQL, "("):]
+		tableSQL = tableSQL[columnDefinitionsIndex:]
 
 		// Remove the required columnNames
 		for _, name := range columnNames {
@@ -811,7 +889,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 			}
 			cols += "`" + strings.ToLower(col) + "`"
 		}
-		sql := fmt.Sprintf("SELECT Name FROM SYS.DEFAULT_CONSTRAINTS WHERE PARENT_OBJECT_ID = OBJECT_ID('%[1]s') AND PARENT_COLUMN_ID IN (SELECT column_id FROM sys.columns WHERE lower(NAME) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+		sql := fmt.Sprintf("SELECT Name FROM sys.default_constraints WHERE parent_object_id = OBJECT_ID('%[1]s') AND parent_column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
 			tableName, strings.ReplaceAll(cols, "`", "'"))
 		constraints := make([]string, 0)
 		if err := sess.SQL(sql).Find(&constraints); err != nil {
@@ -819,9 +897,21 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 		}
 		for _, constraint := range constraints {
 			if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP CONSTRAINT `%s`", tableName, constraint)); err != nil {
-				return fmt.Errorf("Drop table `%s` constraint `%s`: %v", tableName, constraint, err)
+				return fmt.Errorf("Drop table `%s` default constraint `%s`: %v", tableName, constraint, err)
 			}
 		}
+		sql = fmt.Sprintf("SELECT DISTINCT Name FROM sys.indexes INNER JOIN sys.index_columns ON indexes.index_id = index_columns.index_id AND indexes.object_id = index_columns.object_id WHERE indexes.object_id = OBJECT_ID('%[1]s') AND index_columns.column_id IN (SELECT column_id FROM sys.columns WHERE LOWER(name) IN (%[2]s) AND object_id = OBJECT_ID('%[1]s'))",
+			tableName, strings.ReplaceAll(cols, "`", "'"))
+		constraints = make([]string, 0)
+		if err := sess.SQL(sql).Find(&constraints); err != nil {
+			return fmt.Errorf("Find constraints: %v", err)
+		}
+		for _, constraint := range constraints {
+			if _, err := sess.Exec(fmt.Sprintf("DROP INDEX `%[2]s` ON `%[1]s`", tableName, constraint)); err != nil {
+				return fmt.Errorf("Drop index `%[2]s` on `%[1]s`: %v", tableName, constraint, err)
+			}
+		}
+
 		if _, err := sess.Exec(fmt.Sprintf("ALTER TABLE `%s` DROP COLUMN %s", tableName, cols)); err != nil {
 			return fmt.Errorf("Drop table `%s` columns %v: %v", tableName, columnNames, err)
 		}

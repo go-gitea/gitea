@@ -7,21 +7,56 @@ package integrations
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
 
+func TestAPITopicSearch(t *testing.T) {
+	defer prepareTestEnv(t)()
+	searchURL, _ := url.Parse("/api/v1/topics/search")
+	var topics struct {
+		TopicNames []*api.TopicResponse `json:"topics"`
+	}
+
+	query := url.Values{"page": []string{"1"}, "limit": []string{"4"}}
+
+	searchURL.RawQuery = query.Encode()
+	res := MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Len(t, topics.TopicNames, 4)
+	assert.EqualValues(t, "6", res.Header().Get("x-total-count"))
+
+	query.Add("q", "topic")
+	searchURL.RawQuery = query.Encode()
+	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	assert.Len(t, topics.TopicNames, 2)
+
+	query.Set("q", "database")
+	searchURL.RawQuery = query.Encode()
+	res = MakeRequest(t, NewRequest(t, "GET", searchURL.String()), http.StatusOK)
+	DecodeJSON(t, res, &topics)
+	if assert.Len(t, topics.TopicNames, 1) {
+		assert.EqualValues(t, 2, topics.TopicNames[0].ID)
+		assert.EqualValues(t, "database", topics.TopicNames[0].Name)
+		assert.EqualValues(t, 1, topics.TopicNames[0].RepoCount)
+	}
+}
+
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User) // owner of repo2
-	user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User) // owner of repo3
-	user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User) // write access to repo 3
-	repo2 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of repo2
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User) // owner of repo3
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) // write access to repo 3
+	repo2 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
 
 	// Get user2's token
 	session := loginUser(t, user2.Name)
@@ -41,15 +76,15 @@ func TestAPIRepoTopic(t *testing.T) {
 
 	// Test delete a topic
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add an existing topic
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Golang", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test add a topic
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "topicName3", token2)
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 
 	// Test read topics using token
 	req = NewRequest(t, "GET", url)
@@ -62,7 +97,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -73,7 +108,7 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
@@ -84,26 +119,26 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusNoContent)
+	session.MakeRequest(t, req, http.StatusNoContent)
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.Equal(t, 25, len(topics.TopicNames))
+	assert.Len(t, topics.TopicNames, 25)
 
 	// Test writing more topics than allowed
 	newTopics = append(newTopics, "t26")
 	req = NewRequestWithJSON(t, "PUT", url, &api.RepoTopicOptions{
 		Topics: newTopics,
 	})
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test add a topic when there is already maximum
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "t26", token2)
-	res = session.MakeRequest(t, req, http.StatusUnprocessableEntity)
+	session.MakeRequest(t, req, http.StatusUnprocessableEntity)
 
 	// Test delete a topic that repo doesn't have
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/topics/%s?token=%s", user2.Name, repo2.Name, "Topicname1", token2)
-	res = session.MakeRequest(t, req, http.StatusNotFound)
+	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Get user4's token
 	session = loginUser(t, user4.Name)
@@ -115,10 +150,10 @@ func TestAPIRepoTopic(t *testing.T) {
 	req = NewRequest(t, "GET", url)
 	res = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, res, &topics)
-	assert.Equal(t, 0, len(topics.TopicNames))
+	assert.Empty(t, topics.TopicNames)
 
 	// Test add a topic to repo with write access (requires repo admin access)
 	req = NewRequestf(t, "PUT", "/api/v1/repos/%s/%s/topics/%s?token=%s", user3.Name, repo3.Name, "topicName", token4)
-	res = session.MakeRequest(t, req, http.StatusForbidden)
+	session.MakeRequest(t, req, http.StatusForbidden)
 
 }

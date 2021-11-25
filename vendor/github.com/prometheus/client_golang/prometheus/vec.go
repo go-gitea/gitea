@@ -167,8 +167,8 @@ func (m *MetricVec) CurryWith(labels Labels) (*MetricVec, error) {
 // calling the newMetric function provided during construction of the
 // MetricVec).
 //
-// It is possible to call this method without using the returned Metry to only
-// create the new Metric but leave it in its intitial state.
+// It is possible to call this method without using the returned Metric to only
+// create the new Metric but leave it in its initial state.
 //
 // Keeping the Metric for later use is possible (and should be considered if
 // performance is critical), but keep in mind that Reset, DeleteLabelValues and

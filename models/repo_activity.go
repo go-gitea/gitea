@@ -9,6 +9,8 @@ import (
 	"sort"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 
 	"xorm.io/xorm"
@@ -93,13 +95,13 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := NewGhostUser().AvatarLink()
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink()
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := GetUserByEmail(v.Email)
-		if u == nil || IsErrUserNotExist(err) {
+		u, err := user_model.GetUserByEmail(v.Email)
+		if u == nil || user_model.IsErrUserNotExist(err) {
 			unknownUserID--
 			users[unknownUserID] = &ActivityAuthorData{
 				Name:       v.Name,
@@ -245,7 +247,7 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 }
 
 func pullRequestsForActivityStatement(repoID int64, fromTime time.Time, merged bool) *xorm.Session {
-	sess := x.Where("pull_request.base_repo_id=?", repoID).
+	sess := db.GetEngine(db.DefaultContext).Where("pull_request.base_repo_id=?", repoID).
 		Join("INNER", "issue", "pull_request.issue_id = issue.id")
 
 	if merged {
@@ -313,7 +315,7 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 }
 
 func issuesForActivityStatement(repoID int64, fromTime time.Time, closed, unresolved bool) *xorm.Session {
-	sess := x.Where("issue.repo_id = ?", repoID).
+	sess := db.GetEngine(db.DefaultContext).Where("issue.repo_id = ?", repoID).
 		And("issue.is_closed = ?", closed)
 
 	if !unresolved {
@@ -355,7 +357,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 }
 
 func releasesForActivityStatement(repoID int64, fromTime time.Time) *xorm.Session {
-	return x.Where("release.repo_id = ?", repoID).
+	return db.GetEngine(db.DefaultContext).Where("release.repo_id = ?", repoID).
 		And("release.is_draft = ?", false).
 		And("release.created_unix >= ?", fromTime.Unix())
 }

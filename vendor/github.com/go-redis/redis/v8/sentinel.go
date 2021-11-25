@@ -40,8 +40,6 @@ type FailoverOptions struct {
 	// Now, this option only works in RandomSlaveAddr function.
 	UseDisconnectedSlaves bool
 
-	// Client queries sentinels in a random order
-	QuerySentinelRandomly bool
 	// Following options are copied from Options struct.
 
 	Dialer    func(ctx context.Context, network, addr string) (net.Conn, error)
@@ -221,14 +219,21 @@ func masterSlaveDialer(
 				failover.trySwitchMaster(ctx, addr)
 			}
 		}
-
 		if err != nil {
 			return nil, err
 		}
 		if failover.opt.Dialer != nil {
 			return failover.opt.Dialer(ctx, network, addr)
 		}
-		return net.DialTimeout("tcp", addr, failover.opt.DialTimeout)
+
+		netDialer := &net.Dialer{
+			Timeout:   failover.opt.DialTimeout,
+			KeepAlive: 5 * time.Minute,
+		}
+		if failover.opt.TLSConfig == nil {
+			return netDialer.DialContext(ctx, network, addr)
+		}
+		return tls.DialWithDialer(netDialer, network, addr, failover.opt.TLSConfig)
 	}
 }
 
@@ -625,7 +630,7 @@ func parseSlaveAddrs(addrs []interface{}, keepDisconnected bool) []string {
 
 func (c *sentinelFailover) trySwitchMaster(ctx context.Context, addr string) {
 	c.mu.RLock()
-	currentAddr := c._masterAddr
+	currentAddr := c._masterAddr //nolint:ifshort
 	c.mu.RUnlock()
 
 	if addr == currentAddr {
@@ -666,15 +671,22 @@ func (c *sentinelFailover) discoverSentinels(ctx context.Context) {
 	}
 	for _, sentinel := range sentinels {
 		vals := sentinel.([]interface{})
+		var ip, port string
 		for i := 0; i < len(vals); i += 2 {
 			key := vals[i].(string)
-			if key == "name" {
-				sentinelAddr := vals[i+1].(string)
-				if !contains(c.sentinelAddrs, sentinelAddr) {
-					internal.Logger.Printf(ctx, "sentinel: discovered new sentinel=%q for master=%q",
-						sentinelAddr, c.opt.MasterName)
-					c.sentinelAddrs = append(c.sentinelAddrs, sentinelAddr)
-				}
+			switch key {
+			case "ip":
+				ip = vals[i+1].(string)
+			case "port":
+				port = vals[i+1].(string)
+			}
+		}
+		if ip != "" && port != "" {
+			sentinelAddr := net.JoinHostPort(ip, port)
+			if !contains(c.sentinelAddrs, sentinelAddr) {
+				internal.Logger.Printf(ctx, "sentinel: discovered new sentinel=%q for master=%q",
+					sentinelAddr, c.opt.MasterName)
+				c.sentinelAddrs = append(c.sentinelAddrs, sentinelAddr)
 			}
 		}
 	}

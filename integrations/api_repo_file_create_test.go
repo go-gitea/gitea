@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -105,20 +107,49 @@ func getExpectedFileResponseForCreate(commitID, treePath string) *api.FileRespon
 	}
 }
 
+func BenchmarkAPICreateFileSmall(b *testing.B) {
+	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
+		b := t.(*testing.B)
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)     // owner of the repo1 & repo16
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
+
+		for n := 0; n < b.N; n++ {
+			treePath := fmt.Sprintf("update/file%d.txt", n)
+			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+		}
+	})
+}
+
+func BenchmarkAPICreateFileMedium(b *testing.B) {
+	data := make([]byte, 10*1024*1024)
+
+	onGiteaRunTB(b, func(t testing.TB, u *url.URL) {
+		b := t.(*testing.B)
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)     // owner of the repo1 & repo16
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository) // public repo
+
+		b.ResetTimer()
+		for n := 0; n < b.N; n++ {
+			treePath := fmt.Sprintf("update/file%d.txt", n)
+			copy(data, treePath)
+			createFileInBranch(user2, repo1, treePath, repo1.DefaultBranch, treePath)
+		}
+	})
+}
+
 func TestAPICreateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := models.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := models.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := models.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
-		repo1 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
-		repo3 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
-		repo16 := models.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)       // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)       // owner of neither repos
+		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
+		repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
+		repo16 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 16}).(*models.Repository) // private repo
 		fileID := 0
 
 		// Get user2's token
 		session := loginUser(t, user2.Name)
 		token2 := getTokenForLoggedInUser(t, session)
-		session = emptyTestSession(t)
 		// Get user4's token
 		session = loginUser(t, user4.Name)
 		token4 := getTokenForLoggedInUser(t, session)

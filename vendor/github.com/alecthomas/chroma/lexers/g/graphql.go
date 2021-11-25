@@ -6,13 +6,17 @@ import (
 )
 
 // Go lexer.
-var Graphql = internal.Register(MustNewLexer(
+var Graphql = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "GraphQL",
 		Aliases:   []string{"graphql", "graphqls", "gql"},
 		Filenames: []string{"*.graphql", "*.graphqls"},
 	},
-	Rules{
+	graphqlRules,
+))
+
+func graphqlRules() Rules {
+	return Rules{
 		"root": {
 			{`(query|mutation|subscription|fragment|scalar|implements|interface|union|enum|input|type)`, KeywordDeclaration, Push("type")},
 			{`(on|extend|schema|directive|\.\.\.)`, KeywordDeclaration, nil},
@@ -41,5 +45,5 @@ var Graphql = internal.Register(MustNewLexer(
 			{`[^\W\d]\w*`, NameClass, Pop(1)},
 			Include("root"),
 		},
-	},
-))
+	}
+}

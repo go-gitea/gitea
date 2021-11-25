@@ -6,14 +6,18 @@ import (
 )
 
 // Clojure lexer.
-var Clojure = internal.Register(MustNewLexer(
+var Clojure = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Clojure",
 		Aliases:   []string{"clojure", "clj"},
 		Filenames: []string{"*.clj"},
 		MimeTypes: []string{"text/x-clojure", "application/x-clojure"},
 	},
-	Rules{
+	clojureRules,
+))
+
+func clojureRules() Rules {
+	return Rules{
 		"root": {
 			{`;.*$`, CommentSingle, nil},
 			{`[,\s]+`, Text, nil},
@@ -34,5 +38,5 @@ var Clojure = internal.Register(MustNewLexer(
 			{`(\{|\})`, Punctuation, nil},
 			{`(\(|\))`, Punctuation, nil},
 		},
-	},
-))
+	}
+}

@@ -40,3 +40,33 @@ TEXT ·asmRdtscpAsm(SB), 7, $0
 	MOVL CX, ecx+8(FP)
 	MOVL DX, edx+12(FP)
 	RET
+
+// From https://go-review.googlesource.com/c/sys/+/285572/
+// func asmDarwinHasAVX512() bool
+TEXT ·asmDarwinHasAVX512(SB), 7, $0-1
+	MOVB $0, ret+0(FP) // default to false
+
+#ifdef GOOS_darwin // return if not darwin
+#ifdef GOARCH_amd64 // return if not amd64
+// These values from:
+// https://github.com/apple/darwin-xnu/blob/xnu-4570.1.46/osfmk/i386/cpu_capabilities.h
+#define commpage64_base_address         0x00007fffffe00000
+#define commpage64_cpu_capabilities64   (commpage64_base_address+0x010)
+#define commpage64_version              (commpage64_base_address+0x01E)
+#define hasAVX512F                      0x0000004000000000
+	MOVQ $commpage64_version, BX
+	MOVW (BX), AX
+	CMPW AX, $13                            // versions < 13 do not support AVX512
+	JL   no_avx512
+	MOVQ $commpage64_cpu_capabilities64, BX
+	MOVQ (BX), AX
+	MOVQ $hasAVX512F, CX
+	ANDQ CX, AX
+	JZ   no_avx512
+	MOVB $1, ret+0(FP)
+
+no_avx512:
+#endif
+#endif
+	RET
+

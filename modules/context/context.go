@@ -20,20 +20,21 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/auth/sso"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
-	"github.com/go-chi/chi"
-	jsoniter "github.com/json-iterator/go"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/unknwon/com"
 	"github.com/unknwon/i18n"
 	"github.com/unrolled/render"
@@ -48,10 +49,11 @@ type Render interface {
 
 // Context represents context of a request.
 type Context struct {
-	Resp   ResponseWriter
-	Req    *http.Request
-	Data   map[string]interface{}
-	Render Render
+	Resp     ResponseWriter
+	Req      *http.Request
+	Data     map[string]interface{} // data used by MVC templates
+	PageData map[string]interface{} // data used by JavaScript modules in one page, it's `window.config.pageData`
+	Render   Render
 	translation.Locale
 	Cache   cache.Cache
 	csrf    CSRF
@@ -60,12 +62,22 @@ type Context struct {
 
 	Link        string // current request URL
 	EscapedLink string
-	User        *models.User
+	User        *user_model.User
 	IsSigned    bool
 	IsBasicAuth bool
 
 	Repo *Repository
 	Org  *Organization
+}
+
+// TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
+// This is useful if the locale message is intended to only produce HTML content.
+func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
+	trArgs := make([]interface{}, len(args))
+	for i, arg := range args {
+		trArgs[i] = html.EscapeString(arg)
+	}
+	return ctx.Tr(msg, trArgs...)
 }
 
 // GetData returns the data
@@ -89,7 +101,7 @@ func (ctx *Context) IsUserRepoAdmin() bool {
 }
 
 // IsUserRepoWriter returns true if current user has write privilege in current repo
-func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
+func (ctx *Context) IsUserRepoWriter(unitTypes []unit.Type) bool {
 	for _, unitType := range unitTypes {
 		if ctx.Repo.CanWrite(unitType) {
 			return true
@@ -100,7 +112,7 @@ func (ctx *Context) IsUserRepoWriter(unitTypes []models.UnitType) bool {
 }
 
 // IsUserRepoReaderSpecific returns true if current user can read current repo's specific part
-func (ctx *Context) IsUserRepoReaderSpecific(unitType models.UnitType) bool {
+func (ctx *Context) IsUserRepoReaderSpecific(unitType unit.Type) bool {
 	return ctx.Repo.CanRead(unitType)
 }
 
@@ -111,16 +123,16 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 
 // RedirectToUser redirect to a differently-named user
 func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
-	user, err := models.GetUserByID(redirectUserID)
+	user, err := user_model.GetUserByID(redirectUserID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
 	}
 
 	redirectPath := strings.Replace(
-		ctx.Req.URL.Path,
-		userName,
-		user.Name,
+		ctx.Req.URL.EscapedPath(),
+		url.PathEscape(userName),
+		url.PathEscape(user.Name),
 		1,
 	)
 	if ctx.Req.URL.RawQuery != "" {
@@ -213,7 +225,7 @@ func (ctx *Context) RenderWithErr(msg string, tpl base.TplName, form interface{}
 	}
 	ctx.Flash.ErrorMsg = msg
 	ctx.Data["Flash"] = ctx.Flash
-	ctx.HTML(200, tpl)
+	ctx.HTML(http.StatusOK, tpl)
 }
 
 // NotFound displays a 404 (Not Found) page and prints the given error, if any.
@@ -224,8 +236,25 @@ func (ctx *Context) NotFound(title string, err error) {
 func (ctx *Context) notFoundInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
+		}
+	}
+
+	// response simple meesage if Accept isn't text/html
+	reqTypes, has := ctx.Req.Header["Accept"]
+	if has && len(reqTypes) > 0 {
+		notHTML := true
+		for _, part := range reqTypes {
+			if strings.Contains(part, "text/html") {
+				notHTML = false
+				break
+			}
+		}
+
+		if notHTML {
+			ctx.PlainText(404, []byte("Not found.\n"))
+			return
 		}
 	}
 
@@ -243,7 +272,7 @@ func (ctx *Context) ServerError(title string, err error) {
 func (ctx *Context) serverErrorInternal(title string, err error) {
 	if err != nil {
 		log.ErrorWithSkip(2, "%s: %v", title, err)
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			ctx.Data["ErrorMsg"] = err
 		}
 	}
@@ -267,39 +296,6 @@ func (ctx *Context) NotFoundOrServerError(title string, errck func(error) bool, 
 // Header returns a header
 func (ctx *Context) Header() http.Header {
 	return ctx.Resp.Header()
-}
-
-// FIXME: We should differ Query and Form, currently we just use form as query
-// Currently to be compatible with macaron, we keep it.
-
-// Query returns request form as string with default
-func (ctx *Context) Query(key string, defaults ...string) string {
-	return (*Forms)(ctx.Req).MustString(key, defaults...)
-}
-
-// QueryTrim returns request form as string with default and trimmed spaces
-func (ctx *Context) QueryTrim(key string, defaults ...string) string {
-	return (*Forms)(ctx.Req).MustTrimmed(key, defaults...)
-}
-
-// QueryStrings returns request form as strings with default
-func (ctx *Context) QueryStrings(key string, defaults ...[]string) []string {
-	return (*Forms)(ctx.Req).MustStrings(key, defaults...)
-}
-
-// QueryInt returns request form as int with default
-func (ctx *Context) QueryInt(key string, defaults ...int) int {
-	return (*Forms)(ctx.Req).MustInt(key, defaults...)
-}
-
-// QueryInt64 returns request form as int64 with default
-func (ctx *Context) QueryInt64(key string, defaults ...int64) int64 {
-	return (*Forms)(ctx.Req).MustInt64(key, defaults...)
-}
-
-// QueryBool returns request form as bool with default
-func (ctx *Context) QueryBool(key string, defaults ...bool) bool {
-	return (*Forms)(ctx.Req).MustBool(key, defaults...)
 }
 
 // HandleText handles HTTP status code
@@ -335,7 +331,7 @@ func (ctx *Context) PlainText(status int, bs []byte) {
 	ctx.Resp.WriteHeader(status)
 	ctx.Resp.Header().Set("Content-Type", "text/plain;charset=utf-8")
 	if _, err := ctx.Resp.Write(bs); err != nil {
-		ctx.ServerError("Render JSON failed", err)
+		ctx.ServerError("Write bytes failed", err)
 	}
 }
 
@@ -357,6 +353,21 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
+// ServeStream serves file via io stream
+func (ctx *Context) ServeStream(rd io.Reader, name string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	_, err := io.Copy(ctx.Resp, rd)
+	if err != nil {
+		ctx.ServerError("Download file failed", err)
+	}
+}
+
 // Error returned an error to web browser
 func (ctx *Context) Error(status int, contents ...string) {
 	var v = http.StatusText(status)
@@ -370,7 +381,6 @@ func (ctx *Context) Error(status int, contents ...string) {
 func (ctx *Context) JSON(status int, content interface{}) {
 	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
 	ctx.Resp.WriteHeader(status)
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	if err := json.NewEncoder(ctx.Resp).Encode(content); err != nil {
 		ctx.ServerError("Render JSON failed", err)
 	}
@@ -492,7 +502,7 @@ func (ctx *Context) ParamsInt64(p string) int64 {
 
 // SetParams set params into routes
 func (ctx *Context) SetParams(k, v string) {
-	chiCtx := chi.RouteContext(ctx.Req.Context())
+	chiCtx := chi.RouteContext(ctx)
 	chiCtx.URLParams.Add(strings.TrimPrefix(k, ":"), url.PathEscape(v))
 }
 
@@ -511,6 +521,26 @@ func (ctx *Context) Status(status int) {
 	ctx.Resp.WriteHeader(status)
 }
 
+// Deadline is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Deadline() (deadline time.Time, ok bool) {
+	return ctx.Req.Context().Deadline()
+}
+
+// Done is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Done() <-chan struct{} {
+	return ctx.Req.Context().Done()
+}
+
+// Err is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Err() error {
+	return ctx.Req.Context().Err()
+}
+
+// Value is part of the interface for context.Context and we pass this to the request context
+func (ctx *Context) Value(key interface{}) interface{} {
+	return ctx.Req.Context().Value(key)
+}
+
 // Handler represents a custom handler
 type Handler func(*Context)
 
@@ -527,6 +557,17 @@ func WithContext(req *http.Request, ctx *Context) *http.Request {
 // GetContext retrieves install context from request
 func GetContext(req *http.Request) *Context {
 	return req.Context().Value(contextKey).(*Context)
+}
+
+// GetContextUser returns context user
+func GetContextUser(req *http.Request) *user_model.User {
+	if apiContext, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
+		return apiContext.User
+	}
+	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
+		return ctx.User
+	}
+	return nil
 }
 
 // SignedUserName returns signed user's name via context
@@ -568,6 +609,31 @@ func getCsrfOpts() CsrfOptions {
 	}
 }
 
+// Auth converts auth.Auth as a middleware
+func Auth(authMethod auth.Method) func(*Context) {
+	return func(ctx *Context) {
+		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.User != nil {
+			if ctx.Locale.Language() != ctx.User.Language {
+				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+			}
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
+			ctx.IsSigned = true
+			ctx.Data["IsSigned"] = ctx.IsSigned
+			ctx.Data["SignedUser"] = ctx.User
+			ctx.Data["SignedUserID"] = ctx.User.ID
+			ctx.Data["SignedUserName"] = ctx.User.Name
+			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+		} else {
+			ctx.Data["SignedUserID"] = int64(0)
+			ctx.Data["SignedUserName"] = ""
+
+			// ensure the session uid is deleted
+			_ = ctx.Session.Delete("uid")
+		}
+	}
+}
+
 // Contexter initializes a classic context for a request.
 func Contexter() func(next http.Handler) http.Handler {
 	var rnd = templates.HTMLRenderer()
@@ -593,8 +659,12 @@ func Contexter() func(next http.Handler) http.Handler {
 					"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 					"PageStartTime": startTime,
 					"Link":          link,
+					"RunModeIsProd": setting.IsProd,
 				},
 			}
+			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
+			ctx.PageData = map[string]interface{}{}
+			ctx.Data["PageData"] = ctx.PageData
 
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = Csrfer(csrfOpts, &ctx)
@@ -653,28 +723,14 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
-			// Get user from session if logged in.
-			ctx.User, ctx.IsBasicAuth = sso.SignedInUser(ctx.Req, ctx.Resp, &ctx, ctx.Session)
-
-			if ctx.User != nil {
-				ctx.IsSigned = true
-				ctx.Data["IsSigned"] = ctx.IsSigned
-				ctx.Data["SignedUser"] = ctx.User
-				ctx.Data["SignedUserID"] = ctx.User.ID
-				ctx.Data["SignedUserName"] = ctx.User.Name
-				ctx.Data["IsAdmin"] = ctx.User.IsAdmin
-			} else {
-				ctx.Data["SignedUserID"] = int64(0)
-				ctx.Data["SignedUserName"] = ""
-			}
-
-			ctx.Resp.Header().Set(`X-Frame-Options`, `SAMEORIGIN`)
+			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 			log.Debug("Session ID: %s", ctx.Session.ID())
 			log.Debug("CSRF Token: %v", ctx.Data["CsrfToken"])
 
+			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
 			ctx.Data["IsLandingPageHome"] = setting.LandingPageURL == setting.LandingPageHome
 			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
 			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
@@ -687,8 +743,14 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations
+			ctx.Data["DisableStars"] = setting.Repository.DisableStars
 
 			ctx.Data["ManifestData"] = setting.ManifestData
+
+			ctx.Data["UnitWikiGlobalDisabled"] = unit.TypeWiki.UnitGlobalDisabled()
+			ctx.Data["UnitIssuesGlobalDisabled"] = unit.TypeIssues.UnitGlobalDisabled()
+			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
+			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
 			ctx.Data["i18n"] = locale
 			ctx.Data["Tr"] = i18n.Tr
@@ -702,6 +764,17 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
+
+			// Handle adding signedUserName to the context for the AccessLogger
+			usernameInterface := ctx.Data["SignedUserName"]
+			identityPtrInterface := ctx.Req.Context().Value(signedUserNameStringPointerKey)
+			if usernameInterface != nil && identityPtrInterface != nil {
+				username := usernameInterface.(string)
+				identityPtr := identityPtrInterface.(*string)
+				if identityPtr != nil && username != "" {
+					*identityPtr = username
+				}
+			}
 		})
 	}
 }

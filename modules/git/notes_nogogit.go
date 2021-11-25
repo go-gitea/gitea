@@ -2,26 +2,36 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
+//go:build !gogit
 // +build !gogit
 
 package git
 
 import (
-	"io/ioutil"
+	"context"
+	"io"
+	"strings"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 // GetNote retrieves the git-notes data for a given commit.
-func GetNote(repo *Repository, commitID string, note *Note) error {
+// FIXME: Add LastCommitCache support
+func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note) error {
+	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.Path)
 	notes, err := repo.GetCommit(NotesRef)
 	if err != nil {
+		log.Error("Unable to get commit from ref %q. Error: %v", NotesRef, err)
 		return err
 	}
 
 	path := ""
 
 	tree := &notes.Tree
+	log.Trace("Found tree with ID %q while searching for git note corresponding to the commit %q", tree.ID, commitID)
 
 	var entry *TreeEntry
+	originalCommitID := commitID
 	for len(commitID) > 2 {
 		entry, err = tree.GetTreeEntryByPath(commitID)
 		if err == nil {
@@ -34,26 +44,44 @@ func GetNote(repo *Repository, commitID string, note *Note) error {
 			commitID = commitID[2:]
 		}
 		if err != nil {
+			log.Error("Unable to find git note corresponding to the commit %q. Error: %v", originalCommitID, err)
 			return err
 		}
 	}
 
-	dataRc, err := entry.Blob().DataAsync()
+	blob := entry.Blob()
+	dataRc, err := blob.DataAsync()
 	if err != nil {
+		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
 		return err
 	}
-	defer dataRc.Close()
-	d, err := ioutil.ReadAll(dataRc)
+	closed := false
+	defer func() {
+		if !closed {
+			_ = dataRc.Close()
+		}
+	}()
+	d, err := io.ReadAll(dataRc)
 	if err != nil {
+		log.Error("Unable to read blob with ID %q. Error: %v", blob.ID, err)
 		return err
 	}
+	_ = dataRc.Close()
+	closed = true
 	note.Message = d
 
-	lastCommits, err := GetLastCommitForPaths(notes, "", []string{path})
+	treePath := ""
+	if idx := strings.LastIndex(path, "/"); idx > -1 {
+		treePath = path[:idx]
+		path = path[idx+1:]
+	}
+
+	lastCommits, err := GetLastCommitForPaths(ctx, nil, notes, treePath, []string{path})
 	if err != nil {
+		log.Error("Unable to get the commit for the path %q. Error: %v", treePath, err)
 		return err
 	}
-	note.Commit = lastCommits[0]
+	note.Commit = lastCommits[path]
 
 	return nil
 }

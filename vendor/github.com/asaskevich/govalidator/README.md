@@ -177,6 +177,7 @@ func IsPrintableASCII(str string) bool
 func IsRFC3339(str string) bool
 func IsRFC3339WithoutZone(str string) bool
 func IsRGBcolor(str string) bool
+func IsRegex(str string) bool
 func IsRequestURI(rawurl string) bool
 func IsRequestURL(rawurl string) bool
 func IsRipeMD128(str string) bool
@@ -203,6 +204,7 @@ func IsUUID(str string) bool
 func IsUUIDv3(str string) bool
 func IsUUIDv4(str string) bool
 func IsUUIDv5(str string) bool
+func IsULID(str string) bool
 func IsUnixTime(str string) bool
 func IsUpperCase(str string) bool
 func IsVariableWidth(str string) bool
@@ -382,6 +384,7 @@ Here is a list of available validators for struct fields (validator - used funct
 "rfc3339WithoutZone": IsRFC3339WithoutZone,
 "ISO3166Alpha2":      IsISO3166Alpha2,
 "ISO3166Alpha3":      IsISO3166Alpha3,
+"ulid":               IsULID,
 ```
 Validators with parameters
 

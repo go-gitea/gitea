@@ -10,11 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"unicode/utf8"
-
-	// Needed for jpeg support
-	_ "image/jpeg"
-	"io/ioutil"
 	"net"
 	"net/url"
 	"os"
@@ -24,7 +19,17 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
+	_ "image/jpeg" // Needed for jpeg support
+
+	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/options"
@@ -40,9 +45,6 @@ import (
 var (
 	// ErrMirrorNotExist mirror does not exist error
 	ErrMirrorNotExist = errors.New("Mirror does not exist")
-
-	// ErrNameEmpty name is empty error
-	ErrNameEmpty = errors.New("Name is empty")
 )
 
 var (
@@ -129,9 +131,9 @@ func loadRepoConfig() {
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	loadRepoConfig()
-	loadUnitConfig()
+	unit.LoadUnitConfig()
 
-	RemoveAllWithNotice("Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
 // RepositoryStatus defines the status of repository
@@ -142,6 +144,7 @@ const (
 	RepositoryReady           RepositoryStatus = iota // a normal repository
 	RepositoryBeingMigrated                           // repository is migrating
 	RepositoryPendingTransfer                         // repository pending in ownership transfer state
+	RepositoryBroken                                  // repository is in a permanently broken state
 )
 
 // TrustModelType defines the types of trust model for this repository
@@ -190,7 +193,7 @@ type Repository struct {
 	ID                  int64 `xorm:"pk autoincr"`
 	OwnerID             int64 `xorm:"UNIQUE(s) index"`
 	OwnerName           string
-	Owner               *User              `xorm:"-"`
+	Owner               *user_model.User   `xorm:"-"`
 	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Name                string             `xorm:"INDEX NOT NULL"`
 	Description         string             `xorm:"TEXT"`
@@ -215,12 +218,13 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate  bool `xorm:"INDEX"`
-	IsEmpty    bool `xorm:"INDEX"`
-	IsArchived bool `xorm:"INDEX"`
-	IsMirror   bool `xorm:"INDEX"`
-	*Mirror    `xorm:"-"`
-	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+	IsPrivate   bool `xorm:"INDEX"`
+	IsEmpty     bool `xorm:"INDEX"`
+	IsArchived  bool `xorm:"INDEX"`
+	IsMirror    bool `xorm:"INDEX"`
+	*Mirror     `xorm:"-"`
+	PushMirrors []*PushMirror    `xorm:"-"`
+	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -249,12 +253,21 @@ type Repository struct {
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
+func init() {
+	db.RegisterModel(new(Repository))
+}
+
 // SanitizedOriginalURL returns a sanitized OriginalURL
 func (repo *Repository) SanitizedOriginalURL() string {
 	if repo.OriginalURL == "" {
 		return ""
 	}
-	return util.SanitizeURLCredentials(repo.OriginalURL, false)
+	u, err := url.Parse(repo.OriginalURL)
+	if err != nil {
+		return ""
+	}
+	u.User = nil
+	return u.String()
 }
 
 // ColorFormat returns a colored string to represent this repo
@@ -275,6 +288,11 @@ func (repo *Repository) IsBeingCreated() bool {
 	return repo.IsBeingMigrated()
 }
 
+// IsBroken indicates that repository is broken
+func (repo *Repository) IsBroken() bool {
+	return repo.Status == RepositoryBroken
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
@@ -288,12 +306,12 @@ func (repo *Repository) AfterLoad() {
 	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
 }
 
-// MustOwner always returns a valid *User object to avoid
+// MustOwner always returns a valid *user_model.User object to avoid
 // conceptually impossible error handling.
 // It creates a fake object that contains error details
 // when error occurs.
-func (repo *Repository) MustOwner() *User {
-	return repo.mustOwner(x)
+func (repo *Repository) MustOwner() *user_model.User {
+	return repo.mustOwner(db.GetEngine(db.DefaultContext))
 }
 
 // FullName returns the repository full name
@@ -303,7 +321,7 @@ func (repo *Repository) FullName() string {
 
 // HTMLURL returns the repository HTML URL
 func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + repo.FullName()
+	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // CommitLink make link to by commit full ID
@@ -312,14 +330,14 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 	if commitID == "" || commitID == "0000000000000000000000000000000000000000" {
 		result = ""
 	} else {
-		result = repo.HTMLURL() + "/commit/" + commitID
+		result = repo.HTMLURL() + "/commit/" + url.PathEscape(commitID)
 	}
 	return
 }
 
 // APIURL returns the repository API URL
 func (repo *Repository) APIURL() string {
-	return setting.AppURL + "api/v1/repos/" + repo.FullName()
+	return setting.AppURL + "api/v1/repos/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // GetCommitsCountCacheKey returns cache key used for commits count caching.
@@ -333,7 +351,7 @@ func (repo *Repository) GetCommitsCountCacheKey(contextName string, isRef bool) 
 	return fmt.Sprintf("commits-count-%d-%s-%s", repo.ID, prefix, contextName)
 }
 
-func (repo *Repository) getUnits(e Engine) (err error) {
+func (repo *Repository) getUnits(e db.Engine) (err error) {
 	if repo.Units != nil {
 		return nil
 	}
@@ -344,11 +362,11 @@ func (repo *Repository) getUnits(e Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(user *User, unitType UnitType) bool {
-	return repo.checkUnitUser(x, user, unitType)
+func (repo *Repository) CheckUnitUser(user *user_model.User, unitType unit.Type) bool {
+	return repo.checkUnitUser(db.GetEngine(db.DefaultContext), user, unitType)
 }
 
-func (repo *Repository) checkUnitUser(e Engine, user *User, unitType UnitType) bool {
+func (repo *Repository) checkUnitUser(e db.Engine, user *user_model.User, unitType unit.Type) bool {
 	if user.IsAdmin {
 		return true
 	}
@@ -362,8 +380,8 @@ func (repo *Repository) checkUnitUser(e Engine, user *User, unitType UnitType) b
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp UnitType) bool {
-	if err := repo.getUnits(x); err != nil {
+func (repo *Repository) UnitEnabled(tp unit.Type) bool {
+	if err := repo.getUnits(db.GetEngine(db.DefaultContext)); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
 	for _, unit := range repo.Units {
@@ -376,7 +394,7 @@ func (repo *Repository) UnitEnabled(tp UnitType) bool {
 
 // ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
 type ErrUnitTypeNotExist struct {
-	UT UnitType
+	UT unit.Type
 }
 
 // IsErrUnitTypeNotExist checks if an error is a ErrUnitNotExist.
@@ -390,28 +408,28 @@ func (err ErrUnitTypeNotExist) Error() string {
 }
 
 // MustGetUnit always returns a RepoUnit object
-func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
+func (repo *Repository) MustGetUnit(tp unit.Type) *RepoUnit {
 	ru, err := repo.GetUnit(tp)
 	if err == nil {
 		return ru
 	}
 
-	if tp == UnitTypeExternalWiki {
+	if tp == unit.TypeExternalWiki {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalWikiConfig),
 		}
-	} else if tp == UnitTypeExternalTracker {
+	} else if tp == unit.TypeExternalTracker {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(ExternalTrackerConfig),
 		}
-	} else if tp == UnitTypePullRequests {
+	} else if tp == unit.TypePullRequests {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(PullRequestsConfig),
 		}
-	} else if tp == UnitTypeIssues {
+	} else if tp == unit.TypeIssues {
 		return &RepoUnit{
 			Type:   tp,
 			Config: new(IssuesConfig),
@@ -424,11 +442,11 @@ func (repo *Repository) MustGetUnit(tp UnitType) *RepoUnit {
 }
 
 // GetUnit returns a RepoUnit object
-func (repo *Repository) GetUnit(tp UnitType) (*RepoUnit, error) {
-	return repo.getUnit(x, tp)
+func (repo *Repository) GetUnit(tp unit.Type) (*RepoUnit, error) {
+	return repo.getUnit(db.GetEngine(db.DefaultContext), tp)
 }
 
-func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
+func (repo *Repository) getUnit(e db.Engine, tp unit.Type) (*RepoUnit, error) {
 	if err := repo.getUnits(e); err != nil {
 		return nil, err
 	}
@@ -440,23 +458,23 @@ func (repo *Repository) getUnit(e Engine, tp UnitType) (*RepoUnit, error) {
 	return nil, ErrUnitTypeNotExist{tp}
 }
 
-func (repo *Repository) getOwner(e Engine) (err error) {
+func (repo *Repository) getOwner(e db.Engine) (err error) {
 	if repo.Owner != nil {
 		return nil
 	}
 
-	repo.Owner, err = getUserByID(e, repo.OwnerID)
+	repo.Owner, err = user_model.GetUserByIDEngine(e, repo.OwnerID)
 	return err
 }
 
 // GetOwner returns the repository owner
 func (repo *Repository) GetOwner() error {
-	return repo.getOwner(x)
+	return repo.getOwner(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) mustOwner(e Engine) *User {
+func (repo *Repository) mustOwner(e db.Engine) *user_model.User {
 	if err := repo.getOwner(e); err != nil {
-		return &User{
+		return &user_model.User{
 			Name:     "error",
 			FullName: err.Error(),
 		}
@@ -475,7 +493,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			"mode":     "comment",
 		}
 
-		unit, err := repo.GetUnit(UnitTypeExternalTracker)
+		unit, err := repo.GetUnit(unit.TypeExternalTracker)
 		if err == nil {
 			metas["format"] = unit.ExternalTrackerConfig().ExternalTrackerFormat
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
@@ -489,7 +507,7 @@ func (repo *Repository) ComposeMetas() map[string]string {
 		repo.MustOwner()
 		if repo.Owner.IsOrganization() {
 			teams := make([]string, 0, 5)
-			_ = x.Table("team_repo").
+			_ = db.GetEngine(db.DefaultContext).Table("team_repo").
 				Join("INNER", "team", "team.id = team_repo.team_id").
 				Where("team_repo.repo_id = ?", repo.ID).
 				Select("team.lower_name").
@@ -517,22 +535,7 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 	return repo.DocumentRenderingMetas
 }
 
-// DeleteWiki removes the actual and local copy of repository wiki.
-func (repo *Repository) DeleteWiki() error {
-	return repo.deleteWiki(x)
-}
-
-func (repo *Repository) deleteWiki(e Engine) error {
-	wikiPaths := []string{repo.WikiPath()}
-	for _, wikiPath := range wikiPaths {
-		removeAllWithNotice(e, "Delete repository wiki", wikiPath)
-	}
-
-	_, err := e.Where("repo_id = ?", repo.ID).And("type = ?", UnitTypeWiki).Delete(new(RepoUnit))
-	return err
-}
-
-func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
+func (repo *Repository) getAssignees(e db.Engine) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -546,7 +549,7 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*User, 0, len(accesses)+1)
+	users := make([]*user_model.User, 0, len(accesses)+1)
 	if len(accesses) > 0 {
 		userIDs := make([]int64, len(accesses))
 		for i := 0; i < len(accesses); i++ {
@@ -566,20 +569,19 @@ func (repo *Repository) getAssignees(e Engine) (_ []*User, err error) {
 
 // GetAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
-func (repo *Repository) GetAssignees() (_ []*User, err error) {
-	return repo.getAssignees(x)
+func (repo *Repository) GetAssignees() (_ []*user_model.User, err error) {
+	return repo.getAssignees(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User, error) {
+func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*user_model.User, error) {
 	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
 	if err := repo.getOwner(e); err != nil {
 		return nil, err
 	}
 
-	var users []*User
+	var users []*user_model.User
 
-	if repo.IsPrivate ||
-		(repo.Owner.IsOrganization() && repo.Owner.Visibility == api.VisibleTypePrivate) {
+	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
 		// This a private repository:
 		// Anyone who can read the repository is a requestable reviewer
 		if err := e.
@@ -619,8 +621,8 @@ func (repo *Repository) getReviewers(e Engine, doerID, posterID int64) ([]*User,
 // * for public repositories this returns all users that have read access or higher to the repository,
 // all repo watchers and all organization members.
 // TODO: may be we should have a busy choice for users to block review request to them.
-func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*User, error) {
-	return repo.getReviewers(x, doerID, posterID)
+func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*user_model.User, error) {
+	return repo.getReviewers(db.GetEngine(db.DefaultContext), doerID, posterID)
 }
 
 // GetReviewerTeams get all teams can be requested to review
@@ -656,14 +658,20 @@ func (repo *Repository) GetMirror() (err error) {
 	return err
 }
 
+// LoadPushMirrors populates the repository push mirrors.
+func (repo *Repository) LoadPushMirrors() (err error) {
+	repo.PushMirrors, err = GetPushMirrorsByRepoID(repo.ID)
+	return err
+}
+
 // GetBaseRepo populates repo.BaseRepo for a fork repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
-	return repo.getBaseRepo(x)
+	return repo.getBaseRepo(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) getBaseRepo(e Engine) (err error) {
+func (repo *Repository) getBaseRepo(e db.Engine) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
@@ -681,10 +689,10 @@ func (repo *Repository) IsGenerated() bool {
 // returns an error on failure (NOTE: no error is returned for
 // non-generated repositories, and TemplateRepo will be left untouched)
 func (repo *Repository) GetTemplateRepo() (err error) {
-	return repo.getTemplateRepo(x)
+	return repo.getTemplateRepo(db.GetEngine(db.DefaultContext))
 }
 
-func (repo *Repository) getTemplateRepo(e Engine) (err error) {
+func (repo *Repository) getTemplateRepo(e db.Engine) (err error) {
 	if !repo.IsGenerated() {
 		return nil
 	}
@@ -708,24 +716,19 @@ func (repo *Repository) GitConfigPath() string {
 	return GitConfigPath(repo.RepoPath())
 }
 
-// RelLink returns the repository relative link
-func (repo *Repository) RelLink() string {
-	return "/" + repo.FullName()
-}
-
 // Link returns the repository link
 func (repo *Repository) Link() string {
-	return setting.AppSubURL + "/" + repo.FullName()
+	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
 }
 
 // ComposeCompareURL returns the repository comparison URL
 func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) string {
-	return fmt.Sprintf("%s/compare/%s...%s", repo.FullName(), oldCommitID, newCommitID)
+	return fmt.Sprintf("%s/%s/compare/%s...%s", url.PathEscape(repo.OwnerName), url.PathEscape(repo.Name), util.PathEscapeSegments(oldCommitID), util.PathEscapeSegments(newCommitID))
 }
 
 // UpdateDefaultBranch updates the default branch
 func (repo *Repository) UpdateDefaultBranch() error {
-	_, err := x.ID(repo.ID).Cols("default_branch").Update(repo)
+	_, err := db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("default_branch").Update(repo)
 	return err
 }
 
@@ -734,43 +737,41 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-func (repo *Repository) updateSize(e Engine) error {
+func (repo *Repository) updateSize(e db.Engine) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	objs, err := repo.GetLFSMetaObjects(-1, 0)
+	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
-	for _, obj := range objs {
-		size += obj.Size
-	}
 
-	repo.Size = size
-	_, err = e.ID(repo.ID).Cols("size").Update(repo)
+	repo.Size = size + lfsSize
+	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
 }
 
 // UpdateSize updates the repository size, calculating it using util.GetDirectorySize
-func (repo *Repository) UpdateSize(ctx DBContext) error {
-	return repo.updateSize(ctx.e)
+func (repo *Repository) UpdateSize(ctx context.Context) error {
+	return repo.updateSize(db.GetEngine(ctx))
 }
 
-// CanUserFork returns true if specified user can fork repository.
-func (repo *Repository) CanUserFork(user *User) (bool, error) {
+// CanUserForkRepo returns true if specified user can fork repository.
+func CanUserForkRepo(user *user_model.User, repo *Repository) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
-	if repo.OwnerID != user.ID && !user.HasForkedRepo(repo.ID) {
+	if repo.OwnerID != user.ID && !HasForkedRepo(user.ID, repo.ID) {
 		return true, nil
 	}
-	if err := user.GetOwnedOrganizations(); err != nil {
+	ownedOrgs, err := GetOrgsCanCreateRepoByUserID(user.ID)
+	if err != nil {
 		return false, err
 	}
-	for _, org := range user.OwnedOrgs {
-		if repo.OwnerID != org.ID && !org.HasForkedRepo(repo.ID) {
+	for _, org := range ownedOrgs {
+		if repo.OwnerID != org.ID && !HasForkedRepo(org.ID, repo.ID) {
 			return true, nil
 		}
 	}
@@ -778,7 +779,7 @@ func (repo *Repository) CanUserFork(user *User) (bool, error) {
 }
 
 // CanUserDelete returns true if user could delete the repository
-func (repo *Repository) CanUserDelete(user *User) (bool, error) {
+func (repo *Repository) CanUserDelete(user *user_model.User) (bool, error) {
 	if user.IsAdmin || user.ID == repo.OwnerID {
 		return true, nil
 	}
@@ -788,7 +789,7 @@ func (repo *Repository) CanUserDelete(user *User) (bool, error) {
 	}
 
 	if repo.Owner.IsOrganization() {
-		isOwner, err := repo.Owner.IsOwnedBy(user.ID)
+		isOwner, err := OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
 		} else if isOwner {
@@ -806,7 +807,7 @@ func (repo *Repository) CanEnablePulls() bool {
 
 // AllowsPulls returns true if repository meets the requirements of accepting pulls and has them enabled.
 func (repo *Repository) AllowsPulls() bool {
-	return repo.CanEnablePulls() && repo.UnitEnabled(UnitTypePullRequests)
+	return repo.CanEnablePulls() && repo.UnitEnabled(unit.TypePullRequests)
 }
 
 // CanEnableEditor returns true if repository meets the requirements of web editor.
@@ -815,13 +816,13 @@ func (repo *Repository) CanEnableEditor() bool {
 }
 
 // GetReaders returns all users that have explicit read access or higher to the repository.
-func (repo *Repository) GetReaders() (_ []*User, err error) {
-	return repo.getUsersWithAccessMode(x, AccessModeRead)
+func (repo *Repository) GetReaders() (_ []*user_model.User, err error) {
+	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), AccessModeRead)
 }
 
 // GetWriters returns all users that have write access to the repository.
-func (repo *Repository) GetWriters() (_ []*User, err error) {
-	return repo.getUsersWithAccessMode(x, AccessModeWrite)
+func (repo *Repository) GetWriters() (_ []*user_model.User, err error) {
+	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), AccessModeWrite)
 }
 
 // IsReader returns true if user has explicit read access or higher to the repository.
@@ -829,11 +830,11 @@ func (repo *Repository) IsReader(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	return x.Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
-func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*User, err error) {
+func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode AccessMode) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -845,7 +846,7 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*User, 0, len(accesses)+1)
+	users := make([]*user_model.User, 0, len(accesses)+1)
 	if len(accesses) > 0 {
 		userIDs := make([]int64, len(accesses))
 		for i := 0; i < len(accesses); i++ {
@@ -865,7 +866,10 @@ func (repo *Repository) getUsersWithAccessMode(e Engine, mode AccessMode) (_ []*
 
 // DescriptionHTML does special handles to description and return HTML string.
 func (repo *Repository) DescriptionHTML() template.HTML {
-	desc, err := markup.RenderDescriptionHTML([]byte(repo.Description), repo.HTMLURL(), repo.ComposeMetas())
+	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		URLPrefix: repo.HTMLURL(),
+		Metas:     repo.ComposeMetas(),
+	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
 		return template.HTML(markup.Sanitize(repo.Description))
@@ -875,10 +879,10 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 
 // ReadBy sets repo to be visited by given user.
 func (repo *Repository) ReadBy(userID int64) error {
-	return setRepoNotificationStatusReadIfUnread(x, userID, repo.ID)
+	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repo.ID)
 }
 
-func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
+func isRepositoryExist(e db.Engine, u *user_model.User, repoName string) (bool, error) {
 	has, err := e.Get(&Repository{
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
@@ -891,8 +895,8 @@ func isRepositoryExist(e Engine, u *User, repoName string) (bool, error) {
 }
 
 // IsRepositoryExist returns true if the repository with given name under user has already existed.
-func IsRepositoryExist(u *User, repoName string) (bool, error) {
-	return isRepositoryExist(x, u, repoName)
+func IsRepositoryExist(u *user_model.User, repoName string) (bool, error) {
+	return isRepositoryExist(db.GetEngine(db.DefaultContext), u, repoName)
 }
 
 // CloneLink represents different types of clone URLs of repository.
@@ -929,11 +933,11 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 	}
 
 	if setting.SSH.Port != 22 {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, net.JoinHostPort(setting.SSH.Domain, strconv.Itoa(setting.SSH.Port)), url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else if setting.Repository.UseCompatSSHURI {
-		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("ssh://%s@%s/%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	} else {
-		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, repo.OwnerName, repoName)
+		cl.SSH = fmt.Sprintf("%s@%s:%s/%s.git", sshUser, sshDomain, url.PathEscape(repo.OwnerName), url.PathEscape(repoName))
 	}
 	cl.HTTPS = ComposeHTTPSCloneURL(repo.OwnerName, repoName)
 	return cl
@@ -945,7 +949,7 @@ func (repo *Repository) CloneLink() (cl *CloneLink) {
 }
 
 // CheckCreateRepository check if could created a repository
-func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) error {
+func CheckCreateRepository(doer, u *user_model.User, name string, overwriteOrAdopt bool) error {
 	if !doer.CanCreateRepo() {
 		return ErrReachLimitOfRepo{u.MaxRepoCreation}
 	}
@@ -954,7 +958,7 @@ func CheckCreateRepository(doer, u *User, name string, overwriteOrAdopt bool) er
 		return err
 	}
 
-	has, err := isRepositoryExist(x, u, name)
+	has, err := isRepositoryExist(db.GetEngine(db.DefaultContext), u, name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -992,6 +996,13 @@ type CreateRepoOptions struct {
 	MirrorInterval string
 }
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *Repository
+	Name        string
+	Description string
+}
+
 // GetRepoInitFile returns repository init files
 func GetRepoInitFile(tp, name string) ([]byte, error) {
 	cleanedName := strings.TrimLeft(path.Clean("/"+name), "/")
@@ -1004,7 +1015,7 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 		log.Error("Unable to check if %s is a file. Error: %v", customPath, err)
 	}
 	if isFile {
-		return ioutil.ReadFile(customPath)
+		return os.ReadFile(customPath)
 	}
 
 	switch tp {
@@ -1023,25 +1034,25 @@ func GetRepoInitFile(tp, name string) ([]byte, error) {
 
 var (
 	reservedRepoNames    = []string{".", ".."}
-	reservedRepoPatterns = []string{"*.git", "*.wiki"}
+	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
 // IsUsableRepoName returns true when repository is usable
 func IsUsableRepoName(name string) error {
-	if alphaDashDotPattern.MatchString(name) {
+	if db.AlphaDashDotPattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI
-		return ErrNameCharsNotAllowed{Name: name}
+		return db.ErrNameCharsNotAllowed{Name: name}
 	}
-	return isUsableName(reservedRepoNames, reservedRepoPatterns, name)
+	return db.IsUsableName(reservedRepoNames, reservedRepoPatterns, name)
 }
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteOrAdopt bool) (err error) {
+func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *Repository, overwriteOrAdopt bool) (err error) {
 	if err = IsUsableRepoName(repo.Name); err != nil {
 		return err
 	}
 
-	has, err := isRepositoryExist(ctx.e, u, repo.Name)
+	has, err := isRepositoryExist(db.GetEngine(ctx), u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -1062,17 +1073,17 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 		}
 	}
 
-	if _, err = ctx.e.Insert(repo); err != nil {
+	if _, err = db.GetEngine(ctx).Insert(repo); err != nil {
 		return err
 	}
-	if err = deleteRepoRedirect(ctx.e, u.ID, repo.Name); err != nil {
+	if err = deleteRepoRedirect(db.GetEngine(ctx), u.ID, repo.Name); err != nil {
 		return err
 	}
 
 	// insert units for repo
-	units := make([]RepoUnit, 0, len(DefaultRepoUnits))
-	for _, tp := range DefaultRepoUnits {
-		if tp == UnitTypeIssues {
+	units := make([]RepoUnit, 0, len(unit.DefaultRepoUnits))
+	for _, tp := range unit.DefaultRepoUnits {
+		if tp == unit.TypeIssues {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
@@ -1082,11 +1093,11 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 					EnableDependencies:               setting.Service.DefaultEnableDependencies,
 				},
 			})
-		} else if tp == UnitTypePullRequests {
+		} else if tp == unit.TypePullRequests {
 			units = append(units, RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true},
+				Config: &PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: MergeStyleMerge},
 			})
 		} else {
 			units = append(units, RepoUnit{
@@ -1096,65 +1107,98 @@ func CreateRepository(ctx DBContext, doer, u *User, repo *Repository, overwriteO
 		}
 	}
 
-	if _, err = ctx.e.Insert(&units); err != nil {
+	if _, err = db.GetEngine(ctx).Insert(&units); err != nil {
 		return err
 	}
 
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
-	if err = updateUserCols(ctx.e, u, "last_repo_visibility"); err != nil {
+	if err = user_model.UpdateUserColsEngine(db.GetEngine(ctx), u, "last_repo_visibility"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
-	if _, err = ctx.e.Incr("num_repos").ID(u.ID).Update(new(User)); err != nil {
+	if _, err = db.GetEngine(ctx).Incr("num_repos").ID(u.ID).Update(new(user_model.User)); err != nil {
 		return fmt.Errorf("increment user total_repos: %v", err)
 	}
 	u.NumRepos++
 
 	// Give access to all members in teams with access to all repositories.
 	if u.IsOrganization() {
-		if err := u.GetTeams(&SearchTeamOptions{}); err != nil {
-			return fmt.Errorf("GetTeams: %v", err)
+		teams, err := OrgFromUser(u).loadTeams(db.GetEngine(ctx))
+		if err != nil {
+			return fmt.Errorf("loadTeams: %v", err)
 		}
-		for _, t := range u.Teams {
+		for _, t := range teams {
 			if t.IncludesAllRepositories {
-				if err := t.addRepository(ctx.e, repo); err != nil {
+				if err := t.addRepository(db.GetEngine(ctx), repo); err != nil {
 					return fmt.Errorf("addRepository: %v", err)
 				}
 			}
 		}
 
-		if isAdmin, err := isUserRepoAdmin(ctx.e, repo, doer); err != nil {
+		if isAdmin, err := isUserRepoAdmin(db.GetEngine(ctx), repo, doer); err != nil {
 			return fmt.Errorf("isUserRepoAdmin: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wan't assigned automatically
-			if err = repo.addCollaborator(ctx.e, doer); err != nil {
+			if err = repo.addCollaborator(db.GetEngine(ctx), doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
 			}
-			if err = repo.changeCollaborationAccessMode(ctx.e, doer.ID, AccessModeAdmin); err != nil {
+			if err = repo.changeCollaborationAccessMode(db.GetEngine(ctx), doer.ID, AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}
-	} else if err = repo.recalculateAccesses(ctx.e); err != nil {
+	} else if err = repo.recalculateAccesses(db.GetEngine(ctx)); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = watchRepo(ctx.e, doer.ID, repo.ID, true); err != nil {
+		if err = watchRepo(db.GetEngine(ctx), doer.ID, repo.ID, true); err != nil {
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
 
-	if err = copyDefaultWebhooksToRepo(ctx.e, repo.ID); err != nil {
+	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
 		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
 	}
 
 	return nil
 }
 
+// CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
+func (repo *Repository) CheckDaemonExportOK(ctx context.Context) error {
+	e := db.GetEngine(ctx)
+	if err := repo.getOwner(e); err != nil {
+		return err
+	}
+
+	// Create/Remove git-daemon-export-ok for git-daemon...
+	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+
+	isExist, err := util.IsExist(daemonExportFile)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		return err
+	}
+
+	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
+	if !isPublic && isExist {
+		if err = util.Remove(daemonExportFile); err != nil {
+			log.Error("Failed to remove %s: %v", daemonExportFile, err)
+		}
+	} else if isPublic && !isExist {
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
+	}
+
+	return nil
+}
+
 func countRepositories(userID int64, private bool) int64 {
-	sess := x.Where("id > 0")
+	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
 
 	if userID > 0 {
 		sess.And("owner_id = ?", userID)
@@ -1186,17 +1230,23 @@ func CountUserRepositories(userID int64, private bool) int64 {
 
 // RepoPath returns repository path by given user and repository name.
 func RepoPath(userName, repoName string) string {
-	return filepath.Join(UserPath(userName), strings.ToLower(repoName)+".git")
+	return filepath.Join(user_model.UserPath(userName), strings.ToLower(repoName)+".git")
 }
 
 // IncrementRepoForkNum increment repository fork number
-func IncrementRepoForkNum(ctx DBContext, repoID int64) error {
-	_, err := ctx.e.Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", repoID)
+func IncrementRepoForkNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", repoID)
+	return err
+}
+
+// DecrementRepoForkNum decrement repository fork number
+func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repoID)
 	return err
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err error) {
+func ChangeRepositoryName(doer *user_model.User, repo *Repository, newRepoName string) (err error) {
 	oldRepoName := repo.Name
 	newRepoName = strings.ToLower(newRepoName)
 	if err = IsUsableRepoName(newRepoName); err != nil {
@@ -1215,7 +1265,7 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 	}
 
 	newRepoPath := RepoPath(repo.Owner.Name, newRepoName)
-	if err = os.Rename(repo.RepoPath(), newRepoPath); err != nil {
+	if err = util.Rename(repo.RepoPath(), newRepoPath); err != nil {
 		return fmt.Errorf("rename repository directory: %v", err)
 	}
 
@@ -1226,25 +1276,25 @@ func ChangeRepositoryName(doer *User, repo *Repository, newRepoName string) (err
 		return err
 	}
 	if isExist {
-		if err = os.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
+		if err = util.Rename(wikiPath, WikiPath(repo.Owner.Name, newRepoName)); err != nil {
 			return fmt.Errorf("rename repository wiki: %v", err)
 		}
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
-		return fmt.Errorf("sess.Begin: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
 	}
+	defer committer.Close()
 
-	if err := newRepoRedirect(sess, repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
+	if err := newRepoRedirect(db.GetEngine(ctx), repo.Owner.ID, repo.ID, oldRepoName, newRepoName); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
+func getRepositoriesByForkID(e db.Engine, forkID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
 	return repos, e.
 		Where("fork_id=?", forkID).
@@ -1253,10 +1303,10 @@ func getRepositoriesByForkID(e Engine, forkID int64) ([]*Repository, error) {
 
 // GetRepositoriesByForkID returns all repositories with given fork ID.
 func GetRepositoriesByForkID(forkID int64) ([]*Repository, error) {
-	return getRepositoriesByForkID(x, forkID)
+	return getRepositoriesByForkID(db.GetEngine(db.DefaultContext), forkID)
 }
 
-func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err error) {
+func updateRepository(e db.Engine, repo *Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
 	if utf8.RuneCountInString(repo.Description) > 255 {
@@ -1296,22 +1346,8 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
-		isExist, err := util.IsExist(daemonExportFile)
-		if err != nil {
-			log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		if err := repo.CheckDaemonExportOK(db.WithEngine(db.DefaultContext, e)); err != nil {
 			return err
-		}
-		if repo.IsPrivate && isExist {
-			if err = util.Remove(daemonExportFile); err != nil {
-				log.Error("Failed to remove %s: %v", daemonExportFile, err)
-			}
-		} else if !repo.IsPrivate && !isExist {
-			if f, err := os.Create(daemonExportFile); err != nil {
-				log.Error("Failed to create %s: %v", daemonExportFile, err)
-			} else {
-				f.Close()
-			}
 		}
 
 		forkRepos, err := getRepositoriesByForkID(e, repo.ID)
@@ -1330,75 +1366,91 @@ func updateRepository(e Engine, repo *Repository, visibilityChanged bool) (err e
 }
 
 // UpdateRepositoryCtx updates a repository with db context
-func UpdateRepositoryCtx(ctx DBContext, repo *Repository, visibilityChanged bool) error {
-	return updateRepository(ctx.e, repo, visibilityChanged)
+func UpdateRepositoryCtx(ctx context.Context, repo *Repository, visibilityChanged bool) error {
+	return updateRepository(db.GetEngine(ctx), repo, visibilityChanged)
 }
 
 // UpdateRepository updates a repository
 func UpdateRepository(repo *Repository, visibilityChanged bool) (err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = updateRepository(sess, repo, visibilityChanged); err != nil {
+	if err = updateRepository(db.GetEngine(ctx), repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
-	return sess.Commit()
+	return committer.Commit()
+}
+
+// UpdateRepositoryOwnerNames updates repository owner_names (this should only be used when the ownerName has changed case)
+func UpdateRepositoryOwnerNames(ownerID int64, ownerName string) error {
+	if ownerID == 0 {
+		return nil
+	}
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if _, err := db.GetEngine(ctx).Where("owner_id = ?", ownerID).Cols("owner_name").Update(&Repository{
+		OwnerName: ownerName,
+	}); err != nil {
+		return err
+	}
+
+	return committer.Commit()
 }
 
 // UpdateRepositoryUpdatedTime updates a repository's updated time
 func UpdateRepositoryUpdatedTime(repoID int64, updateTime time.Time) error {
-	_, err := x.Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
+	_, err := db.GetEngine(db.DefaultContext).Exec("UPDATE repository SET updated_unix = ? WHERE id = ?", updateTime.Unix(), repoID)
 	return err
 }
 
 // UpdateRepositoryUnits updates a repository's units
-func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []UnitType) (err error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+func UpdateRepositoryUnits(repo *Repository, units []RepoUnit, deleteUnitTypes []unit.Type) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	// Delete existing settings of units before adding again
 	for _, u := range units {
 		deleteUnitTypes = append(deleteUnitTypes, u.Type)
 	}
 
-	if _, err = sess.Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
+	if _, err = db.GetEngine(ctx).Where("repo_id = ?", repo.ID).In("type", deleteUnitTypes).Delete(new(RepoUnit)); err != nil {
 		return err
 	}
 
 	if len(units) > 0 {
-		if _, err = sess.Insert(units); err != nil {
+		if err = db.Insert(ctx, units); err != nil {
 			return err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteRepository deletes a repository for a user or organization.
 // make sure if you call this func to close open sessions (sqlite will otherwise get a deadlock)
-func DeleteRepository(doer *User, uid, repoID int64) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
-	// In case is a organization.
-	org, err := getUserByID(sess, uid)
+func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	if org.IsOrganization() {
-		if err = org.getTeams(sess); err != nil {
-			return err
-		}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	// In case is a organization.
+	org, err := user_model.GetUserByIDEngine(sess, uid)
+	if err != nil {
+		return err
 	}
 
 	repo := &Repository{OwnerID: uid}
@@ -1410,7 +1462,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := listDeployKeys(sess, repo.ID, ListOptions{})
+	deployKeys, err := listDeployKeys(sess, &ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
@@ -1427,7 +1479,11 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	}
 
 	if org.IsOrganization() {
-		for _, t := range org.Teams {
+		teams, err := OrgFromUser(org).loadTeams(sess)
+		if err != nil {
+			return err
+		}
+		for _, t := range teams {
 			if !t.hasRepository(sess, repoID) {
 				continue
 			} else if err = t.removeRepository(sess, repo, false); err != nil {
@@ -1436,7 +1492,7 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	attachments := make([]*Attachment, 0, 20)
+	attachments := make([]*repo_model.Attachment, 0, 20)
 	if err = sess.Join("INNER", "`release`", "`release`.id = `attachment`.release_id").
 		Where("`release`.repo_id = ?", repoID).
 		Find(&attachments); err != nil {
@@ -1454,23 +1510,28 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Watch{RepoID: repoID},
-		&Star{RepoID: repoID},
-		&Mirror{RepoID: repoID},
-		&Milestone{RepoID: repoID},
-		&Release{RepoID: repoID},
 		&Collaboration{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
-		&RepoUnit{RepoID: repoID},
-		&RepoRedirect{RedirectRepoID: repoID},
-		&Webhook{RepoID: repoID},
-		&HookTask{RepoID: repoID},
-		&Notification{RepoID: repoID},
-		&CommitStatus{RepoID: repoID},
-		&RepoIndexerStatus{RepoID: repoID},
-		&LanguageStat{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
+		&CommitStatus{RepoID: repoID},
+		&DeletedBranch{RepoID: repoID},
+		&webhook.HookTask{RepoID: repoID},
+		&LFSLock{RepoID: repoID},
+		&LanguageStat{RepoID: repoID},
+		&Milestone{RepoID: repoID},
+		&Mirror{RepoID: repoID},
+		&Notification{RepoID: repoID},
+		&ProtectedBranch{RepoID: repoID},
+		&ProtectedTag{RepoID: repoID},
+		&PullRequest{BaseRepoID: repoID},
+		&PushMirror{RepoID: repoID},
+		&Release{RepoID: repoID},
+		&RepoIndexerStatus{RepoID: repoID},
+		&RepoRedirect{RedirectRepoID: repoID},
+		&RepoUnit{RepoID: repoID},
+		&Star{RepoID: repoID},
 		&Task{RepoID: repoID},
+		&Watch{RepoID: repoID},
+		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
@@ -1486,7 +1547,8 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		return err
 	}
 
-	if _, err := sess.Where("repo_id = ?", repoID).Delete(new(RepoUnit)); err != nil {
+	// Delete issue index
+	if err := db.DeleteResouceIndex(sess, "issue_index", repoID); err != nil {
 		return err
 	}
 
@@ -1518,23 +1580,15 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	// FIXME: Remove repository files should be executed after transaction succeed.
-	repoPath := repo.RepoPath()
-	removeAllWithNotice(sess, "Delete repository files", repoPath)
-
-	err = repo.deleteWiki(sess)
-	if err != nil {
-		return err
-	}
-
 	// Remove LFS objects
 	var lfsObjects []*LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
+	var lfsPaths = make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Oid: v.Oid})
+		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}
@@ -1542,10 +1596,27 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 			continue
 		}
 
-		removeStorageWithNotice(sess, storage.LFS, "Delete orphaned LFS file", v.RelativePath())
+		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
 	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+		return err
+	}
+
+	// Remove archives
+	var archives []*RepoArchiver
+	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
+		return err
+	}
+
+	var archivePaths = make([]string, 0, len(archives))
+	for _, v := range archives {
+		v.Repo = repo
+		p, _ := v.RelativePath()
+		archivePaths = append(archivePaths, p)
+	}
+
+	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -1555,23 +1626,66 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 		}
 	}
 
-	if err = sess.Commit(); err != nil {
+	// Get all attachments with both issue_id and release_id are zero
+	var newAttachments []*repo_model.Attachment
+	if err := sess.Where(builder.Eq{
+		"repo_id":    repo.ID,
+		"issue_id":   0,
+		"release_id": 0,
+	}).Find(&newAttachments); err != nil {
 		return err
 	}
 
-	sess.Close()
+	var newAttachmentPaths = make([]string, 0, len(newAttachments))
+	for _, attach := range newAttachments {
+		newAttachmentPaths = append(newAttachmentPaths, attach.RelativePath())
+	}
+
+	if _, err := sess.Where("repo_id=?", repo.ID).Delete(new(repo_model.Attachment)); err != nil {
+		return err
+	}
+
+	if err = committer.Commit(); err != nil {
+		return err
+	}
+
+	committer.Close()
 
 	// We should always delete the files after the database transaction succeed. If
-	// we delete the file but the database rollback, the repository will be borken.
+	// we delete the file but the database rollback, the repository will be broken.
+
+	// Remove repository files.
+	repoPath := repo.RepoPath()
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
+
+	// Remove wiki files
+	if repo.HasWiki() {
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
+	}
+
+	// Remove archives
+	for i := range archivePaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archivePaths[i])
+	}
+
+	// Remove lfs objects
+	for i := range lfsPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsPaths[i])
+	}
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		RemoveStorageWithNotice(storage.Attachments, "Delete issue attachment", attachmentPaths[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	// Remove release attachment files.
 	for i := range releaseAttachments {
-		RemoveStorageWithNotice(storage.Attachments, "Delete release attachment", releaseAttachments[i])
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachments[i])
+	}
+
+	// Remove attachment with no issue_id and release_id.
+	for i := range newAttachmentPaths {
+		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachmentPaths[i])
 	}
 
 	if len(repo.Avatar) > 0 {
@@ -1585,10 +1699,10 @@ func DeleteRepository(doer *User, uid, repoID int64) error {
 
 // GetRepositoryByOwnerAndName returns the repository by given ownername and reponame.
 func GetRepositoryByOwnerAndName(ownerName, repoName string) (*Repository, error) {
-	return getRepositoryByOwnerAndName(x, ownerName, repoName)
+	return getRepositoryByOwnerAndName(db.GetEngine(db.DefaultContext), ownerName, repoName)
 }
 
-func getRepositoryByOwnerAndName(e Engine, ownerName, repoName string) (*Repository, error) {
+func getRepositoryByOwnerAndName(e db.Engine, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
 	has, err := e.Table("repository").Select("repository.*").
 		Join("INNER", "`user`", "`user`.id = repository.owner_id").
@@ -1609,7 +1723,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 		OwnerID:   ownerID,
 		LowerName: strings.ToLower(name),
 	}
-	has, err := x.Get(repo)
+	has, err := db.GetEngine(db.DefaultContext).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1618,7 +1732,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
-func getRepositoryByID(e Engine, id int64) (*Repository, error) {
+func getRepositoryByID(e db.Engine, id int64) (*Repository, error) {
 	repo := new(Repository)
 	has, err := e.ID(id).Get(repo)
 	if err != nil {
@@ -1631,18 +1745,18 @@ func getRepositoryByID(e Engine, id int64) (*Repository, error) {
 
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(id int64) (*Repository, error) {
-	return getRepositoryByID(x, id)
+	return getRepositoryByID(db.GetEngine(db.DefaultContext), id)
 }
 
 // GetRepositoryByIDCtx returns the repository by given id if exists.
-func GetRepositoryByIDCtx(ctx DBContext, id int64) (*Repository, error) {
-	return getRepositoryByID(ctx.e, id)
+func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
+	return getRepositoryByID(db.GetEngine(ctx), id)
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
 func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 	repos := make(map[int64]*Repository, len(ids))
-	return repos, x.In("id", ids).Find(&repos)
+	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
 }
 
 // GetUserRepositories returns a list of repositories of given user.
@@ -1661,133 +1775,97 @@ func GetUserRepositories(opts *SearchRepoOptions) ([]*Repository, int64, error) 
 		cond = cond.And(builder.In("lower_name", opts.LowerNames))
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	count, err := sess.Where(cond).Count(new(Repository))
 	if err != nil {
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make([]*Repository, 0, opts.PageSize)
-	return repos, count, opts.setSessionPagination(sess).Find(&repos)
+	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }
 
 // GetUserMirrorRepositories returns a list of mirror repositories of given user.
 func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 	repos := make([]*Repository, 0, 10)
-	return repos, x.
+	return repos, db.GetEngine(db.DefaultContext).
 		Where("owner_id = ?", userID).
 		And("is_mirror = ?", true).
 		Find(&repos)
 }
 
-func getRepositoryCount(e Engine, u *User) (int64, error) {
-	return e.Count(&Repository{OwnerID: u.ID})
+func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
+	return e.Count(&Repository{OwnerID: ownerID})
 }
 
-func getPublicRepositoryCount(e Engine, u *User) (int64, error) {
+func getPublicRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
 	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
 }
 
-func getPrivateRepositoryCount(e Engine, u *User) (int64, error) {
+func getPrivateRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
 	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
 }
 
 // GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(u *User) (int64, error) {
-	return getRepositoryCount(x, u)
+func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
+	return getRepositoryCount(db.GetEngine(ctx), ownerID)
 }
 
 // GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *User) (int64, error) {
-	return getPublicRepositoryCount(x, u)
+func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
+	return getPublicRepositoryCount(db.GetEngine(db.DefaultContext), u)
 }
 
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *User) (int64, error) {
-	return getPrivateRepositoryCount(x, u)
-}
-
-// DeleteRepositoryArchives deletes all repositories' archives.
-func DeleteRepositoryArchives(ctx context.Context) error {
-	return x.
-		Where("id > 0").
-		Iterate(new(Repository),
-			func(idx int, bean interface{}) error {
-				repo := bean.(*Repository)
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting repository archives for %s", repo.FullName())
-				default:
-				}
-				return util.RemoveAll(filepath.Join(repo.RepoPath(), "archives"))
-			})
+func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
+	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
 }
 
 // DeleteOldRepositoryArchives deletes old repository archives.
 func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
 	log.Trace("Doing: ArchiveCleanup")
 
-	if err := x.Where("id > 0").Iterate(new(Repository), func(idx int, bean interface{}) error {
-		return deleteOldRepositoryArchives(ctx, olderThan, idx, bean)
-	}); err != nil {
-		log.Trace("Error: ArchiveClean: %v", err)
-		return err
+	for {
+		var archivers []RepoArchiver
+		err := db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).
+			Asc("created_unix").
+			Limit(100).
+			Find(&archivers)
+		if err != nil {
+			log.Trace("Error: ArchiveClean: %v", err)
+			return err
+		}
+
+		for _, archiver := range archivers {
+			if err := deleteOldRepoArchiver(ctx, &archiver); err != nil {
+				return err
+			}
+		}
+		if len(archivers) < 100 {
+			break
+		}
 	}
 
 	log.Trace("Finished: ArchiveCleanup")
 	return nil
 }
 
-func deleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration, idx int, bean interface{}) error {
-	repo := bean.(*Repository)
-	basePath := filepath.Join(repo.RepoPath(), "archives")
+var delRepoArchiver = new(RepoArchiver)
 
-	for _, ty := range []string{"zip", "targz"} {
-		select {
-		case <-ctx.Done():
-			return ErrCancelledf("before deleting old repository archives with filetype %s for %s", ty, repo.FullName())
-		default:
-		}
-
-		path := filepath.Join(basePath, ty)
-		file, err := os.Open(path)
-		if err != nil {
-			if !os.IsNotExist(err) {
-				log.Warn("Unable to open directory %s: %v", path, err)
-				return err
-			}
-
-			// If the directory doesn't exist, that's okay.
-			continue
-		}
-
-		files, err := file.Readdir(0)
-		file.Close()
-		if err != nil {
-			log.Warn("Unable to read directory %s: %v", path, err)
-			return err
-		}
-
-		minimumOldestTime := time.Now().Add(-olderThan)
-		for _, info := range files {
-			if info.ModTime().Before(minimumOldestTime) && !info.IsDir() {
-				select {
-				case <-ctx.Done():
-					return ErrCancelledf("before deleting old repository archive file %s with filetype %s for %s", info.Name(), ty, repo.FullName())
-				default:
-				}
-				toDelete := filepath.Join(path, info.Name())
-				// This is a best-effort purge, so we do not check error codes to confirm removal.
-				if err = util.Remove(toDelete); err != nil {
-					log.Trace("Unable to delete %s, but proceeding: %v", toDelete, err)
-				}
-			}
-		}
+func deleteOldRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
+	p, err := archiver.RelativePath()
+	if err != nil {
+		return err
 	}
-
+	_, err = db.GetEngine(db.DefaultContext).ID(archiver.ID).Delete(delRepoArchiver)
+	if err != nil {
+		return err
+	}
+	if err := storage.RepoArchives.Delete(p); err != nil {
+		log.Error("delete repo archive file failed: %v", err)
+	}
 	return nil
 }
 
@@ -1797,7 +1875,7 @@ type repoChecker struct {
 }
 
 func repoStatsCheck(ctx context.Context, checker *repoChecker) {
-	results, err := x.Query(checker.querySQL)
+	results, err := db.GetEngine(db.DefaultContext).Query(checker.querySQL)
 	if err != nil {
 		log.Error("Select %s: %v", checker.desc, err)
 		return
@@ -1811,7 +1889,7 @@ func repoStatsCheck(ctx context.Context, checker *repoChecker) {
 		default:
 		}
 		log.Trace("Updating %s: %d", checker.desc, id)
-		_, err = x.Exec(checker.correctSQL, id, id)
+		_, err = db.GetEngine(db.DefaultContext).Exec(checker.correctSQL, id, id)
 		if err != nil {
 			log.Error("Update %s[%d]: %v", checker.desc, id, err)
 		}
@@ -1858,7 +1936,7 @@ func CheckRepoStats(ctx context.Context) error {
 		select {
 		case <-ctx.Done():
 			log.Warn("CheckRepoStats: Cancelled before %s", checker.desc)
-			return ErrCancelledf("before checking %s", checker.desc)
+			return db.ErrCancelledf("before checking %s", checker.desc)
 		default:
 			repoStatsCheck(ctx, checker)
 		}
@@ -1866,7 +1944,7 @@ func CheckRepoStats(ctx context.Context) error {
 
 	// ***** START: Repository.NumClosedIssues *****
 	desc := "repository count 'num_closed_issues'"
-	results, err := x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false)
+	results, err := db.GetEngine(db.DefaultContext).Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false)
 	if err != nil {
 		log.Error("Select %s: %v", desc, err)
 	} else {
@@ -1875,11 +1953,11 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled during %s for repo ID %d", desc, id)
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
-			_, err = x.Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
+			_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `repository` SET num_closed_issues=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, false, id)
 			if err != nil {
 				log.Error("Update %s[%d]: %v", desc, id, err)
 			}
@@ -1889,7 +1967,7 @@ func CheckRepoStats(ctx context.Context) error {
 
 	// ***** START: Repository.NumClosedPulls *****
 	desc = "repository count 'num_closed_pulls'"
-	results, err = x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
+	results, err = db.GetEngine(db.DefaultContext).Query("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true)
 	if err != nil {
 		log.Error("Select %s: %v", desc, err)
 	} else {
@@ -1898,11 +1976,11 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating %s: %d", desc, id)
-			_, err = x.Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
+			_, err = db.GetEngine(db.DefaultContext).Exec("UPDATE `repository` SET num_closed_pulls=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, true, id)
 			if err != nil {
 				log.Error("Update %s[%d]: %v", desc, id, err)
 			}
@@ -1912,7 +1990,7 @@ func CheckRepoStats(ctx context.Context) error {
 
 	// FIXME: use checker when stop supporting old fork repo format.
 	// ***** START: Repository.NumForks *****
-	results, err = x.Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
+	results, err = db.GetEngine(db.DefaultContext).Query("SELECT repo.id FROM `repository` repo WHERE repo.num_forks!=(SELECT COUNT(*) FROM `repository` WHERE fork_id=repo.id)")
 	if err != nil {
 		log.Error("Select repository count 'num_forks': %v", err)
 	} else {
@@ -1921,7 +1999,7 @@ func CheckRepoStats(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				log.Warn("CheckRepoStats: Cancelled")
-				return ErrCancelledf("during %s for repo ID %d", desc, id)
+				return db.ErrCancelledf("during %s for repo ID %d", desc, id)
 			default:
 			}
 			log.Trace("Updating repository count 'num_forks': %d", id)
@@ -1932,7 +2010,7 @@ func CheckRepoStats(ctx context.Context) error {
 				continue
 			}
 
-			rawResult, err := x.Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
+			rawResult, err := db.GetEngine(db.DefaultContext).Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
 			if err != nil {
 				log.Error("Select count of forks[%d]: %v", repo.ID, err)
 				continue
@@ -1952,7 +2030,7 @@ func CheckRepoStats(ctx context.Context) error {
 // SetArchiveRepoState sets if a repo is archived
 func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
 	repo.IsArchived = isArchived
-	_, err = x.Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
+	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
 	return
 }
 
@@ -1963,26 +2041,38 @@ func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
 //  \___  / \____/|__|  |__|_ \
 //      \/                   \/
 
-// HasForkedRepo checks if given user has already forked a repository with given ID.
-func HasForkedRepo(ownerID, repoID int64) (*Repository, bool) {
+// GetForkedRepo checks if given user has already forked a repository with given ID.
+func GetForkedRepo(ownerID, repoID int64) *Repository {
 	repo := new(Repository)
-	has, _ := x.
+	has, _ := db.GetEngine(db.DefaultContext).
 		Where("owner_id=? AND fork_id=?", ownerID, repoID).
 		Get(repo)
-	return repo, has
+	if has {
+		return repo
+	}
+	return nil
+}
+
+// HasForkedRepo checks if given user has already forked a repository with given ID.
+func HasForkedRepo(ownerID, repoID int64) bool {
+	has, _ := db.GetEngine(db.DefaultContext).
+		Table("repository").
+		Where("owner_id=? AND fork_id=?", ownerID, repoID).
+		Exist()
+	return has
 }
 
 // CopyLFS copies LFS data from one repo to another
-func CopyLFS(ctx DBContext, newRepo, oldRepo *Repository) error {
+func CopyLFS(ctx context.Context, newRepo, oldRepo *Repository) error {
 	var lfsObjects []*LFSMetaObject
-	if err := ctx.e.Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
+	if err := db.GetEngine(ctx).Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
 	for _, v := range lfsObjects {
 		v.ID = 0
 		v.RepositoryID = newRepo.ID
-		if _, err := ctx.e.Insert(v); err != nil {
+		if _, err := db.GetEngine(ctx).Insert(v); err != nil {
 			return err
 		}
 	}
@@ -1991,13 +2081,13 @@ func CopyLFS(ctx DBContext, newRepo, oldRepo *Repository) error {
 }
 
 // GetForks returns all the forks of the repository
-func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error) {
+func (repo *Repository) GetForks(listOptions db.ListOptions) ([]*Repository, error) {
 	if listOptions.Page == 0 {
 		forks := make([]*Repository, 0, repo.NumForks)
-		return forks, x.Find(&forks, &Repository{ForkID: repo.ID})
+		return forks, db.GetEngine(db.DefaultContext).Find(&forks, &Repository{ForkID: repo.ID})
 	}
 
-	sess := listOptions.getPaginatedSession()
+	sess := db.GetPaginatedSession(&listOptions)
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
@@ -2005,7 +2095,7 @@ func (repo *Repository) GetForks(listOptions ListOptions) ([]*Repository, error)
 // GetUserFork return user forked repository from this repository, if not forked return nil
 func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
 	var forkedRepo Repository
-	has, err := x.Where("fork_id = ?", repo.ID).And("owner_id = ?", userID).Get(&forkedRepo)
+	has, err := db.GetEngine(db.DefaultContext).Where("fork_id = ?", repo.ID).And("owner_id = ?", userID).Get(&forkedRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -2041,14 +2131,14 @@ func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
 	return nil, nil
 }
 
-func updateRepositoryCols(e Engine, repo *Repository, cols ...string) error {
+func updateRepositoryCols(e db.Engine, repo *Repository, cols ...string) error {
 	_, err := e.ID(repo.ID).Cols(cols...).Update(repo)
 	return err
 }
 
 // UpdateRepositoryCols updates repository's columns
 func UpdateRepositoryCols(repo *Repository, cols ...string) error {
-	return updateRepositoryCols(x, repo, cols...)
+	return updateRepositoryCols(db.GetEngine(db.DefaultContext), repo, cols...)
 }
 
 // GetTrustModel will get the TrustModel for the repo or the default trust model
@@ -2063,32 +2153,36 @@ func (repo *Repository) GetTrustModel() TrustModelType {
 	return trustModel
 }
 
+func updateUserStarNumbers(users []user_model.User) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, user := range users {
+		if _, err = db.Exec(ctx, "UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
+			return err
+		}
+	}
+
+	return committer.Commit()
+}
+
 // DoctorUserStarNum recalculate Stars number for all user
 func DoctorUserStarNum() (err error) {
 	const batchSize = 100
-	sess := x.NewSession()
-	defer sess.Close()
 
 	for start := 0; ; start += batchSize {
-		users := make([]User, 0, batchSize)
-		if err = sess.Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
+		users := make([]user_model.User, 0, batchSize)
+		if err = db.GetEngine(db.DefaultContext).Limit(batchSize, start).Where("type = ?", 0).Cols("id").Find(&users); err != nil {
 			return
 		}
 		if len(users) == 0 {
 			break
 		}
 
-		if err = sess.Begin(); err != nil {
-			return
-		}
-
-		for _, user := range users {
-			if _, err = sess.Exec("UPDATE `user` SET num_stars=(SELECT COUNT(*) FROM `star` WHERE uid=?) WHERE id=?", user.ID, user.ID); err != nil {
-				return
-			}
-		}
-
-		if err = sess.Commit(); err != nil {
+		if err = updateUserStarNumbers(users); err != nil {
 			return
 		}
 	}
@@ -2104,7 +2198,7 @@ func IterateRepository(f func(repo *Repository) error) error {
 	batchSize := setting.Database.IterateBufferSize
 	for {
 		repos := make([]*Repository, 0, batchSize)
-		if err := x.Limit(batchSize, start).Find(&repos); err != nil {
+		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&repos); err != nil {
 			return err
 		}
 		if len(repos) == 0 {
@@ -2118,4 +2212,28 @@ func IterateRepository(f func(repo *Repository) error) error {
 			}
 		}
 	}
+}
+
+// LinkedRepository returns the linked repo if any
+func LinkedRepository(a *repo_model.Attachment) (*Repository, unit.Type, error) {
+	if a.IssueID != 0 {
+		iss, err := GetIssueByID(a.IssueID)
+		if err != nil {
+			return nil, unit.TypeIssues, err
+		}
+		repo, err := GetRepositoryByID(iss.RepoID)
+		unitType := unit.TypeIssues
+		if iss.IsPull {
+			unitType = unit.TypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := GetReleaseByID(a.ReleaseID)
+		if err != nil {
+			return nil, unit.TypeReleases, err
+		}
+		repo, err := GetRepositoryByID(rel.RepoID)
+		return repo, unit.TypeReleases, err
+	}
+	return nil, -1, nil
 }

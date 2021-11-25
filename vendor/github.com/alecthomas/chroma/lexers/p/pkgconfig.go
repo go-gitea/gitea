@@ -6,14 +6,18 @@ import (
 )
 
 // Pkgconfig lexer.
-var Pkgconfig = internal.Register(MustNewLexer(
+var Pkgconfig = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "PkgConfig",
 		Aliases:   []string{"pkgconfig"},
 		Filenames: []string{"*.pc"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	pkgconfigRules,
+))
+
+func pkgconfigRules() Rules {
+	return Rules{
 		"root": {
 			{`#.*$`, CommentSingle, nil},
 			{`^(\w+)(=)`, ByGroups(NameAttribute, Operator), nil},
@@ -37,5 +41,5 @@ var Pkgconfig = internal.Register(MustNewLexer(
 			{`[^${}#\n]+`, Text, nil},
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

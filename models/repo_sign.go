@@ -7,6 +7,9 @@ package models
 import (
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
@@ -105,7 +108,7 @@ func PublicSigningKey(repoPath string) (string, error) {
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(repoPath string, u *User) (bool, string, *git.Signature, error) {
+func SignInitialCommit(repoPath string, u *user_model.User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
 	signingKey, sig := SigningKey(repoPath)
 	if signingKey == "" {
@@ -120,7 +123,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, ListOptions{})
+			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -128,8 +131,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {
@@ -141,7 +144,7 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func (repo *Repository) SignWikiCommit(u *User) (bool, string, *git.Signature, error) {
+func (repo *Repository) SignWikiCommit(u *user_model.User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
 	signingKey, sig := SigningKey(repo.WikiPath())
 	if signingKey == "" {
@@ -156,7 +159,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, ListOptions{})
+			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -164,8 +167,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {
@@ -194,7 +197,7 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func (repo *Repository) SignCRUDAction(u *User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
+func (repo *Repository) SignCRUDAction(u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
 	signingKey, sig := SigningKey(repo.RepoPath())
 	if signingKey == "" {
@@ -209,7 +212,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, ListOptions{})
+			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -217,8 +220,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {

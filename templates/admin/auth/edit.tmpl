@@ -8,11 +8,12 @@
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<input type="hidden" name="id" value="{{.Source.ID}}">
 				<div class="inline field">
 					<label>{{$.i18n.Tr "admin.auths.auth_type"}}</label>
-					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type}}">
+					<input type="hidden" id="auth_type" name="type" value="{{.Source.Type.Int}}">
 					<span>{{.Source.TypeName}}</span>
 				</div>
 				<div class="required inline field {{if .Err_Name}}error{{end}}">
@@ -22,7 +23,7 @@
 
 				<!-- LDAP and DLDAP -->
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
-					{{ $cfg:=.Source.LDAP }}
+					{{ $cfg:=.Source.Cfg }}
 					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 						<label>{{.i18n.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
@@ -31,7 +32,7 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
 								{{range .SecurityProtocols}}
-									<div class="item" data-value="{{.Type}}">{{.Name}}</div>
+									<div class="item" data-value="{{.Type.Int}}">{{.Name}}</div>
 								{{end}}
 							</div>
 						</div>
@@ -44,16 +45,20 @@
 						<label for="port">{{.i18n.Tr "admin.auths.port"}}</label>
 						<input id="port" name="port" value="{{$cfg.Port}}"  placeholder="e.g. 636" required>
 					</div>
+					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
+						</div>
+					</div>
 					{{if .Source.IsLDAP}}
 						<div class="field">
 							<label for="bind_dn">{{.i18n.Tr "admin.auths.bind_dn"}}</label>
 							<input id="bind_dn" name="bind_dn" value="{{$cfg.BindDN}}" placeholder="e.g. cn=Search,dc=mydomain,dc=com">
 						</div>
-						<input class="fake" type="password">
 						<div class="field">
 							<label for="bind_password">{{.i18n.Tr "admin.auths.bind_password"}}</label>
 							<input id="bind_password" name="bind_password" type="password" value="{{$cfg.BindPassword}}">
-							<p class="help text red">{{.i18n.Tr "admin.auths.bind_password_helper"}}</p>
 						</div>
 					{{end}}
 					<div class="{{if .Source.IsLDAP}}required{{end}} field">
@@ -96,8 +101,12 @@
 						<input id="attribute_mail" name="attribute_mail" value="{{$cfg.AttributeMail}}" placeholder="e.g. mail" required>
 					</div>
 					<div class="field">
-					    <label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
-					    <input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
+						<label for="attribute_ssh_public_key">{{.i18n.Tr "admin.auths.attribute_ssh_public_key"}}</label>
+						<input id="attribute_ssh_public_key" name="attribute_ssh_public_key" value="{{$cfg.AttributeSSHPublicKey}}" placeholder="e.g. SshPublicKey">
+					</div>
+					<div class="field">
+						<label for="attribute_avatar">{{.i18n.Tr "admin.auths.attribute_avatar"}}</label>
+						<input id="attribute_avatar" name="attribute_avatar" value="{{$cfg.AttributeAvatar}}" placeholder="e.g. jpegPhoto">
 					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
@@ -142,6 +151,13 @@
 							</div>
 						</div>
 					{{end}}
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
+					</div>
 					<div class="inline field">
 						<div class="ui checkbox">
 							<label for="allow_deactivate_all"><strong>{{.i18n.Tr "admin.auths.allow_deactivate_all"}}</strong></label>
@@ -152,7 +168,7 @@
 
 				<!-- SMTP -->
 				{{if .Source.IsSMTP}}
-					{{ $cfg:=.Source.SMTP }}
+					{{ $cfg:=.Source.Cfg }}
 					<div class="inline required field">
 						<label>{{.i18n.Tr "admin.auths.smtp_auth"}}</label>
 						<div class="ui selection type dropdown">
@@ -175,24 +191,66 @@
 						<input id="smtp_port" name="smtp_port" value="{{$cfg.Port}}" required>
 					</div>
 					<div class="field">
+						<div class="ui checkbox">
+							<label for="force_smtps"><strong>{{.i18n.Tr "admin.auths.force_smtps"}}</strong></label>
+							<input id="force_smtps" name="force_smtps" type="checkbox" {{if $cfg.ForceSMTPS}}checked{{end}}>
+						</div>
+						<p class="help">{{.i18n.Tr "admin.auths.force_smtps_helper"}}</p>
+					</div>
+					<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
+							<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
+						</div>
+					</div>
+					<div class="field">
+						<label for="helo_hostname">{{.i18n.Tr "admin.auths.helo_hostname"}}</label>
+						<input id="helo_hostname" name="helo_hostname" value="{{$cfg.HeloHostname}}">
+						<p class="help">{{.i18n.Tr "admin.auths.helo_hostname_helper"}}</p>
+					</div>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label for="disable_helo"><strong>{{.i18n.Tr "admin.auths.disable_helo"}}</strong></label>
+							<input id="disable_helo" name="disable_helo" type="checkbox" {{if $cfg.DisableHelo}}checked{{end}}>
+						</div>
+					</div>
+					<div class="field">
 						<label for="allowed_domains">{{.i18n.Tr "admin.auths.allowed_domains"}}</label>
 						<input id="allowed_domains" name="allowed_domains" value="{{$cfg.AllowedDomains}}">
 						<p class="help">{{.i18n.Tr "admin.auths.allowed_domains_helper"}}</p>
+					</div>
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
 					</div>
 				{{end}}
 
 				<!-- PAM -->
 				{{if .Source.IsPAM}}
-					{{ $cfg:=.Source.PAM }}
+					{{ $cfg:=.Source.Cfg }}
 					<div class="required field">
 						<label for="pam_service_name">{{.i18n.Tr "admin.auths.pam_service_name"}}</label>
 						<input id="pam_service_name" name="pam_service_name" value="{{$cfg.ServiceName}}" required>
+					</div>
+					<div class="field">
+						<label for="pam_email_domain">{{.i18n.Tr "admin.auths.pam_email_domain"}}</label>
+						<input id="pam_email_domain" name="pam_email_domain" value="{{$cfg.EmailDomain}}">
+					</div>
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
 					</div>
 				{{end}}
 
 				<!-- OAuth2 -->
 				{{if .Source.IsOAuth2}}
-					{{ $cfg:=.Source.OAuth2 }}
+					{{ $cfg:=.Source.Cfg }}
 					<div class="inline required field">
 						<label>{{.i18n.Tr "admin.auths.oauth2_provider"}}</label>
 						<div class="ui selection type dropdown">
@@ -200,8 +258,8 @@
 							<div class="text">{{.CurrentOAuth2Provider.DisplayName}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
-								{{range $key, $value := .OAuth2Providers}}
-									<div class="item" data-value="{{$key}}">{{$value.DisplayName}}</div>
+								{{range .OAuth2Providers}}
+									<div class="item" data-value="{{.Name}}">{{.DisplayName}}</div>
 								{{end}}
 							</div>
 						</div>
@@ -215,12 +273,19 @@
 						<input id="oauth2_secret" name="oauth2_secret" value="{{$cfg.ClientSecret}}" required>
 					</div>
 					<div class="optional field">
-            <label for="oauth2_icon_url">{{.i18n.Tr "admin.auths.oauth2_icon_url"}}</label>
-            <input id="oauth2_icon_url" name="oauth2_icon_url" value="{{$cfg.IconURL}}">
-          </div>
+						<label for="oauth2_icon_url">{{.i18n.Tr "admin.auths.oauth2_icon_url"}}</label>
+						<input id="oauth2_icon_url" name="oauth2_icon_url" value="{{$cfg.IconURL}}">
+					</div>
 					<div class="open_id_connect_auto_discovery_url required field">
 						<label for="open_id_connect_auto_discovery_url">{{.i18n.Tr "admin.auths.openIdConnectAutoDiscoveryURL"}}</label>
 						<input id="open_id_connect_auto_discovery_url" name="open_id_connect_auto_discovery_url" value="{{$cfg.OpenIDConnectAutoDiscoveryURL}}">
+					</div>
+					<div class="optional field">
+						<div class="ui checkbox">
+							<label for="skip_local_two_fa"><strong>{{.i18n.Tr "admin.auths.skip_local_two_fa"}}</strong></label>
+							<input id="skip_local_two_fa" name="skip_local_two_fa" type="checkbox" {{if $cfg.SkipLocalTwoFA}}checked{{end}}>
+							<p class="help">{{.i18n.Tr "admin.auths.skip_local_two_fa_helper"}}</p>
+						</div>
 					</div>
 
 					<div class="oauth2_use_custom_url inline field">
@@ -245,17 +310,24 @@
 						<label for="oauth2_email_url">{{.i18n.Tr "admin.auths.oauth2_emailURL"}}</label>
 						<input id="oauth2_email_url" name="oauth2_email_url" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.EmailURL}}{{end}}">
 					</div>
-					{{if .OAuth2DefaultCustomURLMappings}}{{range $key, $value := .OAuth2DefaultCustomURLMappings}}
-					<input id="{{$key}}_token_url" value="{{$value.TokenURL}}" type="hidden" />
-					<input id="{{$key}}_auth_url" value="{{$value.AuthURL}}" type="hidden" />
-					<input id="{{$key}}_profile_url" value="{{$value.ProfileURL}}" type="hidden" />
-					<input id="{{$key}}_email_url" value="{{$value.EmailURL}}" type="hidden" />
+					<div class="oauth2_use_custom_url_field oauth2_tenant required field">
+						<label for="oauth2_tenant">{{.i18n.Tr "admin.auths.oauth2_tenant"}}</label>
+						<input id="oauth2_tenant" name="oauth2_tenant" value="{{if $cfg.CustomURLMapping}}{{$cfg.CustomURLMapping.Tenant}}{{end}}">
+					</div>
+
+					{{range .OAuth2Providers}}{{if .CustomURLSettings}}
+						<input id="{{.Name}}_customURLSettings" type="hidden" data-required="{{.CustomURLSettings.Required}}" data-available="true">
+						<input id="{{.Name}}_token_url" value="{{.CustomURLSettings.TokenURL.Value}}" data-available="{{.CustomURLSettings.TokenURL.Available}}" data-required="{{.CustomURLSettings.TokenURL.Required}}" type="hidden" />
+						<input id="{{.Name}}_auth_url" value="{{.CustomURLSettings.AuthURL.Value}}" data-available="{{.CustomURLSettings.AuthURL.Available}}" data-required="{{.CustomURLSettings.AuthURL.Required}}" type="hidden" />
+						<input id="{{.Name}}_profile_url" value="{{.CustomURLSettings.ProfileURL.Value}}" data-available="{{.CustomURLSettings.ProfileURL.Available}}" data-required="{{.CustomURLSettings.ProfileURL.Required}}" type="hidden" />
+						<input id="{{.Name}}_email_url" value="{{.CustomURLSettings.EmailURL.Value}}" data-available="{{.CustomURLSettings.EmailURL.Available}}" data-required="{{.CustomURLSettings.EmailURL.Required}}" type="hidden" />
+						<input id="{{.Name}}_tenant" value="{{.CustomURLSettings.Tenant.Value}}" data-available="{{.CustomURLSettings.Tenant.Available}}" data-required="{{.CustomURLSettings.Tenant.Required}}" type="hidden" />
 					{{end}}{{end}}
 				{{end}}
 
 				<!-- SSPI -->
 				{{if .Source.IsSSPI}}
-					{{ $cfg:=.Source.SSPI }}
+					{{ $cfg:=.Source.Cfg }}
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_auto_create_users"><strong>{{.i18n.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>
@@ -298,31 +370,18 @@
 						<p class="help">{{.i18n.Tr "admin.auths.sspi_default_language_helper"}}</p>
 					</div>
 				{{end}}
-
-				<div class="inline field {{if not .Source.IsSMTP}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.enable_tls"}}</strong></label>
-						<input name="tls" type="checkbox" {{if .Source.UseTLS}}checked{{end}}>
-					</div>
-				</div>
-				<div class="has-tls inline field {{if not .HasTLS}}hide{{end}}">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.skip_tls_verify"}}</strong></label>
-						<input name="skip_verify" type="checkbox" {{if .Source.SkipVerify}}checked{{end}}>
-					</div>
-				</div>
 				{{if .Source.IsLDAP}}
-				<div class="inline field">
-					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.auths.syncenabled"}}</strong></label>
-						<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
+					<div class="inline field">
+						<div class="ui checkbox">
+							<label><strong>{{.i18n.Tr "admin.auths.syncenabled"}}</strong></label>
+							<input name="is_sync_enabled" type="checkbox" {{if .Source.IsSyncEnabled}}checked{{end}}>
+						</div>
 					</div>
-				</div>
 				{{end}}
 				<div class="inline field">
 					<div class="ui checkbox">
 						<label><strong>{{.i18n.Tr "admin.auths.activated"}}</strong></label>
-						<input name="is_active" type="checkbox" {{if .Source.IsActived}}checked{{end}}>
+						<input name="is_active" type="checkbox" {{if .Source.IsActive}}checked{{end}}>
 					</div>
 				</div>
 

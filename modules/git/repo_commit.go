@@ -7,11 +7,11 @@ package git
 
 import (
 	"bytes"
-	"container/list"
 	"io"
-	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // GetBranchCommitID returns last commit ID string of given branch.
@@ -21,35 +21,7 @@ func (repo *Repository) GetBranchCommitID(name string) (string, error) {
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	stdout, err := NewCommand("rev-list", "-n", "1", TagPrefix+name).RunInDir(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "unknown revision or path") {
-			return "", ErrNotExist{name, ""}
-		}
-		return "", err
-	}
-	return strings.TrimSpace(stdout), nil
-}
-
-// ConvertToSHA1 returns a Hash object from a potential ID string
-func (repo *Repository) ConvertToSHA1(commitID string) (SHA1, error) {
-	if len(commitID) == 40 {
-		sha1, err := NewIDFromString(commitID)
-		if err == nil {
-			return sha1, nil
-		}
-	}
-
-	actualCommitID, err := NewCommand("rev-parse", "--verify", commitID).RunInDir(repo.Path)
-	if err != nil {
-		if strings.Contains(err.Error(), "unknown revision or path") ||
-			strings.Contains(err.Error(), "fatal: Needed a single revision") {
-			return SHA1{}, ErrNotExist{commitID, ""}
-		}
-		return SHA1{}, err
-	}
-
-	return NewIDFromString(actualCommitID)
+	return repo.GetRefCommitID(TagPrefix + name)
 }
 
 // GetCommit returns commit object of by ID string.
@@ -110,16 +82,10 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
-	return commits.Front().Value.(*Commit), nil
+	return commits[0], nil
 }
 
-// CommitsRangeSize the default commits range size
-var CommitsRangeSize = 50
-
-// BranchesRangeSize the default branches range size
-var BranchesRangeSize = 20
-
-func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List, error) {
+func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
 	stdout, err := NewCommand("log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
 		"--max-count="+strconv.Itoa(pageSize), prettyLogFormat).RunInDirBytes(repo.Path)
 
@@ -129,7 +95,7 @@ func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) (*list.List,
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list.List, error) {
+func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Commit, error) {
 	// create new git log command with limit of 100 commis
 	cmd := NewCommand("log", id.String(), "-100", prettyLogFormat)
 	// ignore case
@@ -142,7 +108,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 		}
 	}
 
-	// add commiters if present in search query
+	// add committers if present in search query
 	if len(opts.Committers) > 0 {
 		for _, v := range opts.Committers {
 			args = append(args, "--committer="+v)
@@ -182,7 +148,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) (*list
 		stdout = append(stdout, '\n')
 	}
 
-	// if there are any keywords (ie not commiter:, author:, time:)
+	// if there are any keywords (ie not committer:, author:, time:)
 	// then let's iterate over them
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
@@ -227,14 +193,14 @@ func (repo *Repository) FileChangedBetweenCommits(filename, id1, id2 string) (bo
 	return len(strings.TrimSpace(string(stdout))) > 0, nil
 }
 
-// FileCommitsCount return the number of files at a revison
+// FileCommitsCount return the number of files at a revision
 func (repo *Repository) FileCommitsCount(revision, file string) (int64, error) {
 	return CommitsCountFiles(repo.Path, []string{revision}, []string{file})
 }
 
-// CommitsByFileAndRange return the commits according revison file and the page
-func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (*list.List, error) {
-	skip := (page - 1) * CommitsRangeSize
+// CommitsByFileAndRange return the commits according revision file and the page
+func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) ([]*Commit, error) {
+	skip := (page - 1) * setting.Git.CommitsRangeSize
 
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
@@ -244,7 +210,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	go func() {
 		stderr := strings.Builder{}
 		err := NewCommand("log", revision, "--follow",
-			"--max-count="+strconv.Itoa(CommitsRangeSize*page),
+			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
 			prettyLogFormat, "--", file).
 			RunInDirPipeline(repo.Path, stdoutWriter, &stderr)
 		if err != nil {
@@ -255,27 +221,27 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 
 	if skip > 0 {
-		_, err := io.CopyN(ioutil.Discard, stdoutReader, int64(skip*41))
+		_, err := io.CopyN(io.Discard, stdoutReader, int64(skip*41))
 		if err != nil {
 			if err == io.EOF {
-				return list.New(), nil
+				return []*Commit{}, nil
 			}
 			_ = stdoutReader.CloseWithError(err)
 			return nil, err
 		}
 	}
 
-	stdout, err := ioutil.ReadAll(stdoutReader)
+	stdout, err := io.ReadAll(stdoutReader)
 	if err != nil {
 		return nil, err
 	}
 	return repo.parsePrettyFormatLogToList(stdout)
 }
 
-// CommitsByFileAndRangeNoFollow return the commits according revison file and the page
-func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, page int) (*list.List, error) {
+// CommitsByFileAndRangeNoFollow return the commits according revision file and the page
+func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, page int) ([]*Commit, error) {
 	stdout, err := NewCommand("log", revision, "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
+		"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize), prettyLogFormat, "--", file).RunInDirBytes(repo.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -296,14 +262,15 @@ func (repo *Repository) FilesCountBetween(startCommitID, endCommitID string) (in
 	return len(strings.Split(stdout, "\n")) - 1, nil
 }
 
-// CommitsBetween returns a list that contains commits between [last, before).
-func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List, error) {
+// CommitsBetween returns a list that contains commits between [before, last).
+// If before is detached (removed by reset + push) it is not included.
+func (repo *Repository) CommitsBetween(last *Commit, before *Commit) ([]*Commit, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
 		stdout, err = NewCommand("rev-list", last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
-		stdout, err = NewCommand("rev-list", before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		stdout, err = NewCommand("rev-list", before.ID.String()+".."+last.ID.String()).RunInDirBytes(repo.Path)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list before last so let's try that...
@@ -316,14 +283,14 @@ func (repo *Repository) CommitsBetween(last *Commit, before *Commit) (*list.List
 	return repo.parsePrettyFormatLogToList(bytes.TrimSpace(stdout))
 }
 
-// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [last, before)
-func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit, skip int) (*list.List, error) {
+// CommitsBetweenLimit returns a list that contains at most limit commits skipping the first skip commits between [before, last)
+func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit, skip int) ([]*Commit, error) {
 	var stdout []byte
 	var err error
 	if before == nil {
 		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), last.ID.String()).RunInDirBytes(repo.Path)
 	} else {
-		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String()+"..."+last.ID.String()).RunInDirBytes(repo.Path)
+		stdout, err = NewCommand("rev-list", "--max-count", strconv.Itoa(limit), "--skip", strconv.Itoa(skip), before.ID.String()+".."+last.ID.String()).RunInDirBytes(repo.Path)
 		if err != nil && strings.Contains(err.Error(), "no merge base") {
 			// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 			// previously it would return the results of git rev-list --max-count n before last so let's try that...
@@ -337,7 +304,7 @@ func (repo *Repository) CommitsBetweenLimit(last *Commit, before *Commit, limit,
 }
 
 // CommitsBetweenIDs return commits between twoe commits
-func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, error) {
+func (repo *Repository) CommitsBetweenIDs(last, before string) ([]*Commit, error) {
 	lastCommit, err := repo.GetCommit(last)
 	if err != nil {
 		return nil, err
@@ -354,7 +321,7 @@ func (repo *Repository) CommitsBetweenIDs(last, before string) (*list.List, erro
 
 // CommitsCountBetween return numbers of commits between two commits
 func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
-	count, err := CommitsCountFiles(repo.Path, []string{start + "..." + end}, []string{})
+	count, err := CommitsCountFiles(repo.Path, []string{start + ".." + end}, []string{})
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		// future versions of git >= 2.28 are likely to return an error if before and last have become unrelated.
 		// previously it would return the results of git rev-list before last so let's try that...
@@ -365,7 +332,7 @@ func (repo *Repository) CommitsCountBetween(start, end string) (int64, error) {
 }
 
 // commitsBefore the limit is depth, not total number of returned commits.
-func (repo *Repository) commitsBefore(id SHA1, limit int) (*list.List, error) {
+func (repo *Repository) commitsBefore(id SHA1, limit int) ([]*Commit, error) {
 	cmd := NewCommand("log")
 	if limit > 0 {
 		cmd.AddArguments("-"+strconv.Itoa(limit), prettyLogFormat, id.String())
@@ -383,9 +350,8 @@ func (repo *Repository) commitsBefore(id SHA1, limit int) (*list.List, error) {
 		return nil, err
 	}
 
-	commits := list.New()
-	for logEntry := formattedLog.Front(); logEntry != nil; logEntry = logEntry.Next() {
-		commit := logEntry.Value.(*Commit)
+	commits := make([]*Commit, 0, len(formattedLog))
+	for _, commit := range formattedLog {
 		branches, err := repo.getBranches(commit, 2)
 		if err != nil {
 			return nil, err
@@ -395,17 +361,17 @@ func (repo *Repository) commitsBefore(id SHA1, limit int) (*list.List, error) {
 			break
 		}
 
-		commits.PushBack(commit)
+		commits = append(commits, commit)
 	}
 
 	return commits, nil
 }
 
-func (repo *Repository) getCommitsBefore(id SHA1) (*list.List, error) {
+func (repo *Repository) getCommitsBefore(id SHA1) ([]*Commit, error) {
 	return repo.commitsBefore(id, 0)
 }
 
-func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) (*list.List, error) {
+func (repo *Repository) getCommitsBeforeLimit(id SHA1, num int) ([]*Commit, error) {
 	return repo.commitsBefore(id, num)
 }
 
@@ -444,13 +410,13 @@ func (repo *Repository) getBranches(commit *Commit, limit int) ([]string, error)
 }
 
 // GetCommitsFromIDs get commits from commit IDs
-func (repo *Repository) GetCommitsFromIDs(commitIDs []string) (commits *list.List) {
-	commits = list.New()
+func (repo *Repository) GetCommitsFromIDs(commitIDs []string) []*Commit {
+	commits := make([]*Commit, 0, len(commitIDs))
 
 	for _, commitID := range commitIDs {
 		commit, err := repo.GetCommit(commitID)
 		if err == nil && commit != nil {
-			commits.PushBack(commit)
+			commits = append(commits, commit)
 		}
 	}
 

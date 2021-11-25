@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header center">
-			<i class="fa fa-openid"></i>
+			{{svg "fontawesome-openid"}}
 			OpenID
 		</h4>
 		<div class="ui attached segment">
@@ -15,7 +15,7 @@
 			</div>
 			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
 				<label for="openid">
-				<i class="fa fa-openid"></i>
+				{{svg "fontawesome-openid"}}
 				OpenID URI
 				</label>
 				<input id="openid" name="openid" value="{{.openid}}" autofocus required>

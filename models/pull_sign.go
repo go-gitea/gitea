@@ -5,13 +5,16 @@
 package models
 
 import (
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func (pr *PullRequest) SignMerge(u *User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
+func (pr *PullRequest) SignMerge(u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", nil, err
@@ -35,7 +38,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, ListOptions{})
+			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -43,8 +46,8 @@ Loop:
 				return false, "", nil, &ErrWontSign{pubkey}
 			}
 		case twofa:
-			twofaModel, err := GetTwoFactorByUID(u.ID)
-			if err != nil && !IsErrTwoFactorNotEnrolled(err) {
+			twofaModel, err := login.GetTwoFactorByUID(u.ID)
+			if err != nil && !login.IsErrTwoFactorNotEnrolled(err) {
 				return false, "", nil, err
 			}
 			if twofaModel == nil {
@@ -118,8 +121,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			for e := commitList.Front(); e != nil; e = e.Next() {
-				commit = e.Value.(*git.Commit)
+			for _, commit := range commitList {
 				verification := ParseCommitWithSignature(commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}

@@ -6,19 +6,23 @@ import (
 )
 
 // Bnf lexer.
-var Bnf = internal.Register(MustNewLexer(
+var Bnf = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "BNF",
 		Aliases:   []string{"bnf"},
 		Filenames: []string{"*.bnf"},
 		MimeTypes: []string{"text/x-bnf"},
 	},
-	Rules{
+	bnfRules,
+))
+
+func bnfRules() Rules {
+	return Rules{
 		"root": {
 			{`(<)([ -;=?-~]+)(>)`, ByGroups(Punctuation, NameClass, Punctuation), nil},
 			{`::=`, Operator, nil},
 			{`[^<>:]+`, Text, nil},
 			{`.`, Text, nil},
 		},
-	},
-))
+	}
+}

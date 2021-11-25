@@ -5,25 +5,18 @@
 package cmd
 
 import (
-	"crypto/tls"
 	"net"
 	"net/http"
 	"net/http/fcgi"
+	"strings"
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 func runHTTP(network, listenAddr, name string, m http.Handler) error {
 	return graceful.HTTPListenAndServe(network, listenAddr, name, m)
-}
-
-func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler) error {
-	return graceful.HTTPListenAndServeTLS(network, listenAddr, name, certFile, keyFile, m)
-}
-
-func runHTTPSWithTLSConfig(network, listenAddr, name string, tlsConfig *tls.Config, m http.Handler) error {
-	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m)
 }
 
 // NoHTTPRedirector tells our cleanup routine that we will not be using a fallback http redirector
@@ -48,7 +41,12 @@ func runFCGI(network, listenAddr, name string, m http.Handler) error {
 	fcgiServer := graceful.NewServer(network, listenAddr, name)
 
 	err := fcgiServer.ListenAndServe(func(listener net.Listener) error {
-		return fcgi.Serve(listener, m)
+		return fcgi.Serve(listener, http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.AppSubURL != "" {
+				req.URL.Path = strings.TrimPrefix(req.URL.Path, setting.AppSubURL)
+			}
+			m.ServeHTTP(resp, req)
+		}))
 	})
 	if err != nil {
 		log.Fatal("Failed to start FCGI main server: %v", err)

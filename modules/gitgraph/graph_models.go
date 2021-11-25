@@ -7,8 +7,11 @@ package gitgraph
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -89,7 +92,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 
 	var ok bool
 
-	emails := map[string]*models.User{}
+	emails := map[string]*user_model.User{}
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -104,7 +107,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 		if c.Commit.Author != nil {
 			email := c.Commit.Author.Email
 			if c.User, ok = emails[email]; !ok {
-				c.User, _ = models.GetUserByEmail(email)
+				c.User, _ = user_model.GetUserByEmail(email)
 				emails[email] = c.User
 			}
 		}
@@ -113,7 +116,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 
 		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
 
-		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), models.ListOptions{})
+		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
@@ -216,10 +219,10 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 			continue
 		}
 		refName := string(refNameBytes)
-		if refName[0:5] == "tag: " {
-			refName = refName[5:]
-		} else if refName[0:8] == "HEAD -> " {
-			refName = refName[8:]
+		if strings.HasPrefix(refName, "tag: ") {
+			refName = strings.TrimPrefix(refName, "tag: ")
+		} else {
+			refName = strings.TrimPrefix(refName, "HEAD -> ")
 		}
 		refs = append(refs, git.Reference{
 			Name: refName,
@@ -231,7 +234,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 // Commit represents a commit at co-ordinate X, Y with the data
 type Commit struct {
 	Commit       *git.Commit
-	User         *models.User
+	User         *user_model.User
 	Verification *models.CommitVerification
 	Status       *models.CommitStatus
 	Flow         int64

@@ -413,6 +413,13 @@ func (r *SearchRequest) Collapse(collapse *CollapseBuilder) *SearchRequest {
 	return r
 }
 
+// PointInTime specifies an optional PointInTime to be used in the context
+// of this search.
+func (s *SearchRequest) PointInTime(pointInTime *PointInTime) *SearchRequest {
+	s.searchSource = s.searchSource.PointInTime(pointInTime)
+	return s
+}
+
 // AllowPartialSearchResults indicates if this request should allow partial
 // results. (If method is not called, will default to the cluster level
 // setting).

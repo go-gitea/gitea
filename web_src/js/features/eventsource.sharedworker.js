@@ -1,5 +1,3 @@
-self.name = 'eventsource.sharedworker.js';
-
 const sourcesByUrl = {};
 const sourcesByPort = {};
 
@@ -10,6 +8,7 @@ class Source {
     this.listening = {};
     this.clients = [];
     this.listen('open');
+    this.listen('close');
     this.listen('logout');
     this.listen('notification-count');
     this.listen('stopwatches');
@@ -68,7 +67,7 @@ class Source {
   }
 }
 
-self.onconnect = (e) => {
+self.addEventListener('connect', (e) => {
   for (const port of e.ports) {
     port.addEventListener('message', (event) => {
       if (event.data.type === 'start') {
@@ -132,4 +131,4 @@ self.onconnect = (e) => {
     });
     port.start();
   }
-};
+});

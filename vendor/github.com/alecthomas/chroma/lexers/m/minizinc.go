@@ -6,14 +6,18 @@ import (
 )
 
 // MiniZinc lexer.
-var MZN = internal.Register(MustNewLexer(
+var MZN = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "MiniZinc",
 		Aliases:   []string{"minizinc", "MZN", "mzn"},
 		Filenames: []string{"*.mzn", "*.dzn", "*.fzn"},
 		MimeTypes: []string{"text/minizinc"},
 	},
-	Rules{
+	mznRules,
+))
+
+func mznRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`\s+`, Text, nil},
@@ -37,5 +41,5 @@ var MZN = internal.Register(MustNewLexer(
 			{`\b([^\W\d]\w*)\b(\()`, ByGroups(NameFunction, Punctuation), nil},
 			{`[^\W\d]\w*`, NameOther, nil},
 		},
-	},
-))
+	}
+}

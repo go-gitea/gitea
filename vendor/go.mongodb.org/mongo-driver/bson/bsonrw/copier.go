@@ -45,6 +45,22 @@ func (c Copier) CopyDocument(dst ValueWriter, src ValueReader) error {
 	return c.copyDocumentCore(dw, dr)
 }
 
+// CopyArrayFromBytes copies the values from a BSON array represented as a
+// []byte to a ValueWriter.
+func (c Copier) CopyArrayFromBytes(dst ValueWriter, src []byte) error {
+	aw, err := dst.WriteArray()
+	if err != nil {
+		return err
+	}
+
+	err = c.CopyBytesToArrayWriter(aw, src)
+	if err != nil {
+		return err
+	}
+
+	return aw.WriteArrayEnd()
+}
+
 // CopyDocumentFromBytes copies the values from a BSON document represented as a
 // []byte to a ValueWriter.
 func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
@@ -61,9 +77,29 @@ func (c Copier) CopyDocumentFromBytes(dst ValueWriter, src []byte) error {
 	return dw.WriteDocumentEnd()
 }
 
+type writeElementFn func(key string) (ValueWriter, error)
+
+// CopyBytesToArrayWriter copies the values from a BSON Array represented as a []byte to an
+// ArrayWriter.
+func (c Copier) CopyBytesToArrayWriter(dst ArrayWriter, src []byte) error {
+	wef := func(_ string) (ValueWriter, error) {
+		return dst.WriteArrayElement()
+	}
+
+	return c.copyBytesToValueWriter(src, wef)
+}
+
 // CopyBytesToDocumentWriter copies the values from a BSON document represented as a []byte to a
 // DocumentWriter.
 func (c Copier) CopyBytesToDocumentWriter(dst DocumentWriter, src []byte) error {
+	wef := func(key string) (ValueWriter, error) {
+		return dst.WriteDocumentElement(key)
+	}
+
+	return c.copyBytesToValueWriter(src, wef)
+}
+
+func (c Copier) copyBytesToValueWriter(src []byte, wef writeElementFn) error {
 	// TODO(skriptble): Create errors types here. Anything thats a tag should be a property.
 	length, rem, ok := bsoncore.ReadLength(src)
 	if !ok {
@@ -93,15 +129,18 @@ func (c Copier) CopyBytesToDocumentWriter(dst DocumentWriter, src []byte) error 
 		if !ok {
 			return fmt.Errorf("invalid key found. remaining bytes=%v", rem)
 		}
-		dvw, err := dst.WriteDocumentElement(key)
+
+		// write as either array element or document element using writeElementFn
+		vw, err := wef(key)
 		if err != nil {
 			return err
 		}
+
 		val, rem, ok = bsoncore.ReadValue(rem, t)
 		if !ok {
 			return fmt.Errorf("not enough bytes available to read type. bytes=%d type=%s", len(rem), t)
 		}
-		err = c.CopyValueFromBytes(dvw, t, val.Data)
+		err = c.CopyValueFromBytes(vw, t, val.Data)
 		if err != nil {
 			return err
 		}
@@ -129,6 +168,23 @@ func (c Copier) AppendDocumentBytes(dst []byte, src ValueReader) ([]byte, error)
 	vw.reset(dst)
 
 	err := c.CopyDocument(vw, src)
+	dst = vw.buf
+	return dst, err
+}
+
+// AppendArrayBytes copies an array from the ValueReader to dst.
+func (c Copier) AppendArrayBytes(dst []byte, src ValueReader) ([]byte, error) {
+	if br, ok := src.(BytesReader); ok {
+		_, dst, err := br.ReadValueBytes(dst)
+		return dst, err
+	}
+
+	vw := vwPool.Get().(*valueWriter)
+	defer vwPool.Put(vw)
+
+	vw.reset(dst)
+
+	err := c.copyArray(vw, src)
 	dst = vw.buf
 	return dst, err
 }

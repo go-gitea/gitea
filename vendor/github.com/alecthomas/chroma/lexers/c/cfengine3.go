@@ -6,14 +6,18 @@ import (
 )
 
 // Cfengine3 lexer.
-var Cfengine3 = internal.Register(MustNewLexer(
+var Cfengine3 = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "CFEngine3",
 		Aliases:   []string{"cfengine3", "cf3"},
 		Filenames: []string{"*.cf"},
 		MimeTypes: []string{},
 	},
-	Rules{
+	cfengine3Rules,
+))
+
+func cfengine3Rules() Rules {
+	return Rules{
 		"root": {
 			{`#.*?\n`, Comment, nil},
 			{`(body)(\s+)(\S+)(\s+)(control)`, ByGroups(Keyword, Text, Keyword, Text, Keyword), nil},
@@ -52,5 +56,5 @@ var Cfengine3 = internal.Register(MustNewLexer(
 			{`\w+`, NameVariable, nil},
 			{`\s+`, Text, nil},
 		},
-	},
-))
+	}
+}

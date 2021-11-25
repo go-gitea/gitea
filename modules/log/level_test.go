@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,7 +18,6 @@ type testLevel struct {
 }
 
 func TestLevelMarshalUnmarshalJSON(t *testing.T) {
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	levelBytes, err := json.Marshal(testLevel{
 		Level: INFO,
 	})

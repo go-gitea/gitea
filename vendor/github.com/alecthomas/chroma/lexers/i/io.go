@@ -6,14 +6,18 @@ import (
 )
 
 // Io lexer.
-var Io = internal.Register(MustNewLexer(
+var Io = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Io",
 		Aliases:   []string{"io"},
 		Filenames: []string{"*.io"},
 		MimeTypes: []string{"text/x-iosrc"},
 	},
-	Rules{
+	ioRules,
+))
+
+func ioRules() Rules {
+	return Rules{
 		"root": {
 			{`\n`, Text, nil},
 			{`\s+`, Text, nil},
@@ -36,5 +40,5 @@ var Io = internal.Register(MustNewLexer(
 			{`\+/`, CommentMultiline, Pop(1)},
 			{`[+/]`, CommentMultiline, nil},
 		},
-	},
-))
+	}
+}

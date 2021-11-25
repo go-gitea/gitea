@@ -5,10 +5,13 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,7 +19,7 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, models.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -54,7 +57,7 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 
 	var rollbackRepo *models.Repository
 
-	if err := models.WithTx(func(ctx models.DBContext) error {
+	if err := db.WithTx(func(ctx context.Context) error {
 		if err := models.CreateRepository(ctx, doer, u, repo, false); err != nil {
 			return err
 		}
@@ -103,7 +106,11 @@ func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*mod
 			}
 		}
 
-		if stdout, err := git.NewCommand("update-server-info").
+		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+			return fmt.Errorf("checkDaemonExportOK: %v", err)
+		}
+
+		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
 			SetDescription(fmt.Sprintf("CreateRepository(git update-server-info): %s", repoPath)).
 			RunInDir(repoPath); err != nil {
 			log.Error("CreateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", repo, stdout, err)

@@ -11,17 +11,21 @@ import (
 	"html/template"
 	"mime"
 	"regexp"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 
 	"gopkg.in/gomail.v2"
 )
@@ -54,16 +58,26 @@ func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
 	return gomail.Send(Sender, NewMessage([]string{email}, "Gitea Test Email!", "Gitea Test Email!").ToMessage())
 }
 
-// SendUserMail sends a mail to the user
-func SendUserMail(language string, u *models.User, tpl base.TplName, code, subject, info string) {
+// sendUserMail sends a mail to the user
+func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, subject, info string) {
+	locale := translation.NewLocale(language)
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
 		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
 		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
 		"Code":              code,
+		"Language":          locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -79,29 +93,42 @@ func SendUserMail(language string, u *models.User, tpl base.TplName, code, subje
 	SendAsync(msg)
 }
 
-// Locale represents an interface to translation
-type Locale interface {
-	Language() string
-	Tr(string, ...interface{}) string
-}
-
 // SendActivateAccountMail sends an activation mail to the user (new user registration)
-func SendActivateAccountMail(locale Locale, u *models.User) {
-	SendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateActivateCode(), locale.Tr("mail.activate_account"), "activate account")
+func SendActivateAccountMail(locale translation.Locale, u *user_model.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+	sendUserMail(locale.Language(), u, mailAuthActivate, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.activate_account"), "activate account")
 }
 
 // SendResetPasswordMail sends a password reset mail to the user
-func SendResetPasswordMail(locale Locale, u *models.User) {
-	SendUserMail(locale.Language(), u, mailAuthResetPassword, u.GenerateActivateCode(), locale.Tr("mail.reset_password"), "recover account")
+func SendResetPasswordMail(u *user_model.User) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+	locale := translation.NewLocale(u.Language)
+	sendUserMail(u.Language, u, mailAuthResetPassword, u.GenerateEmailActivateCode(u.Email), locale.Tr("mail.reset_password"), "recover account")
 }
 
 // SendActivateEmailMail sends confirmation email to confirm new email address
-func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAddress) {
+func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
 		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
+		"Language":        locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -118,15 +145,21 @@ func SendActivateEmailMail(locale Locale, u *models.User, email *models.EmailAdd
 }
 
 // SendRegisterNotifyMail triggers a notify e-mail by admin created a account.
-func SendRegisterNotifyMail(locale Locale, u *models.User) {
+func SendRegisterNotifyMail(u *user_model.User) {
 	if setting.MailService == nil {
-		log.Warn("SendRegisterNotifyMail is being invoked but mail service hasn't been initialized")
+		// No mail service configured
 		return
 	}
+	locale := translation.NewLocale(u.Language)
 
 	data := map[string]interface{}{
 		"DisplayName": u.DisplayName(),
 		"Username":    u.Name,
+		"Language":    locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -143,14 +176,24 @@ func SendRegisterNotifyMail(locale Locale, u *models.User) {
 }
 
 // SendCollaboratorMail sends mail notification to new collaborator.
-func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
+func SendCollaboratorMail(u, doer *user_model.User, repo *models.Repository) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+	locale := translation.NewLocale(u.Language)
 	repoName := repo.FullName()
-	subject := fmt.Sprintf("%s added you to %s", doer.DisplayName(), repoName)
 
+	subject := locale.Tr("mail.repo.collaborator.added.subject", doer.DisplayName(), repoName)
 	data := map[string]interface{}{
 		"Subject":  subject,
 		"RepoName": repoName,
 		"Link":     repo.HTMLURL(),
+		"Language": locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var content bytes.Buffer
@@ -166,8 +209,7 @@ func SendCollaboratorMail(u, doer *models.User, repo *models.Repository) {
 	SendAsync(msg)
 }
 
-func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMention bool, info string) []*Message {
-
+func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipients []*user_model.User, fromMention bool, info string) ([]*Message, error) {
 	var (
 		subject string
 		link    string
@@ -191,7 +233,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	}
 
 	// This is the body of the new issue or comment, not the mail body
-	body := string(markup.RenderByType(markdown.MarkupName, []byte(ctx.Content), ctx.Issue.Repo.HTMLURL(), ctx.Issue.Repo.ComposeMetas()))
+	body, err := markdown.RenderString(&markup.RenderContext{
+		URLPrefix: ctx.Issue.Repo.HTMLURL(),
+		Metas:     ctx.Issue.Repo.ComposeMetas(),
+	}, ctx.Content)
+	if err != nil {
+		return nil, err
+	}
 
 	actType, actName, tplName := actionToTemplate(ctx.Issue, ctx.ActionType, commentType, reviewType)
 
@@ -208,6 +256,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 			}
 		}
 	}
+	locale := translation.NewLocale(lang)
 
 	mailMeta := map[string]interface{}{
 		"FallbackSubject": fallback,
@@ -224,17 +273,21 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 		"ActionType":      actType,
 		"ActionName":      actName,
 		"ReviewComments":  reviewComments,
+		"Language":        locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var mailSubject bytes.Buffer
 	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
+		if subject == "" {
+			subject = fallback
+		}
 	} else {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/subject", err)
-	}
-
-	if subject == "" {
-		subject = fallback
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/subject", err)
 	}
 
 	subject = emoji.ReplaceAliases(subject)
@@ -248,22 +301,74 @@ func composeIssueCommentMessages(ctx *mailCommentContext, tos []string, fromMent
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
-	msgs := make([]*Message, 0, len(tos))
-	for _, to := range tos {
-		msg := NewMessageFrom([]string{to}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
+	msgs := make([]*Message, 0, len(recipients))
+	for _, recipient := range recipients {
+		msg := NewMessageFrom([]string{recipient.Email}, ctx.Doer.DisplayName(), setting.MailService.FromEmail, subject, mailBody.String())
 		msg.Info = fmt.Sprintf("Subject: %s, %s", subject, info)
 
-		// Set Message-ID on first message so replies know what to reference
-		if actName == "new" {
-			msg.SetHeader("Message-ID", "<"+ctx.Issue.ReplyReference()+">")
-		} else {
-			msg.SetHeader("In-Reply-To", "<"+ctx.Issue.ReplyReference()+">")
-			msg.SetHeader("References", "<"+ctx.Issue.ReplyReference()+">")
+		msg.SetHeader("Message-ID", "<"+createReference(ctx.Issue, ctx.Comment)+">")
+		reference := createReference(ctx.Issue, nil)
+		msg.SetHeader("In-Reply-To", "<"+reference+">")
+		msg.SetHeader("References", "<"+reference+">")
+
+		for key, value := range generateAdditionalHeaders(ctx, actType, recipient) {
+			msg.SetHeader(key, value)
 		}
+
 		msgs = append(msgs, msg)
 	}
 
-	return msgs
+	return msgs, nil
+}
+
+func createReference(issue *models.Issue, comment *models.Comment) string {
+	var path string
+	if issue.IsPull {
+		path = "pulls"
+	} else {
+		path = "issues"
+	}
+
+	var extra string
+	if comment != nil {
+		extra = fmt.Sprintf("/comment/%d", comment.ID)
+	}
+
+	return fmt.Sprintf("%s/%s/%d%s@%s", issue.Repo.FullName(), path, issue.Index, extra, setting.Domain)
+}
+
+func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient *user_model.User) map[string]string {
+	repo := ctx.Issue.Repo
+
+	return map[string]string{
+		// https://datatracker.ietf.org/doc/html/rfc2919
+		"List-ID": fmt.Sprintf("%s <%s.%s.%s>", repo.FullName(), repo.Name, repo.OwnerName, setting.Domain),
+
+		// https://datatracker.ietf.org/doc/html/rfc2369
+		"List-Archive": fmt.Sprintf("<%s>", repo.HTMLURL()),
+		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
+		//"List-Unsubscribe": https://github.com/go-gitea/gitea/issues/10808, https://github.com/go-gitea/gitea/issues/13283
+
+		"X-Gitea-Reason":            reason,
+		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
+		"X-Gitea-Recipient":         recipient.DisplayName(),
+		"X-Gitea-Recipient-Address": recipient.Email,
+		"X-Gitea-Repository":        repo.Name,
+		"X-Gitea-Repository-Path":   repo.FullName(),
+		"X-Gitea-Repository-Link":   repo.HTMLURL(),
+		"X-Gitea-Issue-ID":          strconv.FormatInt(ctx.Issue.Index, 10),
+		"X-Gitea-Issue-Link":        ctx.Issue.HTMLURL(),
+
+		"X-GitHub-Reason":            reason,
+		"X-GitHub-Sender":            ctx.Doer.DisplayName(),
+		"X-GitHub-Recipient":         recipient.DisplayName(),
+		"X-GitHub-Recipient-Address": recipient.Email,
+
+		"X-GitLab-NotificationReason": reason,
+		"X-GitLab-Project":            repo.Name,
+		"X-GitLab-Project-Path":       repo.FullName(),
+		"X-GitLab-Issue-IID":          strconv.FormatInt(ctx.Issue.Index, 10),
+	}
 }
 
 func sanitizeSubject(subject string) string {
@@ -276,14 +381,36 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *models.User, content string, comment *models.Comment, tos []string) {
-	SendAsyncs(composeIssueCommentMessages(&mailCommentContext{
-		Issue:      issue,
-		Doer:       doer,
-		ActionType: models.ActionType(0),
-		Content:    content,
-		Comment:    comment,
-	}, tos, false, "issue assigned"))
+func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content string, comment *models.Comment, recipients []*user_model.User) error {
+	if setting.MailService == nil {
+		// No mail service configured
+		return nil
+	}
+
+	if err := issue.LoadRepo(); err != nil {
+		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
+		return err
+	}
+
+	langMap := make(map[string][]*user_model.User)
+	for _, user := range recipients {
+		langMap[user.Language] = append(langMap[user.Language], user)
+	}
+
+	for lang, tos := range langMap {
+		msgs, err := composeIssueCommentMessages(&mailCommentContext{
+			Issue:      issue,
+			Doer:       doer,
+			ActionType: models.ActionType(0),
+			Content:    content,
+			Comment:    comment,
+		}, lang, tos, false, "issue assigned")
+		if err != nil {
+			return err
+		}
+		SendAsyncs(msgs)
+	}
+	return nil
 }
 
 // actionToTemplate returns the type and name of the action facing the user
@@ -308,6 +435,8 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		name = "merge"
 	case models.ActionPullReviewDismissed:
 		name = "review_dismissed"
+	case models.ActionPullRequestReadyForReview:
+		name = "ready_for_review"
 	default:
 		switch commentType {
 		case models.CommentTypeReview:

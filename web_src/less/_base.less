@@ -76,8 +76,10 @@
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-removed-row-bg: #ffeef0;
+  --color-diff-moved-row-bg: #f1f8d1;
   --color-diff-added-row-bg: #e6ffed;
   --color-diff-removed-row-border: #f1c0c0;
+  --color-diff-moved-row-border: #d0e27f;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-inactive: #f2f2f2;
   /* target-based colors */
@@ -96,25 +98,36 @@
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
-  --color-light: #00000004;
+  --color-light: #00000006;
+  --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
-  --color-hover: #0000000d;
-  --color-active: #00000012;
+  --color-hover: #0000000f;
+  --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
-  --color-markdown-table-row: #00000008;
-  --color-markdown-code-block: #00000010;
+  --color-markup-table-row: #00000008;
+  --color-markup-code-block: #00000010;
   --color-button: #ffffff;
   --color-code-bg: #ffffff;
+  --color-code-sidebar-bg: #f5f5f5;
+  --color-shadow: #00000030;
   --color-secondary-bg: #f4f4f4;
   --color-expand-button: #d8efff;
+  --color-placeholder-text: #aaa;
+  --color-editor-line-highlight: var(--color-primary-light-6);
+  --color-project-board-bg: var(--color-secondary-light-4);
+  --color-project-board-dark-label: #555555;
+  --color-project-board-light-label: #a6aab5;
+  --color-caret: var(--color-text-dark);
+  --color-reaction-bg: #0000000a;
+  --color-reaction-active-bg: var(--color-primary-alpha-20);
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
 }
 
 :root * {
-  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", var(--fonts-emoji), sans-serif;
+  --fonts-regular: var(--fonts-override, var(--fonts-proportional)), "Noto Sans", "Liberation Sans", sans-serif, var(--fonts-emoji);
 }
 
 textarea {
@@ -125,7 +138,7 @@ pre,
 code,
 kbd,
 samp {
-  font-size: .9em; /* compensate for monospace fonts being usually slighty larger */
+  font-size: .9em; /* compensate for monospace fonts being usually slightly larger */
   font-family: var(--fonts-monospace);
 }
 
@@ -157,17 +170,22 @@ table {
   border-collapse: collapse;
 }
 
-/* firefox scroll bars */
-
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-primary) transparent;
+details summary {
+  cursor: pointer;
 }
 
-/* webkit scrollbars */
+details summary > * {
+  display: inline;
+}
+
+* {
+  scrollbar-color: var(--color-primary) transparent;
+  caret-color: var(--color-caret);
+}
 
 ::-webkit-scrollbar {
   width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-thumb {
   box-shadow: inset 0 0 0 6px var(--color-primary);
@@ -184,15 +202,21 @@ table {
   background: transparent;
 }
 
+.CodeMirror-cursor {
+  border-color: var(--color-caret) !important;
+}
+
 ::selection,
 .CodeMirror-selected {
   background: var(--color-primary-light-1) !important;
-  color: #fff !important;
+  color: var(--color-white) !important;
 }
 
 ::placeholder,
-.CodeMirror-placeholder {
-  color: #aaa !important;
+.CodeMirror-placeholder,
+.ui.dropdown:not(.button) > .default.text,
+.ui.default.dropdown:not(.button) > .text {
+  color: var(--color-placeholder-text) !important;
   opacity: 1 !important;
 }
 
@@ -233,6 +257,15 @@ a.muted:hover,
 
 .CodeMirror-focused {
   border-color: var(--color-primary) !important;
+}
+
+/* currently used for search bar dropdowns in repo search and explore code */
+.ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
+  min-width: 10em;
+
+  &:not(:focus):not(:hover) {
+    border-right-color: transparent;
+  }
 }
 
 .ui.action.input:not([class*="left action"]) > input:focus {
@@ -428,12 +461,32 @@ a.muted:hover,
   color: var(--color-text);
 }
 
+.ui.cards > .card .meta > a:not(.ui),
+.ui.card .meta > a:not(.ui) {
+  color: var(--color-text-light-2);
+}
+
+.ui.cards > .card .meta > a:not(.ui):hover,
+.ui.card .meta > a:not(.ui):hover {
+  color: var(--color-text);
+}
+
 .ui.cards a.card:hover,
 .ui.link.cards .card:not(.icon):hover,
 a.ui.card:hover,
 .ui.link.card:hover {
   border: 1px solid var(--color-secondary);
   background: var(--color-card);
+}
+
+.ui.cards > .card > .extra,
+.ui.card > .extra {
+  color: var(--color-text);
+  border-top-color: var(--color-secondary-light-1) !important;
+}
+
+.ui.comments .comment .text {
+  margin: 0;
 }
 
 .ui.comments .comment .text,
@@ -521,6 +574,19 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+.ui.link.list .item,
+.ui.link.list a.item,
+.ui.link.list .item a:not(.ui) {
+  color: var(--color-text);
+}
+
+.ui.link.list.list a.item:hover,
+.ui.link.list.list .item a:not(.ui):hover,
+.ui.link.list.list a.item:active,
+.ui.link.list.list .item a:not(.ui):active {
+  color: var(--color-text-dark);
+}
+
 .dont-break-out {
   overflow-wrap: break-word;
   word-wrap: break-word;
@@ -571,6 +637,7 @@ a.ui.card:hover,
 
   .fitted .svg {
     margin-right: 0;
+    vertical-align: middle;
   }
 
   .searchbox {
@@ -630,8 +697,14 @@ a.ui.card:hover,
   height: auto;
 }
 
-.ui.loading.segment::before {
+.ui.loading.segment::before,
+.ui.loading.form::before {
   background: none;
+}
+
+.ui.loading.form > *,
+.ui.loading.segment > * {
+  opacity: .35;
 }
 
 .ui.loading.loading.input > i.icon svg {
@@ -680,7 +753,7 @@ a.ui.card:hover,
     box-shadow: none;
   }
 
-  /* Overide semantic selector '.ui.menu:not(.vertical) .item > .button' */
+  /* Override semantic selector '.ui.menu:not(.vertical) .item > .button' */
   /* This fixes the commit graph button on the commits page */
 
   .menu:not(.vertical) .item > .button.compact {
@@ -892,10 +965,13 @@ a.ui.card:hover,
   }
 
   .form {
-    .fake {
-      display: none !important;
+    .autofill-dummy {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      z-index: -10000;
     }
-
     .sub.field {
       margin-left: 25px;
     }
@@ -907,6 +983,13 @@ a.ui.card:hover,
     padding: 6px 10px 4px;
     font-weight: normal;
     margin: 0 6px;
+  }
+
+  .button.copy-commit-sha {
+    border: 1px solid var(--color-light-border);
+    margin-right: 3px;
+    padding: 6px 6px 4px;
+    background: var(--color-light);
   }
 
   .button.truncate {
@@ -974,7 +1057,7 @@ a.ui.card:hover,
 
   .migrate {
     color: var(--color-text-light-2) !important;
-    opacity: .5;
+
     a {
       color: var(--color-text-light) !important;
 
@@ -1104,12 +1187,6 @@ footer {
     padding: 0 .5rem;
     max-width: calc(100vw - 1rem) !important;
 
-    .fa {
-      width: 16px;
-      text-align: center;
-      color: var(--color-primary);
-    }
-
     .links > * {
       border-left: 1px solid var(--color-secondary);
       padding-left: 8px;
@@ -1224,6 +1301,7 @@ footer {
   display: flex;
   margin-left: auto;
   margin-right: auto;
+  overflow-x: auto;
 }
 
 @media @mediaSm {
@@ -1293,6 +1371,13 @@ footer {
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
   margin-bottom: 2px !important;
+  justify-content: space-evenly;
+
+}
+
+.ui.secondary.pointing.menu.repos-filter .item {
+  padding-left: 4.5px;
+  padding-right: 4.5px;
 }
 
 .repo-title {
@@ -1382,6 +1467,14 @@ a.ui.label:hover {
   margin-right: 0;
 }
 
+.lines-blame-btn {
+  padding-left: 10px;
+  padding-right: 10px;
+  text-align: right !important;
+  background-color: var(--color-code-sidebar-bg);
+  width: 2%;
+}
+
 .lines-num {
   padding-left: 10px;
   padding-right: 10px;
@@ -1447,7 +1540,7 @@ a.ui.label:hover {
 
 .blame .lines-num {
   padding: 0 !important;
-  background-color: #f5f5f5;
+  background-color: var(--color-code-sidebar-bg);
 }
 
 .blame .lines-code {
@@ -1465,13 +1558,14 @@ a.ui.label:hover {
 .blame .code-inner {
   white-space: pre;
   word-break: normal;
+  word-wrap: normal; /* not using overflow-wrap because safari does not treat is an an alias */
 }
 
 .lines-commit {
   vertical-align: top;
   color: #999999;
   padding: 0 !important;
-  background: #f5f5f5;
+  background: var(--color-code-sidebar-bg);
   width: 1%;
   -moz-user-select: none;
   -ms-user-select: none;
@@ -1484,6 +1578,8 @@ a.ui.label:hover {
     display: block;
     user-select: none;
     padding: 0 0 0 10px;
+    line-height: 20px;
+    box-sizing: content-box;
 
     .blame-data {
       display: flex;
@@ -1494,7 +1590,6 @@ a.ui.label:hover {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        line-height: 20px;
       }
 
       .blame-time,
@@ -1507,7 +1602,13 @@ a.ui.label:hover {
   .ui.avatar.image {
     height: 18px;
     width: 18px;
+    display: block;
+    margin-top: 1px;
   }
+}
+
+.top-line-blame {
+  border-top: 1px solid var(--color-secondary);
 }
 
 .lines-code,
@@ -1516,20 +1617,8 @@ a.ui.label:hover {
     border-bottom: 1px solid var(--color-secondary);
   }
 }
-.code-view {
-  overflow: auto;
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  &.has-context-menu {
-    overflow: visible;
-    overflow-x: visible;
-    overflow-y: visible;
-  }
-
-  table {
-    width: 100%;
-  }
+.code-view table {
+  width: 100%;
 }
 
 .octicon-tiny {
@@ -1546,8 +1635,16 @@ a.ui.label:hover {
   box-shadow: none !important;
 }
 
+.ui.button:focus,
 .ui.button:hover {
   background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.ui.button:active,
+.ui.active.button:active,
+.ui.active.button:hover {
+  background: var(--color-active);
   color: var(--color-text);
 }
 
@@ -1556,11 +1653,19 @@ a.ui.label:hover {
 }
 
 .ui.buttons .button:first-child {
-  border-left: 1px solid var(--color-secondary);
+  border-left: 1px solid var(--color-light-border);
 }
 
 .ui.buttons .button + .button {
   border-left: none;
+}
+
+.two-toggle-buttons .button:not(.active):first-of-type {
+  border-right: none;
+}
+
+.two-toggle-buttons .button.active:last-of-type {
+  border-left: 1px solid var(--color-light-border);
 }
 
 .ui.labeled.button.disabled > .button,
@@ -1590,6 +1695,11 @@ a.ui.label:hover {
 
 .ui.labeled.button > .label {
   border-color: var(--color-light-border);
+}
+
+.ui.labeled.icon.buttons > .button > .icon,
+.ui.labeled.icon.button > .icon {
+  background: var(--color-hover);
 }
 
 .ui.blue.button,
@@ -1684,6 +1794,10 @@ a.ui.basic.label:hover {
   }
 }
 
+.migrate .svg.gitea-git {
+  color: #f05133; /* from https://upload.wikimedia.org/wikipedia/commons/e/e0/Git-logo.svg */
+}
+
 .ui.popup {
   background-color: var(--color-body);
   color: var(--color-secondary-dark-6);
@@ -1717,11 +1831,6 @@ a.ui.basic.label:hover {
 
 .ui.popup .ui.label {
   margin-bottom: .4em;
-}
-
-.ui.cards > .card > .extra,
-.ui.card > .extra {
-  color: var(--color-text);
 }
 
 .color-icon {
@@ -1971,7 +2080,7 @@ table th[data-sortt-desc] {
 .ui.secondary.pointing.menu .dropdown.item:hover,
 .ui.secondary.pointing.menu .link.item:hover,
 .ui.secondary.pointing.menu a.item:hover {
-  color: var(--color-text);
+  color: var(--color-text-dark);
 }
 
 .ui.header {
@@ -1995,6 +2104,15 @@ table th[data-sortt-desc] {
   display: flex !important;
 }
 
+.ellipsis-button {
+  padding: 0 5px 8px !important;
+  display: inline-block !important;
+  user-select: none !important;
+  font-weight: 600 !important;
+  line-height: 6px !important;
+  vertical-align: middle !important;
+}
+
 .truncated-item-name {
   line-height: 2em;
   white-space: nowrap;
@@ -2002,4 +2120,17 @@ table th[data-sortt-desc] {
   text-overflow: ellipsis;
   margin-top: -.5em;
   margin-bottom: -.5em;
+}
+
+.precolors {
+  padding-left: 0;
+  padding-right: 0;
+  margin: 3px 10px auto;
+  width: 120px;
+
+  .color {
+    float: left;
+    width: 15px;
+    height: 15px;
+  }
 }

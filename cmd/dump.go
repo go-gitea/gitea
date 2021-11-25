@@ -7,21 +7,20 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	jsoniter "github.com/json-iterator/go"
 	archiver "github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )
@@ -129,6 +128,14 @@ It can be used for backup and capture Gitea server image to send to maintainer`,
 			Name:  "skip-custom-dir",
 			Usage: "Skip custom directory",
 		},
+		cli.BoolFlag{
+			Name:  "skip-lfs-data",
+			Usage: "Skip LFS data",
+		},
+		cli.BoolFlag{
+			Name:  "skip-attachment-data",
+			Usage: "Skip attachment data",
+		},
 		cli.GenericFlag{
 			Name:  "type",
 			Value: outputTypeEnum,
@@ -166,7 +173,10 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := models.SetEngine()
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	err := db.InitEngine(stdCtx)
 	if err != nil {
 		return err
 	}
@@ -214,7 +224,9 @@ func runDump(ctx *cli.Context) error {
 			fatal("Failed to include repositories: %v", err)
 		}
 
-		if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
+		if ctx.IsSet("skip-lfs-data") && ctx.Bool("skip-lfs-data") {
+			log.Info("Skip dumping LFS data")
+		} else if err := storage.LFS.IterateObjects(func(objPath string, object storage.Object) error {
 			info, err := object.Stat()
 			if err != nil {
 				return err
@@ -237,7 +249,7 @@ func runDump(ctx *cli.Context) error {
 		fatal("Path does not exist: %s", tmpDir)
 	}
 
-	dbDump, err := ioutil.TempFile(tmpDir, "gitea-db.sql")
+	dbDump, err := os.CreateTemp(tmpDir, "gitea-db.sql")
 	if err != nil {
 		fatal("Failed to create tmp file: %v", err)
 	}
@@ -254,7 +266,7 @@ func runDump(ctx *cli.Context) error {
 		log.Info("Dumping database...")
 	}
 
-	if err := models.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
+	if err := db.DumpDatabase(dbDump.Name(), targetDBType); err != nil {
 		fatal("Failed to dump database: %v", err)
 	}
 
@@ -270,7 +282,7 @@ func runDump(ctx *cli.Context) error {
 	}
 
 	if ctx.IsSet("skip-custom-dir") && ctx.Bool("skip-custom-dir") {
-		log.Info("Skiping custom directory")
+		log.Info("Skipping custom directory")
 	} else {
 		customDir, err := os.Stat(setting.CustomPath)
 		if err == nil && customDir.IsDir() {
@@ -296,7 +308,6 @@ func runDump(ctx *cli.Context) error {
 		var excludes []string
 		if setting.Cfg.Section("session").Key("PROVIDER").Value() == "file" {
 			var opts session.Options
-			json := jsoniter.ConfigCompatibleWithStandardLibrary
 			if err = json.Unmarshal([]byte(setting.SessionConfig.ProviderConfig), &opts); err != nil {
 				return err
 			}
@@ -313,7 +324,9 @@ func runDump(ctx *cli.Context) error {
 		}
 	}
 
-	if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
+	if ctx.IsSet("skip-attachment-data") && ctx.Bool("skip-attachment-data") {
+		log.Info("Skip dumping attachment data")
+	} else if err := storage.Attachments.IterateObjects(func(objPath string, object storage.Object) error {
 		info, err := object.Stat()
 		if err != nil {
 			return err

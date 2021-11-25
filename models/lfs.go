@@ -5,13 +5,11 @@
 package models
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"io"
-	"path"
 
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -19,26 +17,15 @@ import (
 
 // LFSMetaObject stores metadata for LFS tracked files.
 type LFSMetaObject struct {
-	ID           int64              `xorm:"pk autoincr"`
-	Oid          string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Size         int64              `xorm:"NOT NULL"`
+	ID           int64 `xorm:"pk autoincr"`
+	lfs.Pointer  `xorm:"extends"`
 	RepositoryID int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	Existing     bool               `xorm:"-"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"created"`
 }
 
-// RelativePath returns the relative path of the lfs object
-func (m *LFSMetaObject) RelativePath() string {
-	if len(m.Oid) < 5 {
-		return m.Oid
-	}
-
-	return path.Join(m.Oid[0:2], m.Oid[2:4], m.Oid[4:])
-}
-
-// Pointer returns the string representation of an LFS pointer file
-func (m *LFSMetaObject) Pointer() string {
-	return fmt.Sprintf("%s\n%s%s\nsize %d\n", LFSMetaFileIdentifier, LFSMetaFileOidPrefix, m.Oid, m.Size)
+func init() {
+	db.RegisterModel(new(LFSMetaObject))
 }
 
 // LFSTokenResponse defines the JSON structure in which the JWT token is stored.
@@ -53,51 +40,32 @@ type LFSTokenResponse struct {
 // to differentiate between database and missing object errors.
 var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
 
-const (
-	// LFSMetaFileIdentifier is the string appearing at the first line of LFS pointer files.
-	// https://github.com/git-lfs/git-lfs/blob/master/docs/spec.md
-	LFSMetaFileIdentifier = "version https://git-lfs.github.com/spec/v1"
-
-	// LFSMetaFileOidPrefix appears in LFS pointer files on a line before the sha256 hash.
-	LFSMetaFileOidPrefix = "oid sha256:"
-)
-
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.
 func NewLFSMetaObject(m *LFSMetaObject) (*LFSMetaObject, error) {
 	var err error
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	has, err := sess.Get(m)
+	has, err := db.GetByBean(ctx, m)
 	if err != nil {
 		return nil, err
 	}
 
 	if has {
 		m.Existing = true
-		return m, sess.Commit()
+		return m, committer.Commit()
 	}
 
-	if _, err = sess.Insert(m); err != nil {
+	if err = db.Insert(ctx, m); err != nil {
 		return nil, err
 	}
 
-	return m, sess.Commit()
-}
-
-// GenerateLFSOid generates a Sha256Sum to represent an oid for arbitrary content
-func GenerateLFSOid(content io.Reader) (string, error) {
-	h := sha256.New()
-	if _, err := io.Copy(h, content); err != nil {
-		return "", err
-	}
-	sum := h.Sum(nil)
-	return hex.EncodeToString(sum), nil
+	return m, committer.Commit()
 }
 
 // GetLFSMetaObjectByOid selects a LFSMetaObject entry from database by its OID.
@@ -108,8 +76,8 @@ func (repo *Repository) GetLFSMetaObjectByOid(oid string) (*LFSMetaObject, error
 		return nil, ErrLFSObjectNotExist
 	}
 
-	m := &LFSMetaObject{Oid: oid, RepositoryID: repo.ID}
-	has, err := x.Get(m)
+	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
+	has, err := db.GetEngine(db.DefaultContext).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -125,29 +93,28 @@ func (repo *Repository) RemoveLFSMetaObjectByOid(oid string) (int64, error) {
 		return 0, ErrLFSObjectNotExist
 	}
 
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return 0, err
+	}
+	defer committer.Close()
+
+	m := &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}, RepositoryID: repo.ID}
+	if _, err := db.DeleteByBean(ctx, m); err != nil {
 		return -1, err
 	}
 
-	m := &LFSMetaObject{Oid: oid, RepositoryID: repo.ID}
-	if _, err := sess.Delete(m); err != nil {
-		return -1, err
-	}
-
-	count, err := sess.Count(&LFSMetaObject{Oid: oid})
+	count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	if err != nil {
 		return count, err
 	}
 
-	return count, sess.Commit()
+	return count, committer.Commit()
 }
 
 // GetLFSMetaObjects returns all LFSMetaObjects associated with a repository
 func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject, error) {
-	sess := x.NewSession()
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	if page >= 0 && pageSize > 0 {
 		start := 0
@@ -162,27 +129,29 @@ func (repo *Repository) GetLFSMetaObjects(page, pageSize int) ([]*LFSMetaObject,
 
 // CountLFSMetaObjects returns a count of all LFSMetaObjects associated with a repository
 func (repo *Repository) CountLFSMetaObjects() (int64, error) {
-	return x.Count(&LFSMetaObject{RepositoryID: repo.ID})
+	return db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{RepositoryID: repo.ID})
 }
 
 // LFSObjectAccessible checks if a provided Oid is accessible to the user
-func LFSObjectAccessible(user *User, oid string) (bool, error) {
+func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 	if user.IsAdmin {
-		count, err := x.Count(&LFSMetaObject{Oid: oid})
-		return (count > 0), err
+		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+		return count > 0, err
 	}
 	cond := accessibleRepositoryCondition(user)
-	count, err := x.Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Oid: oid})
-	return (count > 0), err
+	count, err := db.GetEngine(db.DefaultContext).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
+	return count > 0, err
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
-func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	oids := make([]interface{}, len(metas))
 	oidMap := make(map[string]*LFSMetaObject, len(metas))
@@ -204,20 +173,21 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
 		newMetas[i].Size = oidMap[newMetas[i].Oid].Size
 		newMetas[i].RepositoryID = repoID
 	}
-	if _, err := sess.InsertMulti(newMetas); err != nil {
+	if err := db.Insert(ctx, newMetas); err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // IterateLFS iterates lfs object
 func IterateLFS(f func(mo *LFSMetaObject) error) error {
 	var start int
 	const batchSize = 100
+	var e = db.GetEngine(db.DefaultContext)
 	for {
 		mos := make([]*LFSMetaObject, 0, batchSize)
-		if err := x.Limit(batchSize, start).Find(&mos); err != nil {
+		if err := e.Limit(batchSize, start).Find(&mos); err != nil {
 			return err
 		}
 		if len(mos) == 0 {

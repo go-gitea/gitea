@@ -19,7 +19,7 @@ import (
 	"golang.org/x/oauth2/jwt"
 )
 
-// Endpoint is Google's OAuth 2.0 endpoint.
+// Endpoint is Google's OAuth 2.0 default endpoint.
 var Endpoint = oauth2.Endpoint{
 	AuthURL:   "https://accounts.google.com/o/oauth2/auth",
 	TokenURL:  "https://oauth2.googleapis.com/token",
@@ -87,7 +87,7 @@ func JWTConfigFromJSON(jsonKey []byte, scope ...string) (*jwt.Config, error) {
 		return nil, fmt.Errorf("google: read JWT from JSON credentials: 'type' field is %q (expected %q)", f.Type, serviceAccountKey)
 	}
 	scope = append([]string(nil), scope...) // copy
-	return f.jwtConfig(scope), nil
+	return f.jwtConfig(scope, ""), nil
 }
 
 // JSON key file types.
@@ -99,12 +99,13 @@ const (
 
 // credentialsFile is the unmarshalled representation of a credentials file.
 type credentialsFile struct {
-	Type string `json:"type"` // serviceAccountKey or userCredentialsKey
+	Type string `json:"type"`
 
 	// Service Account fields
 	ClientEmail  string `json:"client_email"`
 	PrivateKeyID string `json:"private_key_id"`
 	PrivateKey   string `json:"private_key"`
+	AuthURL      string `json:"auth_uri"`
 	TokenURL     string `json:"token_uri"`
 	ProjectID    string `json:"project_id"`
 
@@ -124,13 +125,14 @@ type credentialsFile struct {
 	QuotaProjectID                 string                           `json:"quota_project_id"`
 }
 
-func (f *credentialsFile) jwtConfig(scopes []string) *jwt.Config {
+func (f *credentialsFile) jwtConfig(scopes []string, subject string) *jwt.Config {
 	cfg := &jwt.Config{
 		Email:        f.ClientEmail,
 		PrivateKey:   []byte(f.PrivateKey),
 		PrivateKeyID: f.PrivateKeyID,
 		Scopes:       scopes,
 		TokenURL:     f.TokenURL,
+		Subject:      subject, // This is the user email to impersonate
 	}
 	if cfg.TokenURL == "" {
 		cfg.TokenURL = JWTTokenURL
@@ -138,17 +140,27 @@ func (f *credentialsFile) jwtConfig(scopes []string) *jwt.Config {
 	return cfg
 }
 
-func (f *credentialsFile) tokenSource(ctx context.Context, scopes []string) (oauth2.TokenSource, error) {
+func (f *credentialsFile) tokenSource(ctx context.Context, params CredentialsParams) (oauth2.TokenSource, error) {
 	switch f.Type {
 	case serviceAccountKey:
-		cfg := f.jwtConfig(scopes)
+		cfg := f.jwtConfig(params.Scopes, params.Subject)
 		return cfg.TokenSource(ctx), nil
 	case userCredentialsKey:
 		cfg := &oauth2.Config{
 			ClientID:     f.ClientID,
 			ClientSecret: f.ClientSecret,
-			Scopes:       scopes,
-			Endpoint:     Endpoint,
+			Scopes:       params.Scopes,
+			Endpoint: oauth2.Endpoint{
+				AuthURL:   f.AuthURL,
+				TokenURL:  f.TokenURL,
+				AuthStyle: oauth2.AuthStyleInParams,
+			},
+		}
+		if cfg.Endpoint.AuthURL == "" {
+			cfg.Endpoint.AuthURL = Endpoint.AuthURL
+		}
+		if cfg.Endpoint.TokenURL == "" {
+			cfg.Endpoint.TokenURL = Endpoint.TokenURL
 		}
 		tok := &oauth2.Token{RefreshToken: f.RefreshToken}
 		return cfg.TokenSource(ctx, tok), nil
@@ -163,7 +175,7 @@ func (f *credentialsFile) tokenSource(ctx context.Context, scopes []string) (oau
 			ClientID:                       f.ClientID,
 			CredentialSource:               f.CredentialSource,
 			QuotaProjectID:                 f.QuotaProjectID,
-			Scopes:                         scopes,
+			Scopes:                         params.Scopes,
 		}
 		return cfg.TokenSource(ctx), nil
 	case "":

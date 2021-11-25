@@ -16,12 +16,13 @@ package certmagic
 
 import (
 	"context"
-	"log"
 	"path"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 // Storage is a type that implements a key-value store.
@@ -213,16 +214,20 @@ func (keys KeyBuilder) Safe(str string) string {
 // this does not cancel the operations that
 // the locks are synchronizing, this should be
 // called only immediately before process exit.
-func CleanUpOwnLocks() {
+// Errors are only reported if a logger is given.
+func CleanUpOwnLocks(logger *zap.Logger) {
 	locksMu.Lock()
 	defer locksMu.Unlock()
 	for lockKey, storage := range locks {
 		err := storage.Unlock(lockKey)
 		if err == nil {
 			delete(locks, lockKey)
-		} else {
-			log.Printf("[ERROR] Unable to clean up lock: %v (lock=%s storage=%s)",
-				err, lockKey, storage)
+		} else if logger != nil {
+			logger.Error("unable to clean up lock in storage backend",
+				zap.Any("storage", storage),
+				zap.String("lock_key", lockKey),
+				zap.Error(err),
+			)
 		}
 	}
 }
@@ -272,6 +277,7 @@ var safeKeyRE = regexp.MustCompile(`[^\w@.-]`)
 // ErrNotExist is returned by Storage implementations when
 // a resource is not found. It is similar to os.IsNotExist
 // except this is a type, not a variable.
+// TODO: use new Go error wrapping conventions
 type ErrNotExist interface {
 	error
 }

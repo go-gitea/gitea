@@ -98,7 +98,8 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				}
 				prefix = strings.Replace(prefix, "/src/", "/media/", 1)
 
-				lnk := string(link)
+				lnk := strings.TrimLeft(string(link), "/")
+
 				lnk = giteautil.URLJoin(prefix, lnk)
 				link = []byte(lnk)
 			}
@@ -113,6 +114,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 				wrap := ast.NewLink()
 				wrap.Destination = link
 				wrap.Title = v.Title
+				wrap.SetAttributeString("target", []byte("_blank"))
 
 				// Duplicate the current image node
 				image := ast.NewImage(ast.NewLink())
@@ -383,18 +385,19 @@ func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byt
 		} else {
 			_, _ = w.WriteString("<li>")
 		}
-		end := ">"
-		if r.XHTML {
-			end = " />"
+		_, _ = w.WriteString(`<input type="checkbox" disabled=""`)
+		segments := node.FirstChild().Lines()
+		if segments.Len() > 0 {
+			segment := segments.At(0)
+			_, _ = w.WriteString(fmt.Sprintf(` data-source-position="%d"`, segment.Start))
 		}
-		var err error
 		if n.IsChecked {
-			_, err = w.WriteString(`<input type="checkbox" disabled="" checked=""` + end)
-		} else {
-			_, err = w.WriteString(`<input type="checkbox" disabled=""` + end)
+			_, _ = w.WriteString(` checked=""`)
 		}
-		if err != nil {
-			return ast.WalkStop, err
+		if r.XHTML {
+			_, _ = w.WriteString(` />`)
+		} else {
+			_ = w.WriteByte('>')
 		}
 		fc := n.FirstChild()
 		if fc != nil {

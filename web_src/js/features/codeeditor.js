@@ -3,9 +3,25 @@ import {basename, extname, isObject, isDarkTheme} from '../utils.js';
 const languagesByFilename = {};
 const languagesByExt = {};
 
+const baseOptions = {
+  fontFamily: 'var(--fonts-monospace)',
+  fontSize: 14, // https://github.com/microsoft/monaco-editor/issues/2242
+  guides: {bracketPairs: false, indentation: false},
+  links: false,
+  minimap: {enabled: false},
+  occurrencesHighlight: false,
+  overviewRulerLanes: 0,
+  renderLineHighlight: 'all',
+  renderLineHighlightOnlyWhenFocus: true,
+  renderWhitespace: 'none',
+  rulers: false,
+  scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
+  scrollBeyondLastLine: false,
+};
+
 function getEditorconfig(input) {
   try {
-    return JSON.parse(input.dataset.editorconfig);
+    return JSON.parse(input.getAttribute('data-editorconfig'));
   } catch {
     return null;
   }
@@ -27,9 +43,9 @@ function getLanguage(filename) {
 }
 
 function updateEditor(monaco, editor, filename, lineWrapExts) {
-  editor.updateOptions({...getFileBasedOptions(filename, lineWrapExts)});
+  editor.updateOptions(getFileBasedOptions(filename, lineWrapExts));
   const model = editor.getModel();
-  const language = model.getModeId();
+  const language = model.getLanguageId();
   const newLanguage = getLanguage(filename);
   if (language !== newLanguage) monaco.editor.setModelLanguage(model, newLanguage);
 }
@@ -51,9 +67,40 @@ export async function createMonaco(textarea, filename, editorOpts) {
   container.className = 'monaco-editor-container';
   textarea.parentNode.appendChild(container);
 
+  // https://github.com/microsoft/monaco-editor/issues/2427
+  const styles = window.getComputedStyle(document.documentElement);
+  const getProp = (name) => styles.getPropertyValue(name).trim();
+
+  monaco.editor.defineTheme('gitea', {
+    base: isDarkTheme() ? 'vs-dark' : 'vs',
+    inherit: true,
+    rules: [
+      {
+        background: getProp('--color-code-bg'),
+      }
+    ],
+    colors: {
+      'editor.background': getProp('--color-code-bg'),
+      'editor.foreground': getProp('--color-text'),
+      'editor.inactiveSelectionBackground': getProp('--color-primary-light-4'),
+      'editor.lineHighlightBackground': getProp('--color-editor-line-highlight'),
+      'editor.selectionBackground': getProp('--color-primary-light-3'),
+      'editor.selectionForeground': getProp('--color-primary-light-3'),
+      'editorLineNumber.background': getProp('--color-code-bg'),
+      'editorLineNumber.foreground': getProp('--color-secondary-dark-6'),
+      'editorWidget.background': getProp('--color-body'),
+      'editorWidget.border': getProp('--color-secondary'),
+      'input.background': getProp('--color-input-background'),
+      'input.border': getProp('--color-input-border'),
+      'input.foreground': getProp('--color-input-text'),
+      'scrollbar.shadow': getProp('--color-shadow'),
+      'progressBar.background': getProp('--color-primary'),
+    }
+  });
+
   const editor = monaco.editor.create(container, {
     value: textarea.value,
-    theme: isDarkTheme() ? 'vs-dark' : 'vs',
+    theme: 'gitea',
     language,
     ...other,
   });
@@ -85,14 +132,15 @@ function getFileBasedOptions(filename, lineWrapExts) {
 export async function createCodeEditor(textarea, filenameInput, previewFileModes) {
   const filename = basename(filenameInput.value);
   const previewLink = document.querySelector('a[data-tab=preview]');
-  const markdownExts = (textarea.dataset.markdownFileExts || '').split(',');
-  const lineWrapExts = (textarea.dataset.lineWrapExtensions || '').split(',');
+  const markdownExts = (textarea.getAttribute('data-markdown-file-exts') || '').split(',');
+  const lineWrapExts = (textarea.getAttribute('data-line-wrap-extensions') || '').split(',');
   const isMarkdown = markdownExts.includes(extname(filename));
   const editorConfig = getEditorconfig(filenameInput);
 
   if (previewLink) {
     if (isMarkdown && (previewFileModes || []).includes('markdown')) {
-      previewLink.dataset.url = previewLink.dataset.url.replace(/(.*)\/.*/i, `$1/markdown`);
+      const newUrl = (previewLink.getAttribute('data-url') || '').replace(/(.*)\/.*/i, `$1/markdown`);
+      previewLink.setAttribute('data-url', newUrl);
       previewLink.style.display = '';
     } else {
       previewLink.style.display = 'none';
@@ -100,6 +148,7 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
   }
 
   const {monaco, editor} = await createMonaco(textarea, filename, {
+    ...baseOptions,
     ...getFileBasedOptions(filenameInput.value, lineWrapExts),
     ...getEditorConfigOptions(editorConfig),
   });

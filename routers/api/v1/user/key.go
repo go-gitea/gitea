@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,20 +19,20 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defaultUser *models.User) (*api.PublicKey, error) {
+func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
 	if key.Type == models.KeyTypeDeploy {
 		apiKey.KeyType = "deploy"
 	} else if key.Type == models.KeyTypeUser {
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
-			apiKey.Owner = convert.ToUser(defaultUser, true, true)
+			apiKey.Owner = convert.ToUser(defaultUser, defaultUser)
 		} else {
-			user, err := models.GetUserByID(key.OwnerID)
+			user, err := user_model.GetUserByID(key.OwnerID)
 			if err != nil {
 				return apiKey, err
 			}
-			apiKey.Owner = convert.ToUser(user, true, true)
+			apiKey.Owner = convert.ToUser(user, user)
 		}
 	} else {
 		apiKey.KeyType = "unknown"
@@ -44,11 +45,12 @@ func composePublicKeysAPILink() string {
 	return setting.AppURL + "api/v1/user/keys/"
 }
 
-func listPublicKeys(ctx *context.APIContext, user *models.User) {
+func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 	var keys []*models.PublicKey
 	var err error
+	var count int
 
-	fingerprint := ctx.Query("fingerprint")
+	fingerprint := ctx.FormString("fingerprint")
 	username := ctx.Params("username")
 
 	if fingerprint != "" {
@@ -60,7 +62,15 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 			// Unrestricted
 			keys, err = models.SearchPublicKey(0, fingerprint)
 		}
+		count = len(keys)
 	} else {
+		total, err2 := models.CountPublicKeys(user.ID)
+		if err2 != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		count = int(total)
+
 		// Use ListPublicKeys
 		keys, err = models.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
 	}
@@ -79,6 +89,7 @@ func listPublicKeys(ctx *context.APIContext, user *models.User) {
 		}
 	}
 
+	ctx.SetTotalCountHeader(int64(count))
 	ctx.JSON(http.StatusOK, &apiKeys)
 }
 

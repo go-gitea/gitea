@@ -9,10 +9,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -54,9 +54,9 @@ func Transfer(ctx *context.APIContext) {
 
 	opts := web.GetForm(ctx).(*api.TransferRepoOption)
 
-	newOwner, err := models.GetUserByName(opts.NewOwner)
+	newOwner, err := user_model.GetUserByName(opts.NewOwner)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
 		}
@@ -64,8 +64,8 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
-	if newOwner.Type == models.UserTypeOrganization {
-		if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !newOwner.HasMemberWithUserID(ctx.User.ID) {
+	if newOwner.Type == user_model.UserTypeOrganization {
+		if !ctx.User.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
@@ -79,7 +79,7 @@ func Transfer(ctx *context.APIContext) {
 			return
 		}
 
-		org := convert.ToOrganization(newOwner)
+		org := convert.ToOrganization(models.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
 			team, err := models.GetTeamByID(tID)
 			if err != nil {

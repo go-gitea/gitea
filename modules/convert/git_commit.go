@@ -5,9 +5,11 @@
 package convert
 
 import (
+	"net/url"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -37,16 +39,16 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 // ToPayloadCommit convert a git.Commit to api.PayloadCommit
 func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
-	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
+	if author, err := user_model.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
-	} else if !models.IsErrUserNotExist(err) {
+	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
-	if committer, err := models.GetUserByEmail(c.Committer.Email); err == nil {
+	if committer, err := user_model.GetUserByEmail(c.Committer.Email); err == nil {
 		committerUsername = committer.Name
-	} else if !models.IsErrUserNotExist(err) {
+	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
@@ -70,51 +72,51 @@ func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit 
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
+func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
 
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
 
-	var cacheAuthor *models.User
+	var cacheAuthor *user_model.User
 	var ok bool
 	if userCache == nil {
-		cacheAuthor = (*models.User)(nil)
+		cacheAuthor = (*user_model.User)(nil)
 		ok = false
 	} else {
 		cacheAuthor, ok = userCache[commit.Author.Email]
 	}
 
 	if ok {
-		apiAuthor = ToUser(cacheAuthor, false, false)
+		apiAuthor = ToUser(cacheAuthor, nil)
 	} else {
-		author, err := models.GetUserByEmail(commit.Author.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
+		author, err := user_model.GetUserByEmail(commit.Author.Email)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiAuthor = ToUser(author, false, false)
+			apiAuthor = ToUser(author, nil)
 			if userCache != nil {
 				userCache[commit.Author.Email] = author
 			}
 		}
 	}
 
-	var cacheCommitter *models.User
+	var cacheCommitter *user_model.User
 	if userCache == nil {
-		cacheCommitter = (*models.User)(nil)
+		cacheCommitter = (*user_model.User)(nil)
 		ok = false
 	} else {
 		cacheCommitter, ok = userCache[commit.Committer.Email]
 	}
 
 	if ok {
-		apiCommitter = ToUser(cacheCommitter, false, false)
+		apiCommitter = ToUser(cacheCommitter, nil)
 	} else {
-		committer, err := models.GetUserByEmail(commit.Committer.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
+		committer, err := user_model.GetUserByEmail(commit.Committer.Email)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
-			apiCommitter = ToUser(committer, false, false)
+			apiCommitter = ToUser(committer, nil)
 			if userCache != nil {
 				userCache[commit.Committer.Email] = committer
 			}
@@ -126,7 +128,7 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	for i := 0; i < commit.ParentCount(); i++ {
 		sha, _ := commit.ParentID(i)
 		apiParents[i] = &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + sha.String(),
+			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(sha.String()),
 			SHA: sha.String(),
 		}
 	}
@@ -147,16 +149,17 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 
 	return &api.Commit{
 		CommitMeta: &api.CommitMeta{
-			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
-			SHA: commit.ID.String(),
+			URL:     repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
+			SHA:     commit.ID.String(),
+			Created: commit.Committer.When,
 		},
-		HTMLURL: repo.HTMLURL() + "/commit/" + commit.ID.String(),
+		HTMLURL: repo.HTMLURL() + "/commit/" + url.PathEscape(commit.ID.String()),
 		RepoCommit: &api.RepoCommit{
-			URL: repo.APIURL() + "/git/commits/" + commit.ID.String(),
+			URL: repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
 			Author: &api.CommitUser{
 				Identity: api.Identity{
-					Name:  commit.Committer.Name,
-					Email: commit.Committer.Email,
+					Name:  commit.Author.Name,
+					Email: commit.Author.Email,
 				},
 				Date: commit.Author.When.Format(time.RFC3339),
 			},
@@ -169,8 +172,9 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 			},
 			Message: commit.Message(),
 			Tree: &api.CommitMeta{
-				URL: repo.APIURL() + "/git/trees/" + commit.ID.String(),
-				SHA: commit.ID.String(),
+				URL:     repo.APIURL() + "/git/trees/" + url.PathEscape(commit.ID.String()),
+				SHA:     commit.ID.String(),
+				Created: commit.Committer.When,
 			},
 		},
 		Author:    apiAuthor,

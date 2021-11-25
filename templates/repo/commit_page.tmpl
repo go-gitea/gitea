@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached info clearing segment {{$class}}">
 			{{if not $.PageIsWiki}}
-			<a class="ui floated right blue tiny button" href="{{EscapePound .SourcePath}}">
+			<a class="ui floated right blue tiny button" href="{{.SourcePath}}">
 				{{.i18n.Tr "repo.diff.browse_source"}}
 			</a>
 			{{end}}
@@ -72,9 +72,9 @@
 							<div class="item">
 								{{range .Parents}}
 									{{if $.PageIsWiki}}
-										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{.}}">{{ShortSha .}}</a>
+										<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 									{{else}}
-										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{.}}">{{ShortSha .}}</a>
+										<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 									{{end}}
 								{{end}}
 							</div>
@@ -113,13 +113,13 @@
 					<span class="ui text">{{.i18n.Tr .Verification.Reason}}</span>
 					<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
 				{{else}}
-				  <i class="unlock icon"></i>
-				  {{.i18n.Tr .Verification.Reason}}
-				  {{if .Verification.SigningKey}}
-				  	{{if ne .Verification.SigningKey.KeyID ""}}
-						<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
-				  	{{end}}
-				  {{end}}
+					<i class="unlock icon"></i>
+					{{.i18n.Tr .Verification.Reason}}
+					{{if .Verification.SigningKey}}
+						{{if ne .Verification.SigningKey.KeyID ""}}
+							<span class="pull-right"><span class="ui text">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span> <i class="warning icon"></i>{{.Verification.SigningKey.KeyID}}</span>
+						{{end}}
+					{{end}}
 				{{end}}
 			</div>
 		{{end}}
@@ -130,9 +130,9 @@
 				{{if .NoteAuthor}}
 					<a href="{{.NoteAuthor.HomeLink}}">
 						{{if .NoteAuthor.FullName}}
-						  <strong>{{.NoteAuthor.FullName}}</strong>
+							<strong>{{.NoteAuthor.FullName}}</strong>
 						{{else}}
-						  <strong>{{.NoteCommit.Author.Name}}</strong>
+							<strong>{{.NoteCommit.Author.Name}}</strong>
 						{{end}}
 					</a>
 				{{else}}

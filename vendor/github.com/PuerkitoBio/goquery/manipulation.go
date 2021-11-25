@@ -39,8 +39,15 @@ func (s *Selection) AfterSelection(sel *Selection) *Selection {
 // AfterHtml parses the html and inserts it after the set of matched elements.
 //
 // This follows the same rules as Selection.Append.
-func (s *Selection) AfterHtml(html string) *Selection {
-	return s.AfterNodes(parseHtml(html)...)
+func (s *Selection) AfterHtml(htmlStr string) *Selection {
+	return s.eachNodeHtml(htmlStr, true, func(node *html.Node, nodes []*html.Node) {
+		nextSibling := node.NextSibling
+		for _, n := range nodes {
+			if node.Parent != nil {
+				node.Parent.InsertBefore(n, nextSibling)
+			}
+		}
+	})
 }
 
 // AfterNodes inserts the nodes after each element in the set of matched elements.
@@ -85,8 +92,12 @@ func (s *Selection) AppendSelection(sel *Selection) *Selection {
 }
 
 // AppendHtml parses the html and appends it to the set of matched elements.
-func (s *Selection) AppendHtml(html string) *Selection {
-	return s.AppendNodes(parseHtml(html)...)
+func (s *Selection) AppendHtml(htmlStr string) *Selection {
+	return s.eachNodeHtml(htmlStr, false, func(node *html.Node, nodes []*html.Node) {
+		for _, n := range nodes {
+			node.AppendChild(n)
+		}
+	})
 }
 
 // AppendNodes appends the specified nodes to each node in the set of matched elements.
@@ -123,8 +134,14 @@ func (s *Selection) BeforeSelection(sel *Selection) *Selection {
 // BeforeHtml parses the html and inserts it before the set of matched elements.
 //
 // This follows the same rules as Selection.Append.
-func (s *Selection) BeforeHtml(html string) *Selection {
-	return s.BeforeNodes(parseHtml(html)...)
+func (s *Selection) BeforeHtml(htmlStr string) *Selection {
+	return s.eachNodeHtml(htmlStr, true, func(node *html.Node, nodes []*html.Node) {
+		for _, n := range nodes {
+			if node.Parent != nil {
+				node.Parent.InsertBefore(n, node)
+			}
+		}
+	})
 }
 
 // BeforeNodes inserts the nodes before each element in the set of matched elements.
@@ -184,8 +201,13 @@ func (s *Selection) PrependSelection(sel *Selection) *Selection {
 }
 
 // PrependHtml parses the html and prepends it to the set of matched elements.
-func (s *Selection) PrependHtml(html string) *Selection {
-	return s.PrependNodes(parseHtml(html)...)
+func (s *Selection) PrependHtml(htmlStr string) *Selection {
+	return s.eachNodeHtml(htmlStr, false, func(node *html.Node, nodes []*html.Node) {
+		firstChild := node.FirstChild
+		for _, n := range nodes {
+			node.InsertBefore(n, firstChild)
+		}
+	})
 }
 
 // PrependNodes prepends the specified nodes to each node in the set of
@@ -212,14 +234,19 @@ func (s *Selection) Remove() *Selection {
 	return s
 }
 
-// RemoveFiltered removes the set of matched elements by selector.
-// It returns the Selection of removed nodes.
+// RemoveFiltered removes from the current set of matched elements those that
+// match the selector filter. It returns the Selection of removed nodes.
+//
+// For example if the selection s contains "<h1>", "<h2>" and "<h3>"
+// and s.RemoveFiltered("h2") is called, only the "<h2>" node is removed
+// (and returned), while "<h1>" and "<h3>" are kept in the document.
 func (s *Selection) RemoveFiltered(selector string) *Selection {
 	return s.RemoveMatcher(compileMatcher(selector))
 }
 
-// RemoveMatcher removes the set of matched elements.
-// It returns the Selection of removed nodes.
+// RemoveMatcher removes from the current set of matched elements those that
+// match the Matcher filter. It returns the Selection of removed nodes.
+// See RemoveFiltered for additional information.
 func (s *Selection) RemoveMatcher(m Matcher) *Selection {
 	return s.FilterMatcher(m).Remove()
 }
@@ -256,8 +283,16 @@ func (s *Selection) ReplaceWithSelection(sel *Selection) *Selection {
 // It returns the removed elements.
 //
 // This follows the same rules as Selection.Append.
-func (s *Selection) ReplaceWithHtml(html string) *Selection {
-	return s.ReplaceWithNodes(parseHtml(html)...)
+func (s *Selection) ReplaceWithHtml(htmlStr string) *Selection {
+	s.eachNodeHtml(htmlStr, true, func(node *html.Node, nodes []*html.Node) {
+		nextSibling := node.NextSibling
+		for _, n := range nodes {
+			if node.Parent != nil {
+				node.Parent.InsertBefore(n, nextSibling)
+			}
+		}
+	})
+	return s.Remove()
 }
 
 // ReplaceWithNodes replaces each element in the set of matched elements with
@@ -272,8 +307,17 @@ func (s *Selection) ReplaceWithNodes(ns ...*html.Node) *Selection {
 
 // SetHtml sets the html content of each element in the selection to
 // specified html string.
-func (s *Selection) SetHtml(html string) *Selection {
-	return setHtmlNodes(s, parseHtml(html)...)
+func (s *Selection) SetHtml(htmlStr string) *Selection {
+	for _, context := range s.Nodes {
+		for c := context.FirstChild; c != nil; c = context.FirstChild {
+			context.RemoveChild(c)
+		}
+	}
+	return s.eachNodeHtml(htmlStr, false, func(node *html.Node, nodes []*html.Node) {
+		for _, n := range nodes {
+			node.AppendChild(n)
+		}
+	})
 }
 
 // SetText sets the content of each element in the selection to specified content.
@@ -329,8 +373,23 @@ func (s *Selection) WrapSelection(sel *Selection) *Selection {
 // most child of the given HTML.
 //
 // It returns the original set of elements.
-func (s *Selection) WrapHtml(html string) *Selection {
-	return s.wrapNodes(parseHtml(html)...)
+func (s *Selection) WrapHtml(htmlStr string) *Selection {
+	nodesMap := make(map[string][]*html.Node)
+	for _, context := range s.Nodes {
+		var parent *html.Node
+		if context.Parent != nil {
+			parent = context.Parent
+		} else {
+			parent = &html.Node{Type: html.ElementNode}
+		}
+		nodes, found := nodesMap[nodeName(parent)]
+		if !found {
+			nodes = parseHtmlWithContext(htmlStr, parent)
+			nodesMap[nodeName(parent)] = nodes
+		}
+		newSingleSelection(context, s.document).wrapAllNodes(cloneNodes(nodes)...)
+	}
+	return s
 }
 
 // WrapNode wraps each element in the set of matched elements inside the inner-
@@ -382,8 +441,18 @@ func (s *Selection) WrapAllSelection(sel *Selection) *Selection {
 // document.
 //
 // It returns the original set of elements.
-func (s *Selection) WrapAllHtml(html string) *Selection {
-	return s.wrapAllNodes(parseHtml(html)...)
+func (s *Selection) WrapAllHtml(htmlStr string) *Selection {
+	var context *html.Node
+	var nodes []*html.Node
+	if len(s.Nodes) > 0 {
+		context = s.Nodes[0]
+		if context.Parent != nil {
+			nodes = parseHtmlWithContext(htmlStr, context)
+		} else {
+			nodes = parseHtml(htmlStr)
+		}
+	}
+	return s.wrapAllNodes(nodes...)
 }
 
 func (s *Selection) wrapAllNodes(ns ...*html.Node) *Selection {
@@ -452,8 +521,17 @@ func (s *Selection) WrapInnerSelection(sel *Selection) *Selection {
 // cloned before being inserted into the document.
 //
 // It returns the original set of elements.
-func (s *Selection) WrapInnerHtml(html string) *Selection {
-	return s.wrapInnerNodes(parseHtml(html)...)
+func (s *Selection) WrapInnerHtml(htmlStr string) *Selection {
+	nodesMap := make(map[string][]*html.Node)
+	for _, context := range s.Nodes {
+		nodes, found := nodesMap[nodeName(context)]
+		if !found {
+			nodes = parseHtmlWithContext(htmlStr, context)
+			nodesMap[nodeName(context)] = nodes
+		}
+		newSingleSelection(context, s.document).wrapInnerNodes(cloneNodes(nodes)...)
+	}
+	return s
 }
 
 // WrapInnerNode wraps an HTML structure, matched by the given selector, around
@@ -493,16 +571,14 @@ func parseHtml(h string) []*html.Node {
 	return nodes
 }
 
-func setHtmlNodes(s *Selection, ns ...*html.Node) *Selection {
-	for _, n := range s.Nodes {
-		for c := n.FirstChild; c != nil; c = n.FirstChild {
-			n.RemoveChild(c)
-		}
-		for _, c := range ns {
-			n.AppendChild(cloneNode(c))
-		}
+func parseHtmlWithContext(h string, context *html.Node) []*html.Node {
+	// Errors are only returned when the io.Reader returns any error besides
+	// EOF, but strings.Reader never will
+	nodes, err := html.ParseFragment(strings.NewReader(h), context)
+	if err != nil {
+		panic("goquery: failed to parse HTML: " + err.Error())
 	}
-	return s
+	return nodes
 }
 
 // Get the first child that is an ElementNode
@@ -570,5 +646,34 @@ func (s *Selection) manipulateNodes(ns []*html.Node, reverse bool,
 		}
 	}
 
+	return s
+}
+
+// eachNodeHtml parses the given html string and inserts the resulting nodes in the dom with the mergeFn.
+// The parsed nodes are inserted for each element of the selection.
+// isParent can be used to indicate that the elements of the selection should be treated as the parent for the parsed html.
+// A cache is used to avoid parsing the html multiple times should the elements of the selection result in the same context.
+func (s *Selection) eachNodeHtml(htmlStr string, isParent bool, mergeFn func(n *html.Node, nodes []*html.Node)) *Selection {
+	// cache to avoid parsing the html for the same context multiple times
+	nodeCache := make(map[string][]*html.Node)
+	var context *html.Node
+	for _, n := range s.Nodes {
+		if isParent {
+			context = n.Parent
+		} else {
+			if n.Type != html.ElementNode {
+				continue
+			}
+			context = n
+		}
+		if context != nil {
+			nodes, found := nodeCache[nodeName(context)]
+			if !found {
+				nodes = parseHtmlWithContext(htmlStr, context)
+				nodeCache[nodeName(context)] = nodes
+			}
+			mergeFn(n, cloneNodes(nodes))
+		}
+	}
 	return s
 }

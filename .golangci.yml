@@ -9,12 +9,13 @@ linters:
     - unused
     - structcheck
     - varcheck
-    - golint
     - dupl
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
     - misspell
     - gocritic
+    - bidichk
+    - ineffassign
   enable-all: false
   disable-all: true
   fast: false
@@ -70,9 +71,6 @@ issues:
     - path: modules/log/
       linters:
         - errcheck
-    - path: routers/routes/web.go
-      linters:
-        - dupl
     - path: routers/api/v1/repo/issue_subscription.go
       linters:
         - dupl
@@ -110,3 +108,10 @@ issues:
     - text: "exitAfterDefer:"
       linters:
         - gocritic
+    - path: modules/graceful/manager_windows.go
+      linters:
+        - staticcheck
+      text: "svc.IsAnInteractiveSession is deprecated: Use IsWindowsService instead."
+    - path: models/user/openid.go
+      linters:
+        - golint

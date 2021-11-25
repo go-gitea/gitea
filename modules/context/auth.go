@@ -6,7 +6,9 @@
 package context
 
 import (
-	"code.gitea.io/gitea/models"
+	"net/http"
+
+	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -27,13 +29,13 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		if ctx.IsSigned {
 			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, "user/auth/activate")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
 			if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.HTML(200, "user/auth/prohibit_login")
+				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
 			}
 
@@ -76,7 +78,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 				return
 			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, "user/auth/activate")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
 		}
@@ -93,7 +95,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 
 		if options.AdminRequired {
 			if !ctx.User.IsAdmin {
-				ctx.Error(403)
+				ctx.Error(http.StatusForbidden)
 				return
 			}
 			ctx.Data["PageIsAdmin"] = true
@@ -108,7 +110,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 		if ctx.IsSigned {
 			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "This account is not activated.",
 				})
 				return
@@ -116,14 +118,14 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 			if !ctx.User.IsActive || ctx.User.ProhibitLogin {
 				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "This account is prohibited from signing in, please contact your site administrator.",
 				})
 				return
 			}
 
 			if ctx.User.MustChangePassword {
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
 				})
 				return
@@ -139,19 +141,22 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 		if options.SignInRequired {
 			if !ctx.IsSigned {
 				// Restrict API calls with error message.
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "Only signed in user is allowed to call APIs.",
 				})
 				return
 			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
-				ctx.HTML(200, "user/auth/activate")
+				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
 			if ctx.IsSigned && ctx.IsBasicAuth {
-				twofa, err := models.GetTwoFactorByUID(ctx.User.ID)
+				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
+					return // Skip 2FA
+				}
+				twofa, err := login.GetTwoFactorByUID(ctx.User.ID)
 				if err != nil {
-					if models.IsErrTwoFactorNotEnrolled(err) {
+					if login.IsErrTwoFactorNotEnrolled(err) {
 						return // No 2FA enrollment for this user
 					}
 					ctx.InternalServerError(err)
@@ -164,7 +169,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 					return
 				}
 				if !ok {
-					ctx.JSON(403, map[string]string{
+					ctx.JSON(http.StatusForbidden, map[string]string{
 						"message": "Only signed in user is allowed to call APIs.",
 					})
 					return
@@ -174,7 +179,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 
 		if options.AdminRequired {
 			if !ctx.User.IsAdmin {
-				ctx.JSON(403, map[string]string{
+				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You have no permission to request for this.",
 				})
 				return

@@ -20,10 +20,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -75,6 +75,8 @@ type Project struct {
 	EmptyRepo                                 bool                       `json:"empty_repo"`
 	Archived                                  bool                       `json:"archived"`
 	AvatarURL                                 string                     `json:"avatar_url"`
+	LicenseURL                                string                     `json:"license_url"`
+	License                                   *ProjectLicense            `json:"license"`
 	SharedRunnersEnabled                      bool                       `json:"shared_runners_enabled"`
 	ForksCount                                int                        `json:"forks_count"`
 	StarCount                                 int                        `json:"star_count"`
@@ -106,18 +108,33 @@ type Project struct {
 	PagesAccessLevel                          AccessControlValue         `json:"pages_access_level"`
 	OperationsAccessLevel                     AccessControlValue         `json:"operations_access_level"`
 	AutocloseReferencedIssues                 bool                       `json:"autoclose_referenced_issues"`
+	SuggestionCommitMessage                   string                     `json:"suggestion_commit_message"`
 	CIForwardDeploymentEnabled                bool                       `json:"ci_forward_deployment_enabled"`
 	SharedWithGroups                          []struct {
 		GroupID          int    `json:"group_id"`
 		GroupName        string `json:"group_name"`
 		GroupAccessLevel int    `json:"group_access_level"`
 	} `json:"shared_with_groups"`
-	Statistics           *ProjectStatistics `json:"statistics"`
-	Links                *Links             `json:"_links,omitempty"`
-	CIConfigPath         string             `json:"ci_config_path"`
-	CIDefaultGitDepth    int                `json:"ci_default_git_depth"`
-	CustomAttributes     []*CustomAttribute `json:"custom_attributes"`
-	ComplianceFrameworks []string           `json:"compliance_frameworks"`
+	Statistics            *ProjectStatistics `json:"statistics"`
+	Links                 *Links             `json:"_links,omitempty"`
+	CIConfigPath          string             `json:"ci_config_path"`
+	CIDefaultGitDepth     int                `json:"ci_default_git_depth"`
+	CustomAttributes      []*CustomAttribute `json:"custom_attributes"`
+	ComplianceFrameworks  []string           `json:"compliance_frameworks"`
+	BuildCoverageRegex    string             `json:"build_coverage_regex"`
+	IssuesTemplate        string             `json:"issues_template"`
+	MergeRequestsTemplate string             `json:"merge_requests_template"`
+}
+
+// BasicProject included in other service responses (such as todos).
+type BasicProject struct {
+	ID                int        `json:"id"`
+	Description       string     `json:"description"`
+	Name              string     `json:"name"`
+	NameWithNamespace string     `json:"name_with_namespace"`
+	Path              string     `json:"path"`
+	PathWithNamespace string     `json:"path_with_namespace"`
+	CreatedAt         *time.Time `json:"created_at"`
 }
 
 // ContainerExpirationPolicy represents the container expiration policy.
@@ -129,6 +146,73 @@ type ContainerExpirationPolicy struct {
 	NameRegexKeep   string     `json:"name_regex_keep"`
 	Enabled         bool       `json:"enabled"`
 	NextRunAt       *time.Time `json:"next_run_at"`
+}
+
+// ForkParent represents the parent project when this is a fork.
+type ForkParent struct {
+	HTTPURLToRepo     string `json:"http_url_to_repo"`
+	ID                int    `json:"id"`
+	Name              string `json:"name"`
+	NameWithNamespace string `json:"name_with_namespace"`
+	Path              string `json:"path"`
+	PathWithNamespace string `json:"path_with_namespace"`
+	WebURL            string `json:"web_url"`
+}
+
+// GroupAccess represents group access.
+type GroupAccess struct {
+	AccessLevel       AccessLevelValue       `json:"access_level"`
+	NotificationLevel NotificationLevelValue `json:"notification_level"`
+}
+
+// Links represents a project web links for self, issues, merge_requests,
+// repo_branches, labels, events, members.
+type Links struct {
+	Self          string `json:"self"`
+	Issues        string `json:"issues"`
+	MergeRequests string `json:"merge_requests"`
+	RepoBranches  string `json:"repo_branches"`
+	Labels        string `json:"labels"`
+	Events        string `json:"events"`
+	Members       string `json:"members"`
+}
+
+// Permissions represents permissions.
+type Permissions struct {
+	ProjectAccess *ProjectAccess `json:"project_access"`
+	GroupAccess   *GroupAccess   `json:"group_access"`
+}
+
+// ProjectAccess represents project access.
+type ProjectAccess struct {
+	AccessLevel       AccessLevelValue       `json:"access_level"`
+	NotificationLevel NotificationLevelValue `json:"notification_level"`
+}
+
+// ProjectLicense represent the license for a project.
+type ProjectLicense struct {
+	Key       string `json:"key"`
+	Name      string `json:"name"`
+	Nickname  string `json:"nickname"`
+	HTMLURL   string `json:"html_url"`
+	SourceURL string `json:"source_url"`
+}
+
+// ProjectNamespace represents a project namespace.
+type ProjectNamespace struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	Path      string `json:"path"`
+	Kind      string `json:"kind"`
+	FullPath  string `json:"full_path"`
+	AvatarURL string `json:"avatar_url"`
+	WebURL    string `json:"web_url"`
+}
+
+// ProjectStatistics represents a statistics record for a project.
+type ProjectStatistics struct {
+	StorageStatistics
+	CommitCount int `json:"commit_count"`
 }
 
 // Repository represents a repository.
@@ -149,70 +233,12 @@ type Repository struct {
 	HTTPURL           string          `json:"http_url"`
 }
 
-// ProjectNamespace represents a project namespace.
-type ProjectNamespace struct {
-	ID        int    `json:"id"`
-	Name      string `json:"name"`
-	Path      string `json:"path"`
-	Kind      string `json:"kind"`
-	FullPath  string `json:"full_path"`
-	AvatarURL string `json:"avatar_url"`
-	WebURL    string `json:"web_url"`
-}
-
 // StorageStatistics represents a statistics record for a group or project.
 type StorageStatistics struct {
 	StorageSize      int64 `json:"storage_size"`
 	RepositorySize   int64 `json:"repository_size"`
 	LfsObjectsSize   int64 `json:"lfs_objects_size"`
 	JobArtifactsSize int64 `json:"job_artifacts_size"`
-}
-
-// ProjectStatistics represents a statistics record for a project.
-type ProjectStatistics struct {
-	StorageStatistics
-	CommitCount int `json:"commit_count"`
-}
-
-// Permissions represents permissions.
-type Permissions struct {
-	ProjectAccess *ProjectAccess `json:"project_access"`
-	GroupAccess   *GroupAccess   `json:"group_access"`
-}
-
-// ProjectAccess represents project access.
-type ProjectAccess struct {
-	AccessLevel       AccessLevelValue       `json:"access_level"`
-	NotificationLevel NotificationLevelValue `json:"notification_level"`
-}
-
-// GroupAccess represents group access.
-type GroupAccess struct {
-	AccessLevel       AccessLevelValue       `json:"access_level"`
-	NotificationLevel NotificationLevelValue `json:"notification_level"`
-}
-
-// ForkParent represents the parent project when this is a fork.
-type ForkParent struct {
-	HTTPURLToRepo     string `json:"http_url_to_repo"`
-	ID                int    `json:"id"`
-	Name              string `json:"name"`
-	NameWithNamespace string `json:"name_with_namespace"`
-	Path              string `json:"path"`
-	PathWithNamespace string `json:"path_with_namespace"`
-	WebURL            string `json:"web_url"`
-}
-
-// Links represents a project web links for self, issues, merge_requests,
-// repo_branches, labels, events, members.
-type Links struct {
-	Self          string `json:"self"`
-	Issues        string `json:"issues"`
-	MergeRequests string `json:"merge_requests"`
-	RepoBranches  string `json:"repo_branches"`
-	Labels        string `json:"labels"`
-	Events        string `json:"events"`
-	Members       string `json:"members"`
 }
 
 func (s Project) String() string {
@@ -255,6 +281,7 @@ type ListProjectsOptions struct {
 	Membership               *bool             `url:"membership,omitempty" json:"membership,omitempty"`
 	Starred                  *bool             `url:"starred,omitempty" json:"starred,omitempty"`
 	Statistics               *bool             `url:"statistics,omitempty" json:"statistics,omitempty"`
+	Topic                    *string           `url:"topic,omitempty" json:"topic,omitempty"`
 	WithCustomAttributes     *bool             `url:"with_custom_attributes,omitempty" json:"with_custom_attributes,omitempty"`
 	WithIssuesEnabled        *bool             `url:"with_issues_enabled,omitempty" json:"with_issues_enabled,omitempty"`
 	WithMergeRequestsEnabled *bool             `url:"with_merge_requests_enabled,omitempty" json:"with_merge_requests_enabled,omitempty"`
@@ -346,6 +373,53 @@ func (s *ProjectsService) ListProjectsUsers(pid interface{}, opt *ListProjectUse
 	}
 
 	var p []*ProjectUser
+	resp, err := s.client.Do(req, &p)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return p, resp, err
+}
+
+// ProjectGroup represents a GitLab project group.
+type ProjectGroup struct {
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	AvatarURL string `json:"avatar_url"`
+	WebURL    string `json:"web_url"`
+	FullName  string `json:"full_name"`
+	FullPath  string `json:"full_path"`
+}
+
+// ListProjectGroupOptions represents the available ListProjectsGroups() options.
+//
+// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#list-a-projects-groups
+type ListProjectGroupOptions struct {
+	ListOptions
+	Search               *string           `url:"search,omitempty" json:"search,omitempty"`
+	SkipGroups           []int             `url:"skip_groups,omitempty" json:"skip_groups,omitempty"`
+	WithShared           *bool             `url:"with_shared,omitempty" json:"with_shared,omitempty"`
+	SharedMinAccessLevel *AccessLevelValue `url:"shared_min_access_level,omitempty" json:"shared_min_access_level,omitempty"`
+	SharedVisiableOnly   *bool             `url:"shared_visible_only,omitempty" json:"shared_visible_only,omitempty"`
+}
+
+// ListProjectsGroups gets a list of groups for the given project.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ce/api/projects.html#list-a-projects-groups
+func (s *ProjectsService) ListProjectsGroups(pid interface{}, opt *ListProjectGroupOptions, options ...RequestOptionFunc) ([]*ProjectGroup, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/groups", pathEscape(project))
+
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var p []*ProjectGroup
 	resp, err := s.client.Do(req, &p)
 	if err != nil {
 		return nil, resp, err
@@ -534,6 +608,9 @@ type CreateProjectOptions struct {
 	PackagesEnabled                           *bool                                `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
 	ServiceDeskEnabled                        *bool                                `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
 	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	SuggestionCommitMessage                   *string                              `url:"suggestion_commit_message,omitempty" json:"suggestion_commit_message,omitempty"`
+	IssuesTemplate                            *string                              `url:"issues_template,omitempty" json:"issues_template,omitempty"`
+	MergeRequestsTemplate                     *string                              `url:"merge_requests_template,omitempty" json:"merge_requests_template,omitempty"`
 
 	// Deprecated members
 	IssuesEnabled        *bool `url:"issues_enabled,omitempty" json:"issues_enabled,omitempty"`
@@ -671,6 +748,9 @@ type EditProjectOptions struct {
 	PackagesEnabled                           *bool                                `url:"packages_enabled,omitempty" json:"packages_enabled,omitempty"`
 	ServiceDeskEnabled                        *bool                                `url:"service_desk_enabled,omitempty" json:"service_desk_enabled,omitempty"`
 	AutocloseReferencedIssues                 *bool                                `url:"autoclose_referenced_issues,omitempty" json:"autoclose_referenced_issues,omitempty"`
+	SuggestionCommitMessage                   *string                              `url:"suggestion_commit_message,omitempty" json:"suggestion_commit_message,omitempty"`
+	IssuesTemplate                            *string                              `url:"issues_template,omitempty" json:"issues_template,omitempty"`
+	MergeRequestsTemplate                     *string                              `url:"merge_requests_template,omitempty" json:"merge_requests_template,omitempty"`
 
 	// Deprecated members
 	IssuesEnabled        *bool `url:"issues_enabled,omitempty" json:"issues_enabled,omitempty"`
@@ -948,6 +1028,7 @@ type ProjectHook struct {
 	PipelineEvents           bool       `json:"pipeline_events"`
 	WikiPageEvents           bool       `json:"wiki_page_events"`
 	DeploymentEvents         bool       `json:"deployment_events"`
+	ReleasesEvents           bool       `json:"releases_events"`
 	EnableSSLVerification    bool       `json:"enable_ssl_verification"`
 	CreatedAt                *time.Time `json:"created_at"`
 }
@@ -1025,6 +1106,7 @@ type AddProjectHookOptions struct {
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
 	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	ReleasesEvents           *bool   `url:"releases_events,omitempty" json:"releases_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -1072,6 +1154,7 @@ type EditProjectHookOptions struct {
 	PipelineEvents           *bool   `url:"pipeline_events,omitempty" json:"pipeline_events,omitempty"`
 	WikiPageEvents           *bool   `url:"wiki_page_events,omitempty" json:"wiki_page_events,omitempty"`
 	DeploymentEvents         *bool   `url:"deployment_events,omitempty" json:"deployment_events,omitempty"`
+	ReleasesEvents           *bool   `url:"releases_events,omitempty" json:"releases_events,omitempty"`
 	EnableSSLVerification    *bool   `url:"enable_ssl_verification,omitempty" json:"enable_ssl_verification,omitempty"`
 	Token                    *string `url:"token,omitempty" json:"token,omitempty"`
 }
@@ -1198,7 +1281,8 @@ func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...Re
 	b := &bytes.Buffer{}
 	w := multipart.NewWriter(b)
 
-	fw, err := w.CreateFormFile("file", file)
+	_, filename := filepath.Split(file)
+	fw, err := w.CreateFormFile("file", filename)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1209,15 +1293,18 @@ func (s *ProjectsService) UploadFile(pid interface{}, file string, options ...Re
 	}
 	w.Close()
 
-	req, err := s.client.NewRequest("", u, nil, options)
+	req, err := s.client.NewRequest(http.MethodPost, u, nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	req.Body = ioutil.NopCloser(b)
-	req.ContentLength = int64(b.Len())
+	// Set the buffer as the request body.
+	if err = req.SetBody(b); err != nil {
+		return nil, nil, err
+	}
+
+	// Overwrite the default content type.
 	req.Header.Set("Content-Type", w.FormDataContentType())
-	req.Method = http.MethodPost
 
 	uf := &ProjectFile{}
 	resp, err := s.client.Do(req, uf)
@@ -1420,6 +1507,7 @@ type ProjectApprovals struct {
 	DisableOverridingApproversPerMergeRequest bool                         `json:"disable_overriding_approvers_per_merge_request"`
 	MergeRequestsAuthorApproval               bool                         `json:"merge_requests_author_approval"`
 	MergeRequestsDisableCommittersApproval    bool                         `json:"merge_requests_disable_committers_approval"`
+	RequirePasswordToApprove                  bool                         `json:"require_password_to_approve"`
 }
 
 // GetApprovalConfiguration get the approval configuration for a project.
@@ -1458,6 +1546,7 @@ type ChangeApprovalConfigurationOptions struct {
 	DisableOverridingApproversPerMergeRequest *bool `url:"disable_overriding_approvers_per_merge_request,omitempty" json:"disable_overriding_approvers_per_merge_request,omitempty"`
 	MergeRequestsAuthorApproval               *bool `url:"merge_requests_author_approval,omitempty" json:"merge_requests_author_approval,omitempty"`
 	MergeRequestsDisableCommittersApproval    *bool `url:"merge_requests_disable_committers_approval,omitempty" json:"merge_requests_disable_committers_approval,omitempty"`
+	RequirePasswordToApprove                  *bool `url:"require_password_to_approve,omitempty" json:"require_password_to_approve,omitempty"`
 }
 
 // ChangeApprovalConfiguration updates the approval configuration for a project.

@@ -5,6 +5,7 @@ package zstd
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"log"
 	"math"
@@ -13,6 +14,12 @@ import (
 
 // enable debug printing
 const debug = false
+
+// enable encoding debug printing
+const debugEncoder = debug
+
+// enable decoding debug printing
+const debugDecoder = debug
 
 // Enable extra assertions.
 const debugAsserts = debug || false
@@ -81,13 +88,13 @@ var (
 )
 
 func println(a ...interface{}) {
-	if debug {
+	if debug || debugDecoder || debugEncoder {
 		log.Println(a...)
 	}
 }
 
 func printf(format string, a ...interface{}) {
-	if debug {
+	if debug || debugDecoder || debugEncoder {
 		log.Printf(format, a...)
 	}
 }
@@ -126,26 +133,15 @@ func matchLen(a, b []byte) int {
 }
 
 func load3232(b []byte, i int32) uint32 {
-	// Help the compiler eliminate bounds checks on the read so it can be done in a single read.
-	b = b[i:]
-	b = b[:4]
-	return uint32(b[0]) | uint32(b[1])<<8 | uint32(b[2])<<16 | uint32(b[3])<<24
+	return binary.LittleEndian.Uint32(b[i:])
 }
 
 func load6432(b []byte, i int32) uint64 {
-	// Help the compiler eliminate bounds checks on the read so it can be done in a single read.
-	b = b[i:]
-	b = b[:8]
-	return uint64(b[0]) | uint64(b[1])<<8 | uint64(b[2])<<16 | uint64(b[3])<<24 |
-		uint64(b[4])<<32 | uint64(b[5])<<40 | uint64(b[6])<<48 | uint64(b[7])<<56
+	return binary.LittleEndian.Uint64(b[i:])
 }
 
 func load64(b []byte, i int) uint64 {
-	// Help the compiler eliminate bounds checks on the read so it can be done in a single read.
-	b = b[i:]
-	b = b[:8]
-	return uint64(b[0]) | uint64(b[1])<<8 | uint64(b[2])<<16 | uint64(b[3])<<24 |
-		uint64(b[4])<<32 | uint64(b[5])<<40 | uint64(b[6])<<48 | uint64(b[7])<<56
+	return binary.LittleEndian.Uint64(b[i:])
 }
 
 type byter interface {

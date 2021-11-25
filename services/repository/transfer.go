@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/sync"
 )
@@ -16,7 +17,7 @@ import (
 var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer, newOwner *models.User, repo *models.Repository, teams []*models.Team) error {
+func TransferOwnership(doer, newOwner *user_model.User, repo *models.Repository, teams []*models.Team) error {
 	if err := repo.GetOwner(); err != nil {
 		return err
 	}
@@ -52,7 +53,7 @@ func TransferOwnership(doer, newOwner *models.User, repo *models.Repository, tea
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoName string) error {
+func ChangeRepositoryName(doer *user_model.User, repo *models.Repository, newRepoName string) error {
 	oldRepoName := repo.Name
 
 	// Change repository directory name. We must lock the local copy of the
@@ -73,7 +74,7 @@ func ChangeRepositoryName(doer *models.User, repo *models.Repository, newRepoNam
 
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
-func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repository, teams []*models.Team) error {
+func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *models.Repository, teams []*models.Team) error {
 	if err := models.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
 	}
@@ -91,6 +92,20 @@ func StartRepositoryTransfer(doer, newOwner *models.User, repo *models.Repositor
 		}
 		if allowed {
 			return TransferOwnership(doer, newOwner, repo, teams)
+		}
+	}
+
+	// In case the new owner would not have sufficient access to the repo, give access rights for read
+	hasAccess, err := models.HasAccess(newOwner.ID, repo)
+	if err != nil {
+		return err
+	}
+	if !hasAccess {
+		if err := repo.AddCollaborator(newOwner); err != nil {
+			return err
+		}
+		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, models.AccessModeRead); err != nil {
+			return err
 		}
 	}
 

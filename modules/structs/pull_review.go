@@ -49,7 +49,8 @@ type PullReview struct {
 type PullReviewComment struct {
 	ID       int64  `json:"id"`
 	Body     string `json:"body"`
-	Reviewer *User  `json:"user"`
+	Poster   *User  `json:"user"`
+	Resolver *User  `json:"resolver"`
 	ReviewID int64  `json:"pull_request_review_id"`
 
 	// swagger:strfmt date-time

@@ -1,5 +1,3 @@
-// +build go1.6
-
 package render
 
 import (

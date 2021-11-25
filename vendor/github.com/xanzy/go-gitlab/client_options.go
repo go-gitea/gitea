@@ -22,7 +22,7 @@ import (
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
 )
 
-// ClientOptionFunc can be used customize a new GitLab API client.
+// ClientOptionFunc can be used to customize a new GitLab API client.
 type ClientOptionFunc func(*Client) error
 
 // WithBaseURL sets the base URL for API requests to a custom endpoint.
@@ -40,12 +40,29 @@ func WithCustomBackoff(backoff retryablehttp.Backoff) ClientOptionFunc {
 	}
 }
 
+// WithCustomLeveledLogger can be used to configure a custom retryablehttp
+// leveled logger.
+func WithCustomLeveledLogger(leveledLogger retryablehttp.LeveledLogger) ClientOptionFunc {
+	return func(c *Client) error {
+		c.client.Logger = leveledLogger
+		return nil
+	}
+}
+
 // WithCustomLimiter injects a custom rate limiter to the client.
 func WithCustomLimiter(limiter RateLimiter) ClientOptionFunc {
 	return func(c *Client) error {
 		c.configureLimiterOnce.Do(func() {
 			c.limiter = limiter
 		})
+		return nil
+	}
+}
+
+// WithCustomLogger can be used to configure a custom retryablehttp logger.
+func WithCustomLogger(logger retryablehttp.Logger) ClientOptionFunc {
+	return func(c *Client) error {
+		c.client.Logger = logger
 		return nil
 	}
 }

@@ -5,19 +5,18 @@
 package integrations
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/routes"
+	"code.gitea.io/gitea/routers"
 
 	"gitea.com/go-chi/session"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -58,19 +57,18 @@ func TestSessionFileCreation(t *testing.T) {
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
 		setting.SessionConfig.ProviderConfig = oldSessionConfig
-		c = routes.NormalRoutes()
+		c = routers.NormalRoutes()
 	}()
 
 	var config session.Options
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	err := json.Unmarshal([]byte(oldSessionConfig), &config)
 	assert.NoError(t, err)
 
 	config.Provider = "file"
 
 	// Now create a temporaryDirectory
-	tmpDir, err := ioutil.TempDir("", "sessions")
+	tmpDir, err := os.MkdirTemp("", "sessions")
 	assert.NoError(t, err)
 	defer func() {
 		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
@@ -84,7 +82,7 @@ func TestSessionFileCreation(t *testing.T) {
 
 	setting.SessionConfig.ProviderConfig = string(newConfigBytes)
 
-	c = routes.NormalRoutes()
+	c = routers.NormalRoutes()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
 		defer PrintCurrentTest(t)()

@@ -5,7 +5,7 @@
 			<div class="ui five wide column">
 				<div class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
-						<a class="image poping up" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-variation="inverted tiny" data-position="bottom center">
+						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-position="bottom center">
 							{{avatar .Owner 290}}
 						</a>
 					{{else}}
@@ -36,13 +36,13 @@
 							{{end}}
 							{{if $.RenderedDescription}}
 								<li>
-									<div class="render-content markdown">{{$.RenderedDescription|Str2html}}</div>
+									<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>
 								</li>
 							{{end}}
 							{{range .OpenIDs}}
 								{{if .Show}}
 									<li>
-										<i class="fa fa-openid"></i>
+										{{svg "fontawesome-openid"}}
 										<a target="_blank" rel="noopener noreferrer" href="{{.URI}}">{{.URI}}</a>
 									</li>
 								{{end}}
@@ -54,7 +54,7 @@
 								{{range .Orgs}}
 									{{if (or .Visibility.IsPublic (and ($.SignedUser) (or .Visibility.IsLimited (and (.HasMemberWithUserID $.SignedUserID) .Visibility.IsPrivate) ($.IsAdmin))))}}
 									<li>
-										<a class="poping up" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center" data-variation="tiny inverted">
+										<a class="tooltip" href="{{.HomeLink}}" data-content="{{.Name}}" data-position="top center">
 											{{avatar .}}
 										</a>
 									</li>
@@ -65,7 +65,7 @@
 							{{end}}
 							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}
 							<li class="follow">
-								{{if .SignedUser.IsFollowing .Owner.ID}}
+								{{if $.IsFollowing}}
 									<form method="post" action="{{.Link}}/action/unfollow?redirect_to={{$.Link}}">
 										{{$.CsrfTokenHtml}}
 										<button type="submit" class="ui basic red button">{{svg "octicon-person"}} {{.i18n.Tr "user.unfollow"}}</button>
@@ -84,23 +84,35 @@
 			</div>
 			<div class="ui eleven wide column">
 				<div class="ui secondary stackable pointing tight menu">
-					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
+					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
 					</a>
 					<a class='{{if eq .TabName "activity"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=activity">
 						{{svg "octicon-rss"}} {{.i18n.Tr "user.activity"}}
 					</a>
-					<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
-						{{svg "octicon-star"}}  {{.i18n.Tr "user.starred"}}
-						<div class="ui label">{{.Owner.NumStars}}</div>
-					</a>
+					{{if not .DisableStars}}
+						<a class='{{if eq .TabName "stars"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=stars">
+							{{svg "octicon-star"}} {{.i18n.Tr "user.starred"}}
+							{{if .Owner.NumStars}}
+								<div class="ui primary label">{{.Owner.NumStars}}</div>
+							{{end}}
+						</a>
+					{{else}}
+						<a class='{{if eq .TabName "watching"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=watching">
+							{{svg "octicon-eye"}} {{.i18n.Tr "user.watched"}}
+						</a>
+					{{end}}
 					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
-						{{svg "octicon-person"}}  {{.i18n.Tr "user.following"}}
-						<div class="ui label">{{.Owner.NumFollowing}}</div>
+						{{svg "octicon-person"}} {{.i18n.Tr "user.following"}}
+						{{if .Owner.NumFollowing}}
+							<div class="ui primary label">{{.Owner.NumFollowing}}</div>
+						{{end}}
 					</a>
 					<a class='{{if eq .TabName "followers"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=followers">
-						{{svg "octicon-person"}}  {{.i18n.Tr "user.followers"}}
-						<div class="ui label">{{.Owner.NumFollowers}}</div>
+						{{svg "octicon-person"}} {{.i18n.Tr "user.followers"}}
+						{{if .Owner.NumFollowers}}
+							<div class="ui primary label">{{.Owner.NumFollowers}}</div>
+						{{end}}
 					</a>
 				</div>
 

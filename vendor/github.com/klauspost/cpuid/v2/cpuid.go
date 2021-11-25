@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"runtime"
 	"strings"
 )
 
@@ -82,6 +83,7 @@ const (
 	AVX512DQ                            // AVX-512 Doubleword and Quadword Instructions
 	AVX512ER                            // AVX-512 Exponential and Reciprocal Instructions
 	AVX512F                             // AVX-512 Foundation
+	AVX512FP16                          // AVX-512 FP16 Instructions
 	AVX512IFMA                          // AVX-512 Integer Fused Multiply-Add Instructions
 	AVX512PF                            // AVX-512 Prefetch Instructions
 	AVX512VBMI                          // AVX-512 Vector Bit Manipulation Instructions
@@ -95,7 +97,9 @@ const (
 	BMI2                                // Bit Manipulation Instruction Set 2
 	CLDEMOTE                            // Cache Line Demote
 	CLMUL                               // Carry-less Multiplication
+	CLZERO                              // CLZERO instruction supported
 	CMOV                                // i686 CMOV
+	CPBOOST                             // Core Performance Boost
 	CX16                                // CMPXCHG16B Instruction
 	ENQCMD                              // Enqueue Command
 	ERMS                                // Enhanced REP MOVSB/STOSB
@@ -105,6 +109,7 @@ const (
 	GFNI                                // Galois Field New Instructions
 	HLE                                 // Hardware Lock Elision
 	HTT                                 // Hyperthreading (enabled)
+	HWA                                 // Hardware assert supported. Indicates support for MSRC001_10
 	HYPERVISOR                          // This bit has been reserved by Intel & AMD for use by hypervisors
 	IBPB                                // Indirect Branch Restricted Speculation (IBRS) and Indirect Branch Predictor Barrier (IBPB)
 	IBS                                 // Instruction Based Sampling (AMD)
@@ -116,18 +121,25 @@ const (
 	IBSOPSAM                            // Instruction Based Sampling Feature (AMD)
 	IBSRDWROPCNT                        // Instruction Based Sampling Feature (AMD)
 	IBSRIPINVALIDCHK                    // Instruction Based Sampling Feature (AMD)
+	INT_WBINVD                          // WBINVD/WBNOINVD are interruptible.
+	INVLPGB                             // NVLPGB and TLBSYNC instruction supported
 	LZCNT                               // LZCNT instruction
+	MCAOVERFLOW                         // MCA overflow recovery support.
+	MCOMMIT                             // MCOMMIT instruction supported
 	MMX                                 // standard MMX
 	MMXEXT                              // SSE integer functions or AMD MMX ext
 	MOVDIR64B                           // Move 64 Bytes as Direct Store
 	MOVDIRI                             // Move Doubleword as Direct Store
 	MPX                                 // Intel MPX (Memory Protection Extensions)
+	MSRIRC                              // Instruction Retired Counter MSR available
 	NX                                  // NX (No-Execute) bit
 	POPCNT                              // POPCNT instruction
+	RDPRU                               // RDPRU instruction supported
 	RDRAND                              // RDRAND instruction is available
 	RDSEED                              // RDSEED instruction is available
 	RDTSCP                              // RDTSCP Instruction
 	RTM                                 // Restricted Transactional Memory
+	RTM_ALWAYS_ABORT                    // Indicates that the loaded microcode is forcing RTM abort.
 	SERIALIZE                           // Serialize Instruction Execution
 	SGX                                 // Software Guard Extensions
 	SGXLC                               // Software Guard Extensions Launch Control
@@ -140,6 +152,7 @@ const (
 	SSE4A                               // AMD Barcelona microarchitecture SSE4a instructions
 	SSSE3                               // Conroe SSSE3 functions
 	STIBP                               // Single Thread Indirect Branch Predictors
+	SUCCOR                              // Software uncorrectable error containment and recovery capability.
 	TBM                                 // AMD Trailing Bit Manipulation
 	TSXLDTRK                            // Intel TSX Suspend Load Address Tracking
 	VAES                                // Vector AES
@@ -193,7 +206,8 @@ type CPUInfo struct {
 	Family         int     // CPU family number
 	Model          int     // CPU model number
 	CacheLine      int     // Cache line size in bytes. Will be 0 if undetectable.
-	Hz             int64   // Clock speed, if known, 0 otherwise
+	Hz             int64   // Clock speed, if known, 0 otherwise. Will attempt to contain base clock speed.
+	BoostFreq      int64   // Max clock speed, if known, 0 otherwise
 	Cache          struct {
 		L1I int // L1 Instruction Cache (per core or shared). Will be -1 if undetected
 		L1D int // L1 Data Cache (per core or shared). Will be -1 if undetected
@@ -209,6 +223,7 @@ var cpuid func(op uint32) (eax, ebx, ecx, edx uint32)
 var cpuidex func(op, op2 uint32) (eax, ebx, ecx, edx uint32)
 var xgetbv func(index uint32) (eax, edx uint32)
 var rdtscpAsm func() (eax, ebx, ecx, edx uint32)
+var darwinHasAVX512 = func() bool { return false }
 
 // CPU contains information about the CPU as detected on startup,
 // or when Detect last was called.
@@ -361,25 +376,42 @@ func (c CPUInfo) LogicalCPU() int {
 	return int(ebx >> 24)
 }
 
-// hertz tries to compute the clock speed of the CPU. If leaf 15 is
+// frequencies tries to compute the clock speed of the CPU. If leaf 15 is
 // supported, use it, otherwise parse the brand string. Yes, really.
-func hertz(model string) int64 {
+func (c *CPUInfo) frequencies() {
+	c.Hz, c.BoostFreq = 0, 0
 	mfi := maxFunctionID()
 	if mfi >= 0x15 {
 		eax, ebx, ecx, _ := cpuid(0x15)
 		if eax != 0 && ebx != 0 && ecx != 0 {
-			return int64((int64(ecx) * int64(ebx)) / int64(eax))
+			c.Hz = (int64(ecx) * int64(ebx)) / int64(eax)
 		}
 	}
+	if mfi >= 0x16 {
+		a, b, _, _ := cpuid(0x16)
+		// Base...
+		if a&0xffff > 0 {
+			c.Hz = int64(a&0xffff) * 1_000_000
+		}
+		// Boost...
+		if b&0xffff > 0 {
+			c.BoostFreq = int64(b&0xffff) * 1_000_000
+		}
+	}
+	if c.Hz > 0 {
+		return
+	}
+
 	// computeHz determines the official rated speed of a CPU from its brand
 	// string. This insanity is *actually the official documented way to do
 	// this according to Intel*, prior to leaf 0x15 existing. The official
 	// documentation only shows this working for exactly `x.xx` or `xxxx`
 	// cases, e.g., `2.50GHz` or `1300MHz`; this parser will accept other
 	// sizes.
+	model := c.BrandName
 	hz := strings.LastIndex(model, "Hz")
 	if hz < 3 {
-		return 0
+		return
 	}
 	var multiplier int64
 	switch model[hz-1] {
@@ -391,7 +423,7 @@ func hertz(model string) int64 {
 		multiplier = 1000 * 1000 * 1000 * 1000
 	}
 	if multiplier == 0 {
-		return 0
+		return
 	}
 	freq := int64(0)
 	divisor := int64(0)
@@ -403,21 +435,22 @@ func hertz(model string) int64 {
 			decimalShift *= 10
 		} else if model[i] == '.' {
 			if divisor != 0 {
-				return 0
+				return
 			}
 			divisor = decimalShift
 		} else {
-			return 0
+			return
 		}
 	}
 	// we didn't find a space
 	if i < 0 {
-		return 0
+		return
 	}
 	if divisor != 0 {
-		return (freq * multiplier) / divisor
+		c.Hz = (freq * multiplier) / divisor
+		return
 	}
-	return freq * multiplier
+	c.Hz = freq * multiplier
 }
 
 // VM Will return true if the cpu id indicates we are in
@@ -909,6 +942,7 @@ func support() flagSet {
 		fs.setIf(ecx&(1<<29) != 0, ENQCMD)
 		fs.setIf(ecx&(1<<30) != 0, SGXLC)
 		// CPUID.(EAX=7, ECX=0).EDX
+		fs.setIf(edx&(1<<11) != 0, RTM_ALWAYS_ABORT)
 		fs.setIf(edx&(1<<14) != 0, SERIALIZE)
 		fs.setIf(edx&(1<<16) != 0, TSXLDTRK)
 		fs.setIf(edx&(1<<26) != 0, IBPB)
@@ -922,7 +956,11 @@ func support() flagSet {
 			// Verify that XCR0[7:5] = ‘111b’ (OPMASK state, upper 256-bit of ZMM0-ZMM15 and
 			// ZMM16-ZMM31 state are enabled by OS)
 			/// and that XCR0[2:1] = ‘11b’ (XMM state and YMM state are enabled by OS).
-			if (eax>>5)&7 == 7 && (eax>>1)&3 == 3 {
+			hasAVX512 := (eax>>5)&7 == 7 && (eax>>1)&3 == 3
+			if runtime.GOOS == "darwin" {
+				hasAVX512 = fs.inSet(AVX) && darwinHasAVX512()
+			}
+			if hasAVX512 {
 				fs.setIf(ebx&(1<<16) != 0, AVX512F)
 				fs.setIf(ebx&(1<<17) != 0, AVX512DQ)
 				fs.setIf(ebx&(1<<21) != 0, AVX512IFMA)
@@ -943,6 +981,7 @@ func support() flagSet {
 				// edx
 				fs.setIf(edx&(1<<8) != 0, AVX512VP2INTERSECT)
 				fs.setIf(edx&(1<<22) != 0, AMXBF16)
+				fs.setIf(edx&(1<<23) != 0, AVX512FP16)
 				fs.setIf(edx&(1<<24) != 0, AMXTILE)
 				fs.setIf(edx&(1<<25) != 0, AMXINT8)
 				// eax1 = CPUID.(EAX=7, ECX=1).EAX
@@ -974,9 +1013,23 @@ func support() flagSet {
 		}
 
 	}
+	if maxExtendedFunction() >= 0x80000007 {
+		_, b, _, d := cpuid(0x80000007)
+		fs.setIf((b&(1<<0)) != 0, MCAOVERFLOW)
+		fs.setIf((b&(1<<1)) != 0, SUCCOR)
+		fs.setIf((b&(1<<2)) != 0, HWA)
+		fs.setIf((d&(1<<9)) != 0, CPBOOST)
+	}
+
 	if maxExtendedFunction() >= 0x80000008 {
 		_, b, _, _ := cpuid(0x80000008)
 		fs.setIf((b&(1<<9)) != 0, WBNOINVD)
+		fs.setIf((b&(1<<8)) != 0, MCOMMIT)
+		fs.setIf((b&(1<<13)) != 0, INT_WBINVD)
+		fs.setIf((b&(1<<4)) != 0, RDPRU)
+		fs.setIf((b&(1<<3)) != 0, INVLPGB)
+		fs.setIf((b&(1<<1)) != 0, MSRIRC)
+		fs.setIf((b&(1<<0)) != 0, CLZERO)
 	}
 
 	if maxExtendedFunction() >= 0x8000001b && fs.inSet(IBS) {

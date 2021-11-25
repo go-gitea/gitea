@@ -35,6 +35,8 @@ func TestLinksNoLogin(t *testing.T) {
 		"/user2/repo1",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
+		"/assets/img/404.png",
+		"/assets/img/500.png",
 	}
 
 	for _, link := range links {
@@ -51,7 +53,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
 		"/user2/repo1/src/master/directory/file.txt": "/user2/repo1/src/branch/master/directory/file.txt",
-		"/user/avatar/Ghost/-1":                      "/img/avatar_default.png",
+		"/user/avatar/Ghost/-1":                      "/assets/img/avatar_default.png",
 		"/api/v1/swagger":                            "/api/swagger",
 	}
 	for link, redirectLink := range redirects {
@@ -154,7 +156,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 		"/releases",
 		"/releases/new",
 		//"/wiki/_pages",
-		"/wiki/_new",
+		"/wiki/?action=_new",
 	}
 
 	for _, repo := range apiRepos {

@@ -217,6 +217,12 @@ func (a *appGenerator) GenerateSupport(ap *GenApp) error {
 	app.DefaultImports[pkgAlias] = serverPath
 	app.ServerPackageAlias = pkgAlias
 
+	// add client import for cli generation
+	clientPath := path.Join(baseImport,
+		a.GenOpts.LanguageOpts.ManglePackagePath(a.ClientPackage, defaultClientTarget))
+	clientPkgAlias := importAlias(clientPath)
+	app.DefaultImports[clientPkgAlias] = clientPath
+
 	return a.GenOpts.renderApplication(app)
 }
 
@@ -259,6 +265,12 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	imports[alias] = path.Join(
 		baseImport,
 		a.GenOpts.LanguageOpts.ManglePackagePath(a.OperationsPackage, defaultOperationsTarget))
+
+	implAlias := ""
+	if a.GenOpts.ImplementationPackage != "" {
+		implAlias = deconflictPkg(a.GenOpts.LanguageOpts.ManglePackageName(a.GenOpts.ImplementationPackage, defaultImplementationTarget), renameImplementationPackage)
+		imports[implAlias] = a.GenOpts.ImplementationPackage
+	}
 
 	log.Printf("planning definitions (found: %d)", len(a.Models))
 
@@ -434,34 +446,35 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 			Copyright:        a.GenOpts.Copyright,
 			TargetImportPath: baseImport,
 		},
-		APIPackage:           a.GenOpts.LanguageOpts.ManglePackageName(a.ServerPackage, defaultServerTarget),
-		APIPackageAlias:      alias,
-		Package:              a.Package,
-		ReceiverName:         receiver,
-		Name:                 a.Name,
-		Host:                 host,
-		BasePath:             basePath,
-		Schemes:              schemeOrDefault(collectedSchemes, a.DefaultScheme),
-		ExtraSchemes:         extraSchemes,
-		ExternalDocs:         trimExternalDoc(sw.ExternalDocs),
-		Tags:                 trimTags(sw.Tags),
-		Info:                 trimInfo(sw.Info),
-		Consumes:             consumes,
-		Produces:             produces,
-		DefaultConsumes:      a.DefaultConsumes,
-		DefaultProduces:      a.DefaultProduces,
-		DefaultImports:       defaultImports,
-		Imports:              imports,
-		SecurityDefinitions:  security,
-		SecurityRequirements: securityRequirements(a.SpecDoc.Spec().Security), // top level securityRequirements
-		Models:               genModels,
-		Operations:           genOps,
-		OperationGroups:      opGroups,
-		Principal:            a.GenOpts.PrincipalAlias(),
-		SwaggerJSON:          generateReadableSpec(jsonb),
-		FlatSwaggerJSON:      generateReadableSpec(flatjsonb),
-		ExcludeSpec:          a.GenOpts.ExcludeSpec,
-		GenOpts:              a.GenOpts,
+		APIPackage:                 a.GenOpts.LanguageOpts.ManglePackageName(a.ServerPackage, defaultServerTarget),
+		APIPackageAlias:            alias,
+		ImplementationPackageAlias: implAlias,
+		Package:                    a.Package,
+		ReceiverName:               receiver,
+		Name:                       a.Name,
+		Host:                       host,
+		BasePath:                   basePath,
+		Schemes:                    schemeOrDefault(collectedSchemes, a.DefaultScheme),
+		ExtraSchemes:               extraSchemes,
+		ExternalDocs:               trimExternalDoc(sw.ExternalDocs),
+		Tags:                       trimTags(sw.Tags),
+		Info:                       trimInfo(sw.Info),
+		Consumes:                   consumes,
+		Produces:                   produces,
+		DefaultConsumes:            a.DefaultConsumes,
+		DefaultProduces:            a.DefaultProduces,
+		DefaultImports:             defaultImports,
+		Imports:                    imports,
+		SecurityDefinitions:        security,
+		SecurityRequirements:       securityRequirements(a.SpecDoc.Spec().Security), // top level securityRequirements
+		Models:                     genModels,
+		Operations:                 genOps,
+		OperationGroups:            opGroups,
+		Principal:                  a.GenOpts.PrincipalAlias(),
+		SwaggerJSON:                generateReadableSpec(jsonb),
+		FlatSwaggerJSON:            generateReadableSpec(flatjsonb),
+		ExcludeSpec:                a.GenOpts.ExcludeSpec,
+		GenOpts:                    a.GenOpts,
 
 		PrincipalIsNullable: a.GenOpts.PrincipalIsNullable(),
 	}, nil

@@ -247,7 +247,7 @@ var collations = map[string]byte{
 	"utf8mb4_0900_ai_ci":       255,
 }
 
-// A blacklist of collations which is unsafe to interpolate parameters.
+// A denylist of collations which is unsafe to interpolate parameters.
 // These multibyte encodings may contains 0x5c (`\`) in their trailing bytes.
 var unsafeCollations = map[string]bool{
 	"big5_chinese_ci":        true,

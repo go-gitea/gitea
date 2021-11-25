@@ -6,9 +6,9 @@ package user
 
 import (
 	"net/http"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -16,7 +16,7 @@ import (
 )
 
 // listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
+func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
 	repos, count, err := models.GetUserRepositories(&models.SearchRepoOptions{
@@ -43,8 +43,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 	}
 
 	ctx.SetLinkHeader(int(count), opts.PageSize)
-	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiRepos)
 }
 
@@ -85,7 +84,7 @@ func ListUserRepos(ctx *context.APIContext) {
 func ListMyRepos(ctx *context.APIContext) {
 	// swagger:operation GET /user/repos user userCurrentListRepos
 	// ---
-	// summary: List the repos that the authenticated user owns or has access to
+	// summary: List the repos that the authenticated user owns
 	// produces:
 	// - application/json
 	// parameters:
@@ -130,8 +129,7 @@ func ListMyRepos(ctx *context.APIContext) {
 	}
 
 	ctx.SetLinkHeader(int(count), opts.ListOptions.PageSize)
-	ctx.Header().Set("X-Total-Count", strconv.FormatInt(count, 10))
-	ctx.Header().Set("Access-Control-Expose-Headers", "X-Total-Count, Link")
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &results)
 }
 
@@ -160,5 +158,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
+	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

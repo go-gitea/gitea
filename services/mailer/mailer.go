@@ -210,8 +210,14 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 		}
 	}
 
-	if err = client.Mail(from); err != nil {
-		return fmt.Errorf("Mail: %v", err)
+	if opts.OverrideEnvelopeFrom {
+		if err = client.Mail(opts.EnvelopeFrom); err != nil {
+			return fmt.Errorf("Mail: %v", err)
+		}
+	} else {
+		if err = client.Mail(from); err != nil {
+			return fmt.Errorf("Mail: %v", err)
+		}
 	}
 
 	for _, rec := range to {
@@ -242,7 +248,12 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	var closeError error
 	var waitError error
 
-	args := []string{"-f", from, "-i"}
+	envelopeFrom := from
+	if setting.MailService.OverrideEnvelopeFrom {
+		envelopeFrom = setting.MailService.EnvelopeFrom
+	}
+
+	args := []string{"-f", envelopeFrom, "-i"}
 	args = append(args, setting.MailService.SendmailArgs...)
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
@@ -304,7 +315,7 @@ var Sender gomail.Sender
 // NewContext start mail queue service
 func NewContext() {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
-	// before but swithed install lock off), this function will be called again
+	// before but switched install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.
 	if setting.MailService == nil || mailQueue != nil {
 		return
@@ -337,13 +348,16 @@ func NewContext() {
 
 // SendAsync send mail asynchronously
 func SendAsync(msg *Message) {
-	go func() {
-		_ = mailQueue.Push(msg)
-	}()
+	SendAsyncs([]*Message{msg})
 }
 
 // SendAsyncs send mails asynchronously
 func SendAsyncs(msgs []*Message) {
+	if setting.MailService == nil {
+		log.Error("Mailer: SendAsyncs is being invoked but mail service hasn't been initialized")
+		return
+	}
+
 	go func() {
 		for _, msg := range msgs {
 			_ = mailQueue.Push(msg)

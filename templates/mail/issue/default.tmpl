@@ -16,64 +16,63 @@
 </head>
 
 <body>
-	{{if .IsMention}}<p><b>@{{.Doer.Name}}</b> mentioned you:</p>{{end}}
+	{{if .IsMention}}<p>{{.i18n.Tr "mail.issue.x_mentioned_you" .Doer.Name | Str2html}}</p>{{end}}
 	{{if eq .ActionName "push"}}
 		<p>
-			<b>{{.Doer.Name}}</b>  
 			{{if .Comment.IsForcePush}}
-				{{ $oldCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.OldCommit}}
-				{{ $newCommitLink:= printf "%s%s/%s/commit/%s" AppUrl  .Comment.Issue.PullRequest.BaseRepo.OwnerName .Comment.Issue.PullRequest.BaseRepo.Name .Comment.NewCommit}}
-				force-pushed the <b>{{.Comment.Issue.PullRequest.HeadBranch}}</b> from
-				<a href="{{$oldCommitLink}}"><b>{{ShortSha .Comment.OldCommit}}</b></a>
-				to
-				<a href="{{$newCommitLink}}"><b>{{ShortSha .Comment.NewCommit}}</b></a>.
+				{{$oldCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.OldCommit}}
+				{{$oldShortSha := ShortSha .Comment.OldCommit}}
+				{{$oldCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $oldCommitUrl) (Escape $oldShortSha)}}
+
+				{{$newCommitUrl := printf "%s/commit/%s" .Comment.Issue.PullRequest.BaseRepo.HTMLURL .Comment.NewCommit}}
+				{{$newShortSha := ShortSha .Comment.NewCommit}}
+				{{$newCommitLink := printf "<a href='%[1]s'><b>%[2]s</b></a>" (Escape $newCommitUrl) (Escape $newShortSha)}}
+
+				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
-				{{if eq .Comment.Commits.Len 1}}
-					{{printf "pushed 1 commit to %s:" .Comment.Issue.PullRequest.HeadBranch}}
-				{{else}}
-					{{printf "pushed %d commits to %s:" .Comment.Commits.Len .Comment.Issue.PullRequest.HeadBranch}}
-				{{end}}
+				{{.i18n.Tr (TrN .i18n.Lang (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n") .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
 			{{end}}
 		</p>
 	{{end}}
 	<p>
 		{{if eq .ActionName "close"}}
-			Closed #{{.Issue.Index}}.
+			{{.i18n.Tr "mail.issue.action.close" (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "reopen"}}
-			Reopened #{{.Issue.Index}}.
+			{{.i18n.Tr "mail.issue.action.reopen" (Escape .Doer.Name) .Issue.Index | Str2html}}
 		{{else if eq .ActionName "merge"}}
-			Merged #{{.Issue.Index}} into {{.Issue.PullRequest.BaseBranch}}.
+			{{.i18n.Tr "mail.issue.action.merge" (Escape .Doer.Name) .Issue.Index (Escape .Issue.PullRequest.BaseBranch) | Str2html}}
 		{{else if eq .ActionName "approve"}}
-			<b>@{{.Doer.Name}}</b> approved this pull request.
+			{{.i18n.Tr "mail.issue.action.approve" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "reject"}}
-			<b>@{{.Doer.Name}}</b> requested changes on this pull request.
+			{{.i18n.Tr "mail.issue.action.reject" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "review"}}
-			<b>@{{.Doer.Name}}</b> commented on this pull request.
+			{{.i18n.Tr "mail.issue.action.review" (Escape .Doer.Name) | Str2html}}
 		{{else if eq .ActionName "review_dismissed"}}
-			<b>@{{.Doer.Name}}</b> dismissed last review from {{.Comment.Review.Reviewer.Name}} for this pull request.
+			{{.i18n.Tr "mail.issue.action.review_dismissed" (Escape .Doer.Name) (Escape .Comment.Review.Reviewer.Name) | Str2html}}
+		{{else if eq .ActionName "ready_for_review"}}
+			{{.i18n.Tr "mail.issue.action.ready_for_review" (Escape .Doer.Name) | Str2html}}
 		{{end}}
 
 		{{- if eq .Body ""}}
 			{{if eq .ActionName "new"}}
-				Created #{{.Issue.Index}}.
+				{{.i18n.Tr "mail.issue.action.new" (Escape .Doer.Name) .Issue.Index | Str2html}}
 			{{end}}
 		{{else}}
 			{{.Body | Str2html}}
 		{{end -}}
 		{{- range .ReviewComments}}
 			<hr>
-			In {{.TreePath}}:
+			{{$.i18n.Tr "mail.issue.in_tree_path" .TreePath}}
 			<div class="review">
 				<pre>{{.Patch}}</pre>
 				<div>{{.RenderedContent | Safe}}</div>
 			</div>
 		{{end -}}
 		{{if eq .ActionName "push"}}
-			{{ $r:= List .Comment.Commits}}
 			<ul>
-			{{range $r}}
+			{{range .Comment.Commits}}
 				<li>
-					<a href="{{AppUrl}}{{$.Comment.Issue.PullRequest.BaseRepo.OwnerName}}/{{$.Comment.Issue.PullRequest.BaseRepo.Name}}/commit/{{.ID}}">
+					<a href="{{$.Comment.Issue.PullRequest.BaseRepo.HTMLURL}}/commit/{{.ID}}">
 						{{ShortSha .ID.String}}
 					</a>  -  {{.Summary}}
 				</li>
@@ -85,7 +84,7 @@
 	<p>
 		---
 		<br>
-		<a href="{{.Link}}">View it on {{AppName}}</a>.
+		<a href="{{.Link}}">{{.i18n.Tr "mail.view_it_on" AppName}}</a>.
 	</p>
 	</div>
 </body>

@@ -13,23 +13,20 @@ import (
 	"io"
 	"os"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
 
 var (
-	errHashMismatch = errors.New("Content hash does not match OID")
-	errSizeMismatch = errors.New("Content size does not match")
+	// ErrHashMismatch occurs if the content has does not match OID
+	ErrHashMismatch = errors.New("Content hash does not match OID")
+	// ErrSizeMismatch occurs if the content size does not match
+	ErrSizeMismatch = errors.New("Content size does not match")
 )
 
 // ErrRangeNotSatisfiable represents an error which request range is not satisfiable.
 type ErrRangeNotSatisfiable struct {
 	FromByte int64
-}
-
-func (err ErrRangeNotSatisfiable) Error() string {
-	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
 }
 
 // IsErrRangeNotSatisfiable returns true if the error is an ErrRangeNotSatisfiable
@@ -38,62 +35,61 @@ func IsErrRangeNotSatisfiable(err error) bool {
 	return ok
 }
 
+func (err ErrRangeNotSatisfiable) Error() string {
+	return fmt.Sprintf("Requested range %d is not satisfiable", err.FromByte)
+}
+
 // ContentStore provides a simple file system based storage.
 type ContentStore struct {
 	storage.ObjectStorage
 }
 
+// NewContentStore creates the default ContentStore
+func NewContentStore() *ContentStore {
+	contentStore := &ContentStore{ObjectStorage: storage.LFS}
+	return contentStore
+}
+
 // Get takes a Meta object and retrieves the content from the store, returning
-// it as an io.Reader. If fromByte > 0, the reader starts from that byte
-func (s *ContentStore) Get(meta *models.LFSMetaObject, fromByte int64) (io.ReadCloser, error) {
-	f, err := s.Open(meta.RelativePath())
+// it as an io.ReadSeekCloser.
+func (s *ContentStore) Get(pointer Pointer) (storage.Object, error) {
+	f, err := s.Open(pointer.RelativePath())
 	if err != nil {
-		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", meta.Oid, err)
+		log.Error("Whilst trying to read LFS OID[%s]: Unable to open Error: %v", pointer.Oid, err)
 		return nil, err
-	}
-	if fromByte > 0 {
-		if fromByte >= meta.Size {
-			return nil, ErrRangeNotSatisfiable{
-				FromByte: fromByte,
-			}
-		}
-		_, err = f.Seek(fromByte, io.SeekStart)
-		if err != nil {
-			log.Error("Whilst trying to read LFS OID[%s]: Unable to seek to %d Error: %v", meta.Oid, fromByte, err)
-		}
 	}
 	return f, err
 }
 
 // Put takes a Meta object and an io.Reader and writes the content to the store.
-func (s *ContentStore) Put(meta *models.LFSMetaObject, r io.Reader) error {
-	p := meta.RelativePath()
+func (s *ContentStore) Put(pointer Pointer, r io.Reader) error {
+	p := pointer.RelativePath()
 
 	// Wrap the provided reader with an inline hashing and size checker
-	wrappedRd := newHashingReader(meta.Size, meta.Oid, r)
+	wrappedRd := newHashingReader(pointer.Size, pointer.Oid, r)
 
 	// now pass the wrapped reader to Save - if there is a size mismatch or hash mismatch then
 	// the errors returned by the newHashingReader should percolate up to here
-	written, err := s.Save(p, wrappedRd)
+	written, err := s.Save(p, wrappedRd, pointer.Size)
 	if err != nil {
-		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", meta.Oid, p, err)
+		log.Error("Whilst putting LFS OID[%s]: Failed to copy to tmpPath: %s Error: %v", pointer.Oid, p, err)
 		return err
 	}
 
 	// This shouldn't happen but it is sensible to test
-	if written != meta.Size {
+	if written != pointer.Size {
 		if err := s.Delete(p); err != nil {
-			log.Error("Cleaning the LFS OID[%s] failed: %v", meta.Oid, err)
+			log.Error("Cleaning the LFS OID[%s] failed: %v", pointer.Oid, err)
 		}
-		return errSizeMismatch
+		return ErrSizeMismatch
 	}
 
 	return nil
 }
 
 // Exists returns true if the object exists in the content store.
-func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
-	_, err := s.ObjectStorage.Stat(meta.RelativePath())
+func (s *ContentStore) Exists(pointer Pointer) (bool, error) {
+	_, err := s.ObjectStorage.Stat(pointer.RelativePath())
 	if err != nil {
 		if os.IsNotExist(err) {
 			return false, nil
@@ -104,17 +100,23 @@ func (s *ContentStore) Exists(meta *models.LFSMetaObject) (bool, error) {
 }
 
 // Verify returns true if the object exists in the content store and size is correct.
-func (s *ContentStore) Verify(meta *models.LFSMetaObject) (bool, error) {
-	p := meta.RelativePath()
+func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
+	p := pointer.RelativePath()
 	fi, err := s.ObjectStorage.Stat(p)
-	if os.IsNotExist(err) || (err == nil && fi.Size() != meta.Size) {
+	if os.IsNotExist(err) || (err == nil && fi.Size() != pointer.Size) {
 		return false, nil
 	} else if err != nil {
-		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, meta.Oid, err)
+		log.Error("Unable stat file: %s for LFS OID[%s] Error: %v", p, pointer.Oid, err)
 		return false, err
 	}
 
 	return true, nil
+}
+
+// ReadMetaObject will read a models.LFSMetaObject and return a reader
+func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
+	contentStore := NewContentStore()
+	return contentStore.Get(pointer)
 }
 
 type hashingReader struct {
@@ -138,12 +140,12 @@ func (r *hashingReader) Read(b []byte) (int, error) {
 
 	if err != nil && err == io.EOF {
 		if r.currentSize != r.expectedSize {
-			return n, errSizeMismatch
+			return n, ErrSizeMismatch
 		}
 
 		shaStr := hex.EncodeToString(r.hash.Sum(nil))
 		if shaStr != r.expectedHash {
-			return n, errHashMismatch
+			return n, ErrHashMismatch
 		}
 	}
 

@@ -51,8 +51,8 @@ type Encoder interface {
 //	- the field is empty and its tag specifies the "omitempty" option
 //
 // The empty values are false, 0, any nil pointer or interface value, any array
-// slice, map, or string of length zero, and any time.Time that returns true
-// for IsZero().
+// slice, map, or string of length zero, and any type (such as time.Time) that
+// returns true for IsZero().
 //
 // The URL parameter name defaults to the struct field name but can be
 // specified in the struct field's tag value.  The "url" key in the struct
@@ -82,7 +82,14 @@ type Encoder interface {
 //
 // time.Time values default to encoding as RFC3339 timestamps.  Including the
 // "unix" option signals that the field should be encoded as a Unix time (see
-// time.Unix())
+// time.Unix()).  The "unixmilli" and "unixnano" options will encode the number
+// of milliseconds and nanoseconds, respectively, since January 1, 1970 (see
+// time.UnixNano()).  Including the "layout" struct tag (separate from the
+// "url" tag) will use the value of the "layout" tag as a layout passed to
+// time.Format.  For example:
+//
+// 	// Encode a time.Time as YYYY-MM-DD
+// 	Field time.Time `layout:"2006-01-02"`
 //
 // Slice and Array values default to encoding as multiple URL values of the
 // same name.  Including the "comma" option signals that the field should be
@@ -92,7 +99,13 @@ type Encoder interface {
 // Including the "brackets" option signals that the multiple URL values should
 // have "[]" appended to the value name. "numbered" will append a number to
 // the end of each incidence of the value name, example:
-// name0=value0&name1=value1, etc.
+// name0=value0&name1=value1, etc.  Including the "del" struct tag (separate
+// from the "url" tag) will use the value of the "del" tag as the delimiter.
+// For example:
+//
+// 	// Encode a slice of bools as ints ("1" for true, "0" for false),
+// 	// separated by exclamation points "!".
+// 	Field []bool `url:",int" del:"!"`
 //
 // Anonymous struct fields are usually encoded as if their inner exported
 // fields were fields in the outer struct, subject to the standard Go
@@ -151,11 +164,15 @@ func reflectValue(values url.Values, val reflect.Value, scope string) error {
 			continue
 		}
 		name, opts := parseTag(tag)
+
 		if name == "" {
-			if sf.Anonymous && sv.Kind() == reflect.Struct {
-				// save embedded struct for later processing
-				embedded = append(embedded, sv)
-				continue
+			if sf.Anonymous {
+				v := reflect.Indirect(sv)
+				if v.IsValid() && v.Kind() == reflect.Struct {
+					// save embedded struct for later processing
+					embedded = append(embedded, v)
+					continue
+				}
 			}
 
 			name = sf.Name
@@ -170,7 +187,9 @@ func reflectValue(values url.Values, val reflect.Value, scope string) error {
 		}
 
 		if sv.Type().Implements(encoderType) {
-			if !reflect.Indirect(sv).IsValid() {
+			// if sv is a nil pointer and the custom encoder is defined on a non-pointer
+			// method receiver, set sv to the zero value of the underlying type
+			if !reflect.Indirect(sv).IsValid() && sv.Type().Elem().Implements(encoderType) {
 				sv = reflect.New(sv.Type().Elem())
 			}
 
@@ -181,28 +200,38 @@ func reflectValue(values url.Values, val reflect.Value, scope string) error {
 			continue
 		}
 
+		// recursively dereference pointers. break on nil pointers
+		for sv.Kind() == reflect.Ptr {
+			if sv.IsNil() {
+				break
+			}
+			sv = sv.Elem()
+		}
+
 		if sv.Kind() == reflect.Slice || sv.Kind() == reflect.Array {
-			var del byte
+			var del string
 			if opts.Contains("comma") {
-				del = ','
+				del = ","
 			} else if opts.Contains("space") {
-				del = ' '
+				del = " "
 			} else if opts.Contains("semicolon") {
-				del = ';'
+				del = ";"
 			} else if opts.Contains("brackets") {
 				name = name + "[]"
+			} else {
+				del = sf.Tag.Get("del")
 			}
 
-			if del != 0 {
+			if del != "" {
 				s := new(bytes.Buffer)
 				first := true
 				for i := 0; i < sv.Len(); i++ {
 					if first {
 						first = false
 					} else {
-						s.WriteByte(del)
+						s.WriteString(del)
 					}
-					s.WriteString(valueString(sv.Index(i), opts))
+					s.WriteString(valueString(sv.Index(i), opts, sf))
 				}
 				values.Add(name, s.String())
 			} else {
@@ -211,30 +240,25 @@ func reflectValue(values url.Values, val reflect.Value, scope string) error {
 					if opts.Contains("numbered") {
 						k = fmt.Sprintf("%s%d", name, i)
 					}
-					values.Add(k, valueString(sv.Index(i), opts))
+					values.Add(k, valueString(sv.Index(i), opts, sf))
 				}
 			}
 			continue
 		}
 
-		for sv.Kind() == reflect.Ptr {
-			if sv.IsNil() {
-				break
-			}
-			sv = sv.Elem()
-		}
-
 		if sv.Type() == timeType {
-			values.Add(name, valueString(sv, opts))
+			values.Add(name, valueString(sv, opts, sf))
 			continue
 		}
 
 		if sv.Kind() == reflect.Struct {
-			reflectValue(values, sv, name)
+			if err := reflectValue(values, sv, name); err != nil {
+				return err
+			}
 			continue
 		}
 
-		values.Add(name, valueString(sv, opts))
+		values.Add(name, valueString(sv, opts, sf))
 	}
 
 	for _, f := range embedded {
@@ -247,7 +271,7 @@ func reflectValue(values url.Values, val reflect.Value, scope string) error {
 }
 
 // valueString returns the string representation of a value.
-func valueString(v reflect.Value, opts tagOptions) string {
+func valueString(v reflect.Value, opts tagOptions, sf reflect.StructField) string {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			return ""
@@ -266,6 +290,15 @@ func valueString(v reflect.Value, opts tagOptions) string {
 		t := v.Interface().(time.Time)
 		if opts.Contains("unix") {
 			return strconv.FormatInt(t.Unix(), 10)
+		}
+		if opts.Contains("unixmilli") {
+			return strconv.FormatInt((t.UnixNano() / 1e6), 10)
+		}
+		if opts.Contains("unixnano") {
+			return strconv.FormatInt(t.UnixNano(), 10)
+		}
+		if layout := sf.Tag.Get("layout"); layout != "" {
+			return t.Format(layout)
 		}
 		return t.Format(time.RFC3339)
 	}
@@ -291,8 +324,12 @@ func isEmptyValue(v reflect.Value) bool {
 		return v.IsNil()
 	}
 
-	if v.Type() == timeType {
-		return v.Interface().(time.Time).IsZero()
+	type zeroable interface {
+		IsZero() bool
+	}
+
+	if z, ok := v.Interface().(zeroable); ok {
+		return z.IsZero()
 	}
 
 	return false

@@ -3,7 +3,7 @@ language: go
 go:
   - 1.14.x
   - 1.15.x
-  - master
+  - 1.16.x
 
 sudo: true
 

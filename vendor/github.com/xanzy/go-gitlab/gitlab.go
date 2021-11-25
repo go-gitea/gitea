@@ -101,6 +101,7 @@ type Client struct {
 	AccessRequests        *AccessRequestsService
 	Applications          *ApplicationsService
 	AuditEvents           *AuditEventsService
+	Avatar                *AvatarRequestsService
 	AwardEmoji            *AwardEmojiService
 	Boards                *IssueBoardsService
 	Branches              *BranchesService
@@ -122,6 +123,7 @@ type Client struct {
 	GitIgnoreTemplates    *GitIgnoreTemplatesService
 	GroupBadges           *GroupBadgesService
 	GroupCluster          *GroupClustersService
+	GroupImportExport     *GroupImportExportService
 	GroupIssueBoards      *GroupIssueBoardsService
 	GroupLabels           *GroupLabelsService
 	GroupMembers          *GroupMembersService
@@ -140,6 +142,7 @@ type Client struct {
 	Labels                *LabelsService
 	License               *LicenseService
 	LicenseTemplates      *LicenseTemplatesService
+	ManagedLicenses       *ManagedLicensesService
 	MergeRequestApprovals *MergeRequestApprovalsService
 	MergeRequests         *MergeRequestsService
 	Milestones            *MilestonesService
@@ -152,6 +155,7 @@ type Client struct {
 	PipelineTriggers      *PipelineTriggersService
 	Pipelines             *PipelinesService
 	ProjectBadges         *ProjectBadgesService
+	ProjectAccessTokens   *ProjectAccessTokensService
 	ProjectCluster        *ProjectClustersService
 	ProjectImportExport   *ProjectImportExportService
 	ProjectMembers        *ProjectMembersService
@@ -271,6 +275,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.AccessRequests = &AccessRequestsService{client: c}
 	c.Applications = &ApplicationsService{client: c}
 	c.AuditEvents = &AuditEventsService{client: c}
+	c.Avatar = &AvatarRequestsService{client: c}
 	c.AwardEmoji = &AwardEmojiService{client: c}
 	c.Boards = &IssueBoardsService{client: c}
 	c.Branches = &BranchesService{client: c}
@@ -292,6 +297,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.GitIgnoreTemplates = &GitIgnoreTemplatesService{client: c}
 	c.GroupBadges = &GroupBadgesService{client: c}
 	c.GroupCluster = &GroupClustersService{client: c}
+	c.GroupImportExport = &GroupImportExportService{client: c}
 	c.GroupIssueBoards = &GroupIssueBoardsService{client: c}
 	c.GroupLabels = &GroupLabelsService{client: c}
 	c.GroupMembers = &GroupMembersService{client: c}
@@ -310,6 +316,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.Labels = &LabelsService{client: c}
 	c.License = &LicenseService{client: c}
 	c.LicenseTemplates = &LicenseTemplatesService{client: c}
+	c.ManagedLicenses = &ManagedLicensesService{client: c}
 	c.MergeRequestApprovals = &MergeRequestApprovalsService{client: c}
 	c.MergeRequests = &MergeRequestsService{client: c, timeStats: timeStats}
 	c.Milestones = &MilestonesService{client: c}
@@ -322,6 +329,7 @@ func newClient(options ...ClientOptionFunc) (*Client, error) {
 	c.PipelineTriggers = &PipelineTriggersService{client: c}
 	c.Pipelines = &PipelinesService{client: c}
 	c.ProjectBadges = &ProjectBadgesService{client: c}
+	c.ProjectAccessTokens = &ProjectAccessTokensService{client: c}
 	c.ProjectCluster = &ProjectClustersService{client: c}
 	c.ProjectImportExport = &ProjectImportExportService{client: c}
 	c.ProjectMembers = &ProjectMembersService{client: c}

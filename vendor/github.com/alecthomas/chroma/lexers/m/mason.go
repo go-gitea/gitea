@@ -8,7 +8,7 @@ import (
 )
 
 // Mason lexer.
-var Mason = internal.Register(MustNewLexer(
+var Mason = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "Mason",
 		Aliases:   []string{"mason"},
@@ -16,7 +16,11 @@ var Mason = internal.Register(MustNewLexer(
 		MimeTypes: []string{"application/x-mason"},
 		Priority:  0.1,
 	},
-	Rules{
+	masonRules,
+))
+
+func masonRules() Rules {
+	return Rules{
 		"root": {
 			{`\s+`, Text, nil},
 			{`(<%doc>)(.*?)(</%doc>)(?s)`, ByGroups(NameTag, CommentMultiline, NameTag), nil},
@@ -39,5 +43,5 @@ var Mason = internal.Register(MustNewLexer(
                   \Z                 # end of string
                  )`, ByGroups(Using(HTML), Operator), nil},
 		},
-	},
-))
+	}
+}

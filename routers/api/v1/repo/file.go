@@ -12,12 +12,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repofiles"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
-	"code.gitea.io/gitea/routers/repo"
+	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/repo"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 // GetRawFile get a file by path on a repository
@@ -61,7 +63,7 @@ func GetRawFile(ctx *context.APIContext) {
 
 	commit := ctx.Repo.Commit
 
-	if ref := ctx.QueryTrim("ref"); len(ref) > 0 {
+	if ref := ctx.FormTrim("ref"); len(ref) > 0 {
 		var err error
 		commit, err = ctx.Repo.GitRepo.GetCommit(ref)
 		if err != nil {
@@ -83,7 +85,7 @@ func GetRawFile(ctx *context.APIContext) {
 		}
 		return
 	}
-	if err = repo.ServeBlob(ctx.Context, blob); err != nil {
+	if err = common.ServeBlob(ctx.Context, blob); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
 	}
 }
@@ -118,13 +120,15 @@ func GetArchive(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
-		return
+	if ctx.Repo.GitRepo == nil {
+		gitRepo, err := git.OpenRepository(repoPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+		defer gitRepo.Close()
 	}
-	ctx.Repo.GitRepo = gitRepo
-	defer gitRepo.Close()
 
 	repo.Download(ctx.Context)
 }
@@ -179,12 +183,12 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
 func canWriteFiles(r *context.Repository) bool {
-	return r.Permission.CanWrite(models.UnitTypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
+	return r.Permission.CanWrite(unit.TypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
 func canReadFiles(r *context.Repository) bool {
-	return r.Permission.CanRead(models.UnitTypeCode)
+	return r.Permission.CanRead(unit.TypeCode)
 }
 
 // CreateFile handles API call for creating a file
@@ -236,22 +240,22 @@ func CreateFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	opts := &repofiles.UpdateRepoFileOptions{
+	opts := &files_service.UpdateRepoFileOptions{
 		Content:   apiOpts.Content,
 		IsNewFile: true,
 		Message:   apiOpts.Message,
 		TreePath:  ctx.Params("*"),
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
-		Committer: &repofiles.IdentityOptions{
+		Committer: &files_service.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &repofiles.IdentityOptions{
+		Author: &files_service.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
-		Dates: &repofiles.CommitDateOptions{
+		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
@@ -323,7 +327,7 @@ func UpdateFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	opts := &repofiles.UpdateRepoFileOptions{
+	opts := &files_service.UpdateRepoFileOptions{
 		Content:      apiOpts.Content,
 		SHA:          apiOpts.SHA,
 		IsNewFile:    false,
@@ -332,15 +336,15 @@ func UpdateFile(ctx *context.APIContext) {
 		TreePath:     ctx.Params("*"),
 		OldBranch:    apiOpts.BranchName,
 		NewBranch:    apiOpts.NewBranchName,
-		Committer: &repofiles.IdentityOptions{
+		Committer: &files_service.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &repofiles.IdentityOptions{
+		Author: &files_service.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
-		Dates: &repofiles.CommitDateOptions{
+		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
@@ -383,7 +387,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 }
 
 // Called from both CreateFile or UpdateFile to handle both
-func createOrUpdateFile(ctx *context.APIContext, opts *repofiles.UpdateRepoFileOptions) (*api.FileResponse, error) {
+func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
 	if !canWriteFiles(ctx.Repo) {
 		return nil, models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.User.ID,
@@ -397,7 +401,7 @@ func createOrUpdateFile(ctx *context.APIContext, opts *repofiles.UpdateRepoFileO
 	}
 	opts.Content = string(content)
 
-	return repofiles.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts)
+	return files_service.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, opts)
 }
 
 // DeleteFile Delete a fle in a repository
@@ -453,21 +457,21 @@ func DeleteFile(ctx *context.APIContext) {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
 	}
 
-	opts := &repofiles.DeleteRepoFileOptions{
+	opts := &files_service.DeleteRepoFileOptions{
 		Message:   apiOpts.Message,
 		OldBranch: apiOpts.BranchName,
 		NewBranch: apiOpts.NewBranchName,
 		SHA:       apiOpts.SHA,
 		TreePath:  ctx.Params("*"),
-		Committer: &repofiles.IdentityOptions{
+		Committer: &files_service.IdentityOptions{
 			Name:  apiOpts.Committer.Name,
 			Email: apiOpts.Committer.Email,
 		},
-		Author: &repofiles.IdentityOptions{
+		Author: &files_service.IdentityOptions{
 			Name:  apiOpts.Author.Name,
 			Email: apiOpts.Author.Email,
 		},
-		Dates: &repofiles.CommitDateOptions{
+		Dates: &files_service.CommitDateOptions{
 			Author:    apiOpts.Dates.Author,
 			Committer: apiOpts.Dates.Committer,
 		},
@@ -484,7 +488,7 @@ func DeleteFile(ctx *context.APIContext) {
 		opts.Message = ctx.Tr("repo.editor.delete", opts.TreePath)
 	}
 
-	if fileResponse, err := repofiles.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
+	if fileResponse, err := files_service.DeleteRepoFile(ctx.Repo.Repository, ctx.User, opts); err != nil {
 		if git.IsErrBranchNotExist(err) || models.IsErrRepoFileDoesNotExist(err) || git.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteFile", err)
 			return
@@ -548,9 +552,9 @@ func GetContents(ctx *context.APIContext) {
 	}
 
 	treePath := ctx.Params("*")
-	ref := ctx.QueryTrim("ref")
+	ref := ctx.FormTrim("ref")
 
-	if fileList, err := repofiles.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := files_service.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetContentsOrList", err)
 			return

@@ -150,6 +150,9 @@ func ReadRR(r io.Reader, file string) (RR, error) {
 // The text "; this is comment" is returned from Comment. Comments inside
 // the RR are returned concatenated along with the RR. Comments on a line
 // by themselves are discarded.
+//
+// Callers should not assume all returned data in an Resource Record is
+// syntactically correct, e.g. illegal base64 in RRSIGs will be returned as-is.
 type ZoneParser struct {
 	c *zlexer
 
@@ -1233,7 +1236,7 @@ func stringToCm(token string) (e, m uint8, ok bool) {
 			// 'nn.1' must be treated as 'nn-meters and 10cm, not 1cm.
 			cmeters *= 10
 		}
-		if len(s[0]) == 0 {
+		if s[0] == "" {
 			// This will allow omitting the 'meter' part, like .01 (meaning 0.01m = 1cm).
 			break
 		}
@@ -1352,7 +1355,7 @@ func stringToNodeID(l lex) (uint64, *ParseError) {
 	if len(l.token) < 19 {
 		return 0, &ParseError{l.token, "bad NID/L64 NodeID/Locator64", l}
 	}
-	// There must be three colons at fixes postitions, if not its a parse error
+	// There must be three colons at fixes positions, if not its a parse error
 	if l.token[4] != ':' && l.token[9] != ':' && l.token[14] != ':' {
 		return 0, &ParseError{l.token, "bad NID/L64 NodeID/Locator64", l}
 	}

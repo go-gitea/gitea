@@ -6,7 +6,7 @@ import (
 )
 
 // TradingView lexer
-var TradingView = internal.Register(MustNewLexer(
+var TradingView = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:      "TradingView",
 		Aliases:   []string{"tradingview", "tv"},
@@ -15,7 +15,11 @@ var TradingView = internal.Register(MustNewLexer(
 		DotAll:    true,
 		EnsureNL:  true,
 	},
-	Rules{
+	tradingViewRules,
+))
+
+func tradingViewRules() Rules {
+	return Rules{
 		"root": {
 			{`[^\S\n]+|\n|[()]`, Text, nil},
 			{`(//.*?)(\n)`, ByGroups(CommentSingle, Text), nil},
@@ -36,5 +40,5 @@ var TradingView = internal.Register(MustNewLexer(
 			{`(and|or|not|if|else|for|to)\b`, OperatorWord, nil},
 			{`@?[_a-zA-Z]\w*`, Text, nil},
 		},
-	},
-))
+	}
+}

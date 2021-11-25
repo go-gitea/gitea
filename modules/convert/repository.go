@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	unit_model "code.gitea.io/gitea/models/unit"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -37,7 +38,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
-	if unit, err := repo.GetUnit(models.UnitTypeIssues); err == nil {
+	if unit, err := repo.GetUnit(unit_model.TypeIssues); err == nil {
 		config := unit.IssuesConfig()
 		hasIssues = true
 		internalTracker = &api.InternalTracker{
@@ -45,7 +46,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 			AllowOnlyContributorsToTrackTime: config.AllowOnlyContributorsToTrackTime,
 			EnableIssueDependencies:          config.EnableDependencies,
 		}
-	} else if unit, err := repo.GetUnit(models.UnitTypeExternalTracker); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalTracker); err == nil {
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
@@ -56,9 +57,9 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	}
 	hasWiki := false
 	var externalWiki *api.ExternalWiki
-	if _, err := repo.GetUnit(models.UnitTypeWiki); err == nil {
+	if _, err := repo.GetUnit(unit_model.TypeWiki); err == nil {
 		hasWiki = true
-	} else if unit, err := repo.GetUnit(models.UnitTypeExternalWiki); err == nil {
+	} else if unit, err := repo.GetUnit(unit_model.TypeExternalWiki); err == nil {
 		hasWiki = true
 		config := unit.ExternalWikiConfig()
 		externalWiki = &api.ExternalWiki{
@@ -71,7 +72,8 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
-	if unit, err := repo.GetUnit(models.UnitTypePullRequests); err == nil {
+	defaultMergeStyle := models.MergeStyleMerge
+	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
 		ignoreWhitespaceConflicts = config.IgnoreWhitespaceConflicts
@@ -79,9 +81,10 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 		allowRebase = config.AllowRebase
 		allowRebaseMerge = config.AllowRebaseMerge
 		allowSquash = config.AllowSquash
+		defaultMergeStyle = config.GetDefaultMergeStyle()
 	}
 	hasProjects := false
-	if _, err := repo.GetUnit(models.UnitTypeProjects); err == nil {
+	if _, err := repo.GetUnit(unit_model.TypeProjects); err == nil {
 		hasProjects = true
 	}
 
@@ -89,7 +92,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 		return nil
 	}
 
-	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: true})
+	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
 	if repo.IsMirror {
@@ -100,7 +103,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 
 	return &api.Repository{
 		ID:                        repo.ID,
-		Owner:                     ToUser(repo.Owner, mode != models.AccessModeNone, mode >= models.AccessModeAdmin),
+		Owner:                     ToUserWithAccessMode(repo.Owner, mode),
 		Name:                      repo.Name,
 		FullName:                  repo.FullName(),
 		Description:               repo.Description,
@@ -139,6 +142,7 @@ func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool)
 		AllowRebase:               allowRebase,
 		AllowRebaseMerge:          allowRebaseMerge,
 		AllowSquash:               allowSquash,
+		DefaultMergeStyle:         string(defaultMergeStyle),
 		AvatarURL:                 repo.AvatarLink(),
 		Internal:                  !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
 		MirrorInterval:            mirrorInterval,

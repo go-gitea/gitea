@@ -36,11 +36,12 @@ type GroupVariablesService struct {
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html
 type GroupVariable struct {
-	Key          string            `json:"key"`
-	Value        string            `json:"value"`
-	VariableType VariableTypeValue `json:"variable_type"`
-	Protected    bool              `json:"protected"`
-	Masked       bool              `json:"masked"`
+	Key              string            `json:"key"`
+	Value            string            `json:"value"`
+	VariableType     VariableTypeValue `json:"variable_type"`
+	Protected        bool              `json:"protected"`
+	Masked           bool              `json:"masked"`
+	EnvironmentScope string            `json:"environment_scope"`
 }
 
 func (v GroupVariable) String() string {
@@ -110,11 +111,12 @@ func (s *GroupVariablesService) GetVariable(gid interface{}, key string, options
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#create-variable
 type CreateGroupVariableOptions struct {
-	Key          *string            `url:"key,omitempty" json:"key,omitempty"`
-	Value        *string            `url:"value,omitempty" json:"value,omitempty"`
-	VariableType *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
-	Protected    *bool              `url:"protected,omitempty" json:"protected,omitempty"`
-	Masked       *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Key              *string            `url:"key,omitempty" json:"key,omitempty"`
+	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
+	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
+	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 }
 
 // CreateVariable creates a new group variable.
@@ -148,10 +150,11 @@ func (s *GroupVariablesService) CreateVariable(gid interface{}, opt *CreateGroup
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/group_level_variables.html#update-variable
 type UpdateGroupVariableOptions struct {
-	Value        *string            `url:"value,omitempty" json:"value,omitempty"`
-	VariableType *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
-	Protected    *bool              `url:"protected,omitempty" json:"protected,omitempty"`
-	Masked       *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
+	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
+	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
+	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 }
 
 // UpdateVariable updates the position of an existing

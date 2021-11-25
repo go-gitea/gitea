@@ -1,10 +1,11 @@
 ---
 kind: pipeline
+type: docker
 name: compliance
 
 platform:
   os: linux
-  arch: arm64
+  arch: amd64
 
 trigger:
   event:
@@ -15,19 +16,19 @@ trigger:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:14
+    image: node:16
     commands:
       - make node_modules
 
   - name: lint-frontend
-    image: node:14
+    image: node:16
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
 
   - name: lint-backend
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -37,7 +38,7 @@ steps:
 
   - name: lint-backend-windows
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint vet
     environment:
@@ -49,7 +50,7 @@ steps:
 
   - name: lint-backend-gogit
     pull: always
-    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make lint-backend
     environment:
@@ -58,27 +59,33 @@ steps:
       TAGS: bindata gogit sqlite sqlite_unlock_notify
 
   - name: checks-frontend
-    image: node:14
+    image: node:16
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
 
   - name: checks-backend
     pull: always
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make checks-backend
     depends_on: [lint-backend]
 
+  - name: test-frontend
+    image: node:16
+    commands:
+      - make test-frontend
+    depends_on: [lint-frontend]
+
   - name: build-frontend
-    image: node:14
+    image: node:16
     commands:
       - make frontend
-    depends_on: [lint-frontend]
+    depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
     pull: always
-    image: golang:1.14 # this step is kept as the lowest version of golang that we support
+    image: golang:1.16 # this step is kept as the lowest version of golang that we support
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -87,7 +94,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-arm64
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -100,7 +107,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-windows
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -112,7 +119,7 @@ steps:
     depends_on: [checks-backend]
 
   - name: build-backend-386
-    image: golang:1.16
+    image: golang:1.17
     environment:
       GO111MODULE: on
       GOPROXY: off
@@ -124,6 +131,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: testing-amd64
 
 platform:
@@ -147,7 +155,7 @@ services:
       MYSQL_DATABASE: test
 
   - name: mysql8
-    image: mysql:8.0
+    image: mysql:8
     environment:
       MYSQL_ALLOW_EMPTY_PASSWORD: yes
       MYSQL_DATABASE: testgitea
@@ -185,50 +193,65 @@ steps:
         exclude:
           - pull_request
 
-  - name: build
-    pull: always
-    image: golang:1.16
-    commands:
-      - make backend
-    environment:
-      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
-      GOSUMDB: sum.golang.org
-      TAGS: bindata sqlite sqlite_unlock_notify
-
   - name: tag-pre-condition
     pull: always
     image: drone/git
     commands:
       - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
 
+  - name: prepare-test-env
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - ./build/test-env-prepare.sh
+
+  - name: build
+    pull: always
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
+    commands:
+      - ./build/test-env-check.sh
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
+
   - name: unit-test
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
   - name: unit-test-gogit
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make unit-test-coverage test-check
     environment:
       GOPROXY: off
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
 
   - name: test-mysql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make test-mysql-migration integration-test-coverage
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
       TEST_INDEXER_CODE_ES_URL: "http://elastic:changeme@elasticsearch:9200"
@@ -237,11 +260,13 @@ steps:
 
   - name: test-mysql8
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -249,18 +274,20 @@ steps:
 
   - name: test-mssql
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - make test-mssql-migration test-mssql
     environment:
       GOPROXY: off
       TAGS: bindata
+      RACE_ENABLED: true
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
     depends_on:
       - build
 
   - name: generate-coverage
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - make coverage
     environment:
@@ -271,7 +298,7 @@ steps:
       - test-mysql
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -288,7 +315,7 @@ steps:
       - generate-coverage
     when:
       branch:
-        - master
+        - main
       event:
         - push
         - pull_request
@@ -313,7 +340,7 @@ trigger:
 services:
   - name: pgsql
     pull: default
-    image: postgres:9.5
+    image: postgres:10
     environment:
       POSTGRES_DB: test
       POSTGRES_PASSWORD: postgres
@@ -332,23 +359,34 @@ steps:
         exclude:
           - pull_request
 
+  - name: prepare-test-env
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    commands:
+      - ./build/test-env-prepare.sh
+
   - name: build
     pull: always
-    image: golang:1.16
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
+      - ./build/test-env-check.sh
       - make backend
     environment:
       GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+    depends_on:
+      - prepare-test-env
 
   - name: test-sqlite
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: off
       TAGS: bindata gogit sqlite sqlite_unlock_notify
+      RACE_ENABLED: true
       TEST_TAGS: gogit sqlite sqlite_unlock_notify
       USE_REPO_TEST_DIR: 1
     depends_on:
@@ -356,11 +394,13 @@ steps:
 
   - name: test-pgsql
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
     commands:
       - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: off
       TAGS: bindata gogit
+      RACE_ENABLED: true
       TEST_TAGS: gogit
       TEST_LDAP: 1
       USE_REPO_TEST_DIR: 1
@@ -377,7 +417,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -408,6 +448,7 @@ steps:
     settings:
       author_email: "teabot@gitea.io"
       author_name: GiteaBot
+      branch: main
       commit: true
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
@@ -429,6 +470,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: update_gitignore_and_licenses
 
 platform:
@@ -437,7 +479,7 @@ platform:
 
 trigger:
   branch:
-    - master
+    - main
   event:
     - cron
   cron:
@@ -445,7 +487,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.16
+    image: golang:1.17
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
 
@@ -455,6 +497,7 @@ steps:
     settings:
       author_email: "teabot@gitea.io"
       author_name: GiteaBot
+      branch: main
       commit: true
       commit_message: "[skip ci] Updated licenses and gitignores "
       remote: "git@github.com:go-gitea/gitea.git"
@@ -464,6 +507,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: release-latest
 
 platform:
@@ -476,7 +520,7 @@ workspace:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push
@@ -495,7 +539,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -519,10 +563,10 @@ steps:
 
   - name: release-branch
     pull: always
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
-      bucket: releases
+      bucket: gitea-artifacts
       endpoint: https://storage.gitea.io
       path_style: true
       source: "dist/release/*"
@@ -539,16 +583,16 @@ steps:
       event:
         - push
 
-  - name: release-master
-    image: plugins/s3:1
+  - name: release-main
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
-      bucket: releases
+      bucket: gitea-artifacts
       endpoint: https://storage.gitea.io
       path_style: true
       source: "dist/release/*"
       strip_prefix: dist/release/
-      target: /gitea/master
+      target: /gitea/main
     environment:
       AWS_ACCESS_KEY_ID:
         from_secret: aws_access_key_id
@@ -556,7 +600,7 @@ steps:
         from_secret: aws_secret_access_key
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
@@ -591,7 +635,7 @@ steps:
     pull: always
     image: techknowlogick/xgo:go-1.16.x
     commands:
-      - curl -sL https://deb.nodesource.com/setup_14.x | bash - && apt -y install nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -615,10 +659,10 @@ steps:
 
   - name: release-tag
     pull: always
-    image: plugins/s3:1
+    image: woodpeckerci/plugin-s3:latest
     settings:
       acl: public-read
-      bucket: releases
+      bucket: gitea-artifacts
       endpoint: https://storage.gitea.io
       path_style: true
       source: "dist/release/*"
@@ -642,6 +686,7 @@ steps:
 
 ---
 kind: pipeline
+type: docker
 name: docs
 
 platform:
@@ -677,13 +722,14 @@ steps:
         from_secret: netlify_token
     when:
       branch:
-        - master
+        - main
       event:
         - push
 
 ---
 kind: pipeline
-name: docker-linux-amd64-release
+type: docker
+name: docker-linux-amd64-release-version
 
 platform:
   os: linux
@@ -695,7 +741,6 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
   - "refs/tags/**"
   event:
     exclude:
@@ -709,7 +754,7 @@ steps:
 
   - name: publish
     pull: always
-    image: plugins/docker:linux-amd64
+    image: techknowlogick/drone-docker:latest
     settings:
       auto_tag: true
       auto_tag_suffix: linux-amd64
@@ -726,7 +771,7 @@ steps:
         - pull_request
 
   - name: publish-rootless
-    image: plugins/docker:linux-amd64
+    image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: true
@@ -748,6 +793,72 @@ steps:
 
 ---
 kind: pipeline
+type: docker
+name: docker-linux-amd64-release
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - refs/heads/main
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: techknowlogick/drone-docker:latest
+    settings:
+      auto_tag: false
+      tags: dev-linux-amd64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: false
+      tags: dev-linux-amd64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+
+---
+kind: pipeline
+type: docker
 name: docker-linux-arm64-dry-run
 
 platform:
@@ -764,7 +875,7 @@ trigger:
 steps:
   - name: dryrun
     pull: always
-    image: plugins/docker:linux-arm64
+    image: techknowlogick/drone-docker:latest
     settings:
       dry_run: true
       repo: gitea/gitea
@@ -780,7 +891,8 @@ steps:
 
 ---
 kind: pipeline
-name: docker-linux-arm64-release
+type: docker
+name: docker-linux-arm64-release-version
 
 platform:
   os: linux
@@ -792,7 +904,6 @@ depends_on:
 
 trigger:
   ref:
-  - refs/heads/master
   - "refs/tags/**"
   event:
     exclude:
@@ -806,7 +917,7 @@ steps:
 
   - name: publish
     pull: always
-    image: plugins/docker:linux-arm64
+    image: techknowlogick/drone-docker:latest
     settings:
       auto_tag: true
       auto_tag_suffix: linux-arm64
@@ -826,7 +937,7 @@ steps:
         - pull_request
 
   - name: publish-rootless
-    image: plugins/docker:linux-arm64
+    image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
       auto_tag: true
@@ -848,7 +959,75 @@ steps:
 
 ---
 kind: pipeline
-name: docker-manifest
+type: docker
+name: docker-linux-arm64-release
+
+platform:
+  os: linux
+  arch: arm64
+
+depends_on:
+  - testing-amd64
+  - testing-arm64
+
+trigger:
+  ref:
+  - refs/heads/main
+  event:
+    exclude:
+    - cron
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+
+  - name: publish
+    pull: always
+    image: techknowlogick/drone-docker:latest
+    settings:
+      auto_tag: false
+      tags: dev-linux-arm64
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+
+  - name: publish-rootless
+    image: techknowlogick/drone-docker:latest
+    settings:
+      dockerfile: Dockerfile.rootless
+      auto_tag: false
+      tags: dev-linux-arm64-rootless
+      repo: gitea/gitea
+      build_args:
+        - GOPROXY=off
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+    environment:
+      PLUGIN_MIRROR:
+        from_secret: plugin_mirror
+    when:
+      event:
+        exclude:
+        - pull_request
+---
+kind: pipeline
+type: docker
+name: docker-manifest-version
 
 platform:
   os: linux
@@ -880,8 +1059,51 @@ steps:
 
 trigger:
   ref:
-  - refs/heads/master
   - "refs/tags/**"
+  event:
+    exclude:
+    - cron
+
+depends_on:
+  - docker-linux-amd64-release-version
+  - docker-linux-arm64-release-version
+
+---
+kind: pipeline
+type: docker
+name: docker-manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+steps:
+  - name: manifest-rootless
+    pull: always
+    image: plugins/manifest
+    settings:
+      auto_tag: false
+      ignore_missing: true
+      spec: docker/manifest.rootless.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+  - name: manifest
+    image: plugins/manifest
+    settings:
+      auto_tag: false
+      ignore_missing: true
+      spec: docker/manifest.tmpl
+      password:
+        from_secret: docker_password
+      username:
+        from_secret: docker_username
+
+trigger:
+  ref:
+  - refs/heads/main
   event:
     exclude:
     - cron
@@ -892,6 +1114,7 @@ depends_on:
 
 ---
 kind: pipeline
+type: docker
 name: notifications
 
 platform:
@@ -903,7 +1126,7 @@ clone:
 
 trigger:
   branch:
-    - master
+    - main
     - "release/*"
   event:
     - push
@@ -919,7 +1142,10 @@ depends_on:
   - release-latest
   - docker-linux-amd64-release
   - docker-linux-arm64-release
+  - docker-linux-amd64-release-version
+  - docker-linux-arm64-release-version
   - docker-manifest
+  - docker-manifest-version
   - docs
 
 steps:

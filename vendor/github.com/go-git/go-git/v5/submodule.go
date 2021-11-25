@@ -5,6 +5,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
+	"path"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -131,9 +133,29 @@ func (s *Submodule) Repository() (*Repository, error) {
 		return nil, err
 	}
 
+	moduleURL, err := url.Parse(s.c.URL)
+	if err != nil {
+		return nil, err
+	}
+
+	if !path.IsAbs(moduleURL.Path) {
+		remotes, err := s.w.r.Remotes()
+		if err != nil {
+			return nil, err
+		}
+
+		rootURL, err := url.Parse(remotes[0].c.URLs[0])
+		if err != nil {
+			return nil, err
+		}
+
+		rootURL.Path = path.Join(rootURL.Path, moduleURL.Path)
+		*moduleURL = *rootURL
+	}
+
 	_, err = r.CreateRemote(&config.RemoteConfig{
 		Name: DefaultRemoteName,
-		URLs: []string{s.c.URL},
+		URLs: []string{moduleURL.String()},
 	})
 
 	return r, err
@@ -151,7 +173,7 @@ func (s *Submodule) Update(o *SubmoduleUpdateOptions) error {
 // setting in the options SubmoduleUpdateOptions.Init equals true.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (s *Submodule) UpdateContext(ctx context.Context, o *SubmoduleUpdateOptions) error {
 	return s.update(ctx, o, plumbing.ZeroHash)
@@ -232,6 +254,24 @@ func (s *Submodule) fetchAndCheckout(
 		return err
 	}
 
+	// Handle a case when submodule refers to an orphaned commit that's still reachable
+	// through Git server using a special protocol capability[1].
+	//
+	// [1]: https://git-scm.com/docs/protocol-capabilities#_allow_reachable_sha1_in_want
+	if !o.NoFetch {
+		if _, err := w.r.Object(plumbing.AnyObject, hash); err != nil {
+			refSpec := config.RefSpec("+" + hash.String() + ":" + hash.String())
+
+			err := r.FetchContext(ctx, &FetchOptions{
+				Auth:     o.Auth,
+				RefSpecs: []config.RefSpec{refSpec},
+			})
+			if err != nil && err != NoErrAlreadyUpToDate && err != ErrExactSHA1NotSupported {
+				return err
+			}
+		}
+	}
+
 	if err := w.Checkout(&CheckoutOptions{Hash: hash}); err != nil {
 		return err
 	}
@@ -262,7 +302,7 @@ func (s Submodules) Update(o *SubmoduleUpdateOptions) error {
 // UpdateContext updates all the submodules in this list.
 //
 // The provided Context must be non-nil. If the context expires before the
-// operation is complete, an error is returned. The context only affects to the
+// operation is complete, an error is returned. The context only affects the
 // transport operations.
 func (s Submodules) UpdateContext(ctx context.Context, o *SubmoduleUpdateOptions) error {
 	for _, sub := range s {

@@ -1,6 +1,19 @@
 .repository {
-  .commit-statuses .list > .item {
-    line-height: 2;
+  .popup.commit-statuses {
+    // we had better limit the max size of the popup, and add scroll bars if the content size is too large.
+    // otherwise some part of the popup will be hidden by viewport boundary
+    max-height: 45vh;
+    max-width: 60vw;
+    overflow: auto;
+    padding: 0;
+
+    .list {
+      padding: .8em; // to make the scrollbar align to the border, we move the padding from outer `.popup` to this inside `.list`
+
+      > .item {
+        line-height: 2;
+      }
+    }
   }
 
   .repo-header {
@@ -201,16 +214,23 @@
     .clone.button {
       font-size: 13px;
       padding: 7.5px 5px;
-
-      &:first-child {
-        border-radius: var(--border-radius) 0 0 var(--border-radius);
-      }
     }
 
     #repo-clone-https,
-    #repo-clone-ssh,
-    #clipboard-btn {
+    #repo-clone-ssh {
       border-right: none;
+    }
+
+    #download-btn {
+      border-left: none;
+    }
+
+    button:first-of-type {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    button:last-of-type {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
     }
 
     .icon.button {
@@ -389,15 +409,10 @@
 
         .file-actions {
           .btn-octicon {
-            display: inline-block;
-            padding: 5px;
-            margin-left: 5px;
             line-height: 1;
-            color: var(--color-text);
+            padding: 10px 8px;
             vertical-align: middle;
-            background: transparent;
-            border: 0;
-            outline: none;
+            color: var(--color-text);
           }
 
           .btn-octicon:hover {
@@ -405,7 +420,7 @@
           }
 
           .btn-octicon-danger:hover {
-            color: #bd2c00;
+            color: var(--color-red);
           }
 
           .btn-octicon.disabled {
@@ -413,23 +428,24 @@
             opacity: var(--opacity-disabled);
             cursor: default;
           }
-
-          #delete-file-form {
-            display: inline-block;
-          }
         }
       }
 
       .view-raw {
         padding: 5px;
 
-        * {
+        > * {
           max-width: 100%;
+          border: 1px solid var(--color-secondary);
         }
 
         img {
+          margin: 1rem 0;
           border-radius: 0;
+          object-fit: contain;
         }
+
+        /* also see misc.css for one more related rule */
       }
 
       .plain-text {
@@ -573,7 +589,7 @@
           border-right-color: var(--color-box-body);
         }
 
-        .markdown {
+        .markup {
           font-size: 14px;
         }
       }
@@ -683,6 +699,15 @@
       code {
         color: var(--color-primary);
       }
+      a[data-clipboard-text] {
+        cursor: pointer;
+        svg {
+          vertical-align: middle;
+          position: relative;
+          top: -2px;
+          right: 1px;
+        }
+      }
     }
 
     .pull {
@@ -699,9 +724,11 @@
           margin-left: 10px;
           margin-top: 10px;
         }
+
         .branch-update.grid {
           .row {
             padding-bottom: 1rem;
+
             .icon {
               margin-top: 1.1rem;
             }
@@ -798,6 +825,7 @@
         .timeline-avatar {
           position: absolute;
           left: -72px;
+
           img {
             width: 40px !important;
             height: 40px !important;
@@ -808,7 +836,8 @@
         .avatar.image img {
           width: 20px;
           height: 20px;
-          margin-right: .5rem;
+          margin: 0 .25rem;
+          vertical-align: middle;
         }
 
         &:first-child:not(.commit) {
@@ -952,6 +981,10 @@
 
       .ui.comments {
         max-width: 100%;
+
+        .avatar {
+          margin-right: .5rem;
+        }
       }
 
       .comment {
@@ -973,59 +1006,62 @@
         }
 
         .content {
-          > .merge-section {
-            background-color: var(--color-box-body);
+          @media @mediaSm {
+            .form .button {
+              width: 100%;
+              margin: 0;
 
-            .item {
-              padding: .25rem 0;
+              &:not(:last-child) {
+                margin-bottom: 1rem;
+              }
             }
+          }
+        }
 
+        .merge-section {
+          background-color: var(--color-box-body);
+
+          .item {
+            padding: .25rem 0;
+          }
+
+          .item-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0;
+            margin-top: -.25rem;
+            margin-bottom: -.25rem;
+          }
+
+          @media @mediaSm {
             .item-section {
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              padding: 0;
-              margin-top: -.25rem;
-              margin-bottom: -.25rem;
-            }
-
-            .divider {
-              margin-left: -1rem;
-              margin-right: -1rem;
-            }
-
-            &.no-header {
-              #avatar-arrow();
-
-              &::after {
-                border-right-color: var(--color-box-body);
-              }
-            }
-
-            @media @mediaSm {
-              .form .button {
-                width: 100%;
-
-                &:not(:last-child) {
-                  margin-bottom: 1rem;
-                }
-              }
+              align-items: flex-start;
+              flex-direction: column;
             }
           }
 
-          .markdown {
-            font-size: 14px;
+          .divider {
+            margin-left: -1rem;
+            margin-right: -1rem;
           }
 
-          .no-content {
-            color: var(--color-text-light-2);
-            font-style: italic;
-          }
+          &.no-header {
+            #avatar-arrow();
 
-          .dropzone-attachments .thumbnails .ui.image {
-            max-height: 150px;
+            &::after {
+              border-right-color: var(--color-box-body);
+            }
           }
+        }
 
+        .markup {
+          font-size: 14px;
+        }
+
+        .no-content {
+          color: var(--color-text-light-2);
+          font-style: italic;
         }
 
         .ui.form {
@@ -1038,7 +1074,7 @@
               overflow: hidden;
             }
 
-            .tab.markdown {
+            .tab.markup {
               min-height: 5rem;
             }
           }
@@ -1056,7 +1092,7 @@
 
       .code-comment {
         border: 1px solid transparent;
-        padding: .5rem 0;
+        padding: .25rem .5rem;
         margin: 0;
 
         .content {
@@ -1074,6 +1110,10 @@
           }
         }
 
+        .comment-content {
+          margin-left: 36px;
+        }
+
         .avatar.image {
           width: 28px;
           height: 28px;
@@ -1082,17 +1122,26 @@
 
       .comment-code-cloud {
         .segment.reactions {
+          margin-top: 16px !important;
+          margin-bottom: -8px !important;
           border-top: none !important;
 
           .ui.label {
             border: 1px solid;
-            padding: 6px !important;
+            padding: 6px 10px !important;
+            margin: 0 2px;
             border-radius: var(--border-radius);
+            border-color: var(--color-secondary-dark-1) !important;
+          }
+
+          .ui.label.basic.blue {
+            background-color: var(--color-reaction-active-bg) !important;
+            border-color: var(--color-primary-alpha-80) !important;
           }
         }
 
         button.comment-form-reply {
-          margin-left: 0;
+          margin: 0;
         }
       }
 
@@ -1107,15 +1156,6 @@
 
         .segments {
           box-shadow: none;
-
-          .show-outdated,
-          .hide-outdated {
-            display: block;
-          }
-
-          .label {
-            margin-left: 6px;
-          }
         }
       }
     }
@@ -1251,7 +1291,7 @@
       margin-bottom: 1.5rem;
     }
 
-    .markdown {
+    .markup {
       font-size: 14px;
     }
   }
@@ -1270,7 +1310,7 @@
         max-width: 90px;
 
         &:last-child {
-          border-left: 1px solid var(--color-secondary);
+          border-left: 1px solid var(--color-secondary-dark-2);
         }
       }
 
@@ -1289,7 +1329,7 @@
       .bar {
         height: 4px;
         position: absolute;
-        background-color: var(--color-secondary);
+        background-color: var(--color-secondary-dark-2);
 
         &.bar-behind {
           right: 0;
@@ -1324,7 +1364,7 @@
           text-align: center;
         }
 
-        width: 175px;
+        width: 200px;
       }
     }
 
@@ -1455,6 +1495,71 @@
     }
   }
 
+  .data-table {
+    width: 100%;
+
+    tr {
+      border-top: 0;
+    }
+
+    td,
+    th {
+      padding: 5px !important;
+      overflow: hidden;
+      font-size: 12px;
+      text-align: left;
+      white-space: nowrap;
+      border: 1px solid var(--color-secondary);
+    }
+
+    td {
+      white-space: pre-line;
+    }
+
+    th {
+      font-weight: 600;
+      background: var(--color-box-header);
+      border-top: 0;
+    }
+
+    td.added,
+    th.added,
+    tr.added {
+      background-color: var(--color-diff-added-row-bg) !important;
+    }
+
+    td.removed,
+    th.removed,
+    tr.removed {
+      background-color: var(--color-diff-removed-row-bg) !important;
+    }
+
+    td.moved,
+    th.moved,
+    tr.moved {
+      background-color: var(--color-diff-moved-row-bg) !important;
+    }
+
+    tbody.section {
+      border-top: 2px solid var(--color-secondary);
+    }
+
+    .line-num {
+      width: 1%;
+      min-width: 50px;
+      font-family: monospace;
+      line-height: 20px;
+      color: var(--color-secondary-dark-2);
+      white-space: nowrap;
+      vertical-align: top;
+      cursor: pointer;
+      user-select: none;
+      text-align: right;
+      background: var(--color-body);
+      border: 0;
+    }
+  }
+
   .diff-detail-box {
     padding: 7px 0;
     background: var(--color-body);
@@ -1576,9 +1681,6 @@
   }
 
   .diff-file-box {
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-
     .header {
       background-color: var(--color-box-header);
     }
@@ -1649,6 +1751,10 @@
     }
 
     .code-diff-split {
+      .tag-code .lines-code code.code-inner {
+        padding-left: 10px !important;
+      }
+
       table,
       tbody {
         width: 100%;
@@ -1661,6 +1767,7 @@
         padding: 0;
         border-radius: 0;
       }
+
       img.emoji {
         padding: 0;
       }
@@ -1754,6 +1861,10 @@
           text-align: right;
           position: relative;
 
+          .label {
+            margin-right: 0;
+          }
+
           .tag:not(.icon) {
             display: block;
             margin-top: 15px;
@@ -1762,6 +1873,14 @@
           .commit {
             display: block;
             margin-top: 10px;
+          }
+
+          .choose {
+            margin-top: 15px;
+
+            .button {
+              margin-right: 0;
+            }
           }
         }
 
@@ -1775,8 +1894,6 @@
           }
 
           .download {
-            margin-top: 20px;
-
             > a {
               .svg {
                 margin-left: 5px;
@@ -1786,18 +1903,29 @@
 
             .list {
               padding-left: 0;
-              border-top: 1px solid var(--color-secondary);
 
               li {
                 list-style: none;
                 display: block;
-                padding-top: 8px;
-                padding-bottom: 8px;
-                border-bottom: 1px solid var(--color-secondary);
+                padding: 8px;
+                border: 1px solid var(--color-secondary);
+                background: var(--color-light);
 
                 a > .text.right {
                   margin-right: 5px;
                 }
+              }
+
+              li + li {
+                border-top: 0;
+              }
+
+              li:first-of-type {
+                border-radius: var(--border-radius) 0 0 var(--border-radius);
+              }
+
+              li:last-of-type {
+                border-radius: 0 var(--border-radius) var(--border-radius) 0;
               }
             }
           }
@@ -1806,7 +1934,7 @@
             width: 9px;
             height: 9px;
             background-color: #ddd;
-            z-index: 999;
+            z-index: 9;
             position: absolute;
             display: block;
             left: -5px;
@@ -1867,6 +1995,7 @@
       .wrap_remove {
         height: 38px;
       }
+
       .attachment_edit {
         width: 450px !important;
       }
@@ -1935,7 +2064,7 @@
         margin-top: -5px;
       }
 
-      > .markdown {
+      > .markup {
         padding: 15px 30px;
 
         h1,
@@ -2168,6 +2297,7 @@
     .list {
       width: 100%;
       display: flex;
+      align-items: center;
 
       .item {
         width: 100%;
@@ -2175,10 +2305,12 @@
 
         &:first-of-type {
           border-radius: var(--border-radius) 0 0 var(--border-radius);
+          padding-left: .25rem;
         }
 
         &:last-of-type {
           border-radius: 0 var(--border-radius) var(--border-radius) 0;
+          padding-right: .25rem;
         }
 
         a {
@@ -2251,6 +2383,7 @@
       font-size: 14px;
       font-weight: normal;
       border-color: var(--color-secondary) !important;
+      background: var(--color-reaction-bg);
 
       &.disabled {
         cursor: default;
@@ -2263,7 +2396,7 @@
     }
 
     .ui.label.basic.blue {
-      background-color: var(--color-primary-alpha-20) !important;
+      background-color: var(--color-reaction-active-bg) !important;
       border-color: var(--color-secondary) !important;
     }
 
@@ -2313,6 +2446,10 @@
       width: 100%;
       border-radius: 0;
       user-select: none;
+
+      @media @mediaSm {
+        display: none;
+      }
 
       .bar {
         white-space: nowrap;
@@ -2434,29 +2571,6 @@
 
 .page.buttons {
   padding-top: 15px;
-}
-
-.ui.form {
-  .dropzone {
-    border: 2px dashed var(--color-secondary);
-    background: none;
-    box-shadow: none !important;
-    padding: 0;
-    min-height: 5rem;
-    border-radius: 4px;
-
-    .dz-button {
-      color: rgba(0, 0, 0, .6);
-    }
-
-    &:hover .dz-button {
-      color: rgba(0, 0, 0, .8);
-    }
-
-    .dz-error-message {
-      top: 140px;
-    }
-  }
 }
 
 .settings {
@@ -2631,19 +2745,6 @@
       width: 15px;
       height: 15px;
     }
-
-    .precolors {
-      padding-left: 0;
-      padding-right: 0;
-      margin: 3px 10px auto;
-      width: 120px;
-
-      .color {
-        float: left;
-        width: 15px;
-        height: 15px;
-      }
-    }
   }
 }
 
@@ -2711,6 +2812,7 @@
 .labels-list .label {
   margin: 2px 0;
   display: inline-block !important;
+  line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
 tbody.commit-list {
@@ -2729,6 +2831,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 100%;
   }
+
   th .message-wrapper {
     display: block;
     max-width: calc(100vw - 70px);
@@ -2739,6 +2842,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 723px;
   }
+
   th .message-wrapper {
     max-width: 280px;
   }
@@ -2748,6 +2852,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 933px;
   }
+
   th .message-wrapper {
     max-width: 490px;
   }
@@ -2757,6 +2862,7 @@ tbody.commit-list {
   tr.commit-list {
     width: 1127px;
   }
+
   th .message-wrapper {
     max-width: 680px;
   }
@@ -2871,8 +2977,23 @@ tbody.commit-list {
   align-items: center;
 }
 
+.repo-buttons .ui.labeled.button > .label:hover {
+  color: var(--color-primary-light-2);
+  background: var(--color-light);
+}
+
+.label-mimic-enabled() {
+  color: var(--color-text-dark);
+  background: var(--color-light-mimic-enabled) !important;
+
+  &:hover {
+    color: var(--color-primary-dark-1);
+  }
+}
+
 .repo-buttons button[disabled] ~ .label {
   opacity: var(--opacity-disabled);
+  .label-mimic-enabled();
 }
 
 .repo-buttons .ui.labeled.button {
@@ -2885,6 +3006,10 @@ tbody.commit-list {
 
   &.disabled {
     pointer-events: inherit !important;
+
+    > .label {
+      .label-mimic-enabled();
+    }
 
     > .button {
       pointer-events: none !important;
@@ -2912,82 +3037,6 @@ tbody.commit-list {
 
 .resolved-placeholder + .comment-code-cloud {
   padding-top: 0 !important;
-}
-
-.board {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  margin: 0 .5em;
-}
-
-.board-column {
-  background-color: rgba(0, 0, 0, .05) !important;
-  border: 1px solid var(--color-secondary) !important;
-  margin: 0 .5rem !important;
-  padding: .5rem !important;
-  width: 320px;
-  height: 60vh;
-  overflow-y: scroll;
-  flex: 0 0 auto;
-  overflow: visible;
-  display: flex;
-  flex-direction: column;
-}
-
-.board-column-header {
-  display: flex;
-  justify-content: space-between;
-}
-
-.board-label {
-  background: none !important;
-  line-height: 1.25 !important;
-}
-
-.board-column > .cards {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  margin: 0 !important;
-  padding: 0 !important;
-
-  .card .meta > a.milestone {
-    color: #999999;
-  }
-}
-
-.board-column > .divider {
-  margin: 5px 0;
-}
-
-.board-column:first-child {
-  margin-left: auto !important;
-}
-
-.board-column:last-child {
-  margin-right: auto !important;
-}
-
-.board-card {
-  margin: 3px !important;
-  width: auto !important;
-  background-color: #fff;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.board-card .header {
-  font-size: 1.1em !important;
-}
-
-.board-card .content {
-  padding: 8px 8px 5px !important;
-}
-
-.board-card .extra.content {
-  padding: 5px 8px !important;
 }
 
 td.blob-excerpt {
@@ -3029,8 +3078,8 @@ td.blob-excerpt {
 .webhook-info {
   padding: 7px 12px;
   margin: 10px 0;
-  background-color: #f8f8f8;
-  border: 1px solid #dddddd;
+  background-color: var(--color-markup-code-block);
+  border: 1px solid var(--color-secondary);
   border-radius: 3px;
   font-size: 13px;
   line-height: 1.5;
@@ -3094,6 +3143,10 @@ td.blob-excerpt {
 .repository-summary-language-stats {
   height: 48px;
   overflow: hidden;
+
+  @media @mediaSm {
+    height: auto;
+  }
 }
 
 .ui.form .right .ui.button {
@@ -3157,16 +3210,10 @@ td.blob-excerpt {
   transition: all .1s ease-in-out;
   box-shadow: none !important;
   border: 1px solid var(--color-secondary);
+  color: var(--color-text);
 }
 
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
-}
-
-.code-line-marker {
-  width: 13px;
-  height: 20px;
-  background-color: rgb(34 36 38 / 15%);
-  position: absolute;
 }

@@ -11,11 +11,13 @@ import (
 	"sync"
 )
 
+// Rows represents rows of table
 type Rows struct {
 	*sql.Rows
 	db *DB
 }
 
+// ToMapString returns all records
 func (rs *Rows) ToMapString() ([]map[string]string, error) {
 	cols, err := rs.Columns()
 	if err != nil {
@@ -34,7 +36,7 @@ func (rs *Rows) ToMapString() ([]map[string]string, error) {
 	return results, nil
 }
 
-// scan data to a struct's pointer according field index
+// ScanStructByIndex scan data to a struct's pointer according field index
 func (rs *Rows) ScanStructByIndex(dest ...interface{}) error {
 	if len(dest) == 0 {
 		return errors.New("at least one struct")
@@ -94,7 +96,7 @@ func fieldByName(v reflect.Value, name string) reflect.Value {
 	return reflect.Zero(t)
 }
 
-// scan data to a struct's pointer according field name
+// ScanStructByName scan data to a struct's pointer according field name
 func (rs *Rows) ScanStructByName(dest interface{}) error {
 	vv := reflect.ValueOf(dest)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Struct {
@@ -120,7 +122,7 @@ func (rs *Rows) ScanStructByName(dest interface{}) error {
 	return rs.Rows.Scan(newDest...)
 }
 
-// scan data to a slice's pointer, slice's length should equal to columns' number
+// ScanSlice scan data to a slice's pointer, slice's length should equal to columns' number
 func (rs *Rows) ScanSlice(dest interface{}) error {
 	vv := reflect.ValueOf(dest)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Slice {
@@ -155,7 +157,7 @@ func (rs *Rows) ScanSlice(dest interface{}) error {
 	return nil
 }
 
-// scan data to a map's pointer
+// ScanMap scan data to a map's pointer
 func (rs *Rows) ScanMap(dest interface{}) error {
 	vv := reflect.ValueOf(dest)
 	if vv.Kind() != reflect.Ptr || vv.Elem().Kind() != reflect.Map {
@@ -187,6 +189,7 @@ func (rs *Rows) ScanMap(dest interface{}) error {
 	return nil
 }
 
+// Row reprents a row of  a tab
 type Row struct {
 	rows *Rows
 	// One of these two will be non-nil:
@@ -205,6 +208,7 @@ func NewRow(rows *Rows, err error) *Row {
 	return &Row{rows, err}
 }
 
+// Columns returns all columns of the row
 func (row *Row) Columns() ([]string, error) {
 	if row.err != nil {
 		return nil, row.err
@@ -212,6 +216,7 @@ func (row *Row) Columns() ([]string, error) {
 	return row.rows.Columns()
 }
 
+// Scan retrieves all row column values
 func (row *Row) Scan(dest ...interface{}) error {
 	if row.err != nil {
 		return row.err
@@ -238,6 +243,7 @@ func (row *Row) Scan(dest ...interface{}) error {
 	return row.rows.Close()
 }
 
+// ScanStructByName retrieves all row column values into a struct
 func (row *Row) ScanStructByName(dest interface{}) error {
 	if row.err != nil {
 		return row.err
@@ -258,6 +264,7 @@ func (row *Row) ScanStructByName(dest interface{}) error {
 	return row.rows.Close()
 }
 
+// ScanStructByIndex retrieves all row column values into a struct
 func (row *Row) ScanStructByIndex(dest interface{}) error {
 	if row.err != nil {
 		return row.err
@@ -278,7 +285,7 @@ func (row *Row) ScanStructByIndex(dest interface{}) error {
 	return row.rows.Close()
 }
 
-// scan data to a slice's pointer, slice's length should equal to columns' number
+// ScanSlice scan data to a slice's pointer, slice's length should equal to columns' number
 func (row *Row) ScanSlice(dest interface{}) error {
 	if row.err != nil {
 		return row.err
@@ -300,7 +307,7 @@ func (row *Row) ScanSlice(dest interface{}) error {
 	return row.rows.Close()
 }
 
-// scan data to a map's pointer
+// ScanMap scan data to a map's pointer
 func (row *Row) ScanMap(dest interface{}) error {
 	if row.err != nil {
 		return row.err
@@ -322,6 +329,7 @@ func (row *Row) ScanMap(dest interface{}) error {
 	return row.rows.Close()
 }
 
+// ToMapString returns all clumns of this record
 func (row *Row) ToMapString() (map[string]string, error) {
 	cols, err := row.Columns()
 	if err != nil {

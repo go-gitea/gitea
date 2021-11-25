@@ -230,7 +230,7 @@ var (
 )
 
 // Common Lisp lexer.
-var CommonLisp = internal.Register(TypeRemappingLexer(MustNewLexer(
+var CommonLisp = internal.Register(TypeRemappingLexer(MustNewLazyLexer(
 	&Config{
 		Name:            "Common Lisp",
 		Aliases:         []string{"common-lisp", "cl", "lisp"},
@@ -238,7 +238,19 @@ var CommonLisp = internal.Register(TypeRemappingLexer(MustNewLexer(
 		MimeTypes:       []string{"text/x-common-lisp"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	commonLispRules,
+), TypeMapping{
+	{NameVariable, NameFunction, clBuiltinFunctions},
+	{NameVariable, Keyword, clSpecialForms},
+	{NameVariable, NameBuiltin, clMacros},
+	{NameVariable, Keyword, clLambdaListKeywords},
+	{NameVariable, Keyword, clDeclarations},
+	{NameVariable, KeywordType, clBuiltinTypes},
+	{NameVariable, NameClass, clBuiltinClasses},
+}))
+
+func commonLispRules() Rules {
+	return Rules{
 		"root": {
 			Default(Push("body")),
 		},
@@ -294,13 +306,5 @@ var CommonLisp = internal.Register(TypeRemappingLexer(MustNewLexer(
 			{`\(`, Punctuation, Push("body")},
 			{`\)`, Punctuation, Pop(1)},
 		},
-	},
-), TypeMapping{
-	{NameVariable, NameFunction, clBuiltinFunctions},
-	{NameVariable, Keyword, clSpecialForms},
-	{NameVariable, NameBuiltin, clMacros},
-	{NameVariable, Keyword, clLambdaListKeywords},
-	{NameVariable, Keyword, clDeclarations},
-	{NameVariable, KeywordType, clBuiltinTypes},
-	{NameVariable, NameClass, clBuiltinClasses},
-}))
+	}
+}

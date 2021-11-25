@@ -6,7 +6,7 @@ import (
 )
 
 // Igor lexer.
-var Igor = internal.Register(MustNewLexer(
+var Igor = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Igor",
 		Aliases:         []string{"igor", "igorpro"},
@@ -14,7 +14,11 @@ var Igor = internal.Register(MustNewLexer(
 		MimeTypes:       []string{"text/ipf"},
 		CaseInsensitive: true,
 	},
-	Rules{
+	igorRules,
+))
+
+func igorRules() Rules {
+	return Rules{
 		"root": {
 			{`//.*$`, CommentSingle, nil},
 			{`"([^"\\]|\\.)*"`, LiteralString, nil},
@@ -28,5 +32,5 @@ var Igor = internal.Register(MustNewLexer(
 			{`.`, Text, nil},
 			{`\n|\r`, Text, nil},
 		},
-	},
-))
+	}
+}

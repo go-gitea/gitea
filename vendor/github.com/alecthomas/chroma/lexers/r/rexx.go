@@ -6,7 +6,7 @@ import (
 )
 
 // Rexx lexer.
-var Rexx = internal.Register(MustNewLexer(
+var Rexx = internal.Register(MustNewLazyLexer(
 	&Config{
 		Name:            "Rexx",
 		Aliases:         []string{"rexx", "arexx"},
@@ -15,7 +15,11 @@ var Rexx = internal.Register(MustNewLexer(
 		NotMultiline:    true,
 		CaseInsensitive: true,
 	},
-	Rules{
+	rexxRules,
+))
+
+func rexxRules() Rules {
+	return Rules{
 		"root": {
 			{`\s`, TextWhitespace, nil},
 			{`/\*`, CommentMultiline, Push("comment")},
@@ -55,5 +59,5 @@ var Rexx = internal.Register(MustNewLexer(
 			{`\*/`, CommentMultiline, Pop(1)},
 			{`\*`, CommentMultiline, nil},
 		},
-	},
-))
+	}
+}

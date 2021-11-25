@@ -5,19 +5,14 @@ os:
   - osx
 
 go:
-  - 1.x
-  - 1.7.x
-  - 1.8.x
-  - 1.9.x
-  - 1.10.x
+  - 1.16.x
 
 install:
   # go-flags
-  - go get -d -v ./...
   - go build -v ./...
 
   # linting
-  - go get github.com/golang/lint/golint
+  - go get -v golang.org/x/lint/golint
 
   # code coverage
   - go get golang.org/x/tools/cmd/cover

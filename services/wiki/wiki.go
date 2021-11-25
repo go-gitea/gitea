@@ -12,6 +12,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -35,7 +39,7 @@ func nameAllowed(name string) error {
 
 // NameToSubURL converts a wiki name to its corresponding sub-URL.
 func NameToSubURL(name string) string {
-	return url.QueryEscape(strings.ReplaceAll(name, " ", "-"))
+	return url.PathEscape(strings.ReplaceAll(name, " ", "-"))
 }
 
 // NormalizeWikiName normalizes a wiki name
@@ -81,8 +85,39 @@ func InitWiki(repo *models.Repository) error {
 	return nil
 }
 
+// prepareWikiFileName try to find a suitable file path with file name by the given raw wiki name.
+// return: existence, prepared file path with name, error
+func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string, error) {
+	unescaped := wikiName + ".md"
+	escaped := NameToFilename(wikiName)
+
+	// Look for both files
+	filesInIndex, err := gitRepo.LsTree("master", unescaped, escaped)
+	if err != nil {
+		if strings.Contains(err.Error(), "Not a valid object name master") {
+			return false, escaped, nil
+		}
+		log.Error("%v", err)
+		return false, escaped, err
+	}
+
+	foundEscaped := false
+	for _, filename := range filesInIndex {
+		switch filename {
+		case unescaped:
+			// if we find the unescaped file return it
+			return true, unescaped, nil
+		case escaped:
+			foundEscaped = true
+		}
+	}
+
+	// If not return whether the escaped file exists, and the escaped filename to keep backwards compatibility.
+	return foundEscaped, escaped, nil
+}
+
 // updateWikiPage adds a new page to the repository wiki.
-func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
+func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
@@ -133,27 +168,29 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		}
 	}
 
-	newWikiPath := NameToFilename(newWikiName)
+	isWikiExist, newWikiPath, err := prepareWikiFileName(gitRepo, newWikiName)
+	if err != nil {
+		return err
+	}
+
 	if isNew {
-		filesInIndex, err := gitRepo.LsFiles(newWikiPath)
-		if err != nil {
-			log.Error("%v", err)
-			return err
-		}
-		if util.IsStringInSlice(newWikiPath, filesInIndex) {
+		if isWikiExist {
 			return models.ErrWikiAlreadyExist{
 				Title: newWikiPath,
 			}
 		}
 	} else {
-		oldWikiPath := NameToFilename(oldWikiName)
-		filesInIndex, err := gitRepo.LsFiles(oldWikiPath)
-		if err != nil {
-			log.Error("%v", err)
-			return err
+		// avoid check existence again if wiki name is not changed since gitRepo.LsFiles(...) is not free.
+		isOldWikiExist := true
+		oldWikiPath := newWikiPath
+		if oldWikiName != newWikiName {
+			isOldWikiExist, oldWikiPath, err = prepareWikiFileName(gitRepo, oldWikiName)
+			if err != nil {
+				return err
+			}
 		}
 
-		if util.IsStringInSlice(oldWikiPath, filesInIndex) {
+		if isOldWikiExist {
 			err := gitRepo.RemoveFilesFromIndex(oldWikiPath)
 			if err != nil {
 				log.Error("%v", err)
@@ -228,18 +265,18 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
-func AddWikiPage(doer *models.User, repo *models.Repository, wikiName, content, message string) error {
+func AddWikiPage(doer *user_model.User, repo *models.Repository, wikiName, content, message string) error {
 	return updateWikiPage(doer, repo, "", wikiName, content, message, true)
 }
 
 // EditWikiPage updates a wiki page identified by its wikiPath,
 // optionally also changing wikiPath.
-func EditWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
+func EditWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
 	return updateWikiPage(doer, repo, oldWikiName, newWikiName, content, message, false)
 }
 
 // DeleteWikiPage deletes a wiki page identified by its path.
-func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string) (err error) {
+func DeleteWikiPage(doer *user_model.User, repo *models.Repository, wikiName string) (err error) {
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
@@ -278,14 +315,9 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Unable to read HEAD tree to index in: %s %v", basePath, err)
 	}
 
-	wikiPath := NameToFilename(wikiName)
-	filesInIndex, err := gitRepo.LsFiles(wikiPath)
-	found := false
-	for _, file := range filesInIndex {
-		if file == wikiPath {
-			found = true
-			break
-		}
+	found, wikiPath, err := prepareWikiFileName(gitRepo, wikiName)
+	if err != nil {
+		return err
 	}
 	if found {
 		err := gitRepo.RemoveFilesFromIndex(wikiPath)
@@ -336,5 +368,15 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return fmt.Errorf("Push: %v", err)
 	}
 
+	return nil
+}
+
+// DeleteWiki removes the actual and local copy of repository wiki.
+func DeleteWiki(repo *models.Repository) error {
+	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
+		return err
+	}
+
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	return nil
 }

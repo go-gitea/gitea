@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
@@ -160,7 +161,7 @@ func InitIssueIndexer(syncReindex bool) {
 			}
 			populate = !exist
 			holder.set(issueIndexer)
-			graceful.GetManager().RunAtTerminate(context.Background(), func() {
+			graceful.GetManager().RunAtTerminate(func() {
 				log.Debug("Closing issue indexer")
 				issueIndexer := holder.get()
 				if issueIndexer != nil {
@@ -170,7 +171,7 @@ func InitIssueIndexer(syncReindex bool) {
 			})
 			log.Debug("Created Bleve Indexer")
 		case "elasticsearch":
-			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(context.Context, func())) {
+			graceful.GetManager().RunWithShutdownFns(func(_, atTerminate func(func())) {
 				issueIndexer, err := NewElasticSearchIndexer(setting.Indexer.IssueConnStr, setting.Indexer.IssueIndexerName)
 				if err != nil {
 					log.Fatal("Unable to initialize Elastic Search Issue Indexer at connection: %s Error: %v", setting.Indexer.IssueConnStr, err)
@@ -241,8 +242,8 @@ func populateIssueIndexer(ctx context.Context) {
 		default:
 		}
 		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: models.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
-			OrderBy:     models.SearchOrderByID,
+			ListOptions: db.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
+			OrderBy:     db.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,
 		})

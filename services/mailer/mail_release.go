@@ -6,13 +6,16 @@ package mailer
 
 import (
 	"bytes"
-	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 const (
@@ -21,41 +24,67 @@ const (
 
 // MailNewRelease send new release notify to all all repo watchers.
 func MailNewRelease(rel *models.Release) {
+	if setting.MailService == nil {
+		// No mail service configured
+		return
+	}
+
 	watcherIDList, err := models.GetRepoWatchersIDs(rel.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs(%d): %v", rel.RepoID, err)
 		return
 	}
 
-	recipients, err := models.GetMaileableUsersByIDs(watcherIDList, false)
+	recipients, err := user_model.GetMaileableUsersByIDs(watcherIDList, false)
 	if err != nil {
-		log.Error("models.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
 		return
 	}
 
-	tos := make([]string, 0, len(recipients))
-	for _, to := range recipients {
-		if to.ID != rel.PublisherID {
-			tos = append(tos, to.Email)
+	langMap := make(map[string][]string)
+	for _, user := range recipients {
+		if user.ID != rel.PublisherID {
+			langMap[user.Language] = append(langMap[user.Language], user.Email)
 		}
 	}
 
-	rel.RenderedNote = markdown.RenderString(rel.Note, rel.Repo.Link(), rel.Repo.ComposeMetas())
-	subject := fmt.Sprintf("%s in %s released", rel.TagName, rel.Repo.FullName())
+	for lang, tos := range langMap {
+		mailNewRelease(lang, tos, rel)
+	}
+}
 
+func mailNewRelease(lang string, tos []string, rel *models.Release) {
+	locale := translation.NewLocale(lang)
+
+	var err error
+	rel.RenderedNote, err = markdown.RenderString(&markup.RenderContext{
+		URLPrefix: rel.Repo.Link(),
+		Metas:     rel.Repo.ComposeMetas(),
+	}, rel.Note)
+	if err != nil {
+		log.Error("markdown.RenderString(%d): %v", rel.RepoID, err)
+		return
+	}
+
+	subject := locale.Tr("mail.release.new.subject", rel.TagName, rel.Repo.FullName())
 	mailMeta := map[string]interface{}{
-		"Release": rel,
-		"Subject": subject,
+		"Release":  rel,
+		"Subject":  subject,
+		"Language": locale.Language(),
+		// helper
+		"i18n":     locale,
+		"Str2html": templates.Str2html,
+		"TrN":      templates.TrN,
 	}
 
 	var mailBody bytes.Buffer
 
-	if err = bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplNewReleaseMail), mailMeta); err != nil {
 		log.Error("ExecuteTemplate [%s]: %v", string(tplNewReleaseMail)+"/body", err)
 		return
 	}
 
-	msgs := make([]*Message, 0, len(recipients))
+	msgs := make([]*Message, 0, len(tos))
 	publisherName := rel.Publisher.DisplayName()
 	relURL := "<" + rel.HTMLURL() + ">"
 	for _, to := range tos {
