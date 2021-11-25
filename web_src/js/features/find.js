@@ -1,5 +1,5 @@
 import {svg} from '../svg.js';
-const {AppSubUrl, csrf} = window.config;
+const {appSubUrl, csrf} = window.config;
 
 const threshold = 50;
 let files = [];
@@ -134,7 +134,7 @@ async function fetchRepoFiles() {
   const branchName = $('#branchName').val();
   const data = await $.ajax({
     type: 'GET',
-    url: `${AppSubUrl}/api/v1/repos/${ownerName}/${repoName}/find/${branchName}`,
+    url: `${appSubUrl}/api/v1/repos/${ownerName}/${repoName}/find/${branchName}`,
     headers: {'X-Csrf-Token': csrf}
   });
   if (data) {
