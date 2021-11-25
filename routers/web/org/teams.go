@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -234,13 +233,13 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Units"] = unit_model.Units
 	var includesAllRepositories = form.RepoAccess == "all"
-	var unitPerms = make(map[unit.Type]models.AccessMode)
+	var unitPerms = make(map[unit_model.Type]perm.AccessMode)
 	for k, v := range ctx.Req.Form {
 		if strings.HasPrefix(k, "unit_") {
 			t, _ := strconv.Atoi(k[5:])
 			if t > 0 {
 				vv, _ := strconv.Atoi(v[0])
-				unitPerms[unit.Type(t)] = models.AccessMode(vv)
+				unitPerms[unit_model.Type(t)] = perm.AccessMode(vv)
 			}
 		}
 	}
@@ -335,13 +334,13 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
-	var unitPerms = make(map[unit.Type]models.AccessMode)
+	var unitPerms = make(map[unit_model.Type]perm.AccessMode)
 	for k, v := range ctx.Req.Form {
 		if strings.HasPrefix(k, "unit_") {
 			t, _ := strconv.Atoi(k[5:])
 			if t > 0 {
 				vv, _ := strconv.Atoi(v[0])
-				unitPerms[unit.Type(t)] = models.AccessMode(vv)
+				unitPerms[unit_model.Type(t)] = perm.AccessMode(vv)
 			}
 		}
 	}
