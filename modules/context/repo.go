@@ -499,9 +499,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
-	userAndOrgForks, err := ctx.Repo.Repository.GetForksByUserAndOwnedOrgs(ctx.User)
+	userAndOrgForks, err := ctx.Repo.Repository.GetForksByUserAndOrgs(ctx.User)
 	if err != nil {
-		ctx.ServerError("GetForksByUserAndOwnedOrgs", err)
+		ctx.ServerError("GetForksByUserAndOrgs", err)
 		return
 	}
 	ctx.Data["UserAndOrgForks"] = userAndOrgForks
