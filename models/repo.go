@@ -792,7 +792,7 @@ func (repo *Repository) GetForksByUserAndOrgs(user *user_model.User) ([]*Reposit
 	if forkedRepo != nil {
 		repoList = append(repoList, forkedRepo)
 	}
- 	canCreateRepos, err := GetOrgsCanCreateRepoByUserID(user.ID)
+	canCreateRepos, err := GetOrgsCanCreateRepoByUserID(user.ID)
 	if err != nil {
 		return repoList, err
 	}
