@@ -360,9 +360,7 @@ var migrations = []Migration{
 	// v202 -> v203
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 	// v203 -> v204
-	NewMigration("Add private issues to Repository table", addPrivateIssuesToRepo),
-	// v204 -> v205
-	NewMigration("Set Owners team to acess private issues", setOwnersTeamToSeePrivateIssues),
+	NewMigration("Add private issues", addPrivateIssues),
 }
 
 // GetCurrentDBVersion returns the current db version
