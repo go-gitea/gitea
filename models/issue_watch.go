@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -71,7 +72,7 @@ func getIssueWatch(e db.Engine, userID, issueID int64) (iw *IssueWatch, exists b
 
 // CheckIssueWatch check if an user is watching an issue
 // it takes participants and repo watch into account
-func CheckIssueWatch(user *User, issue *Issue) (bool, error) {
+func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
 	iw, exist, err := getIssueWatch(db.GetEngine(db.DefaultContext), user.ID, issue.ID)
 	if err != nil {
 		return false, err

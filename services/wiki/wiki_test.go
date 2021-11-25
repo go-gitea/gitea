@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 
@@ -126,7 +127,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	const wikiContent = "This is the wiki content"
 	const commitMsg = "Commit message"
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	for _, wikiName := range []string{
 		"Another page",
 		"Here's a <tag> and a/slash",
@@ -171,7 +172,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 	const newWikiContent = "This is the new content"
 	const commitMsg = "Commit message"
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	for _, newWikiName := range []string{
 		"Home", // same name as before
 		"New home",
@@ -201,7 +202,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 func TestRepository_DeleteWikiPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	assert.NoError(t, DeleteWikiPage(doer, repo, "Home"))
 
 	// Now need to show that the page has been added:

@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
@@ -54,18 +56,18 @@ func Migrate(ctx *context.APIContext) {
 
 	//get repoOwner
 	var (
-		repoOwner *models.User
+		repoOwner *user_model.User
 		err       error
 	)
 	if len(form.RepoOwner) != 0 {
-		repoOwner, err = models.GetUserByName(form.RepoOwner)
+		repoOwner, err = user_model.GetUserByName(form.RepoOwner)
 	} else if form.RepoOwnerID != 0 {
-		repoOwner, err = models.GetUserByID(form.RepoOwnerID)
+		repoOwner, err = user_model.GetUserByID(form.RepoOwnerID)
 	} else {
 		repoOwner = ctx.User
 	}
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetUser", err)
@@ -208,7 +210,7 @@ func Migrate(ctx *context.APIContext) {
 	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeAdmin))
 }
 
-func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteAddr string, err error) {
+func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, remoteAddr string, err error) {
 	switch {
 	case models.IsErrRepoAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
@@ -220,12 +222,12 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *models.User, remoteA
 		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
-	case models.IsErrNameReserved(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(models.ErrNameReserved).Name))
-	case models.IsErrNameCharsNotAllowed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' contains invalid characters.", err.(models.ErrNameCharsNotAllowed).Name))
-	case models.IsErrNamePatternNotAllowed(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(models.ErrNamePatternNotAllowed).Pattern))
+	case db.IsErrNameReserved(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' is reserved.", err.(db.ErrNameReserved).Name))
+	case db.IsErrNameCharsNotAllowed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The username '%s' contains invalid characters.", err.(db.ErrNameCharsNotAllowed).Name))
+	case db.IsErrNamePatternNotAllowed(err):
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(db.ErrNamePatternNotAllowed).Pattern))
 	case models.IsErrInvalidCloneAddr(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	case base.IsErrNotSupported(err):

@@ -8,7 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -74,7 +76,7 @@ func TestTeam_AddMember(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, team.AddMember(userID))
 		unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: userID, TeamID: teamID})
-		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &user_model.User{ID: team.OrgID})
 	}
 	test(1, 2)
 	test(1, 4)
@@ -151,7 +153,7 @@ func TestTeam_RemoveRepository(t *testing.T) {
 
 func TestIsUsableTeamName(t *testing.T) {
 	assert.NoError(t, IsUsableTeamName("usable"))
-	assert.True(t, IsErrNameReserved(IsUsableTeamName("new")))
+	assert.True(t, db.IsErrNameReserved(IsUsableTeamName("new")))
 }
 
 func TestNewTeam(t *testing.T) {
@@ -161,7 +163,7 @@ func TestNewTeam(t *testing.T) {
 	team := &Team{Name: teamName, OrgID: 3}
 	assert.NoError(t, NewTeam(team))
 	unittest.AssertExistsAndLoadBean(t, &Team{Name: teamName})
-	unittest.CheckConsistencyFor(t, &Team{}, &User{ID: team.OrgID})
+	unittest.CheckConsistencyFor(t, &Team{}, &user_model.User{ID: team.OrgID})
 }
 
 func TestGetTeam(t *testing.T) {
@@ -243,7 +245,7 @@ func TestDeleteTeam(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &TeamUser{TeamID: team.ID})
 
 	// check that team members don't have "leftover" access to repos
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 4}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	accessMode, err := AccessLevel(user, repo)
 	assert.NoError(t, err)
@@ -321,7 +323,7 @@ func TestAddTeamMember(t *testing.T) {
 		team := unittest.AssertExistsAndLoadBean(t, &Team{ID: teamID}).(*Team)
 		assert.NoError(t, AddTeamMember(team, userID))
 		unittest.AssertExistsAndLoadBean(t, &TeamUser{UID: userID, TeamID: teamID})
-		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &User{ID: team.OrgID})
+		unittest.CheckConsistencyFor(t, &Team{ID: teamID}, &user_model.User{ID: team.OrgID})
 	}
 	test(1, 2)
 	test(1, 4)

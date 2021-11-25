@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -240,7 +241,7 @@ func TestUpdateMilestoneCounters(t *testing.T) {
 func TestChangeMilestoneAssign(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{RepoID: 1}).(*Issue)
-	doer := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	assert.NotNil(t, issue)
 	assert.NotNil(t, doer)
 

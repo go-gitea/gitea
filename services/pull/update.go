@@ -8,12 +8,13 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // Update updates pull request with base branch.
-func Update(pull *models.PullRequest, doer *models.User, message string, rebase bool) error {
+func Update(pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	var (
 		pr    *models.PullRequest
 		style models.MergeStyle
@@ -67,7 +68,7 @@ func Update(pull *models.PullRequest, doer *models.User, message string, rebase 
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(pull *models.PullRequest, user *models.User) (mergeAllowed, rebaseAllowed bool, err error) {
+func IsUserAllowedToUpdate(pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
 	if pull.Flow == models.PullRequestFlowAGit {
 		return false, false, nil
 	}

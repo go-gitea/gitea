@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -170,9 +171,9 @@ func newAccessTokenResponse(grant *login.OAuth2Grant, serverKey, clientKey oauth
 				ErrorDescription: "cannot find application",
 			}
 		}
-		user, err := models.GetUserByID(grant.UserID)
+		user, err := user_model.GetUserByID(grant.UserID)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				return nil, &AccessTokenError{
 					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 					ErrorDescription: "cannot find user",
@@ -274,7 +275,7 @@ func InfoOAuth(ctx *context.Context) {
 
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
-func getOAuthGroupsForUser(user *models.User) ([]string, error) {
+func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 	orgs, err := models.GetUserOrgsList(user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %v", err)
@@ -359,7 +360,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	user, err := models.GetUserByID(app.UID)
+	user, err := user_model.GetUserByID(app.UID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
