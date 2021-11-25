@@ -58,6 +58,7 @@ type Repository struct {
 	Commit       *git.Commit
 	Tag          *git.Tag
 	GitRepo      *git.Repository
+	RefName      string
 	BranchName   string
 	TagName      string
 	TreePath     string
@@ -190,9 +191,9 @@ func (r *Repository) BranchNameSubURL() string {
 	case r.IsViewBranch:
 		return "branch/" + r.BranchName
 	case r.IsViewTag:
-		return "tag/" + r.BranchName
+		return "tag/" + r.TagName
 	case r.IsViewCommit:
-		return "commit/" + r.BranchName
+		return "commit/" + r.CommitID
 	}
 	log.Error("Unknown view type for repo: %v", r)
 	return ""
@@ -562,8 +563,6 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["Branches"] = brs
 	ctx.Data["BranchesCount"] = len(brs)
 
-	ctx.Data["TagName"] = ctx.Repo.TagName
-
 	// If not branch selected, try default one.
 	// If default branch doesn't exists, fall back to some other branch.
 	if len(ctx.Repo.BranchName) == 0 {
@@ -572,9 +571,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		} else if len(brs) > 0 {
 			ctx.Repo.BranchName = brs[0]
 		}
+		ctx.Repo.RefName = ctx.Repo.BranchName
 	}
 	ctx.Data["BranchName"] = ctx.Repo.BranchName
-	ctx.Data["CommitID"] = ctx.Repo.CommitID
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
@@ -759,7 +758,6 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		// Get default branch.
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
-			ctx.Repo.BranchName = refName
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
 				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
 				if err != nil {
@@ -773,6 +771,8 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				}
 				refName = brs[0]
 			}
+			ctx.Repo.RefName = refName
+			ctx.Repo.BranchName = refName
 			ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 			if err != nil {
 				ctx.ServerError("GetBranchCommit", err)
@@ -783,9 +783,10 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 		} else {
 			refName = getRefName(ctx, refType)
-			ctx.Repo.BranchName = refName
+			ctx.Repo.RefName = refName
 			if refType.RefTypeIncludesBranches() && ctx.Repo.GitRepo.IsBranchExist(refName) {
 				ctx.Repo.IsViewBranch = true
+				ctx.Repo.BranchName = refName
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(refName)
 				if err != nil {
@@ -796,6 +797,8 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			} else if refType.RefTypeIncludesTags() && ctx.Repo.GitRepo.IsTagExist(refName) {
 				ctx.Repo.IsViewTag = true
+				ctx.Repo.TagName = refName
+
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
 					ctx.ServerError("GetTagCommit", err)
@@ -837,6 +840,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
 		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
+		ctx.Data["TagName"] = ctx.Repo.TagName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
 		ctx.Data["TreePath"] = ctx.Repo.TreePath
 		ctx.Data["IsViewBranch"] = ctx.Repo.IsViewBranch
