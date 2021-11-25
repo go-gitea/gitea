@@ -41,7 +41,7 @@
 									<a rel="nofollow" href="{{$repo.HTMLURL}}">{{$repo.FullName}}</a>
 										{{if $repo.IsArchived}}
 											<span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
-										{{end}}									
+										{{end}}
 									- {{.Filename}}
 								</span>
 								<a class="ui basic tiny button" rel="nofollow" href="{{$repo.HTMLURL}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
