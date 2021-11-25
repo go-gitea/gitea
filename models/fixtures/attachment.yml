@@ -82,6 +82,7 @@
   id: 9
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a19
   repo_id: 1
+  issue_id: 2
   release_id: 1
   name: attach1
   download_count: 0
@@ -91,6 +92,7 @@
   id: 10
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a20
   repo_id: 0 # TestGetAttachment/NotLinked
+  issue_id: 0
   uploader_id: 8
   name: attach1
   download_count: 0
@@ -100,6 +102,7 @@
   id: 11
   uuid: a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a21
   repo_id: 40
+  issue_id: 16
   release_id: 2
   name: attach1
   download_count: 0
