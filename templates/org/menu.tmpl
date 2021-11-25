@@ -20,7 +20,7 @@
 
 		{{if .IsOrganizationOwner}}
 			<div class="right menu">
-				<a class="{{if .PageIsSettingsOptions}}active{{end}} item" href="{{.OrgLink}}/settings">
+				<a class="{{if .PageIsOrgSettings}}active{{end}} item" href="{{.OrgLink}}/settings">
 				{{svg "octicon-tools"}} {{.i18n.Tr "repo.settings"}}
 				</a>
 			</div>
