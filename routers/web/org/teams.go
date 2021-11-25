@@ -9,11 +9,13 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -232,6 +234,16 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["PageIsOrgTeamsNew"] = true
 	ctx.Data["Units"] = unit_model.Units
 	var includesAllRepositories = form.RepoAccess == "all"
+	var unitPerms = make(map[unit.Type]models.AccessMode)
+	for k, v := range ctx.Req.Form {
+		if strings.HasPrefix(k, "unit_") {
+			t, _ := strconv.Atoi(k[5:])
+			if t > 0 {
+				vv, _ := strconv.Atoi(v[0])
+				unitPerms[unit.Type(t)] = models.AccessMode(vv)
+			}
+		}
+	}
 
 	t := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -243,11 +255,12 @@ func NewTeamPost(ctx *context.Context) {
 	}
 
 	if t.Authorize < perm.AccessModeOwner {
-		var units = make([]*models.TeamUnit, 0, len(form.Units))
-		for _, tp := range form.Units {
+		var units = make([]*models.TeamUnit, 0, len(unitPerms))
+		for tp, perm := range unitPerms {
 			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
-				Type:  tp,
+				OrgID:     ctx.Org.Organization.ID,
+				Type:      tp,
+				Authorize: perm,
 			})
 		}
 		t.Units = units
@@ -260,7 +273,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
+	if t.Authorize < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -322,6 +335,17 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
+	var unitPerms = make(map[unit.Type]models.AccessMode)
+	for k, v := range ctx.Req.Form {
+		if strings.HasPrefix(k, "unit_") {
+			t, _ := strconv.Atoi(k[5:])
+			if t > 0 {
+				vv, _ := strconv.Atoi(v[0])
+				unitPerms[unit.Type(t)] = models.AccessMode(vv)
+			}
+		}
+	}
+
 	isAuthChanged := false
 	isIncludeAllChanged := false
 	var includesAllRepositories = form.RepoAccess == "all"
@@ -342,12 +366,13 @@ func EditTeamPost(ctx *context.Context) {
 	}
 	t.Description = form.Description
 	if t.Authorize < perm.AccessModeOwner {
-		var units = make([]models.TeamUnit, 0, len(form.Units))
-		for _, tp := range form.Units {
+		var units = make([]models.TeamUnit, 0, len(unitPerms))
+		for tp, perm := range unitPerms {
 			units = append(units, models.TeamUnit{
-				OrgID:  t.OrgID,
-				TeamID: t.ID,
-				Type:   tp,
+				OrgID:     t.OrgID,
+				TeamID:    t.ID,
+				Type:      tp,
+				Authorize: perm,
 			})
 		}
 		err := models.UpdateTeamUnits(t, units)
@@ -363,7 +388,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
+	if t.Authorize < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
