@@ -103,9 +103,9 @@ func sudo() func(ctx *context.APIContext) {
 
 		if len(sudo) > 0 {
 			if ctx.IsSigned && ctx.User.IsAdmin {
-				user, err := models.GetUserByName(sudo)
+				user, err := user_model.GetUserByName(sudo)
 				if err != nil {
-					if models.IsErrUserNotExist(err) {
+					if user_model.IsErrUserNotExist(err) {
 						ctx.NotFound()
 					} else {
 						ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -130,7 +130,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repoName := ctx.Params("reponame")
 
 		var (
-			owner *models.User
+			owner *user_model.User
 			err   error
 		)
 
@@ -138,9 +138,9 @@ func repoAssignment() func(ctx *context.APIContext) {
 		if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
 			owner = ctx.User
 		} else {
-			owner, err = models.GetUserByName(userName)
+			owner, err = user_model.GetUserByName(userName)
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
+				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
 						context.RedirectToUser(ctx.Context, userName, redirectUserID)
 					} else if user_model.IsErrUserRedirectNotExist(err) {

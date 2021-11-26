@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -18,7 +19,7 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, u *models.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, models.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,

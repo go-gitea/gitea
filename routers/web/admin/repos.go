@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -119,9 +120,9 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	ctxUser, err := models.GetUserByName(dirSplit[0])
+	ctxUser, err := user_model.GetUserByName(dirSplit[0])
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			log.Debug("User does not exist: %s", dirSplit[0])
 			ctx.Redirect(setting.AppSubURL + "/admin/repos")
 			return

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +17,7 @@ import (
 func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	unittest.CheckConsistencyFor(t,
-		&User{},
+		&user_model.User{},
 		&Repository{},
 		&Issue{},
 		&PullRequest{},

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 )
@@ -21,7 +22,7 @@ type crossReference struct {
 // crossReferencesContext is context to pass along findCrossReference functions
 type crossReferencesContext struct {
 	Type        CommentType
-	Doer        *User
+	Doer        *user_model.User
 	OrigIssue   *Issue
 	OrigComment *Comment
 	RemoveOld   bool
@@ -60,7 +61,7 @@ func neuterCrossReferencesIds(e db.Engine, ids []int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(stdCtx context.Context, doer *User, removeOld bool) error {
+func (issue *Issue) addCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -242,7 +243,7 @@ func (issue *Issue) verifyReferencedIssue(e db.Engine, ctx *crossReferencesConte
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(stdCtx context.Context, doer *User, removeOld bool) error {
+func (comment *Comment) addCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}

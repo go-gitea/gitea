@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -31,7 +32,7 @@ func (issue *Issue) LoadAssignees() error {
 // This loads all assignees of an issue
 func (issue *Issue) loadAssignees(e db.Engine) (err error) {
 	// Reset maybe preexisting assignees
-	issue.Assignees = []*User{}
+	issue.Assignees = []*user_model.User{}
 
 	err = e.Table("`user`").
 		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
@@ -63,11 +64,11 @@ func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 }
 
 // GetAssigneesByIssue returns everyone assigned to that issue
-func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
+func GetAssigneesByIssue(issue *Issue) (assignees []*user_model.User, err error) {
 	return getAssigneesByIssue(db.GetEngine(db.DefaultContext), issue)
 }
 
-func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*User, err error) {
+func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*user_model.User, err error) {
 	err = issue.loadAssignees(e)
 	if err != nil {
 		return assignees, err
@@ -77,11 +78,11 @@ func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*User, err erro
 }
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
-func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
+func IsUserAssignedToIssue(issue *Issue, user *user_model.User) (isAssigned bool, err error) {
 	return isUserAssignedToIssue(db.GetEngine(db.DefaultContext), issue, user)
 }
 
-func isUserAssignedToIssue(e db.Engine, issue *Issue, user *User) (isAssigned bool, err error) {
+func isUserAssignedToIssue(e db.Engine, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
 	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
@@ -92,7 +93,7 @@ func clearAssigneeByUserID(sess db.Engine, userID int64) (err error) {
 }
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
+func (issue *Issue) ToggleAssignee(doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return false, nil, err
@@ -111,7 +112,7 @@ func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, 
 	return removed, comment, nil
 }
 
-func (issue *Issue) toggleAssignee(ctx context.Context, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
+func (issue *Issue) toggleAssignee(ctx context.Context, doer *user_model.User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
 	sess := db.GetEngine(ctx)
 	removed, err = toggleUserAssignee(sess, issue, assigneeID)
 	if err != nil {
@@ -148,7 +149,7 @@ func (issue *Issue) toggleAssignee(ctx context.Context, doer *User, assigneeID i
 // toggles user assignee state in database
 func toggleUserAssignee(e db.Engine, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := getUserByID(e, assigneeID)
+	assignee, err := user_model.GetUserByIDEngine(e, assigneeID)
 	if err != nil {
 		return false, err
 	}
@@ -196,7 +197,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	}
 
 	// Get the IDs of all assignees
-	assigneeIDs, err = GetUserIDsByNames(requestAssignees, false)
+	assigneeIDs, err = user_model.GetUserIDsByNames(requestAssignees, false)
 
 	return
 }
