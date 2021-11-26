@@ -78,6 +78,15 @@
   --color-diff-moved-row-border: #bcca6f;
   --color-diff-added-row-border: #314a37;
   --color-diff-inactive: #353846;
+  --color-error-border: #a53a37;
+  --color-error-bg: #403440;
+  --color-error-text: #d64444;
+  --color-success-border: #458a57;
+  --color-success-bg: #304440;
+  --color-success-text: #6cc664;
+  --color-warning-border: #aaa050;
+  --color-warning-bg: #404440;
+  --color-warning-text: #fbbd08;
   /* target-based colors */
   --color-body: #383c4a;
   --color-box-header: #404652;
@@ -310,10 +319,6 @@ a.ui.basic.green.label:hover {
   border-color: transparent !important;
 }
 
-.ui .info.segment.top {
-  background-color: var(--color-secondary) !important;
-}
-
 .repository .diff-stats li {
   border-color: var(--color-secondary);
 }
@@ -330,25 +335,6 @@ a.ui.basic.green.label:hover {
 .tag-code td.lines-type-marker,
 td.blob-hunk {
   color: #dbdbdb !important;
-}
-
-.ui.attached.info.message,
-.ui.info.message {
-  box-shadow: 0 0 0 1px #4b5e71 inset, 0 0 0 0 transparent;
-}
-
-.ui.bottom.attached.message {
-  background-color: #2c662d;
-  color: #87ab63;
-}
-
-.ui.bottom.attached.message .pull-right {
-  color: #87ab63;
-}
-
-.ui.info.message {
-  background-color: #2c3b4a;
-  color: #9ebcc5;
 }
 
 .ui .warning.header,
@@ -447,59 +433,6 @@ td.blob-excerpt {
   background: #393d4a;
   border-color: #393d4a;
   color: #dbdbdb;
-}
-
-.repository .ui.attached.message.isSigned.isVerified {
-  background-color: #394829;
-  color: var(--color-secondary-dark-6);
-
-  &.message {
-    color: #87ab63;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    .pull-right {
-      color: #87ab63;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isVerifiedUntrusted {
-  background-color: #4a3903;
-  color: var(--color-secondary-dark-6);
-  &.message {
-    color: #c2c193;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    a {
-      color: #c2c193;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isVerifiedUnmatched {
-  background-color: #4e3321;
-  color: var(--color-secondary-dark-6);
-  &.message {
-    color: #c2a893;
-    .ui.text {
-      color: var(--color-secondary-dark-6);
-    }
-    a {
-      color: #c2a893;
-    }
-  }
-}
-
-.repository .ui.attached.message.isSigned.isWarning {
-  background-color: rgba(80, 23, 17, .6);
-  &.message {
-    color: #d07d7d;
-    .ui.text {
-      color: #d07d7d;
-    }
-  }
 }
 
 .ui.header .sub.header {

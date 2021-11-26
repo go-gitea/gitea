@@ -82,6 +82,15 @@
   --color-diff-moved-row-border: #d0e27f;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-inactive: #f2f2f2;
+  --color-error-border: #c29393;
+  --color-error-bg: #fff5f5;
+  --color-error-text: #d64444;
+  --color-success-border: #a3c293;
+  --color-success-bg: #fcfff5;
+  --color-success-text: #6cc644;
+  --color-warning-border: #c2c193;
+  --color-warning-bg: #fffff5;
+  --color-warning-text: #fbbd08;
   /* target-based colors */
   --color-body: #ffffff;
   --color-text-dark: #080808;
@@ -409,6 +418,16 @@ a.muted:hover,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+.ui.message {
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
+.ui.bottom.attached.message {
+  box-shadow: none !important;
+  border: 1px solid var(--color-secondary);
 }
 
 .ui.selection.active.dropdown,
@@ -894,20 +913,6 @@ a.ui.card:hover,
     margin-right: auto;
     display: table;
     text-align: left;
-  }
-
-  &.bottom.attached.message {
-    text-align: left;
-    color: black;
-
-    .pull-right {
-      color: black;
-    }
-
-    & > span,
-    .pull-right > span {
-      color: var(--color-green);
-    }
   }
 
   .header > i + .content {
