@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build test_avatar_identicon
-//  +build test_avatar_identicon
+// +build test_avatar_identicon
 
 package identicon
 

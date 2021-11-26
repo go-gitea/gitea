@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -20,7 +21,7 @@ import (
 func TestAPIGetTrackedTimes(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
 
@@ -41,7 +42,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 		assert.EqualValues(t, issue2.ID, apiTimes[i].IssueID)
 		assert.Equal(t, time.Created.Unix(), apiTimes[i].Created.Unix())
 		assert.Equal(t, time.Time, apiTimes[i].Time)
-		user, err := models.GetUserByID(time.UserID)
+		user, err := user_model.GetUserByID(time.UserID)
 		assert.NoError(t, err)
 		assert.Equal(t, user.Name, apiTimes[i].UserName)
 	}
@@ -65,7 +66,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	time6 := unittest.AssertExistsAndLoadBean(t, &models.TrackedTime{ID: 6}).(*models.TrackedTime)
 	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -99,8 +100,8 @@ func TestAPIAddTrackedTimes(t *testing.T) {
 
 	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
 	assert.NoError(t, issue2.LoadRepo())
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
-	admin := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	session := loginUser(t, admin.Name)
 	token := getTokenForLoggedInUser(t, session)

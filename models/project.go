@@ -143,26 +143,25 @@ func NewProject(p *Project) error {
 		return errors.New("project type is not valid")
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
 
-	if err := sess.Begin(); err != nil {
+	if err := db.Insert(ctx, p); err != nil {
 		return err
 	}
 
-	if _, err := sess.Insert(p); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
 		return err
 	}
 
-	if _, err := sess.Exec("UPDATE `repository` SET num_projects = num_projects + 1 WHERE id = ?", p.RepoID); err != nil {
+	if err := createBoardsForProjectsType(db.GetEngine(ctx), p); err != nil {
 		return err
 	}
 
-	if err := createBoardsForProjectsType(sess, p); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetProjectByID returns the projects in a repository
@@ -220,11 +219,12 @@ func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
 
 // ChangeProjectStatusByRepoIDAndID toggles a project between opened and closed
 func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	p := new(Project)
 
@@ -239,22 +239,22 @@ func ChangeProjectStatusByRepoIDAndID(repoID, projectID int64, isClosed bool) er
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // ChangeProjectStatus toggle a project between opened and closed
 func ChangeProjectStatus(p *Project, isClosed bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := changeProjectStatus(db.GetEngine(ctx), p, isClosed); err != nil {
 		return err
 	}
 
-	if err := changeProjectStatus(sess, p, isClosed); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func changeProjectStatus(e db.Engine, p *Project, isClosed bool) error {
@@ -273,17 +273,17 @@ func changeProjectStatus(e db.Engine, p *Project, isClosed bool) error {
 
 // DeleteProjectByID deletes a project from a repository.
 func DeleteProjectByID(id int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteProjectByID(db.GetEngine(ctx), id); err != nil {
 		return err
 	}
 
-	if err := deleteProjectByID(sess, id); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func deleteProjectByID(e db.Engine, id int64) error {

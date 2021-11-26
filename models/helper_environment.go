@@ -9,6 +9,7 @@ import (
 	"os"
 	"strings"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -32,19 +33,19 @@ const (
 // It is recommended to avoid using this unless you are pushing within a transaction
 // or if you absolutely are sure that post-receive and pre-receive will do nothing
 // We provide the full pushing-environment for other hook providers
-func InternalPushingEnvironment(doer *User, repo *Repository) []string {
+func InternalPushingEnvironment(doer *user_model.User, repo *Repository) []string {
 	return append(PushingEnvironment(doer, repo),
 		EnvIsInternal+"=true",
 	)
 }
 
 // PushingEnvironment returns an os environment to allow hooks to work on push
-func PushingEnvironment(doer *User, repo *Repository) []string {
+func PushingEnvironment(doer *user_model.User, repo *Repository) []string {
 	return FullPushingEnvironment(doer, doer, repo, repo.Name, 0)
 }
 
 // FullPushingEnvironment returns an os environment to allow hooks to work on push
-func FullPushingEnvironment(author, committer *User, repo *Repository, repoName string, prID int64) []string {
+func FullPushingEnvironment(author, committer *user_model.User, repo *Repository, repoName string, prID int64) []string {
 	isWiki := "false"
 	if strings.HasSuffix(repoName, ".wiki") {
 		isWiki = "true"

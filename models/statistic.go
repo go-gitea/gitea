@@ -45,7 +45,7 @@ type IssueByRepositoryCount struct {
 // GetStatistic returns the database statistics
 func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
-	stats.Counter.User = CountUsers()
+	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = CountOrganizations()
 	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
 	stats.Counter.Repo = CountRepositories(true)

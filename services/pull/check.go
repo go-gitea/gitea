@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -159,7 +160,7 @@ func manuallyMerged(pr *models.PullRequest) bool {
 		pr.MergedCommitID = commit.ID.String()
 		pr.MergedUnix = timeutil.TimeStamp(commit.Author.When.Unix())
 		pr.Status = models.PullRequestStatusManuallyMerged
-		merger, _ := models.GetUserByEmail(commit.Author.Email)
+		merger, _ := user_model.GetUserByEmail(commit.Author.Email)
 
 		// When the commit author is unknown set the BaseRepo owner as merger
 		if merger == nil {

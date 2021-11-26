@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,7 +42,7 @@ func (b *Basic) Name() string {
 // "Authorization" header of the request and returns the corresponding user object for that
 // name/token on successful validation.
 // Returns nil if header is empty or validation fails.
-func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
 	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		return nil
@@ -75,7 +76,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	if uid != 0 {
 		log.Trace("Basic Authorization: Valid OAuthAccessToken for user[%d]", uid)
 
-		u, err := models.GetUserByID(uid)
+		u, err := user_model.GetUserByID(uid)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -88,7 +89,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	token, err := models.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
-		u, err := models.GetUserByID(token.UID)
+		u, err := user_model.GetUserByID(token.UID)
 		if err != nil {
 			log.Error("GetUserByID:  %v", err)
 			return nil
@@ -112,7 +113,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 	log.Trace("Basic Authorization: Attempting SignIn for %s", uname)
 	u, source, err := UserSignIn(uname, passwd)
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("UserSignIn: %v", err)
 		}
 		return nil

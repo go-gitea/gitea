@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -55,7 +56,7 @@ type Repository struct {
 	IsViewTag    bool
 	IsViewCommit bool
 	Repository   *models.Repository
-	Owner        *models.User
+	Owner        *user_model.User
 	Commit       *git.Commit
 	Tag          *git.Tag
 	GitRepo      *git.Repository
@@ -104,7 +105,7 @@ type CanCommitToBranchResults struct {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
 
 	if err != nil {
@@ -145,7 +146,7 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
-func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) bool {
+func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
@@ -155,7 +156,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *models.User, isPull bool) bool {
+func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bool) bool {
 	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
@@ -402,7 +403,7 @@ func RepoIDAssignment() func(ctx *Context) {
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	var (
-		owner *models.User
+		owner *user_model.User
 		err   error
 	)
 
@@ -414,9 +415,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
 		owner = ctx.User
 	} else {
-		owner, err = models.GetUserByName(userName)
+		owner, err = user_model.GetUserByName(userName)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
@@ -491,8 +492,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	if ctx.Data["CanSignedUserFork"], err = ctx.Repo.Repository.CanUserFork(ctx.User); err != nil {
-		ctx.ServerError("CanUserFork", err)
+	if ctx.Data["CanSignedUserFork"], err = models.CanUserForkRepo(ctx.User, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("CanSignedUserFork", err)
 		return
 	}
 
@@ -522,14 +523,30 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 
+	isHomeOrSettings := ctx.Link == ctx.Repo.RepoLink || ctx.Link == ctx.Repo.RepoLink+"/settings" || strings.HasPrefix(ctx.Link, ctx.Repo.RepoLink+"/settings/")
+
 	// Disable everything when the repo is being created
-	if ctx.Repo.Repository.IsBeingCreated() {
+	if ctx.Repo.Repository.IsBeingCreated() || ctx.Repo.Repository.IsBroken() {
 		ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+		if !isHomeOrSettings {
+			ctx.Redirect(ctx.Repo.RepoLink)
+		}
 		return
 	}
 
 	gitRepo, err := git.OpenRepositoryCtx(ctx, models.RepoPath(userName, repoName))
 	if err != nil {
+		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.Status = models.RepositoryBroken
+			ctx.Repo.Repository.IsEmpty = true
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			// Only allow access to base of repo or settings
+			if !isHomeOrSettings {
+				ctx.Redirect(ctx.Repo.RepoLink)
+			}
+			return
+		}
 		ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
 		return
 	}
@@ -551,6 +568,17 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	tags, err := ctx.Repo.GitRepo.GetTags(0, 0)
 	if err != nil {
+		if strings.Contains(err.Error(), "fatal: not a git repository ") {
+			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
+			ctx.Repo.Repository.Status = models.RepositoryBroken
+			ctx.Repo.Repository.IsEmpty = true
+			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
+			// Only allow access to base of repo or settings
+			if !isHomeOrSettings {
+				ctx.Redirect(ctx.Repo.RepoLink)
+			}
+			return
+		}
 		ctx.ServerError("GetTags", err)
 		return
 	}
@@ -577,7 +605,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["BranchName"] = ctx.Repo.BranchName
 
 	// People who have push access or have forked repository can propose a new pull request.
-	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
+		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -918,6 +947,11 @@ func UnitTypes() func(ctx *Context) {
 // IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
 func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 	var issueTemplates []api.IssueTemplate
+
+	if ctx.Repo.Repository.IsEmpty {
+		return issueTemplates
+	}
+
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
