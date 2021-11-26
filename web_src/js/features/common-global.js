@@ -1,4 +1,4 @@
-import {mqBinarySearch, prettyNumber} from '../utils.js';
+import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 
@@ -317,16 +317,4 @@ export function initGlobalButtons() {
       window.location.href = $this.data('done-url');
     });
   });
-}
-
-export function initGlobalFormattingReplacement() {
-  const lang = document.documentElement.lang;
-
-  for (const el of document.querySelectorAll('.js-format-pretty-number')) {
-    const num = Number(el.getAttribute('data-original'));
-    const formatted = prettyNumber(num, lang);
-    if (formatted && formatted !== el.textContent) {
-      el.textContent = formatted;
-    }
-  }
 }

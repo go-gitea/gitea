@@ -60,12 +60,16 @@
 					<div class="column">
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-								{{svg "octicon-issue-opened" 16 "mr-3"}}
-								<span class="js-format-pretty-number" data-original="{{.ShownIssueStats.OpenCount}}">{{PrettyNumber .ShownIssueStats.OpenCount}}</span>&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
+								{{if .PageIsPulls}}
+									{{svg "octicon-git-pull-request" 16 "mr-3"}}
+								{{else}}
+									{{svg "octicon-issue-opened" 16 "mr-3"}}
+								{{end}}
+								{{JsPrettyNumber .ShownIssueStats.OpenCount}}&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-								{{svg "octicon-issue-closed" 16 "mr-3"}}
-								<span class="js-format-pretty-number" data-original="{{.ShownIssueStats.ClosedCount}}">{{PrettyNumber .ShownIssueStats.ClosedCount}}</span>&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
+								{{svg "octicon-check" 16 "mr-3"}}
+								{{JsPrettyNumber .ShownIssueStats.ClosedCount}}&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>

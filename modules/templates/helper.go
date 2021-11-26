@@ -18,6 +18,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"strconv"
 	texttmpl "text/template"
 	"time"
 	"unicode"
@@ -92,18 +93,19 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"Safe":          Safe,
-		"SafeJS":        SafeJS,
-		"JSEscape":      JSEscape,
-		"Str2html":      Str2html,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
-		"FileSize":      base.FileSize,
-		"PrettyNumber":  base.PrettyNumber,
-		"Subtract":      base.Subtract,
-		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
+		"Safe":           Safe,
+		"SafeJS":         SafeJS,
+		"JSEscape":       JSEscape,
+		"Str2html":       Str2html,
+		"TimeSince":      timeutil.TimeSince,
+		"TimeSinceUnix":  timeutil.TimeSinceUnix,
+		"RawTimeSince":   timeutil.RawTimeSince,
+		"FileSize":       base.FileSize,
+		"PrettyNumber":   base.PrettyNumber,
+		"JsPrettyNumber": JsPrettyNumber,
+		"Subtract":       base.Subtract,
+		"EntryIcon":      base.EntryIcon,
+		"MigrationIcon":  MigrationIcon,
 		"Add": func(a ...int) int {
 			sum := 0
 			for _, val := range a {
@@ -971,4 +973,24 @@ func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
 	a.Address = u.String()
 
 	return a
+}
+
+// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200
+// subsequent Js will replace the number with locale-specific separators
+func JsPrettyNumber(i interface{}) template.HTML {
+	var num int64
+	switch v := i.(type) {
+	case int:
+		num = int64(v)
+	case int8:
+		num = int64(v)
+	case int16:
+		num = int64(v)
+	case int32:
+		num = int64(v)
+	case int64:
+		num = v
+	}
+
+	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
 }

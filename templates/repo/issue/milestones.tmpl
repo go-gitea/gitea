@@ -18,11 +18,11 @@
 				<div class="ui compact tiny menu">
 					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
 						{{svg "octicon-milestone" 16 "mr-3"}}
-						<span class="js-format-pretty-number" data-original="{{.OpenCount}}">{{PrettyNumber .OpenCount}}</span>&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
+						{{JsPrettyNumber .OpenCount}}&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
 					</a>
 					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
-						{{svg "octicon-milestone" 16 "mr-3"}}
-						<span class="js-format-pretty-number" data-original="{{.ClosedCount}}">{{PrettyNumber .ClosedCount}}</span>&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
+						{{svg "octicon-check" 16 "mr-3"}}
+						{{JsPrettyNumber .ClosedCount}}&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
 					</a>
 				</div>
 			</div>
@@ -80,8 +80,10 @@
 							{{end}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened"}} <span class="js-format-pretty-number" data-original="{{.NumOpenIssues}}">{{PrettyNumber .NumOpenIssues}}</span>&nbsp;{{$.i18n.Tr "repo.issues.open_title"}}
-							{{svg "octicon-issue-closed"}} <span class="js-format-pretty-number" data-original="{{.NumClosedIssues}}">{{PrettyNumber .NumClosedIssues}}</span>&nbsp;{{$.i18n.Tr "repo.issues.closed_title"}}
+							{{svg "octicon-issue-opened" 16 "mr-3"}}
+							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.i18n.Tr "repo.issues.open_title"}}
+							{{svg "octicon-check" 16 "mr-3"}}
+							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.i18n.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
 							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
 						</span>
