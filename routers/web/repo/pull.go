@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -112,9 +113,9 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := models.GetOwnedOrgsByUserID(ctx.User.ID)
+	ownedOrgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetOwnedOrgsByUserID", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	var orgs []*models.Organization
@@ -215,13 +216,13 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	// Check ownership of organization.
+	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isOwner, err := models.OrgFromUser(ctxUser).IsOwnedBy(ctx.User.ID)
+		isAllowedToFork, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
+		} else if !isAllowedToFork {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -237,10 +238,10 @@ func ForkPost(ctx *context.Context) {
 		switch {
 		case models.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
-		case models.IsErrNameReserved(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplFork, &form)
-		case models.IsErrNamePatternNotAllowed(err):
-			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
+		case db.IsErrNameReserved(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)
+		case db.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplFork, &form)
 		default:
 			ctx.ServerError("ForkPost", err)
 		}
@@ -1024,7 +1025,7 @@ func MergePullRequest(ctx *context.Context) {
 	ctx.Redirect(issue.Link())
 }
 
-func stopTimerIfAvailable(user *models.User, issue *models.Issue) error {
+func stopTimerIfAvailable(user *user_model.User, issue *models.Issue) error {
 
 	if models.StopwatchExists(user.ID, issue.ID) {
 		if err := models.CreateOrStopIssueStopwatch(user, issue); err != nil {
@@ -1185,9 +1186,9 @@ func TriggerTask(ctx *context.Context) {
 		return
 	}
 
-	pusher, err := models.GetUserByID(pusherID)
+	pusher, err := user_model.GetUserByID(pusherID)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
 			ctx.ServerError("GetUserByID", err)

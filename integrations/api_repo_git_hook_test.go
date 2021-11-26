@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +26,7 @@ func TestAPIListGitHooks(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -51,7 +52,7 @@ func TestAPIListGitHooksNoHooks(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -72,7 +73,7 @@ func TestAPIListGitHooksNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -85,7 +86,7 @@ func TestAPIGetGitHook(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -103,7 +104,7 @@ func TestAPIGetGitHookNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -116,7 +117,7 @@ func TestAPIEditGitHook(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -146,7 +147,7 @@ func TestAPIEditGitHookNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -162,7 +163,7 @@ func TestAPIDeleteGitHook(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 37}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	// user1 is an admin user
 	session := loginUser(t, "user1")
@@ -185,7 +186,7 @@ func TestAPIDeleteGitHookNoAccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)

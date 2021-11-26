@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -33,5 +34,5 @@ func TestDeleteOrganization(t *testing.T) {
 
 	user := unittest.AssertExistsAndLoadBean(t, &models.Organization{ID: 5}).(*models.Organization)
 	assert.Error(t, DeleteOrganization(user))
-	unittest.CheckConsistencyFor(t, &models.User{}, &models.Team{})
+	unittest.CheckConsistencyFor(t, &user_model.User{}, &models.Team{})
 }

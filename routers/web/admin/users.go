@@ -56,9 +56,9 @@ func Users(ctx *context.Context) {
 		"SortType":        sortType,
 	}
 
-	explore.RenderUserSearch(ctx, &models.SearchUserOptions{
+	explore.RenderUserSearch(ctx, &user_model.SearchUserOptions{
 		Actor: ctx.User,
-		Type:  models.UserTypeIndividual,
+		Type:  user_model.UserTypeIndividual,
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.Admin.UserPagingNum,
 		},
@@ -114,7 +114,7 @@ func NewUserPost(ctx *context.Context) {
 		return
 	}
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:      form.UserName,
 		Email:     form.Email,
 		Passwd:    form.Password,
@@ -156,9 +156,9 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := models.CreateUser(u, &models.CreateUserOverwriteOptions{Visibility: form.Visibility}); err != nil {
+	if err := user_model.CreateUser(u, &user_model.CreateUserOverwriteOptions{Visibility: form.Visibility}); err != nil {
 		switch {
-		case models.IsErrUserAlreadyExist(err):
+		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplUserNew, &form)
 		case user_model.IsErrEmailAlreadyUsed(err):
@@ -167,15 +167,15 @@ func NewUserPost(ctx *context.Context) {
 		case user_model.IsErrEmailInvalid(err):
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_invalid"), tplUserNew, &form)
-		case models.IsErrNameReserved(err):
+		case db.IsErrNameReserved(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(models.ErrNameReserved).Name), tplUserNew, &form)
-		case models.IsErrNamePatternNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("user.form.name_reserved", err.(db.ErrNameReserved).Name), tplUserNew, &form)
+		case db.IsErrNamePatternNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
-		case models.IsErrNameCharsNotAllowed(err):
+			ctx.RenderWithErr(ctx.Tr("user.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplUserNew, &form)
+		case db.IsErrNameCharsNotAllowed(err):
 			ctx.Data["Err_UserName"] = true
-			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(models.ErrNameCharsNotAllowed).Name), tplUserNew, &form)
+			ctx.RenderWithErr(ctx.Tr("user.form.name_chars_not_allowed", err.(db.ErrNameCharsNotAllowed).Name), tplUserNew, &form)
 		default:
 			ctx.ServerError("CreateUser", err)
 		}
@@ -192,8 +192,8 @@ func NewUserPost(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
 }
 
-func prepareUserInfo(ctx *context.Context) *models.User {
-	u, err := models.GetUserByID(ctx.ParamsInt64(":userid"))
+func prepareUserInfo(ctx *context.Context) *user_model.User {
+	u, err := user_model.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return nil
@@ -298,7 +298,14 @@ func EditUserPost(ctx *context.Context) {
 			ctx.RenderWithErr(errMsg, tplUserNew, &form)
 			return
 		}
-		if u.Salt, err = models.GetUserSalt(); err != nil {
+
+		if err := user_model.ValidateEmail(form.Email); err != nil {
+			ctx.Data["Err_Email"] = true
+			ctx.RenderWithErr(ctx.Tr("form.email_error"), tplUserNew, &form)
+			return
+		}
+
+		if u.Salt, err = user_model.GetUserSalt(); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -332,6 +339,7 @@ func EditUserPost(ctx *context.Context) {
 
 	u.LoginName = form.LoginName
 	u.FullName = form.FullName
+	emailChanged := !strings.EqualFold(u.Email, form.Email)
 	u.Email = form.Email
 	u.Website = form.Website
 	u.Location = form.Location
@@ -352,7 +360,7 @@ func EditUserPost(ctx *context.Context) {
 		u.ProhibitLogin = form.ProhibitLogin
 	}
 
-	if err := models.UpdateUser(u); err != nil {
+	if err := user_model.UpdateUser(u, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
@@ -372,7 +380,7 @@ func EditUserPost(ctx *context.Context) {
 
 // DeleteUser response for deleting a user
 func DeleteUser(ctx *context.Context) {
-	u, err := models.GetUserByID(ctx.ParamsInt64(":userid"))
+	u, err := user_model.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return

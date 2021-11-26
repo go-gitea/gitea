@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -21,7 +22,7 @@ import (
 )
 
 // ForkRepository forks a repository
-func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
+func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
 	forkedRepo, err := opts.BaseRepo.GetUserFork(owner.ID)
 	if err != nil {
 		return nil, err

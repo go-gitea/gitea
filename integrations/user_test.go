@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/test"
 
 	"github.com/stretchr/testify/assert"
@@ -35,8 +35,8 @@ func TestRenameUsername(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusFound)
 
-	unittest.AssertExistsAndLoadBean(t, &models.User{Name: "newUsername"})
-	unittest.AssertNotExistsBean(t, &models.User{Name: "user2"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
 }
 
 func TestRenameInvalidUsername(t *testing.T) {
@@ -67,7 +67,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 			i18n.Tr("en", "form.alpha_dash_dot_error"),
 		)
 
-		unittest.AssertNotExistsBean(t, &models.User{Name: invalidUsername})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
 	}
 }
 
@@ -113,7 +113,7 @@ func TestRenameReservedUsername(t *testing.T) {
 			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
 		)
 
-		unittest.AssertNotExistsBean(t, &models.User{Name: reservedUsername})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
 	}
 }
 

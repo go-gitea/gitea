@@ -6,6 +6,7 @@ package ui
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -50,8 +51,8 @@ func (ns *notificationService) Run() {
 	graceful.GetManager().RunWithShutdownFns(ns.issueQueue.Run)
 }
 
-func (ns *notificationService) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
+func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	var opts = issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
@@ -73,7 +74,7 @@ func (ns *notificationService) NotifyCreateIssueComment(doer *models.User, repo 
 	}
 }
 
-func (ns *notificationService) NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
+func (ns *notificationService) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: issue.Poster.ID,
@@ -87,14 +88,14 @@ func (ns *notificationService) NotifyNewIssue(issue *models.Issue, mentions []*m
 	}
 }
 
-func (ns *notificationService) NotifyIssueChangeStatus(doer *models.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+func (ns *notificationService) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              issue.ID,
 		NotificationAuthorID: doer.ID,
 	})
 }
 
-func (ns *notificationService) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+func (ns *notificationService) NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string) {
 	if err := issue.LoadPullRequest(); err != nil {
 		log.Error("issue.LoadPullRequest: %v", err)
 		return
@@ -107,14 +108,14 @@ func (ns *notificationService) NotifyIssueChangeTitle(doer *models.User, issue *
 	}
 }
 
-func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *models.User) {
+func (ns *notificationService) NotifyMergePullRequest(pr *models.PullRequest, doer *user_model.User) {
 	_ = ns.issueQueue.Push(issueNotificationOpts{
 		IssueID:              pr.Issue.ID,
 		NotificationAuthorID: doer.ID,
 	})
 }
 
-func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest, mentions []*models.User) {
+func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)
 		return
@@ -149,7 +150,7 @@ func (ns *notificationService) NotifyNewPullRequest(pr *models.PullRequest, ment
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, c *models.Comment, mentions []*models.User) {
+func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, c *models.Comment, mentions []*user_model.User) {
 	var opts = issueNotificationOpts{
 		IssueID:              pr.Issue.ID,
 		NotificationAuthorID: r.Reviewer.ID,
@@ -171,7 +172,7 @@ func (ns *notificationService) NotifyPullRequestReview(pr *models.PullRequest, r
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestCodeComment(pr *models.PullRequest, c *models.Comment, mentions []*models.User) {
+func (ns *notificationService) NotifyPullRequestCodeComment(pr *models.PullRequest, c *models.Comment, mentions []*user_model.User) {
 	for _, mention := range mentions {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
 			IssueID:              pr.Issue.ID,
@@ -182,7 +183,7 @@ func (ns *notificationService) NotifyPullRequestCodeComment(pr *models.PullReque
 	}
 }
 
-func (ns *notificationService) NotifyPullRequestPushCommits(doer *models.User, pr *models.PullRequest, comment *models.Comment) {
+func (ns *notificationService) NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment) {
 	var opts = issueNotificationOpts{
 		IssueID:              pr.IssueID,
 		NotificationAuthorID: doer.ID,
@@ -191,7 +192,7 @@ func (ns *notificationService) NotifyPullRequestPushCommits(doer *models.User, p
 	_ = ns.issueQueue.Push(opts)
 }
 
-func (ns *notificationService) NotifyPullRevieweDismiss(doer *models.User, review *models.Review, comment *models.Comment) {
+func (ns *notificationService) NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment) {
 	var opts = issueNotificationOpts{
 		IssueID:              review.IssueID,
 		NotificationAuthorID: doer.ID,
@@ -200,7 +201,7 @@ func (ns *notificationService) NotifyPullRevieweDismiss(doer *models.User, revie
 	_ = ns.issueQueue.Push(opts)
 }
 
-func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issue *models.Issue, assignee *models.User, removed bool, comment *models.Comment) {
+func (ns *notificationService) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
 	if !removed {
 		var opts = issueNotificationOpts{
 			IssueID:              issue.ID,
@@ -216,7 +217,7 @@ func (ns *notificationService) NotifyIssueChangeAssignee(doer *models.User, issu
 	}
 }
 
-func (ns *notificationService) NotifyPullReviewRequest(doer *models.User, issue *models.Issue, reviewer *models.User, isRequest bool, comment *models.Comment) {
+func (ns *notificationService) NotifyPullReviewRequest(doer *user_model.User, issue *models.Issue, reviewer *user_model.User, isRequest bool, comment *models.Comment) {
 	if isRequest {
 		var opts = issueNotificationOpts{
 			IssueID:              issue.ID,
@@ -232,7 +233,7 @@ func (ns *notificationService) NotifyPullReviewRequest(doer *models.User, issue 
 	}
 }
 
-func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *models.User, repo *models.Repository) {
+func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository) {
 	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
 		log.Error("NotifyRepoPendingTransfer: %v", err)
 	}

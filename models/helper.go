@@ -7,6 +7,7 @@ package models
 import (
 	"encoding/binary"
 
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -26,8 +27,8 @@ func valuesRepository(m map[int64]*Repository) []*Repository {
 	return values
 }
 
-func valuesUser(m map[int64]*User) []*User {
-	values := make([]*User, 0, len(m))
+func valuesUser(m map[int64]*user_model.User) []*user_model.User {
+	values := make([]*user_model.User, 0, len(m))
 	for _, v := range m {
 		values = append(values, v)
 	}

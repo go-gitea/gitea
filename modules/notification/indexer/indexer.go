@@ -6,6 +6,7 @@ package indexer
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -29,8 +30,8 @@ func NewNotifier() base.Notifier {
 	return &indexerNotifier{}
 }
 
-func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *models.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*models.User) {
+func (r *indexerNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	if comment.Type == models.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {
@@ -45,15 +46,15 @@ func (r *indexerNotifier) NotifyCreateIssueComment(doer *models.User, repo *mode
 	}
 }
 
-func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue, mentions []*models.User) {
+func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*models.User) {
+func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User) {
 	issue_indexer.UpdateIssueIndexer(pr.Issue)
 }
 
-func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comment, oldContent string) {
+func (r *indexerNotifier) NotifyUpdateComment(doer *user_model.User, c *models.Comment, oldContent string) {
 	if c.Type == models.CommentTypeComment {
 		var found bool
 		if c.Issue.Comments != nil {
@@ -77,7 +78,7 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *models.User, c *models.Comme
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models.Comment) {
+func (r *indexerNotifier) NotifyDeleteComment(doer *user_model.User, comment *models.Comment) {
 	if comment.Type == models.CommentTypeComment {
 		if err := comment.LoadIssue(); err != nil {
 			log.Error("LoadIssue: %v", err)
@@ -106,14 +107,14 @@ func (r *indexerNotifier) NotifyDeleteComment(doer *models.User, comment *models
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteRepository(doer *models.User, repo *models.Repository) {
+func (r *indexerNotifier) NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
 	issue_indexer.DeleteRepoIssueIndexer(repo)
 	if setting.Indexer.RepoIndexerEnabled {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
 }
 
-func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.User, repo *models.Repository) {
+func (r *indexerNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
 	issue_indexer.UpdateRepoIndexer(repo)
 	if setting.Indexer.RepoIndexerEnabled && !repo.IsEmpty {
 		code_indexer.UpdateRepoIndexer(repo)
@@ -123,7 +124,7 @@ func (r *indexerNotifier) NotifyMigrateRepository(doer *models.User, u *models.U
 	}
 }
 
-func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (r *indexerNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
@@ -132,7 +133,7 @@ func (r *indexerNotifier) NotifyPushCommits(pusher *models.User, repo *models.Re
 	}
 }
 
-func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (r *indexerNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	if setting.Indexer.RepoIndexerEnabled && opts.RefFullName == git.BranchPrefix+repo.DefaultBranch {
 		code_indexer.UpdateRepoIndexer(repo)
 	}
@@ -141,14 +142,14 @@ func (r *indexerNotifier) NotifySyncPushCommits(pusher *models.User, repo *model
 	}
 }
 
-func (r *indexerNotifier) NotifyIssueChangeContent(doer *models.User, issue *models.Issue, oldContent string) {
+func (r *indexerNotifier) NotifyIssueChangeContent(doer *user_model.User, issue *models.Issue, oldContent string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyIssueChangeTitle(doer *models.User, issue *models.Issue, oldTitle string) {
+func (r *indexerNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyIssueChangeRef(doer *models.User, issue *models.Issue, oldRef string) {
+func (r *indexerNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldRef string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }

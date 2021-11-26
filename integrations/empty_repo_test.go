@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 func TestEmptyRepo(t *testing.T) {
@@ -21,7 +22,7 @@ func TestEmptyRepo(t *testing.T) {
 		"graph",
 	}
 	emptyRepo := unittest.AssertExistsAndLoadBean(t, &models.Repository{}, unittest.Cond("is_empty = ?", true)).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: emptyRepo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID}).(*user_model.User)
 	for _, subpath := range subpaths {
 		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, emptyRepo.Name, subpath)
 		MakeRequest(t, req, http.StatusNotFound)
