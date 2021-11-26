@@ -975,8 +975,8 @@ func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
 	return a
 }
 
-// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200
-// subsequent Js will replace the number with locale-specific separators
+// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
+// JS will replace the number with locale-specific separators, based on the user's selected language
 func JsPrettyNumber(i interface{}) template.HTML {
 	var num int64
 	switch v := i.(type) {
