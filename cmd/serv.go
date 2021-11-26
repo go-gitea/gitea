@@ -57,7 +57,7 @@ func setup(logPath string, debug bool) {
 	} else {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
-	setting.NewContext()
+	setting.NewContext(false)
 	if debug {
 		setting.RunMode = "dev"
 	}

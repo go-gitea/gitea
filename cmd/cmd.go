@@ -57,22 +57,18 @@ func confirm() (bool, error) {
 	}
 }
 
-func ensureInstallLock() {
-	if !setting.InstallLock {
-		log.Fatal("invalid installation settings in app.ini (%s), please use the correctly installed config file", setting.CustomConf)
-	}
-}
-
 func initDB(ctx context.Context) error {
-	setting.NewContext()
+	setting.NewContext(false)
 	setting.InitDBConfig()
 	setting.NewXORMLogService(false)
 
 	if setting.Database.Type == "" {
-		return fmt.Errorf("invalid database settings in app.ini (%s), please use the correctly installed config file", setting.CustomConf)
+		log.Fatal(`Database settings are missing from the configuration file: %q.
+Ensure you are running in the correct environment or set the correct configuration file with -c.
+If this is the intended configuration file complete the [database] section.`, setting.CustomConf)
 	}
 	if err := db.InitEngine(ctx); err != nil {
-		return fmt.Errorf("cmd.initDB: %v", err)
+		return fmt.Errorf("unable to initialise the database using the configuration in %q. Error: %v", setting.CustomConf, err)
 	}
 	return nil
 }
