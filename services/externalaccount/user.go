@@ -9,13 +9,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
 )
 
 // LinkAccountToUser link the gothUser to the user
-func LinkAccountToUser(user *models.User, gothUser goth.User) error {
+func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return err

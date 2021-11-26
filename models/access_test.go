@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,9 +17,9 @@ import (
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user5 := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
-	user29 := unittest.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 	// A public repository owned by User 2
 	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
@@ -67,8 +68,8 @@ func TestAccessLevel(t *testing.T) {
 func TestHasAccess(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	// A public repository owned by User 2
 	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
@@ -125,7 +126,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 func TestRepository_RecalculateAccesses3(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	team5 := unittest.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
-	user29 := unittest.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
 	assert.NoError(t, err)

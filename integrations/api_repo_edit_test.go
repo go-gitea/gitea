@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -134,9 +135,9 @@ func TestAPIRepoEdit(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		bFalse, bTrue := false, true
 
-		user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)               // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 3}).(*models.User)               // owner of the repo3, is an org
-		user4 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 4}).(*models.User)               // owner of neither repos
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)       // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)       // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)       // owner of neither repos
 		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)   // public repo
 		repo3 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)   // public repo
 		repo15 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 15}).(*models.Repository) // empty repo

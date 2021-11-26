@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 
 	"github.com/gorilla/feeds"
@@ -22,7 +23,7 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 		return nil
 	}
 
-	userCache := map[int64]*models.User{options.RequestedUser.ID: options.RequestedUser}
+	userCache := map[int64]*user_model.User{options.RequestedUser.ID: options.RequestedUser}
 	if ctx.User != nil {
 		userCache[ctx.User.ID] = ctx.User
 	}
@@ -35,9 +36,9 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 	for _, act := range actions {
 		repoOwner, ok := userCache[act.Repo.OwnerID]
 		if !ok {
-			repoOwner, err = models.GetUserByID(act.Repo.OwnerID)
+			repoOwner, err = user_model.GetUserByID(act.Repo.OwnerID)
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
+				if user_model.IsErrUserNotExist(err) {
 					continue
 				}
 				ctx.ServerError("GetUserByID", err)
@@ -51,7 +52,7 @@ func RetrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) []*mode
 }
 
 // ShowUserFeed show user activity as RSS / Atom feed
-func ShowUserFeed(ctx *context.Context, ctxUser *models.User, formatType string) {
+func ShowUserFeed(ctx *context.Context, ctxUser *user_model.User, formatType string) {
 	actions := RetrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		Actor:           ctx.User,

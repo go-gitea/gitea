@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -22,7 +23,7 @@ func TestAPIListReleases(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 2}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -70,7 +71,7 @@ func TestAPIListReleases(t *testing.T) {
 	testFilterByLen(true, url.Values{"draft": {"true"}, "pre-release": {"true"}}, 0, "there is no pre-release draft")
 }
 
-func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *models.User, repo *models.Repository, name, target, title, desc string) *api.Release {
+func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, owner *user_model.User, repo *models.Repository, name, target, title, desc string) *api.Release {
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/releases?token=%s",
 		owner.Name, repo.Name, token)
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.CreateReleaseOption{
@@ -99,7 +100,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -150,7 +151,7 @@ func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -161,7 +162,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -179,7 +180,7 @@ func TestAPIGetReleaseByTag(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 
 	tag := "v1.1"
@@ -212,7 +213,7 @@ func TestAPIDeleteReleaseByTagName(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 

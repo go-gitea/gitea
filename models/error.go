@@ -26,51 +26,6 @@ func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
 }
 
-// ErrNameReserved represents a "reserved name" error.
-type ErrNameReserved struct {
-	Name string
-}
-
-// IsErrNameReserved checks if an error is a ErrNameReserved.
-func IsErrNameReserved(err error) bool {
-	_, ok := err.(ErrNameReserved)
-	return ok
-}
-
-func (err ErrNameReserved) Error() string {
-	return fmt.Sprintf("name is reserved [name: %s]", err.Name)
-}
-
-// ErrNamePatternNotAllowed represents a "pattern not allowed" error.
-type ErrNamePatternNotAllowed struct {
-	Pattern string
-}
-
-// IsErrNamePatternNotAllowed checks if an error is an ErrNamePatternNotAllowed.
-func IsErrNamePatternNotAllowed(err error) bool {
-	_, ok := err.(ErrNamePatternNotAllowed)
-	return ok
-}
-
-func (err ErrNamePatternNotAllowed) Error() string {
-	return fmt.Sprintf("name pattern is not allowed [pattern: %s]", err.Pattern)
-}
-
-// ErrNameCharsNotAllowed represents a "character not allowed in name" error.
-type ErrNameCharsNotAllowed struct {
-	Name string
-}
-
-// IsErrNameCharsNotAllowed checks if an error is an ErrNameCharsNotAllowed.
-func IsErrNameCharsNotAllowed(err error) bool {
-	_, ok := err.(ErrNameCharsNotAllowed)
-	return ok
-}
-
-func (err ErrNameCharsNotAllowed) Error() string {
-	return fmt.Sprintf("User name is invalid [%s]: must be valid alpha or numeric or dash(-_) or dot characters", err.Name)
-}
-
 // ErrSSHDisabled represents an "SSH disabled" error.
 type ErrSSHDisabled struct{}
 
@@ -82,77 +37,6 @@ func IsErrSSHDisabled(err error) bool {
 
 func (err ErrSSHDisabled) Error() string {
 	return "SSH is disabled"
-}
-
-//  ____ ___
-// |    |   \______ ___________
-// |    |   /  ___// __ \_  __ \
-// |    |  /\___ \\  ___/|  | \/
-// |______//____  >\___  >__|
-//              \/     \/
-
-// ErrUserAlreadyExist represents a "user already exists" error.
-type ErrUserAlreadyExist struct {
-	Name string
-}
-
-// IsErrUserAlreadyExist checks if an error is a ErrUserAlreadyExists.
-func IsErrUserAlreadyExist(err error) bool {
-	_, ok := err.(ErrUserAlreadyExist)
-	return ok
-}
-
-func (err ErrUserAlreadyExist) Error() string {
-	return fmt.Sprintf("user already exists [name: %s]", err.Name)
-}
-
-// ErrUserNotExist represents a "UserNotExist" kind of error.
-type ErrUserNotExist struct {
-	UID   int64
-	Name  string
-	KeyID int64
-}
-
-// IsErrUserNotExist checks if an error is a ErrUserNotExist.
-func IsErrUserNotExist(err error) bool {
-	_, ok := err.(ErrUserNotExist)
-	return ok
-}
-
-func (err ErrUserNotExist) Error() string {
-	return fmt.Sprintf("user does not exist [uid: %d, name: %s, keyid: %d]", err.UID, err.Name, err.KeyID)
-}
-
-// ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
-type ErrUserProhibitLogin struct {
-	UID  int64
-	Name string
-}
-
-// IsErrUserProhibitLogin checks if an error is a ErrUserProhibitLogin
-func IsErrUserProhibitLogin(err error) bool {
-	_, ok := err.(ErrUserProhibitLogin)
-	return ok
-}
-
-func (err ErrUserProhibitLogin) Error() string {
-	return fmt.Sprintf("user is not allowed login [uid: %d, name: %s]", err.UID, err.Name)
-}
-
-// ErrUserInactive represents a "ErrUserInactive" kind of error.
-type ErrUserInactive struct {
-	UID  int64
-	Name string
-}
-
-// IsErrUserInactive checks if an error is a ErrUserInactive
-func IsErrUserInactive(err error) bool {
-	_, ok := err.(ErrUserInactive)
-	return ok
-}
-
-func (err ErrUserInactive) Error() string {
-	return fmt.Sprintf("user is inactive [uid: %d, name: %s]", err.UID, err.Name)
 }
 
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.

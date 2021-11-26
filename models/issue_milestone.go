@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -267,7 +268,7 @@ func changeMilestoneStatus(e db.Engine, m *Milestone, isClosed bool) error {
 	return updateRepoMilestoneNum(e, m.RepoID)
 }
 
-func changeMilestoneAssign(ctx context.Context, doer *User, issue *Issue, oldMilestoneID int64) error {
+func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Issue, oldMilestoneID int64) error {
 	e := db.GetEngine(ctx)
 	if err := updateIssueCols(e, issue, "milestone_id"); err != nil {
 		return err
@@ -307,7 +308,7 @@ func changeMilestoneAssign(ctx context.Context, doer *User, issue *Issue, oldMil
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
+func ChangeMilestoneAssign(issue *Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

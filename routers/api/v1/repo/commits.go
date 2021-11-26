@@ -12,6 +12,7 @@ import (
 	"strconv"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -188,7 +189,7 @@ func GetAllCommits(ctx *context.APIContext) {
 		return
 	}
 
-	userCache := make(map[string]*models.User)
+	userCache := make(map[string]*user_model.User)
 
 	apiCommits := make([]*api.Commit, len(commits))
 	for i, commit := range commits {

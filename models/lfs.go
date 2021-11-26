@@ -8,6 +8,7 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -132,7 +133,7 @@ func (repo *Repository) CountLFSMetaObjects() (int64, error) {
 }
 
 // LFSObjectAccessible checks if a provided Oid is accessible to the user
-func LFSObjectAccessible(user *User, oid string) (bool, error) {
+func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 	if user.IsAdmin {
 		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
@@ -143,7 +144,7 @@ func LFSObjectAccessible(user *User, oid string) (bool, error) {
 }
 
 // LFSAutoAssociate auto associates accessible LFSMetaObjects
-func LFSAutoAssociate(metas []*LFSMetaObject, user *User, repoID int64) error {
+func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int64) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
