@@ -583,7 +583,7 @@ func newContextFromConf(allowEmpty bool) {
 		}
 	} else if !allowEmpty {
 		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
-	} // else: no config file, a config file might be created at CustomConf (might not)
+	} // else: no config file, a config file might be created at CustomConf later (might not)
 
 	Cfg.NameMapper = ini.SnackCase
 
