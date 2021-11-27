@@ -33,7 +33,7 @@ func PrepareAppDataPath() error {
 	}
 
 	if !st.IsDir() /* also works for symlink */ {
-		return fmt.Errorf("can not use non-directory '%s' as app data path", AppDataPath)
+		return fmt.Errorf("the APP_DATA_PATH %q is not a directory (or symlink to a directory) and can't be used", AppDataPath)
 	}
 
 	return nil
