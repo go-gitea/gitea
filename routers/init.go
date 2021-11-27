@@ -95,9 +95,8 @@ func syncAppPathForGit(ctx context.Context) error {
 	return nil
 }
 
-// GlobalInit is for global configuration reload-able.
-func GlobalInit(ctx context.Context) {
-	setting.NewContextFromExistingConf()
+// GlobalInitInstalled is for global installed configuration.
+func GlobalInitInstalled(ctx context.Context) {
 	if !setting.InstallLock {
 		log.Fatal("Gitea is not installed")
 	}

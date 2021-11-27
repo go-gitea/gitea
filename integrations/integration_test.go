@@ -241,8 +241,7 @@ func initIntegrationTest() {
 		defer db.Close()
 	}
 
-	_ = setting.PrepareAppDataPath()
-	routers.GlobalInit(graceful.GetManager().HammerContext())
+	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {

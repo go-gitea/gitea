@@ -149,7 +149,8 @@ func runWeb(ctx *cli.Context) error {
 
 	log.Info("Global init")
 	// Perform global initialization
-	routers.GlobalInit(graceful.GetManager().HammerContext())
+	setting.NewContextFromExistingConf()
+	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
