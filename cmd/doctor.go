@@ -82,14 +82,12 @@ You should back-up your database before doing this and ensure that your database
 }
 
 func runRecreateTable(ctx *cli.Context) error {
-	ensureInstallLock()
-
 	// Redirect the default golog to here
 	golog.SetFlags(0)
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.NewContext()
+	setting.NewContext(false)
 	setting.InitDBConfig()
 
 	setting.EnableXORMLog = ctx.Bool("debug")

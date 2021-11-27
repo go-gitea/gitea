@@ -548,7 +548,7 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 
 // NewContext initializes configuration context.
 // NOTE: do not print any log except error.
-func NewContext() {
+func NewContext(allowEmpty bool) {
 	Cfg = ini.Empty()
 
 	if WritePIDFile && len(PIDFile) > 0 {
@@ -563,8 +563,10 @@ func NewContext() {
 		if err := Cfg.Append(CustomConf); err != nil {
 			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
 		}
+	} else if !allowEmpty {
+		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
 	} else {
-		log.Warn("Custom config '%s' not found, ignore this if you're running first time", CustomConf)
+		log.Warn("Unable to find configuration file: %q.\nA new configuration file will be created.", CustomConf)
 	}
 	Cfg.NameMapper = ini.SnackCase
 
