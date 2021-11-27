@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -25,7 +26,7 @@ func ToComment(c *models.Comment) *api.Comment {
 }
 
 // ToTimelineComment converts a models.Comment to the api.TimelineComment format
-func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineComment {
+func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineComment {
 	err := c.LoadMilestone()
 	if err != nil {
 		log.Error("LoadMilestone: %v", err)
@@ -125,11 +126,11 @@ func ToTimelineComment(c *models.Comment, doer *models.User) *api.TimelineCommen
 	}
 
 	if c.Label != nil {
-		var org *models.User
+		var org *user_model.User
 		var repo *models.Repository
 		if c.Label.BelongsToOrg() {
 			var err error
-			org, err = models.GetUserByID(c.Label.OrgID)
+			org, err = user_model.GetUserByID(c.Label.OrgID)
 			if err != nil {
 				log.Error("GetCommentByID(%d): %v", c.Label.OrgID, err)
 				return nil

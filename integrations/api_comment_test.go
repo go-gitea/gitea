@@ -183,10 +183,10 @@ func TestAPIDeleteComment(t *testing.T) {
 func TestAPIListIssueTimeline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	// load comments that are not code comments
+	// load comment
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: issue.RepoID}).(*models.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	// make request
 	session := loginUser(t, repoOwner.Name)

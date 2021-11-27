@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -182,7 +183,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
-func isXRefCommentAccessible(user *models.User, c *models.Comment, issueRepoID int64) bool {
+func isXRefCommentAccessible(user *user_model.User, c *models.Comment, issueRepoID int64) bool {
 	// Remove comments that the user has no permissions to see
 	if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
