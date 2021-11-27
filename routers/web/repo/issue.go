@@ -1648,13 +1648,13 @@ func ViewIssue(ctx *context.Context) {
 		if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
 			err = json.Unmarshal([]byte(eventsRaw["hidden_comment_types"].SettingValue), &hiddenEvents)
 			if err != nil {
-				ctx.ServerError("json.Unmarshal", err)
+				log.Error("error while parsing JSON: %v", err)
 				return
 			}
 		}
 	}
 	ctx.Data["IsEventShown"] = func(commentType models.CommentType) bool {
-		if !ctx.IsSigned || hiddenEvents == nil {
+		if hiddenEvents == nil {
 			return true
 		}
 		return !hiddenEvents.IsHidden(int(commentType))

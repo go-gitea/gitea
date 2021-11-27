@@ -367,8 +367,7 @@ func Appearance(ctx *context.Context) {
 	if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
 		err = json.Unmarshal([]byte(eventsRaw["hidden_comment_types"].SettingValue), &hiddenEvents)
 		if err != nil {
-			ctx.ServerError("json.Unmarshal", err)
-			return
+			log.Error("error parsing JSON: %v", err)
 		}
 	}
 
