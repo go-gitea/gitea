@@ -10,22 +10,22 @@ import (
 	"net/textproto"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 )
 
 // Authenticate queries if the provided login/password is authenticates against the SMTP server
 // Users will be autoregistered as required
-func (source *Source) Authenticate(user *models.User, userName, password string) (*models.User, error) {
+func (source *Source) Authenticate(user *user_model.User, userName, password string) (*user_model.User, error) {
 	// Verify allowed domains.
 	if len(source.AllowedDomains) > 0 {
 		idx := strings.Index(userName, "@")
 		if idx == -1 {
-			return nil, models.ErrUserNotExist{Name: userName}
+			return nil, user_model.ErrUserNotExist{Name: userName}
 		} else if !util.IsStringInSlice(userName[idx+1:], strings.Split(source.AllowedDomains, ","), true) {
-			return nil, models.ErrUserNotExist{Name: userName}
+			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 	}
 
@@ -47,11 +47,11 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		tperr, ok := err.(*textproto.Error)
 		if (ok && tperr.Code == 535) ||
 			strings.Contains(err.Error(), "Username and Password not accepted") {
-			return nil, models.ErrUserNotExist{Name: userName}
+			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 		if (ok && tperr.Code == 534) ||
 			strings.Contains(err.Error(), "Application-specific password required") {
-			return nil, models.ErrUserNotExist{Name: userName}
+			return nil, user_model.ErrUserNotExist{Name: userName}
 		}
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		username = userName[:idx]
 	}
 
-	user = &models.User{
+	user = &user_model.User{
 		LowerName:   strings.ToLower(username),
 		Name:        strings.ToLower(username),
 		Email:       userName,
@@ -77,7 +77,7 @@ func (source *Source) Authenticate(user *models.User, userName, password string)
 		IsActive:    true,
 	}
 
-	if err := models.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user); err != nil {
 		return user, err
 	}
 

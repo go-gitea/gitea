@@ -8,16 +8,16 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullRequest {
+func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -83,7 +83,14 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *models.User) *api.PullReques
 		},
 	}
 
-	baseBranch, err = repo_module.GetBranch(pr.BaseRepo, pr.BaseBranch)
+	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	if err != nil {
+		log.Error("OpenRepository[%s]: %v", pr.BaseRepo.RepoPath(), err)
+		return nil
+	}
+	defer gitRepo.Close()
+
+	baseBranch, err = gitRepo.GetBranch(pr.BaseBranch)
 	if err != nil && !git.IsErrBranchNotExist(err) {
 		log.Error("GetBranch[%s]: %v", pr.BaseBranch, err)
 		return nil

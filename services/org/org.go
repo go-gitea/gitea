@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
 )
@@ -40,7 +41,7 @@ func DeleteOrganization(org *models.Organization) error {
 	// FIXME: system notice
 	// Note: There are something just cannot be roll back,
 	//	so just keep error logs of those operations.
-	path := models.UserPath(org.Name)
+	path := user_model.UserPath(org.Name)
 
 	if err := util.RemoveAll(path); err != nil {
 		return fmt.Errorf("Failed to RemoveAll %s: %v", path, err)

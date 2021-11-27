@@ -37,7 +37,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 	}
 	err = MakeEmailPrimary(email)
 	assert.Error(t, err)
-	assert.True(t, IsErrUserNotExist(err))
+	assert.True(t, user_model.IsErrUserNotExist(err))
 
 	email = &user_model.EmailAddress{
 		Email: "user101@example.com",
@@ -45,7 +45,7 @@ func TestMakeEmailPrimary(t *testing.T) {
 	err = MakeEmailPrimary(email)
 	assert.NoError(t, err)
 
-	user, _ := GetUserByID(int64(10))
+	user, _ := user_model.GetUserByID(int64(10))
 	assert.Equal(t, "user101@example.com", user.Email)
 }
 

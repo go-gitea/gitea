@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -239,7 +240,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *models.
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(ctx context.Context, doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
+func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
 	generateRepo := &models.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,

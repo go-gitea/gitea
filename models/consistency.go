@@ -7,6 +7,7 @@ package models
 import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"xorm.io/builder"
 )
@@ -169,12 +170,12 @@ func FixNullArchivedRepository() (int64, error) {
 
 // CountWrongUserType count OrgUser who have wrong type
 func CountWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(user_model.User))
 }
 
 // FixWrongUserType fix OrgUser who have wrong type
 func FixWrongUserType() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&user_model.User{Type: 1})
 }
 
 // CountCommentTypeLabelWithEmptyLabel count label comments with empty label

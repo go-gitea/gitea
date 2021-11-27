@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -24,7 +25,7 @@ type Reaction struct {
 	UserID           int64              `xorm:"INDEX UNIQUE(s) NOT NULL"`
 	OriginalAuthorID int64              `xorm:"INDEX UNIQUE(s) NOT NULL DEFAULT(0)"`
 	OriginalAuthor   string             `xorm:"INDEX UNIQUE(s)"`
-	User             *User              `xorm:"-"`
+	User             *user_model.User   `xorm:"-"`
 	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX created"`
 }
 
@@ -136,7 +137,7 @@ func createReaction(e db.Engine, opts *ReactionOptions) (*Reaction, error) {
 // ReactionOptions defines options for creating or deleting reactions
 type ReactionOptions struct {
 	Type    string
-	Doer    *User
+	Doer    *user_model.User
 	Issue   *Issue
 	Comment *Comment
 }
@@ -165,7 +166,7 @@ func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
 }
 
 // CreateIssueReaction creates a reaction on issue.
-func CreateIssueReaction(doer *User, issue *Issue, content string) (*Reaction, error) {
+func CreateIssueReaction(doer *user_model.User, issue *Issue, content string) (*Reaction, error) {
 	return CreateReaction(&ReactionOptions{
 		Type:  content,
 		Doer:  doer,
@@ -174,7 +175,7 @@ func CreateIssueReaction(doer *User, issue *Issue, content string) (*Reaction, e
 }
 
 // CreateCommentReaction creates a reaction on comment.
-func CreateCommentReaction(doer *User, issue *Issue, comment *Comment, content string) (*Reaction, error) {
+func CreateCommentReaction(doer *user_model.User, issue *Issue, comment *Comment, content string) (*Reaction, error) {
 	return CreateReaction(&ReactionOptions{
 		Type:    content,
 		Doer:    doer,
@@ -216,7 +217,7 @@ func DeleteReaction(opts *ReactionOptions) error {
 }
 
 // DeleteIssueReaction deletes a reaction on issue.
-func DeleteIssueReaction(doer *User, issue *Issue, content string) error {
+func DeleteIssueReaction(doer *user_model.User, issue *Issue, content string) error {
 	return DeleteReaction(&ReactionOptions{
 		Type:  content,
 		Doer:  doer,
@@ -225,7 +226,7 @@ func DeleteIssueReaction(doer *User, issue *Issue, content string) error {
 }
 
 // DeleteCommentReaction deletes a reaction on comment.
-func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content string) error {
+func DeleteCommentReaction(doer *user_model.User, issue *Issue, comment *Comment, content string) error {
 	return DeleteReaction(&ReactionOptions{
 		Type:    content,
 		Doer:    doer,
@@ -235,11 +236,11 @@ func DeleteCommentReaction(doer *User, issue *Issue, comment *Comment, content s
 }
 
 // LoadUser load user of reaction
-func (r *Reaction) LoadUser() (*User, error) {
+func (r *Reaction) LoadUser() (*user_model.User, error) {
 	if r.User != nil {
 		return r.User, nil
 	}
-	user, err := GetUserByIDCtx(db.DefaultContext, r.UserID)
+	user, err := user_model.GetUserByIDCtx(db.DefaultContext, r.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -285,13 +286,13 @@ func (list ReactionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*User, error) {
+func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*user_model.User, error) {
 	if len(list) == 0 {
 		return nil, nil
 	}
 
 	userIDs := list.getUserIDs()
-	userMaps := make(map[int64]*User, len(userIDs))
+	userMaps := make(map[int64]*user_model.User, len(userIDs))
 	err := e.
 		In("id", userIDs).
 		Find(&userMaps)
@@ -301,18 +302,18 @@ func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*User, erro
 
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
-			reaction.User = NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
+			reaction.User = user_model.NewReplaceUser(fmt.Sprintf("%s(%s)", reaction.OriginalAuthor, repo.OriginalServiceType.Name()))
 		} else if user, ok := userMaps[reaction.UserID]; ok {
 			reaction.User = user
 		} else {
-			reaction.User = NewGhostUser()
+			reaction.User = user_model.NewGhostUser()
 		}
 	}
 	return valuesUser(userMaps), nil
 }
 
 // LoadUsers loads reactions' all users
-func (list ReactionList) LoadUsers(repo *Repository) ([]*User, error) {
+func (list ReactionList) LoadUsers(repo *Repository) ([]*user_model.User, error) {
 	return list.loadUsers(db.GetEngine(db.DefaultContext), repo)
 }
 

@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/json"
@@ -667,7 +668,7 @@ func TestDiff_LoadComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &models.User{ID: 1}).(*models.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	diff := setupDefaultDiff()
 	assert.NoError(t, diff.LoadComments(issue, user))
 	assert.Len(t, diff.Files[0].Sections[0].Lines[0].Comments, 2)
