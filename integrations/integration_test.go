@@ -254,6 +254,8 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, setting.PrepareAppDataPath())
+
 	return deferFn
 }
 
