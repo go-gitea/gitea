@@ -165,7 +165,7 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.NewContextForTest()
-	util.RemoveAll(models.LocalCopyPath())
+	_ = util.RemoveAll(models.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
@@ -240,6 +240,8 @@ func initIntegrationTest() {
 		}
 		defer db.Close()
 	}
+
+	_ = setting.PrepareAppDataPath()
 	routers.GlobalInit(graceful.GetManager().HammerContext())
 }
 
@@ -254,7 +256,6 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
 	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, setting.PrepareAppDataPath())
 
 	return deferFn
 }
