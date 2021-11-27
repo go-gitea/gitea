@@ -125,7 +125,7 @@ func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// InitEngine initializes the xorm.Engine and set it as db.DefaultContext
+// InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
 func InitEngine(ctx context.Context) error {
 	xormEngine, err := newXORMEngine()
 	if err != nil {
