@@ -164,7 +164,7 @@ func initIntegrationTest() {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContextAllowEmptyConf()
+	setting.NewContextForTest()
 	util.RemoveAll(models.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()

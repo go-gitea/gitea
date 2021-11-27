@@ -277,6 +277,12 @@ func SubmitInstall(ctx *context.Context) {
 		return
 	}
 
+	// Prepare AppDataPath, it is very important for Gitea
+	if err = setting.PrepareAppDataPath(); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.invalid_app_data_path", err), tplInstall, &form)
+		return
+	}
+
 	// Test repository root path.
 	form.RepoRootPath = strings.ReplaceAll(form.RepoRootPath, "\\", "/")
 	if err = os.MkdirAll(form.RepoRootPath, os.ModePerm); err != nil {
@@ -490,7 +496,7 @@ func SubmitInstall(ctx *context.Context) {
 	// ---- All checks are passed
 
 	// Reload settings (and re-initialize database connection)
-	ReloadSettings(ctx)
+	reloadSettings(ctx)
 
 	// Create admin account
 	if len(form.AdminName) > 0 {

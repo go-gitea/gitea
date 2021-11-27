@@ -23,10 +23,10 @@ func PreloadSettings(ctx context.Context) bool {
 		log.Info("Custom path: %s", setting.CustomPath)
 		log.Info("Log path: %s", setting.LogRootPath)
 		log.Info("Configuration file: %s", setting.CustomConf)
-		log.Info("Preparing to run install page")
+		log.Info("Prepare to run install page")
 		translation.InitLocales()
 		if setting.EnableSQLite3 {
-			log.Info("SQLite3 Supported")
+			log.Info("SQLite3 is supported")
 		}
 		setting.InitDBConfig()
 		setting.NewServicesForInstall()
@@ -36,9 +36,9 @@ func PreloadSettings(ctx context.Context) bool {
 	return !setting.InstallLock
 }
 
-// ReloadSettings rereads the settings and starts up the database
-func ReloadSettings(ctx context.Context) {
-	setting.NewContextAllowEmptyConf()
+// reloadSettings reloads the existing settings and starts up the database
+func reloadSettings(ctx context.Context) {
+	setting.NewContextFromExistingConf()
 	setting.InitDBConfig()
 	if setting.InstallLock {
 		if err := common.InitDBEngine(ctx); err == nil {
