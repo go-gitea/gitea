@@ -1179,7 +1179,7 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 
 	callback(cfg)
 
-	log.Info("Save settings to custom config file %s", CustomConf)
+	log.Info("Settings saved to: %q", CustomConf)
 
 	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
 		log.Fatal("failed to create '%s': %v", CustomConf, err)
