@@ -710,11 +710,7 @@ func newContextFromConf(allowEmpty bool) {
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
-	if _, err = os.Stat(AppDataPath); err != nil {
-		if !allowEmpty {
-			log.Fatal("Can not find APP_DATA_PATH '%s', stack:\n%s", AppDataPath, log.Stack(0))
-		}
-	}
+
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
 	PprofDataPath = sec.Key("PPROF_DATA_PATH").MustString(path.Join(AppWorkPath, "data/tmp/pprof"))

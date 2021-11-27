@@ -152,6 +152,13 @@ func runWeb(ctx *cli.Context) error {
 	setting.NewContextFromExistingConf()
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
+	// Now we can only check the AppDataPath here (the directory should already been created during installation)
+	// We can not check it in `GlobalInitInstalled`, because some integration tests
+	// use cmd -> GlobalInitInstalled, but the AppDataPath doesn't exist during the test.
+	if _, err := os.Stat(setting.AppDataPath); err != nil {
+		log.Fatal("Can not find APP_DATA_PATH '%s'", setting.AppDataPath)
+	}
+
 	// Override the provided port number within the configuration
 	if ctx.IsSet("port") {
 		if err := setPort(ctx.String("port")); err != nil {
