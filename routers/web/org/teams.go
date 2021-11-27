@@ -225,16 +225,9 @@ func NewTeam(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplTeamNew)
 }
 
-// NewTeamPost response for create new team
-func NewTeamPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.CreateTeamForm)
-	ctx.Data["Title"] = ctx.Org.Organization.FullName
-	ctx.Data["PageIsOrgTeams"] = true
-	ctx.Data["PageIsOrgTeamsNew"] = true
-	ctx.Data["Units"] = unit_model.Units
-	var includesAllRepositories = form.RepoAccess == "all"
+func getUnitPerms(forms url.Values) map[unit_model.Type]perm.AccessMode {
 	var unitPerms = make(map[unit_model.Type]perm.AccessMode)
-	for k, v := range ctx.Req.Form {
+	for k, v := range forms {
 		if strings.HasPrefix(k, "unit_") {
 			t, _ := strconv.Atoi(k[5:])
 			if t > 0 {
@@ -243,6 +236,18 @@ func NewTeamPost(ctx *context.Context) {
 			}
 		}
 	}
+	return unitPerms
+}
+
+// NewTeamPost response for create new team
+func NewTeamPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.CreateTeamForm)
+	ctx.Data["Title"] = ctx.Org.Organization.FullName
+	ctx.Data["PageIsOrgTeams"] = true
+	ctx.Data["PageIsOrgTeamsNew"] = true
+	ctx.Data["Units"] = unit_model.Units
+	var includesAllRepositories = form.RepoAccess == "all"
+	var unitPerms = getUnitPerms(ctx.Req.Form)
 
 	t := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
@@ -334,16 +339,7 @@ func EditTeamPost(ctx *context.Context) {
 	ctx.Data["Team"] = t
 	ctx.Data["Units"] = unit_model.Units
 
-	var unitPerms = make(map[unit_model.Type]perm.AccessMode)
-	for k, v := range ctx.Req.Form {
-		if strings.HasPrefix(k, "unit_") {
-			t, _ := strconv.Atoi(k[5:])
-			if t > 0 {
-				vv, _ := strconv.Atoi(v[0])
-				unitPerms[unit_model.Type(t)] = perm.AccessMode(vv)
-			}
-		}
-	}
+	var unitPerms = getUnitPerms(ctx.Req.Form)
 
 	isAuthChanged := false
 	isIncludeAllChanged := false

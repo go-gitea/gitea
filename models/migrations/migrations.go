@@ -364,7 +364,7 @@ var migrations = []Migration{
 	// v204 -> v205
 	NewMigration("Add key is verified to ssh key", addSSHKeyIsVerified),
 	// v205 -> v206
-	NewMigration("Add column authorize column for team_unit table", addAuthorizeColForTeamUnit),
+	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
 }
 
 // GetCurrentDBVersion returns the current db version

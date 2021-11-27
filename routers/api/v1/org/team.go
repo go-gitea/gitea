@@ -6,6 +6,7 @@
 package org
 
 import (
+	"errors"
 	"net/http"
 
 	"code.gitea.io/gitea/models"
@@ -141,6 +142,29 @@ func GetTeam(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, convert.ToTeam(ctx.Org.Team))
 }
 
+func attachTeamUnits(team *models.Team, units []string) {
+	unitTypes := unit_model.FindUnitTypes(units...)
+	team.Units = make([]*models.TeamUnit, 0, len(units))
+	for _, tp := range unitTypes {
+		team.Units = append(team.Units, &models.TeamUnit{
+			OrgID:     team.OrgID,
+			Type:      tp,
+			Authorize: team.Authorize,
+		})
+	}
+}
+
+func attachTeamUnitsMap(team *models.Team, unitsMap map[string]string) {
+	team.Units = make([]*models.TeamUnit, 0, len(unitsMap))
+	for unitKey, perm := range unitsMap {
+		team.Units = append(team.Units, &models.TeamUnit{
+			OrgID:     team.OrgID,
+			Type:      unit_model.UnitTypeFromKey(unitKey),
+			Authorize: perm.ParseAccessMode(perm),
+		})
+	}
+}
+
 // CreateTeam api for create a team
 func CreateTeam(ctx *context.APIContext) {
 	// swagger:operation POST /orgs/{org}/teams organization orgCreateTeam
@@ -175,17 +199,15 @@ func CreateTeam(ctx *context.APIContext) {
 		Authorize:               perm.ParseAccessMode(form.Permission),
 	}
 
-	unitTypes := unit_model.FindUnitTypes(form.Units...)
-
 	if team.Authorize < perm.AccessModeOwner {
-		var units = make([]*models.TeamUnit, 0, len(form.Units))
-		for _, tp := range unitTypes {
-			units = append(units, &models.TeamUnit{
-				OrgID: ctx.Org.Organization.ID,
-				Type:  tp,
-			})
+		if len(form.UnitsMap) > 0 {
+			attachTeamUnitsMap(team, form.UnitsMap)
+		} else if len(form.Units) > 0 {
+			attachTeamUnits(team, form.Units)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "getTeamUnits", errors.New("units permission should not be empty"))
+			return
 		}
-		team.Units = units
 	}
 
 	if err := models.NewTeam(team); err != nil {
@@ -261,16 +283,10 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if team.Authorize < perm.AccessModeOwner {
-		if len(form.Units) > 0 {
-			var units = make([]*models.TeamUnit, 0, len(form.Units))
-			unitTypes := unit_model.FindUnitTypes(form.Units...)
-			for _, tp := range unitTypes {
-				units = append(units, &models.TeamUnit{
-					OrgID: ctx.Org.Team.OrgID,
-					Type:  tp,
-				})
-			}
-			team.Units = units
+		if len(form.UnitsMap) > 0 {
+			attachTeamUnitsMap(team, form.UnitsMap)
+		} else if len(form.Units) > 0 {
+			attachTeamUnits(team, form.Units)
 		}
 	}
 
