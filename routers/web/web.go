@@ -233,10 +233,16 @@ func RegisterRoutes(m *web.Route) {
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
-	if setting.Federation.Enabled {
-		m.Get("/.well-known/nodeinfo", NodeInfoLinks)
-	}
+	m.Group("/.well-known", func() {
+		m.Get("/openid-configuration", user.OIDCWellKnown)
+		if setting.Federation.Enabled {
+			m.Get("/nodeinfo", NodeInfoLinks)
+		}
+		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
+			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
+		})
+	})
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -563,6 +569,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
 					m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 					m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
+					m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
 					m.Get("/{id}", repo.WebHooksEdit)
 					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
@@ -573,6 +580,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 					m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 					m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+					m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
 				}, webhooksEnabled)
 
 				m.Group("/labels", func() {
