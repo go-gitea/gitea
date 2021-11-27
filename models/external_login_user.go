@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
@@ -44,7 +45,7 @@ func GetExternalLogin(externalLoginUser *ExternalLoginUser) (bool, error) {
 }
 
 // ListAccountLinks returns a map with the ExternalLoginUser and its LoginSource
-func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
+func ListAccountLinks(user *user_model.User) ([]*ExternalLoginUser, error) {
 	externalAccounts := make([]*ExternalLoginUser, 0, 5)
 	err := db.GetEngine(db.DefaultContext).Where("user_id=?", user.ID).
 		Desc("login_source_id").
@@ -57,7 +58,7 @@ func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 }
 
 // LinkExternalToUser link the external user to the user
-func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error {
+func LinkExternalToUser(user *user_model.User, externalLoginUser *ExternalLoginUser) error {
 	has, err := db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
 		NoAutoCondition().
 		Exist(externalLoginUser)
@@ -72,7 +73,7 @@ func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error 
 }
 
 // RemoveAccountLink will remove all external login sources for the given user
-func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
+func RemoveAccountLink(user *user_model.User, loginSourceID int64) (int64, error) {
 	deleted, err := db.GetEngine(db.DefaultContext).Delete(&ExternalLoginUser{UserID: user.ID, LoginSourceID: loginSourceID})
 	if err != nil {
 		return deleted, err
@@ -84,7 +85,7 @@ func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
 }
 
 // removeAllAccountLinks will remove all external login sources for the given user
-func removeAllAccountLinks(e db.Engine, user *User) error {
+func removeAllAccountLinks(e db.Engine, user *user_model.User) error {
 	_, err := e.Delete(&ExternalLoginUser{UserID: user.ID})
 	return err
 }

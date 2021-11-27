@@ -10,6 +10,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -17,30 +19,30 @@ import (
 
 // ActivateEmail activates the email address to given user.
 func ActivateEmail(email *user_model.EmailAddress) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-	if err := updateActivation(sess, email, true); err != nil {
-		return err
-	}
-	return sess.Commit()
-}
-
-func updateActivation(e db.Engine, email *user_model.EmailAddress, activate bool) error {
-	user, err := getUserByID(e, email.UID)
+	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
-	if user.Rands, err = GetUserSalt(); err != nil {
+	defer committer.Close()
+	if err := updateActivation(db.GetEngine(ctx), email, true); err != nil {
+		return err
+	}
+	return committer.Commit()
+}
+
+func updateActivation(e db.Engine, email *user_model.EmailAddress, activate bool) error {
+	user, err := user_model.GetUserByIDEngine(e, email.UID)
+	if err != nil {
+		return err
+	}
+	if user.Rands, err = user_model.GetUserSalt(); err != nil {
 		return err
 	}
 	email.IsActivated = activate
 	if _, err := e.ID(email.ID).Cols("is_activated").Update(email); err != nil {
 		return err
 	}
-	return updateUserCols(e, user, "rands")
+	return user_model.UpdateUserColsEngine(e, user, "rands")
 }
 
 // MakeEmailPrimary sets primary email address of given user.
@@ -56,19 +58,24 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 		return user_model.ErrEmailNotActivated
 	}
 
-	user := &User{}
+	user := &user_model.User{}
 	has, err = db.GetEngine(db.DefaultContext).ID(email.UID).Get(user)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrUserNotExist{email.UID, "", 0}
+		return user_model.ErrUserNotExist{
+			UID:   email.UID,
+			Name:  "",
+			KeyID: 0,
+		}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// 1. Update user table
 	user.Email = email.Email
@@ -89,7 +96,26 @@ func MakeEmailPrimary(email *user_model.EmailAddress) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
+}
+
+// VerifyActiveEmailCode verifies active email code when active account
+func VerifyActiveEmailCode(code, email string) *user_model.EmailAddress {
+	minutes := setting.Service.ActiveCodeLives
+
+	if user := user_model.GetVerifyUser(code); user != nil {
+		// time limit code
+		prefix := code[:base.TimeLimitCodeLength]
+		data := fmt.Sprintf("%d%s%s%s%s", user.ID, email, user.LowerName, user.Passwd, user.Rands)
+
+		if base.VerifyTimeLimitCode(data, minutes, prefix) {
+			emailAddress := &user_model.EmailAddress{UID: user.ID, Email: email}
+			if has, _ := db.GetEngine(db.DefaultContext).Get(emailAddress); has {
+				return emailAddress
+			}
+		}
+	}
+	return nil
 }
 
 // SearchEmailOrderBy is used to sort the results from SearchEmails()
@@ -130,7 +156,7 @@ type SearchEmailResult struct {
 // SearchEmails takes options i.e. keyword and part of email name to search,
 // it returns results in given range and number of total results.
 func SearchEmails(opts *SearchEmailOptions) ([]*SearchEmailResult, int64, error) {
-	var cond builder.Cond = builder.Eq{"`user`.`type`": UserTypeIndividual}
+	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeIndividual}
 	if len(opts.Keyword) > 0 {
 		likeStr := "%" + strings.ToLower(opts.Keyword) + "%"
 		cond = cond.And(builder.Or(
@@ -214,7 +240,7 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 
 	// Activate/deactivate a user's primary email address and account
 	if addr.IsPrimary {
-		user := User{ID: userID, Email: email}
+		user := user_model.User{ID: userID, Email: email}
 		if has, err := sess.Get(&user); err != nil {
 			return err
 		} else if !has {
@@ -223,10 +249,10 @@ func ActivateUserEmail(userID int64, email string, activate bool) (err error) {
 		// The user's activation state should be synchronized with the primary email
 		if user.IsActive != activate {
 			user.IsActive = activate
-			if user.Rands, err = GetUserSalt(); err != nil {
+			if user.Rands, err = user_model.GetUserSalt(); err != nil {
 				return fmt.Errorf("unable to generate salt: %v", err)
 			}
-			if err = updateUserCols(sess, &user, "is_active", "rands"); err != nil {
+			if err = user_model.UpdateUserColsEngine(sess, &user, "is_active", "rands"); err != nil {
 				return fmt.Errorf("unable to updateUserCols() for user ID: %d: %v", userID, err)
 			}
 		}

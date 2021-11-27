@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
 )
@@ -27,15 +27,15 @@ func AvatarByUserName(ctx *context.Context) {
 	userName := ctx.Params(":username")
 	size := int(ctx.ParamsInt64(":size"))
 
-	var user *models.User
+	var user *user_model.User
 	if strings.ToLower(userName) != "ghost" {
 		var err error
-		if user, err = models.GetUserByName(userName); err != nil {
+		if user, err = user_model.GetUserByName(userName); err != nil {
 			ctx.ServerError("Invalid user: "+userName, err)
 			return
 		}
 	} else {
-		user = models.NewGhostUser()
+		user = user_model.NewGhostUser()
 	}
 
 	cacheableRedirect(ctx, user.AvatarLinkWithSize(size))

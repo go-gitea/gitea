@@ -225,11 +225,12 @@ func getRepoTopicByName(e db.Engine, repoID int64, topicName string) (*Topic, er
 
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	topic, err := getRepoTopicByName(sess, repoID, topicName)
 	if err != nil {
@@ -258,7 +259,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, err
 	}
 
-	return topic, sess.Commit()
+	return topic, committer.Commit()
 }
 
 // DeleteTopic removes a topic name from a repository (if it has it)
@@ -286,12 +287,12 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	var addedTopicNames []string
 	for _, topicName := range topicNames {
@@ -352,5 +353,5 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }

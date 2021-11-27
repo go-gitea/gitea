@@ -25,11 +25,12 @@ import (
 
 // AddPrincipalKey adds new principal to database and authorized_principals file.
 func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*PublicKey, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Principals cannot be duplicated.
 	has, err := sess.
@@ -53,11 +54,11 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return nil, err
 	}
 
-	sess.Close()
+	committer.Close()
 
 	return key, RewriteAllPrincipalKeys()
 }
@@ -72,7 +73,7 @@ func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
-func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
+func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", ErrSSHDisabled{}
 	}

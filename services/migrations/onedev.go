@@ -284,7 +284,6 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 		State       string    `json:"state"`
 		Title       string    `json:"title"`
 		Description string    `json:"description"`
-		MilestoneID int64     `json:"milestoneId"`
 		SubmitterID int64     `json:"submitterId"`
 		SubmitDate  time.Time `json:"submitDate"`
 	}, 0, perPage)
@@ -325,6 +324,23 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			}
 		}
 
+		milestones := make([]struct {
+			ID   int64  `json:"id"`
+			Name string `json:"name"`
+		}, 0, 10)
+		err = d.callAPI(
+			fmt.Sprintf("/api/issues/%d/milestones", issue.ID),
+			nil,
+			&milestones,
+		)
+		if err != nil {
+			return nil, false, err
+		}
+		milestoneID := int64(0)
+		if len(milestones) > 0 {
+			milestoneID = milestones[0].ID
+		}
+
 		state := strings.ToLower(issue.State)
 		if state == "released" {
 			state = "closed"
@@ -336,7 +352,7 @@ func (d *OneDevDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, er
 			PosterName:  poster.Name,
 			PosterEmail: poster.Email,
 			Content:     issue.Description,
-			Milestone:   d.milestoneMap[issue.MilestoneID],
+			Milestone:   d.milestoneMap[milestoneID],
 			State:       state,
 			Created:     issue.SubmitDate,
 			Updated:     issue.SubmitDate,

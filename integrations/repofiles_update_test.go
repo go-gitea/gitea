@@ -12,16 +12,16 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/repofiles"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	files_service "code.gitea.io/gitea/services/repository/files"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func getCreateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFileOptions {
-	return &repofiles.UpdateRepoFileOptions{
+func getCreateRepoFileOptions(repo *models.Repository) *files_service.UpdateRepoFileOptions {
+	return &files_service.UpdateRepoFileOptions{
 		OldBranch: repo.DefaultBranch,
 		NewBranch: repo.DefaultBranch,
 		TreePath:  "new/file.txt",
@@ -33,8 +33,8 @@ func getCreateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFile
 	}
 }
 
-func getUpdateRepoFileOptions(repo *models.Repository) *repofiles.UpdateRepoFileOptions {
-	return &repofiles.UpdateRepoFileOptions{
+func getUpdateRepoFileOptions(repo *models.Repository) *files_service.UpdateRepoFileOptions {
+	return &files_service.UpdateRepoFileOptions{
 		OldBranch: repo.DefaultBranch,
 		NewBranch: repo.DefaultBranch,
 		TreePath:  "README.md",
@@ -198,7 +198,7 @@ func TestCreateOrUpdateRepoFileForCreate(t *testing.T) {
 		opts := getCreateRepoFileOptions(repo)
 
 		// test
-		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
@@ -234,7 +234,7 @@ func TestCreateOrUpdateRepoFileForUpdate(t *testing.T) {
 		opts := getUpdateRepoFileOptions(repo)
 
 		// test
-		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
@@ -269,7 +269,7 @@ func TestCreateOrUpdateRepoFileForUpdateWithFileMove(t *testing.T) {
 		opts.TreePath = "README_new.md" // new file name, README_new.md
 
 		// test
-		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
@@ -319,7 +319,7 @@ func TestCreateOrUpdateRepoFileWithoutBranchNames(t *testing.T) {
 		opts.NewBranch = ""
 
 		// test
-		fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+		fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 
 		// asserts
 		assert.NoError(t, err)
@@ -349,7 +349,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		t.Run("bad branch", func(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)
 			opts.OldBranch = "bad_branch"
-			fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+			fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 			assert.Error(t, err)
 			assert.Nil(t, fileResponse)
 			expectedError := "branch does not exist [name: " + opts.OldBranch + "]"
@@ -360,7 +360,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)
 			origSHA := opts.SHA
 			opts.SHA = "bad_sha"
-			fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+			fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "sha does not match [given: " + opts.SHA + ", expected: " + origSHA + "]"
@@ -370,7 +370,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		t.Run("new branch already exists", func(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)
 			opts.NewBranch = "develop"
-			fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+			fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "branch already exists [name: " + opts.NewBranch + "]"
@@ -380,7 +380,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		t.Run("treePath is empty:", func(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)
 			opts.TreePath = ""
-			fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+			fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "path contains a malformed path component [path: ]"
@@ -390,7 +390,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		t.Run("treePath is a git directory:", func(t *testing.T) {
 			opts := getUpdateRepoFileOptions(repo)
 			opts.TreePath = ".git"
-			fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+			fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "path contains a malformed path component [path: " + opts.TreePath + "]"
@@ -400,7 +400,7 @@ func TestCreateOrUpdateRepoFileErrors(t *testing.T) {
 		t.Run("create file that already exists", func(t *testing.T) {
 			opts := getCreateRepoFileOptions(repo)
 			opts.TreePath = "README.md" //already exists
-			fileResponse, err := repofiles.CreateOrUpdateRepoFile(repo, doer, opts)
+			fileResponse, err := files_service.CreateOrUpdateRepoFile(repo, doer, opts)
 			assert.Nil(t, fileResponse)
 			assert.Error(t, err)
 			expectedError := "repository file already exists [path: " + opts.TreePath + "]"

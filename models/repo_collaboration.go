@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -30,7 +31,7 @@ func init() {
 	db.RegisterModel(new(Collaboration))
 }
 
-func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
+func (repo *Repository) addCollaborator(e db.Engine, u *user_model.User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: u.ID,
@@ -52,18 +53,18 @@ func (repo *Repository) addCollaborator(e db.Engine, u *User) error {
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
-func (repo *Repository) AddCollaborator(u *User) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func (repo *Repository) AddCollaborator(u *user_model.User) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := repo.addCollaborator(db.GetEngine(ctx), u); err != nil {
 		return err
 	}
 
-	if err := repo.addCollaborator(sess, u); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOptions) ([]*Collaboration, error) {
@@ -80,7 +81,7 @@ func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOption
 
 // Collaborator represents a user with collaboration details.
 type Collaborator struct {
-	*User
+	*user_model.User
 	Collaboration *Collaboration
 }
 
@@ -92,11 +93,11 @@ func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := getUserByID(e, c.UserID)
+		user, err := user_model.GetUserByIDEngine(e, c.UserID)
 		if err != nil {
-			if IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
-				user = NewGhostUser()
+				user = user_model.NewGhostUser()
 			} else {
 				return nil, err
 			}
@@ -176,17 +177,17 @@ func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mo
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
 func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := repo.changeCollaborationAccessMode(db.GetEngine(ctx), uid, mode); err != nil {
 		return err
 	}
 
-	if err := repo.changeCollaborationAccessMode(sess, uid, mode); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
@@ -196,11 +197,13 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		UserID: uid,
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
 		return err
@@ -221,11 +224,11 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (repo *Repository) reconsiderIssueAssignees(e db.Engine, uid int64) error {
-	user, err := getUserByID(e, uid)
+	user, err := user_model.GetUserByIDEngine(e, uid)
 	if err != nil {
 		return err
 	}

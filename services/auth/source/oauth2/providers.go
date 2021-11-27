@@ -5,10 +5,10 @@
 package oauth2
 
 import (
+	"errors"
 	"net/url"
 	"sort"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -139,6 +139,11 @@ func ClearProviders() {
 	goth.ClearProviders()
 }
 
+var (
+	// ErrLoginSourceNotActived login source is not actived error
+	ErrLoginSourceNotActived = errors.New("Login source is not actived")
+)
+
 // used to create different types of goth providers
 func createProvider(providerName string, source *Source) (goth.Provider, error) {
 	callbackURL := setting.AppURL + "user/oauth2/" + url.PathEscape(providerName) + "/callback"
@@ -148,7 +153,7 @@ func createProvider(providerName string, source *Source) (goth.Provider, error) 
 
 	p, ok := gothProviders[source.Provider]
 	if !ok {
-		return nil, models.ErrLoginSourceNotActived
+		return nil, ErrLoginSourceNotActived
 	}
 
 	provider, err = p.CreateGothProvider(providerName, callbackURL, source)

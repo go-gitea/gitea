@@ -18,6 +18,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
@@ -221,9 +222,9 @@ func TestCantMergeConflict(t *testing.T) {
 		session.MakeRequest(t, req, 201)
 
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
-		user1 := unittest.AssertExistsAndLoadBean(t, &models.User{
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: "user1",
-		}).(*models.User)
+		}).(*user_model.User)
 		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
@@ -258,9 +259,9 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 		// Now we want to create a commit on a branch that is totally unrelated to our current head
 		// Drop down to pure code at this point
-		user1 := unittest.AssertExistsAndLoadBean(t, &models.User{
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: "user1",
-		}).(*models.User)
+		}).(*user_model.User)
 		repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
