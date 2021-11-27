@@ -17,14 +17,15 @@ type Type int
 
 // Enumerate all the unit types
 const (
-	TypeCode            Type = iota + 1 // 1 code
-	TypeIssues                          // 2 issues
-	TypePullRequests                    // 3 PRs
-	TypeReleases                        // 4 Releases
-	TypeWiki                            // 5 Wiki
-	TypeExternalWiki                    // 6 ExternalWiki
-	TypeExternalTracker                 // 7 ExternalTracker
-	TypeProjects                        // 8 Kanban board
+	TypeInvalid         Type = iota // 0 invalid
+	TypeCode                        // 1 code
+	TypeIssues                      // 2 issues
+	TypePullRequests                // 3 PRs
+	TypeReleases                    // 4 Releases
+	TypeWiki                        // 5 Wiki
+	TypeExternalWiki                // 6 ExternalWiki
+	TypeExternalTracker             // 7 ExternalTracker
+	TypeProjects                    // 8 Kanban board
 )
 
 // Value returns integer value for unit type
@@ -269,15 +270,30 @@ var (
 	}
 )
 
-// FindUnitTypes give the unit key name and return unit
+// FindUnitTypes give the unit key names and return unit
 func FindUnitTypes(nameKeys ...string) (res []Type) {
 	for _, key := range nameKeys {
+		var found bool
 		for t, u := range Units {
 			if strings.EqualFold(key, u.NameKey) {
 				res = append(res, t)
+				found = true
 				break
 			}
 		}
+		if !found {
+			res = append(res, TypeInvalid)
+		}
 	}
 	return
+}
+
+// UnitTypeFromKey give the unit key name and return unit
+func UnitTypeFromKey(nameKey string) Type {
+	for t, u := range Units {
+		if strings.EqualFold(nameKey, u.NameKey) {
+			return t
+		}
+	}
+	return TypeInvalid
 }

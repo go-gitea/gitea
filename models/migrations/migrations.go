@@ -366,7 +366,7 @@ var migrations = []Migration{
 	// v205 -> v206
 	NewMigration("Migrate to higher varchar on user struct", migrateUserPasswordSalt),
 	// v206 -> v207
-	NewMigration("Add column authorize column for team_unit table", addAuthorizeColForTeamUnit),
+	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
 }
 
 // GetCurrentDBVersion returns the current db version
