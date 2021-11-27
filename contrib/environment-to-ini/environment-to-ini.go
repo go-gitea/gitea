@@ -156,7 +156,7 @@ func runEnvironmentToIni(c *cli.Context) error {
 		destination = setting.CustomConf
 	}
 	if destination != setting.CustomConf || changed {
-		log.Info("Save settings to custom config file %s", destination)
+		log.Info("Settings saved to: %q", destination)
 		err = cfg.SaveTo(destination)
 		if err != nil {
 			return err
