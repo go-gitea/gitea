@@ -712,7 +712,7 @@ func newContextFromConf(allowEmpty bool) {
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	if _, err = os.Stat(AppDataPath); err != nil {
 		if !allowEmpty {
-			log.Fatal("Can not find APP_DATA_PATH '%s'", AppDataPath)
+			log.Fatal("Can not find APP_DATA_PATH '%s', stack:\n%s", AppDataPath, log.Stack(0))
 		}
 	}
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
