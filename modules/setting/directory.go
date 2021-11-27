@@ -29,7 +29,7 @@ func PrepareAppDataPath() error {
 	}
 
 	if err != nil {
-		return fmt.Errorf("can not use '%s' as app data path, err: %v", AppDataPath, err)
+		return fmt.Errorf("unable to use APP_DATA_PATH %q. Error: %v", AppDataPath, err)
 	}
 
 	if !st.IsDir() /* also works for symlink */ {
