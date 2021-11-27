@@ -19,7 +19,8 @@ import (
 
 func newRequest(ctx context.Context, url, method string) *httplib.Request {
 	if setting.InternalToken == "" {
-		log.Fatal("no internal token, can not send internal request to server. please use correct app.ini")
+		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
+Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
 	}
 	return httplib.NewRequest(url, method).
 		SetContext(ctx).
