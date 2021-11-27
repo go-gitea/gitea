@@ -65,12 +65,12 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfi *PackageFileInfo, al
 		return nil, nil, err
 	}
 
-	pf, blobCreated, err := addFileToPackageVersion(ctx, pv, pfi)
+	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfi)
 	removeBlob := false
 	defer func() {
 		if blobCreated && removeBlob {
 			contentStore := packages_module.NewContentStore()
-			if err := contentStore.Delete(pf.BlobID); err != nil {
+			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 				log.Error("Error deleting package blob from content store: %v", err)
 			}
 		}
@@ -161,12 +161,12 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfi *PackageFileInfo) (*packages
 		return nil, nil, err
 	}
 
-	pf, blobCreated, err := addFileToPackageVersion(ctx, pv, pfi)
+	pf, pb, blobCreated, err := addFileToPackageVersion(ctx, pv, pfi)
 	removeBlob := false
 	defer func() {
 		if blobCreated && removeBlob {
 			contentStore := packages_module.NewContentStore()
-			if err := contentStore.Delete(pf.BlobID); err != nil {
+			if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 				log.Error("Error deleting package blob from content store: %v", err)
 			}
 		}
@@ -177,33 +177,37 @@ func AddFileToExistingPackage(pvi *PackageInfo, pfi *PackageFileInfo) (*packages
 	}
 
 	if err := committer.Commit(); err != nil {
+		removeBlob = true
 		return nil, nil, err
 	}
 
 	return pv, pf, nil
 }
 
-func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (*packages_model.PackageFile, bool, error) {
+func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (*packages_model.PackageFile, *packages_model.PackageBlob, bool, error) {
 	log.Trace("Adding package file: %v, %s", pv.ID, pfi.Filename)
 
 	hashMD5, hashSHA1, hashSHA256, hashSHA512 := pfi.Data.Sums()
+
+	blobKey := fmt.Sprintf("%x", hashSHA256)
+
 	pb := &packages_model.PackageBlob{
 		Size:       pfi.Data.Size(),
 		HashMD5:    fmt.Sprintf("%x", hashMD5),
 		HashSHA1:   fmt.Sprintf("%x", hashSHA1),
-		HashSHA256: fmt.Sprintf("%x", hashSHA256),
+		HashSHA256: blobKey,
 		HashSHA512: fmt.Sprintf("%x", hashSHA512),
 	}
 	pb, exists, err := packages_model.GetOrInsertBlob(ctx, pb)
 	if err != nil {
 		log.Error("Error inserting package blob: %v", err)
-		return nil, false, err
+		return nil, nil, false, err
 	}
 	if !exists {
 		contentStore := packages_module.NewContentStore()
-		if err := contentStore.Save(pb.ID, pfi.Data, pfi.Data.Size()); err != nil {
+		if err := contentStore.Save(packages_module.BlobHash256Key(blobKey), pfi.Data, pfi.Data.Size()); err != nil {
 			log.Error("Error saving package blob in content store: %v", err)
-			return nil, false, err
+			return nil, nil, false, err
 		}
 	}
 
@@ -218,10 +222,10 @@ func addFileToPackageVersion(ctx context.Context, pv *packages_model.PackageVers
 		if err != packages_model.ErrDuplicatePackageFile {
 			log.Error("Error inserting package file: %v", err)
 		}
-		return nil, !exists, err
+		return nil, nil, !exists, err
 	}
 
-	return pf, !exists, nil
+	return pf, pb, !exists, nil
 }
 
 // DeletePackageVersionByNameAndVersion deletes a package version and all associated files
@@ -299,7 +303,7 @@ func DeleteUnreferencedBlobs() error {
 
 	contentStore := packages_module.NewContentStore()
 	for _, pb := range pbs {
-		if err := contentStore.Delete(pb.ID); err != nil {
+		if err := contentStore.Delete(packages_module.BlobHash256Key(pb.HashSHA256)); err != nil {
 			log.Error("Error deleting package blob [%v]: %v", pb.ID, err)
 		}
 	}
@@ -356,7 +360,12 @@ func GetPackageFileStream(pv *packages_model.PackageVersion, filename string) (i
 		return nil, nil, err
 	}
 
-	s, err := packages_module.NewContentStore().Get(pf.BlobID)
+	pb, err := packages_model.GetBlobByID(db.DefaultContext, pf.BlobID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
 	if err == nil {
 		if pf.IsLead {
 			if err := packages_model.IncrementDownloadCounter(pv.ID); err != nil {

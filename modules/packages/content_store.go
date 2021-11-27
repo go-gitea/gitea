@@ -6,10 +6,13 @@ package packages
 
 import (
 	"io"
-	"strconv"
+	"path"
 
 	"code.gitea.io/gitea/modules/storage"
 )
+
+// BlobHash256Key is the key to address a blob content
+type BlobHash256Key string
 
 // ContentStore is a wrapper around ObjectStorage
 type ContentStore struct {
@@ -23,17 +26,22 @@ func NewContentStore() *ContentStore {
 }
 
 // Get gets a package blob
-func (s *ContentStore) Get(packageBlobID int64) (storage.Object, error) {
-	return s.store.Open(strconv.FormatInt(packageBlobID, 10))
+func (s *ContentStore) Get(key BlobHash256Key) (storage.Object, error) {
+	return s.store.Open(keyToRelativePath(key))
 }
 
 // Save stores a package blob
-func (s *ContentStore) Save(packageBlobID int64, r io.Reader, size int64) error {
-	_, err := s.store.Save(strconv.FormatInt(packageBlobID, 10), r, size)
+func (s *ContentStore) Save(key BlobHash256Key, r io.Reader, size int64) error {
+	_, err := s.store.Save(keyToRelativePath(key), r, size)
 	return err
 }
 
 // Delete deletes a package blob
-func (s *ContentStore) Delete(packageBlobID int64) error {
-	return s.store.Delete(strconv.FormatInt(packageBlobID, 10))
+func (s *ContentStore) Delete(key BlobHash256Key) error {
+	return s.store.Delete(keyToRelativePath(key))
+}
+
+// keyToRelativePath converts the sha256 key aabb000000... to aa/bb/aabb000000...
+func keyToRelativePath(key BlobHash256Key) string {
+	return path.Join(string(key)[0:2], string(key)[2:4], string(key))
 }

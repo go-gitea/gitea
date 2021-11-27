@@ -145,13 +145,13 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		return
 	}
 
-	if isChecksumExtension(ext) {
-		pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
+	pb, err := packages.GetBlobByID(db.DefaultContext, pf.BlobID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
 
+	if isChecksumExtension(ext) {
 		var hash string
 		switch ext {
 		case extensionMD5:
@@ -167,7 +167,7 @@ func servePackageFile(ctx *context.APIContext, params parameters) {
 		return
 	}
 
-	s, err := packages_module.NewContentStore().Get(pf.BlobID)
+	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 	}
