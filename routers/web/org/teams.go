@@ -248,12 +248,16 @@ func NewTeamPost(ctx *context.Context) {
 	ctx.Data["Units"] = unit_model.Units
 	var includesAllRepositories = form.RepoAccess == "all"
 	var unitPerms = getUnitPerms(ctx.Req.Form)
+	var p = perm.ParseAccessMode(form.Permission)
+	if p < perm.AccessModeOwner {
+		p = perm.MinUnitPerms(unitPerms)
+	}
 
 	t := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		Authorize:               perm.ParseAccessMode(form.Permission),
+		Authorize:               p,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}

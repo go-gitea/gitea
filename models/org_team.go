@@ -151,11 +151,6 @@ func (t *Team) GetUnitNames() (res []string) {
 	return
 }
 
-// HasWriteAccess returns true if team has at least write level access mode.
-func (t *Team) HasWriteAccess() bool {
-	return t.Authorize >= perm.AccessModeWrite
-}
-
 // IsOwnerTeam returns true if team is owner team.
 func (t *Team) IsOwnerTeam() bool {
 	return t.Name == ownerTeamName
@@ -455,16 +450,7 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 }
 
 func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
-	if err := t.getUnits(e); err != nil {
-		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
-	}
-
-	for _, unit := range t.Units {
-		if unit.Type == tp {
-			return true
-		}
-	}
-	return false
+	return t.unitAccessMode(e, tp) > AccessModeNone
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled

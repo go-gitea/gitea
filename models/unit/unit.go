@@ -288,8 +288,8 @@ func FindUnitTypes(nameKeys ...string) (res []Type) {
 	return
 }
 
-// UnitTypeFromKey give the unit key name and return unit
-func UnitTypeFromKey(nameKey string) Type {
+// TypeFromKey give the unit key name and return unit
+func TypeFromKey(nameKey string) Type {
 	for t, u := range Units {
 		if strings.EqualFold(nameKey, u.NameKey) {
 			return t

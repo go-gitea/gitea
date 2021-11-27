@@ -154,12 +154,20 @@ func attachTeamUnits(team *models.Team, units []string) {
 	}
 }
 
+func convertUnitsMap(unitsMap map[string]string) map[unit_model.Type]models.AccessMode {
+	var res = make(map[unit_model.Type]models.AccessMode, len(unitsMap))
+	for unitKey, perm := range unitsMap {
+		res[unit_model.TypeFromKey(unitKey)] = models.ParseAccessMode(perm)
+	}
+	return res
+}
+
 func attachTeamUnitsMap(team *models.Team, unitsMap map[string]string) {
 	team.Units = make([]*models.TeamUnit, 0, len(unitsMap))
 	for unitKey, perm := range unitsMap {
 		team.Units = append(team.Units, &models.TeamUnit{
 			OrgID:     team.OrgID,
-			Type:      unit_model.UnitTypeFromKey(unitKey),
+			Type:      unit_model.TypeFromKey(unitKey),
 			Authorize: perm.ParseAccessMode(perm),
 		})
 	}
@@ -190,13 +198,19 @@ func CreateTeam(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
+
+	var p = perm.ParseAccessMode(form.Permission)
+	if p < perm.AccessModeOwner {
+		p = perm.MinUnitPerms(convertUnitsMap(form.UnitsMap))
+	}
+
 	team := &models.Team{
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.Name,
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		Authorize:               perm.ParseAccessMode(form.Permission),
+		Authorize:               p,
 	}
 
 	if team.Authorize < perm.AccessModeOwner {
@@ -269,11 +283,14 @@ func EditTeam(ctx *context.APIContext) {
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
-		auth := perm.ParseAccessMode(form.Permission)
+		var p = perm.ParseAccessMode(form.Permission)
+		if p < perm.AccessModeOwner {
+			p = perm.MinUnitPerms(convertUnitsMap(form.UnitsMap))
+		}
 
-		if team.Authorize != auth {
+		if team.Authorize != p {
 			isAuthChanged = true
-			team.Authorize = auth
+			team.Authorize = p
 		}
 
 		if form.IncludesAllRepositories != nil {
