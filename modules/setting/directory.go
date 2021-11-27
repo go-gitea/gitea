@@ -23,7 +23,7 @@ func PrepareAppDataPath() error {
 	if os.IsNotExist(err) {
 		err = os.MkdirAll(AppDataPath, os.ModePerm)
 		if err != nil {
-			return fmt.Errorf("failed to create the directory for app data path '%s', err: %v", AppDataPath, err)
+			return fmt.Errorf("unable to create the APP_DATA_PATH directory: %q, Error: %v", AppDataPath, err)
 		}
 		return nil
 	}
