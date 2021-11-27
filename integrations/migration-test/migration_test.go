@@ -56,7 +56,7 @@ func initMigrationTest(t *testing.T) func() {
 		setting.CustomConf = giteaConf
 	}
 
-	setting.NewContextForTest()
+	setting.LoadForTest()
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))

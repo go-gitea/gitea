@@ -50,7 +50,7 @@ func runRestoreRepository(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.NewContextFromExistingConf()
+	setting.LoadFromExisting()
 
 	statusCode, errStr := private.RestoreRepo(
 		ctx,

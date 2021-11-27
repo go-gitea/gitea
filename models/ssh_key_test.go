@@ -16,7 +16,7 @@ import (
 
 func init() {
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContextForTest()
+	setting.LoadForTest()
 }
 
 func Test_SSHParsePublicKey(t *testing.T) {

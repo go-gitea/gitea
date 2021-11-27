@@ -546,27 +546,27 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 	}
 }
 
-// NewContextFromExistingConf initializes configuration context from an exisint config file (app.ini)
-func NewContextFromExistingConf() {
-	newContextFromConf(false)
+// LoadFromExisting initializes setting options from an existing config file (app.ini)
+func LoadFromExisting() {
+	loadFromConf(false)
 }
 
-// NewContextAllowEmptyConf initializes configuration context, it's also fine that if the config file (app.ini) doesn't exist
-func NewContextAllowEmptyConf() {
-	newContextFromConf(true)
+// LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
+func LoadAllowEmpty() {
+	loadFromConf(true)
 }
 
-// NewContextForTest initializes configuration context for tests
-func NewContextForTest() {
-	newContextFromConf(true)
+// LoadForTest initializes setting options for tests
+func LoadForTest() {
+	loadFromConf(true)
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
 }
 
-// newContextFromConf initializes configuration context.
+// loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func newContextFromConf(allowEmpty bool) {
+func loadFromConf(allowEmpty bool) {
 	Cfg = ini.Empty()
 
 	if WritePIDFile && len(PIDFile) > 0 {

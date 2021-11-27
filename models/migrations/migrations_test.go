@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContextForTest()
+	setting.LoadForTest()
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)

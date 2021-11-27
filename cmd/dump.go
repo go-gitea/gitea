@@ -159,7 +159,7 @@ func runDump(ctx *cli.Context) error {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
 	}
-	setting.NewContextFromExistingConf()
+	setting.LoadFromExisting()
 
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {

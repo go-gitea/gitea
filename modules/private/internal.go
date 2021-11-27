@@ -8,12 +8,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -24,8 +24,7 @@ Ensure you are running in the correct environment or set the correct configurati
 	}
 	return httplib.NewRequest(url, method).
 		SetContext(ctx).
-		Header("Authorization",
-			fmt.Sprintf("Bearer %s", setting.InternalToken))
+		Header("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))
 }
 
 // Response internal request response
