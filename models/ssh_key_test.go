@@ -16,7 +16,7 @@ import (
 
 func init() {
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContext(true)
+	setting.NewContextAllowEmptyConf()
 }
 
 func Test_SSHParsePublicKey(t *testing.T) {

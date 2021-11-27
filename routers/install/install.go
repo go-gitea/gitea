@@ -474,6 +474,8 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("security").Key("PASSWORD_HASH_ALGO").SetValue(form.PasswordAlgorithm)
 	}
 
+	log.Info("Save settings to custom config file %s", setting.CustomConf)
+
 	err = os.MkdirAll(filepath.Dir(setting.CustomConf), os.ModePerm)
 	if err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)

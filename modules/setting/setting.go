@@ -546,9 +546,19 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 	}
 }
 
-// NewContext initializes configuration context.
+// NewContextFromExistingConf initializes configuration context from an exisint config file (app.ini)
+func NewContextFromExistingConf() {
+	newContextFromConf(false)
+}
+
+// NewContextAllowEmptyConf initializes configuration context, it's also fine that if the config file (app.ini) doesn't exist
+func NewContextAllowEmptyConf() {
+	newContextFromConf(true)
+}
+
+// newContextFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func NewContext(allowEmpty bool) {
+func newContextFromConf(allowEmpty bool) {
 	Cfg = ini.Empty()
 
 	if WritePIDFile && len(PIDFile) > 0 {
@@ -565,9 +575,8 @@ func NewContext(allowEmpty bool) {
 		}
 	} else if !allowEmpty {
 		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
-	} else {
-		log.Warn("Unable to find configuration file: %q.\nA new configuration file will be created.", CustomConf)
-	}
+	} // else: no config file, a config file might be created at CustomConf (might not)
+
 	Cfg.NameMapper = ini.SnackCase
 
 	homeDir, err := com.HomeDir()
@@ -700,9 +709,11 @@ func NewContext(allowEmpty bool) {
 		// The correct behavior should be: creating parent directories is end users' duty. We only create sub-directories in existing parent directories.
 		// For quickstart, the parent directories should be created automatically for first startup (eg: a flag or a check of INSTALL_LOCK).
 		// Now we can take the first step to do correctly (using Mkdir) in other packages, and prepare the AppDataPath here, then make a refactor in future.
-		err = os.MkdirAll(AppDataPath, os.ModePerm)
-		if err != nil {
-			log.Fatal("Failed to create the directory for app data path '%s'", AppDataPath)
+		if allowEmpty {
+			err = os.MkdirAll(AppDataPath, os.ModePerm)
+			if err != nil {
+				log.Fatal("Failed to create the directory for app data path '%s'", AppDataPath)
+			}
 		}
 	}
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
@@ -1172,6 +1183,8 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	}
 
 	callback(cfg)
+
+	log.Info("Save settings to custom config file %s", CustomConf)
 
 	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
 		log.Fatal("failed to create '%s': %v", CustomConf, err)

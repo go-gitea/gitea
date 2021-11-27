@@ -58,7 +58,7 @@ func confirm() (bool, error) {
 }
 
 func initDB(ctx context.Context) error {
-	setting.NewContext(false)
+	setting.NewContextFromExistingConf()
 	setting.InitDBConfig()
 	setting.NewXORMLogService(false)
 
