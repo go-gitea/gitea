@@ -1624,46 +1624,6 @@ func (err ErrUploadNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
-//  ___________         __                             .__    .____                 .__          ____ ___
-//  \_   _____/__  ____/  |_  ___________  ____ _____  |  |   |    |    ____   ____ |__| ____   |    |   \______ ___________
-//   |    __)_\  \/  /\   __\/ __ \_  __ \/    \\__  \ |  |   |    |   /  _ \ / ___\|  |/    \  |    |   /  ___// __ \_  __ \
-//   |        \>    <  |  | \  ___/|  | \/   |  \/ __ \|  |__ |    |__(  <_> ) /_/  >  |   |  \ |    |  /\___ \\  ___/|  | \/
-//  /_______  /__/\_ \ |__|  \___  >__|  |___|  (____  /____/ |_______ \____/\___  /|__|___|  / |______//____  >\___  >__|
-//          \/      \/           \/           \/     \/               \/    /_____/         \/               \/     \/
-
-// ErrExternalLoginUserAlreadyExist represents a "ExternalLoginUserAlreadyExist" kind of error.
-type ErrExternalLoginUserAlreadyExist struct {
-	ExternalID    string
-	UserID        int64
-	LoginSourceID int64
-}
-
-// IsErrExternalLoginUserAlreadyExist checks if an error is a ExternalLoginUserAlreadyExist.
-func IsErrExternalLoginUserAlreadyExist(err error) bool {
-	_, ok := err.(ErrExternalLoginUserAlreadyExist)
-	return ok
-}
-
-func (err ErrExternalLoginUserAlreadyExist) Error() string {
-	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
-}
-
-// ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
-type ErrExternalLoginUserNotExist struct {
-	UserID        int64
-	LoginSourceID int64
-}
-
-// IsErrExternalLoginUserNotExist checks if an error is a ExternalLoginUserNotExist.
-func IsErrExternalLoginUserNotExist(err error) bool {
-	_, ok := err.(ErrExternalLoginUserNotExist)
-	return ok
-}
-
-func (err ErrExternalLoginUserNotExist) Error() string {
-	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
-}
-
 // .___                            ________                                   .___                   .__
 // |   | ______ ________ __   ____ \______ \   ____ ______   ____   ____    __| _/____   ____   ____ |__| ____   ______
 // |   |/  ___//  ___/  |  \_/ __ \ |    |  \_/ __ \\____ \_/ __ \ /    \  / __ |/ __ \ /    \_/ ___\|  |/ __ \ /  ___/
