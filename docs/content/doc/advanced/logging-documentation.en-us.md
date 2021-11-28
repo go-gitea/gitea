@@ -328,13 +328,13 @@ This is equivalent to sending all logs to the console, with default go log being
 ## Releasing-and-Reopening, Pausing and Resuming logging
 
 If you are running on Unix you may wish to release-and-reopen logs in order to use `logrotate` or other tools.
-It is possible force gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
+It is possible force Gitea to release and reopen it's logging files and connections by sending `SIGUSR1` to the
 running process, or running `gitea manager logging release-and-reopen`.
 
 Alternatively, you may wish to pause and resume logging - this can be accomplished through the use of the
 `gitea manager logging pause` and `gitea manager logging resume` commands. Please note that whilst logging
 is paused log events below INFO level will not be stored and only a limited number of events will be stored.
-Logging may block, albeit temporarily, slowing gitea considerably whilst paused - therefore it is
+Logging may block, albeit temporarily, slowing Gitea considerably whilst paused - therefore it is
 recommended that pausing only done for a very short period of time.
 
 ## Adding and removing logging whilst Gitea is running
@@ -439,6 +439,6 @@ Gitea includes built-in log rotation, which should be enough for most deployment
 - Install `logrotate`.
 - Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10` to the `gitea` process itself, or run `gitea manager logging release-and-reopen` (with the appropriate environment). Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
 - Always do `logrotate /etc/logrotate.conf --debug` to test your configurations. 
-- If you are using docker and are running from outside of the container you can use `docker exec -u $OS_USER $CONTAINER_NAME sh -c 'gitea manager logging release-and-reopen'` or `docker exec $CONTAINER_NAME sh -c '/bin/s6-svc -1 /etc/s6/gitea/'` or send `USR1` directly to the gitea process itself.
+- If you are using docker and are running from outside of the container you can use `docker exec -u $OS_USER $CONTAINER_NAME sh -c 'gitea manager logging release-and-reopen'` or `docker exec $CONTAINER_NAME sh -c '/bin/s6-svc -1 /etc/s6/gitea/'` or send `USR1` directly to the Gitea process itself.
 
 The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.
