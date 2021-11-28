@@ -475,17 +475,17 @@ func TestUpdateUser(t *testing.T) {
 	user := AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	user.KeepActivityPrivate = true
-	assert.NoError(t, UpdateUser(user))
+	assert.NoError(t, UpdateUser(user, false))
 	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
-	assert.Error(t, UpdateUser(user))
+	assert.Error(t, UpdateUser(user, false))
 	user = AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	user.Email = "no mail@mail.org"
-	assert.Error(t, UpdateUser(user))
+	assert.Error(t, UpdateUser(user, true))
 }

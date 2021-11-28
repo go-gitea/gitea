@@ -96,7 +96,7 @@ func SettingsPost(ctx *context.Context) {
 	visibilityChanged := form.Visibility != org.Visibility
 	org.Visibility = form.Visibility
 
-	if err := models.UpdateUser(org); err != nil {
+	if err := models.UpdateUser(org, false); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
