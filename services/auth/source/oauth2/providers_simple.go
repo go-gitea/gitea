@@ -31,7 +31,9 @@ type SimpleProvider struct {
 
 // CreateGothProvider creates a GothProvider from this Provider
 func (c *SimpleProvider) CreateGothProvider(providerName, callbackURL string, source *Source) (goth.Provider, error) {
-	scopes := append(c.scopes, source.Scopes...)
+	scopes := make([]string, len(c.scopes)+len(source.Scopes))
+	copy(scopes, c.scopes)
+	copy(scopes[len(c.scopes):], source.Scopes)
 	return c.newFn(source.ClientID, source.ClientSecret, callbackURL, scopes...), nil
 }
 
