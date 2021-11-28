@@ -1072,9 +1072,37 @@ func validateUser(u *User) error {
 	return ValidateEmail(u.Email)
 }
 
-func updateUser(e Engine, u *User) error {
+func updateUser(e Engine, u *User, changePrimaryEmail bool) error {
 	if err := validateUser(u); err != nil {
 		return err
+	}
+
+	if changePrimaryEmail {
+		var emailAddress EmailAddress
+		has, err := e.Where("lower_email=?", strings.ToLower(u.Email)).Get(&emailAddress)
+		if err != nil {
+			return err
+		}
+		if !has {
+			// 1. Update old primary email
+			if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
+				IsPrimary: false,
+			}); err != nil {
+				return err
+			}
+
+			emailAddress.Email = u.Email
+			emailAddress.UID = u.ID
+			emailAddress.IsActivated = true
+			emailAddress.IsPrimary = true
+			if _, err := e.Insert(&emailAddress); err != nil {
+				return err
+			}
+		} else if _, err := e.ID(emailAddress).Cols("is_primary").Update(&EmailAddress{
+			IsPrimary: true,
+		}); err != nil {
+			return err
+		}
 	}
 
 	_, err := e.ID(u.ID).AllCols().Update(u)
@@ -1082,8 +1110,8 @@ func updateUser(e Engine, u *User) error {
 }
 
 // UpdateUser updates user's information.
-func UpdateUser(u *User) error {
-	return updateUser(x, u)
+func UpdateUser(u *User, changePrimaryEmail bool) error {
+	return updateUser(x, u, changePrimaryEmail)
 }
 
 // UpdateUserCols update user according special columns
@@ -1112,7 +1140,7 @@ func UpdateUserSetting(u *User) (err error) {
 			return err
 		}
 	}
-	if err = updateUser(sess, u); err != nil {
+	if err = updateUser(sess, u, false); err != nil {
 		return err
 	}
 	return sess.Commit()
