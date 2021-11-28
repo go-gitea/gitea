@@ -81,7 +81,7 @@ func (org *Organization) LoadTeams() ([]*Team, error) {
 }
 
 // GetMembers returns all members of organization.
-func (org *Organization) GetMembers() (UserList, map[int64]bool, error) {
+func (org *Organization) GetMembers() (user_model.UserList, map[int64]bool, error) {
 	return FindOrgMembers(&FindOrgMembersOpts{
 		OrgID: org.ID,
 	})
@@ -149,7 +149,7 @@ func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 }
 
 // FindOrgMembers loads organization members according conditions
-func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) {
+func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
 	ous, err := GetOrgUsersByOrgID(opts)
 	if err != nil {
 		return nil, nil, err
@@ -162,7 +162,7 @@ func FindOrgMembers(opts *FindOrgMembersOpts) (UserList, map[int64]bool, error) 
 		idsIsPublic[ou.UID] = ou.IsPublic
 	}
 
-	users, err := GetUsersByIDs(ids)
+	users, err := user_model.GetUsersByIDs(ids)
 	if err != nil {
 		return nil, nil, err
 	}
