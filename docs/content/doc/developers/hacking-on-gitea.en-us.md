@@ -196,7 +196,7 @@ SVG icons are built using the `make svg` target which compiles the icon sources 
 
 ### Building the Logo
 
-The PNG and SVG versions of the gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
+The PNG and SVG versions of the Gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
 
 The same process can also be used to generate custom logo PNGs from a SVG source file by updating `assets/logo.svg` and running `make generate-images`. Omitting the `gitea` tag will update only the user-designated logo files.
 
@@ -321,12 +321,12 @@ for more information.
 ## GoLand
 
 Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
-can quickly start a debuggable gitea instance.
+can quickly start a debuggable Gitea instance.
 
 The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
 gitea project directory (which contains `main.go` and `go.mod`), 
 otherwise, the started instance's working directory is a GoLand's temporary directory 
-and prevents gitea from loading dynamic resources (eg: templates) in a development environment.  
+and prevents Gitea from loading dynamic resources (eg: templates) in a development environment.  
 
 To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
 in `Go tool arguments` of `Run/Debug Configuration`.
