@@ -13,8 +13,8 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/base"
@@ -1159,7 +1159,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
@@ -1181,7 +1181,7 @@ func TestWebhook(ctx *context.Context) {
 		After:      commit.ID.String(),
 		Commits:    []*api.PayloadCommit{apiCommit},
 		HeadCommit: apiCommit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
+		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
 		Pusher:     apiUser,
 		Sender:     apiUser,
 	}

@@ -15,12 +15,12 @@ import (
 	"github.com/markbates/goth"
 )
 
-func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*models.ExternalLoginUser, error) {
+func toExternalLoginUser(user *user_model.User, gothUser goth.User) (*user_model.ExternalLoginUser, error) {
 	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return nil, err
 	}
-	return &models.ExternalLoginUser{
+	return &user_model.ExternalLoginUser{
 		ExternalID:        gothUser.UserID,
 		UserID:            user.ID,
 		LoginSourceID:     loginSource.ID,
@@ -48,7 +48,7 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 		return err
 	}
 
-	if err := models.LinkExternalToUser(user, externalLoginUser); err != nil {
+	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
 		return err
 	}
 
@@ -76,5 +76,5 @@ func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
 		return err
 	}
 
-	return models.UpdateExternalUserByExternalID(externalLoginUser)
+	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
 }

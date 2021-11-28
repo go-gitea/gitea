@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -235,12 +236,12 @@ func NewTeamPost(ctx *context.Context) {
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		Authorize:               models.ParseAccessMode(form.Permission),
+		Authorize:               perm.ParseAccessMode(form.Permission),
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
-	if t.Authorize < models.AccessModeOwner {
+	if t.Authorize < perm.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, &models.TeamUnit{
@@ -258,7 +259,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < models.AccessModeAdmin && len(form.Units) == 0 {
+	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -325,7 +326,7 @@ func EditTeamPost(ctx *context.Context) {
 	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
-		auth := models.ParseAccessMode(form.Permission)
+		auth := perm.ParseAccessMode(form.Permission)
 
 		t.Name = form.TeamName
 		if t.Authorize != auth {
@@ -339,7 +340,7 @@ func EditTeamPost(ctx *context.Context) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize < models.AccessModeOwner {
+	if t.Authorize < perm.AccessModeOwner {
 		var units = make([]models.TeamUnit, 0, len(form.Units))
 		for _, tp := range form.Units {
 			units = append(units, models.TeamUnit{
@@ -361,7 +362,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < models.AccessModeAdmin && len(form.Units) == 0 {
+	if t.Authorize < perm.AccessModeAdmin && len(form.Units) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}

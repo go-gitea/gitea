@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -37,7 +38,7 @@ func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defa
 	} else {
 		apiKey.KeyType = "unknown"
 	}
-	apiKey.ReadOnly = key.Mode == models.AccessModeRead
+	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
 	return apiKey, nil
 }
 

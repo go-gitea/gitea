@@ -6,6 +6,7 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -111,7 +112,7 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 
 	var pemResult bool
 	if isAdd {
-		pemResult = permReviewer.CanAccessAny(models.AccessModeRead, unit.TypePullRequests)
+		pemResult = permReviewer.CanAccessAny(perm.AccessModeRead, unit.TypePullRequests)
 		if !pemResult {
 			return models.ErrNotValidReviewRequest{
 				Reason: "Reviewer can't read",
@@ -124,7 +125,7 @@ func IsValidReviewRequest(reviewer, doer *user_model.User, isAdd bool, issue *mo
 			return nil
 		}
 
-		pemResult = permDoer.CanAccessAny(models.AccessModeWrite, unit.TypePullRequests)
+		pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
 		if !pemResult {
 			pemResult, err = models.IsOfficialReviewer(issue, doer)
 			if err != nil {
@@ -201,7 +202,7 @@ func IsValidTeamReviewRequest(reviewer *models.Team, doer *user_model.User, isAd
 			}
 		}
 
-		doerCanWrite := permission.CanAccessAny(models.AccessModeWrite, unit.TypePullRequests)
+		doerCanWrite := permission.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
 		if !doerCanWrite {
 			official, err := models.IsOfficialReviewer(issue, doer)
 			if err != nil {
