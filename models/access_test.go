@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -35,34 +36,34 @@ func TestAccessLevel(t *testing.T) {
 
 	level, err := AccessLevel(user2, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeOwner, level)
+	assert.Equal(t, perm.AccessModeOwner, level)
 
 	level, err = AccessLevel(user2, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeOwner, level)
+	assert.Equal(t, perm.AccessModeOwner, level)
 
 	level, err = AccessLevel(user5, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeRead, level)
+	assert.Equal(t, perm.AccessModeRead, level)
 
 	level, err = AccessLevel(user5, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeNone, level)
+	assert.Equal(t, perm.AccessModeNone, level)
 
 	// restricted user has no access to a public repo
 	level, err = AccessLevel(user29, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeNone, level)
+	assert.Equal(t, perm.AccessModeNone, level)
 
 	// ... unless he's a collaborator
 	level, err = AccessLevel(user29, repo4)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeWrite, level)
+	assert.Equal(t, perm.AccessModeWrite, level)
 
 	// ... or a team member
 	level, err = AccessLevel(user29, repo24)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeRead, level)
+	assert.Equal(t, perm.AccessModeRead, level)
 }
 
 func TestHasAccess(t *testing.T) {
@@ -105,7 +106,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	has, err := db.GetEngine(db.DefaultContext).Get(access)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.Equal(t, AccessModeOwner, access.Mode)
+	assert.Equal(t, perm.AccessModeOwner, access.Mode)
 }
 
 func TestRepository_RecalculateAccesses2(t *testing.T) {
