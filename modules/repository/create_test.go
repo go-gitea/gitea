@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
@@ -69,25 +70,25 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		{
 			OrgID:                   org.ID,
 			Name:                    "team one",
-			Authorize:               models.AccessModeRead,
+			Authorize:               perm.AccessModeRead,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 2",
-			Authorize:               models.AccessModeRead,
+			Authorize:               perm.AccessModeRead,
 			IncludesAllRepositories: false,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team three",
-			Authorize:               models.AccessModeWrite,
+			Authorize:               perm.AccessModeWrite,
 			IncludesAllRepositories: true,
 		},
 		{
 			OrgID:                   org.ID,
 			Name:                    "team 4",
-			Authorize:               models.AccessModeWrite,
+			Authorize:               perm.AccessModeWrite,
 			IncludesAllRepositories: false,
 		},
 	}

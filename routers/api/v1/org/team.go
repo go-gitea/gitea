@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -170,12 +171,12 @@ func CreateTeam(ctx *context.APIContext) {
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		Authorize:               models.ParseAccessMode(form.Permission),
+		Authorize:               perm.ParseAccessMode(form.Permission),
 	}
 
 	unitTypes := unit_model.FindUnitTypes(form.Units...)
 
-	if team.Authorize < models.AccessModeOwner {
+	if team.Authorize < perm.AccessModeOwner {
 		var units = make([]*models.TeamUnit, 0, len(form.Units))
 		for _, tp := range unitTypes {
 			units = append(units, &models.TeamUnit{
@@ -245,7 +246,7 @@ func EditTeam(ctx *context.APIContext) {
 	isIncludeAllChanged := false
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
-		auth := models.ParseAccessMode(form.Permission)
+		auth := perm.ParseAccessMode(form.Permission)
 
 		if team.Authorize != auth {
 			isAuthChanged = true
@@ -258,7 +259,7 @@ func EditTeam(ctx *context.APIContext) {
 		}
 	}
 
-	if team.Authorize < models.AccessModeOwner {
+	if team.Authorize < perm.AccessModeOwner {
 		if len(form.Units) > 0 {
 			var units = make([]*models.TeamUnit, 0, len(form.Units))
 			unitTypes := unit_model.FindUnitTypes(form.Units...)
@@ -561,7 +562,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
-	} else if access < models.AccessModeAdmin {
+	} else if access < perm.AccessModeAdmin {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
@@ -611,7 +612,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if access, err := models.AccessLevel(ctx.User, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
-	} else if access < models.AccessModeAdmin {
+	} else if access < perm.AccessModeAdmin {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}

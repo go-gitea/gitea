@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -135,5 +136,5 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, models.AccessModeOwner))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, perm.AccessModeOwner))
 }

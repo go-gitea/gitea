@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -28,7 +29,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 		Ref:        "refs/pull/2/head",
 		Sha:        "4a357436d925b5c974181ff12a994538ddc5a269",
 		RepoID:     1,
-		Repository: ToRepo(headRepo, models.AccessModeRead),
+		Repository: ToRepo(headRepo, perm.AccessModeRead),
 	}, apiPullRequest.Head)
 
 	//withOut HeadRepo
