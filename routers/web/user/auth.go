@@ -681,13 +681,14 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			u = &user_model.User{
-				Name:        getUserName(&gothUser),
-				FullName:    gothUser.Name,
-				Email:       gothUser.Email,
-				IsActive:    !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:   login.OAuth2,
-				LoginSource: loginSource.ID,
-				LoginName:   gothUser.UserID,
+				Name:         getUserName(&gothUser),
+				FullName:     gothUser.Name,
+				Email:        gothUser.Email,
+				IsActive:     !setting.OAuth2Client.RegisterEmailConfirm,
+				LoginType:    login.OAuth2,
+				LoginSource:  loginSource.ID,
+				LoginName:    gothUser.UserID,
+				IsRestricted: setting.Service.DefaultUserIsRestricted,
 			}
 
 			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
