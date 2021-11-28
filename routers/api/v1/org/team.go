@@ -113,6 +113,10 @@ func ListUserTeams(ctx *context.APIContext) {
 			apiOrg = convert.ToOrganization(org)
 			cache[teams[i].OrgID] = apiOrg
 		}
+		if err := teams[i].GetUnits(); err != nil {
+			ctx.Error(http.StatusInternalServerError, "teams[i].GetUnits()", err)
+			return
+		}
 		apiTeams[i] = convert.ToTeam(teams[i])
 		apiTeams[i].Organization = apiOrg
 	}
@@ -138,6 +142,11 @@ func GetTeam(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Team"
+
+	if err := ctx.Org.Team.GetUnits(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "team.GetUnits", err)
+		return
+	}
 
 	ctx.JSON(http.StatusOK, convert.ToTeam(ctx.Org.Team))
 }
@@ -200,7 +209,7 @@ func CreateTeam(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.CreateTeamOption)
 
 	var p = perm.ParseAccessMode(form.Permission)
-	if p < perm.AccessModeOwner {
+	if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
 		p = perm.MinUnitPerms(convertUnitsMap(form.UnitsMap))
 	}
 
@@ -213,7 +222,7 @@ func CreateTeam(ctx *context.APIContext) {
 		Authorize:               p,
 	}
 
-	if team.Authorize < perm.AccessModeOwner {
+	if team.Authorize < perm.AccessModeAdmin {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
@@ -284,7 +293,7 @@ func EditTeam(ctx *context.APIContext) {
 	if !team.IsOwnerTeam() && len(form.Permission) != 0 {
 		// Validate permission level.
 		var p = perm.ParseAccessMode(form.Permission)
-		if p < perm.AccessModeOwner {
+		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
 			p = perm.MinUnitPerms(convertUnitsMap(form.UnitsMap))
 		}
 
@@ -299,7 +308,7 @@ func EditTeam(ctx *context.APIContext) {
 		}
 	}
 
-	if team.Authorize < perm.AccessModeOwner {
+	if team.Authorize < perm.AccessModeAdmin {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
