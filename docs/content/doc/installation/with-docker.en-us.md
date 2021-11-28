@@ -303,7 +303,7 @@ services:
     - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-To set required TOKEN and SECRET values, consider using gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
 ## SSH Container Passthrough
 

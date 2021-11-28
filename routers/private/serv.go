@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -79,7 +80,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":keyid")
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
-	mode := models.AccessMode(ctx.FormInt("mode"))
+	mode := perm.AccessMode(ctx.FormInt("mode"))
 
 	// Set the basic parts of the results to return
 	results := private.ServCommandResults{
@@ -90,7 +91,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now because we're not translating things properly let's just default some English strings here
 	modeString := "read"
-	if mode > models.AccessModeRead {
+	if mode > perm.AccessModeRead {
 		modeString = "write to"
 	}
 
@@ -172,7 +173,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		}
 
 		// We can shortcut at this point if the repo is a mirror
-		if mode > models.AccessModeRead && repo.IsMirror {
+		if mode > perm.AccessModeRead && repo.IsMirror {
 			ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Mirror Repository %s/%s is read-only", results.OwnerName, results.RepoName),
@@ -280,7 +281,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Don't allow pushing if the repo is archived
-	if repoExist && mode > models.AccessModeRead && repo.IsArchived {
+	if repoExist && mode > perm.AccessModeRead && repo.IsArchived {
 		ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
 			Results: results,
 			Err:     fmt.Sprintf("Repo: %s/%s is archived.", results.OwnerName, results.RepoName),
@@ -290,7 +291,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Permissions checking:
 	if repoExist &&
-		(mode > models.AccessModeRead ||
+		(mode > perm.AccessModeRead ||
 			repo.IsPrivate ||
 			owner.Visibility.IsPrivate() ||
 			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
@@ -306,7 +307,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		} else {
 			// Because of the special ref "refs/for" we will need to delay write permission check
 			if git.SupportProcReceive && unitType == unit.TypeCode {
-				mode = models.AccessModeRead
+				mode = perm.AccessModeRead
 			}
 
 			perm, err := models.GetUserRepoPermission(repo, user)
