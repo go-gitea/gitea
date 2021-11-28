@@ -16,7 +16,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -94,8 +96,8 @@ func SettingsPost(ctx *context.Context) {
 				switch {
 				case models.IsErrRepoAlreadyExist(err):
 					ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tplSettingsOptions, &form)
-				case models.IsErrNameReserved(err):
-					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tplSettingsOptions, &form)
+				case db.IsErrNameReserved(err):
+					ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplSettingsOptions, &form)
 				case models.IsErrRepoFilesAlreadyExist(err):
 					ctx.Data["Err_RepoName"] = true
 					switch {
@@ -108,8 +110,8 @@ func SettingsPost(ctx *context.Context) {
 					default:
 						ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tplSettingsOptions, form)
 					}
-				case models.IsErrNamePatternNotAllowed(err):
-					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
+				case db.IsErrNamePatternNotAllowed(err):
+					ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplSettingsOptions, &form)
 				default:
 					ctx.ServerError("ChangeRepositoryName", err)
 				}
@@ -577,9 +579,9 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		newOwner, err := models.GetUserByName(ctx.FormString("new_owner_name"))
+		newOwner, err := user_model.GetUserByName(ctx.FormString("new_owner_name"))
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
 			}
@@ -587,7 +589,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if newOwner.Type == models.UserTypeOrganization {
+		if newOwner.Type == user_model.UserTypeOrganization {
 			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -798,9 +800,9 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	u, err := models.GetUserByName(name)
+	u, err := user_model.GetUserByName(name)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 		} else {
@@ -845,7 +847,7 @@ func CollaborationPost(ctx *context.Context) {
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.FormInt64("uid"),
-		models.AccessMode(ctx.FormInt("mode"))); err != nil {
+		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
 	}
 }
@@ -935,10 +937,10 @@ func DeleteTeam(ctx *context.Context) {
 }
 
 // parseOwnerAndRepo get repos by owner
-func parseOwnerAndRepo(ctx *context.Context) (*models.User, *models.Repository) {
-	owner, err := models.GetUserByName(ctx.Params(":username"))
+func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *models.Repository) {
+	owner, err := user_model.GetUserByName(ctx.Params(":username"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound("GetUserByName", err)
 		} else {
 			ctx.ServerError("GetUserByName", err)

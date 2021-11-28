@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/repository"
@@ -134,7 +135,7 @@ func checkDaemonExport(logger log.Logger, autofix bool) error {
 		numRepos++
 
 		if owner, has := cache.Get(repo.OwnerID); has {
-			repo.Owner = owner.(*models.User)
+			repo.Owner = owner.(*user_model.User)
 		} else {
 			if err := repo.GetOwner(); err != nil {
 				return err

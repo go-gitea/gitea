@@ -33,24 +33,24 @@ func FollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = db.Insert(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
 		return err
 	}
 
-	if _, err = sess.Insert(&Follow{UserID: userID, FollowID: followID}); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_followers = num_followers + 1 WHERE id = ?", followID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
 		return err
 	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_following = num_following + 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // UnfollowUser unmarks someone as another's follower.
@@ -59,22 +59,22 @@ func UnfollowUser(userID, followID int64) (err error) {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if _, err = db.DeleteByBean(ctx, &Follow{UserID: userID, FollowID: followID}); err != nil {
 		return err
 	}
 
-	if _, err = sess.Delete(&Follow{UserID: userID, FollowID: followID}); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `user` SET num_followers = num_followers - 1 WHERE id = ?", followID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `user` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
 		return err
 	}
-
-	if _, err = sess.Exec("UPDATE `user` SET num_following = num_following - 1 WHERE id = ?", userID); err != nil {
-		return err
-	}
-	return sess.Commit()
+	return committer.Commit()
 }

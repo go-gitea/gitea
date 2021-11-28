@@ -10,7 +10,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
@@ -61,7 +63,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeRead,
+		Mode:    perm.AccessModeRead,
 	})
 }
 
@@ -91,7 +93,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeWrite,
+		Mode:    perm.AccessModeWrite,
 	})
 }
 
@@ -105,9 +107,9 @@ func TestCollaborationPost(t *testing.T) {
 
 	ctx.Req.Form.Set("collaborator", "user4")
 
-	u := &models.User{
+	u := &user_model.User{
 		LowerName: "user2",
-		Type:      models.UserTypeIndividual,
+		Type:      user_model.UserTypeIndividual,
 	}
 
 	re := &models.Repository{
@@ -142,7 +144,7 @@ func TestCollaborationPost_InactiveUser(t *testing.T) {
 	ctx.Req.Form.Set("collaborator", "user9")
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			LowerName: "user2",
 		},
 	}
@@ -165,9 +167,9 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	ctx.Req.Form.Set("collaborator", "user4")
 
-	u := &models.User{
+	u := &user_model.User{
 		LowerName: "user2",
-		Type:      models.UserTypeIndividual,
+		Type:      user_model.UserTypeIndividual,
 	}
 
 	re := &models.Repository{
@@ -207,7 +209,7 @@ func TestCollaborationPost_NonExistentUser(t *testing.T) {
 	ctx.Req.Form.Set("collaborator", "user34")
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			LowerName: "user2",
 		},
 	}
@@ -226,9 +228,9 @@ func TestAddTeamPost(t *testing.T) {
 
 	ctx.Req.Form.Set("team", "team11")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -243,7 +245,7 @@ func TestAddTeamPost(t *testing.T) {
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: true,
@@ -266,9 +268,9 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 
 	ctx.Req.Form.Set("team", "team11")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -283,7 +285,7 @@ func TestAddTeamPost_NotAllowed(t *testing.T) {
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: false,
@@ -307,9 +309,9 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 
 	ctx.Req.Form.Set("team", "team11")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -324,7 +326,7 @@ func TestAddTeamPost_AddTeamTwice(t *testing.T) {
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: true,
@@ -348,9 +350,9 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 
 	ctx.Req.Form.Set("team", "team-non-existent")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org26",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	re := &models.Repository{
@@ -360,7 +362,7 @@ func TestAddTeamPost_NonExistentTeam(t *testing.T) {
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        26,
 			LowerName:                 "org26",
 			RepoAdminChangeTeamAccess: true,
@@ -381,9 +383,9 @@ func TestDeleteTeam(t *testing.T) {
 
 	ctx.Req.Form.Set("id", "2")
 
-	org := &models.User{
+	org := &user_model.User{
 		LowerName: "org3",
-		Type:      models.UserTypeOrganization,
+		Type:      user_model.UserTypeOrganization,
 	}
 
 	team := &models.Team{
@@ -398,7 +400,7 @@ func TestDeleteTeam(t *testing.T) {
 	}
 
 	repo := &context.Repository{
-		Owner: &models.User{
+		Owner: &user_model.User{
 			ID:                        3,
 			LowerName:                 "org3",
 			RepoAdminChangeTeamAccess: true,

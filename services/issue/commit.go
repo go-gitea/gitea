@@ -1,8 +1,8 @@
-// Copyright 2019 The Gitea Authors. All rights reserved.
+// Copyright 2021 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repofiles
+package issue
 
 import (
 	"fmt"
@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/notification"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/repository"
 )
@@ -28,19 +28,6 @@ const (
 )
 
 var reDuration = regexp.MustCompile(`(?i)^(?:(\d+([\.,]\d+)?)(?:mo))?(?:(\d+([\.,]\d+)?)(?:w))?(?:(\d+([\.,]\d+)?)(?:d))?(?:(\d+([\.,]\d+)?)(?:h))?(?:(\d+([\.,]\d+)?)(?:m))?$`)
-
-// getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
-// if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error) {
-	issue, err := models.GetIssueByIndex(repo.ID, index)
-	if err != nil {
-		if models.IsErrIssueNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return issue, nil
-}
 
 // timeLogToAmount parses time log string and returns amount in seconds
 func timeLogToAmount(str string) int64 {
@@ -86,7 +73,7 @@ func timeLogToAmount(str string) int64 {
 	return a
 }
 
-func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLog string) error {
+func issueAddTime(issue *models.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeLogToAmount(timeLog)
 	if amount == 0 {
 		return nil
@@ -96,35 +83,21 @@ func issueAddTime(issue *models.Issue, doer *models.User, time time.Time, timeLo
 	return err
 }
 
-func changeIssueStatus(repo *models.Repository, issue *models.Issue, doer *models.User, closed bool) error {
-	stopTimerIfAvailable := func(doer *models.User, issue *models.Issue) error {
-
-		if models.StopwatchExists(doer.ID, issue.ID) {
-			if err := models.CreateOrStopIssueStopwatch(doer, issue); err != nil {
-				return err
-			}
-		}
-
-		return nil
-	}
-
-	issue.Repo = repo
-	comment, err := issue.ChangeStatus(doer, closed)
+// getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
+// if the provided ref references a non-existent issue.
+func getIssueFromRef(repo *models.Repository, index int64) (*models.Issue, error) {
+	issue, err := models.GetIssueByIndex(repo.ID, index)
 	if err != nil {
-		// Don't return an error when dependencies are open as this would let the push fail
-		if models.IsErrDependenciesLeft(err) {
-			return stopTimerIfAvailable(doer, issue)
+		if models.IsErrIssueNotExist(err) {
+			return nil, nil
 		}
-		return err
+		return nil, err
 	}
-
-	notification.NotifyIssueChangeStatus(doer, issue, comment, closed)
-
-	return stopTimerIfAvailable(doer, issue)
+	return issue, nil
 }
 
 // UpdateIssuesCommit checks if issues are manipulated by commit message.
-func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
+func UpdateIssuesCommit(doer *user_model.User, repo *models.Repository, commits []*repository.PushCommit, branchName string) error {
 	// Commits are appended in the reverse order.
 	for i := len(commits) - 1; i >= 0; i-- {
 		c := commits[i]
@@ -209,7 +182,8 @@ func UpdateIssuesCommit(doer *models.User, repo *models.Repository, commits []*r
 				}
 			}
 			if close != refIssue.IsClosed {
-				if err := changeIssueStatus(refRepo, refIssue, doer, close); err != nil {
+				refIssue.Repo = refRepo
+				if err := ChangeStatus(refIssue, doer, close); err != nil {
 					return err
 				}
 			}

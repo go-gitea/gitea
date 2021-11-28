@@ -11,6 +11,8 @@ import (
 	"net/url"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -18,11 +20,11 @@ import (
 // KeyAndOwner is the response from ServNoCommand
 type KeyAndOwner struct {
 	Key   *models.PublicKey `json:"key"`
-	Owner *models.User      `json:"user"`
+	Owner *user_model.User  `json:"user"`
 }
 
 // ServNoCommand returns information about the provided key
-func ServNoCommand(ctx context.Context, keyID int64) (*models.PublicKey, *models.User, error) {
+func ServNoCommand(ctx context.Context, keyID int64) (*models.PublicKey, *user_model.User, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/none/%d",
 		keyID)
 	resp, err := newInternalRequest(ctx, reqURL, "GET").Response()
@@ -73,7 +75,7 @@ func IsErrServCommand(err error) bool {
 }
 
 // ServCommand preps for a serv call
-func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode models.AccessMode, verbs ...string) (*ServCommandResults, error) {
+func ServCommand(ctx context.Context, keyID int64, ownerName, repoName string, mode perm.AccessMode, verbs ...string) (*ServCommandResults, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/command/%d/%s/%s?mode=%d",
 		keyID,
 		url.PathEscape(ownerName),

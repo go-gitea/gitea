@@ -10,6 +10,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -99,7 +101,7 @@ func CreateFork(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.CreateForkOption)
 	repo := ctx.Repo.Repository
-	var forker *models.User // user/org that will own the fork
+	var forker *user_model.User // user/org that will own the fork
 	if form.Organization == nil {
 		forker = ctx.User
 	} else {
@@ -134,5 +136,5 @@ func CreateFork(ctx *context.APIContext) {
 	}
 
 	//TODO change back to 201
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, models.AccessModeOwner))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(fork, perm.AccessModeOwner))
 }

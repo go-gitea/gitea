@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 
 	"xorm.io/xorm"
@@ -94,13 +95,13 @@ func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int)
 	}
 	users := make(map[int64]*ActivityAuthorData)
 	var unknownUserID int64
-	unknownUserAvatarLink := NewGhostUser().AvatarLink()
+	unknownUserAvatarLink := user_model.NewGhostUser().AvatarLink()
 	for _, v := range code.Authors {
 		if len(v.Email) == 0 {
 			continue
 		}
-		u, err := GetUserByEmail(v.Email)
-		if u == nil || IsErrUserNotExist(err) {
+		u, err := user_model.GetUserByEmail(v.Email)
+		if u == nil || user_model.IsErrUserNotExist(err) {
 			unknownUserID--
 			users[unknownUserID] = &ActivityAuthorData{
 				Name:       v.Name,

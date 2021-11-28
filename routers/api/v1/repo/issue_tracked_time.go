@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -92,8 +93,8 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := models.GetUserByName(qUser)
-		if models.IsErrUserNotExist(err) {
+		user, err := user_model.GetUserByName(qUser)
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -201,7 +202,7 @@ func AddTime(ctx *context.APIContext) {
 	if form.User != "" {
 		if (ctx.IsUserRepoAdmin() && ctx.User.Name != form.User) || ctx.User.IsAdmin {
 			//allow only RepoAdmin, Admin and User to add time
-			user, err = models.GetUserByName(form.User)
+			user, err = user_model.GetUserByName(form.User)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
@@ -413,9 +414,9 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
-	user, err := models.GetUserByName(ctx.Params(":timetrackingusername"))
+	user, err := user_model.GetUserByName(ctx.Params(":timetrackingusername"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
@@ -510,8 +511,8 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// Filters
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := models.GetUserByName(qUser)
-		if models.IsErrUserNotExist(err) {
+		user, err := user_model.GetUserByName(qUser)
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)

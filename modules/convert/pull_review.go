@@ -8,16 +8,17 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToPullReview convert a review to api format
-func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) {
+func ToPullReview(r *models.Review, doer *user_model.User) (*api.PullReview, error) {
 	if err := r.LoadAttributes(); err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		}
-		r.Reviewer = models.NewGhostUser()
+		r.Reviewer = user_model.NewGhostUser()
 	}
 
 	result := &api.PullReview{
@@ -53,7 +54,7 @@ func ToPullReview(r *models.Review, doer *models.User) (*api.PullReview, error) 
 }
 
 // ToPullReviewList convert a list of review to it's api format
-func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview, error) {
+func ToPullReviewList(rl []*models.Review, doer *user_model.User) ([]*api.PullReview, error) {
 	result := make([]*api.PullReview, 0, len(rl))
 	for i := range rl {
 		// show pending reviews only for the user who created them
@@ -70,12 +71,12 @@ func ToPullReviewList(rl []*models.Review, doer *models.User) ([]*api.PullReview
 }
 
 // ToPullReviewCommentList convert the CodeComments of an review to it's api format
-func ToPullReviewCommentList(review *models.Review, doer *models.User) ([]*api.PullReviewComment, error) {
+func ToPullReviewCommentList(review *models.Review, doer *user_model.User) ([]*api.PullReviewComment, error) {
 	if err := review.LoadAttributes(); err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		}
-		review.Reviewer = models.NewGhostUser()
+		review.Reviewer = user_model.NewGhostUser()
 	}
 
 	apiComments := make([]*api.PullReviewComment, 0, len(review.CodeComments))

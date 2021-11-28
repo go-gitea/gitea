@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
@@ -38,16 +39,16 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 // ToPayloadCommit convert a git.Commit to api.PayloadCommit
 func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
-	if author, err := models.GetUserByEmail(c.Author.Email); err == nil {
+	if author, err := user_model.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
-	} else if !models.IsErrUserNotExist(err) {
+	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
 	committerUsername := ""
-	if committer, err := models.GetUserByEmail(c.Committer.Email); err == nil {
+	if committer, err := user_model.GetUserByEmail(c.Committer.Email); err == nil {
 		committerUsername = committer.Name
-	} else if !models.IsErrUserNotExist(err) {
+	} else if !user_model.IsErrUserNotExist(err) {
 		log.Error("GetUserByEmail: %v", err)
 	}
 
@@ -71,16 +72,16 @@ func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit 
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*models.User) (*api.Commit, error) {
+func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
 
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
 
-	var cacheAuthor *models.User
+	var cacheAuthor *user_model.User
 	var ok bool
 	if userCache == nil {
-		cacheAuthor = (*models.User)(nil)
+		cacheAuthor = (*user_model.User)(nil)
 		ok = false
 	} else {
 		cacheAuthor, ok = userCache[commit.Author.Email]
@@ -89,8 +90,8 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	if ok {
 		apiAuthor = ToUser(cacheAuthor, nil)
 	} else {
-		author, err := models.GetUserByEmail(commit.Author.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
+		author, err := user_model.GetUserByEmail(commit.Author.Email)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
 			apiAuthor = ToUser(author, nil)
@@ -100,9 +101,9 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 		}
 	}
 
-	var cacheCommitter *models.User
+	var cacheCommitter *user_model.User
 	if userCache == nil {
-		cacheCommitter = (*models.User)(nil)
+		cacheCommitter = (*user_model.User)(nil)
 		ok = false
 	} else {
 		cacheCommitter, ok = userCache[commit.Committer.Email]
@@ -111,8 +112,8 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	if ok {
 		apiCommitter = ToUser(cacheCommitter, nil)
 	} else {
-		committer, err := models.GetUserByEmail(commit.Committer.Email)
-		if err != nil && !models.IsErrUserNotExist(err) {
+		committer, err := user_model.GetUserByEmail(commit.Committer.Email)
+		if err != nil && !user_model.IsErrUserNotExist(err) {
 			return nil, err
 		} else if err == nil {
 			apiCommitter = ToUser(committer, nil)
