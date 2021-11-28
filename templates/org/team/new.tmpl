@@ -75,10 +75,17 @@
 								<label>{{.i18n.Tr "org.team_unit_desc"}}</label>
 								<table class="ui celled table">
 									<thead>
-										<tr><th class="center aligned">{{.i18n.Tr "units.unit"}}</th>
-										<th class="center aligned"><div data-content="{{.i18n.Tr "org.teams.none_access_helper"}}">{{.i18n.Tr "org.teams.none_access"}}</div></th>
-										<th class="center aligned">{{.i18n.Tr "org.teams.read_access"}}</th>
-										<th class="center aligned">{{.i18n.Tr "org.teams.write_access"}}</th></tr>
+										<tr>
+											<th class="center aligned">{{.i18n.Tr "units.unit"}}</th>
+											<th class="center aligned">{{.i18n.Tr "org.teams.none_access"}}
+											<i class="circle help icon link tooltip" data-content="{{.i18n.Tr "org.teams.none_access_helper"}}"></i></th>
+											<th class="center aligned">{{.i18n.Tr "org.teams.read_access"}}
+											<i class="circle help icon link tooltip" data-content="{{.i18n.Tr "org.teams.read_access_helper"}}"></i>
+											</th>
+											<th class="center aligned">{{.i18n.Tr "org.teams.write_access"}}
+											<i class="circle help icon link tooltip" data-content="{{.i18n.Tr "org.teams.write_access_helper"}}"></i>
+											</th>
+										</tr>
 									</thead>
 									<tbody>
 										{{range $t, $unit := $.Units}}
@@ -97,7 +104,7 @@
 											</td>
 											<td class="center aligned">
 												<div class="ui radio checkbox">
-													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="0"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 0)}} checked{{end}}>
+													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="0"{{if (eq ($.Team.UnitAccessMode $unit.Type) 0)}} checked{{end}}>
 												</div>
 											</td>
 											<td class="center aligned">
@@ -107,7 +114,7 @@
 											</td>
 											<td class="center aligned">
 												<div class="ui radio checkbox">
-													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 2)}} checked{{end}}>
+													<input type="radio" class="hidden" name="unit_{{$unit.Type.Value}}" value="2"{{if (eq ($.Team.UnitAccessMode $unit.Type) 2)}} checked{{end}}>
 												</div>
 											</td>
 										</tr>
