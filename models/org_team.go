@@ -151,6 +151,15 @@ func (t *Team) GetUnitNames() (res []string) {
 	return
 }
 
+// GetUnitsMap returns the team units permissions
+func (t *Team) GetUnitsMap() map[string]string {
+	var m = make(map[string]string)
+	for _, u := range t.Units {
+		m[u.Unit().NameKey] = u.Authorize.String()
+	}
+	return m
+}
+
 // IsOwnerTeam returns true if team is owner team.
 func (t *Team) IsOwnerTeam() bool {
 	return t.Name == ownerTeamName
@@ -665,7 +674,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 			Delete(new(TeamUnit)); err != nil {
 			return err
 		}
-		if _, err = sess.Cols("org_id", "team_id", "type").Insert(&t.Units); err != nil {
+		if _, err = sess.Cols("org_id", "team_id", "type", "authorize").Insert(&t.Units); err != nil {
 			return err
 		}
 	}

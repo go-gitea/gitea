@@ -2147,7 +2147,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *user_
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.Authorize >= perm.AccessModeOwner {
+				if team.Authorize >= perm.AccessModeAdmin {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
