@@ -8,6 +8,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 )
 
@@ -498,7 +499,7 @@ func (err ErrLFSLockNotExist) Error() string {
 type ErrLFSUnauthorizedAction struct {
 	RepoID   int64
 	UserName string
-	Mode     AccessMode
+	Mode     perm.AccessMode
 }
 
 // IsErrLFSUnauthorizedAction checks if an error is a ErrLFSUnauthorizedAction.
@@ -508,7 +509,7 @@ func IsErrLFSUnauthorizedAction(err error) bool {
 }
 
 func (err ErrLFSUnauthorizedAction) Error() string {
-	if err.Mode == AccessModeWrite {
+	if err.Mode == perm.AccessModeWrite {
 		return fmt.Sprintf("User %s doesn't have write access for lfs lock [rid: %d]", err.UserName, err.RepoID)
 	}
 	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)

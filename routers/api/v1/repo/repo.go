@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -276,7 +277,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		ctx.Error(http.StatusInternalServerError, "GetRepositoryByID", err)
 	}
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeOwner))
 }
 
 // Create one repository of mine
@@ -420,7 +421,7 @@ func Generate(ctx *context.APIContext) {
 	}
 	log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 
-	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, models.AccessModeOwner))
+	ctx.JSON(http.StatusCreated, convert.ToRepo(repo, perm.AccessModeOwner))
 }
 
 // CreateOrgRepoDeprecated create one repository of the organization
