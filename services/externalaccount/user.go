@@ -22,7 +22,7 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 		return err
 	}
 
-	externalLoginUser := &models.ExternalLoginUser{
+	externalLoginUser := &user_model.ExternalLoginUser{
 		ExternalID:        gothUser.UserID,
 		UserID:            user.ID,
 		LoginSourceID:     loginSource.ID,
@@ -42,7 +42,7 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 		ExpiresAt:         gothUser.ExpiresAt,
 	}
 
-	if err := models.LinkExternalToUser(user, externalLoginUser); err != nil {
+	if err := user_model.LinkExternalToUser(user, externalLoginUser); err != nil {
 		return err
 	}
 

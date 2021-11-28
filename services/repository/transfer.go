@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/sync"
@@ -104,7 +105,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *models.Repos
 		if err := repo.AddCollaborator(newOwner); err != nil {
 			return err
 		}
-		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, models.AccessModeRead); err != nil {
+		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}
