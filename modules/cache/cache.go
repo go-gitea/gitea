@@ -43,7 +43,9 @@ func NewContext() error {
 		}
 		val := conn.Get(testKey)
 		if valStr, ok := val.(string); !ok || valStr != testVal {
-			log.Warn("cache (adapter:%s, config:%s) doesn't work correctly, set test value '%v' but get '%v'",
+			// If the cache is full, the Get may not read the expected value stored by Put.
+			// Since we have checked that Put can success, so we just show a warning here, do not return an error to panic.
+			log.Warn("cache (adapter:%s, config:%s) doesn't seem to work correctly, set test value '%v' but get '%v'",
 				setting.CacheService.Cache.Adapter, setting.CacheService.Cache.Conn,
 				testVal, val,
 			)
