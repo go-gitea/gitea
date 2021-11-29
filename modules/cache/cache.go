@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	mc "gitea.com/go-chi/cache"
@@ -42,7 +43,7 @@ func NewContext() error {
 		}
 		val := conn.Get(testKey)
 		if valStr, ok := val.(string); !ok || valStr != testVal {
-			return fmt.Errorf("cache (adapter:%s, config:%s) doesn't work correctly, set test value '%v' but get '%v'",
+			log.Warn("cache (adapter:%s, config:%s) doesn't work correctly, set test value '%v' but get '%v'",
 				setting.CacheService.Cache.Adapter, setting.CacheService.Cache.Conn,
 				testVal, val,
 			)
