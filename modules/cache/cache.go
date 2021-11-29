@@ -35,6 +35,18 @@ func NewContext() error {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
 			return err
 		}
+		const testKey = "__gitea_cache_test"
+		const testVal = "test-value"
+		if err = conn.Put(testKey, testVal, 10); err != nil {
+			return err
+		}
+		val := conn.Get(testKey)
+		if valStr, ok := val.(string); !ok || valStr != testVal {
+			return fmt.Errorf("cache (adapter:%s, config:%s) doesn't work correctly, set test value '%v' but get '%v'",
+				setting.CacheService.Cache.Adapter, setting.CacheService.Cache.Conn,
+				testVal, val,
+			)
+		}
 	}
 
 	return err
