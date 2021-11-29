@@ -8,55 +8,57 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	perm_model "code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // Permission contains all the permissions related variables to a repository for a user
 type Permission struct {
-	AccessMode AccessMode
+	AccessMode perm_model.AccessMode
 	Units      []*RepoUnit
-	UnitsMode  map[unit.Type]AccessMode
+	UnitsMode  map[unit.Type]perm_model.AccessMode
 }
 
 // IsOwner returns true if current user is the owner of repository.
 func (p *Permission) IsOwner() bool {
-	return p.AccessMode >= AccessModeOwner
+	return p.AccessMode >= perm_model.AccessModeOwner
 }
 
 // IsAdmin returns true if current user has admin or higher access of repository.
 func (p *Permission) IsAdmin() bool {
-	return p.AccessMode >= AccessModeAdmin
+	return p.AccessMode >= perm_model.AccessModeAdmin
 }
 
 // HasAccess returns true if the current user has at least read access to any unit of this repository
 func (p *Permission) HasAccess() bool {
 	if p.UnitsMode == nil {
-		return p.AccessMode >= AccessModeRead
+		return p.AccessMode >= perm_model.AccessModeRead
 	}
 	return len(p.UnitsMode) > 0
 }
 
 // UnitAccessMode returns current user accessmode to the specify unit of the repository
-func (p *Permission) UnitAccessMode(unitType unit.Type) AccessMode {
+func (p *Permission) UnitAccessMode(unitType unit.Type) perm_model.AccessMode {
 	if p.UnitsMode == nil {
 		for _, u := range p.Units {
 			if u.Type == unitType {
 				return p.AccessMode
 			}
 		}
-		return AccessModeNone
+		return perm_model.AccessModeNone
 	}
 	return p.UnitsMode[unitType]
 }
 
 // CanAccess returns true if user has mode access to the unit of the repository
-func (p *Permission) CanAccess(mode AccessMode, unitType unit.Type) bool {
+func (p *Permission) CanAccess(mode perm_model.AccessMode, unitType unit.Type) bool {
 	return p.UnitAccessMode(unitType) >= mode
 }
 
 // CanAccessAny returns true if user has mode access to any of the units of the repository
-func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...unit.Type) bool {
+func (p *Permission) CanAccessAny(mode perm_model.AccessMode, unitTypes ...unit.Type) bool {
 	for _, u := range unitTypes {
 		if p.CanAccess(mode, u) {
 			return true
@@ -67,12 +69,12 @@ func (p *Permission) CanAccessAny(mode AccessMode, unitTypes ...unit.Type) bool 
 
 // CanRead returns true if user could read to this unit
 func (p *Permission) CanRead(unitType unit.Type) bool {
-	return p.CanAccess(AccessModeRead, unitType)
+	return p.CanAccess(perm_model.AccessModeRead, unitType)
 }
 
 // CanReadAny returns true if user has read access to any of the units of the repository
 func (p *Permission) CanReadAny(unitTypes ...unit.Type) bool {
-	return p.CanAccessAny(AccessModeRead, unitTypes...)
+	return p.CanAccessAny(perm_model.AccessModeRead, unitTypes...)
 }
 
 // CanReadIssuesOrPulls returns true if isPull is true and user could read pull requests and
@@ -86,7 +88,7 @@ func (p *Permission) CanReadIssuesOrPulls(isPull bool) bool {
 
 // CanWrite returns true if user could write to this unit
 func (p *Permission) CanWrite(unitType unit.Type) bool {
-	return p.CanAccess(AccessModeWrite, unitType)
+	return p.CanAccess(perm_model.AccessModeWrite, unitType)
 }
 
 // CanWriteIssuesOrPulls returns true if isPull is true and user could write to pull requests and
@@ -102,7 +104,7 @@ func (p *Permission) CanWriteIssuesOrPulls(isPull bool) bool {
 func (p *Permission) ColorFormat(s fmt.State) {
 	noColor := log.ColorBytes(log.Reset)
 
-	format := "AccessMode: %-v, %d Units, %d UnitsMode(s): [ "
+	format := "perm_model.AccessMode: %-v, %d Units, %d UnitsMode(s): [ "
 	args := []interface{}{
 		p.AccessMode,
 		log.NewColoredValueBytes(len(p.Units), &noColor),
@@ -140,11 +142,11 @@ func (p *Permission) ColorFormat(s fmt.State) {
 }
 
 // GetUserRepoPermission returns the user permissions to the repository
-func GetUserRepoPermission(repo *Repository, user *User) (Permission, error) {
+func GetUserRepoPermission(repo *Repository, user *user_model.User) (Permission, error) {
 	return getUserRepoPermission(db.GetEngine(db.DefaultContext), repo, user)
 }
 
-func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Permission, err error) {
+func getUserRepoPermission(e db.Engine, repo *Repository, user *user_model.User) (perm Permission, err error) {
 	if log.IsTrace() {
 		defer func() {
 			if user == nil {
@@ -162,7 +164,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 	// anonymous user visit private repo.
 	// TODO: anonymous user visit public unit of private repo???
 	if user == nil && repo.IsPrivate {
-		perm.AccessMode = AccessModeNone
+		perm.AccessMode = perm_model.AccessModeNone
 		return
 	}
 
@@ -181,7 +183,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
 	if !hasOrgOrUserVisible(e, repo.Owner, user) && !isCollaborator {
-		perm.AccessMode = AccessModeNone
+		perm.AccessMode = perm_model.AccessModeNone
 		return
 	}
 
@@ -193,13 +195,13 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 
 	// anonymous visit public repo
 	if user == nil {
-		perm.AccessMode = AccessModeRead
+		perm.AccessMode = perm_model.AccessModeRead
 		return
 	}
 
 	// Admin or the owner has super access to the repository
 	if user.IsAdmin || user.ID == repo.OwnerID {
-		perm.AccessMode = AccessModeOwner
+		perm.AccessMode = perm_model.AccessModeOwner
 		return
 	}
 
@@ -216,7 +218,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 		return
 	}
 
-	perm.UnitsMode = make(map[unit.Type]AccessMode)
+	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
 
 	// Collaborators on organization
 	if isCollaborator {
@@ -233,8 +235,8 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 
 	// if user in an owner team
 	for _, team := range teams {
-		if team.Authorize >= AccessModeOwner {
-			perm.AccessMode = AccessModeOwner
+		if team.Authorize >= perm_model.AccessModeOwner {
+			perm.AccessMode = perm_model.AccessModeOwner
 			perm.UnitsMode = nil
 			return
 		}
@@ -255,7 +257,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 		// for a public repo on an organization, a non-restricted user has read permission on non-team defined units.
 		if !found && !repo.IsPrivate && !user.IsRestricted {
 			if _, ok := perm.UnitsMode[u.Type]; !ok {
-				perm.UnitsMode[u.Type] = AccessModeRead
+				perm.UnitsMode[u.Type] = perm_model.AccessModeRead
 			}
 		}
 	}
@@ -274,13 +276,12 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *User) (perm Perm
 }
 
 // IsUserRealRepoAdmin check if this user is real repo admin
-func IsUserRealRepoAdmin(repo *Repository, user *User) (bool, error) {
+func IsUserRealRepoAdmin(repo *Repository, user *user_model.User) (bool, error) {
 	if repo.OwnerID == user.ID {
 		return true, nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
+	sess := db.GetEngine(db.DefaultContext)
 
 	if err := repo.getOwner(sess); err != nil {
 		return false, err
@@ -291,15 +292,15 @@ func IsUserRealRepoAdmin(repo *Repository, user *User) (bool, error) {
 		return false, err
 	}
 
-	return accessMode >= AccessModeAdmin, nil
+	return accessMode >= perm_model.AccessModeAdmin, nil
 }
 
 // IsUserRepoAdmin return true if user has admin right of a repo
-func IsUserRepoAdmin(repo *Repository, user *User) (bool, error) {
+func IsUserRepoAdmin(repo *Repository, user *user_model.User) (bool, error) {
 	return isUserRepoAdmin(db.GetEngine(db.DefaultContext), repo, user)
 }
 
-func isUserRepoAdmin(e db.Engine, repo *Repository, user *User) (bool, error) {
+func isUserRepoAdmin(e db.Engine, repo *Repository, user *user_model.User) (bool, error) {
 	if user == nil || repo == nil {
 		return false, nil
 	}
@@ -311,7 +312,7 @@ func isUserRepoAdmin(e db.Engine, repo *Repository, user *User) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if mode >= AccessModeAdmin {
+	if mode >= perm_model.AccessModeAdmin {
 		return true, nil
 	}
 
@@ -321,7 +322,7 @@ func isUserRepoAdmin(e db.Engine, repo *Repository, user *User) (bool, error) {
 	}
 
 	for _, team := range teams {
-		if team.Authorize >= AccessModeAdmin {
+		if team.Authorize >= perm_model.AccessModeAdmin {
 			return true, nil
 		}
 	}
@@ -330,42 +331,42 @@ func isUserRepoAdmin(e db.Engine, repo *Repository, user *User) (bool, error) {
 
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
-func AccessLevel(user *User, repo *Repository) (AccessMode, error) {
+func AccessLevel(user *user_model.User, repo *Repository) (perm_model.AccessMode, error) {
 	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, unit.TypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the
 // user does not have access.
-func AccessLevelUnit(user *User, repo *Repository, unitType unit.Type) (AccessMode, error) {
+func AccessLevelUnit(user *user_model.User, repo *Repository, unitType unit.Type) (perm_model.AccessMode, error) {
 	return accessLevelUnit(db.GetEngine(db.DefaultContext), user, repo, unitType)
 }
 
-func accessLevelUnit(e db.Engine, user *User, repo *Repository, unitType unit.Type) (AccessMode, error) {
+func accessLevelUnit(e db.Engine, user *user_model.User, repo *Repository, unitType unit.Type) (perm_model.AccessMode, error) {
 	perm, err := getUserRepoPermission(e, repo, user)
 	if err != nil {
-		return AccessModeNone, err
+		return perm_model.AccessModeNone, err
 	}
 	return perm.UnitAccessMode(unitType), nil
 }
 
-func hasAccessUnit(e db.Engine, user *User, repo *Repository, unitType unit.Type, testMode AccessMode) (bool, error) {
+func hasAccessUnit(e db.Engine, user *user_model.User, repo *Repository, unitType unit.Type, testMode perm_model.AccessMode) (bool, error) {
 	mode, err := accessLevelUnit(e, user, repo, unitType)
 	return testMode <= mode, err
 }
 
 // HasAccessUnit returns true if user has testMode to the unit of the repository
-func HasAccessUnit(user *User, repo *Repository, unitType unit.Type, testMode AccessMode) (bool, error) {
+func HasAccessUnit(user *user_model.User, repo *Repository, unitType unit.Type, testMode perm_model.AccessMode) (bool, error) {
 	return hasAccessUnit(db.GetEngine(db.DefaultContext), user, repo, unitType, testMode)
 }
 
 // CanBeAssigned return true if user can be assigned to issue or pull requests in repo
 // Currently any write access (code, issues or pr's) is assignable, to match assignee list in user interface.
 // FIXME: user could send PullRequest also could be assigned???
-func CanBeAssigned(user *User, repo *Repository, isPull bool) (bool, error) {
+func CanBeAssigned(user *user_model.User, repo *Repository, isPull bool) (bool, error) {
 	return canBeAssigned(db.GetEngine(db.DefaultContext), user, repo, isPull)
 }
 
-func canBeAssigned(e db.Engine, user *User, repo *Repository, _ bool) (bool, error) {
+func canBeAssigned(e db.Engine, user *user_model.User, repo *Repository, _ bool) (bool, error) {
 	if user.IsOrganization() {
 		return false, fmt.Errorf("Organization can't be added as assignee [user_id: %d, repo_id: %d]", user.ID, repo.ID)
 	}
@@ -373,14 +374,14 @@ func canBeAssigned(e db.Engine, user *User, repo *Repository, _ bool) (bool, err
 	if err != nil {
 		return false, err
 	}
-	return perm.CanAccessAny(AccessModeWrite, unit.TypeCode, unit.TypeIssues, unit.TypePullRequests), nil
+	return perm.CanAccessAny(perm_model.AccessModeWrite, unit.TypeCode, unit.TypeIssues, unit.TypePullRequests), nil
 }
 
 func hasAccess(e db.Engine, userID int64, repo *Repository) (bool, error) {
-	var user *User
+	var user *user_model.User
 	var err error
 	if userID > 0 {
-		user, err = getUserByID(e, userID)
+		user, err = user_model.GetUserByIDEngine(e, userID)
 		if err != nil {
 			return false, err
 		}
@@ -398,7 +399,7 @@ func HasAccess(userID int64, repo *Repository) (bool, error) {
 }
 
 // FilterOutRepoIdsWithoutUnitAccess filter out repos where user has no access to repositories
-func FilterOutRepoIdsWithoutUnitAccess(u *User, repoIDs []int64, units ...unit.Type) ([]int64, error) {
+func FilterOutRepoIdsWithoutUnitAccess(u *user_model.User, repoIDs []int64, units ...unit.Type) ([]int64, error) {
 	i := 0
 	for _, rID := range repoIDs {
 		repo, err := GetRepositoryByID(rID)

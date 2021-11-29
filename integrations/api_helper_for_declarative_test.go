@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/queue"
 	api "code.gitea.io/gitea/modules/structs"
@@ -89,13 +90,13 @@ func doAPIEditRepository(ctx APITestContext, editRepoOption *api.EditRepoOption,
 	}
 }
 
-func doAPIAddCollaborator(ctx APITestContext, username string, mode models.AccessMode) func(*testing.T) {
+func doAPIAddCollaborator(ctx APITestContext, username string, mode perm.AccessMode) func(*testing.T) {
 	return func(t *testing.T) {
 		permission := "read"
 
-		if mode == models.AccessModeAdmin {
+		if mode == perm.AccessModeAdmin {
 			permission = "admin"
-		} else if mode > models.AccessModeRead {
+		} else if mode > perm.AccessModeRead {
 			permission = "write"
 		}
 		addCollaboratorOption := &api.AddCollaboratorOption{

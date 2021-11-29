@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"xorm.io/builder"
 )
@@ -84,7 +85,7 @@ func (issues IssueList) loadPosters(e db.Engine) error {
 	}
 
 	posterIDs := issues.getPosterIDs()
-	posterMaps := make(map[int64]*User, len(posterIDs))
+	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
 		limit := defaultMaxInSize
@@ -107,7 +108,7 @@ func (issues IssueList) loadPosters(e db.Engine) error {
 		}
 		var ok bool
 		if issue.Poster, ok = posterMaps[issue.PosterID]; !ok {
-			issue.Poster = NewGhostUser()
+			issue.Poster = user_model.NewGhostUser()
 		}
 	}
 	return nil
@@ -219,11 +220,11 @@ func (issues IssueList) loadAssignees(e db.Engine) error {
 	}
 
 	type AssigneeIssue struct {
-		IssueAssignee *IssueAssignees `xorm:"extends"`
-		Assignee      *User           `xorm:"extends"`
+		IssueAssignee *IssueAssignees  `xorm:"extends"`
+		Assignee      *user_model.User `xorm:"extends"`
 	}
 
-	assignees := make(map[int64][]*User, len(issues))
+	assignees := make(map[int64][]*user_model.User, len(issues))
 	issueIDs := issues.getIssueIDs()
 	left := len(issueIDs)
 	for left > 0 {

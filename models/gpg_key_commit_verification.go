@@ -44,8 +44,8 @@ type CommitVerification struct {
 	Verified       bool
 	Warning        bool
 	Reason         string
-	SigningUser    *User
-	CommittingUser *User
+	SigningUser    *user_model.User
+	CommittingUser *user_model.User
 	SigningEmail   string
 	SigningKey     *GPGKey
 	TrustStatus    string
@@ -54,7 +54,7 @@ type CommitVerification struct {
 // SignCommit represents a commit with validation of signature.
 type SignCommit struct {
 	Verification *CommitVerification
-	*UserCommit
+	*user_model.UserCommit
 }
 
 const (
@@ -69,7 +69,7 @@ const (
 )
 
 // ParseCommitsWithSignature checks if signaute of commits are corresponding to users gpg keys.
-func ParseCommitsWithSignature(oldCommits []*UserCommit, repository *Repository) []*SignCommit {
+func ParseCommitsWithSignature(oldCommits []*user_model.UserCommit, repository *Repository) []*SignCommit {
 	newCommits := make([]*SignCommit, 0, len(oldCommits))
 	keyMap := map[string]bool{}
 
@@ -88,19 +88,19 @@ func ParseCommitsWithSignature(oldCommits []*UserCommit, repository *Repository)
 
 // ParseCommitWithSignature check if signature is good against keystore.
 func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
-	var committer *User
+	var committer *user_model.User
 	if c.Committer != nil {
 		var err error
 		// Find Committer account
-		committer, err = GetUserByEmail(c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
-		if err != nil {                                    // Skipping not user for committer
-			committer = &User{
+		committer, err = user_model.GetUserByEmail(c.Committer.Email) // This finds the user by primary email or activated email so commit will not be valid if email is not
+		if err != nil {                                               // Skipping not user for committer
+			committer = &user_model.User{
 				Name:  c.Committer.Name,
 				Email: c.Committer.Email,
 			}
 			// We can expect this to often be an ErrUserNotExist. in the case
 			// it is not, however, it is important to log it.
-			if !IsErrUserNotExist(err) {
+			if !user_model.IsErrUserNotExist(err) {
 				log.Error("GetUserByEmail: %v", err)
 				return &CommitVerification{
 					CommittingUser: committer,
@@ -250,7 +250,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 }
 
-func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *User, keyID string) *CommitVerification {
+func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, payload string, committer *user_model.User, keyID string) *CommitVerification {
 	// First try to find the key in the db
 	if commitVerification := hashAndVerifyForKeyID(sig, payload, committer, gpgSettings.KeyID, gpgSettings.Name, gpgSettings.Email); commitVerification != nil {
 		return commitVerification
@@ -296,7 +296,7 @@ func verifyWithGPGSettings(gpgSettings *git.GPGSettings, sig *packet.Signature, 
 				KeyID:   subKey.PublicKey.KeyIdString(),
 			})
 		}
-		if commitVerification := hashAndVerifyWithSubKeysCommitVerification(sig, payload, k, committer, &User{
+		if commitVerification := hashAndVerifyWithSubKeysCommitVerification(sig, payload, k, committer, &user_model.User{
 			Name:  gpgSettings.Name,
 			Email: gpgSettings.Email,
 		}, gpgSettings.Email); commitVerification != nil {
@@ -357,7 +357,7 @@ func hashAndVerifyWithSubKeys(sig *packet.Signature, payload string, k *GPGKey) 
 	return nil, nil
 }
 
-func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload string, k *GPGKey, committer, signer *User, email string) *CommitVerification {
+func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload string, k *GPGKey, committer, signer *user_model.User, email string) *CommitVerification {
 	key, err := hashAndVerifyWithSubKeys(sig, payload, k)
 	if err != nil { // Skipping failed to generate hash
 		return &CommitVerification{
@@ -380,7 +380,7 @@ func hashAndVerifyWithSubKeysCommitVerification(sig *packet.Signature, payload s
 	return nil
 }
 
-func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *User, keyID, name, email string) *CommitVerification {
+func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *user_model.User, keyID, name, email string) *CommitVerification {
 	if keyID == "" {
 		return nil
 	}
@@ -415,16 +415,16 @@ func hashAndVerifyForKeyID(sig *packet.Signature, payload string, committer *Use
 			continue
 		}
 
-		signer := &User{
+		signer := &user_model.User{
 			Name:  name,
 			Email: email,
 		}
 		if key.OwnerID != 0 {
-			owner, err := GetUserByID(key.OwnerID)
+			owner, err := user_model.GetUserByID(key.OwnerID)
 			if err == nil {
 				signer = owner
-			} else if !IsErrUserNotExist(err) {
-				log.Error("Failed to GetUserByID: %d for key ID: %d (%s) %v", key.OwnerID, key.ID, key.KeyID, err)
+			} else if !user_model.IsErrUserNotExist(err) {
+				log.Error("Failed to user_model.GetUserByID: %d for key ID: %d (%s) %v", key.OwnerID, key.ID, key.KeyID, err)
 				return &CommitVerification{
 					CommittingUser: committer,
 					Verified:       false,

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // ActionList defines a list of actions
@@ -23,13 +24,13 @@ func (actions ActionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (actions ActionList) loadUsers(e db.Engine) ([]*User, error) {
+func (actions ActionList) loadUsers(e db.Engine) ([]*user_model.User, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
 
 	userIDs := actions.getUserIDs()
-	userMaps := make(map[int64]*User, len(userIDs))
+	userMaps := make(map[int64]*user_model.User, len(userIDs))
 	err := e.
 		In("id", userIDs).
 		Find(&userMaps)
@@ -44,7 +45,7 @@ func (actions ActionList) loadUsers(e db.Engine) ([]*User, error) {
 }
 
 // LoadUsers loads actions' all users
-func (actions ActionList) LoadUsers() ([]*User, error) {
+func (actions ActionList) LoadUsers() ([]*user_model.User, error) {
 	return actions.loadUsers(db.GetEngine(db.DefaultContext))
 }
 

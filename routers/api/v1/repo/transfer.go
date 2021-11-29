@@ -9,6 +9,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
@@ -53,9 +55,9 @@ func Transfer(ctx *context.APIContext) {
 
 	opts := web.GetForm(ctx).(*api.TransferRepoOption)
 
-	newOwner, err := models.GetUserByName(opts.NewOwner)
+	newOwner, err := user_model.GetUserByName(opts.NewOwner)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
 		}
@@ -63,7 +65,7 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
-	if newOwner.Type == models.UserTypeOrganization {
+	if newOwner.Type == user_model.UserTypeOrganization {
 		if !ctx.User.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
@@ -112,10 +114,10 @@ func Transfer(ctx *context.APIContext) {
 
 	if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
 		log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
-		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, models.AccessModeAdmin))
+		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
 		return
 	}
 
 	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
-	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, models.AccessModeAdmin))
+	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
 }

@@ -163,7 +163,7 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload());
+        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
       }
 
       $(this).parent().find('.item').each(function () {
@@ -206,7 +206,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
       }
 
       let icon = '';
@@ -239,7 +239,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload());
+        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
       }
 
       $list.find('.selected').html('');

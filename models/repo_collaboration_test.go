@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,9 +21,9 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	testSuccess := func(repoID, userID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		assert.NoError(t, repo.GetOwner())
-		user := unittest.AssertExistsAndLoadBean(t, &User{ID: userID}).(*User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
 		assert.NoError(t, repo.AddCollaborator(user))
-		unittest.CheckConsistencyFor(t, &Repository{ID: repoID}, &User{ID: userID})
+		unittest.CheckConsistencyFor(t, &Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
 	testSuccess(1, 4)
@@ -67,17 +69,17 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, AccessModeAdmin))
+	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, perm.AccessModeAdmin))
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &Collaboration{RepoID: repo.ID, UserID: 4}).(*Collaboration)
-	assert.EqualValues(t, AccessModeAdmin, collaboration.Mode)
+	assert.EqualValues(t, perm.AccessModeAdmin, collaboration.Mode)
 
 	access := unittest.AssertExistsAndLoadBean(t, &Access{UserID: 4, RepoID: repo.ID}).(*Access)
-	assert.EqualValues(t, AccessModeAdmin, access.Mode)
+	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, AccessModeAdmin))
+	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, perm.AccessModeAdmin))
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(unittest.NonexistentID, AccessModeAdmin))
+	assert.NoError(t, repo.ChangeCollaborationAccessMode(unittest.NonexistentID, perm.AccessModeAdmin))
 
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }

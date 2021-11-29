@@ -5,13 +5,14 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToUser convert models.User to api.User
+// ToUser convert user_model.User to api.User
 // if doer is set, private information is added if the doer has the permission to see it
-func ToUser(user, doer *models.User) *api.User {
+func ToUser(user, doer *user_model.User) *api.User {
 	if user == nil {
 		return nil
 	}
@@ -24,8 +25,8 @@ func ToUser(user, doer *models.User) *api.User {
 	return toUser(user, signed, authed)
 }
 
-// ToUsers convert list of models.User to list of api.User
-func ToUsers(doer *models.User, users []*models.User) []*api.User {
+// ToUsers convert list of user_model.User to list of api.User
+func ToUsers(doer *user_model.User, users []*user_model.User) []*api.User {
 	result := make([]*api.User, len(users))
 	for i := range users {
 		result[i] = ToUser(users[i], doer)
@@ -33,18 +34,18 @@ func ToUsers(doer *models.User, users []*models.User) []*api.User {
 	return result
 }
 
-// ToUserWithAccessMode convert models.User to api.User
+// ToUserWithAccessMode convert user_model.User to api.User
 // AccessMode is not none show add some more information
-func ToUserWithAccessMode(user *models.User, accessMode models.AccessMode) *api.User {
+func ToUserWithAccessMode(user *user_model.User, accessMode perm.AccessMode) *api.User {
 	if user == nil {
 		return nil
 	}
-	return toUser(user, accessMode != models.AccessModeNone, false)
+	return toUser(user, accessMode != perm.AccessModeNone, false)
 }
 
-// toUser convert models.User to api.User
+// toUser convert user_model.User to api.User
 // signed shall only be set if requester is logged in. authed shall only be set if user is site admin or user himself
-func toUser(user *models.User, signed, authed bool) *api.User {
+func toUser(user *user_model.User, signed, authed bool) *api.User {
 	result := &api.User{
 		ID:          user.ID,
 		UserName:    user.Name,
@@ -81,7 +82,7 @@ func toUser(user *models.User, signed, authed bool) *api.User {
 }
 
 // User2UserSettings return UserSettings based on a user
-func User2UserSettings(user *models.User) api.UserSettings {
+func User2UserSettings(user *user_model.User) api.UserSettings {
 	return api.UserSettings{
 		FullName:      user.FullName,
 		Website:       user.Website,

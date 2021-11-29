@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -104,7 +105,7 @@ func hasUserStopwatch(e db.Engine, userID int64) (exists bool, sw *Stopwatch, er
 }
 
 // FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore
-func FinishIssueStopwatchIfPossible(ctx context.Context, user *User, issue *Issue) error {
+func FinishIssueStopwatchIfPossible(ctx context.Context, user *user_model.User, issue *Issue) error {
 	_, exists, err := getStopwatch(ctx, user.ID, issue.ID)
 	if err != nil {
 		return err
@@ -116,7 +117,7 @@ func FinishIssueStopwatchIfPossible(ctx context.Context, user *User, issue *Issu
 }
 
 // CreateOrStopIssueStopwatch create an issue stopwatch if it's not exist, otherwise finish it
-func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
+func CreateOrStopIssueStopwatch(user *user_model.User, issue *Issue) error {
 	_, exists, err := getStopwatch(db.DefaultContext, user.ID, issue.ID)
 	if err != nil {
 		return err
@@ -128,7 +129,7 @@ func CreateOrStopIssueStopwatch(user *User, issue *Issue) error {
 }
 
 // FinishIssueStopwatch if stopwatch exist then finish it otherwise return an error
-func FinishIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
+func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	sw, exists, err := getStopwatch(ctx, user.ID, issue.ID)
 	if err != nil {
 		return err
@@ -174,7 +175,7 @@ func FinishIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
 }
 
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
-func CreateIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
+func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
 	if err := issue.loadRepo(e); err != nil {
 		return err
@@ -223,7 +224,7 @@ func CreateIssueStopwatch(ctx context.Context, user *User, issue *Issue) error {
 }
 
 // CancelStopwatch removes the given stopwatch and logs it into issue's timeline.
-func CancelStopwatch(user *User, issue *Issue) error {
+func CancelStopwatch(user *user_model.User, issue *Issue) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -235,7 +236,7 @@ func CancelStopwatch(user *User, issue *Issue) error {
 	return committer.Commit()
 }
 
-func cancelStopwatch(ctx context.Context, user *User, issue *Issue) error {
+func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
 	sw, exists, err := getStopwatch(ctx, user.ID, issue.ID)
 	if err != nil {

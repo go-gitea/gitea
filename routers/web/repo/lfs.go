@@ -216,9 +216,9 @@ func LFSLockFile(ctx *context.Context) {
 	}
 
 	_, err := models.CreateLFSLock(&models.LFSLock{
-		Repo:  ctx.Repo.Repository,
-		Path:  lockPath,
-		Owner: ctx.User,
+		Repo:    ctx.Repo.Repository,
+		Path:    lockPath,
+		OwnerID: ctx.User.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
