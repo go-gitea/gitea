@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -67,7 +68,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
-		Mode:    models.AccessModeRead,
+		Mode:    perm.AccessModeRead,
 	})
 }
 
@@ -92,7 +93,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 		ID:      newDeployKey.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
-		Mode:    models.AccessModeWrite,
+		Mode:    perm.AccessModeWrite,
 	})
 }
 
@@ -119,7 +120,7 @@ func TestCreateUserKey(t *testing.T) {
 		OwnerID: user.ID,
 		Name:    rawKeyBody.Title,
 		Content: rawKeyBody.Key,
-		Mode:    models.AccessModeWrite,
+		Mode:    perm.AccessModeWrite,
 	})
 
 	// Search by fingerprint

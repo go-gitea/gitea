@@ -22,6 +22,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -93,11 +94,11 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		isPull = ctx.Req.Method == "GET"
 	}
 
-	var accessMode models.AccessMode
+	var accessMode perm.AccessMode
 	if isPull {
-		accessMode = models.AccessModeRead
+		accessMode = perm.AccessModeRead
 	} else {
-		accessMode = models.AccessModeWrite
+		accessMode = perm.AccessModeWrite
 	}
 
 	isWiki := false
@@ -194,7 +195,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if repoExist {
-			perm, err := models.GetUserRepoPermission(repo, ctx.User)
+			p, err := models.GetUserRepoPermission(repo, ctx.User)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -202,10 +203,10 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 			// Because of special ref "refs/for" .. , need delay write permission check
 			if git.SupportProcReceive {
-				accessMode = models.AccessModeRead
+				accessMode = perm.AccessModeRead
 			}
 
-			if !perm.CanAccess(accessMode, unitType) {
+			if !p.CanAccess(accessMode, unitType) {
 				ctx.HandleText(http.StatusForbidden, "User permission denied")
 				return
 			}

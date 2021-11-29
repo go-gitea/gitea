@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -41,10 +42,10 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
+	p, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
-		perm.AccessMode = models.AccessModeNone
+		p.AccessMode = perm.AccessModeNone
 	}
 
 	apiPullRequest := &api.PullRequest{
@@ -74,7 +75,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 			Name:       pr.BaseBranch,
 			Ref:        pr.BaseBranch,
 			RepoID:     pr.BaseRepoID,
-			Repository: ToRepo(pr.BaseRepo, perm.AccessMode),
+			Repository: ToRepo(pr.BaseRepo, p.AccessMode),
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
@@ -127,14 +128,14 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
-		perm, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+		p, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
-			perm.AccessMode = models.AccessModeNone
+			p.AccessMode = perm.AccessModeNone
 		}
 
 		apiPullRequest.Head.RepoID = pr.HeadRepo.ID
-		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, perm.AccessMode)
+		apiPullRequest.Head.Repository = ToRepo(pr.HeadRepo, p.AccessMode)
 
 		headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
 		if err != nil {
