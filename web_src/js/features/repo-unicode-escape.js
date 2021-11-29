@@ -1,17 +1,17 @@
 export function initEscapeButton() {
-  $(document, 'a.escape-button').on('click', (e) => {
+  $(document).on('click', 'a.escape-button', (e) => {
     e.preventDefault();
     $(e.target).parents('.file-content, .non-diff-file-content').find('.file-code, .file-view').addClass('unicode-escaped');
     $(e.target).hide();
     $(e.target).siblings('a.unescape-button').show();
   });
-  $(document, 'a.unescape-button').on('click', (e) => {
+  $(document).on('click', 'a.unescape-button', (e) => {
     e.preventDefault();
     $(e.target).parents('.file-content, .non-diff-file-content').find('.file-code, .file-view').removeClass('unicode-escaped');
     $(e.target).hide();
     $(e.target).siblings('a.escape-button').show();
   });
-  $(document, 'a.toggle-escape-button').on('click', (e) => {
+  $(document).on('click', 'a.toggle-escape-button', (e) => {
     e.preventDefault();
     const fileContent = $(e.target).parents('.file-content, .non-diff-file-content');
     const fileView = fileContent.find('.file-code, .file-view');
