@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -209,14 +210,14 @@ func TestUpdateTeam(t *testing.T) {
 	team.LowerName = "newname"
 	team.Name = "newName"
 	team.Description = strings.Repeat("A long description!", 100)
-	team.Authorize = AccessModeAdmin
+	team.Authorize = perm.AccessModeAdmin
 	assert.NoError(t, UpdateTeam(team, true, false))
 
 	team = unittest.AssertExistsAndLoadBean(t, &Team{Name: "newName"}).(*Team)
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
 
 	access := unittest.AssertExistsAndLoadBean(t, &Access{UserID: 4, RepoID: 3}).(*Access)
-	assert.EqualValues(t, AccessModeAdmin, access.Mode)
+	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
 	unittest.CheckConsistencyFor(t, &Team{ID: team.ID})
 }
@@ -249,7 +250,7 @@ func TestDeleteTeam(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 	accessMode, err := AccessLevel(user, repo)
 	assert.NoError(t, err)
-	assert.True(t, accessMode < AccessModeWrite)
+	assert.True(t, accessMode < perm.AccessModeWrite)
 }
 
 func TestIsTeamMember(t *testing.T) {

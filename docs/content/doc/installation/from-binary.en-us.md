@@ -83,7 +83,7 @@ chmod 770 /etc/gitea
 chmod 750 /etc/gitea
 chmod 640 /etc/gitea/app.ini
 ```
-If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the gitea user (owner/group `root:git`, mode `0640`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
+If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the Gitea user (owner/group `root:git`, mode `0640`), and set `INSTALL_LOCK = true`. In that case all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
 
 ### Configure Gitea's working directory
 
@@ -123,15 +123,15 @@ It is recommended you do a [backup]({{< relref "doc/usage/backup-and-restore.en-
 If you have carried out the installation steps as described above, the binary should
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
 
-### 1. Restarting gitea with systemd (recommended)
+### 1. Restarting Gitea with systemd (recommended)
 
 As explained before, we recommend to use systemd as service manager. In this case ```systemctl restart gitea``` should be enough.
 
-### 2. Restarting gitea without systemd
+### 2. Restarting Gitea without systemd
 
-To restart your gitea instance, we recommend to use SIGHUP signal. If you know your gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
+To restart your Gitea instance, we recommend to use SIGHUP signal. If you know your Gitea PID use ```kill -1 $GITEA_PID``` otherwise you can use ```killall -1 gitea``` or ```pkill -1 gitea```
 
-To gracefully stop the gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is enough.
+To gracefully stop the Gitea instance, a simple ```kill $GITEA_PID``` or ```killall gitea``` is enough.
 
 **NOTE:** We don't recommend to use SIGKILL signal (know also as `-9`), you may be forcefully stopping some of Gitea internal tasks and it will not gracefully stop (tasks in queues, indexers processes, etc.)
 

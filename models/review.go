@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -277,7 +278,7 @@ func isOfficialReviewerTeam(e db.Engine, issue *Issue, team *Team) (bool, error)
 	}
 
 	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
-		return team.Authorize >= AccessModeWrite, nil
+		return team.Authorize >= perm.AccessModeWrite, nil
 	}
 
 	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
@@ -895,12 +896,12 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 			return false, err
 		}
 
-		perm, err := GetUserRepoPermission(issue.Repo, doer)
+		p, err := GetUserRepoPermission(issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}
 
-		permResult = perm.CanAccess(AccessModeWrite, unit.TypePullRequests)
+		permResult = p.CanAccess(perm.AccessModeWrite, unit.TypePullRequests)
 		if !permResult {
 			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
 				return false, err

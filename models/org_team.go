@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -30,7 +31,7 @@ type Team struct {
 	LowerName               string
 	Name                    string
 	Description             string
-	Authorize               AccessMode
+	Authorize               perm.AccessMode
 	Repos                   []*Repository      `xorm:"-"`
 	Members                 []*user_model.User `xorm:"-"`
 	NumRepos                int
@@ -143,7 +144,7 @@ func (t *Team) GetUnitNames() (res []string) {
 
 // HasWriteAccess returns true if team has at least write level access mode.
 func (t *Team) HasWriteAccess() bool {
-	return t.Authorize >= AccessModeWrite
+	return t.Authorize >= perm.AccessModeWrite
 }
 
 // IsOwnerTeam returns true if team is owner team.
@@ -1001,7 +1002,7 @@ func removeTeamRepo(e db.Engine, teamID, repoID int64) error {
 }
 
 // GetTeamsWithAccessToRepo returns all teams in an organization that have given access level to the repository.
-func GetTeamsWithAccessToRepo(orgID, repoID int64, mode AccessMode) ([]*Team, error) {
+func GetTeamsWithAccessToRepo(orgID, repoID int64, mode perm.AccessMode) ([]*Team, error) {
 	teams := make([]*Team, 0, 5)
 	return teams, db.GetEngine(db.DefaultContext).Where("team.authorize >= ?", mode).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").

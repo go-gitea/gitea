@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
@@ -781,7 +780,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *login.Source, u *user_mode
 		}
 
 		// update external user information
-		if err := models.UpdateExternalUser(u, gothUser); err != nil {
+		if err := user_model.UpdateExternalUser(u, gothUser); err != nil {
 			log.Error("UpdateExternalUser failed: %v", err)
 		}
 
@@ -844,11 +843,11 @@ func oAuth2UserLoginCallback(loginSource *login.Source, request *http.Request, r
 	}
 
 	// search in external linked users
-	externalLoginUser := &models.ExternalLoginUser{
+	externalLoginUser := &user_model.ExternalLoginUser{
 		ExternalID:    gothUser.UserID,
 		LoginSourceID: loginSource.ID,
 	}
-	hasUser, err = models.GetExternalLogin(externalLoginUser)
+	hasUser, err = user_model.GetExternalLogin(externalLoginUser)
 	if err != nil {
 		return nil, goth.User{}, err
 	}
@@ -1355,7 +1354,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 	// update external user information
 	if gothUser != nil {
-		if err := models.UpdateExternalUser(u, *gothUser); err != nil {
+		if err := user_model.UpdateExternalUser(u, *gothUser); err != nil {
 			log.Error("UpdateExternalUser failed: %v", err)
 		}
 	}
@@ -1477,7 +1476,7 @@ func handleAccountActivation(ctx *context.Context, user *user_model.User) {
 		return
 	}
 
-	if err := models.ActivateUserEmail(user.ID, user.Email, true); err != nil {
+	if err := user_model.ActivateUserEmail(user.ID, user.Email, true); err != nil {
 		log.Error("Unable to activate email for user: %-v with email: %s: %v", user, user.Email, err)
 		ctx.ServerError("ActivateUserEmail", err)
 		return
@@ -1505,8 +1504,8 @@ func ActivateEmail(ctx *context.Context) {
 	emailStr := ctx.FormString("email")
 
 	// Verify code.
-	if email := models.VerifyActiveEmailCode(code, emailStr); email != nil {
-		if err := models.ActivateEmail(email); err != nil {
+	if email := user_model.VerifyActiveEmailCode(code, emailStr); email != nil {
+		if err := user_model.ActivateEmail(email); err != nil {
 			ctx.ServerError("ActivateEmail", err)
 		}
 
