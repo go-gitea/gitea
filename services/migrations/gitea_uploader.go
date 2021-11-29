@@ -260,7 +260,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		tp := g.gitServiceType.Name()
 		if !ok && tp != "" {
 			var err error
-			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", release.PublisherID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", release.PublisherID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}
@@ -400,7 +400,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		tp := g.gitServiceType.Name()
 		if !ok && tp != "" {
 			var err error
-			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", issue.PosterID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", issue.PosterID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}
@@ -425,7 +425,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			userid, ok := g.userMap[reaction.UserID]
 			if !ok && tp != "" {
 				var err error
-				userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
+				userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
 				if err != nil {
 					log.Error("GetUserIDByExternalUserID: %v", err)
 				}
@@ -483,7 +483,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		tp := g.gitServiceType.Name()
 		if !ok && tp != "" {
 			var err error
-			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", comment.PosterID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", comment.PosterID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}
@@ -520,7 +520,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			userid, ok := g.userMap[reaction.UserID]
 			if !ok && tp != "" {
 				var err error
-				userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
+				userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
 				if err != nil {
 					log.Error("GetUserIDByExternalUserID: %v", err)
 				}
@@ -564,7 +564,7 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 		tp := g.gitServiceType.Name()
 		if !ok && tp != "" {
 			var err error
-			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}
@@ -744,7 +744,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	userid, ok := g.userMap[pr.PosterID]
 	if !ok && tp != "" {
 		var err error
-		userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
+		userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", pr.PosterID))
 		if err != nil {
 			log.Error("GetUserIDByExternalUserID: %v", err)
 		}
@@ -766,7 +766,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		userid, ok := g.userMap[reaction.UserID]
 		if !ok && tp != "" {
 			var err error
-			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", reaction.UserID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}
@@ -850,7 +850,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		tp := g.gitServiceType.Name()
 		if !ok && tp != "" {
 			var err error
-			userid, err = models.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", review.ReviewerID))
+			userid, err = user_model.GetUserIDByExternalUserID(tp, fmt.Sprintf("%v", review.ReviewerID))
 			if err != nil {
 				log.Error("GetUserIDByExternalUserID: %v", err)
 			}

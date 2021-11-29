@@ -76,20 +76,20 @@ To extract resources embedded in Gitea's executable, use the following syntax:
 gitea [--config {file}] embedded extract [--destination {dir}|--custom] [--overwrite|--rename] [--include-vendored] {patterns...}
 ```
 
-The `--config` option tells gitea the location of the `app.ini` configuration file if
+The `--config` option tells Gitea the location of the `app.ini` configuration file if
 it's not in its default location. This option is only used with the `--custom` flag.
 
-The `--destination` option tells gitea the directory where the files must be extracted to.
+The `--destination` option tells Gitea the directory where the files must be extracted to.
 The default is the current directory.
 
-The `--custom` flag tells gitea to extract the files directly into the `custom` directory.
+The `--custom` flag tells Gitea to extract the files directly into the `custom` directory.
 For this to work, the command needs to know the location of the `app.ini` configuration
 file (`--config`) and, depending of the configuration, be ran from the directory where
 gitea normally starts. See [Customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) for details.
 
 The `--overwrite` flag allows any existing files in the destination directory to be overwritten.
 
-The `--rename` flag tells gitea to rename any existing files in the destination directory
+The `--rename` flag tells Gitea to rename any existing files in the destination directory
 as `filename.bak`. Previous `.bak` files are overwritten.
 
 At least one file search pattern must be provided; see `list` subcomand above for pattern

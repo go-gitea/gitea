@@ -32,7 +32,7 @@ So it's very important to manage these packages. Please take the below guideline
 To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The Gitea backend is divided into the following parts:
 
 - `build`: Scripts to help build Gitea.
-- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to mantain Gitea.
+- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to maintain Gitea.
 - `integrations`: Integration tests
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
@@ -104,7 +104,7 @@ i.e. `servcies/user`, `models/repository`.
 ### Import Alias
 
 Since there are many package levels and sub packages, so you will find `modules/user`, `models/user`, `services/user`. When these packages are import into one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So we recommand to always use import alias. To differ from package variables which are commonly use camelCase, just use **snake_case** as import package alias.
-i.e. `import user_service "code.Gitea.io/Gitea/services/user"`
+i.e. `import user_service "code.gitea.io/gitea/services/user"`
 
 ### Future Tasks
 
