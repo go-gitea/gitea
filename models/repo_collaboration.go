@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -22,7 +23,7 @@ type Collaboration struct {
 	ID          int64              `xorm:"pk autoincr"`
 	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
 	UserID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Mode        AccessMode         `xorm:"DEFAULT 2 NOT NULL"`
+	Mode        perm.AccessMode    `xorm:"DEFAULT 2 NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 }
@@ -43,7 +44,7 @@ func (repo *Repository) addCollaborator(e db.Engine, u *user_model.User) error {
 	} else if has {
 		return nil
 	}
-	collaboration.Mode = AccessModeWrite
+	collaboration.Mode = perm.AccessModeWrite
 
 	if _, err = e.InsertOne(collaboration); err != nil {
 		return err
@@ -141,9 +142,9 @@ func (repo *Repository) IsCollaborator(userID int64) (bool, error) {
 	return repo.isCollaborator(db.GetEngine(db.DefaultContext), userID)
 }
 
-func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mode AccessMode) error {
+func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mode perm.AccessMode) error {
 	// Discard invalid input
-	if mode <= AccessModeNone || mode > AccessModeOwner {
+	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
 		return nil
 	}
 
@@ -176,7 +177,7 @@ func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mo
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode AccessMode) error {
+func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode perm.AccessMode) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

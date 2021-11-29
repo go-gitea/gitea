@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	perm_model "code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -93,7 +94,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, AccessModeRead))
+	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, perm_model.AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -145,7 +146,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, AccessModeRead))
+	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, perm_model.AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -207,7 +208,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, AccessModeRead))
+	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, perm_model.AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {

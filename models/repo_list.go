@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -431,7 +432,7 @@ func accessibleRepositoryCondition(user *user_model.User) builder.Cond {
 				From("`access`").
 				Where(builder.And(
 					builder.Eq{"user_id": user.ID},
-					builder.Gt{"mode": int(AccessModeNone)}))),
+					builder.Gt{"mode": int(perm.AccessModeNone)}))),
 			// 3. Repositories that we directly own
 			builder.Eq{"`repository`.owner_id": user.ID},
 			// 4. Be able to see all repositories that we are in a team

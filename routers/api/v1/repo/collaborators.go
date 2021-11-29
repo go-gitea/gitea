@@ -9,7 +9,7 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -177,7 +177,7 @@ func AddCollaborator(ctx *context.APIContext) {
 	}
 
 	if form.Permission != nil {
-		if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(collaborator.ID, models.ParseAccessMode(*form.Permission)); err != nil {
+		if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}

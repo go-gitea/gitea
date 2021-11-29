@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -46,7 +47,7 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		OwnerID:       ownerID,
 		Name:          content,
 		Content:       content,
-		Mode:          AccessModeWrite,
+		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypePrincipal,
 		LoginSourceID: loginSourceID,
 	}
