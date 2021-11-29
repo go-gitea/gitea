@@ -98,7 +98,7 @@ readingloop:
 				// this is a real broken rune
 				escaped.HasBadRunes = true
 				escaped.Escaped = true
-				if _, err = fmt.Fprintf(output, `<span class="broken-code-point">&lt;%X&gt;</span>`, bs[i:i+size]); err != nil {
+				if err = writeBroken(output, bs[i:i+size]); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -122,7 +122,7 @@ readingloop:
 						return
 					}
 				}
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if err = writeEscaped(output, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -137,7 +137,7 @@ readingloop:
 					}
 				}
 				lineHasBIDI = true
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if err = writeEscaped(output, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -151,7 +151,7 @@ readingloop:
 						return
 					}
 				}
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if err = writeEscaped(output, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -165,7 +165,7 @@ readingloop:
 						return
 					}
 				}
-				if _, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r); err != nil {
+				if err = writeEscaped(output, r); err != nil {
 					escaped.HasError = true
 					return
 				}
@@ -202,7 +202,7 @@ readingloop:
 		// this means that there is an incomplete or broken rune at 0-readStart and we read nothing on the last go round
 		escaped.Escaped = true
 		escaped.HasBadRunes = true
-		if _, err = fmt.Fprintf(output, `<span class="broken-code-point">&lt;%X&gt;</span>`, buf[:readStart]); err != nil {
+		if err = writeBroken(output, buf[:readStart]); err != nil {
 			escaped.HasError = true
 			return
 		}
@@ -215,5 +215,15 @@ readingloop:
 		return
 	}
 	escaped.HasError = true
+	return
+}
+
+func writeBroken(output io.Writer, bs []byte) (err error) {
+	_, err = fmt.Fprintf(output, `<span class="broken-code-point">&lt;%X&gt;</span>`, bs)
+	return
+}
+
+func writeEscaped(output io.Writer, r rune) (err error) {
+	_, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r)
 	return
 }
