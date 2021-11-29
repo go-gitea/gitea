@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -373,7 +374,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -422,7 +423,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 // AddBoardToProjectPost allows a new board to be added to a project.
 func AddBoardToProjectPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.EditProjectBoardForm)
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -462,7 +463,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*models.Project, 
 		return nil, nil
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})
@@ -556,7 +557,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(models.AccessModeWrite, unit.TypeProjects) {
+	if !ctx.Repo.IsOwner() && !ctx.Repo.IsAdmin() && !ctx.Repo.CanAccess(perm.AccessModeWrite, unit.TypeProjects) {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only authorized users are allowed to perform this action.",
 		})

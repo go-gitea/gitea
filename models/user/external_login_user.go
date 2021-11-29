@@ -2,19 +2,52 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package user
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/markbates/goth"
 	"xorm.io/builder"
 )
+
+// ErrExternalLoginUserAlreadyExist represents a "ExternalLoginUserAlreadyExist" kind of error.
+type ErrExternalLoginUserAlreadyExist struct {
+	ExternalID    string
+	UserID        int64
+	LoginSourceID int64
+}
+
+// IsErrExternalLoginUserAlreadyExist checks if an error is a ExternalLoginUserAlreadyExist.
+func IsErrExternalLoginUserAlreadyExist(err error) bool {
+	_, ok := err.(ErrExternalLoginUserAlreadyExist)
+	return ok
+}
+
+func (err ErrExternalLoginUserAlreadyExist) Error() string {
+	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
+}
+
+// ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
+type ErrExternalLoginUserNotExist struct {
+	UserID        int64
+	LoginSourceID int64
+}
+
+// IsErrExternalLoginUserNotExist checks if an error is a ExternalLoginUserNotExist.
+func IsErrExternalLoginUserNotExist(err error) bool {
+	_, ok := err.(ErrExternalLoginUserNotExist)
+	return ok
+}
+
+func (err ErrExternalLoginUserNotExist) Error() string {
+	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
+}
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources
 type ExternalLoginUser struct {
@@ -47,7 +80,7 @@ func GetExternalLogin(externalLoginUser *ExternalLoginUser) (bool, error) {
 }
 
 // ListAccountLinks returns a map with the ExternalLoginUser and its LoginSource
-func ListAccountLinks(user *user_model.User) ([]*ExternalLoginUser, error) {
+func ListAccountLinks(user *User) ([]*ExternalLoginUser, error) {
 	externalAccounts := make([]*ExternalLoginUser, 0, 5)
 	err := db.GetEngine(db.DefaultContext).Where("user_id=?", user.ID).
 		Desc("login_source_id").
@@ -60,7 +93,7 @@ func ListAccountLinks(user *user_model.User) ([]*ExternalLoginUser, error) {
 }
 
 // LinkExternalToUser link the external user to the user
-func LinkExternalToUser(user *user_model.User, externalLoginUser *ExternalLoginUser) error {
+func LinkExternalToUser(user *User, externalLoginUser *ExternalLoginUser) error {
 	has, err := db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", externalLoginUser.ExternalID, externalLoginUser.LoginSourceID).
 		NoAutoCondition().
 		Exist(externalLoginUser)
@@ -75,7 +108,7 @@ func LinkExternalToUser(user *user_model.User, externalLoginUser *ExternalLoginU
 }
 
 // RemoveAccountLink will remove all external login sources for the given user
-func RemoveAccountLink(user *user_model.User, loginSourceID int64) (int64, error) {
+func RemoveAccountLink(user *User, loginSourceID int64) (int64, error) {
 	deleted, err := db.GetEngine(db.DefaultContext).Delete(&ExternalLoginUser{UserID: user.ID, LoginSourceID: loginSourceID})
 	if err != nil {
 		return deleted, err
@@ -86,9 +119,9 @@ func RemoveAccountLink(user *user_model.User, loginSourceID int64) (int64, error
 	return deleted, err
 }
 
-// removeAllAccountLinks will remove all external login sources for the given user
-func removeAllAccountLinks(e db.Engine, user *user_model.User) error {
-	_, err := e.Delete(&ExternalLoginUser{UserID: user.ID})
+// RemoveAllAccountLinks will remove all external login sources for the given user
+func RemoveAllAccountLinks(ctx context.Context, user *User) error {
+	_, err := db.GetEngine(ctx).Delete(&ExternalLoginUser{UserID: user.ID})
 	return err
 }
 
@@ -107,7 +140,7 @@ func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 }
 
 // UpdateExternalUser updates external user's information
-func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
+func UpdateExternalUser(user *User, gothUser goth.User) error {
 	loginSource, err := login.GetActiveOAuth2LoginSourceByName(gothUser.Provider)
 	if err != nil {
 		return err
@@ -171,24 +204,4 @@ func FindExternalUsersByProvider(opts FindExternalUserOptions) ([]ExternalLoginU
 		return nil, err
 	}
 	return users, nil
-}
-
-// UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
-func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
-	if err := UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
-		return err
-	}
-
-	if err := UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
-		return err
-	}
-
-	if err := UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
-		return err
-	}
-
-	if err := UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
-		return err
-	}
-	return UpdateReviewsMigrationsByType(tp, externalUserID, userID)
 }

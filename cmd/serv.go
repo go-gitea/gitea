@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -64,11 +65,11 @@ func setup(logPath string, debug bool) {
 }
 
 var (
-	allowedCommands = map[string]models.AccessMode{
-		"git-upload-pack":    models.AccessModeRead,
-		"git-upload-archive": models.AccessModeRead,
-		"git-receive-pack":   models.AccessModeWrite,
-		lfsAuthenticateVerb:  models.AccessModeNone,
+	allowedCommands = map[string]perm.AccessMode{
+		"git-upload-pack":    perm.AccessModeRead,
+		"git-upload-archive": perm.AccessModeRead,
+		"git-receive-pack":   perm.AccessModeWrite,
+		lfsAuthenticateVerb:  perm.AccessModeNone,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -214,9 +215,9 @@ func runServ(c *cli.Context) error {
 
 	if verb == lfsAuthenticateVerb {
 		if lfsVerb == "upload" {
-			requestedMode = models.AccessModeWrite
+			requestedMode = perm.AccessModeWrite
 		} else if lfsVerb == "download" {
-			requestedMode = models.AccessModeRead
+			requestedMode = perm.AccessModeRead
 		} else {
 			return fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}

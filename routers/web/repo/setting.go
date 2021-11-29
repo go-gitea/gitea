@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -846,7 +847,7 @@ func CollaborationPost(ctx *context.Context) {
 func ChangeCollaborationAccessMode(ctx *context.Context) {
 	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
 		ctx.FormInt64("uid"),
-		models.AccessMode(ctx.FormInt("mode"))); err != nil {
+		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
 	}
 }
