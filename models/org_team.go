@@ -459,15 +459,15 @@ func (t *Team) UnitEnabled(tp unit.Type) bool {
 }
 
 func (t *Team) unitEnabled(e db.Engine, tp unit.Type) bool {
-	return t.unitAccessMode(e, tp) > AccessModeNone
+	return t.unitAccessMode(e, tp) > perm.AccessModeNone
 }
 
 // UnitAccessMode returns if the team has the given unit type enabled
-func (t *Team) UnitAccessMode(tp unit.Type) AccessMode {
+func (t *Team) UnitAccessMode(tp unit.Type) perm.AccessMode {
 	return t.unitAccessMode(db.GetEngine(db.DefaultContext), tp)
 }
 
-func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) AccessMode {
+func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) perm.AccessMode {
 	if err := t.getUnits(e); err != nil {
 		log.Warn("Error loading team (ID: %d) units: %s", t.ID, err.Error())
 	}
@@ -477,7 +477,7 @@ func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) AccessMode {
 			return unit.Authorize
 		}
 	}
-	return AccessModeNone
+	return perm.AccessModeNone
 }
 
 // IsUsableTeamName tests if a name could be as team name
@@ -1050,7 +1050,7 @@ type TeamUnit struct {
 	OrgID     int64     `xorm:"INDEX"`
 	TeamID    int64     `xorm:"UNIQUE(s)"`
 	Type      unit.Type `xorm:"UNIQUE(s)"`
-	Authorize AccessMode
+	Authorize perm.AccessMode
 }
 
 // Unit returns Unit
