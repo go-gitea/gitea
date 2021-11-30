@@ -6,23 +6,24 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	unit_model "code.gitea.io/gitea/models/unit"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(repo *models.Repository, mode models.AccessMode) *api.Repository {
+func ToRepo(repo *models.Repository, mode perm.AccessMode) *api.Repository {
 	return innerToRepo(repo, mode, false)
 }
 
-func innerToRepo(repo *models.Repository, mode models.AccessMode, isParent bool) *api.Repository {
+func innerToRepo(repo *models.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
 	cloneLink := repo.CloneLink()
 	permission := &api.Permission{
-		Admin: mode >= models.AccessModeAdmin,
-		Push:  mode >= models.AccessModeWrite,
-		Pull:  mode >= models.AccessModeRead,
+		Admin: mode >= perm.AccessModeAdmin,
+		Push:  mode >= perm.AccessModeWrite,
+		Pull:  mode >= perm.AccessModeRead,
 	}
 	if !isParent {
 		err := repo.GetBaseRepo()

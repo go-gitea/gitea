@@ -267,10 +267,10 @@ func main() {
 		logVerbose("batch cmd: %s %v", subCmd, substArgs)
 		switch subCmd {
 		case "gitea-fmt":
-			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", substArgs))
 			if containsString(subArgs, "-w") {
 				cmdErrors = append(cmdErrors, giteaFormatGoImports(files))
 			}
+			cmdErrors = append(cmdErrors, passThroughCmd("gofmt", substArgs))
 		case "misspell":
 			cmdErrors = append(cmdErrors, passThroughCmd("misspell", substArgs))
 		default:

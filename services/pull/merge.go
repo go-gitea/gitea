@@ -359,7 +359,7 @@ func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle models.M
 				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			}
 		} else {
-			if committer != sig {
+			if setting.Repository.PullRequest.AddCoCommitterTrailers && committer.String() != sig.String() {
 				// add trailer
 				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 			}

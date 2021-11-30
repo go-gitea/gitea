@@ -103,12 +103,8 @@
 						{{range $idx, $code := .FileContent}}
 						{{$line := Add $idx 1}}
 						<tr>
-							<td id="L{{$line}}" class="lines-num">
-								<span id="L{{$line}}" data-line-number="{{$line}}"></span>
-							</td>
-							<td rel="L{{$line}}" class="lines-code chroma">
-								<code class="code-inner">{{$code | Safe}}</code>
-							</td>
+							<td id="L{{$line}}" class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
+							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
 						</tr>
 						{{end}}
 					</tbody>

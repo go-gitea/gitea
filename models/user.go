@@ -260,7 +260,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 
 	// ***** START: ExternalLoginUser *****
-	if err = removeAllAccountLinks(e, u); err != nil {
+	if err = user_model.RemoveAllAccountLinks(ctx, u); err != nil {
 		return fmt.Errorf("ExternalLoginUser: %v", err)
 	}
 	// ***** END: ExternalLoginUser *****
