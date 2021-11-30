@@ -1389,7 +1389,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				IndexFile:  indexFilename,
 				WorkTree:   worktree,
 			}
-			ctx, cancel := context.WithCancel(git.DefaultContext)
+			ctx, cancel := context.WithCancel(ctx)
 			if err := checker.Init(ctx); err != nil {
 				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
 			} else {

@@ -322,7 +322,7 @@ func dummyInfoRefs(ctx *context.Context) {
 			}
 		}()
 
-		if err := git.InitRepository(tmpDir, true); err != nil {
+		if err := git.InitRepository(ctx, tmpDir, true); err != nil {
 			log.Error("Failed to init bare repo for git-receive-pack cache: %v", err)
 			return
 		}
@@ -484,7 +484,6 @@ func serviceRPC(h serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	// ctx, cancel := gocontext.WithCancel(git.DefaultContext)
 	ctx, _, finished := process.GetManager().AddContext(h.r.Context(), fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
 	defer finished()
 

@@ -114,11 +114,11 @@ func TestRepository_InitWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	// repo1 already has a wiki
 	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	assert.NoError(t, InitWiki(repo1))
+	assert.NoError(t, InitWiki(git.DefaultContext, repo1))
 
 	// repo2 does not already have a wiki
 	repo2 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
-	assert.NoError(t, InitWiki(repo2))
+	assert.NoError(t, InitWiki(git.DefaultContext, repo2))
 	assert.True(t, repo2.HasWiki())
 }
 
@@ -135,9 +135,9 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		wikiName := wikiName
 		t.Run("test wiki exist: "+wikiName, func(t *testing.T) {
 			t.Parallel()
-			assert.NoError(t, AddWikiPage(doer, repo, wikiName, wikiContent, commitMsg))
+			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, wikiName, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepository(repo.WikiPath())
+			gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
@@ -152,7 +152,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	t.Run("check wiki already exist", func(t *testing.T) {
 		t.Parallel()
 		// test for already-existing wiki name
-		err := AddWikiPage(doer, repo, "Home", wikiContent, commitMsg)
+		err := AddWikiPage(git.DefaultContext, doer, repo, "Home", wikiContent, commitMsg)
 		assert.Error(t, err)
 		assert.True(t, models.IsErrWikiAlreadyExist(err))
 	})
@@ -160,7 +160,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	t.Run("check wiki reserved name", func(t *testing.T) {
 		t.Parallel()
 		// test for reserved wiki name
-		err := AddWikiPage(doer, repo, "_edit", wikiContent, commitMsg)
+		err := AddWikiPage(git.DefaultContext, doer, repo, "_edit", wikiContent, commitMsg)
 		assert.Error(t, err)
 		assert.True(t, models.IsErrWikiReservedName(err))
 	})
@@ -179,10 +179,10 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		"New/name/with/slashes",
 	} {
 		unittest.PrepareTestEnv(t)
-		assert.NoError(t, EditWikiPage(doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
+		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepository(repo.WikiPath())
+		gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
@@ -203,10 +203,10 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	assert.NoError(t, DeleteWikiPage(doer, repo, "Home"))
+	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")
@@ -219,7 +219,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	gitRepo, err := git.OpenRepository(repo.WikiPath())
+	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 
@@ -279,7 +279,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 		}
 	}()
 
-	err = git.InitRepository(tmpDir, true)
+	err = git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(tmpDir)

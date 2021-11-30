@@ -6,6 +6,7 @@ package code
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -271,11 +272,10 @@ func (b *BleveIndexer) Close() {
 }
 
 // Index indexes the data
-func (b *BleveIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *BleveIndexer) Index(ctx context.Context, repo *models.Repository, sha string, changes *repoChanges) error {
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
 	if len(changes.Updates) > 0 {
-
-		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {

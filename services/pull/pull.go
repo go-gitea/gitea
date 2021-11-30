@@ -26,12 +26,12 @@ import (
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
+func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
 
-	divergence, err := GetDiverging(pr)
+	divergence, err := GetDiverging(ctx, pr)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 	pull.PullRequest = pr
 
 	if pr.Flow == models.PullRequestFlowGithub {
-		err = PushToBaseRepo(pr)
+		err = PushToBaseRepo(ctx, pr)
 	} else {
 		err = UpdateRef(pr)
 	}
@@ -114,7 +114,7 @@ func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int6
 }
 
 // ChangeTargetBranch changes the target branch of this pull request, as the given user.
-func ChangeTargetBranch(pr *models.PullRequest, doer *user_model.User, targetBranch string) (err error) {
+func ChangeTargetBranch(ctx context.Context, pr *models.PullRequest, doer *user_model.User, targetBranch string) (err error) {
 	// Current target branch is already the same
 	if pr.BaseBranch == targetBranch {
 		return nil
@@ -183,7 +183,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *user_model.User, targetBra
 	}
 
 	// Update Commit Divergence
-	divergence, err := GetDiverging(pr)
+	divergence, err := GetDiverging(ctx, pr)
 	if err != nil {
 		return err
 	}
@@ -269,7 +269,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						if err := models.MarkReviewsAsNotStale(pr.IssueID, newCommitID); err != nil {
 							log.Error("MarkReviewsAsNotStale: %v", err)
 						}
-						divergence, err := GetDiverging(pr)
+						divergence, err := GetDiverging(ctx, pr)
 						if err != nil {
 							log.Error("GetDiverging: %v", err)
 						} else {
@@ -289,7 +289,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 		for _, pr := range prs {
 			log.Trace("Updating PR[%d]: composing new test task", pr.ID)
 			if pr.Flow == models.PullRequestFlowGithub {
-				if err := PushToBaseRepo(pr); err != nil {
+				if err := PushToBaseRepo(ctx, pr); err != nil {
 					log.Error("PushToBaseRepo: %v", err)
 					continue
 				}
@@ -311,7 +311,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			return
 		}
 		for _, pr := range prs {
-			divergence, err := GetDiverging(pr)
+			divergence, err := GetDiverging(ctx, pr)
 			if err != nil {
 				if models.IsErrBranchDoesNotExist(err) && !git.IsBranchExist(ctx, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
 					log.Warn("Cannot test PR %s/%d: head_branch %s no longer exists", pr.BaseRepo.Name, pr.IssueID, pr.HeadBranch)
@@ -403,11 +403,11 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 // PushToBaseRepo pushes commits from branches of head repository to
 // corresponding branches of base repository.
 // FIXME: Only push branches that are actually updates?
-func PushToBaseRepo(pr *models.PullRequest) (err error) {
-	return pushToBaseRepoHelper(pr, "")
+func PushToBaseRepo(ctx context.Context, pr *models.PullRequest) (err error) {
+	return pushToBaseRepoHelper(ctx, pr, "")
 }
 
-func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err error) {
+func pushToBaseRepoHelper(ctx context.Context, pr *models.PullRequest, prefixHeadBranch string) (err error) {
 	log.Trace("PushToBaseRepo[%d]: pushing commits to base repo '%s'", pr.BaseRepoID, pr.GetGitRefName())
 
 	if err := pr.LoadHeadRepo(); err != nil {
@@ -431,7 +431,7 @@ func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err 
 
 	gitRefName := pr.GetGitRefName()
 
-	if err := git.Push(git.DefaultContext, headRepoPath, git.PushOptions{
+	if err := git.Push(ctx, headRepoPath, git.PushOptions{
 		Remote: baseRepoPath,
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
@@ -451,8 +451,8 @@ func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err 
 				log.Info("Can't push with %s%s", prefixHeadBranch, pr.HeadBranch)
 				return err
 			}
-			log.Info("Retrying to push with "+git.BranchPrefix+"%s", pr.HeadBranch)
-			err = pushToBaseRepoHelper(pr, git.BranchPrefix)
+			log.Info("Retrying to push with %s%s", git.BranchPrefix, pr.HeadBranch)
+			err = pushToBaseRepoHelper(ctx, pr, git.BranchPrefix)
 			return err
 		}
 		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
@@ -524,8 +524,8 @@ func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error 
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
-func CloseRepoBranchesPulls(doer *user_model.User, repo *models.Repository) error {
-	branches, _, err := git.GetBranchesByPath(repo.RepoPath(), 0, 0)
+func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *models.Repository) error {
+	branches, _, err := git.GetBranchesByPath(ctx, repo.RepoPath(), 0, 0)
 	if err != nil {
 		return err
 	}

@@ -150,7 +150,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		return err
 	}
 
-	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
+	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
 		Mirror:  true,
 		Quiet:   true,
 		Timeout: migrateTimeout,
@@ -167,7 +167,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 				return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err := git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
+			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
 				Mirror:  true,
 				Quiet:   true,
 				Timeout: migrateTimeout,
@@ -181,7 +181,7 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.gitPath())
+	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, g.gitPath())
 	return err
 }
 

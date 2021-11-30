@@ -156,7 +156,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 				Flow:         models.PullRequestFlowAGit,
 			}
 
-			if err := pull_service.NewPullRequest(repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
+			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
 				if models.IsErrUserDoesNotHaveAccessToRepo(err) {
 					ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 					return nil

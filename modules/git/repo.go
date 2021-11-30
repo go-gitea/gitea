@@ -63,13 +63,13 @@ func IsRepoURLAccessible(url string) bool {
 }
 
 // InitRepository initializes a new Git repository.
-func InitRepository(repoPath string, bare bool) error {
+func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 	err := os.MkdirAll(repoPath, os.ModePerm)
 	if err != nil {
 		return err
 	}
 
-	cmd := NewCommand("init")
+	cmd := NewCommandContext(ctx, "init")
 	if bare {
 		cmd.AddArguments("--bare")
 	}
@@ -104,12 +104,7 @@ type CloneRepoOptions struct {
 }
 
 // Clone clones original repository to target path.
-func Clone(from, to string, opts CloneRepoOptions) error {
-	return CloneWithContext(DefaultContext, from, to, opts)
-}
-
-// CloneWithContext clones original repository to target path.
-func CloneWithContext(ctx context.Context, from, to string, opts CloneRepoOptions) error {
+func Clone(ctx context.Context, from, to string, opts CloneRepoOptions) error {
 	cargs := make([]string, len(GlobalCommandArgs))
 	copy(cargs, GlobalCommandArgs)
 	return CloneWithArgs(ctx, from, to, cargs, opts)

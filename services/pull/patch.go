@@ -16,7 +16,9 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -50,8 +52,11 @@ var patchErrorSuffices = []string{
 
 // TestPatch will test whether a simple patch will apply
 func TestPatch(pr *models.PullRequest) error {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s#%d", pr.BaseRepo.FullName(), pr.Index))
+	defer finished()
+
 	// Clone base repo.
-	tmpBasePath, err := createTemporaryRepo(pr)
+	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
 		log.Error("CreateTemporaryPath: %v", err)
 		return err
@@ -62,14 +67,14 @@ func TestPatch(pr *models.PullRequest) error {
 		}
 	}()
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository: %v", err)
 	}
 	defer gitRepo.Close()
 
 	// 1. update merge base
-	pr.MergeBase, err = git.NewCommand("merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
+	pr.MergeBase, err = git.NewCommandContext(ctx, "merge-base", "--", "base", "tracking").RunInDir(tmpBasePath)
 	if err != nil {
 		var err2 error
 		pr.MergeBase, err2 = gitRepo.GetRefCommitID(git.BranchPrefix + "base")

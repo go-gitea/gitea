@@ -666,7 +666,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo.Close()
 		}
 
-		if err := repo_service.DeleteRepository(ctx.User, ctx.Repo.Repository); err != nil {
+		if err := repo_service.DeleteRepository(ctx, ctx.User, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
@@ -685,7 +685,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		err := wiki_service.DeleteWiki(repo)
+		err := wiki_service.DeleteWiki(ctx, repo)
 		if err != nil {
 			log.Error("Delete Wiki: %v", err.Error())
 		}

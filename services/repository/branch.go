@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -18,19 +19,19 @@ import (
 )
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(doer *user_model.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
+func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
 	// Check if branch name can be used
-	if err := checkBranchName(repo, branchName); err != nil {
+	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
 	}
 
-	if !git.IsBranchExist(git.DefaultContext, repo.RepoPath(), oldBranchName) {
+	if !git.IsBranchExist(ctx, repo.RepoPath(), oldBranchName) {
 		return models.ErrBranchDoesNotExist{
 			BranchName: oldBranchName,
 		}
 	}
 
-	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
+	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", oldBranchName, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
@@ -60,32 +61,34 @@ func GetBranch(repo *models.Repository, branch string) (*git.Branch, error) {
 
 // GetBranches returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
-func GetBranches(repo *models.Repository, skip, limit int) ([]*git.Branch, int, error) {
-	return git.GetBranchesByPath(repo.RepoPath(), skip, limit)
+func GetBranches(ctx context.Context, repo *models.Repository, skip, limit int) ([]*git.Branch, int, error) {
+	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
 }
 
 // checkBranchName validates branch name with existing repository branches
-func checkBranchName(repo *models.Repository, name string) error {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+// FIXME: There really has to be faster mechanism than this. git cat-file --batch-check will check a branchname
+// and or tag name... (git.DefaultContext - as a marker to come back to this)
+func checkBranchName(ctx context.Context, repo *models.Repository, name string) error {
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return err
 	}
 	defer gitRepo.Close()
 
-	branches, _, err := GetBranches(repo, 0, 0)
+	branches, _, err := gitRepo.GetBranches(0, 0)
 	if err != nil {
 		return err
 	}
 
 	for _, branch := range branches {
-		if branch.Name == name {
+		if branch == name {
 			return models.ErrBranchAlreadyExists{
-				BranchName: branch.Name,
+				BranchName: branch,
 			}
-		} else if (len(branch.Name) < len(name) && branch.Name+"/" == name[0:len(branch.Name)+1]) ||
-			(len(branch.Name) > len(name) && name+"/" == branch.Name[0:len(name)+1]) {
+		} else if (len(branch) < len(name) && branch+"/" == name[0:len(branch)+1]) ||
+			(len(branch) > len(name) && name+"/" == branch[0:len(name)+1]) {
 			return models.ErrBranchNameConflict{
-				BranchName: branch.Name,
+				BranchName: branch,
 			}
 		}
 	}
@@ -100,9 +103,9 @@ func checkBranchName(repo *models.Repository, name string) error {
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(doer *user_model.User, repo *models.Repository, commit, branchName string) (err error) {
+func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *models.Repository, commit, branchName string) (err error) {
 	// Check if branch name can be used
-	if err := checkBranchName(repo, branchName); err != nil {
+	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
 	}
 

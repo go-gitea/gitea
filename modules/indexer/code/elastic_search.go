@@ -244,11 +244,11 @@ func (b *ElasticSearchIndexer) addDelete(filename string, repo *models.Repositor
 }
 
 // Index will save the index data
-func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, changes *repoChanges) error {
+func (b *ElasticSearchIndexer) Index(ctx context.Context, repo *models.Repository, sha string, changes *repoChanges) error {
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(ctx, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {

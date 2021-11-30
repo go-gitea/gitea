@@ -98,7 +98,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 	return gt, nil
 }
 
-func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmpDir string) error {
+func generateRepoCommit(ctx context.Context, repo, templateRepo, generateRepo *models.Repository, tmpDir string) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -114,7 +114,7 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 
 	// Clone to temporary path and do the init commit.
 	templateRepoPath := templateRepo.RepoPath()
-	if err := git.Clone(templateRepoPath, tmpDir, git.CloneRepoOptions{
+	if err := git.Clone(ctx, templateRepoPath, tmpDir, git.CloneRepoOptions{
 		Depth:  1,
 		Branch: templateRepo.DefaultBranch,
 	}); err != nil {
@@ -171,19 +171,19 @@ func generateRepoCommit(repo, templateRepo, generateRepo *models.Repository, tmp
 		}
 	}
 
-	if err := git.InitRepository(tmpDir, false); err != nil {
+	if err := git.InitRepository(ctx, tmpDir, false); err != nil {
 		return err
 	}
 
 	repoPath := repo.RepoPath()
-	if stdout, err := git.NewCommand("remote", "add", "origin", repoPath).
+	if stdout, err := git.NewCommandContext(ctx, "remote", "add", "origin", repoPath).
 		SetDescription(fmt.Sprintf("generateRepoCommit (git remote add): %s to %s", templateRepoPath, tmpDir)).
 		RunInDirWithEnv(tmpDir, env); err != nil {
 		log.Error("Unable to add %v as remote origin to temporary repo to %s: stdout %s\nError: %v", repo, tmpDir, stdout, err)
 		return fmt.Errorf("git remote add: %v", err)
 	}
 
-	return initRepoCommit(tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
+	return initRepoCommit(ctx, tmpDir, repo, repo.Owner, templateRepo.DefaultBranch)
 }
 
 func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *models.Repository) (err error) {
@@ -198,7 +198,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *m
 		}
 	}()
 
-	if err = generateRepoCommit(repo, templateRepo, generateRepo, tmpDir); err != nil {
+	if err = generateRepoCommit(ctx, repo, templateRepo, generateRepo, tmpDir); err != nil {
 		return fmt.Errorf("generateRepoCommit: %v", err)
 	}
 
@@ -208,7 +208,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *m
 	}
 
 	repo.DefaultBranch = templateRepo.DefaultBranch
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
@@ -272,7 +272,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		}
 	}
 
-	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
+	if err = checkInitRepository(ctx, owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
 	}
 
