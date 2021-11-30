@@ -5,9 +5,13 @@
 package stats
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 )
 
 // DBIndexer implements Indexer interface to use database's like search
@@ -16,6 +20,9 @@ type DBIndexer struct {
 
 // Index repository status function
 func (db *DBIndexer) Index(id int64) error {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
+	defer finished()
+
 	repo, err := models.GetRepositoryByID(id)
 	if err != nil {
 		return err
@@ -29,7 +36,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return err
 	}
