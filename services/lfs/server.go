@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -480,9 +481,9 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireSigned, requireWrite bool) bool {
-	accessMode := models.AccessModeRead
+	accessMode := perm.AccessModeRead
 	if requireWrite {
-		accessMode = models.AccessModeWrite
+		accessMode = perm.AccessModeWrite
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
@@ -507,7 +508,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	return true
 }
 
-func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*user_model.User, error) {
+func handleLFSToken(tokenSHA string, target *models.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -530,7 +531,7 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	if mode == models.AccessModeWrite && claims.Op != "upload" {
+	if mode == perm.AccessModeWrite && claims.Op != "upload" {
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
@@ -542,7 +543,7 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 	return u, nil
 }
 
-func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*user_model.User, error) {
+func parseToken(authorization string, target *models.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}

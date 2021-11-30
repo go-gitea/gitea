@@ -5,7 +5,7 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -36,11 +36,11 @@ func ToUsers(doer *user_model.User, users []*user_model.User) []*api.User {
 
 // ToUserWithAccessMode convert user_model.User to api.User
 // AccessMode is not none show add some more information
-func ToUserWithAccessMode(user *user_model.User, accessMode models.AccessMode) *api.User {
+func ToUserWithAccessMode(user *user_model.User, accessMode perm.AccessMode) *api.User {
 	if user == nil {
 		return nil
 	}
-	return toUser(user, accessMode != models.AccessModeNone, false)
+	return toUser(user, accessMode != perm.AccessModeNone, false)
 }
 
 // toUser convert user_model.User to api.User

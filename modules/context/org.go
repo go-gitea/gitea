@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -167,7 +168,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 
-		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.Authorize >= models.AccessModeAdmin
+		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.Authorize >= perm.AccessModeAdmin
 		ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 		if requireTeamAdmin && !ctx.Org.IsTeamAdmin {
 			ctx.NotFound("OrgAssignment", err)

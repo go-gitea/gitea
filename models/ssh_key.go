@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -35,14 +36,14 @@ const (
 
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
-	ID            int64      `xorm:"pk autoincr"`
-	OwnerID       int64      `xorm:"INDEX NOT NULL"`
-	Name          string     `xorm:"NOT NULL"`
-	Fingerprint   string     `xorm:"INDEX NOT NULL"`
-	Content       string     `xorm:"TEXT NOT NULL"`
-	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
-	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
-	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
+	ID            int64           `xorm:"pk autoincr"`
+	OwnerID       int64           `xorm:"INDEX NOT NULL"`
+	Name          string          `xorm:"NOT NULL"`
+	Fingerprint   string          `xorm:"INDEX NOT NULL"`
+	Content       string          `xorm:"TEXT NOT NULL"`
+	Mode          perm.AccessMode `xorm:"NOT NULL DEFAULT 2"`
+	Type          KeyType         `xorm:"NOT NULL DEFAULT 1"`
+	LoginSourceID int64           `xorm:"NOT NULL DEFAULT 0"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
@@ -123,7 +124,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		Name:          name,
 		Fingerprint:   fingerprint,
 		Content:       content,
-		Mode:          AccessModeWrite,
+		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypeUser,
 		LoginSourceID: loginSourceID,
 	}

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -76,7 +77,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		} else if repo, err := GetRepositoryByID(protectBranch.RepoID); err != nil {
 			log.Error("GetRepositoryByID: %v", err)
 			return false
-		} else if writeAccess, err := HasAccessUnit(user, repo, unit.TypeCode, AccessModeWrite); err != nil {
+		} else if writeAccess, err := HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -136,7 +137,7 @@ func (protectBranch *ProtectedBranch) isUserOfficialReviewer(e db.Engine, user *
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := hasAccessUnit(e, user, repo, unit.TypeCode, AccessModeWrite)
+		writeAccess, err := hasAccessUnit(e, user, repo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -474,7 +475,7 @@ func updateTeamWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 		return currentWhitelist, nil
 	}
 
-	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
+	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, fmt.Errorf("GetTeamsWithAccessToRepo [org_id: %d, repo_id: %d]: %v", repo.OwnerID, repo.ID, err)
 	}

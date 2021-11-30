@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -62,7 +63,7 @@ func TestAddReadOnlyDeployKey(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeRead,
+		Mode:    perm.AccessModeRead,
 	})
 }
 
@@ -92,7 +93,7 @@ func TestAddReadWriteOnlyDeployKey(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &models.DeployKey{
 		Name:    addKeyForm.Title,
 		Content: addKeyForm.Content,
-		Mode:    models.AccessModeWrite,
+		Mode:    perm.AccessModeWrite,
 	})
 }
 

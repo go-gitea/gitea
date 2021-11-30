@@ -79,8 +79,8 @@ Admin operations:
         - `gitea admin user delete --id 1`
     - `create`:
       - Options:
-        - `--name value`: Username. Required. As of gitea 1.9.0, use the `--username` flag instead.
-        - `--username value`: Username. Required. New in gitea 1.9.0.
+        - `--name value`: Username. Required. As of Gitea 1.9.0, use the `--username` flag instead.
+        - `--username value`: Username. Required. New in Gitea 1.9.0.
         - `--password value`: Password. Required.
         - `--email value`: Email. Required.
         - `--admin`: If provided, this makes the user an admin. Optional.
@@ -301,7 +301,7 @@ Provides an SSHD AuthorizedKeysCommand. Needs to be configured in the sshd confi
 ```ini
 ...
 # The value of -e and the AuthorizedKeysCommandUser should match the
-# username running gitea
+# username running Gitea
 AuthorizedKeysCommandUser git
 AuthorizedKeysCommand /path/to/gitea keys -e git -u %u -t %t -k %k
 ```
@@ -311,7 +311,7 @@ provided key. You should also set the value
 `SSH_CREATE_AUTHORIZED_KEYS_FILE=false` in the `[server]` section of
 `app.ini`.
 
-NB: opensshd requires the gitea program to be owned by root and not
+NB: opensshd requires the Gitea program to be owned by root and not
 writable by group or others. The program must be specified by an absolute
 path.
 NB: Gitea must be running for this command to succeed.
@@ -327,13 +327,13 @@ Converts an existing MySQL database from utf8 to utf8mb4.
 
 ### doctor
 
-Diagnose the problems of current gitea instance according the given configuration.
+Diagnose the problems of current Gitea instance according the given configuration.
 Currently there are a check list below:
 
 - Check if OpenSSH authorized_keys file id correct
-  When your gitea instance support OpenSSH, your gitea instance binary path will be written to `authorized_keys`
-  when there is any public key added or changed on your gitea instance.
-  Sometimes if you moved or renamed your gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
+  When your Gitea instance support OpenSSH, your Gitea instance binary path will be written to `authorized_keys`
+  when there is any public key added or changed on your Gitea instance.
+  Sometimes if you moved or renamed your Gitea binary when upgrade and you haven't run `Update the '.ssh/authorized_keys' file with Gitea SSH keys. (Not needed for the built-in SSH server.)` on your Admin Panel. Then all pull/push via SSH will not be work.
   This check will help you to check if it works well.
 
 For contributors, if you want to add more checks, you can wrie ad new function like `func(ctx *cli.Context) ([]string, error)` and
@@ -367,7 +367,7 @@ with the defaults set appropriately by using:
 gitea doctor recreate-table user
 ```
 
-You can ask gitea to recreate multiple tables using:
+You can ask Gitea to recreate multiple tables using:
 
 ```
 gitea doctor recreate-table table1 table2 ...
