@@ -1304,7 +1304,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}
 
 	timeout := time.Duration(setting.Git.Timeout.Default) * time.Second
-	ctx, _, finished := process.GetManager().AddContextTimeout(git.DefaultContext, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
+	ctx, _, finished := process.GetManager().AddContextTimeout(gitRepo.Ctx, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
 	defer finished()
 
 	argsLength := 6
