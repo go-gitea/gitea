@@ -66,7 +66,6 @@ func ChangePrivate(issue *models.Issue, doer *user_model.User, isConfidential bo
 		}
 	}
 
-	// TODO: remove existing watcher, notifications, etc etc.
 	isUserAdmin, err := models.IsUserRealRepoAdmin(issue.Repo, doer)
 	if err != nil {
 		return
