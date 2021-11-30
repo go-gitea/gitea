@@ -8,7 +8,7 @@ import (
 	"context"
 )
 
-// Context is a wrapper around context.Context for having the current pid for this context
+// Context is a wrapper around context.Context and contains the current pid for this context
 type Context struct {
 	context.Context
 	pid IDType
@@ -19,7 +19,7 @@ func (c *Context) GetPID() IDType {
 	return c.pid
 }
 
-// GetParent returns the parent process context if any
+// GetParent returns the parent process context (if any)
 func (c *Context) GetParent() *Context {
 	return GetContext(c.Context)
 }

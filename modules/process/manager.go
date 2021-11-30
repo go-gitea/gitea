@@ -33,10 +33,10 @@ var (
 type IDType string
 
 // FinishedFunc is a function that marks that the process is finished and can be removed from the process table
-// - it is simply an alias for context.CancelFunc and is only for documentary purpose
+// - it is simply an alias for context.CancelFunc and is only for documentary purposes
 type FinishedFunc = context.CancelFunc
 
-// Manager knows about all processes and counts PIDs.
+// Manager manages all processes and counts PIDs.
 type Manager struct {
 	mutex sync.Mutex
 
@@ -57,8 +57,8 @@ func GetManager() *Manager {
 	return manager
 }
 
-// AddContext create a new context and add it as a process. Once the process is finished, finished must be called in order that the process
-// can be removed from the process table. It should not be called until the process is finished but must always be called.
+// AddContext creates a new context and adds it as a process. Once the process is finished, finished must be called
+// to remove the process from the process table. It should not be called until the process is finished but must always be called.
 //
 // cancel should be used to cancel the returned context, however it will not remove the process from the process table.
 // finished will cancel the returned context and remove it from the process table.
@@ -78,8 +78,8 @@ func (pm *Manager) AddContext(parent context.Context, description string) (ctx c
 	}, cancel, finished
 }
 
-// AddContextTimeout create a new context and add it as a process. Once the process is finished, finished must be called in order that the process
-// can be removed from the process table. It should not be called until the process is finsihed but must always be called.
+// AddContextTimeout creates a new context and add it as a process. Once the process is finished, finished must be called
+// to remove the process from the process table. It should not be called until the process is finsihed but must always be called.
 //
 // cancel should be used to cancel the returned context, however it will not remove the process from the process table.
 // finished will cancel the returned context and remove it from the process table.
