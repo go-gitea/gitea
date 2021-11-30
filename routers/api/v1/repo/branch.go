@@ -405,7 +405,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	repo := ctx.Repo.Repository
 
 	// Currently protection must match an actual branch
-	if !git.IsBranchExist(ctx.Repo.Repository.RepoPath(), form.BranchName) {
+	if !git.IsBranchExist(ctx.Req.Context(), ctx.Repo.Repository.RepoPath(), form.BranchName) {
 		ctx.NotFound()
 		return
 	}
