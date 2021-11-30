@@ -111,7 +111,6 @@ func TestAPITeam(t *testing.T) {
 	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.Authorize.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
-	panic("")
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)
 	session.MakeRequest(t, req, http.StatusNoContent)
