@@ -6,10 +6,11 @@
 			<select class="ui dropdown" name="type">
 				<option value="">{{.i18n.Tr "packages.filter.type"}}</option>
 				<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
+				<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
 				<option value="generic" {{if eq .PackageType "generic"}}selected="selected"{{end}}>Generic</option>
-				<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
-				<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
 				<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
+				<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
+				<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
 				<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 				<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
 			</select>

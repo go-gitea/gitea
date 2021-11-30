@@ -433,6 +433,11 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteRepo)
 		})
 
+		m.Group("/packages", func() {
+			m.Get("", admin.Packages)
+			m.Post("/delete", admin.DeletePackageVersion)
+		})
+
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)

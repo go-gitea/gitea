@@ -76,3 +76,9 @@ func DeleteBlobByID(ctx context.Context, blobID int64) error {
 	_, err := db.GetEngine(ctx).ID(blobID).Delete(&PackageBlob{})
 	return err
 }
+
+// GetTotalBlobSize returns the total blobs size in bytes
+func GetTotalBlobSize() (int64, error) {
+	return db.GetEngine(db.DefaultContext).
+		SumInt(&PackageBlob{}, "size")
+}

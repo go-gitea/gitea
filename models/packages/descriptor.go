@@ -46,6 +46,15 @@ func (pd *PackageDescriptor) WebLink() string {
 	return pd.Owner.HTMLURL() + "/-/packages/" + strconv.FormatInt(pd.Version.ID, 10)
 }
 
+// CalculateBlobSize returns the total blobs size in bytes
+func (pd *PackageDescriptor) CalculateBlobSize() int64 {
+	size := int64(0)
+	for _, f := range pd.Files {
+		size += f.Blob.Size
+	}
+	return size
+}
+
 // GetPackageDescriptor gets the package description for a version
 func GetPackageDescriptor(pv *PackageVersion) (*PackageDescriptor, error) {
 	return GetPackageDescriptorCtx(db.DefaultContext, pv)

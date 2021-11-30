@@ -172,12 +172,15 @@ type PackageSearchOptions struct {
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"package.owner_id": opts.OwnerID}
+	cond := builder.NewCond()
 
+	if opts.OwnerID != 0 {
+		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
+	}
 	if opts.RepoID != 0 {
 		cond = cond.And(builder.Eq{"package.repo_id": opts.RepoID})
 	}
-	if opts.Type != "" {
+	if opts.Type != "" && opts.Type != "all" {
 		cond = cond.And(builder.Eq{"package.type": opts.Type})
 	}
 	if opts.Query != "" {
