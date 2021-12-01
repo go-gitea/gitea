@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
@@ -65,6 +66,7 @@ func TestAPITeam(t *testing.T) {
 	}
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", org.Name, token), teamToCreate)
 	resp = session.MakeRequest(t, req, http.StatusCreated)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		teamToCreate.Permission, teamToCreate.Units, nil)
@@ -85,28 +87,31 @@ func TestAPITeam(t *testing.T) {
 
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEdit)
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, teamToEdit.Units, nil)
+		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, teamToEdit.Units, nil)
+		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 
 	// Edit team Description only
 	editDescription = "first team"
 	teamToEditDesc := api.EditTeamOption{Description: &editDescription}
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, teamToEdit.Units, nil)
+		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, teamToEdit.Units, nil)
+		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 
 	// Read team.
 	teamRead := unittest.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
 	assert.NoError(t, teamRead.GetUnits())
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamID)
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.Authorize.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
@@ -127,11 +132,12 @@ func TestAPITeam(t *testing.T) {
 	}
 	req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", org.Name, token), teamToCreate)
 	resp = session.MakeRequest(t, req, http.StatusCreated)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, nil, teamToCreate.UnitsMap)
+		"read", nil, teamToCreate.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
-		teamToCreate.Permission, nil, teamToCreate.UnitsMap)
+		"read", nil, teamToCreate.UnitsMap)
 	teamID = apiTeam.ID
 
 	// Edit team.
@@ -147,28 +153,32 @@ func TestAPITeam(t *testing.T) {
 
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEdit)
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, nil, teamToEdit.UnitsMap)
+		"read", nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, nil, teamToEdit.UnitsMap)
+		"read", nil, teamToEdit.UnitsMap)
 
 	// Edit team Description only
 	editDescription = "second team"
 	teamToEditDesc = api.EditTeamOption{Description: &editDescription}
 	req = NewRequestWithJSON(t, "PATCH", fmt.Sprintf("/api/v1/teams/%d?token=%s", teamID, token), teamToEditDesc)
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, nil, teamToEdit.UnitsMap)
+		"read", nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
-		teamToEdit.Permission, nil, teamToEdit.UnitsMap)
+		"read", nil, teamToEdit.UnitsMap)
 
 	// Read team.
 	teamRead = unittest.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
 	req = NewRequestf(t, "GET", "/api/v1/teams/%d?token="+token, teamID)
 	resp = session.MakeRequest(t, req, http.StatusOK)
+	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
+	assert.NoError(t, teamRead.GetUnits())
 	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.Authorize.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 

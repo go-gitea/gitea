@@ -145,6 +145,10 @@ func (t *Team) getUnits(e db.Engine) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
+	if t.Authorize >= perm.AccessModeAdmin {
+		return unit.AllUnitKeyNames()
+	}
+
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
@@ -154,8 +158,14 @@ func (t *Team) GetUnitNames() (res []string) {
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
 	var m = make(map[string]string)
-	for _, u := range t.Units {
-		m[u.Unit().NameKey] = u.Authorize.String()
+	if t.Authorize >= perm.AccessModeAdmin {
+		for _, u := range unit.Units {
+			m[u.NameKey] = t.Authorize.String()
+		}
+	} else {
+		for _, u := range t.Units {
+			m[u.Unit().NameKey] = u.Authorize.String()
+		}
 	}
 	return m
 }
