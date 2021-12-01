@@ -17,7 +17,7 @@ import (
 )
 
 // ParseCommitWithSSHSignature check if signature is good against keystore.
-func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerification {
+func ParseCommitWithSSHSignature(c *git.Commit, committer *user_model.User) *CommitVerification {
 	// Now try to associate the signature with the committer, if present
 	if committer.ID != 0 {
 		keys, err := ListPublicKeys(committer.ID, db.ListOptions{})
@@ -56,7 +56,7 @@ func ParseCommitWithSSHSignature(c *git.Commit, committer *User) *CommitVerifica
 	}
 }
 
-func verifySSHCommitVerification(sig, payload string, k *PublicKey, committer, signer *User, email string) *CommitVerification {
+func verifySSHCommitVerification(sig, payload string, k *PublicKey, committer, signer *user_model.User, email string) *CommitVerification {
 	if err := sshsig.Verify(bytes.NewBuffer([]byte(payload)), []byte(sig), []byte(k.Content), "git"); err != nil {
 		return nil
 	}
