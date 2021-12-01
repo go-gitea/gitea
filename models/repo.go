@@ -25,6 +25,7 @@ import (
 
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -542,7 +543,7 @@ func (repo *Repository) getAssignees(e db.Engine) (_ []*user_model.User, err err
 
 	accesses := make([]*Access, 0, 10)
 	if err = e.
-		Where("repo_id = ? AND mode >= ?", repo.ID, AccessModeWrite).
+		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
 		Find(&accesses); err != nil {
 		return nil, err
 	}
@@ -586,7 +587,7 @@ func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*us
 		// Anyone who can read the repository is a requestable reviewer
 		if err := e.
 			SQL("SELECT * FROM `user` WHERE id in (SELECT user_id FROM `access` WHERE repo_id = ? AND mode >= ? AND user_id NOT IN ( ?, ?)) ORDER BY name",
-				repo.ID, AccessModeRead,
+				repo.ID, perm.AccessModeRead,
 				doerID, posterID).
 			Find(&users); err != nil {
 			return nil, err
@@ -605,7 +606,7 @@ func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*us
 			"UNION "+
 			"SELECT uid AS user_id FROM `org_user` WHERE org_id = ? "+
 			") AND id NOT IN (?, ?) ORDER BY name",
-			repo.ID, AccessModeRead,
+			repo.ID, perm.AccessModeRead,
 			repo.ID, RepoWatchModeNormal, RepoWatchModeAuto,
 			repo.OwnerID,
 			doerID, posterID).
@@ -634,7 +635,7 @@ func (repo *Repository) GetReviewerTeams() ([]*Team, error) {
 		return nil, nil
 	}
 
-	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, AccessModeRead)
+	teams, err := GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, err
 	}
@@ -817,12 +818,12 @@ func (repo *Repository) CanEnableEditor() bool {
 
 // GetReaders returns all users that have explicit read access or higher to the repository.
 func (repo *Repository) GetReaders() (_ []*user_model.User, err error) {
-	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), AccessModeRead)
+	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), perm.AccessModeRead)
 }
 
 // GetWriters returns all users that have write access to the repository.
 func (repo *Repository) GetWriters() (_ []*user_model.User, err error) {
-	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), AccessModeWrite)
+	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), perm.AccessModeWrite)
 }
 
 // IsReader returns true if user has explicit read access or higher to the repository.
@@ -830,11 +831,11 @@ func (repo *Repository) IsReader(userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, AccessModeRead).Get(&Access{})
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm.AccessModeRead).Get(&Access{})
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
-func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode AccessMode) (_ []*user_model.User, err error) {
+func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode perm.AccessMode) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -1143,7 +1144,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *Repos
 			if err = repo.addCollaborator(db.GetEngine(ctx), doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
 			}
-			if err = repo.changeCollaborationAccessMode(db.GetEngine(ctx), doer.ID, AccessModeAdmin); err != nil {
+			if err = repo.changeCollaborationAccessMode(db.GetEngine(ctx), doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}

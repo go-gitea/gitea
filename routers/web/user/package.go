@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -102,7 +103,7 @@ func ViewPackage(ctx *context.Context) {
 	})
 	ctx.Data["OtherVersions"] = otherVersions
 
-	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= models.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
@@ -125,7 +126,7 @@ func PackageSettings(ctx *context.Context) {
 		Actor: pd.Owner,
 	})
 	ctx.Data["Repos"] = repos
-	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= models.AccessModeWrite || ctx.IsUserSiteAdmin()
+	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
 	ctx.HTML(http.StatusOK, tplPackagesSettings)
 }

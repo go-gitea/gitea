@@ -11,13 +11,14 @@ import (
 
 	"code.gitea.io/gitea/models"
 	packages_model "code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
 // Package contains owner, access mode and optional the package
 type Package struct {
 	Owner      *user_model.User
-	AccessMode models.AccessMode
+	AccessMode perm.AccessMode
 	Descriptor *packages_model.PackageDescriptor
 }
 
@@ -51,7 +52,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 	}
 
 	if ctx.IsSigned && ctx.User.ID == ctx.ContextUser.ID {
-		ctx.Package.AccessMode = models.AccessModeOwner
+		ctx.Package.AccessMode = perm.AccessModeOwner
 	} else {
 		if ctx.Package.Owner.IsOrganization() {
 			if ctx.User != nil && models.HasOrgOrUserVisible(ctx.Package.Owner, ctx.User) {
@@ -63,7 +64,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 				}
 			}
 		} else {
-			ctx.Package.AccessMode = models.AccessModeRead
+			ctx.Package.AccessMode = perm.AccessModeRead
 		}
 	}
 

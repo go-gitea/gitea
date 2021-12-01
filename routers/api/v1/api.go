@@ -71,6 +71,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -199,7 +200,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 	}
 }
 
-func reqPackageAccess(accessMode models.AccessMode) func(ctx *context.APIContext) {
+func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.APIContext) {
 	return func(ctx *context.APIContext) {
 		if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 			ctx.Resp.Header().Set("WWW-Authenticate", `Basic realm="Gitea Package API"`)
@@ -1022,7 +1023,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Get("/p2/{vendorname}/{projectname}~dev.json", composer.PackageMetadata)
 				m.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
 				m.Get("/files/{versionid}/{filename}", composer.DownloadPackageFile)
-				m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), composer.UploadPackage)
+				m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
 			})
 			m.Group("/generic", func() {
 				m.Group("/{packagename}/{packageversion}/{filename}", func() {
@@ -1030,11 +1031,11 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Group("", func() {
 						m.Put("", generic.UploadPackage)
 						m.Delete("", generic.DeletePackage)
-					}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+					}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
 				})
 			})
 			m.Group("/maven", func() {
-				m.Put("/*", reqToken(), reqPackageAccess(models.AccessModeWrite), maven.UploadPackageFile)
+				m.Put("/*", reqToken(), reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 				m.Get("/*", maven.DownloadPackageFile)
 			})
 			m.Group("/nuget", func() {
@@ -1052,17 +1053,17 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Put("/", nuget.UploadPackage)
 					m.Put("/symbolpackage", nuget.UploadSymbolPackage)
 					m.Delete("/{id}/{version}", nuget.DeletePackage)
-				}, reqBasicOrRevProxyAuth(), reqPackageAccess(models.AccessModeWrite))
+				}, reqBasicOrRevProxyAuth(), reqPackageAccess(perm.AccessModeWrite))
 			})
 			m.Group("/npm", func() {
 				m.Group("/@{scope}/{id}", func() {
 					m.Get("", npm.PackageMetadata)
-					m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), npm.UploadPackage)
+					m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
 				})
 				m.Group("/{id}", func() {
 					m.Get("", npm.PackageMetadata)
-					m.Put("", reqToken(), reqPackageAccess(models.AccessModeWrite), npm.UploadPackage)
+					m.Put("", reqToken(), reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 					m.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
 				})
 				m.Group("/-/package/@{scope}/{id}/dist-tags", func() {
@@ -1070,18 +1071,18 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 					m.Group("/{tag}", func() {
 						m.Put("", npm.AddPackageTag)
 						m.Delete("", npm.DeletePackageTag)
-					}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+					}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
 				})
 				m.Group("/-/package/{id}/dist-tags", func() {
 					m.Get("", npm.ListPackageTags)
 					m.Group("/{tag}", func() {
 						m.Put("", npm.AddPackageTag)
 						m.Delete("", npm.DeletePackageTag)
-					}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+					}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
 				})
 			})
 			m.Group("/pypi", func() {
-				m.Post("/", reqBasicOrRevProxyAuth(), reqPackageAccess(models.AccessModeWrite), pypi.UploadPackageFile)
+				m.Post("/", reqBasicOrRevProxyAuth(), reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 				m.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 				m.Get("/simple/{id}", pypi.PackageMetadata)
 			})
@@ -1094,15 +1095,15 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Group("/api/v1/gems", func() {
 					m.Post("/", rubygems.UploadPackageFile)
 					m.Delete("/yank", rubygems.DeletePackage)
-				}, reqToken(), reqPackageAccess(models.AccessModeWrite))
+				}, reqToken(), reqPackageAccess(perm.AccessModeWrite))
 			})
 			m.Group("/{versionid}", func() {
 				m.Get("", packages.GetPackage)
-				m.Delete("", reqPackageAccess(models.AccessModeWrite), packages.DeletePackage)
+				m.Delete("", reqPackageAccess(perm.AccessModeWrite), packages.DeletePackage)
 				m.Get("/files", packages.ListPackageFiles)
 			})
 			m.Get("/", packages.ListPackages)
-		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(models.AccessModeRead))
+		}, context.UserAssignmentAPI(), context.PackageAssignmentAPI(), reqPackageAccess(perm.AccessModeRead))
 
 		// Organizations
 		m.Get("/user/orgs", reqToken(), org.ListMyOrgs)

@@ -5,8 +5,8 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/perm"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -14,7 +14,7 @@ import (
 func ToPackage(pd *packages.PackageDescriptor) *api.Package {
 	var repo *api.Repository
 	if pd.Repository != nil {
-		repo = ToRepo(pd.Repository, models.AccessModeNone)
+		repo = ToRepo(pd.Repository, perm.AccessModeNone)
 	}
 
 	return &api.Package{

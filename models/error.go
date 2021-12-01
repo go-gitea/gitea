@@ -8,6 +8,7 @@ package models
 import (
 	"fmt"
 
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 )
 
@@ -513,7 +514,7 @@ func (err ErrLFSLockNotExist) Error() string {
 type ErrLFSUnauthorizedAction struct {
 	RepoID   int64
 	UserName string
-	Mode     AccessMode
+	Mode     perm.AccessMode
 }
 
 // IsErrLFSUnauthorizedAction checks if an error is a ErrLFSUnauthorizedAction.
@@ -523,7 +524,7 @@ func IsErrLFSUnauthorizedAction(err error) bool {
 }
 
 func (err ErrLFSUnauthorizedAction) Error() string {
-	if err.Mode == AccessModeWrite {
+	if err.Mode == perm.AccessModeWrite {
 		return fmt.Sprintf("User %s doesn't have write access for lfs lock [rid: %d]", err.UserName, err.RepoID)
 	}
 	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
@@ -1636,46 +1637,6 @@ func IsErrUploadNotExist(err error) bool {
 
 func (err ErrUploadNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
-}
-
-//  ___________         __                             .__    .____                 .__          ____ ___
-//  \_   _____/__  ____/  |_  ___________  ____ _____  |  |   |    |    ____   ____ |__| ____   |    |   \______ ___________
-//   |    __)_\  \/  /\   __\/ __ \_  __ \/    \\__  \ |  |   |    |   /  _ \ / ___\|  |/    \  |    |   /  ___// __ \_  __ \
-//   |        \>    <  |  | \  ___/|  | \/   |  \/ __ \|  |__ |    |__(  <_> ) /_/  >  |   |  \ |    |  /\___ \\  ___/|  | \/
-//  /_______  /__/\_ \ |__|  \___  >__|  |___|  (____  /____/ |_______ \____/\___  /|__|___|  / |______//____  >\___  >__|
-//          \/      \/           \/           \/     \/               \/    /_____/         \/               \/     \/
-
-// ErrExternalLoginUserAlreadyExist represents a "ExternalLoginUserAlreadyExist" kind of error.
-type ErrExternalLoginUserAlreadyExist struct {
-	ExternalID    string
-	UserID        int64
-	LoginSourceID int64
-}
-
-// IsErrExternalLoginUserAlreadyExist checks if an error is a ExternalLoginUserAlreadyExist.
-func IsErrExternalLoginUserAlreadyExist(err error) bool {
-	_, ok := err.(ErrExternalLoginUserAlreadyExist)
-	return ok
-}
-
-func (err ErrExternalLoginUserAlreadyExist) Error() string {
-	return fmt.Sprintf("external login user already exists [externalID: %s, userID: %d, loginSourceID: %d]", err.ExternalID, err.UserID, err.LoginSourceID)
-}
-
-// ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
-type ErrExternalLoginUserNotExist struct {
-	UserID        int64
-	LoginSourceID int64
-}
-
-// IsErrExternalLoginUserNotExist checks if an error is a ExternalLoginUserNotExist.
-func IsErrExternalLoginUserNotExist(err error) bool {
-	_, ok := err.(ErrExternalLoginUserNotExist)
-	return ok
-}
-
-func (err ErrExternalLoginUserNotExist) Error() string {
-	return fmt.Sprintf("external login user link does not exists [userID: %d, loginSourceID: %d]", err.UserID, err.LoginSourceID)
 }
 
 // .___                            ________                                   .___                   .__

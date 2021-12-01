@@ -76,6 +76,7 @@ var (
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
+			AddCoCommitterTrailers                   bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -196,6 +197,7 @@ var (
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
 			PopulateSquashCommentWithCommitMessages  bool
+			AddCoCommitterTrailers                   bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
@@ -208,6 +210,7 @@ var (
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
 			PopulateSquashCommentWithCommitMessages:  false,
+			AddCoCommitterTrailers:                   true,
 		},
 
 		// Issue settings

@@ -10,7 +10,7 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -512,7 +512,7 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
 
-	reqPackageAccess := func(accessMode models.AccessMode) func(ctx *context.Context) {
+	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
 		return func(ctx *context.Context) {
 			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
 				ctx.Error(http.StatusUnauthorized, "reqPackageAccess", "user should have specific permission or be a site admin")
@@ -623,9 +623,9 @@ func RegisterRoutes(m *web.Route) {
 				m.Group("/settings", func() {
 					m.Get("", user.PackageSettings)
 					m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
-				}, reqPackageAccess(models.AccessModeWrite))
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
-		}, context.PackageAssignment(), reqPackageAccess(models.AccessModeRead))
+		}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 	}, context.UserAssignment())
 
 	// ***** Release Attachment Download without Signin
