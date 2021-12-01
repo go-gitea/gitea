@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -192,7 +193,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 	gitArgs = append(gitArgs, m.GetRemoteName())
 
-	remoteAddr, remoteErr := git.GetRemoteAddress(repoPath, m.GetRemoteName())
+	remoteAddr, remoteErr := git.GetRemoteAddress(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("GetRemoteAddress Error %v", remoteErr)
 	}
@@ -287,7 +288,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 			// sanitize the output, since it may contain the remote address, which may
 			// contain a password
 
-			remoteAddr, remoteErr := git.GetRemoteAddress(wikiPath, m.GetRemoteName())
+			remoteAddr, remoteErr := git.GetRemoteAddress(ctx, wikiPath, m.GetRemoteName())
 			if remoteErr != nil {
 				log.Error("GetRemoteAddress Error %v", remoteErr)
 			}
@@ -367,6 +368,9 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		return false
 	}
 
+	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
+	defer finished()
+
 	log.Trace("SyncMirrors [repo: %-v]: Running Sync", m.Repo)
 	results, ok := runSync(ctx, m)
 	if !ok {
@@ -385,7 +389,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Trace("SyncMirrors [repo: %-v]: no branches updated", m.Repo)
 	} else {
 		log.Trace("SyncMirrors [repo: %-v]: %d branches updated", m.Repo, len(results))
-		gitRepo, err = git.OpenRepository(m.Repo.RepoPath())
+		gitRepo, err = git.OpenRepositoryCtx(ctx, m.Repo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository [%d]: %v", m.RepoID, err)
 			return false
