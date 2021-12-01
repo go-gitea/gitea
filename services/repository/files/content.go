@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"path"
@@ -38,7 +39,7 @@ func (ct *ContentType) String() string {
 
 // GetContentsOrList gets the meta data of a file's contents (*ContentsResponse) if treePath not a tree
 // directory, otherwise a listing of file contents ([]*ContentsResponse). Ref can be a branch, commit or tag
-func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface{}, error) {
+func GetContentsOrList(ctx context.Context, repo *models.Repository, treePath, ref string) (interface{}, error) {
 	if repo.IsEmpty {
 		return make([]interface{}, 0), nil
 	}
@@ -56,7 +57,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 	}
 	treePath = cleanTreePath
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 	}
 
 	if entry.Type() != "tree" {
-		return GetContents(repo, treePath, origRef, false)
+		return GetContents(ctx, repo, treePath, origRef, false)
 	}
 
 	// We are in a directory, so we return a list of FileContentResponse objects
@@ -90,7 +91,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 	}
 	for _, e := range entries {
 		subTreePath := path.Join(treePath, e.Name())
-		fileContentResponse, err := GetContents(repo, subTreePath, origRef, true)
+		fileContentResponse, err := GetContents(ctx, repo, subTreePath, origRef, true)
 		if err != nil {
 			return nil, err
 		}
@@ -100,7 +101,7 @@ func GetContentsOrList(repo *models.Repository, treePath, ref string) (interface
 }
 
 // GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
-func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
+func GetContents(ctx context.Context, repo *models.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
 	if ref == "" {
 		ref = repo.DefaultBranch
 	}
@@ -115,7 +116,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	}
 	treePath = cleanTreePath
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
-		if blobResponse, err := GetBlobBySHA(repo, entry.ID.String()); err != nil {
+		if blobResponse, err := GetBlobBySHA(ctx, repo, entry.ID.String()); err != nil {
 			return nil, err
 		} else if !forList {
 			// We don't show the content if we are getting a list of FileContentResponses
@@ -218,8 +219,8 @@ func GetContents(repo *models.Repository, treePath, ref string, forList bool) (*
 }
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(repo *models.Repository, sha string) (*api.GitBlobResponse, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func GetBlobBySHA(ctx context.Context, repo *models.Repository, sha string) (*api.GitBlobResponse, error) {
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}

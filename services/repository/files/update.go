@@ -433,7 +433,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *models.Repository, doer *
 		return nil, err
 	}
 
-	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
+	file, err := GetFileResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err
 	}

@@ -191,7 +191,7 @@ func DeleteRepoFile(ctx context.Context, repo *models.Repository, doer *user_mod
 		return nil, err
 	}
 
-	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
+	file, err := GetFileResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err
 	}

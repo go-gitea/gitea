@@ -120,7 +120,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 
 	repo.IsEmpty = false
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}

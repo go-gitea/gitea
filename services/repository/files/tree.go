@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 
@@ -15,8 +16,8 @@ import (
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
-func GetTreeBySHA(repo *models.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func GetTreeBySHA(ctx context.Context, repo *models.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
 	}

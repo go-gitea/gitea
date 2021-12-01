@@ -328,7 +328,7 @@ func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
 			// For API calls.
 			if ctx.Repo.GitRepo == nil {
 				repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-				gitRepo, err := git.OpenRepository(repoPath)
+				gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 				if err != nil {
 					ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 					return
@@ -386,7 +386,7 @@ func RepoRefForAPI(next http.Handler) http.Handler {
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
 			if err != nil {
 				ctx.InternalServerError(err)
 				return

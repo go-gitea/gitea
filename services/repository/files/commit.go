@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -16,11 +17,11 @@ import (
 // CreateCommitStatus creates a new CommitStatus given a bunch of parameters
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
-func CreateCommitStatus(repo *models.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
+func CreateCommitStatus(ctx context.Context, repo *models.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}

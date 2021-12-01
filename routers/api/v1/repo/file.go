@@ -554,7 +554,7 @@ func GetContents(ctx *context.APIContext) {
 	treePath := ctx.Params("*")
 	ref := ctx.FormTrim("ref")
 
-	if fileList, err := files_service.GetContentsOrList(ctx.Repo.Repository, treePath, ref); err != nil {
+	if fileList, err := files_service.GetContentsOrList(ctx, ctx.Repo.Repository, treePath, ref); err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound("GetContentsOrList", err)
 			return
