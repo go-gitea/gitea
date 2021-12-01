@@ -9,6 +9,7 @@
 package git
 
 import (
+	"context"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
@@ -78,4 +79,27 @@ func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
 	// TODO: Sort?
 
 	return branchNames, count, nil
+}
+
+// WalkReferences walks all the references from the repository
+func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) error) (int, error) {
+	repo, err := OpenRepositoryCtx(ctx, repoPath)
+	if err != nil {
+		return 0, err
+	}
+	defer repo.Close()
+
+	i := 0
+	iter, err := repo.gogitRepo.References()
+	if err != nil {
+		return i, err
+	}
+	defer iter.Close()
+
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		err := walkfn(string(ref.Name()))
+		i++
+		return err
+	})
+	return i, err
 }
