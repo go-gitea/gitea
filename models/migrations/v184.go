@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -27,6 +28,14 @@ func renameTaskErrorsToMessage(x *xorm.Engine) error {
 
 	if err := sess.Sync2(new(Task)); err != nil {
 		return fmt.Errorf("error on Sync2: %v", err)
+	}
+
+	exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "task", "message")
+	if err != nil {
+		return err
+	}
+	if exist {
+		return nil
 	}
 
 	switch {
