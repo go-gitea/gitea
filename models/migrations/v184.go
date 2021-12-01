@@ -30,6 +30,7 @@ func renameTaskErrorsToMessage(x *xorm.Engine) error {
 		return fmt.Errorf("error on Sync2: %v", err)
 	}
 
+	// This migration maybe rerun so that we should check if it has been run
 	exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "task", "message")
 	if err != nil {
 		return err
