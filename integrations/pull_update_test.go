@@ -99,7 +99,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.Pul
 	assert.NotEmpty(t, headRepo)
 
 	//create a commit on base Repo
-	_, err = files_service.CreateOrUpdateRepoFile(baseRepo, actor, &files_service.UpdateRepoFileOptions{
+	_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, baseRepo, actor, &files_service.UpdateRepoFileOptions{
 		TreePath:  "File_A",
 		Message:   "Add File A",
 		Content:   "File A",
@@ -122,7 +122,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.Pul
 	assert.NoError(t, err)
 
 	//create a commit on head Repo
-	_, err = files_service.CreateOrUpdateRepoFile(headRepo, actor, &files_service.UpdateRepoFileOptions{
+	_, err = files_service.CreateOrUpdateRepoFile(git.DefaultContext, headRepo, actor, &files_service.UpdateRepoFileOptions{
 		TreePath:  "File_B",
 		Message:   "Add File on PR branch",
 		Content:   "File B",

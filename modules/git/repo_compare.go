@@ -7,6 +7,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -159,15 +160,15 @@ func (repo *Repository) GetDiffNumChangedFiles(base, head string, directComparis
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
 func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAdditions, totalDeletions int, err error) {
-	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Path, base+"..."+head)
+	numFiles, totalAdditions, totalDeletions, err = GetDiffShortStat(repo.Ctx, repo.Path, base+"..."+head)
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
-		return GetDiffShortStat(repo.Path, base, head)
+		return GetDiffShortStat(repo.Ctx, repo.Path, base, head)
 	}
 	return
 }
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
-func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
+func GetDiffShortStat(ctx context.Context, repoPath string, args ...string) (numFiles, totalAdditions, totalDeletions int, err error) {
 	// Now if we call:
 	// $ git diff --shortstat 1ebb35b98889ff77299f24d82da426b434b0cca0...788b8b1440462d477f45b0088875
 	// we get:
@@ -177,7 +178,7 @@ func GetDiffShortStat(repoPath string, args ...string) (numFiles, totalAdditions
 		"--shortstat",
 	}, args...)
 
-	stdout, err := NewCommand(args...).RunInDir(repoPath)
+	stdout, err := NewCommandContext(ctx, args...).RunInDir(repoPath)
 	if err != nil {
 		return 0, 0, 0, err
 	}

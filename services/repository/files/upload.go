@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -48,7 +49,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 }
 
 // UploadRepoFiles uploads files to the given repository
-func UploadRepoFiles(repo *models.Repository, doer *user_model.User, opts *UploadRepoFileOptions) error {
+func UploadRepoFiles(ctx context.Context, repo *models.Repository, doer *user_model.User, opts *UploadRepoFileOptions) error {
 	if len(opts.Files) == 0 {
 		return nil
 	}
@@ -79,7 +80,7 @@ func UploadRepoFiles(repo *models.Repository, doer *user_model.User, opts *Uploa
 		infos[i] = uploadInfo{upload: upload}
 	}
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		return err
 	}

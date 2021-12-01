@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -30,7 +31,7 @@ type DeleteRepoFileOptions struct {
 }
 
 // DeleteRepoFile deletes a file in the given repository
-func DeleteRepoFile(repo *models.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
+func DeleteRepoFile(ctx context.Context, repo *models.Repository, doer *user_model.User, opts *DeleteRepoFileOptions) (*api.FileResponse, error) {
 	// If no branch name is set, assume the repo's default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -73,7 +74,7 @@ func DeleteRepoFile(repo *models.Repository, doer *user_model.User, opts *Delete
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		return nil, err
 	}
