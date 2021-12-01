@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -53,7 +54,7 @@ func cleanPath(p string) string {
 
 // CreateLFSLock creates a new lock.
 func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
-	err := CheckLFSAccessForRepo(lock.OwnerID, lock.Repo, AccessModeWrite)
+	err := CheckLFSAccessForRepo(lock.OwnerID, lock.Repo, perm.AccessModeWrite)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +125,7 @@ func DeleteLFSLockByID(id int64, u *user_model.User, force bool) (*LFSLock, erro
 		return nil, err
 	}
 
-	err = CheckLFSAccessForRepo(u.ID, lock.Repo, AccessModeWrite)
+	err = CheckLFSAccessForRepo(u.ID, lock.Repo, perm.AccessModeWrite)
 	if err != nil {
 		return nil, err
 	}
@@ -138,7 +139,7 @@ func DeleteLFSLockByID(id int64, u *user_model.User, force bool) (*LFSLock, erro
 }
 
 // CheckLFSAccessForRepo check needed access mode base on action
-func CheckLFSAccessForRepo(ownerID int64, repo *Repository, mode AccessMode) error {
+func CheckLFSAccessForRepo(ownerID int64, repo *Repository, mode perm.AccessMode) error {
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}

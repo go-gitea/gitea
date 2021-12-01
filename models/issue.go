@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -2086,7 +2087,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *user_
 				unittype = unit.TypePullRequests
 			}
 			for _, team := range teams {
-				if team.Authorize >= AccessModeOwner {
+				if team.Authorize >= perm.AccessModeOwner {
 					checked = append(checked, team.ID)
 					resolved[issue.Repo.Owner.LowerName+"/"+team.LowerName] = true
 					continue
