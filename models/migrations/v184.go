@@ -35,7 +35,18 @@ func renameTaskErrorsToMessage(x *xorm.Engine) error {
 		return err
 	}
 	if exist {
-		return nil
+		errorsExist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "task", "errors")
+		if err != nil {
+			return err
+		}
+		if !errorsExist {
+			return nil
+		}
+
+		// if both errors and message exist, drop message at first
+		if err := dropTableColumns(sess, "task", "message"); err != nil {
+			return err
+		}
 	}
 
 	switch {
