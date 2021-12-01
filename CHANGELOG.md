@@ -26,7 +26,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Escape issue titles in comments list (#17555) (#17556)
   * Fix zero created time bug on commit api (#17546) (#17547)
   * Fix database keyword quote problem on migration v161 (#17523)
-  * fix email with + when active (#17518) (#17520)
+  * Fix email with + when active (#17518) (#17520)
   * Stop double encoding blame commit messages (#17498) (#17500)
   * Quote the table name in CountOrphanedObjects (#17487) (#17488)
   * Run Migrate in Install rather than just SyncTables (#17475) (#17486)
