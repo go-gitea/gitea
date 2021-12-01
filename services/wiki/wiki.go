@@ -128,7 +128,7 @@ func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName,
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(repo.WikiPath(), "master")
+	hasMasterBranch := git.IsBranchExist(git.DefaultContext, repo.WikiPath(), "master")
 
 	basePath, err := models.CreateTemporaryPath("update-wiki")
 	if err != nil {
@@ -243,7 +243,7 @@ func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName,
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env: models.FullPushingEnvironment(
@@ -357,7 +357,7 @@ func DeleteWikiPage(doer *user_model.User, repo *models.Repository, wikiName str
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env:    models.PushingEnvironment(doer, repo),

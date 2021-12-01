@@ -5,7 +5,6 @@
 package task
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -99,11 +98,9 @@ func runMigrateTask(t *models.Task) (err error) {
 
 	opts.MigrateToRepoID = t.RepoID
 
-	ctx, cancel := context.WithCancel(graceful.GetManager().ShutdownContext())
-	defer cancel()
 	pm := process.GetManager()
-	pid := pm.Add(fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName), cancel)
-	defer pm.Remove(pid)
+	ctx, _, finished := pm.AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("MigrateTask: %s/%s", t.Owner.Name, opts.RepoName))
+	defer finished()
 
 	t.StartTime = timeutil.TimeStampNow()
 	t.Status = structs.TaskStatusRunning

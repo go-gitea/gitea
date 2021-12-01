@@ -211,8 +211,8 @@ type PushOptions struct {
 }
 
 // Push pushs local commits to given remote branch.
-func Push(repoPath string, opts PushOptions) error {
-	cmd := NewCommand("push")
+func Push(ctx context.Context, repoPath string, opts PushOptions) error {
+	cmd := NewCommandContext(ctx, "push")
 	if opts.Force {
 		cmd.AddArguments("-f")
 	}
