@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
@@ -66,40 +67,26 @@ func GetBranches(ctx context.Context, repo *models.Repository, skip, limit int) 
 }
 
 // checkBranchName validates branch name with existing repository branches
-// FIXME: There really has to be faster mechanism than this. git cat-file --batch-check will check a branchname
-// and or tag name... (git.DefaultContext - as a marker to come back to this)
 func checkBranchName(ctx context.Context, repo *models.Repository, name string) error {
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-
-	branches, _, err := gitRepo.GetBranches(0, 0)
-	if err != nil {
-		return err
-	}
-
-	for _, branch := range branches {
-		if branch == name {
+	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(refName string) error {
+		switch {
+		case refName == git.BranchPrefix+name:
 			return models.ErrBranchAlreadyExists{
-				BranchName: branch,
+				BranchName: name,
 			}
-		} else if (len(branch) < len(name) && branch+"/" == name[0:len(branch)+1]) ||
-			(len(branch) > len(name) && name+"/" == branch[0:len(name)+1]) {
+		case strings.HasPrefix(refName, git.BranchPrefix+name+"/"):
 			return models.ErrBranchNameConflict{
-				BranchName: branch,
+				BranchName: name,
+			}
+		case refName == git.TagPrefix+name:
+			return models.ErrTagAlreadyExists{
+				TagName: name,
 			}
 		}
-	}
+		return nil
+	})
 
-	if _, err := gitRepo.GetTag(name); err == nil {
-		return models.ErrTagAlreadyExists{
-			TagName: name,
-		}
-	}
-
-	return nil
+	return err
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
@@ -109,7 +96,7 @@ func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo 
 		return err
 	}
 
-	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
+	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", commit, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
