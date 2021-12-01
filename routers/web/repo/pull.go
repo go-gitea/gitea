@@ -113,9 +113,9 @@ func getForkRepository(ctx *context.Context) *models.Repository {
 
 	ctx.Data["ForkRepo"] = forkRepo
 
-	ownedOrgs, err := models.GetOwnedOrgsByUserID(ctx.User.ID)
+	ownedOrgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
-		ctx.ServerError("GetOwnedOrgsByUserID", err)
+		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 	var orgs []*models.Organization
@@ -216,13 +216,13 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	// Check ownership of organization.
+	// Check if user is allowed to create repo's on the organization.
 	if ctxUser.IsOrganization() {
-		isOwner, err := models.OrgFromUser(ctxUser).IsOwnedBy(ctx.User.ID)
+		isAllowedToFork, err := models.OrgFromUser(ctxUser).CanCreateOrgRepo(ctx.User.ID)
 		if err != nil {
-			ctx.ServerError("IsOwnedBy", err)
+			ctx.ServerError("CanCreateOrgRepo", err)
 			return
-		} else if !isOwner {
+		} else if !isAllowedToFork {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -436,7 +436,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		if pull.Flow == models.PullRequestFlowGithub {
 			headBranchExist = headGitRepo.IsBranchExist(pull.HeadBranch)
 		} else {
-			headBranchExist = git.IsReferenceExist(baseGitRepo.Path, pull.GetGitRefName())
+			headBranchExist = git.IsReferenceExist(ctx, baseGitRepo.Path, pull.GetGitRefName())
 		}
 
 		if headBranchExist {

@@ -91,6 +91,30 @@
 						</div>
 					</div>
 
+					{{if .Err_DbInstalledBefore}}
+					<div>
+						<p class="reinstall-message">{{.i18n.Tr "install.reinstall_confirm_message"}}</p>
+						<div class="reinstall-confirm">
+							<div class="ui checkbox">
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_1"}}</label>
+								<input name="reinstall_confirm_first" type="checkbox">
+							</div>
+						</div>
+						<div class="reinstall-confirm">
+							<div class="ui checkbox">
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_2"}}</label>
+								<input name="reinstall_confirm_second" type="checkbox">
+							</div>
+						</div>
+						<div class="reinstall-confirm">
+							<div class="ui checkbox">
+								<label>{{.i18n.Tr "install.reinstall_confirm_check_3"}}</label>
+								<input name="reinstall_confirm_third" type="checkbox">
+							</div>
+						</div>
+					</div>
+					{{end}}
+
 					<!-- General Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.general_title"}}</h4>
 					<div class="inline required field {{if .Err_AppName}}error{{end}}">
