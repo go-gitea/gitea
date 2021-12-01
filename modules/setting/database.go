@@ -67,18 +67,22 @@ func InitDBConfig() {
 	Database.UsePostgreSQL = false
 	Database.UseMSSQL = false
 
+	var defaultHost string
 	switch Database.Type {
 	case "sqlite3":
 		Database.UseSQLite3 = true
 	case "mysql":
 		Database.UseMySQL = true
 		defaultCharset = "utf8mb4"
+		defaultHost = "127.0.0.1:3306"
 	case "postgres":
 		Database.UsePostgreSQL = true
+		defaultHost = "127.0.0.1:5432"
 	case "mssql":
 		Database.UseMSSQL = true
+		defaultHost = "127.0.0.1:1433"
 	}
-	Database.Host = sec.Key("HOST").String()
+	Database.Host = sec.Key("HOST").MustString(defaultHost)
 	Database.Name = sec.Key("NAME").String()
 	Database.User = sec.Key("USER").String()
 	if len(Database.Passwd) == 0 {
