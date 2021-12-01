@@ -297,3 +297,12 @@ func TypeFromKey(nameKey string) Type {
 	}
 	return TypeInvalid
 }
+
+// AllUnitKeyNames returns all unit key names
+func AllUnitKeyNames() []string {
+	var res = make([]string, 0, len(Units))
+	for _, u := range Units {
+		res = append(res, u.NameKey)
+	}
+	return res
+}
