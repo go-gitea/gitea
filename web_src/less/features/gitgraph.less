@@ -68,15 +68,15 @@
     align-items: center;
 
     .node-relation {
-      font-family: "Bitstream Vera Sans Mono", Courier, monospace;
+      font-family: var(--fonts-monospace);
     }
 
     .author {
-      color: #666666;
+      color: var(--color-text-light);
     }
 
     .time {
-      color: #999999;
+      color: var(--color-text-light-3);
       font-size: 80%;
     }
 
@@ -85,8 +85,8 @@
     }
 
     a em {
-      color: #bb0000;
-      border-bottom: 1px dotted #bbbbbb;
+      color: var(--color-red);
+      border-bottom: 1px dotted var(--color-secondary);
       text-decoration: none;
       font-style: normal;
     }
@@ -108,7 +108,7 @@
     width: 100%;
 
     li.highlight.hover {
-      background-color: rgba(0, 0, 0, .05);
+      background-color: var(--color-secondary-alpha-30);
     }
 
     .tags a.button {
@@ -146,13 +146,13 @@
 
   &.monochrome #rel-container {
     .flow-group {
-      stroke: grey;
-      fill: grey;
+      stroke: var(--color-secondary-dark-5);
+      fill: var(--color-secondary-dark-5);
     }
 
     .flow-group.highlight {
-      stroke: black;
-      fill: black;
+      stroke: var(--color-secondary-dark-12);
+      fill: var(--color-secondary-dark-12);
     }
   }
 
@@ -164,7 +164,7 @@
       }
 
       &.flow-color-16-2 {
-        stroke: hsl(356, 58%, 54%);
+        stroke: #ce4751;
         fill: #ce4751;
       }
 
@@ -179,8 +179,8 @@
       }
 
       &.flow-color-16-5 {
-        stroke: #3d27aa;
-        fill: #3d27aa;
+        stroke: #7445e9;
+        fill: #7445e9;
       }
 
       &.flow-color-16-6 {
@@ -261,8 +261,8 @@
       }
 
       &.flow-color-16-5 {
-        stroke: #4e33d1;
-        fill: #4f35d1;
+        stroke: #8455f9;
+        fill: #8455f9;
       }
 
       &.flow-color-16-6 {

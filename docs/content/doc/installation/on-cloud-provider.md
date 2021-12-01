@@ -33,7 +33,7 @@ you can experiment with running Gitea.
 
 ## Vultr
 
-Gitea can found in [Vultr](https://www.vultr.com)'s marketplace.
+Gitea can be found in [Vultr](https://www.vultr.com)'s marketplace.
 
 To deploy Gitea to Vultr, have a look at the [Vultr Marketplace](https://www.vultr.com/marketplace/apps/gitea).
 

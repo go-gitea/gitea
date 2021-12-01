@@ -5,6 +5,7 @@
 package unittest
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -124,7 +125,7 @@ func CreateTestEngine(opts FixturesOptions) error {
 		return err
 	}
 	x.SetMapper(names.GonicMapper{})
-	db.SetEngine(x)
+	db.SetDefaultEngine(context.Background(), x)
 
 	if err = db.SyncAllTables(); err != nil {
 		return err

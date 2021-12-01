@@ -248,7 +248,7 @@ func (b *ElasticSearchIndexer) Index(repo *models.Repository, sha string, change
 	reqs := make([]elastic.BulkableRequest, 0)
 	if len(changes.Updates) > 0 {
 
-		batchWriter, batchReader, cancel := git.CatFileBatch(repo.RepoPath())
+		batchWriter, batchReader, cancel := git.CatFileBatch(git.DefaultContext, repo.RepoPath())
 		defer cancel()
 
 		for _, update := range changes.Updates {

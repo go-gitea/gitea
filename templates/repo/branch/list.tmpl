@@ -32,8 +32,8 @@
 							<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
 								{{svg "octicon-download"}}
 								<div class="menu">
-									<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-									<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 								</div>
 							</div>
 						</td>
@@ -116,8 +116,8 @@
 											<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-position="top right">
 												{{svg "octicon-download"}}
 												<div class="menu">
-													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.zip">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-													<a class="item archive-link" data-url="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 												</div>
 											</div>
 										{{end}}
