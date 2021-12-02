@@ -210,7 +210,7 @@ func CreateTeam(ctx *context.APIContext) {
 
 	var p = perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-		p = perm.MinUnitPerms(convertUnitsMap(form.UnitsMap))
+		p = unit_model.MinUnitPerms(convertUnitsMap(form.UnitsMap))
 	}
 
 	team := &models.Team{
@@ -294,7 +294,7 @@ func EditTeam(ctx *context.APIContext) {
 		// Validate permission level.
 		var p = perm.ParseAccessMode(form.Permission)
 		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-			p = perm.MinUnitPerms(convertUnitsMap(form.UnitsMap))
+			p = unit_model.MinUnitPerms(convertUnitsMap(form.UnitsMap))
 		}
 
 		if team.Authorize != p {

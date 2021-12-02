@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -171,11 +172,12 @@ func (u *Type) CanBeDefault() bool {
 
 // Unit is a section of one repository
 type Unit struct {
-	Type    Type
-	NameKey string
-	URI     string
-	DescKey string
-	Idx     int
+	Type     Type
+	NameKey  string
+	URI      string
+	DescKey  string
+	Idx      int
+	MaxPerms perm.AccessMode
 }
 
 // CanDisable returns if this unit could be disabled.
@@ -199,6 +201,7 @@ var (
 		"/",
 		"repo.code.desc",
 		0,
+		perm.AccessModeOwner,
 	}
 
 	UnitIssues = Unit{
@@ -207,6 +210,7 @@ var (
 		"/issues",
 		"repo.issues.desc",
 		1,
+		perm.AccessModeOwner,
 	}
 
 	UnitExternalTracker = Unit{
@@ -215,6 +219,7 @@ var (
 		"/issues",
 		"repo.ext_issues.desc",
 		1,
+		perm.AccessModeRead,
 	}
 
 	UnitPullRequests = Unit{
@@ -223,6 +228,7 @@ var (
 		"/pulls",
 		"repo.pulls.desc",
 		2,
+		perm.AccessModeOwner,
 	}
 
 	UnitReleases = Unit{
@@ -231,6 +237,7 @@ var (
 		"/releases",
 		"repo.releases.desc",
 		3,
+		perm.AccessModeOwner,
 	}
 
 	UnitWiki = Unit{
@@ -239,6 +246,7 @@ var (
 		"/wiki",
 		"repo.wiki.desc",
 		4,
+		perm.AccessModeOwner,
 	}
 
 	UnitExternalWiki = Unit{
@@ -247,6 +255,7 @@ var (
 		"/wiki",
 		"repo.ext_wiki.desc",
 		4,
+		perm.AccessModeRead,
 	}
 
 	UnitProjects = Unit{
@@ -255,6 +264,7 @@ var (
 		"/projects",
 		"repo.projects.desc",
 		5,
+		perm.AccessModeOwner,
 	}
 
 	// Units contains all the units
@@ -303,6 +313,21 @@ func AllUnitKeyNames() []string {
 	var res = make([]string, 0, len(Units))
 	for _, u := range Units {
 		res = append(res, u.NameKey)
+	}
+	return res
+}
+
+// MinUnitPerms returns the minial permission of the permission map
+func MinUnitPerms(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
+	var res = perm.AccessModeNone
+	for _, mode := range unitsMap {
+		if mode > perm.AccessModeNone {
+			if res == perm.AccessModeNone {
+				res = mode
+			} else if mode < res {
+				res = mode
+			}
+		}
 	}
 	return res
 }

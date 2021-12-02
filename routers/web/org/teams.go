@@ -250,7 +250,7 @@ func NewTeamPost(ctx *context.Context) {
 	var unitPerms = getUnitPerms(ctx.Req.Form)
 	var p = perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin {
-		p = perm.MinUnitPerms(unitPerms)
+		p = unit_model.MinUnitPerms(unitPerms)
 	}
 
 	t := &models.Team{

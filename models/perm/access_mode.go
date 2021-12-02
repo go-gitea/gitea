@@ -7,7 +7,6 @@ package perm
 import (
 	"fmt"
 
-	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -61,19 +60,4 @@ func ParseAccessMode(permission string) AccessMode {
 	default:
 		return AccessModeNone
 	}
-}
-
-// MinUnitPerms returns the minial permission of the permission map
-func MinUnitPerms(unitsMap map[unit_model.Type]AccessMode) AccessMode {
-	var res = AccessModeNone
-	for _, mode := range unitsMap {
-		if mode > AccessModeNone {
-			if res == AccessModeNone {
-				res = mode
-			} else if mode < res {
-				res = mode
-			}
-		}
-	}
-	return res
 }
