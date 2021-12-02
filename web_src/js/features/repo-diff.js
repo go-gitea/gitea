@@ -127,6 +127,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+      initRepoIssueContentHistory();
     }).fail(() => {
       $target.removeClass('disabled');
     });
