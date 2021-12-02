@@ -350,7 +350,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 
 // GetGitRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitRefName() string {
-	return fmt.Sprintf(git.PullPrefix+"%d/head", pr.Index)
+	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
 // IsChecking returns true if this pull request is still checking conflict.
