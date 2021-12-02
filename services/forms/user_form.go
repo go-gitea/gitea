@@ -296,69 +296,69 @@ func (f *UpdateCommentTypeForm) IsHidden(commentType int) bool {
 
 func (f *UpdateCommentTypeForm) Bitset() big.Int {
 	var bitset big.Int
-	types := []struct{
+	types := []struct {
 		variable bool
-		types []int
+		types    []int
 	}{
 		{
 			variable: f.Reference,
-			types: []int{3, 4, 5, 6},
+			types:    []int{3, 4, 5, 6},
 		},
 		{
 			variable: f.Labels,
-			types: []int{7},
+			types:    []int{7},
 		},
 		{
 			variable: f.Milestone,
-			types: []int{8},
+			types:    []int{8},
 		},
 		{
 			variable: f.Assignee,
-			types: []int{9},
+			types:    []int{9},
 		},
 		{
 			variable: f.Title,
-			types: []int{10},
+			types:    []int{10},
 		},
 		{
 			variable: f.Branch,
-			types: []int{11},
+			types:    []int{11},
 		},
 		{
 			variable: f.Time,
-			types: []int{12, 13, 14, 15, 26},
+			types:    []int{12, 13, 14, 15, 26},
 		},
 		{
 			variable: f.Deadline,
-			types: []int{16, 17, 18},
+			types:    []int{16, 17, 18},
 		},
 		{
 			variable: f.Dependencies,
-			types: []int{19, 20},
+			types:    []int{19, 20},
 		},
 		{
 			variable: f.Lock,
-			types: []int{23, 24},
+			types:    []int{23, 24},
 		},
 		{
 			variable: f.Target,
-			types: []int{25},
+			types:    []int{25},
 		},
 		{
 			variable: f.Requests,
-			types: []int{27},
+			types:    []int{27},
 		},
 		{
 			variable: f.Push,
-			types: []int{29},
+			types:    []int{29},
 		},
 		{
 			variable: f.Project,
-			types: []int{30, 31},
+			types:    []int{30, 31},
 		},
 		{
 			variable: f.Ref,
-			types: []int{33},
+			types:    []int{33},
 		},
 	}
 	for _, v := range types {
