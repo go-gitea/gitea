@@ -73,7 +73,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("form.username_been_taken"), tplSettingsOptions, &form)
 			return
 		} else if err = user_model.ChangeUserName(org.AsUser(), form.Name); err != nil {
-			if err == user_model.ErrUserNameIllegal {
+			if db.IsErrNameReserved(err) || db.IsErrNamePatternNotAllowed(err) {
 				ctx.Data["OrgName"] = true
 				ctx.RenderWithErr(ctx.Tr("form.illegal_username"), tplSettingsOptions, &form)
 			} else {
