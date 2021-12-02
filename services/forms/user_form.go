@@ -6,6 +6,7 @@
 package forms
 
 import (
+	"math/big"
 	"mime/multipart"
 	"net/http"
 	"strings"
@@ -289,63 +290,87 @@ func (f *UpdateCommentTypeForm) Validate(req *http.Request, errs binding.Errors)
 
 // IsHidden checks if the given commentType is visible
 func (f *UpdateCommentTypeForm) IsHidden(commentType int) bool {
-	switch commentType {
-	case 3:
-		return f.Reference
-	case 4:
-		return f.Reference
-	case 5:
-		return f.Reference
-	case 6:
-		return f.Reference
-	case 7:
-		return f.Labels
-	case 8:
-		return f.Milestone
-	case 9:
-		return f.Assignee
-	case 10:
-		return f.Title
-	case 11:
-		return f.Branch
-	case 12:
-		return f.Time
-	case 13:
-		return f.Time
-	case 14:
-		return f.Time
-	case 15:
-		return f.Time
-	case 26:
-		return f.Time
-	case 16:
-		return f.Deadline
-	case 17:
-		return f.Deadline
-	case 18:
-		return f.Deadline
-	case 19:
-		return f.Dependencies
-	case 20:
-		return f.Dependencies
-	case 23:
-		return f.Lock
-	case 24:
-		return f.Lock
-	case 25:
-		return f.Target
-	case 27:
-		return f.Requests
-	case 29:
-		return f.Push
-	case 30:
-		return f.Project
-	case 31:
-		return f.Project
-	case 33:
-		return f.Ref
+	bitset := f.Bitset()
+	return bitset.Bit(commentType) != 0
+}
+
+func (f *UpdateCommentTypeForm) Bitset() big.Int {
+	var bitset big.Int
+	types := []struct{
+		variable bool
+		types []int
+	}{
+		{
+			variable: f.Reference,
+			types: []int{3, 4, 5, 6},
+		},
+		{
+			variable: f.Labels,
+			types: []int{7},
+		},
+		{
+			variable: f.Milestone,
+			types: []int{8},
+		},
+		{
+			variable: f.Assignee,
+			types: []int{9},
+		},
+		{
+			variable: f.Title,
+			types: []int{10},
+		},
+		{
+			variable: f.Branch,
+			types: []int{11},
+		},
+		{
+			variable: f.Time,
+			types: []int{12, 13, 14, 15, 26},
+		},
+		{
+			variable: f.Deadline,
+			types: []int{16, 17, 18},
+		},
+		{
+			variable: f.Dependencies,
+			types: []int{19, 20},
+		},
+		{
+			variable: f.Lock,
+			types: []int{23, 24},
+		},
+		{
+			variable: f.Target,
+			types: []int{25},
+		},
+		{
+			variable: f.Requests,
+			types: []int{27},
+		},
+		{
+			variable: f.Push,
+			types: []int{29},
+		},
+		{
+			variable: f.Project,
+			types: []int{30, 31},
+		},
+		{
+			variable: f.Ref,
+			types: []int{33},
+		},
 	}
-	return false
+	for _, v := range types {
+		for _, w := range v.types {
+			var bitSetVar uint
+			if v.variable {
+				bitSetVar = 1
+			}
+			bitset.SetBit(&bitset, w, bitSetVar)
+		}
+	}
+	return bitset
 }
 
 // Avatar types

@@ -78,92 +78,92 @@
 				{{.CsrfTokenHtml}}
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="reference" type="checkbox" {{if .HiddenEvents.IsHidden 3}}checked{{end}}>
+						<input name="reference" type="checkbox" {{if(call .IsHidden 3)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_ref"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="labels" type="checkbox" {{if .HiddenEvents.IsHidden 7}}checked{{end}}>
+						<input name="labels" type="checkbox" {{if (call .IsHidden 7)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_labels"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="milestone" type="checkbox" {{if .HiddenEvents.IsHidden 8}}checked{{end}}>
+						<input name="milestone" type="checkbox" {{if (call .IsHidden 8)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_milestone"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="assignee" type="checkbox" {{if .HiddenEvents.IsHidden 9}}checked{{end}}>
+						<input name="assignee" type="checkbox" {{if (call .IsHidden 9)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_assignees"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="title" type="checkbox" {{if .HiddenEvents.IsHidden 10}}checked{{end}}>
+						<input name="title" type="checkbox" {{if (call .IsHidden 10)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_title"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="branch" type="checkbox" {{if .HiddenEvents.IsHidden 11}}checked{{end}}>
+						<input name="branch" type="checkbox" {{if (call .IsHidden 11)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_delete_branch"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="time" type="checkbox" {{if .HiddenEvents.IsHidden 12}}checked{{end}}>
+						<input name="time" type="checkbox" {{if (call .IsHidden 12)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_time"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="deadline" type="checkbox" {{if .HiddenEvents.IsHidden 16}}checked{{end}}>
+						<input name="deadline" type="checkbox" {{if (call .IsHidden 16)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_deadline"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="dependencies" type="checkbox" {{if .HiddenEvents.IsHidden 19}}checked{{end}}>
+						<input name="dependencies" type="checkbox" {{if (call .IsHidden 19)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_dependencies"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="lock" type="checkbox" {{if .HiddenEvents.IsHidden 23}}checked{{end}}>
+						<input name="lock" type="checkbox" {{if (call .IsHidden 23)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_lock_status"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="target" type="checkbox" {{if .HiddenEvents.IsHidden 25}}checked{{end}}>
+						<input name="target" type="checkbox" {{if (call .IsHidden 25)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_target"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="requests" type="checkbox" {{if .HiddenEvents.IsHidden 27}}checked{{end}}>
+						<input name="requests" type="checkbox" {{if (call .IsHidden 27)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_review_request"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="push" type="checkbox" {{if .HiddenEvents.IsHidden 29}}checked{{end}}>
+						<input name="push" type="checkbox" {{if (call .IsHidden 29)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_pr_push"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="project" type="checkbox" {{if .HiddenEvents.IsHidden 30}}checked{{end}}>
+						<input name="project" type="checkbox" {{if (call .IsHidden 30)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_project"}}</label>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<input name="ref" type="checkbox" {{if .HiddenEvents.IsHidden 33}}checked{{end}}>
+						<input name="ref" type="checkbox" {{if (call .IsHidden 33)}}checked{{end}}>
 						<label>{{.i18n.Tr "settings.comment_type_changed_ref"}}</label>
 					</div>
 				</div>

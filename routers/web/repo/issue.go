@@ -7,10 +7,10 @@ package repo
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"net/url"
 	"path"
@@ -1636,7 +1636,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["HasProjectsWritePermission"] = ctx.Repo.CanWrite(unit.TypeProjects)
 	ctx.Data["IsRepoAdmin"] = ctx.IsSigned && (ctx.Repo.IsAdmin() || ctx.User.IsAdmin)
 	ctx.Data["LockReasons"] = setting.Repository.Issue.LockReasons
-	var hiddenEvents *forms.UpdateCommentTypeForm
+	var hiddenEvents *big.Int
 	if ctx.IsSigned {
 		eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
 		if err != nil {
@@ -1644,10 +1644,11 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
-			err = json.Unmarshal([]byte(eventsRaw["hidden_comment_types"].SettingValue), &hiddenEvents)
-			if err != nil {
-				log.Error("error while parsing JSON: %v", err)
-				return
+			var ok bool
+			hiddenEvents, ok = new(big.Int).SetString(eventsRaw["hidden_comment_types"].SettingValue, 10)
+			if !ok {
+				hiddenEvents = nil
+				log.Error("SetString: error")
 			}
 		}
 	}
@@ -1655,7 +1656,7 @@ func ViewIssue(ctx *context.Context) {
 		if hiddenEvents == nil {
 			return true
 		}
-		return !hiddenEvents.IsHidden(int(commentType))
+		return hiddenEvents.Bit(int(commentType)) == 0
 	}
 	ctx.Data["RefEndName"] = git.RefEndName(issue.Ref)
 	ctx.HTML(http.StatusOK, tplIssueView)

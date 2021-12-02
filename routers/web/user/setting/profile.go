@@ -6,10 +6,10 @@
 package setting
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -358,20 +358,29 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	hiddenEvents := &forms.UpdateCommentTypeForm{}
+	//hiddenEvents := &forms.UpdateCommentTypeForm{}
+	var hiddenEvents *big.Int
 	eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
 	if err != nil {
 		ctx.ServerError("GetSettings", err)
 		return
 	}
 	if eventsRaw["hidden_comment_types"] != nil && eventsRaw["hidden_comment_types"].SettingValue != "" {
-		err = json.Unmarshal([]byte(eventsRaw["hidden_comment_types"].SettingValue), &hiddenEvents)
-		if err != nil {
-			log.Error("error parsing JSON: %v", err)
+		var ok bool
+		hiddenEvents, ok = new(big.Int).SetString(eventsRaw["hidden_comment_types"].SettingValue, 10)
+		if !ok {
+			hiddenEvents = nil
+			log.Error("SetString: error")
 		}
 	}
 
-	ctx.Data["HiddenEvents"] = hiddenEvents
+	//ctx.Data["HiddenEvents"] = hiddenEvents
+	ctx.Data["IsHidden"] = func(commentType int) bool {
+		if hiddenEvents == nil {
+			return false
+		}
+		return hiddenEvents.Bit(commentType) != 0
+	}
 
 	ctx.HTML(http.StatusOK, tplSettingsAppearance)
 }
@@ -439,12 +448,14 @@ func UpdateUserShownComments(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	json, err := json.Marshal(form)
+	/*json, err := json.Marshal(form.Bitset())
 	if err != nil {
 		ctx.ServerError("json.Marshal", err)
 		return
-	}
-	err = user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
+	}*/
+	bitset := form.Bitset()
+	json := /*strconv.Itoa(form.Bitset().Uint64())*/ bitset.String()
+	err := user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
 	if err != nil {
 		ctx.ServerError("SetSetting", err)
 		return
