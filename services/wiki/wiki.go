@@ -12,6 +12,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -35,7 +39,7 @@ func nameAllowed(name string) error {
 
 // NameToSubURL converts a wiki name to its corresponding sub-URL.
 func NameToSubURL(name string) string {
-	return url.QueryEscape(strings.ReplaceAll(name, " ", "-"))
+	return url.PathEscape(strings.ReplaceAll(name, " ", "-"))
 }
 
 // NormalizeWikiName normalizes a wiki name
@@ -113,7 +117,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 }
 
 // updateWikiPage adds a new page to the repository wiki.
-func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
+func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
@@ -124,7 +128,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(repo.WikiPath(), "master")
+	hasMasterBranch := git.IsBranchExist(git.DefaultContext, repo.WikiPath(), "master")
 
 	basePath, err := models.CreateTemporaryPath("update-wiki")
 	if err != nil {
@@ -239,7 +243,7 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env: models.FullPushingEnvironment(
@@ -261,18 +265,18 @@ func updateWikiPage(doer *models.User, repo *models.Repository, oldWikiName, new
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
-func AddWikiPage(doer *models.User, repo *models.Repository, wikiName, content, message string) error {
+func AddWikiPage(doer *user_model.User, repo *models.Repository, wikiName, content, message string) error {
 	return updateWikiPage(doer, repo, "", wikiName, content, message, true)
 }
 
 // EditWikiPage updates a wiki page identified by its wikiPath,
 // optionally also changing wikiPath.
-func EditWikiPage(doer *models.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
+func EditWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
 	return updateWikiPage(doer, repo, oldWikiName, newWikiName, content, message, false)
 }
 
 // DeleteWikiPage deletes a wiki page identified by its path.
-func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string) (err error) {
+func DeleteWikiPage(doer *user_model.User, repo *models.Repository, wikiName string) (err error) {
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
@@ -353,7 +357,7 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 		return err
 	}
 
-	if err := git.Push(basePath, git.PushOptions{
+	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
 		Env:    models.PushingEnvironment(doer, repo),
@@ -369,10 +373,10 @@ func DeleteWikiPage(doer *models.User, repo *models.Repository, wikiName string)
 
 // DeleteWiki removes the actual and local copy of repository wiki.
 func DeleteWiki(repo *models.Repository) error {
-	if err := models.UpdateRepositoryUnits(repo, nil, []models.UnitType{models.UnitTypeWiki}); err != nil {
+	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}
 
-	models.RemoveAllWithNotice("Delete repository wiki", repo.WikiPath())
+	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	return nil
 }

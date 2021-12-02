@@ -16,6 +16,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
@@ -25,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/web/feed"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
 
@@ -41,12 +44,12 @@ const (
 )
 
 // getDashboardContextUser finds out which context user dashboard is being viewed as .
-func getDashboardContextUser(ctx *context.Context) *models.User {
+func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	ctxUser := ctx.User
 	orgName := ctx.Params(":org")
 	if len(orgName) > 0 {
-		ctxUser = ctx.Org.Organization
-		ctx.Data["Teams"] = ctx.Org.Organization.Teams
+		ctxUser = ctx.Org.Organization.AsUser()
+		ctx.Data["Teams"] = ctx.Org.Teams
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
@@ -60,42 +63,6 @@ func getDashboardContextUser(ctx *context.Context) *models.User {
 	return ctxUser
 }
 
-// retrieveFeeds loads feeds for the specified user
-func retrieveFeeds(ctx *context.Context, options models.GetFeedsOptions) {
-	actions, err := models.GetFeeds(options)
-	if err != nil {
-		ctx.ServerError("GetFeeds", err)
-		return
-	}
-
-	userCache := map[int64]*models.User{options.RequestedUser.ID: options.RequestedUser}
-	if ctx.User != nil {
-		userCache[ctx.User.ID] = ctx.User
-	}
-	for _, act := range actions {
-		if act.ActUser != nil {
-			userCache[act.ActUserID] = act.ActUser
-		}
-	}
-
-	for _, act := range actions {
-		repoOwner, ok := userCache[act.Repo.OwnerID]
-		if !ok {
-			repoOwner, err = models.GetUserByID(act.Repo.OwnerID)
-			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					continue
-				}
-				ctx.ServerError("GetUserByID", err)
-				return
-			}
-			userCache[repoOwner.ID] = repoOwner
-		}
-		act.Repo.Owner = repoOwner
-	}
-	ctx.Data["Feeds"] = actions
-}
-
 // Dashboard render the dashboard page
 func Dashboard(ctx *context.Context) {
 	ctxUser := getDashboardContextUser(ctx)
@@ -106,7 +73,18 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-	ctx.Data["SearchLimit"] = setting.UI.User.RepoPagingNum
+	cnt, _ := models.GetOrganizationCount(db.DefaultContext, ctxUser)
+	ctx.Data["UserOrgsCount"] = cnt
+
+	var uid int64
+	if ctxUser != nil {
+		uid = ctxUser.ID
+	}
+
+	ctx.PageData["dashboardRepoList"] = map[string]interface{}{
+		"searchLimit": setting.UI.User.RepoPagingNum,
+		"uid":         uid,
+	}
 
 	if setting.Service.EnableUserHeatmap {
 		data, err := models.GetUserHeatmapDataByUserTeam(ctxUser, ctx.Org.Team, ctx.User)
@@ -122,9 +100,9 @@ func Dashboard(ctx *context.Context) {
 	if ctxUser.IsOrganization() {
 		var env models.AccessibleReposEnvironment
 		if ctx.Org.Team != nil {
-			env = ctxUser.AccessibleTeamReposEnv(ctx.Org.Team)
+			env = models.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
 		} else {
-			env, err = ctxUser.AccessibleReposEnv(ctx.User.ID)
+			env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctx.User.ID)
 			if err != nil {
 				ctx.ServerError("AccessibleReposEnv", err)
 				return
@@ -136,9 +114,9 @@ func Dashboard(ctx *context.Context) {
 			return
 		}
 	} else {
-		mirrors, err = ctxUser.GetMirrorRepositories()
+		mirrors, err = models.GetUserMirrorRepositories(ctxUser.ID)
 		if err != nil {
-			ctx.ServerError("GetMirrorRepositories", err)
+			ctx.ServerError("GetUserMirrorRepositories", err)
 			return
 		}
 	}
@@ -151,7 +129,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["MirrorCount"] = len(mirrors)
 	ctx.Data["Mirrors"] = mirrors
 
-	retrieveFeeds(ctx, models.GetFeedsOptions{
+	ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,
 		Actor:           ctx.User,
@@ -164,12 +142,13 @@ func Dashboard(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
+
 	ctx.HTML(http.StatusOK, tplDashboard)
 }
 
 // Milestones render the user milestones page
 func Milestones(ctx *context.Context) {
-	if models.UnitTypeIssues.UnitGlobalDisabled() && models.UnitTypePullRequests.UnitGlobalDisabled() {
+	if unit.TypeIssues.UnitGlobalDisabled() && unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Milestones overview page not available as both issues and pull requests are globally disabled")
 		ctx.Status(404)
 		return
@@ -341,7 +320,7 @@ func Milestones(ctx *context.Context) {
 
 // Pulls renders the user's pull request overview page
 func Pulls(ctx *context.Context) {
-	if models.UnitTypePullRequests.UnitGlobalDisabled() {
+	if unit.TypePullRequests.UnitGlobalDisabled() {
 		log.Debug("Pull request overview page not available as it is globally disabled.")
 		ctx.Status(404)
 		return
@@ -349,12 +328,12 @@ func Pulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("pull_requests")
 	ctx.Data["PageIsPulls"] = true
-	buildIssueOverview(ctx, models.UnitTypePullRequests)
+	buildIssueOverview(ctx, unit.TypePullRequests)
 }
 
 // Issues renders the user's issues overview page
 func Issues(ctx *context.Context) {
-	if models.UnitTypeIssues.UnitGlobalDisabled() {
+	if unit.TypeIssues.UnitGlobalDisabled() {
 		log.Debug("Issues overview page not available as it is globally disabled.")
 		ctx.Status(404)
 		return
@@ -362,13 +341,13 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
-	buildIssueOverview(ctx, models.UnitTypeIssues)
+	buildIssueOverview(ctx, unit.TypeIssues)
 }
 
 // Regexp for repos query
 var issueReposQueryPattern = regexp.MustCompile(`^\[\d+(,\d+)*,?\]$`)
 
-func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
+func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// ----------------------------------------------------
 	// Determine user; can be either user or organization.
@@ -422,7 +401,7 @@ func buildIssueOverview(ctx *context.Context, unitType models.UnitType) {
 	//       - Count Issues by repo
 	// --------------------------------------------------------------------------
 
-	isPullList := unitType == models.UnitTypePullRequests
+	isPullList := unitType == unit.TypePullRequests
 	opts := &models.IssuesOptions{
 		IsPull:     util.OptionalBoolOf(isPullList),
 		SortType:   sortType,
@@ -749,7 +728,7 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType models.UnitType) ([]int64, error) {
+func getActiveUserRepoIDs(ctxUser *user_model.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var userRepoIDs []int64
 	var err error
 
@@ -759,7 +738,7 @@ func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType mode
 			return nil, fmt.Errorf("orgRepoIds: %v", err)
 		}
 	} else {
-		userRepoIDs, err = ctxUser.GetActiveAccessRepoIDs(unitType)
+		userRepoIDs, err = models.GetActiveAccessRepoIDs(ctxUser, unitType)
 		if err != nil {
 			return nil, fmt.Errorf("ctxUser.GetAccessRepoIDs: %v", err)
 		}
@@ -774,15 +753,15 @@ func getActiveUserRepoIDs(ctxUser *models.User, team *models.Team, unitType mode
 
 // getActiveTeamOrOrgRepoIds gets RepoIDs for ctxUser as Organization.
 // Should be called if and only if ctxUser.IsOrganization == true.
-func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType models.UnitType) ([]int64, error) {
+func getActiveTeamOrOrgRepoIds(ctxUser *user_model.User, team *models.Team, unitType unit.Type) ([]int64, error) {
 	var orgRepoIDs []int64
 	var err error
 	var env models.AccessibleReposEnvironment
 
 	if team != nil {
-		env = ctxUser.AccessibleTeamReposEnv(team)
+		env = models.OrgFromUser(ctxUser).AccessibleTeamReposEnv(team)
 	} else {
-		env, err = ctxUser.AccessibleReposEnv(ctxUser.ID)
+		env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctxUser.ID)
 		if err != nil {
 			return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 		}
@@ -799,7 +778,7 @@ func getActiveTeamOrOrgRepoIds(ctxUser *models.User, team *models.Team, unitType
 	return orgRepoIDs, nil
 }
 
-func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
+func issueIDsFromSearch(ctxUser *user_model.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
 	if len(keyword) == 0 {
 		return []int64{}, nil
 	}
@@ -816,7 +795,7 @@ func issueIDsFromSearch(ctxUser *models.User, keyword string, opts *models.Issue
 	return issueIDsFromSearch, nil
 }
 
-func repoIDMap(ctxUser *models.User, issueCountByRepo map[int64]int64, unitType models.UnitType) (map[int64]*models.Repository, error) {
+func repoIDMap(ctxUser *user_model.User, issueCountByRepo map[int64]int64, unitType unit.Type) (map[int64]*models.Repository, error) {
 	repoByID := make(map[int64]*models.Repository, len(issueCountByRepo))
 	for id := range issueCountByRepo {
 		if id <= 0 {
@@ -902,14 +881,14 @@ func ShowGPGKeys(ctx *context.Context, uid int64) {
 
 // Email2User show user page via email
 func Email2User(ctx *context.Context) {
-	u, err := models.GetUserByEmail(ctx.FormString("email"))
+	u, err := user_model.GetUserByEmail(ctx.FormString("email"))
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound("GetUserByEmail", err)
 		} else {
 			ctx.ServerError("GetUserByEmail", err)
 		}
 		return
 	}
-	ctx.Redirect(setting.AppSubURL + "/user/" + u.Name)
+	ctx.Redirect(u.HomeLink())
 }

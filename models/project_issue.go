@@ -5,11 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-
-	"xorm.io/xorm"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -121,7 +121,9 @@ func (p *Project) NumClosedIssues() int {
 func (p *Project) NumOpenIssues() int {
 	c, err := db.GetEngine(db.DefaultContext).Table("project_issue").
 		Join("INNER", "issue", "project_issue.issue_id=issue.id").
-		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).Count("issue.id")
+		Where("project_issue.project_id=? AND issue.is_closed=?", p.ID, false).
+		Cols("issue_id").
+		Count()
 	if err != nil {
 		return 0
 	}
@@ -129,21 +131,22 @@ func (p *Project) NumOpenIssues() int {
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := addUpdateIssueProject(ctx, issue, doer, newProjectID); err != nil {
 		return err
 	}
 
-	if err := addUpdateIssueProject(sess, issue, doer, newProjectID); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProjectID int64) error {
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
+	e := db.GetEngine(ctx)
 	oldProjectID := issue.projectID(e)
 
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
@@ -155,7 +158,7 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 	}
 
 	if oldProjectID > 0 || newProjectID > 0 {
-		if _, err := createComment(e, &CreateCommentOptions{
+		if _, err := createComment(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
 			Doer:         doer,
 			Repo:         issue.Repo,
@@ -183,11 +186,12 @@ func addUpdateIssueProject(e *xorm.Session, issue *Issue, doer *User, newProject
 
 // MoveIssueAcrossProjectBoards move a card from one board to another
 func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	var pis ProjectIssue
 	has, err := sess.Where("issue_id=?", issue.ID).Get(&pis)
@@ -204,7 +208,7 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *ProjectBoard) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (pb *ProjectBoard) removeIssues(e db.Engine) error {

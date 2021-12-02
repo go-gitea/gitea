@@ -95,7 +95,7 @@ func (ctx *APIContext) Error(status int, title string, obj interface{}) {
 	if status == http.StatusInternalServerError {
 		log.ErrorWithSkip(1, "%s: %s", title, message)
 
-		if setting.IsProd() && !(ctx.User != nil && ctx.User.IsAdmin) {
+		if setting.IsProd && !(ctx.User != nil && ctx.User.IsAdmin) {
 			message = ""
 		}
 	}
@@ -112,7 +112,7 @@ func (ctx *APIContext) InternalServerError(err error) {
 	log.ErrorWithSkip(1, "InternalServerError: %v", err)
 
 	var message string
-	if !setting.IsProd() || (ctx.User != nil && ctx.User.IsAdmin) {
+	if !setting.IsProd || (ctx.User != nil && ctx.User.IsAdmin) {
 		message = err.Error()
 	}
 
@@ -245,7 +245,10 @@ func APIAuth(authMethod auth.Method) func(*APIContext) {
 		// Get user from session if logged in.
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			if ctx.Locale.Language() != ctx.User.Language {
+				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+			}
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User

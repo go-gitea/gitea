@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -89,7 +91,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 		log.Trace("Repository basic settings updated: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_settings_success"))
-		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.Path)
+		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 	default:
 		ctx.NotFound("", nil)
 	}
@@ -155,7 +157,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := c.Repo.Owner.TeamsWithAccessToRepo(c.Repo.Repository.ID, models.AccessModeRead)
+		teams, err := models.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
@@ -197,7 +199,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		}
 		if f.RequiredApprovals < 0 {
 			ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
-			ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, branch))
+			ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, util.PathEscapeSegments(branch)))
 		}
 
 		var whitelistUsers, whitelistTeams, mergeWhitelistUsers, mergeWhitelistTeams, approvalsWhitelistUsers, approvalsWhitelistTeams []int64
@@ -274,7 +276,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 			return
 		}
 		ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", branch))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, branch))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, util.PathEscapeSegments(branch)))
 	} else {
 		if protectBranch != nil {
 			if err := ctx.Repo.Repository.DeleteProtectedBranch(protectBranch.ID); err != nil {

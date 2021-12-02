@@ -159,7 +159,8 @@ func runDump(ctx *cli.Context) error {
 			fatal("Deleting default logger failed. Can not write to stdout: %v", err)
 		}
 	}
-	setting.NewContext()
+	setting.LoadFromExisting()
+
 	// make sure we are logging to the console no matter what the configuration tells us do to
 	if _, err := setting.Cfg.Section("log").NewKey("MODE", "console"); err != nil {
 		fatal("Setting logging mode to console failed: %v", err)
@@ -173,7 +174,10 @@ func runDump(ctx *cli.Context) error {
 	}
 	setting.NewServices() // cannot access session settings otherwise
 
-	err := db.SetEngine()
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	err := db.InitEngine(stdCtx)
 	if err != nil {
 		return err
 	}

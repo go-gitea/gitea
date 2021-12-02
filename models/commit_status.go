@@ -7,10 +7,12 @@ package models
 import (
 	"crypto/sha1"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -31,7 +33,7 @@ type CommitStatus struct {
 	Description string                `xorm:"TEXT"`
 	ContextHash string                `xorm:"char(40) index"`
 	Context     string                `xorm:"TEXT"`
-	Creator     *User                 `xorm:"-"`
+	Creator     *user_model.User      `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -126,7 +128,7 @@ func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = getUserByID(e, status.CreatorID)
+		status.Creator, err = user_model.GetUserByIDEngine(e, status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", status.CreatorID, err)
 		}
@@ -137,8 +139,7 @@ func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
 	_ = status.loadAttributes(db.GetEngine(db.DefaultContext))
-	return fmt.Sprintf("%sapi/v1/repos/%s/statuses/%s",
-		setting.AppURL, status.Repo.FullName(), status.SHA)
+	return status.Repo.APIURL() + "/statuses/" + url.PathEscape(status.SHA)
 }
 
 // CalcCommitStatus returns commit status state via some status, the commit statues should order by id desc
@@ -274,7 +275,7 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
 	Repo         *Repository
-	Creator      *User
+	Creator      *user_model.User
 	SHA          string
 	CommitStatus *CommitStatus
 }

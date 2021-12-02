@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -57,18 +58,18 @@ func setup(logPath string, debug bool) {
 	} else {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
-	setting.NewContext()
+	setting.LoadFromExisting()
 	if debug {
 		setting.RunMode = "dev"
 	}
 }
 
 var (
-	allowedCommands = map[string]models.AccessMode{
-		"git-upload-pack":    models.AccessModeRead,
-		"git-upload-archive": models.AccessModeRead,
-		"git-receive-pack":   models.AccessModeWrite,
-		lfsAuthenticateVerb:  models.AccessModeNone,
+	allowedCommands = map[string]perm.AccessMode{
+		"git-upload-pack":    perm.AccessModeRead,
+		"git-upload-archive": perm.AccessModeRead,
+		"git-receive-pack":   perm.AccessModeWrite,
+		lfsAuthenticateVerb:  perm.AccessModeNone,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -80,7 +81,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
-		if !setting.IsProd() {
+		if !setting.IsProd {
 			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
 	}
@@ -214,9 +215,9 @@ func runServ(c *cli.Context) error {
 
 	if verb == lfsAuthenticateVerb {
 		if lfsVerb == "upload" {
-			requestedMode = models.AccessModeWrite
+			requestedMode = perm.AccessModeWrite
 		} else if lfsVerb == "download" {
-			requestedMode = models.AccessModeRead
+			requestedMode = perm.AccessModeRead
 		} else {
 			return fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}

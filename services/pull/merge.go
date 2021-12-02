@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -29,7 +31,7 @@ import (
 // Merge merges pull request to base repository.
 // Caller should check PR is ready to be merged (review and status checks)
 // FIXME: add repoWorkingPull make sure two merges does not happen at same time.
-func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
+func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, mergeStyle models.MergeStyle, message string) (err error) {
 	if err = pr.LoadHeadRepo(); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return fmt.Errorf("LoadHeadRepo: %v", err)
@@ -38,9 +40,9 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
-		log.Error("pr.BaseRepo.GetUnit(models.UnitTypePullRequests): %v", err)
+		log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
 		return err
 	}
 	prConfig := prUnit.PullRequestsConfig()
@@ -109,7 +111,7 @@ func Merge(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repositor
 }
 
 // rawMerge perform the merge operation without changing any pull information in database
-func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.MergeStyle, message string) (string, error) {
+func rawMerge(pr *models.PullRequest, doer *user_model.User, mergeStyle models.MergeStyle, message string) (string, error) {
 	err := git.LoadGitVersion()
 	if err != nil {
 		log.Error("git.LoadGitVersion: %v", err)
@@ -274,8 +276,8 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 					filepath.Join(tmpBasePath, ".git", "rebase-merge", "stopped-sha"),     // Git >= 2.26
 				}
 				for _, failingCommitPath := range failingCommitPaths {
-					if _, statErr := os.Stat(filepath.Join(failingCommitPath)); statErr == nil {
-						commitShaBytes, readErr := os.ReadFile(filepath.Join(failingCommitPath))
+					if _, statErr := os.Stat(failingCommitPath); statErr == nil {
+						commitShaBytes, readErr := os.ReadFile(failingCommitPath)
 						if readErr != nil {
 							// Abandon this attempt to handle the error
 							log.Error("git rebase staging on to base [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
@@ -357,7 +359,7 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 				return "", fmt.Errorf("git commit [%s:%s -> %s:%s]: %v\n%s\n%s", pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseRepo.FullName(), pr.BaseBranch, err, outbuf.String(), errbuf.String())
 			}
 		} else {
-			if committer != sig {
+			if setting.Repository.PullRequest.AddCoCommitterTrailers && committer.String() != sig.String() {
 				// add trailer
 				message += fmt.Sprintf("\nCo-authored-by: %s\nCo-committed-by: %s\n", sig.String(), sig.String())
 			}
@@ -395,10 +397,10 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 		}
 	}
 
-	var headUser *models.User
+	var headUser *user_model.User
 	err = pr.HeadRepo.GetOwner()
 	if err != nil {
-		if !models.IsErrUserNotExist(err) {
+		if !user_model.IsErrUserNotExist(err) {
 			log.Error("Can't find user: %d for head repository - %v", pr.HeadRepo.OwnerID, err)
 			return "", err
 		}
@@ -419,9 +421,9 @@ func rawMerge(pr *models.PullRequest, doer *models.User, mergeStyle models.Merge
 	var pushCmd *git.Command
 	if mergeStyle == models.MergeStyleRebaseUpdate {
 		// force push the rebase result to head brach
-		pushCmd = git.NewCommand("push", "-f", "head_repo", stagingBranch+":refs/heads/"+pr.HeadBranch)
+		pushCmd = git.NewCommand("push", "-f", "head_repo", stagingBranch+":"+git.BranchPrefix+pr.HeadBranch)
 	} else {
-		pushCmd = git.NewCommand("push", "origin", baseBranch+":refs/heads/"+pr.BaseBranch)
+		pushCmd = git.NewCommand("push", "origin", baseBranch+":"+git.BranchPrefix+pr.BaseBranch)
 	}
 
 	// Push back to upstream.
@@ -540,7 +542,7 @@ func getDiffTree(repoPath, baseBranch, headBranch string) (string, error) {
 }
 
 // IsSignedIfRequired check if merge will be signed if required
-func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error) {
+func IsSignedIfRequired(pr *models.PullRequest, doer *user_model.User) (bool, error) {
 	if err := pr.LoadProtectedBranch(); err != nil {
 		return false, err
 	}
@@ -555,7 +557,7 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *models.User) (bool, error)
 }
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
-func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *models.User) (bool, error) {
+func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *user_model.User) (bool, error) {
 	if user == nil {
 		return false, nil
 	}
@@ -565,7 +567,7 @@ func IsUserAllowedToMerge(pr *models.PullRequest, p models.Permission, user *mod
 		return false, err
 	}
 
-	if (p.CanWrite(models.UnitTypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && pr.ProtectedBranch.IsUserMergeWhitelisted(user.ID, p)) {
 		return true, nil
 	}
 
@@ -631,8 +633,8 @@ func CheckPRReadyToMerge(pr *models.PullRequest, skipProtectedFilesCheck bool) (
 }
 
 // MergedManually mark pr as merged manually
-func MergedManually(pr *models.PullRequest, doer *models.User, baseGitRepo *git.Repository, commitID string) (err error) {
-	prUnit, err := pr.BaseRepo.GetUnit(models.UnitTypePullRequests)
+func MergedManually(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repository, commitID string) (err error) {
+	prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 	if err != nil {
 		return
 	}

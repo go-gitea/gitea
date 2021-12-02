@@ -8,9 +8,9 @@
 					{{if .LatestCommitUser}}
 						{{avatar .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
-							<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+							<a href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
-							<a href="{{AppSubUrl}}/{{.LatestCommitUser.Name}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+							<a href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
@@ -18,17 +18,17 @@
 							<strong>{{.LatestCommit.Author.Name}}</strong>
 						{{end}}
 					{{end}}
-					<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{.LatestCommit.ID}}">
+					<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
 						<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
 						{{if .LatestCommit.Signature}}
 							{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
 						{{end}}
 					</a>
 					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
-					{{ $commitLink:= printf "%s/commit/%s" .RepoLink .LatestCommit.ID }}
+					{{ $commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String) }}
 					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}
-							<button class="basic compact mini ui icon button commit-button"><i class="ellipsis horizontal icon"></i></button>
+							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
 							<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 						{{end}}
 					</span>
@@ -40,7 +40,7 @@
 	<tbody>
 		{{if .HasParentPath}}
 			<tr class="has-parent">
-				<td colspan="3">{{svg "octicon-reply"}}<a href="{{EscapePound .BranchLink}}{{.ParentPath}}">..</a></td>
+				<td colspan="3">{{svg "octicon-reply"}}<a href="{{.BranchLink}}{{if .ParentPath}}{{PathEscapeSegments .ParentPath}}{{end}}">..</a></td>
 			</tr>
 		{{end}}
 		{{range $item := .Files}}
@@ -54,7 +54,7 @@
 							{{svg "octicon-file-submodule"}}
 							{{$refURL := $subModuleFile.RefURL AppUrl $.Repository.FullName $.SSHDomain}}
 							{{if $refURL}}
-								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{$subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
+								<a href="{{$refURL}}">{{$entry.Name}}</a><span class="at">@</span><a href="{{$refURL}}/commit/{{PathEscape $subModuleFile.RefID}}">{{ShortSha $subModuleFile.RefID}}</a>
 							{{else}}
 								{{$entry.Name}}<span class="at">@</span>{{ShortSha $subModuleFile.RefID}}
 							{{end}}
@@ -63,7 +63,7 @@
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 								{{svg "octicon-file-directory"}}
-								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+								<a href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
 									{{else}}
@@ -72,7 +72,7 @@
 								</a>
 							{{else}}
 								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
-								<a href="{{EscapePound $.TreeLink}}/{{EscapePound $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+								<a href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}
 					</span>
@@ -80,7 +80,7 @@
 				<td class="message nine wide">
 					<span class="truncate">
 						{{if $commit}}
-							<a href="{{$.RepoLink}}/commit/{{$commit.ID}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
+							<a href="{{$.RepoLink}}/commit/{{PathEscape $commit.ID.String}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}

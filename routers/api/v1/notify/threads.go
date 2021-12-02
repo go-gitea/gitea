@@ -40,7 +40,7 @@ func GetThread(ctx *context.APIContext) {
 	if n == nil {
 		return
 	}
-	if err := n.LoadAttributes(); err != nil {
+	if err := n.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -92,7 +92,7 @@ func ReadThread(ctx *context.APIContext) {
 		ctx.InternalServerError(err)
 		return
 	}
-	if err = notif.LoadAttributes(); err != nil {
+	if err = notif.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -36,7 +37,7 @@ type GPGKey struct {
 	ExpiredUnix       timeutil.TimeStamp
 	AddedUnix         timeutil.TimeStamp
 	SubsKey           []*GPGKey `xorm:"-"`
-	Emails            []*EmailAddress
+	Emails            []*user_model.EmailAddress
 	Verified          bool `xorm:"NOT NULL DEFAULT false"`
 	CanSign           bool
 	CanEncryptComms   bool
@@ -148,12 +149,12 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 	}
 
 	// Check emails
-	userEmails, err := GetEmailAddresses(ownerID)
+	userEmails, err := user_model.GetEmailAddresses(ownerID)
 	if err != nil {
 		return nil, err
 	}
 
-	emails := make([]*EmailAddress, 0, len(e.Identities))
+	emails := make([]*user_model.EmailAddress, 0, len(e.Identities))
 	for _, ident := range e.Identities {
 		if ident.Revocation != nil {
 			continue
@@ -213,7 +214,7 @@ func deleteGPGKey(e db.Engine, keyID string) (int64, error) {
 }
 
 // DeleteGPGKey deletes GPG key information in database.
-func DeleteGPGKey(doer *User, id int64) (err error) {
+func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 	key, err := GetGPGKeyByID(id)
 	if err != nil {
 		if IsErrGPGKeyNotExist(err) {
@@ -242,8 +243,8 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 
 func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 	uid := int64(0)
-	var userEmails []*EmailAddress
-	var user *User
+	var userEmails []*user_model.EmailAddress
+	var user *user_model.User
 	for _, key := range keys {
 		for _, e := range key.Emails {
 			if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
@@ -252,10 +253,10 @@ func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 		}
 		if key.Verified && key.OwnerID != 0 {
 			if uid != key.OwnerID {
-				userEmails, _ = GetEmailAddresses(key.OwnerID)
+				userEmails, _ = user_model.GetEmailAddresses(key.OwnerID)
 				uid = key.OwnerID
-				user = &User{ID: uid}
-				_, _ = GetUser(user)
+				user = &user_model.User{ID: uid}
+				_, _ = user_model.GetUser(user)
 			}
 			for _, e := range userEmails {
 				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {

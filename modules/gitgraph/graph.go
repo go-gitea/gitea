@@ -29,7 +29,7 @@ func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRef
 	args = append(args, "--graph", "--date-order", "--decorate=full")
 
 	if hidePRRefs {
-		args = append(args, "--exclude=refs/pull/*")
+		args = append(args, "--exclude="+git.PullPrefix+"*")
 	}
 
 	if len(branches) == 0 {

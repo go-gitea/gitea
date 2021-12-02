@@ -12,12 +12,16 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"path"
 	"regexp"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	lfs_module "code.gitea.io/gitea/modules/lfs"
@@ -45,17 +49,17 @@ type Claims struct {
 
 // DownloadLink builds a URL to download the object.
 func (rc *requestContext) DownloadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid)
+	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid))
 }
 
 // UploadLink builds a URL to upload the object.
 func (rc *requestContext) UploadLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/objects", p.Oid, strconv.FormatInt(p.Size, 10))
+	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/objects", url.PathEscape(p.Oid), strconv.FormatInt(p.Size, 10))
 }
 
 // VerifyLink builds a URL for verifying the object.
 func (rc *requestContext) VerifyLink(p lfs_module.Pointer) string {
-	return setting.AppURL + path.Join(rc.User, rc.Repo+".git", "info/lfs/verify")
+	return setting.AppURL + path.Join(url.PathEscape(rc.User), url.PathEscape(rc.Repo+".git"), "info/lfs/verify")
 }
 
 // CheckAcceptMediaType checks if the client accepts the LFS media type.
@@ -477,9 +481,9 @@ func writeStatusMessage(ctx *context.Context, status int, message string) {
 // authenticate uses the authorization string to determine whether
 // or not to proceed. This server assumes an HTTP Basic auth format.
 func authenticate(ctx *context.Context, repository *models.Repository, authorization string, requireSigned, requireWrite bool) bool {
-	accessMode := models.AccessModeRead
+	accessMode := perm.AccessModeRead
 	if requireWrite {
-		accessMode = models.AccessModeWrite
+		accessMode = perm.AccessModeWrite
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
@@ -489,7 +493,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 		return false
 	}
 
-	canRead := perm.CanAccess(accessMode, models.UnitTypeCode)
+	canRead := perm.CanAccess(accessMode, unit.TypeCode)
 	if canRead && (!requireSigned || ctx.IsSigned) {
 		return true
 	}
@@ -504,7 +508,7 @@ func authenticate(ctx *context.Context, repository *models.Repository, authoriza
 	return true
 }
 
-func handleLFSToken(tokenSHA string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+func handleLFSToken(tokenSHA string, target *models.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if !strings.Contains(tokenSHA, ".") {
 		return nil, nil
 	}
@@ -527,11 +531,11 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	if mode == models.AccessModeWrite && claims.Op != "upload" {
+	if mode == perm.AccessModeWrite && claims.Op != "upload" {
 		return nil, fmt.Errorf("invalid token claim")
 	}
 
-	u, err := models.GetUserByID(claims.UserID)
+	u, err := user_model.GetUserByID(claims.UserID)
 	if err != nil {
 		log.Error("Unable to GetUserById[%d]: Error: %v", claims.UserID, err)
 		return nil, err
@@ -539,7 +543,7 @@ func handleLFSToken(tokenSHA string, target *models.Repository, mode models.Acce
 	return u, nil
 }
 
-func parseToken(authorization string, target *models.Repository, mode models.AccessMode) (*models.User, error) {
+func parseToken(authorization string, target *models.Repository, mode perm.AccessMode) (*user_model.User, error) {
 	if authorization == "" {
 		return nil, fmt.Errorf("no token")
 	}

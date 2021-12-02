@@ -7,12 +7,14 @@ package models
 
 import (
 	"fmt"
+	"net/url"
 	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -62,13 +64,13 @@ type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64       `xorm:"INDEX"` // Action user id.
-	ActUser     *User       `xorm:"-"`
-	RepoID      int64       `xorm:"INDEX"`
-	Repo        *Repository `xorm:"-"`
-	CommentID   int64       `xorm:"INDEX"`
-	Comment     *Comment    `xorm:"-"`
-	IsDeleted   bool        `xorm:"INDEX NOT NULL DEFAULT false"`
+	ActUserID   int64            `xorm:"INDEX"` // Action user id.
+	ActUser     *user_model.User `xorm:"-"`
+	RepoID      int64            `xorm:"INDEX"`
+	Repo        *Repository      `xorm:"-"`
+	CommentID   int64            `xorm:"INDEX"`
+	Comment     *Comment         `xorm:"-"`
+	IsDeleted   bool             `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
@@ -90,11 +92,11 @@ func (a *Action) LoadActUser() {
 		return
 	}
 	var err error
-	a.ActUser, err = GetUserByID(a.ActUserID)
+	a.ActUser, err = user_model.GetUserByID(a.ActUserID)
 	if err == nil {
 		return
-	} else if IsErrUserNotExist(err) {
-		a.ActUser = NewGhostUser()
+	} else if user_model.IsErrUserNotExist(err) {
+		a.ActUser = user_model.NewGhostUser()
 	} else {
 		log.Error("GetUserByID(%d): %v", a.ActUserID, err)
 	}
@@ -185,10 +187,8 @@ func (a *Action) ShortRepoPath() string {
 
 // GetRepoLink returns relative link to action repository.
 func (a *Action) GetRepoLink() string {
-	if len(setting.AppSubURL) > 0 {
-		return path.Join(setting.AppSubURL, a.GetRepoPath())
-	}
-	return "/" + a.GetRepoPath()
+	// path.Join will skip empty strings
+	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
 // GetRepositoryFromMatch returns a *Repository from a username and repo strings
@@ -295,13 +295,13 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *User  // the user we want activity for
-	RequestedTeam   *Team  // the team we want activity for
-	Actor           *User  // the user viewing the activity
-	IncludePrivate  bool   // include private actions
-	OnlyPerformedBy bool   // only actions performed by requested user
-	IncludeDeleted  bool   // include deleted actions
-	Date            string // the day we want activity for: YYYY-MM-DD
+	RequestedUser   *user_model.User // the user we want activity for
+	RequestedTeam   *Team            // the team we want activity for
+	Actor           *user_model.User // the user viewing the activity
+	IncludePrivate  bool             // include private actions
+	OnlyPerformedBy bool             // only actions performed by requested user
+	IncludeDeleted  bool             // include deleted actions
+	Date            string           // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
@@ -328,7 +328,7 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 	return actions, nil
 }
 
-func activityReadable(user, doer *User) bool {
+func activityReadable(user, doer *user_model.User) bool {
 	var doerID int64
 	if doer != nil {
 		doerID = doer.ID
@@ -353,7 +353,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
 		if opts.RequestedUser.IsOrganization() {
-			env, err := opts.RequestedUser.AccessibleReposEnv(actorID)
+			env, err := OrgFromUser(opts.RequestedUser).AccessibleReposEnv(actorID)
 			if err != nil {
 				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
 			}
@@ -367,7 +367,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if opts.RequestedTeam != nil {
-		env := opts.RequestedUser.AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)

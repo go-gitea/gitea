@@ -76,10 +76,21 @@
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-removed-row-bg: #ffeef0;
+  --color-diff-moved-row-bg: #f1f8d1;
   --color-diff-added-row-bg: #e6ffed;
   --color-diff-removed-row-border: #f1c0c0;
+  --color-diff-moved-row-border: #d0e27f;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-inactive: #f2f2f2;
+  --color-error-border: #c29393;
+  --color-error-bg: #fff5f5;
+  --color-error-text: #d64444;
+  --color-success-border: #a3c293;
+  --color-success-bg: #fcfff5;
+  --color-success-text: #6cc644;
+  --color-warning-border: #c2c193;
+  --color-warning-bg: #fffff5;
+  --color-warning-text: #fbbd08;
   /* target-based colors */
   --color-body: #ffffff;
   --color-text-dark: #080808;
@@ -409,6 +420,16 @@ a.muted:hover,
   background: var(--color-active) !important;
 }
 
+.ui.message {
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
+.ui.bottom.attached.message {
+  box-shadow: none !important;
+  border: 1px solid var(--color-secondary);
+}
+
 .ui.selection.active.dropdown,
 .ui.selection.active.dropdown:hover,
 .ui.selection.active.dropdown .menu,
@@ -635,6 +656,7 @@ a.ui.card:hover,
 
   .fitted .svg {
     margin-right: 0;
+    vertical-align: middle;
   }
 
   .searchbox {
@@ -893,20 +915,6 @@ a.ui.card:hover,
     text-align: left;
   }
 
-  &.bottom.attached.message {
-    text-align: left;
-    color: black;
-
-    .pull-right {
-      color: black;
-    }
-
-    & > span,
-    .pull-right > span {
-      color: var(--color-green);
-    }
-  }
-
   .header > i + .content {
     padding-left: .75rem;
     vertical-align: middle;
@@ -962,10 +970,13 @@ a.ui.card:hover,
   }
 
   .form {
-    .fake {
-      display: none !important;
+    .autofill-dummy {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      z-index: -10000;
     }
-
     .sub.field {
       margin-left: 25px;
     }
@@ -977,6 +988,13 @@ a.ui.card:hover,
     padding: 6px 10px 4px;
     font-weight: normal;
     margin: 0 6px;
+  }
+
+  .button.copy-commit-sha {
+    border: 1px solid var(--color-light-border);
+    margin-right: 3px;
+    padding: 6px 6px 4px;
+    background: var(--color-light);
   }
 
   .button.truncate {
@@ -1358,6 +1376,13 @@ footer {
   margin-top: 0 !important;
   border-bottom-width: 0 !important;
   margin-bottom: 2px !important;
+  justify-content: space-evenly;
+
+}
+
+.ui.secondary.pointing.menu.repos-filter .item {
+  padding-left: 4.5px;
+  padding-right: 4.5px;
 }
 
 .repo-title {
@@ -2084,6 +2109,15 @@ table th[data-sortt-desc] {
   display: flex !important;
 }
 
+.ellipsis-button {
+  padding: 0 5px 8px !important;
+  display: inline-block !important;
+  user-select: none !important;
+  font-weight: 600 !important;
+  line-height: 6px !important;
+  vertical-align: middle !important;
+}
+
 .truncated-item-name {
   line-height: 2em;
   white-space: nowrap;
@@ -2094,10 +2128,10 @@ table th[data-sortt-desc] {
 }
 
 .precolors {
-  padding-left: 0;
-  padding-right: 0;
-  margin: 3px 10px auto;
-  width: 120px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 3px 10px auto !important;
+  width: 120px !important;
 
   .color {
     float: left;

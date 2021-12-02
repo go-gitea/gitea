@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
@@ -239,7 +240,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *models.
 }
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(ctx context.Context, doer, owner *models.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
+func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
 	generateRepo := &models.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
@@ -273,6 +274,17 @@ func GenerateRepository(ctx context.Context, doer, owner *models.User, templateR
 
 	if err = checkInitRepository(owner.Name, generateRepo.Name); err != nil {
 		return generateRepo, err
+	}
+
+	if err = generateRepo.CheckDaemonExportOK(ctx); err != nil {
+		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
+	}
+
+	if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		SetDescription(fmt.Sprintf("GenerateRepository(git update-server-info): %s", repoPath)).
+		RunInDir(repoPath); err != nil {
+		log.Error("GenerateRepository(git update-server-info) in %v: Stdout: %s\nError: %v", generateRepo, stdout, err)
+		return generateRepo, fmt.Errorf("error in GenerateRepository(git update-server-info): %v", err)
 	}
 
 	return generateRepo, nil

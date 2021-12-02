@@ -6,9 +6,11 @@ package convert
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -174,7 +176,7 @@ func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 }
 
 // ToLabel converts Label to API format
-func ToLabel(label *models.Label, repo *models.Repository, org *models.User) *api.Label {
+func ToLabel(label *models.Label, repo *models.Repository, org *user_model.User) *api.Label {
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
@@ -191,7 +193,7 @@ func ToLabel(label *models.Label, repo *models.Repository, org *models.User) *ap
 		}
 	} else { // BelongsToOrg
 		if org != nil {
-			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, org.Name, label.ID)
+			result.URL = fmt.Sprintf("%sapi/v1/orgs/%s/labels/%d", setting.AppURL, url.PathEscape(org.Name), label.ID)
 		} else {
 			log.Error("ToLabel did not get org to calculate url for label with id '%d'", label.ID)
 		}
@@ -201,7 +203,7 @@ func ToLabel(label *models.Label, repo *models.Repository, org *models.User) *ap
 }
 
 // ToLabelList converts list of Label to API format
-func ToLabelList(labels []*models.Label, repo *models.Repository, org *models.User) []*api.Label {
+func ToLabelList(labels []*models.Label, repo *models.Repository, org *user_model.User) []*api.Label {
 	result := make([]*api.Label, len(labels))
 	for i := range labels {
 		result[i] = ToLabel(labels[i], repo, org)

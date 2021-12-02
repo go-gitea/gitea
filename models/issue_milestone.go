@@ -5,17 +5,18 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // Milestone represents a milestone of repository.
@@ -85,22 +86,22 @@ func (m *Milestone) State() api.StateType {
 
 // NewMilestone creates new milestone of repository.
 func NewMilestone(m *Milestone) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
 	m.Name = strings.TrimSpace(m.Name)
 
-	if _, err = sess.Insert(m); err != nil {
+	if err = db.Insert(ctx, m); err != nil {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func getMilestoneByRepoID(e db.Engine, repoID, id int64) (*Milestone, error) {
@@ -150,11 +151,13 @@ func getMilestoneByID(e db.Engine, id int64) (*Milestone, error) {
 
 // UpdateMilestone updates information of given milestone.
 func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if m.IsClosed && !oldIsClosed {
 		m.ClosedDateUnix = timeutil.TimeStampNow()
@@ -171,7 +174,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func updateMilestone(e db.Engine, m *Milestone) error {
@@ -207,11 +210,13 @@ func updateMilestoneCounters(e db.Engine, id int64) error {
 
 // ChangeMilestoneStatusByRepoIDAndID changes a milestone open/closed status if the milestone ID is in the repo.
 func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	m := &Milestone{
 		ID:     milestoneID,
@@ -229,22 +234,22 @@ func ChangeMilestoneStatusByRepoIDAndID(repoID, milestoneID int64, isClosed bool
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // ChangeMilestoneStatus changes the milestone open/closed status.
 func ChangeMilestoneStatus(m *Milestone, isClosed bool) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := changeMilestoneStatus(db.GetEngine(ctx), m, isClosed); err != nil {
 		return err
 	}
 
-	if err := changeMilestoneStatus(sess, m, isClosed); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func changeMilestoneStatus(e db.Engine, m *Milestone, isClosed bool) error {
@@ -263,7 +268,8 @@ func changeMilestoneStatus(e db.Engine, m *Milestone, isClosed bool) error {
 	return updateRepoMilestoneNum(e, m.RepoID)
 }
 
-func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilestoneID int64) error {
+func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Issue, oldMilestoneID int64) error {
+	e := db.GetEngine(ctx)
 	if err := updateIssueCols(e, issue, "milestone_id"); err != nil {
 		return err
 	}
@@ -293,7 +299,7 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 			OldMilestoneID: oldMilestoneID,
 			MilestoneID:    issue.MilestoneID,
 		}
-		if _, err := createComment(e, opts); err != nil {
+		if _, err := createComment(ctx, opts); err != nil {
 			return err
 		}
 	}
@@ -302,18 +308,18 @@ func changeMilestoneAssign(e *xorm.Session, doer *User, issue *Issue, oldMilesto
 }
 
 // ChangeMilestoneAssign changes assignment of milestone for issue.
-func ChangeMilestoneAssign(issue *Issue, doer *User, oldMilestoneID int64) (err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+func ChangeMilestoneAssign(issue *Issue, doer *user_model.User, oldMilestoneID int64) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = changeMilestoneAssign(ctx, doer, issue, oldMilestoneID); err != nil {
 		return err
 	}
 
-	if err = changeMilestoneAssign(sess, doer, issue, oldMilestoneID); err != nil {
-		return err
-	}
-
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 	return nil
@@ -334,11 +340,13 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	if _, err = sess.ID(m.ID).Delete(new(Milestone)); err != nil {
 		return err
@@ -359,10 +367,10 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	if _, err = sess.Exec("UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
+	if _, err = db.Exec(ctx, "UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // MilestoneList is a list of milestones offering additional functionality

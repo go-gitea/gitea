@@ -26,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -36,7 +37,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
-	context2 "github.com/gorilla/context"
 	"xorm.io/xorm"
 )
 
@@ -49,7 +49,7 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContext()
+	setting.LoadAllowEmpty()
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -91,17 +91,17 @@ func runPR() {
 	dbCfg.NewKey("DB_TYPE", "sqlite3")
 	dbCfg.NewKey("PATH", ":memory:")
 
-	routers.NewServices()
+	routers.InitGitServices()
 	setting.Database.LogSQL = true
 	//x, err = xorm.NewEngine("sqlite3", "file::memory:?cache=shared")
 
-	db.NewEngine(context.Background(), func(_ *xorm.Engine) error {
+	db.InitEngineWithMigration(context.Background(), func(_ *xorm.Engine) error {
 		return nil
 	})
 	db.HasEngine = true
 	//x.ShowSQL(true)
-	err = db.InitFixtures(
-		db.FixturesOptions{
+	err = unittest.InitFixtures(
+		unittest.FixturesOptions{
 			Dir: path.Join(curDir, "models/fixtures/"),
 		},
 	)
@@ -109,7 +109,7 @@ func runPR() {
 		fmt.Printf("Error initializing test database: %v\n", err)
 		os.Exit(1)
 	}
-	db.LoadFixtures()
+	unittest.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(models.LocalCopyPath())
 	util.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
@@ -138,7 +138,7 @@ func runPR() {
 	*/
 
 	//Start the server
-	http.ListenAndServe(":8080", context2.ClearHandler(c))
+	http.ListenAndServe(":8080", c)
 
 	log.Printf("[PR] Cleaning up ...\n")
 	/*
@@ -215,7 +215,7 @@ func main() {
 		//Use git cli command for windows
 		runCmd("git", "fetch", remoteUpstream, fmt.Sprintf("pull/%s/head:%s", pr, branch))
 	} else {
-		ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
+		ref := fmt.Sprintf("%s%s/head:%s", gitea_git.PullPrefix, pr, branchRef)
 		err = repo.Fetch(&git.FetchOptions{
 			RemoteName: remoteUpstream,
 			RefSpecs: []config.RefSpec{

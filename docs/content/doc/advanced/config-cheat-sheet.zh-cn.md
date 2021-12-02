@@ -335,7 +335,7 @@ IS_INPUT_FILE = false
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 - `ALLOWED_DOMAINS`: **\<empty\>**: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
-- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项将会被忽略。
+- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项有更高的优先级拒绝这里的域名。
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918
 - `SKIP_TLS_VERIFY`: **false**: 允许忽略 TLS 认证
 

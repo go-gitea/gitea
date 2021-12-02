@@ -12,11 +12,11 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 const (
@@ -51,9 +52,10 @@ func Branches(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarBranches"] = true
 	ctx.Data["DefaultBranch"] = ctx.Repo.Repository.DefaultBranch
 	ctx.Data["AllowsPulls"] = ctx.Repo.Repository.AllowsPulls()
-	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(models.UnitTypeCode)
+	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
-	ctx.Data["CanPull"] = ctx.Repo.CanWrite(models.UnitTypeCode) || (ctx.IsSigned && ctx.User.HasForkedRepo(ctx.Repo.Repository.ID))
+	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
+		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
@@ -122,7 +124,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := git.Push(ctx.Repo.Repository.RepoPath(), git.PushOptions{
+	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
 		Remote: ctx.Repo.Repository.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.Commit, git.BranchPrefix, deletedBranch.Name),
 		Env:    models.PushingEnvironment(ctx.User, ctx.Repo.Repository),
@@ -163,14 +165,14 @@ func redirect(ctx *context.Context) {
 // loadBranches loads branches from the repository limited by page & pageSize.
 // NOTE: May write to context on error.
 func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
-	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
+	defaultBranch, err := repo_service.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		log.Error("loadBranches: get default branch: %v", err)
 		ctx.ServerError("GetDefaultBranch", err)
 		return nil, 0
 	}
 
-	rawBranches, totalNumOfBranches, err := repo_module.GetBranches(ctx.Repo.Repository, skip, limit)
+	rawBranches, totalNumOfBranches, err := repo_service.GetBranches(ctx.Repo.Repository, skip, limit)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		ctx.ServerError("GetBranches", err)
@@ -208,7 +210,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 	log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
 	branches = append(branches, loadOneBranch(ctx, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo))
 
-	if ctx.Repo.CanWrite(models.UnitTypeCode) {
+	if ctx.Repo.CanWrite(unit.TypeCode) {
 		deletedBranches, err := getDeletedBranches(ctx)
 		if err != nil {
 			ctx.ServerError("getDeletedBranches", err)
@@ -240,7 +242,7 @@ func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranche
 		}
 	}
 
-	divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
+	divergence, divergenceError := files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
 	if divergenceError != nil {
 		ctx.ServerError("CountDivergingCommits", divergenceError)
 		return nil
@@ -343,17 +345,15 @@ func CreateBranch(ctx *context.Context) {
 	var err error
 
 	if form.CreateTag {
-		if ctx.Repo.IsViewTag {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName, "")
-		} else {
-			err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName, "")
+		target := ctx.Repo.CommitID
+		if ctx.Repo.IsViewBranch {
+			target = ctx.Repo.BranchName
 		}
+		err = release_service.CreateNewTag(ctx.User, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.IsViewBranch {
-		err = repo_module.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
-	} else if ctx.Repo.IsViewTag {
-		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_module.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
 		if models.IsErrTagAlreadyExists(err) {

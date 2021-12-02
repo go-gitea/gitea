@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -26,7 +26,7 @@ type SlackMeta struct {
 }
 
 // GetSlackHook returns slack metadata
-func GetSlackHook(w *models.Webhook) *SlackMeta {
+func GetSlackHook(w *webhook_model.Webhook) *SlackMeta {
 	s := &SlackMeta{}
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetSlackHook(%d): %v", w.ID, err)
@@ -226,7 +226,7 @@ func (s *SlackPayload) PullRequest(p *api.PullRequestPayload) (api.Payloader, er
 }
 
 // Review implements PayloadConvertor Review method
-func (s *SlackPayload) Review(p *api.PullRequestPayload, event models.HookEventType) (api.Payloader, error) {
+func (s *SlackPayload) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	senderLink := SlackLinkFormatter(setting.AppURL+p.Sender.UserName, p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
 	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
@@ -273,7 +273,7 @@ func (s *SlackPayload) createPayload(text string, attachments []SlackAttachment)
 }
 
 // GetSlackPayload converts a slack webhook into a SlackPayload
-func GetSlackPayload(p api.Payloader, event models.HookEventType, meta string) (api.Payloader, error) {
+func GetSlackPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
 	s := new(SlackPayload)
 
 	slack := &SlackMeta{}

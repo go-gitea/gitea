@@ -1,11 +1,15 @@
 {{template "base/head" .}}
+
+<input type="hidden" id="repolink" value="{{$.RepoRelPath}}">
+<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
+
 <div class="page-content repository view issue pull files diff">
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
 		<div class="navbar">
 			{{template "repo/issue/navbar" .}}
 			<div class="ui right">
-				<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{.RepoLink}}/compare/{{.BranchName | EscapePound}}...{{.PullRequestCtx.HeadInfo | EscapePound}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+				<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{.RepoLink}}/compare/{{.BranchName | PathEscapeSegments}}...{{.PullRequestCtx.HeadInfoSubURL}}">{{.i18n.Tr "repo.pulls.new"}}</a>
 			</div>
 		</div>
 		<div class="ui divider"></div>

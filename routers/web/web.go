@@ -10,7 +10,7 @@ import (
 	"os"
 	"path"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -36,12 +36,11 @@ import (
 	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
 
-	// to registers all internal adapters
-	_ "code.gitea.io/gitea/modules/session"
+	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	"github.com/NYTimes/gziphandler"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
@@ -233,10 +232,16 @@ func RegisterRoutes(m *web.Route) {
 	// Routers.
 	// for health check
 	m.Get("/", Home)
-	m.Get("/.well-known/openid-configuration", user.OIDCWellKnown)
-	if setting.Federation.Enabled {
-		m.Get("/.well-known/nodeinfo", NodeInfoLinks)
-	}
+	m.Group("/.well-known", func() {
+		m.Get("/openid-configuration", user.OIDCWellKnown)
+		if setting.Federation.Enabled {
+			m.Get("/nodeinfo", NodeInfoLinks)
+		}
+		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
+			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
+		})
+	})
+
 	m.Group("/explore", func() {
 		m.Get("", func(ctx *context.Context) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
@@ -317,6 +322,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/email", bindIgnErr(forms.AddEmailForm{}), userSetting.EmailPost)
 			m.Post("/email/delete", userSetting.DeleteEmail)
 			m.Post("/delete", userSetting.DeleteAccount)
+		})
+		m.Group("/appearance", func() {
+			m.Get("", userSetting.Appearance)
+			m.Post("/language", bindIgnErr(forms.UpdateLanguageForm{}), userSetting.UpdateUserLang)
 			m.Post("/theme", bindIgnErr(forms.UpdateThemeForm{}), userSetting.UpdateUIThemePost)
 		})
 		m.Group("/security", func() {
@@ -404,6 +413,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/new").Get(admin.NewUser).Post(bindIgnErr(forms.AdminCreateUserForm{}), admin.NewUserPost)
 			m.Combo("/{userid}").Get(admin.EditUser).Post(bindIgnErr(forms.AdminEditUserForm{}), admin.EditUserPost)
 			m.Post("/{userid}/delete", admin.DeleteUser)
+			m.Post("/{userid}/avatar", bindIgnErr(forms.AvatarForm{}), admin.AvatarPost)
+			m.Post("/{userid}/avatar/delete", admin.DeleteAvatar)
 		})
 
 		m.Group("/emails", func() {
@@ -477,23 +488,23 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/action/{action}", user.Action)
 	}, reqSignIn)
 
-	if !setting.IsProd() {
+	if !setting.IsProd {
 		m.Get("/template/*", dev.TemplatePreview)
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
-	reqRepoCodeWriter := context.RequireRepoWriter(models.UnitTypeCode)
-	reqRepoCodeReader := context.RequireRepoReader(models.UnitTypeCode)
-	reqRepoReleaseWriter := context.RequireRepoWriter(models.UnitTypeReleases)
-	reqRepoReleaseReader := context.RequireRepoReader(models.UnitTypeReleases)
-	reqRepoWikiWriter := context.RequireRepoWriter(models.UnitTypeWiki)
-	reqRepoIssueWriter := context.RequireRepoWriter(models.UnitTypeIssues)
-	reqRepoIssueReader := context.RequireRepoReader(models.UnitTypeIssues)
-	reqRepoPullsReader := context.RequireRepoReader(models.UnitTypePullRequests)
-	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(models.UnitTypeIssues, models.UnitTypePullRequests)
-	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(models.UnitTypeIssues, models.UnitTypePullRequests)
-	reqRepoProjectsReader := context.RequireRepoReader(models.UnitTypeProjects)
-	reqRepoProjectsWriter := context.RequireRepoWriter(models.UnitTypeProjects)
+	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
+	reqRepoCodeReader := context.RequireRepoReader(unit.TypeCode)
+	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
+	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
+	reqRepoWikiWriter := context.RequireRepoWriter(unit.TypeWiki)
+	reqRepoIssueWriter := context.RequireRepoWriter(unit.TypeIssues)
+	reqRepoIssueReader := context.RequireRepoReader(unit.TypeIssues)
+	reqRepoPullsReader := context.RequireRepoReader(unit.TypePullRequests)
+	reqRepoIssuesOrPullsWriter := context.RequireRepoWriterOr(unit.TypeIssues, unit.TypePullRequests)
+	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
+	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
+	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -549,6 +560,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
 					m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
 					m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
+					m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
 					m.Get("/{id}", repo.WebHooksEdit)
 					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
 					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
@@ -559,6 +571,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
 					m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
 					m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
+					m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
 				}, webhooksEnabled)
 
 				m.Group("/labels", func() {
@@ -732,6 +745,9 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/attachments", repo.GetIssueAttachments)
 				m.Get("/attachments/{uuid}", repo.GetAttachment)
 			})
+			m.Group("/{index}", func() {
+				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
+			})
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
@@ -853,6 +869,11 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/{type:issues|pulls}", repo.Issues)
 			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
+			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
+				m.Get("/overview", repo.GetContentHistoryOverview)
+				m.Get("/list", repo.GetContentHistoryList)
+				m.Get("/detail", repo.GetContentHistoryDetail)
+			})
 			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
@@ -883,21 +904,23 @@ func RegisterRoutes(m *web.Route) {
 		}, reqRepoProjectsReader, repo.MustEnableProjects)
 
 		m.Group("/wiki", func() {
-			m.Get("/", repo.Wiki)
-			m.Get("/{page}", repo.Wiki)
-			m.Get("/_pages", repo.WikiPages)
-			m.Get("/{page}/_revision", repo.WikiRevision)
+			m.Combo("/").
+				Get(repo.Wiki).
+				Post(context.RepoMustNotBeArchived(),
+					reqSignIn,
+					reqRepoWikiWriter,
+					bindIgnErr(forms.NewWikiForm{}),
+					repo.WikiPost)
+			m.Combo("/*").
+				Get(repo.Wiki).
+				Post(context.RepoMustNotBeArchived(),
+					reqSignIn,
+					reqRepoWikiWriter,
+					bindIgnErr(forms.NewWikiForm{}),
+					repo.WikiPost)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
-
-			m.Group("", func() {
-				m.Combo("/_new").Get(repo.NewWiki).
-					Post(bindIgnErr(forms.NewWikiForm{}), repo.NewWikiPost)
-				m.Combo("/{page}/_edit").Get(repo.EditWiki).
-					Post(bindIgnErr(forms.NewWikiForm{}), repo.EditWikiPost)
-				m.Post("/{page}/delete", repo.DeleteWikiPagePost)
-			}, context.RepoMustNotBeArchived(), reqSignIn, reqRepoWikiWriter)
-		}, repo.MustEnableWiki, context.RepoRef(), func(ctx *context.Context) {
+		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
 		})
 
@@ -908,12 +931,12 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/activity", func() {
 			m.Get("", repo.Activity)
 			m.Get("/{period}", repo.Activity)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypePullRequests, models.UnitTypeIssues, models.UnitTypeReleases))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypePullRequests, unit.TypeIssues, unit.TypeReleases))
 
 		m.Group("/activity_author_data", func() {
 			m.Get("", repo.ActivityAuthors)
 			m.Get("/{period}", repo.ActivityAuthors)
-		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(models.UnitTypeCode))
+		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypeCode))
 
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)

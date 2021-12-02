@@ -11,6 +11,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -77,7 +80,7 @@ type PullRequest struct {
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
 	MergerID       int64              `xorm:"INDEX"`
-	Merger         *User              `xorm:"-"`
+	Merger         *user_model.User   `xorm:"-"`
 	MergedUnix     timeutil.TimeStamp `xorm:"updated INDEX"`
 
 	isHeadRepoLoaded bool `xorm:"-"`
@@ -108,10 +111,10 @@ func (pr *PullRequest) MustHeadUserName() string {
 // Note: don't try to get Issue because will end up recursive querying.
 func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = getUserByID(e, pr.MergerID)
-		if IsErrUserNotExist(err) {
+		pr.Merger, err = user_model.GetUserByIDEngine(e, pr.MergerID)
+		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
-			pr.Merger = NewGhostUser()
+			pr.Merger = user_model.NewGhostUser()
 		} else if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", pr.MergerID, err)
 		}
@@ -236,7 +239,7 @@ func (pr *PullRequest) GetDefaultMergeMessage() string {
 	}
 
 	issueReference := "#"
-	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 		issueReference = "!"
 	}
 
@@ -284,11 +287,12 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return nil
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
 	reviews, err := findReviews(sess, FindReviewOptions{
@@ -308,7 +312,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 			break
 		}
 
-		if err := review.loadReviewer(sess); err != nil && !IsErrUserNotExist(err) {
+		if err := review.loadReviewer(sess); err != nil && !user_model.IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
@@ -325,7 +329,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		}
 		reviewersWritten++
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetDefaultSquashMessage returns default message used when squash and merging pull request
@@ -338,7 +342,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 		log.Error("LoadBaseRepo: %v", err)
 		return ""
 	}
-	if pr.BaseRepo.UnitEnabled(UnitTypeExternalTracker) {
+	if pr.BaseRepo.UnitEnabled(unit.TypeExternalTracker) {
 		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index)
 	}
 	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index)
@@ -346,7 +350,7 @@ func (pr *PullRequest) GetDefaultSquashMessage() string {
 
 // GetGitRefName returns git ref for hidden pull request branch
 func (pr *PullRequest) GetGitRefName() string {
-	return fmt.Sprintf("refs/pull/%d/head", pr.Index)
+	return fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index)
 }
 
 // IsChecking returns true if this pull request is still checking conflict.
@@ -393,11 +397,12 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 
 	pr.HasMerged = true
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return false, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if _, err := sess.Exec("UPDATE `issue` SET `repo_id` = `repo_id` WHERE `id` = ?", pr.IssueID); err != nil {
 		return false, err
@@ -431,7 +436,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, err
 	}
 
-	if _, err := pr.Issue.changeStatus(sess, pr.Merger, true, true); err != nil {
+	if _, err := pr.Issue.changeStatus(ctx, pr.Merger, true, true); err != nil {
 		return false, fmt.Errorf("Issue.changeStatus: %v", err)
 	}
 
@@ -440,7 +445,7 @@ func (pr *PullRequest) SetMerged() (bool, error) {
 		return false, fmt.Errorf("Failed to update pr[%d]: %v", pr.ID, err)
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return false, fmt.Errorf("Commit: %v", err)
 	}
 	return true, nil
@@ -455,13 +460,13 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 
 	issue.Index = idx
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
 
-	if err = newIssue(sess, issue.Poster, NewIssueOptions{
+	if err = newIssue(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
@@ -477,11 +482,11 @@ func NewPullRequest(repo *Repository, issue *Issue, labelIDs []int64, uuids []st
 	pr.Index = issue.Index
 	pr.BaseRepo = repo
 	pr.IssueID = issue.ID
-	if _, err = sess.Insert(pr); err != nil {
+	if err = db.Insert(ctx, pr); err != nil {
 		return fmt.Errorf("insert pull repo: %v", err)
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 

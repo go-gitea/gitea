@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -25,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	repo_service "code.gitea.io/gitea/services/repository"
+	user_service "code.gitea.io/gitea/services/user"
 
 	"github.com/urfave/cli"
 )
@@ -339,7 +342,10 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	if !pwd.IsComplexEnough(c.String("password")) {
@@ -353,7 +359,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := models.GetUserByName(uname)
+	user, err := user_model.GetUserByName(uname)
 	if err != nil {
 		return err
 	}
@@ -361,7 +367,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = models.UpdateUserCols(user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -393,7 +399,10 @@ func runCreateUser(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "--name flag is deprecated. Use --username instead.\n")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -416,7 +425,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := models.CountUsers(); n == 0 {
+	if n := user_model.CountUsers(); n == 0 {
 		changePassword = false
 	}
 
@@ -424,7 +433,7 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
-	u := &models.User{
+	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
@@ -434,7 +443,7 @@ func runCreateUser(c *cli.Context) error {
 		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := models.CreateUser(u); err != nil {
+	if err := user_model.CreateUser(u); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
@@ -456,11 +465,14 @@ func runCreateUser(c *cli.Context) error {
 }
 
 func runListUsers(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
-	users, err := models.GetAllUsers()
+	users, err := user_model.GetAllUsers()
 
 	if err != nil {
 		return err
@@ -493,7 +505,10 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("You must provide the id, username or email of a user to delete")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -502,13 +517,13 @@ func runDeleteUser(c *cli.Context) error {
 	}
 
 	var err error
-	var user *models.User
+	var user *user_model.User
 	if c.IsSet("email") {
-		user, err = models.GetUserByEmail(c.String("email"))
+		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = models.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(c.String("username"))
 	} else {
-		user, err = models.GetUserByID(c.Int64("id"))
+		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
 	if err != nil {
 		return err
@@ -521,11 +536,14 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return models.DeleteUser(user)
+	return user_service.DeleteUser(user)
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -591,14 +609,20 @@ func getReleaseCount(id int64) (int64, error) {
 }
 
 func runRegenerateHooks(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return repo_module.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
+	return repo_service.SyncRepositoryHooks(graceful.GetManager().ShutdownContext())
 }
 
 func runRegenerateKeys(_ *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 	return models.RewriteAllPublicKeys()
@@ -628,7 +652,10 @@ func parseOAuth2Config(c *cli.Context) *oauth2.Source {
 }
 
 func runAddOauth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -645,7 +672,10 @@ func runUpdateOauth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -712,7 +742,10 @@ func runUpdateOauth(c *cli.Context) error {
 }
 
 func runListAuth(c *cli.Context) error {
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 
@@ -748,7 +781,10 @@ func runDeleteAuth(c *cli.Context) error {
 		return fmt.Errorf("--id flag is missing")
 	}
 
-	if err := initDB(); err != nil {
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
 		return err
 	}
 

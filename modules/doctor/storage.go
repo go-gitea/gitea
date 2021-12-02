@@ -5,7 +5,7 @@
 package doctor
 
 import (
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
 )
@@ -21,7 +21,7 @@ func checkAttachmentStorageFiles(logger log.Logger, autofix bool) error {
 		if err != nil {
 			return err
 		}
-		exist, err := models.ExistAttachmentsByUUID(stat.Name())
+		exist, err := repo_model.ExistAttachmentsByUUID(stat.Name())
 		if err != nil {
 			return err
 		}

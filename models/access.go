@@ -9,58 +9,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 )
-
-// AccessMode specifies the users access mode
-type AccessMode int
-
-const (
-	// AccessModeNone no access
-	AccessModeNone AccessMode = iota // 0
-	// AccessModeRead read access
-	AccessModeRead // 1
-	// AccessModeWrite write access
-	AccessModeWrite // 2
-	// AccessModeAdmin admin access
-	AccessModeAdmin // 3
-	// AccessModeOwner owner access
-	AccessModeOwner // 4
-)
-
-func (mode AccessMode) String() string {
-	switch mode {
-	case AccessModeRead:
-		return "read"
-	case AccessModeWrite:
-		return "write"
-	case AccessModeAdmin:
-		return "admin"
-	case AccessModeOwner:
-		return "owner"
-	default:
-		return "none"
-	}
-}
-
-// ColorFormat provides a ColorFormatted version of this AccessMode
-func (mode AccessMode) ColorFormat(s fmt.State) {
-	log.ColorFprintf(s, "%d:%s",
-		log.NewColoredIDValue(mode),
-		mode)
-}
-
-// ParseAccessMode returns corresponding access mode to given permission string.
-func ParseAccessMode(permission string) AccessMode {
-	switch permission {
-	case "write":
-		return AccessModeWrite
-	case "admin":
-		return AccessModeAdmin
-	default:
-		return AccessModeRead
-	}
-}
 
 // Access represents the highest access level of a user to the repository. The only access type
 // that is not in this table is the real owner of a repository. In case of an organization
@@ -69,15 +20,15 @@ type Access struct {
 	ID     int64 `xorm:"pk autoincr"`
 	UserID int64 `xorm:"UNIQUE(s)"`
 	RepoID int64 `xorm:"UNIQUE(s)"`
-	Mode   AccessMode
+	Mode   perm.AccessMode
 }
 
 func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) {
-	mode := AccessModeNone
+func accessLevel(e db.Engine, user *user_model.User, repo *Repository) (perm.AccessMode, error) {
+	mode := perm.AccessModeNone
 	var userID int64
 	restricted := false
 
@@ -87,7 +38,7 @@ func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) 
 	}
 
 	if !restricted && !repo.IsPrivate {
-		mode = AccessModeRead
+		mode = perm.AccessModeRead
 	}
 
 	if userID == 0 {
@@ -95,7 +46,7 @@ func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) 
 	}
 
 	if userID == repo.OwnerID {
-		return AccessModeOwner, nil
+		return perm.AccessModeOwner, nil
 	}
 
 	a := &Access{UserID: userID, RepoID: repo.ID}
@@ -105,68 +56,8 @@ func accessLevel(e db.Engine, user *User, repo *Repository) (AccessMode, error) 
 	return a.Mode, nil
 }
 
-type repoAccess struct {
-	Access     `xorm:"extends"`
-	Repository `xorm:"extends"`
-}
-
-func (repoAccess) TableName() string {
-	return "access"
-}
-
-// GetRepositoryAccesses finds all repositories with their access mode where a user has access but does not own.
-func (user *User) GetRepositoryAccesses() (map[*Repository]AccessMode, error) {
-	rows, err := db.GetEngine(db.DefaultContext).
-		Join("INNER", "repository", "repository.id = access.repo_id").
-		Where("access.user_id = ?", user.ID).
-		And("repository.owner_id <> ?", user.ID).
-		Rows(new(repoAccess))
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	repos := make(map[*Repository]AccessMode, 10)
-	ownerCache := make(map[int64]*User, 10)
-	for rows.Next() {
-		var repo repoAccess
-		err = rows.Scan(&repo)
-		if err != nil {
-			return nil, err
-		}
-
-		var ok bool
-		if repo.Owner, ok = ownerCache[repo.OwnerID]; !ok {
-			if err = repo.GetOwner(); err != nil {
-				return nil, err
-			}
-			ownerCache[repo.OwnerID] = repo.Owner
-		}
-
-		repos[&repo.Repository] = repo.Access.Mode
-	}
-	return repos, nil
-}
-
-// GetAccessibleRepositories finds repositories which the user has access but does not own.
-// If limit is smaller than 1 means returns all found results.
-func (user *User) GetAccessibleRepositories(limit int) (repos []*Repository, _ error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Where("owner_id !=? ", user.ID).
-		Desc("updated_unix")
-	if limit > 0 {
-		sess.Limit(limit)
-		repos = make([]*Repository, 0, limit)
-	} else {
-		repos = make([]*Repository, 0, 10)
-	}
-	return repos, sess.
-		Join("INNER", "access", "access.user_id = ? AND access.repo_id = repository.id", user.ID).
-		Find(&repos)
-}
-
-func maxAccessMode(modes ...AccessMode) AccessMode {
-	max := AccessModeNone
+func maxAccessMode(modes ...perm.AccessMode) perm.AccessMode {
+	max := perm.AccessModeNone
 	for _, mode := range modes {
 		if mode > max {
 			max = mode
@@ -176,12 +67,12 @@ func maxAccessMode(modes ...AccessMode) AccessMode {
 }
 
 type userAccess struct {
-	User *User
-	Mode AccessMode
+	User *user_model.User
+	Mode perm.AccessMode
 }
 
 // updateUserAccess updates an access map so that user has at least mode
-func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMode) {
+func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mode perm.AccessMode) {
 	if ua, ok := accessMap[user.ID]; ok {
 		ua.Mode = maxAccessMode(ua.Mode, mode)
 	} else {
@@ -191,9 +82,9 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *User, mode AccessMo
 
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
 func (repo *Repository) refreshAccesses(e db.Engine, accessMap map[int64]*userAccess) (err error) {
-	minMode := AccessModeRead
+	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
-		minMode = AccessModeWrite
+		minMode = perm.AccessModeWrite
 	}
 
 	newAccesses := make([]Access, 0, len(accessMap))
@@ -254,11 +145,12 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
-	if err = repo.Owner.loadTeams(e); err != nil {
+	teams, err := OrgFromUser(repo.Owner).loadTeams(e)
+	if err != nil {
 		return err
 	}
 
-	for _, t := range repo.Owner.Teams {
+	for _, t := range teams {
 		if t.ID == ignTeamID {
 			continue
 		}
@@ -266,7 +158,7 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 		// Owner team gets owner access, and skip for teams that do not
 		// have relations with repository.
 		if t.IsOwnerTeam() {
-			t.Authorize = AccessModeOwner
+			t.Authorize = perm.AccessModeOwner
 		} else if !t.hasRepository(e, repo.ID) {
 			continue
 		}
@@ -285,12 +177,12 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 // recalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
 func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error) {
-	minMode := AccessModeRead
+	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
-		minMode = AccessModeWrite
+		minMode = perm.AccessModeWrite
 	}
 
-	accessMode := AccessModeNone
+	accessMode := perm.AccessModeNone
 	collaborator, err := repo.getCollaboration(e, uid)
 	if err != nil {
 		return err
@@ -313,7 +205,7 @@ func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error
 
 		for _, t := range teams {
 			if t.IsOwnerTeam() {
-				t.Authorize = AccessModeOwner
+				t.Authorize = perm.AccessModeOwner
 			}
 
 			accessMode = maxAccessMode(accessMode, t.Authorize)

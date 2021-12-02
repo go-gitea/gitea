@@ -8,10 +8,11 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // ListUnadoptedRepositories lists the unadopted repositories that match the provided names
@@ -41,7 +42,7 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	listOptions := utils.GetListOptions(ctx)
-	repoNames, count, err := repository.ListUnadoptedRepositories(ctx.FormString("query"), &listOptions)
+	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx.FormString("query"), &listOptions)
 	if err != nil {
 		ctx.InternalServerError(err)
 	}
@@ -79,9 +80,9 @@ func AdoptRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := models.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ownerName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -104,7 +105,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repository.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -141,9 +142,9 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := models.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ownerName)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -167,7 +168,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repository.DeleteUnadoptedRepository(ctx.User, ctxUser, repoName); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, repoName); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

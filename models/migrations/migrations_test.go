@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -56,7 +58,7 @@ func TestMain(m *testing.M) {
 	}
 
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContext()
+	setting.LoadForTest()
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
@@ -84,21 +86,11 @@ func removeAllWithRetry(dir string) error {
 	return err
 }
 
-// SetEngine sets the xorm.Engine
-func SetEngine() (*xorm.Engine, error) {
-	x, err := db.GetNewEngine()
-	if err != nil {
-		return x, fmt.Errorf("Failed to connect to database: %v", err)
+func newXORMEngine() (*xorm.Engine, error) {
+	if err := db.InitEngine(context.Background()); err != nil {
+		return nil, err
 	}
-
-	x.SetMapper(names.GonicMapper{})
-	// WARNING: for serv command, MUST remove the output to os.stdout,
-	// so use log file to instead print to stdout.
-	x.SetLogger(db.NewXORMLogger(setting.Database.LogSQL))
-	x.ShowSQL(setting.Database.LogSQL)
-	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	x := unittest.GetXORMEngine()
 	return x, nil
 }
 
@@ -212,7 +204,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 		return nil, deferFn
 	}
 
-	x, err := SetEngine()
+	x, err := newXORMEngine()
 	assert.NoError(t, err)
 	if x != nil {
 		oldDefer := deferFn
@@ -241,14 +233,14 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 
 	if _, err := os.Stat(fixturesDir); err == nil {
 		t.Logf("initializing fixtures from: %s", fixturesDir)
-		if err := db.InitFixtures(
-			db.FixturesOptions{
+		if err := unittest.InitFixtures(
+			unittest.FixturesOptions{
 				Dir: fixturesDir,
 			}, x); err != nil {
 			t.Errorf("error whilst initializing fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}
-		if err := db.LoadFixtures(x); err != nil {
+		if err := unittest.LoadFixtures(x); err != nil {
 			t.Errorf("error whilst loading fixtures from %s: %v", fixturesDir, err)
 			return x, deferFn
 		}

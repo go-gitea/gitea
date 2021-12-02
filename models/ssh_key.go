@@ -12,11 +12,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"golang.org/x/crypto/ssh"
 
+	"golang.org/x/crypto/ssh"
 	"xorm.io/builder"
 )
 
@@ -34,14 +36,14 @@ const (
 
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
-	ID            int64      `xorm:"pk autoincr"`
-	OwnerID       int64      `xorm:"INDEX NOT NULL"`
-	Name          string     `xorm:"NOT NULL"`
-	Fingerprint   string     `xorm:"INDEX NOT NULL"`
-	Content       string     `xorm:"TEXT NOT NULL"`
-	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
-	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
-	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
+	ID            int64           `xorm:"pk autoincr"`
+	OwnerID       int64           `xorm:"INDEX NOT NULL"`
+	Name          string          `xorm:"NOT NULL"`
+	Fingerprint   string          `xorm:"INDEX NOT NULL"`
+	Content       string          `xorm:"TEXT NOT NULL"`
+	Mode          perm.AccessMode `xorm:"NOT NULL DEFAULT 2"`
+	Type          KeyType         `xorm:"NOT NULL DEFAULT 1"`
+	LoginSourceID int64           `xorm:"NOT NULL DEFAULT 0"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
@@ -96,11 +98,12 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		return nil, err
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
 		return nil, err
@@ -121,7 +124,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		Name:          name,
 		Fingerprint:   fingerprint,
 		Content:       content,
-		Mode:          AccessModeWrite,
+		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypeUser,
 		LoginSourceID: loginSourceID,
 	}
@@ -129,7 +132,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
-	return key, sess.Commit()
+	return key, committer.Commit()
 }
 
 // GetPublicKeyByID returns public key by given ID.
@@ -323,7 +326,7 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 }
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
-func DeletePublicKey(doer *User, id int64) (err error) {
+func DeletePublicKey(doer *user_model.User, id int64) (err error) {
 	key, err := GetPublicKeyByID(id)
 	if err != nil {
 		return err
@@ -334,20 +337,20 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 		return ErrKeyAccessDenied{doer.ID, key.ID, "public"}
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = deletePublicKeys(db.GetEngine(ctx), id); err != nil {
 		return err
 	}
 
-	if err = deletePublicKeys(sess, id); err != nil {
+	if err = committer.Commit(); err != nil {
 		return err
 	}
-
-	if err = sess.Commit(); err != nil {
-		return err
-	}
-	sess.Close()
+	committer.Close()
 
 	if key.Type == KeyTypePrincipal {
 		return RewriteAllPrincipalKeys()
@@ -359,11 +362,12 @@ func DeletePublicKey(doer *User, id int64) (err error) {
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Start session
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return false, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	// Delete keys marked for deletion
 	var sshKeysNeedUpdate bool
@@ -380,7 +384,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 		sshKeysNeedUpdate = true
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return false, err
 	}
 
@@ -388,7 +392,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *User, s *login.Source, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(usr *user_model.User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -426,7 +430,7 @@ func AddPublicKeysBySource(usr *User, s *login.Source, sshPublicKeys []string) b
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *User, s *login.Source, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(usr *user_model.User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)

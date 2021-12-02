@@ -16,7 +16,7 @@
 					<div class="item">
 						<span class="text {{if .IsActive}}green{{else}}grey{{end}}">{{svg "octicon-dot-fill"}}</span>
 						<span>{{.Name}}</span>
-						<a class="text blue ui right" href="{{$.RepoLink}}/settings/hooks/git/{{.Name}}">
+						<a class="text blue ui right" href="{{$.RepoLink}}/settings/hooks/git/{{.Name|PathEscape}}">
 							{{svg "octicon-pencil"}}
 						</a>
 					</div>

@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -15,7 +17,7 @@ import (
 )
 
 // listUserRepos - List the repositories owned by the given user.
-func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
+func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 	opts := utils.GetListOptions(ctx)
 
 	repos, count, err := models.GetUserRepositories(&models.SearchRepoOptions{
@@ -36,7 +38,7 @@ func listUserRepos(ctx *context.APIContext, u *models.User, private bool) {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
+		if ctx.IsSigned && ctx.User.IsAdmin || access >= perm.AccessModeRead {
 			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
@@ -157,5 +159,5 @@ func ListOrgRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	listUserRepos(ctx, ctx.Org.Organization, ctx.IsSigned)
+	listUserRepos(ctx, ctx.Org.Organization.AsUser(), ctx.IsSigned)
 }

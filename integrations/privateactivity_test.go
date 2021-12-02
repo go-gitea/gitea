@@ -10,7 +10,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -25,8 +26,8 @@ const privateActivityTestOtherUser = "user4"
 // activity helpers
 
 func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
-	repoBefore := db.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := db.AssertExistsAndLoadBean(t, &models.User{ID: repoBefore.OwnerID}).(*models.User)
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, privateActivityTestUser)
 	token := getTokenForLoggedInUser(t, session)

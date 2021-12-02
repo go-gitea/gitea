@@ -24,6 +24,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
@@ -139,17 +140,14 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return str[start:end]
 		},
-		"EllipsisString":        base.EllipsisString,
-		"DiffTypeToStr":         DiffTypeToStr,
-		"DiffLineTypeToStr":     DiffLineTypeToStr,
-		"Sha1":                  Sha1,
-		"ShortSha":              base.ShortSha,
-		"MD5":                   base.EncodeMD5,
-		"ActionContent2Commits": ActionContent2Commits,
-		"PathEscape":            url.PathEscape,
-		"EscapePound": func(str string) string {
-			return strings.NewReplacer("%", "%25", "#", "%23", " ", "%20", "?", "%3F").Replace(str)
-		},
+		"EllipsisString":                 base.EllipsisString,
+		"DiffTypeToStr":                  DiffTypeToStr,
+		"DiffLineTypeToStr":              DiffLineTypeToStr,
+		"Sha1":                           Sha1,
+		"ShortSha":                       base.ShortSha,
+		"MD5":                            base.EncodeMD5,
+		"ActionContent2Commits":          ActionContent2Commits,
+		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,
 		"URLJoin":                        util.URLJoin,
 		"RenderCommitMessage":            RenderCommitMessage,
@@ -351,12 +349,13 @@ func NewFuncMap() []template.FuncMap {
 				}
 			} else {
 				// if sort arg is in url test if it correlates with column header sort arguments
+				// the direction of the arrow should indicate the "current sort order", up means ASC(normal), down means DESC(rev)
 				if urlSort == normSort {
 					// the table is sorted with this header normal
-					return SVG("octicon-triangle-down", 16)
+					return SVG("octicon-triangle-up", 16)
 				} else if urlSort == revSort {
 					// the table is sorted with this header reverse
-					return SVG("octicon-triangle-up", 16)
+					return SVG("octicon-triangle-down", 16)
 				}
 			}
 			// the table is NOT sorted with this header
@@ -378,6 +377,7 @@ func NewFuncMap() []template.FuncMap {
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
@@ -497,6 +497,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 			}
 			return sum
 		},
+		"QueryEscape": url.QueryEscape,
 	}}
 }
 
@@ -553,18 +554,24 @@ func SVG(icon string, others ...interface{}) template.HTML {
 func Avatar(item interface{}, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
-	if user, ok := item.(*models.User); ok {
-		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+	switch t := item.(type) {
+	case *user_model.User:
+		src := t.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
 		if src != "" {
-			return AvatarHTML(src, size, class, user.DisplayName())
+			return AvatarHTML(src, size, class, t.DisplayName())
+		}
+	case *models.Collaborator:
+		src := t.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.DisplayName())
+		}
+	case *models.Organization:
+		src := t.AsUser().AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
+		if src != "" {
+			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
 		}
 	}
-	if user, ok := item.(*models.Collaborator); ok {
-		src := user.AvatarLinkWithSize(size * avatars.AvatarRenderedSizeFactor)
-		if src != "" {
-			return AvatarHTML(src, size, class, user.DisplayName())
-		}
-	}
+
 	return template.HTML("")
 }
 
@@ -739,7 +746,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 	if val != nil {
 		return template.HTML(val.Emoji)
 	}
-	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, reaction))
+	return template.HTML(fmt.Sprintf(`<img alt=":%s:" src="%s/assets/img/emoji/%s.png"></img>`, reaction, setting.StaticURLPrefix, url.PathEscape(reaction)))
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
@@ -950,7 +957,7 @@ type remoteAddress struct {
 func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
+	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())
 	if err != nil {
 		log.Error("GetRemoteAddress %v", err)
 		return a

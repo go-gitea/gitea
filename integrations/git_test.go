@@ -18,7 +18,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,7 +59,7 @@ func testGit(t *testing.T, u *url.URL) {
 		defer util.RemoveAll(dstPath)
 
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
-		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, models.AccessModeRead))
+		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
 
 		t.Run("ForkFromDifferentUser", doAPIForkRepository(httpContext, forkedUserCtx.Username))
 
@@ -90,7 +92,7 @@ func testGit(t *testing.T, u *url.URL) {
 		keyname := "my-testing-key"
 		forkedUserCtx.Reponame = sshContext.Reponame
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
-		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, sshContext.Username, models.AccessModeRead))
+		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, sshContext.Username, perm.AccessModeRead))
 		t.Run("ForkFromDifferentUser", doAPIForkRepository(sshContext, forkedUserCtx.Username))
 
 		//Setup key the user ssh key
@@ -429,7 +431,7 @@ func doProtectBranch(ctx APITestContext, branch string, userToWhitelist string, 
 			})
 			ctx.Session.MakeRequest(t, req, http.StatusFound)
 		} else {
-			user, err := models.GetUserByName(userToWhitelist)
+			user, err := user_model.GetUserByName(userToWhitelist)
 			assert.NoError(t, err)
 			// Change branch to protected
 			req := NewRequestWithValues(t, "POST", fmt.Sprintf("/%s/%s/settings/branches/%s", url.PathEscape(ctx.Username), url.PathEscape(ctx.Reponame), url.PathEscape(branch)), map[string]string{
@@ -631,7 +633,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		pullNum := db.GetCount(t, &models.PullRequest{})
+		pullNum := unittest.GetCount(t, &models.PullRequest{})
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 
@@ -667,8 +669,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+1)
-			pr1 = db.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+1)
+			pr1 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Flow:       models.PullRequestFlowAGit,
 			}).(*models.PullRequest)
@@ -688,8 +690,8 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			pr2 = db.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			pr2 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
 				Flow:       models.PullRequestFlowAGit,
@@ -741,7 +743,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
@@ -753,7 +755,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			db.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
 			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return

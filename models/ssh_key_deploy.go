@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+
 	"xorm.io/builder"
-	"xorm.io/xorm"
 )
 
 // ________                .__                 ____  __.
@@ -32,7 +34,7 @@ type DeployKey struct {
 	Fingerprint string
 	Content     string `xorm:"-"`
 
-	Mode AccessMode `xorm:"NOT NULL DEFAULT 1"`
+	Mode perm.AccessMode `xorm:"NOT NULL DEFAULT 1"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
@@ -58,7 +60,7 @@ func (key *DeployKey) GetContent() error {
 
 // IsReadOnly checks if the key can only be used for read operations
 func (key *DeployKey) IsReadOnly() bool {
-	return key.Mode == AccessModeRead
+	return key.Mode == perm.AccessModeRead
 }
 
 func init() {
@@ -89,7 +91,7 @@ func checkDeployKey(e db.Engine, keyID, repoID int64, name string) error {
 }
 
 // addDeployKey adds new key-repo relation.
-func addDeployKey(e *xorm.Session, keyID, repoID int64, name, fingerprint string, mode AccessMode) (*DeployKey, error) {
+func addDeployKey(e db.Engine, keyID, repoID int64, name, fingerprint string, mode perm.AccessMode) (*DeployKey, error) {
 	if err := checkDeployKey(e, keyID, repoID, name); err != nil {
 		return nil, err
 	}
@@ -120,16 +122,18 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		return nil, err
 	}
 
-	accessMode := AccessModeRead
+	accessMode := perm.AccessModeRead
 	if !readOnly {
-		accessMode = AccessModeWrite
+		accessMode = perm.AccessModeWrite
 	}
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
 
 	pkey := &PublicKey{
 		Fingerprint: fingerprint,
@@ -159,7 +163,7 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 		return nil, err
 	}
 
-	return key, sess.Commit()
+	return key, committer.Commit()
 }
 
 // GetDeployKeyByID returns deploy key by given ID.
@@ -210,19 +214,20 @@ func UpdateDeployKey(key *DeployKey) error {
 }
 
 // DeleteDeployKey deletes deploy key from its repository authorized_keys file if needed.
-func DeleteDeployKey(doer *User, id int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func DeleteDeployKey(doer *user_model.User, id int64) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	if err := deleteDeployKey(sess, doer, id); err != nil {
+	defer committer.Close()
+
+	if err := deleteDeployKey(db.GetEngine(ctx), doer, id); err != nil {
 		return err
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func deleteDeployKey(sess db.Engine, doer *User, id int64) error {
+func deleteDeployKey(sess db.Engine, doer *user_model.User, id int64) error {
 	key, err := getDeployKeyByID(sess, id)
 	if err != nil {
 		if IsErrDeployKeyNotExist(err) {

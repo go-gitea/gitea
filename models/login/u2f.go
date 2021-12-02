@@ -81,7 +81,7 @@ func (list U2FRegistrationList) ToRegistrations() []u2f.Registration {
 	for _, reg := range list {
 		r, err := reg.Parse()
 		if err != nil {
-			log.Fatal("parsing u2f registration: %v", err)
+			log.Error("parsing u2f registration: %v", err)
 			continue
 		}
 		regs = append(regs, *r)
@@ -113,6 +113,11 @@ func getU2FRegistrationByID(e db.Engine, id int64) (*U2FRegistration, error) {
 // GetU2FRegistrationsByUID returns all U2F registrations of the given user
 func GetU2FRegistrationsByUID(uid int64) (U2FRegistrationList, error) {
 	return getU2FRegistrationsByUID(db.GetEngine(db.DefaultContext), uid)
+}
+
+// HasU2FRegistrationsByUID returns whether a given user has U2F registrations
+func HasU2FRegistrationsByUID(uid int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).Where("user_id = ?", uid).Exist(&U2FRegistration{})
 }
 
 func createRegistration(e db.Engine, userID int64, name string, reg *u2f.Registration) (*U2FRegistration, error) {

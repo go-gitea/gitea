@@ -8,7 +8,6 @@ package repo
 import (
 	"bytes"
 	"compress/gzip"
-	gocontext "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -22,6 +21,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -91,27 +93,27 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		isPull = ctx.Req.Method == "GET"
 	}
 
-	var accessMode models.AccessMode
+	var accessMode perm.AccessMode
 	if isPull {
-		accessMode = models.AccessModeRead
+		accessMode = perm.AccessModeRead
 	} else {
-		accessMode = models.AccessModeWrite
+		accessMode = perm.AccessModeWrite
 	}
 
 	isWiki := false
-	var unitType = models.UnitTypeCode
+	var unitType = unit.TypeCode
 	var wikiRepoName string
 	if strings.HasSuffix(reponame, ".wiki") {
 		isWiki = true
-		unitType = models.UnitTypeWiki
+		unitType = unit.TypeWiki
 		wikiRepoName = reponame
 		reponame = reponame[:len(reponame)-5]
 	}
 
-	owner, err := models.GetUserByName(username)
+	owner, err := user_model.GetUserByName(username)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			if redirectUserID, err := models.LookupUserRedirect(username); err == nil {
+		if user_model.IsErrUserNotExist(err) {
+			if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {
 				context.RedirectToUser(ctx, username, redirectUserID)
 			} else {
 				ctx.NotFound(fmt.Sprintf("User %s does not exist", username), nil)
@@ -192,7 +194,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if repoExist {
-			perm, err := models.GetUserRepoPermission(repo, ctx.User)
+			p, err := models.GetUserRepoPermission(repo, ctx.User)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -200,10 +202,10 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 			// Because of special ref "refs/for" .. , need delay write permission check
 			if git.SupportProcReceive {
-				accessMode = models.AccessModeRead
+				accessMode = perm.AccessModeRead
 			}
 
-			if !perm.CanAccess(accessMode, unitType) {
+			if !p.CanAccess(accessMode, unitType) {
 				ctx.HandleText(http.StatusForbidden, "User permission denied")
 				return
 			}
@@ -270,7 +272,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 
 	if isWiki {
 		// Ensure the wiki is enabled before we allow access to it
-		if _, err := repo.GetUnit(models.UnitTypeWiki); err != nil {
+		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
 			if models.IsErrUnitTypeNotExist(err) {
 				ctx.HandleText(http.StatusForbidden, "repository wiki is disabled")
 				return
@@ -482,8 +484,10 @@ func serviceRPC(h serviceHandler, service string) {
 		h.environ = append(h.environ, "GIT_PROTOCOL="+protocol)
 	}
 
-	ctx, cancel := gocontext.WithCancel(git.DefaultContext)
-	defer cancel()
+	// ctx, cancel := gocontext.WithCancel(git.DefaultContext)
+	ctx, _, finished := process.GetManager().AddContext(h.r.Context(), fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir))
+	defer finished()
+
 	var stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, git.GitExecutable, service, "--stateless-rpc", h.dir)
 	cmd.Dir = h.dir
@@ -491,9 +495,6 @@ func serviceRPC(h serviceHandler, service string) {
 	cmd.Stdout = h.w
 	cmd.Stdin = reqBody
 	cmd.Stderr = &stderr
-
-	pid := process.GetManager().Add(fmt.Sprintf("%s %s %s [repo_path: %s]", git.GitExecutable, service, "--stateless-rpc", h.dir), cancel)
-	defer process.GetManager().Remove(pid)
 
 	if err := cmd.Run(); err != nil {
 		log.Error("Fail to serve RPC(%s) in %s: %v - %s", service, h.dir, err, stderr.String())

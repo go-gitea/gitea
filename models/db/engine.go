@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -16,17 +15,13 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	// Needed for the MySQL driver
-	_ "github.com/go-sql-driver/mysql"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
 
-	// Needed for the Postgresql driver
-	_ "github.com/lib/pq"
-
-	// Needed for the MSSQL driver
-	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
+	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
+	_ "github.com/lib/pq"                // Needed for the Postgresql driver
 )
 
 var (
@@ -59,6 +54,7 @@ type Engine interface {
 	Asc(colNames ...string) *xorm.Session
 	Desc(colNames ...string) *xorm.Session
 	Limit(limit int, start ...int) *xorm.Session
+	NoAutoTime() *xorm.Session
 	SumInt(bean interface{}, columnName string) (res int64, err error)
 	Sync2(...interface{}) error
 	Select(string) *xorm.Session
@@ -95,8 +91,8 @@ func init() {
 	}
 }
 
-// GetNewEngine returns a new xorm engine from the configuration
-func GetNewEngine() (*xorm.Engine, error) {
+// newXORMEngine returns a new XORM engine from the configuration
+func newXORMEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -124,67 +120,78 @@ func GetNewEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
-func syncTables() error {
+//SyncAllTables sync the schemas of all tables, is required by unit test code
+func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// NewTestEngine sets a new test xorm.Engine
-func NewTestEngine() (err error) {
-	x, err = GetNewEngine()
+// InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
+func InitEngine(ctx context.Context) error {
+	xormEngine, err := newXORMEngine()
 	if err != nil {
-		return fmt.Errorf("Connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	x.SetMapper(names.GonicMapper{})
-	x.SetLogger(NewXORMLogger(!setting.IsProd()))
-	x.ShowSQL(!setting.IsProd())
-	return syncTables()
-}
-
-// SetEngine sets the xorm.Engine
-func SetEngine() (err error) {
-	x, err = GetNewEngine()
-	if err != nil {
-		return fmt.Errorf("Failed to connect to database: %v", err)
-	}
-
-	x.SetMapper(names.GonicMapper{})
+	xormEngine.SetMapper(names.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
-	x.ShowSQL(setting.Database.LogSQL)
-	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	xormEngine.SetLogger(NewXORMLogger(setting.Database.LogSQL))
+	xormEngine.ShowSQL(setting.Database.LogSQL)
+	xormEngine.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	xormEngine.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	xormEngine.SetDefaultContext(ctx)
+
+	SetDefaultEngine(ctx, xormEngine)
 	return nil
 }
 
-// NewEngine initializes a new xorm.Engine
-// This function must never call .Sync2() if the provided migration function fails.
-// When called from the "doctor" command, the migration function is a version check
-// that prevents the doctor from fixing anything in the database if the migration level
-// is different from the expected value.
-func NewEngine(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
-	if err = SetEngine(); err != nil {
-		return err
-	}
-
+// SetDefaultEngine sets the default engine for db
+func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
+	x = eng
 	DefaultContext = &Context{
 		Context: ctx,
 		e:       x,
 	}
+}
 
-	x.SetDefaultContext(ctx)
+// UnsetDefaultEngine closes and unsets the default engine
+// We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `x` and DefaultContext without close
+// Global database engine related functions are all racy and there is no graceful close right now.
+func UnsetDefaultEngine() {
+	if x != nil {
+		_ = x.Close()
+		x = nil
+	}
+	DefaultContext = nil
+}
+
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
+// This function must never call .Sync2() if the provided migration function fails.
+// When called from the "doctor" command, the migration function is a version check
+// that prevents the doctor from fixing anything in the database if the migration level
+// is different from the expected value.
+func InitEngineWithMigration(ctx context.Context, migrateFunc func(*xorm.Engine) error) (err error) {
+	if err = InitEngine(ctx); err != nil {
+		return err
+	}
 
 	if err = x.Ping(); err != nil {
 		return err
 	}
 
+	// We have to run migrateFunc here in case the user is re-running installation on a previously created DB.
+	// If we do not then table schemas will be changed and there will be conflicts when the migrations run properly.
+	//
+	// Installation should only be being re-run if users want to recover an old database.
+	// However, we should think carefully about should we support re-install on an installed instance,
+	// as there may be other problems due to secret reinitialization.
 	if err = migrateFunc(x); err != nil {
 		return fmt.Errorf("migrate: %v", err)
 	}
 
-	if err = syncTables(); err != nil {
+	if err = SyncAllTables(); err != nil {
 		return fmt.Errorf("sync database struct error: %v", err)
 	}
 
@@ -225,14 +232,6 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 		}
 	}
 	return beans, nil
-}
-
-// Ping tests if database is alive
-func Ping() error {
-	if x != nil {
-		return x.Ping()
-	}
-	return errors.New("database not configured")
 }
 
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
@@ -291,12 +290,4 @@ func DeleteAllRecords(tableName string) error {
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return
-}
-
-// FindByMaxID filled results as the condition from database
-func FindByMaxID(maxID int64, limit int, results interface{}) error {
-	return x.Where("id <= ?", maxID).
-		OrderBy("id DESC").
-		Limit(limit).
-		Find(results)
 }
