@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -21,7 +22,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	keyOwner := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
+	keyOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
 
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys?token=%s", keyOwner.Name, token)
@@ -128,7 +129,7 @@ func TestAPIListUsers(t *testing.T) {
 		}
 	}
 	assert.True(t, found)
-	numberOfUsers := unittest.GetCount(t, &models.User{}, "type = 0")
+	numberOfUsers := unittest.GetCount(t, &user_model.User{}, "type = 0")
 	assert.Equal(t, numberOfUsers, len(users))
 }
 
@@ -194,7 +195,7 @@ func TestAPIEditUser(t *testing.T) {
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"}).(*user_model.User)
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
@@ -205,6 +206,6 @@ func TestAPIEditUser(t *testing.T) {
 		Restricted: &bTrue,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
-	user2 = unittest.AssertExistsAndLoadBean(t, &models.User{LoginName: "user2"}).(*models.User)
+	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"}).(*user_model.User)
 	assert.True(t, user2.IsRestricted)
 }

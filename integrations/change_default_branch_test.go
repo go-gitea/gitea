@@ -11,12 +11,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 func TestChangeDefaultBranch(t *testing.T) {
 	defer prepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &models.User{ID: repo.OwnerID}).(*models.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	branchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)

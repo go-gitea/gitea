@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -16,9 +18,9 @@ import (
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user5 := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
-	user29 := unittest.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 	// A public repository owned by User 2
 	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
@@ -34,41 +36,41 @@ func TestAccessLevel(t *testing.T) {
 
 	level, err := AccessLevel(user2, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeOwner, level)
+	assert.Equal(t, perm.AccessModeOwner, level)
 
 	level, err = AccessLevel(user2, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeOwner, level)
+	assert.Equal(t, perm.AccessModeOwner, level)
 
 	level, err = AccessLevel(user5, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeRead, level)
+	assert.Equal(t, perm.AccessModeRead, level)
 
 	level, err = AccessLevel(user5, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeNone, level)
+	assert.Equal(t, perm.AccessModeNone, level)
 
 	// restricted user has no access to a public repo
 	level, err = AccessLevel(user29, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeNone, level)
+	assert.Equal(t, perm.AccessModeNone, level)
 
 	// ... unless he's a collaborator
 	level, err = AccessLevel(user29, repo4)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeWrite, level)
+	assert.Equal(t, perm.AccessModeWrite, level)
 
 	// ... or a team member
 	level, err = AccessLevel(user29, repo24)
 	assert.NoError(t, err)
-	assert.Equal(t, AccessModeRead, level)
+	assert.Equal(t, perm.AccessModeRead, level)
 }
 
 func TestHasAccess(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &User{ID: 5}).(*User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
 	// A public repository owned by User 2
 	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 	assert.False(t, repo1.IsPrivate)
@@ -104,7 +106,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	has, err := db.GetEngine(db.DefaultContext).Get(access)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.Equal(t, AccessModeOwner, access.Mode)
+	assert.Equal(t, perm.AccessModeOwner, access.Mode)
 }
 
 func TestRepository_RecalculateAccesses2(t *testing.T) {
@@ -125,7 +127,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 func TestRepository_RecalculateAccesses3(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	team5 := unittest.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
-	user29 := unittest.AssertExistsAndLoadBean(t, &User{ID: 29}).(*User)
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
 	assert.NoError(t, err)

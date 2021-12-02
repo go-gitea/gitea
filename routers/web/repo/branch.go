@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repofiles"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -26,6 +25,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	release_service "code.gitea.io/gitea/services/release"
 	repo_service "code.gitea.io/gitea/services/repository"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 const (
@@ -124,7 +124,7 @@ func RestoreBranchPost(ctx *context.Context) {
 		return
 	}
 
-	if err := git.Push(ctx.Repo.Repository.RepoPath(), git.PushOptions{
+	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
 		Remote: ctx.Repo.Repository.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.Commit, git.BranchPrefix, deletedBranch.Name),
 		Env:    models.PushingEnvironment(ctx.User, ctx.Repo.Repository),
@@ -165,7 +165,7 @@ func redirect(ctx *context.Context) {
 // loadBranches loads branches from the repository limited by page & pageSize.
 // NOTE: May write to context on error.
 func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
-	defaultBranch, err := repo_module.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
+	defaultBranch, err := repo_service.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		log.Error("loadBranches: get default branch: %v", err)
 		ctx.ServerError("GetDefaultBranch", err)
@@ -242,7 +242,7 @@ func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranche
 		}
 	}
 
-	divergence, divergenceError := repofiles.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
+	divergence, divergenceError := files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
 	if divergenceError != nil {
 		ctx.ServerError("CountDivergingCommits", divergenceError)
 		return nil

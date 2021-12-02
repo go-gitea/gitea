@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
@@ -55,7 +56,7 @@ func MustBeAbleToUpload(ctx *context.Context) {
 	}
 }
 
-func checkContextUser(ctx *context.Context, uid int64) *models.User {
+func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
@@ -79,8 +80,8 @@ func checkContextUser(ctx *context.Context, uid int64) *models.User {
 		return ctx.User
 	}
 
-	org, err := models.GetUserByID(uid)
-	if models.IsErrUserNotExist(err) {
+	org, err := user_model.GetUserByID(uid)
+	if user_model.IsErrUserNotExist(err) {
 		return ctx.User
 	}
 
@@ -158,7 +159,7 @@ func Create(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
-func handleCreateError(ctx *context.Context, owner *models.User, err error, name string, tpl base.TplName, form interface{}) {
+func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form interface{}) {
 	switch {
 	case models.IsErrReachLimitOfRepo(err):
 		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
@@ -177,12 +178,12 @@ func handleCreateError(ctx *context.Context, owner *models.User, err error, name
 		default:
 			ctx.RenderWithErr(ctx.Tr("form.repository_files_already_exist"), tpl, form)
 		}
-	case models.IsErrNameReserved(err):
+	case db.IsErrNameReserved(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(models.ErrNameReserved).Name), tpl, form)
-	case models.IsErrNamePatternNotAllowed(err):
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tpl, form)
+	case db.IsErrNamePatternNotAllowed(err):
 		ctx.Data["Err_RepoName"] = true
-		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(models.ErrNamePatternNotAllowed).Pattern), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
 		ctx.ServerError(name, err)
 	}

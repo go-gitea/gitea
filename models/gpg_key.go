@@ -214,7 +214,7 @@ func deleteGPGKey(e db.Engine, keyID string) (int64, error) {
 }
 
 // DeleteGPGKey deletes GPG key information in database.
-func DeleteGPGKey(doer *User, id int64) (err error) {
+func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 	key, err := GetGPGKeyByID(id)
 	if err != nil {
 		if IsErrGPGKeyNotExist(err) {
@@ -244,7 +244,7 @@ func DeleteGPGKey(doer *User, id int64) (err error) {
 func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 	uid := int64(0)
 	var userEmails []*user_model.EmailAddress
-	var user *User
+	var user *user_model.User
 	for _, key := range keys {
 		for _, e := range key.Emails {
 			if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {
@@ -255,8 +255,8 @@ func checkKeyEmails(email string, keys ...*GPGKey) (bool, string) {
 			if uid != key.OwnerID {
 				userEmails, _ = user_model.GetEmailAddresses(key.OwnerID)
 				uid = key.OwnerID
-				user = &User{ID: uid}
-				_, _ = GetUser(user)
+				user = &user_model.User{ID: uid}
+				_, _ = user_model.GetUser(user)
 			}
 			for _, e := range userEmails {
 				if e.IsActivated && (email == "" || strings.EqualFold(e.Email, email)) {

@@ -17,5 +17,8 @@ func TestMain(m *testing.M) {
 		"user_redirect.yml",
 		"follow.yml",
 		"user_open_id.yml",
+		"two_factor.yml",
+		"oauth2_application.yml",
+		"user.yml",
 	)
 }

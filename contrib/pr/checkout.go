@@ -49,7 +49,7 @@ func runPR() {
 		log.Fatal(err)
 	}
 	setting.SetCustomPathAndConf("", "", "")
-	setting.NewContext()
+	setting.LoadAllowEmpty()
 
 	setting.RepoRootPath, err = os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
@@ -215,7 +215,7 @@ func main() {
 		//Use git cli command for windows
 		runCmd("git", "fetch", remoteUpstream, fmt.Sprintf("pull/%s/head:%s", pr, branch))
 	} else {
-		ref := fmt.Sprintf("refs/pull/%s/head:%s", pr, branchRef)
+		ref := fmt.Sprintf("%s%s/head:%s", gitea_git.PullPrefix, pr, branchRef)
 		err = repo.Fetch(&git.FetchOptions{
 			RemoteName: remoteUpstream,
 			RefSpecs: []config.RefSpec{

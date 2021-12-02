@@ -1,8 +1,8 @@
 #!/bin/bash
 
-########################################################################
-# This script some defaults for gitea to run in a FHS compliant manner #
-########################################################################
+#############################################################################
+# This script sets some defaults for gitea to run in a FHS compliant manner #
+#############################################################################
 
 # It assumes that you place this script as gitea in /usr/bin
 #
@@ -36,7 +36,7 @@ if [ -z "$APP_INI_SET" ]; then
 	CONF_ARG="-c \"$APP_INI\""
 fi
 
-# Provide FHS compliant defaults to
-exec -a "$0" GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" "$GITEA" $CONF_ARG "$@"
+# Provide FHS compliant defaults
+GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" exec -a "$0" "$GITEA" $CONF_ARG "$@"
 
 

@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -33,12 +34,12 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *models.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var err error
 		if user != nil {
-			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, models.AccessModeWrite)
+			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
@@ -83,15 +84,15 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
 func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
-	pushWhitelistUsernames, err := models.GetUserNamesByIDs(bp.WhitelistUserIDs)
+	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.WhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
 	}
-	mergeWhitelistUsernames, err := models.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
+	mergeWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.MergeWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (MergeWhitelistUserIDs): %v", err)
 	}
-	approvalsWhitelistUsernames, err := models.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
+	approvalsWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.ApprovalsWhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
 	}
@@ -272,11 +273,11 @@ func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
 		URL:         fmt.Sprintf("%s%d", apiLink, key.ID),
 		Title:       key.Name,
 		Created:     key.CreatedUnix.AsTime(),
-		ReadOnly:    key.Mode == models.AccessModeRead, // All deploy keys are read-only.
+		ReadOnly:    key.Mode == perm.AccessModeRead, // All deploy keys are read-only.
 	}
 }
 
-// ToOrganization convert models.User to api.Organization
+// ToOrganization convert user_model.User to api.Organization
 func ToOrganization(org *models.Organization) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
@@ -355,12 +356,16 @@ func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
 
 // ToLFSLock convert a LFSLock to api.LFSLock
 func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+	u, err := user_model.GetUserByID(l.OwnerID)
+	if err != nil {
+		return nil
+	}
 	return &api.LFSLock{
 		ID:       strconv.FormatInt(l.ID, 10),
 		Path:     l.Path,
 		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
-			Name: l.Owner.DisplayName(),
+			Name: u.DisplayName(),
 		},
 	}
 }

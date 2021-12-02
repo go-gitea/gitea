@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -46,7 +47,7 @@ func AddPrincipalKey(ownerID int64, content string, loginSourceID int64) (*Publi
 		OwnerID:       ownerID,
 		Name:          content,
 		Content:       content,
-		Mode:          AccessModeWrite,
+		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypePrincipal,
 		LoginSourceID: loginSourceID,
 	}
@@ -73,7 +74,7 @@ func addPrincipalKey(e db.Engine, key *PublicKey) (err error) {
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines
-func CheckPrincipalKeyString(user *User, content string) (_ string, err error) {
+func CheckPrincipalKeyString(user *user_model.User, content string) (_ string, err error) {
 	if setting.SSH.Disabled {
 		return "", ErrSSHDisabled{}
 	}

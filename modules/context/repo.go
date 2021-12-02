@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	unit_model "code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -55,7 +56,7 @@ type Repository struct {
 	IsViewTag    bool
 	IsViewCommit bool
 	Repository   *models.Repository
-	Owner        *models.User
+	Owner        *user_model.User
 	Commit       *git.Commit
 	Tag          *git.Tag
 	GitRepo      *git.Repository
@@ -104,7 +105,7 @@ type CanCommitToBranchResults struct {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResults, error) {
+func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
 
 	if err != nil {
@@ -145,7 +146,7 @@ func (r *Repository) CanCommitToBranch(doer *models.User) (CanCommitToBranchResu
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
-func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) bool {
+func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
@@ -155,7 +156,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *models.User) b
 }
 
 // CanCreateIssueDependencies returns whether or not a user can create dependencies.
-func (r *Repository) CanCreateIssueDependencies(user *models.User, isPull bool) bool {
+func (r *Repository) CanCreateIssueDependencies(user *user_model.User, isPull bool) bool {
 	return r.Repository.IsDependenciesEnabled() && r.Permission.CanWriteIssuesOrPulls(isPull)
 }
 
@@ -402,7 +403,7 @@ func RepoIDAssignment() func(ctx *Context) {
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	var (
-		owner *models.User
+		owner *user_model.User
 		err   error
 	)
 
@@ -414,9 +415,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
 		owner = ctx.User
 	} else {
-		owner, err = models.GetUserByName(userName)
+		owner, err = user_model.GetUserByName(userName)
 		if err != nil {
-			if models.IsErrUserNotExist(err) {
+			if user_model.IsErrUserNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
@@ -533,7 +534,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+	gitRepo, err := git.OpenRepositoryCtx(ctx, models.RepoPath(userName, repoName))
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
@@ -791,7 +792,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 		if ctx.Repo.GitRepo == nil {
 			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
 			if err != nil {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return

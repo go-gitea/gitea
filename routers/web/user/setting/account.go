@@ -75,7 +75,7 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := models.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.User, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -94,7 +94,7 @@ func EmailPost(ctx *context.Context) {
 
 	// Make emailaddress primary.
 	if ctx.FormString("_method") == "PRIMARY" {
-		if err := models.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
+		if err := user_model.MakeEmailPrimary(&user_model.EmailAddress{ID: ctx.FormInt64("id")}); err != nil {
 			ctx.ServerError("MakeEmailPrimary", err)
 			return
 		}
@@ -152,14 +152,14 @@ func EmailPost(ctx *context.Context) {
 	// Set Email Notification Preference
 	if ctx.FormString("_method") == "NOTIFICATION" {
 		preference := ctx.FormString("preference")
-		if !(preference == models.EmailNotificationsEnabled ||
-			preference == models.EmailNotificationsOnMention ||
-			preference == models.EmailNotificationsDisabled) {
+		if !(preference == user_model.EmailNotificationsEnabled ||
+			preference == user_model.EmailNotificationsOnMention ||
+			preference == user_model.EmailNotificationsDisabled) {
 			log.Error("Email notifications preference change returned unrecognized option %s: %s", preference, ctx.User.Name)
 			ctx.ServerError("SetEmailPreference", errors.New("option unrecognized"))
 			return
 		}
-		if err := models.SetEmailNotifications(ctx.User, preference); err != nil {
+		if err := user_model.SetEmailNotifications(ctx.User, preference); err != nil {
 			log.Error("Set Email Notifications failed: %v", err)
 			ctx.ServerError("SetEmailNotifications", err)
 			return
@@ -233,7 +233,7 @@ func DeleteAccount(ctx *context.Context) {
 	ctx.Data["PageIsSettingsAccount"] = true
 
 	if _, _, err := auth.UserSignIn(ctx.User.Name, ctx.FormString("password")); err != nil {
-		if models.IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			loadAccountData(ctx)
 
 			ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_password"), tplSettingsAccount, nil)

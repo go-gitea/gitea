@@ -152,7 +152,7 @@ func createTemporaryRepo(pr *models.PullRequest) (string, error) {
 		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("CreateTempRepo: RemoveTemporaryPath: %s", err)
 		}
-		if !git.IsBranchExist(pr.HeadRepo.RepoPath(), pr.HeadBranch) {
+		if !git.IsBranchExist(git.DefaultContext, pr.HeadRepo.RepoPath(), pr.HeadBranch) {
 			return "", models.ErrBranchDoesNotExist{
 				BranchName: pr.HeadBranch,
 			}

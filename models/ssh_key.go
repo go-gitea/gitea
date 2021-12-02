@@ -12,6 +12,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -34,14 +36,14 @@ const (
 
 // PublicKey represents a user or deploy SSH public key.
 type PublicKey struct {
-	ID            int64      `xorm:"pk autoincr"`
-	OwnerID       int64      `xorm:"INDEX NOT NULL"`
-	Name          string     `xorm:"NOT NULL"`
-	Fingerprint   string     `xorm:"INDEX NOT NULL"`
-	Content       string     `xorm:"TEXT NOT NULL"`
-	Mode          AccessMode `xorm:"NOT NULL DEFAULT 2"`
-	Type          KeyType    `xorm:"NOT NULL DEFAULT 1"`
-	LoginSourceID int64      `xorm:"NOT NULL DEFAULT 0"`
+	ID            int64           `xorm:"pk autoincr"`
+	OwnerID       int64           `xorm:"INDEX NOT NULL"`
+	Name          string          `xorm:"NOT NULL"`
+	Fingerprint   string          `xorm:"INDEX NOT NULL"`
+	Content       string          `xorm:"TEXT NOT NULL"`
+	Mode          perm.AccessMode `xorm:"NOT NULL DEFAULT 2"`
+	Type          KeyType         `xorm:"NOT NULL DEFAULT 1"`
+	LoginSourceID int64           `xorm:"NOT NULL DEFAULT 0"`
 
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	UpdatedUnix       timeutil.TimeStamp `xorm:"updated"`
@@ -122,7 +124,7 @@ func AddPublicKey(ownerID int64, name, content string, loginSourceID int64) (*Pu
 		Name:          name,
 		Fingerprint:   fingerprint,
 		Content:       content,
-		Mode:          AccessModeWrite,
+		Mode:          perm.AccessModeWrite,
 		Type:          KeyTypeUser,
 		LoginSourceID: loginSourceID,
 	}
@@ -324,7 +326,7 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 }
 
 // DeletePublicKey deletes SSH key information both in database and authorized_keys file.
-func DeletePublicKey(doer *User, id int64) (err error) {
+func DeletePublicKey(doer *user_model.User, id int64) (err error) {
 	key, err := GetPublicKeyByID(id)
 	if err != nil {
 		return err
@@ -390,7 +392,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 }
 
 // AddPublicKeysBySource add a users public keys. Returns true if there are changes.
-func AddPublicKeysBySource(usr *User, s *login.Source, sshPublicKeys []string) bool {
+func AddPublicKeysBySource(usr *user_model.User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 	for _, sshKey := range sshPublicKeys {
 		var err error
@@ -428,7 +430,7 @@ func AddPublicKeysBySource(usr *User, s *login.Source, sshPublicKeys []string) b
 }
 
 // SynchronizePublicKeys updates a users public keys. Returns true if there are changes.
-func SynchronizePublicKeys(usr *User, s *login.Source, sshPublicKeys []string) bool {
+func SynchronizePublicKeys(usr *user_model.User, s *login.Source, sshPublicKeys []string) bool {
 	var sshKeysNeedUpdate bool
 
 	log.Trace("synchronizePublicKeys[%s]: Handling Public SSH Key synchronization for user %s", s.Name, usr.Name)

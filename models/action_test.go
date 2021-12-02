@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +18,7 @@ import (
 func TestAction_GetRepoPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	action := &Action{RepoID: repo.ID}
 	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
 }
@@ -25,7 +26,7 @@ func TestAction_GetRepoPath(t *testing.T) {
 func TestAction_GetRepoLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{}).(*Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &User{ID: repo.OwnerID}).(*User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	action := &Action{RepoID: repo.ID}
 	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
@@ -35,7 +36,7 @@ func TestAction_GetRepoLink(t *testing.T) {
 func TestGetFeeds(t *testing.T) {
 	// test with an individual user
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	actions, err := GetFeeds(GetFeedsOptions{
 		RequestedUser:   user,
@@ -63,8 +64,8 @@ func TestGetFeeds(t *testing.T) {
 func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &User{ID: 3}).(*User)
-	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	actions, err := GetFeeds(GetFeedsOptions{
 		RequestedUser:   org,

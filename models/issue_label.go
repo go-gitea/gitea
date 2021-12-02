@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -665,7 +666,7 @@ func HasIssueLabel(issueID, labelID int64) bool {
 
 // newIssueLabel this function creates a new label it does not check if the label is valid for the issue
 // YOU MUST CHECK THIS BEFORE THIS FUNCTION
-func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *User) (err error) {
+func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
 	e := db.GetEngine(ctx)
 	if _, err = e.Insert(&IssueLabel{
 		IssueID: issue.ID,
@@ -694,7 +695,7 @@ func newIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *User) 
 }
 
 // NewIssueLabel creates a new issue-label relation.
-func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
+func NewIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
 	if HasIssueLabel(issue.ID, label.ID) {
 		return nil
 	}
@@ -728,7 +729,7 @@ func NewIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
 }
 
 // newIssueLabels add labels to an issue. It will check if the labels are valid for the issue
-func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *User) (err error) {
+func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *user_model.User) (err error) {
 	e := db.GetEngine(ctx)
 	if err = issue.loadRepo(e); err != nil {
 		return err
@@ -749,7 +750,7 @@ func newIssueLabels(ctx context.Context, issue *Issue, labels []*Label, doer *Us
 }
 
 // NewIssueLabels creates a list of issue-label relations.
-func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
+func NewIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -768,7 +769,7 @@ func NewIssueLabels(issue *Issue, labels []*Label, doer *User) (err error) {
 	return committer.Commit()
 }
 
-func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *User) (err error) {
+func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *user_model.User) (err error) {
 	e := db.GetEngine(ctx)
 	if count, err := e.Delete(&IssueLabel{
 		IssueID: issue.ID,
@@ -798,7 +799,7 @@ func deleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *Use
 }
 
 // DeleteIssueLabel deletes issue-label relation.
-func DeleteIssueLabel(issue *Issue, label *Label, doer *User) (err error) {
+func DeleteIssueLabel(issue *Issue, label *Label, doer *user_model.User) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

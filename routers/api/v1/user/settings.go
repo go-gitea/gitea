@@ -7,7 +7,7 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -74,7 +74,7 @@ func UpdateUserSettings(ctx *context.APIContext) {
 		ctx.User.KeepActivityPrivate = *form.HideActivity
 	}
 
-	if err := models.UpdateUser(ctx.User); err != nil {
+	if err := user_model.UpdateUser(ctx.User, false); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
