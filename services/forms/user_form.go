@@ -294,6 +294,7 @@ func (f *UpdateCommentTypeForm) IsHidden(commentType int) bool {
 	return bitset.Bit(commentType) != 0
 }
 
+// Bitset created the bitset to the update comment form
 func (f *UpdateCommentTypeForm) Bitset() big.Int {
 	var bitset big.Int
 	types := []struct {
