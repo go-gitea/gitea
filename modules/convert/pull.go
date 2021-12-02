@@ -79,7 +79,7 @@ func ToAPIPullRequest(pr *models.PullRequest, doer *user_model.User) *api.PullRe
 		},
 		Head: &api.PRBranchInfo{
 			Name:   pr.HeadBranch,
-			Ref:    fmt.Sprintf(git.PullPrefix+"%d/head", pr.Index),
+			Ref:    fmt.Sprintf("%s%d/head", git.PullPrefix, pr.Index),
 			RepoID: -1,
 		},
 	}
