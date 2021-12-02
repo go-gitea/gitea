@@ -77,9 +77,6 @@ var (
 	// ErrEmailNotActivated e-mail address has not been activated error
 	ErrEmailNotActivated = errors.New("E-mail address has not been activated")
 
-	// ErrUserNameIllegal user name contains illegal characters error
-	ErrUserNameIllegal = errors.New("User name contains illegal characters")
-
 	// ErrLoginSourceNotActived login source is not actived error
 	ErrLoginSourceNotActived = errors.New("Login source is not actived")
 
