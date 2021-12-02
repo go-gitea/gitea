@@ -358,7 +358,6 @@ func Appearance(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	//hiddenEvents := &forms.UpdateCommentTypeForm{}
 	var hiddenEvents *big.Int
 	eventsRaw, err := user_model.GetSettings(ctx.User.ID, []string{"hidden_comment_types"})
 	if err != nil {
@@ -374,7 +373,6 @@ func Appearance(ctx *context.Context) {
 		}
 	}
 
-	//ctx.Data["HiddenEvents"] = hiddenEvents
 	ctx.Data["IsHidden"] = func(commentType int) bool {
 		if hiddenEvents == nil {
 			return false
@@ -448,13 +446,8 @@ func UpdateUserShownComments(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAppearance"] = true
 
-	/*json, err := json.Marshal(form.Bitset())
-	if err != nil {
-		ctx.ServerError("json.Marshal", err)
-		return
-	}*/
 	bitset := form.Bitset()
-	json := /*strconv.Itoa(form.Bitset().Uint64())*/ bitset.String()
+	json := bitset.String()
 	err := user_model.SetSetting(&user_model.Setting{UserID: ctx.User.ID, SettingKey: "hidden_comment_types", SettingValue: string(json)})
 	if err != nil {
 		ctx.ServerError("SetSetting", err)
