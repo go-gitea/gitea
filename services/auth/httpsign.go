@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -40,7 +41,7 @@ func (h *HTTPSign) Name() string {
 // Verify extracts and validates HTTPsign from the Signature header of the request and returns
 // the corresponding user object on successful validation.
 // Returns nil if header is empty or validation fails.
-func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User {
+func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	// HTTPSign authentication should only fire on API
 	if !middleware.IsAPIPath(req) {
 		return nil
@@ -62,7 +63,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		return nil
 	}
 
-	u, err := models.GetUserByID(validpk.OwnerID)
+	u, err := user_model.GetUserByID(validpk.OwnerID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil
