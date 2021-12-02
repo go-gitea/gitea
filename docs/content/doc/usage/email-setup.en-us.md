@@ -56,7 +56,7 @@ Restart Gitea for the configuration changes to take effect.
 
 To send a test email to validate the settings, go to Gitea > Site Administration > Configuration > SMTP Mailer Configuration.
 
-For the full list of options check the [Config Cheat Sheet]({{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}})
+For the full list of options check the [Config Cheat Sheet]({{< relref "doc/config/config-cheat-sheet-dev.en-us.md" >}})
 
 Please note: authentication is only supported when the SMTP server communication is encrypted with TLS or `HOST=localhost`. TLS encryption can be through:
   - STARTTLS (also known as Opportunistic TLS) via port 587. Initial connection is done over cleartext, but then be upgraded over TLS if the server supports it.

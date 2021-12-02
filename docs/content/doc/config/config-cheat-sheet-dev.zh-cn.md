@@ -1,21 +1,29 @@
 ---
 date: "2016-12-26T16:00:00+02:00"
-title: "配置说明"
-slug: "config-cheat-sheet"
-weight: 20
+title: "配置说明 (dev)"
+slug: "config-cheat-sheet-dev"
+weight: 116
 toc: false
 draft: false
 menu:
   sidebar:
-    parent: "advanced"
-    name: "配置说明"
-    weight: 20
-    identifier: "config-cheat-sheet"
+    parent: "config"
+    name: "配置说明 (dev)"
+    weight: 116
+    identifier: "config-cheat-sheet-dev"
 ---
 
-# 配置说明
+# 配置说明 (dev)
 
-这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+## 提示
+
+**本文档仅适用于最新的开发中的分支，有些配置项在不同的发行版里是不一样的。**
+**如果你正在使用一个稳定的发行版，请参考与其版本对应的文档。**
+
+这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。
+所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini) 查看到。
+如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
+标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
 
 {{< toc >}}
 

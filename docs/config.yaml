@@ -18,10 +18,10 @@ params:
   description: Git with a cup of tea
   author: The Gitea Authors
   website: https://docs.gitea.io
+  # TODO: when a major release comes, the document `doc/config-cheat-sheet-dev.*.md` should also be changed accordingly.
   version: 1.15.6
   minGoVersion: 1.16
   goVersion: 1.17
-  minNodeVersion: 12.17
 
 outputs:
   home:

@@ -10,3 +10,4 @@ https://gitea-docs.netlify.com/* https://docs.gitea.io/:splat 302!
 /en-us/ci-cd/ /en-us/integrations/ 302!
 /en-us/third-party-tools/ /en-us/integrations/ 302!
 /en-us/make/ /en-us/hacking-on-gitea/ 302!
+/en-us/config-cheat-sheet/ /en-us/config-cheat-sheet-dev/ 302!

@@ -113,5 +113,6 @@ prime/
 # Make evidence files
 /.make_evidence
 
-# Manpage
+# Manpage and docs
 /man
+/docs/.hugo_build.lock

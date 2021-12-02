@@ -1,19 +1,25 @@
 ---
 date: "2016-12-26T16:00:00+02:00"
-title: "Config Cheat Sheet"
-slug: "config-cheat-sheet"
-weight: 20
+title: "Config Cheat Sheet (dev)"
+slug: "config-cheat-sheet-dev"
+weight: 116
 toc: false
 draft: false
 menu:
   sidebar:
-    parent: "advanced"
-    name: "Config Cheat Sheet"
-    weight: 20
-    identifier: "config-cheat-sheet"
+    parent: "config"
+    name: "Config Cheat Sheet (dev)"
+    weight: 116
+    identifier: "config-cheat-sheet-dev"
 ---
 
-# Configuration Cheat Sheet
+# Configuration Cheat Sheet (dev)
+
+
+## Notice
+
+**This document is for the latest development branch, some setting options differ between releases.**
+**If you are using a stable release, please refer to its related documents.**
 
 This is a cheat sheet for the Gitea configuration file. It contains most of the settings
 that can be configured as well as their default values.
@@ -23,9 +29,9 @@ or any corresponding location. When installing from a distribution, this will
 typically be found at `/etc/gitea/conf/app.ini`.
 
 The defaults provided here are best-effort (not built automatically). They are
-accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini)
-(s/main/\<tag|release\>). Any string in the format `%(X)s` is a feature powered
-by [ini](https://github.com/go-ini/ini/#recursive-values), for reading values recursively.
+accurately recorded in [app.example.ini](https://github.com/go-gitea/gitea/blob/main/custom/conf/app.example.ini).
+Any string in the format `%(X)s` is a feature powered  by [ini](https://github.com/go-ini/ini/#recursive-values),
+for reading values recursively.
 
 Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 

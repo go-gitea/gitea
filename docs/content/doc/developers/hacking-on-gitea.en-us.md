@@ -25,8 +25,7 @@ You should [install go](https://golang.org/doc/install) and set up your go
 environment correctly.
 
 Next, [install Node.js with npm](https://nodejs.org/en/download/) which is
-required to build the JavaScript and CSS files. The minimum supported Node.js
-version is {{< min-node-version >}} and the latest LTS version is recommended.
+required to build the JavaScript and CSS files. The latest LTS version is recommended.
 
 **Note**: When executing make tasks that require external tools, like
 `make misspell-check`, Gitea will automatically download and build these as
@@ -242,8 +241,8 @@ OpenAPI 3 documentation.
 When creating new configuration options, it is not enough to add them to the
 `modules/setting` files. You should add information to `custom/conf/app.ini`
 and to the
-<a href='{{< relref "doc/advanced/config-cheat-sheet.en-us.md" >}}'>configuration cheat sheet</a>
-found in `docs/content/doc/advanced/config-cheat-sheet.en-us.md`
+<a href='{{< relref "doc/config/config-cheat-sheet-dev.en-us.md" >}}'>configuration cheat sheet</a>
+found in `docs/content/doc/config/config-cheat-sheet-*.en-us.md`
 
 ### Changing the logo
 
