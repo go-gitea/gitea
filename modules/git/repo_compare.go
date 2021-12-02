@@ -33,7 +33,7 @@ func (repo *Repository) GetMergeBase(tmpRemote string, base, head string) (strin
 	}
 
 	if tmpRemote != "origin" {
-		tmpBaseName := "refs/remotes/" + tmpRemote + "/tmp_" + base
+		tmpBaseName := RemotePrefix + tmpRemote + "/tmp_" + base
 		// Fetch commit into a temporary branch in order to be able to handle commits and tags
 		_, err := NewCommandContext(repo.Ctx, "fetch", tmpRemote, base+":"+tmpBaseName).RunInDir(repo.Path)
 		if err == nil {
