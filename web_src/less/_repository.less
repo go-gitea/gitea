@@ -2832,20 +2832,6 @@ tbody.commit-list {
   }
 }
 
-.commit-summary a {
-  &:hover {
-    text-decoration: underline solid;
-  }
-
-  &.default-link {
-    text-decoration: none;
-
-    &:hover {
-      text-decoration: underline solid;
-    }
-  }
-}
-
 .commit-list .commit-status-link {
   display: inline-block;
   vertical-align: middle;
@@ -3007,13 +2993,12 @@ td.blob-excerpt {
   background-color: #fafafa;
 }
 
-.issue-keyword,
-.commit-body .issue-keyword:hover {
-  border-bottom: 1px dotted var(--color-text-light-2);
+.issue-keyword {
+  border-bottom: 1px dotted var(--color-text-light-3) !important;
 }
 
 .issue-keyword:hover {
-  border-bottom: none;
+  border-bottom: none !important;
 }
 
 .file-header {
