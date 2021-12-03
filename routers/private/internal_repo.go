@@ -43,7 +43,7 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
 		return nil
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		log.Error("Failed to open repository: %s/%s Error: %v", ownerName, repoName, err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
