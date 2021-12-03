@@ -266,7 +266,7 @@ func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash strin
 	env := models.PushingEnvironment(doer, t.repo)
 	if err := git.Push(t.gitRepo.Ctx, t.basePath, git.PushOptions{
 		Remote: t.repo.RepoPath(),
-		Branch: strings.TrimSpace(commitHash) + ":refs/heads/" + strings.TrimSpace(branch),
+		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),
 		Env:    env,
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) {
