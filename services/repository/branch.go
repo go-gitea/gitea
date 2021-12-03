@@ -24,13 +24,13 @@ func CreateNewBranch(doer *user_model.User, repo *models.Repository, oldBranchNa
 		return err
 	}
 
-	if !git.IsBranchExist(repo.RepoPath(), oldBranchName) {
+	if !git.IsBranchExist(git.DefaultContext, repo.RepoPath(), oldBranchName) {
 		return models.ErrBranchDoesNotExist{
 			BranchName: oldBranchName,
 		}
 	}
 
-	if err := git.Push(repo.RepoPath(), git.PushOptions{
+	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", oldBranchName, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
@@ -106,7 +106,7 @@ func CreateNewBranchFromCommit(doer *user_model.User, repo *models.Repository, c
 		return err
 	}
 
-	if err := git.Push(repo.RepoPath(), git.PushOptions{
+	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", commit, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
@@ -152,8 +152,8 @@ func RenameBranch(repo *models.Repository, doer *user_model.User, gitRepo *git.R
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(doer, repo, "branch", "refs/heads/"+from)
-	notification.NotifyCreateRef(doer, repo, "branch", "refs/heads/"+to)
+	notification.NotifyDeleteRef(doer, repo, "branch", git.BranchPrefix+from)
+	notification.NotifyCreateRef(doer, repo, "branch", git.BranchPrefix+to)
 
 	return "", nil
 }

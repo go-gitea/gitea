@@ -18,10 +18,10 @@ var (
 
 // ThrottleOpts represents a set of throttling options.
 type ThrottleOpts struct {
+	RetryAfterFn   func(ctxDone bool) time.Duration
 	Limit          int
 	BacklogLimit   int
 	BacklogTimeout time.Duration
-	RetryAfterFn   func(ctxDone bool) time.Duration
 }
 
 // Throttle is a middleware that limits number of currently processed requests
@@ -119,8 +119,8 @@ type token struct{}
 type throttler struct {
 	tokens         chan token
 	backlogTokens  chan token
-	backlogTimeout time.Duration
 	retryAfterFn   func(ctxDone bool) time.Duration
+	backlogTimeout time.Duration
 }
 
 // setRetryAfterHeaderIfNeeded sets Retry-After HTTP header if corresponding retryAfterFn option of throttler is initialized.
