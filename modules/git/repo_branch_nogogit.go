@@ -74,7 +74,7 @@ func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) er
 
 // callShowRef return refs, if limit = 0 it will not limit
 func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
-	countAll, err = walkShowRef(ctx, repoPath, arg, limit, skip, func(branchName string) error {
+	countAll, err = walkShowRef(ctx, repoPath, arg, skip, limit, func(branchName string) error {
 		branchName = strings.TrimPrefix(branchName, prefix)
 		if len(branchName) > 0 {
 			branchName = branchName[:len(branchName)-1]
