@@ -654,7 +654,7 @@ func getBranchesAndTagsForRepo(repo *models.Repository) (branches, tags []string
 	}
 	defer gitRepo.Close()
 
-	branches, _, err = gitRepo.GetBranches(0, 0)
+	branches, _, err = gitRepo.GetBranchNames(0, 0)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -705,7 +705,7 @@ func CompareDiff(ctx *context.Context) {
 		return
 	}
 
-	headBranches, _, err := ci.HeadGitRepo.GetBranches(0, 0)
+	headBranches, _, err := ci.HeadGitRepo.GetBranchNames(0, 0)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return

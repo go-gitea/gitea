@@ -61,9 +61,9 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return repo.IsReferenceExist(BranchPrefix + name)
 }
 
-// GetBranches returns branches from the repository, skipping skip initial branches and
+// GetBranchNames returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
-func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
+func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, "--heads", skip, limit)
 }
 

@@ -142,7 +142,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
 	}
-	branches, _, _ := gitRepo.GetBranches(0, 0)
+	branches, _, _ := gitRepo.GetBranchNames(0, 0)
 	found := false
 	hasDefault := false
 	hasMaster := false
