@@ -703,7 +703,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 
 	if ctx.Repo.GitRepo == nil && !repo.IsEmpty {
 		var err error
-		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
+		ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "Unable to OpenRepository", err)
 			return err
