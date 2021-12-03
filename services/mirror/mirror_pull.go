@@ -403,7 +403,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	for _, result := range results {
 		// Discard GitHub pull requests, i.e. refs/pull/*
-		if strings.HasPrefix(result.refName, "refs/pull/") {
+		if strings.HasPrefix(result.refName, git.PullPrefix) {
 			continue
 		}
 
@@ -499,7 +499,7 @@ func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, re
 	}
 	firstName := ""
 	for _, result := range results {
-		if strings.HasPrefix(result.refName, "refs/pull/") {
+		if strings.HasPrefix(result.refName, git.PullPrefix) {
 			continue
 		}
 		tp, name := git.SplitRefName(result.refName)

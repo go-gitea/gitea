@@ -104,7 +104,7 @@ func Graph(ctx *context.Context) {
 	copy(realBranches, branches)
 	for i, branch := range realBranches {
 		if strings.HasPrefix(branch, "--") {
-			realBranches[i] = "refs/heads/" + branch
+			realBranches[i] = git.BranchPrefix + branch
 		}
 	}
 	ctx.Data["SelectedBranches"] = realBranches

@@ -152,8 +152,8 @@ func RenameBranch(repo *models.Repository, doer *user_model.User, gitRepo *git.R
 		return "", err
 	}
 
-	notification.NotifyDeleteRef(doer, repo, "branch", "refs/heads/"+from)
-	notification.NotifyCreateRef(doer, repo, "branch", "refs/heads/"+to)
+	notification.NotifyDeleteRef(doer, repo, "branch", git.BranchPrefix+from)
+	notification.NotifyCreateRef(doer, repo, "branch", git.BranchPrefix+to)
 
 	return "", nil
 }

@@ -12,7 +12,7 @@ var xForwardedFor = http.CanonicalHeaderKey("X-Forwarded-For")
 var xRealIP = http.CanonicalHeaderKey("X-Real-IP")
 
 // RealIP is a middleware that sets a http.Request's RemoteAddr to the results
-// of parsing either the X-Forwarded-For header or the X-Real-IP header (in that
+// of parsing either the X-Real-IP header or the X-Forwarded-For header (in that
 // order).
 //
 // This middleware should be inserted fairly early in the middleware stack to
