@@ -123,7 +123,7 @@ func ParseCommitWithSignature(c *git.Commit) *CommitVerification {
 	}
 
 	// If this a SSH signature handle it differently
-	if strings.Contains(c.Signature.Signature, "SSH") {
+	if strings.HasPrefix(c.Signature.Signature, "-----BEGIN SSH SIGNATURE-----") {
 		return ParseCommitWithSSHSignature(c, committer)
 	}
 
