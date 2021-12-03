@@ -371,7 +371,7 @@ func parseSize(objects string) *CountObject {
 
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(repoPath string) (time.Time, error) {
-	cmd := NewCommand("for-each-ref", "--sort=-committerdate", "refs/heads/", "--count", "1", "--format=%(committerdate)")
+	cmd := NewCommand("for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
 	stdout, err := cmd.RunInDir(repoPath)
 	if err != nil {
 		return time.Time{}, err

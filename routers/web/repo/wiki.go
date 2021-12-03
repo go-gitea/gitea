@@ -627,6 +627,9 @@ func NewWiki(ctx *context.Context) {
 	if !ctx.Repo.Repository.HasWiki() {
 		ctx.Data["title"] = "Home"
 	}
+	if ctx.FormString("title") != "" {
+		ctx.Data["title"] = ctx.FormString("title")
+	}
 
 	ctx.HTML(http.StatusOK, tplWikiNew)
 }
