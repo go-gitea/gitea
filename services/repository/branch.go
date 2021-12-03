@@ -70,7 +70,7 @@ func GetBranches(ctx context.Context, repo *models.Repository, skip, limit int) 
 func checkBranchName(ctx context.Context, repo *models.Repository, name string) error {
 	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(refName string) error {
 		switch {
-		case refName == git.BranchPrefix+name:
+		case refName == name || refName == git.BranchPrefix+name:
 			return models.ErrBranchAlreadyExists{
 				BranchName: name,
 			}
