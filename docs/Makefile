@@ -1,6 +1,16 @@
 THEME := themes/gitea
-PUBLIC := public
 ARCHIVE := https://dl.gitea.io/theme/master.tar.gz
+BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+DOC_VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
+PUBLIC := public/$(DOC_VERSION)
+BASE_PATH := /$(DOC_VERSION)/
+MAIN_BRANCH := main
+
+ifeq ($(BRANCH), $(MAIN_BRANCH))
+	DOC_VERSION := $(MAIN_BRANCH)
+	PUBLIC := public
+	BASE_PATH := /
+endif
 
 .PHONY: all
 all: build
@@ -19,11 +29,11 @@ server: $(THEME)
 
 .PHONY: build
 build: $(THEME)
-	hugo --cleanDestinationDir
+	hugo --cleanDestinationDir --destination=$(PUBLIC)
 
 .PHONY: build-offline
 build-offline: $(THEME)
-	hugo --baseURL="/" --cleanDestinationDir
+	hugo --baseURL="$(BASE_PATH)" --destination=$(PUBLIC) --cleanDestinationDir
 
 .PHONY: update
 update: $(THEME)
