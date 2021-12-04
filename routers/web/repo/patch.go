@@ -93,7 +93,7 @@ func NewDiffPatchPost(ctx *context.Context) {
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
 		Message:      message,
-		Content:      strings.Replace(form.Content, "\r", "", -1),
+		Content:      strings.ReplaceAll(form.Content, "\r", ""),
 	}); err != nil {
 		if models.IsErrBranchAlreadyExists(err) {
 			// For when a user specifies a new branch that already exists

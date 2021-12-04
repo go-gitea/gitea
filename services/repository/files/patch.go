@@ -13,7 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
-	api "code.gitea.io/gitea/modules/structs"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -152,7 +151,7 @@ func ApplyDiffPatch(repo *models.Repository, doer *user_model.User, opts *ApplyD
 
 	fileCommitResponse, _ := GetFileCommitResponse(repo, commit) // ok if fails, then will be nil
 	verification := GetPayloadCommitVerification(commit)
-	fileResponse := &api.FileResponse{
+	fileResponse := &structs.FileResponse{
 		Commit:       fileCommitResponse,
 		Verification: verification,
 	}
