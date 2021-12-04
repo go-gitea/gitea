@@ -16,12 +16,7 @@ import (
 )
 
 // GetTreeBySHA get the GitTreeResponse of a repository using a sha hash.
-func GetTreeBySHA(ctx context.Context, repo *models.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
+func GetTreeBySHA(ctx context.Context, repo *models.Repository, gitRepo *git.Repository, sha string, page, perPage int, recursive bool) (*api.GitTreeResponse, error) {
 	gitTree, err := gitRepo.GetTree(sha)
 	if err != nil || gitTree == nil {
 		return nil, models.ErrSHANotFound{
