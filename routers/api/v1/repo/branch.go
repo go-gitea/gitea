@@ -53,7 +53,7 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
-	branch, err := repo_service.GetBranch(ctx.Repo.Repository, branchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
 			ctx.NotFound(err)
@@ -198,7 +198,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branch, err := repo_service.GetBranch(ctx.Repo.Repository, opt.BranchName)
+	branch, err := ctx.Repo.GitRepo.GetBranch(opt.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranch", err)
 		return
