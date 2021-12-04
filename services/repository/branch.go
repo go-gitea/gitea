@@ -69,14 +69,21 @@ func GetBranches(ctx context.Context, repo *models.Repository, skip, limit int) 
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(ctx context.Context, repo *models.Repository, name string) error {
 	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(refName string) error {
+		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
 		switch {
-		case refName == name || refName == git.BranchPrefix+name:
+		case branchRefName == name:
 			return models.ErrBranchAlreadyExists{
 				BranchName: name,
 			}
-		case strings.HasPrefix(refName, git.BranchPrefix+name+"/"):
+		// If branchRefName like a/b but we want to create a branch named a then we have a conflict
+		case strings.HasPrefix(branchRefName, name+"/"):
 			return models.ErrBranchNameConflict{
-				BranchName: name,
+				BranchName: branchRefName,
+			}
+			// Conversely if branchRefName like a but we want to create a branch named a/b then we also have a conflict
+		case strings.HasPrefix(name, branchRefName+"/"):
+			return models.ErrBranchNameConflict{
+				BranchName: branchRefName,
 			}
 		case refName == git.TagPrefix+name:
 			return models.ErrTagAlreadyExists{

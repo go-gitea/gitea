@@ -149,6 +149,9 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 			return i, err
 		}
 
+		if len(branchName) > 0 {
+			branchName = branchName[:len(branchName)-1]
+		}
 		err = walkfn(branchName)
 		if err != nil {
 			return i, err
