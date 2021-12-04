@@ -53,6 +53,23 @@ func GetBranch(ctx *context.APIContext) {
 
 	branchName := ctx.Params("*")
 
+	if ctx.Repo.GitRepo == nil {
+		repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
+			return
+		}
+		ctx.Repo.GitRepo = gitRepo
+		// We opened it, we should close it
+		defer func() {
+			// If it's been set to nil then assume someone else has closed it.
+			if ctx.Repo.GitRepo != nil {
+				ctx.Repo.GitRepo.Close()
+			}
+		}()
+	}
+
 	branch, err := ctx.Repo.GitRepo.GetBranch(branchName)
 	if err != nil {
 		if git.IsErrBranchNotExist(err) {
