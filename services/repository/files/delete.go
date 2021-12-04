@@ -13,7 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
-	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // DeleteRepoFileOptions holds the repository delete file options
@@ -40,8 +39,14 @@ func DeleteRepoFile(ctx context.Context, repo *models.Repository, doer *user_mod
 		opts.NewBranch = opts.OldBranch
 	}
 
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
 	// oldBranch must exist for this operation
-	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -49,7 +54,7 @@ func DeleteRepoFile(ctx context.Context, repo *models.Repository, doer *user_mod
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		newBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
+		newBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}

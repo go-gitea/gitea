@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	repo_service "code.gitea.io/gitea/services/repository"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -133,8 +132,14 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *models.Repository, doer *
 		opts.NewBranch = opts.OldBranch
 	}
 
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer gitRepo.Close()
+
 	// oldBranch must exist for this operation
-	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil {
 		return nil, err
 	}
 
@@ -142,7 +147,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *models.Repository, doer *
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
+		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
