@@ -99,8 +99,8 @@ func GetBranchesByPath(ctx context.Context, path string, skip, limit int) ([]*Br
 }
 
 // GetBranches returns a slice of *git.Branch
-func (gitRepo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
-	brs, countAll, err := gitRepo.GetBranchNames(skip, limit)
+func (repo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
+	brs, countAll, err := repo.GetBranchNames(skip, limit)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -108,9 +108,9 @@ func (gitRepo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) 
 	branches := make([]*Branch, len(brs))
 	for i := range brs {
 		branches[i] = &Branch{
-			Path:    gitRepo.Path,
+			Path:    repo.Path,
 			Name:    brs[i],
-			gitRepo: gitRepo,
+			gitRepo: repo,
 		}
 	}
 
