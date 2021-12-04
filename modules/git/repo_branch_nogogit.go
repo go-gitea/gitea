@@ -76,9 +76,6 @@ func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) er
 func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
 	countAll, err = walkShowRef(ctx, repoPath, arg, skip, limit, func(branchName string) error {
 		branchName = strings.TrimPrefix(branchName, prefix)
-		if len(branchName) > 0 {
-			branchName = branchName[:len(branchName)-1]
-		}
 		branchNames = append(branchNames, branchName)
 
 		return nil
