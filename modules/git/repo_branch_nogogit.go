@@ -11,6 +11,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"io"
 	"strings"
 
@@ -23,7 +24,7 @@ func (repo *Repository) IsObjectExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
@@ -40,7 +41,7 @@ func (repo *Repository) IsReferenceExist(name string) bool {
 		return false
 	}
 
-	wr, rd, cancel := repo.CatFileBatchCheck()
+	wr, rd, cancel := repo.CatFileBatchCheck(repo.Ctx)
 	defer cancel()
 	_, err := wr.Write([]byte(name + "\n"))
 	if err != nil {
@@ -63,11 +64,11 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // GetBranches returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
 func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Path, BranchPrefix, "--heads", skip, limit)
+	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, "--heads", skip, limit)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
-func callShowRef(repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
+func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -76,7 +77,7 @@ func callShowRef(repoPath, prefix, arg string, skip, limit int) (branchNames []s
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommand("show-ref", arg).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		err := NewCommandContext(ctx, "show-ref", arg).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
 		if err != nil {
 			if stderrBuilder.Len() == 0 {
 				_ = stdoutWriter.Close()
