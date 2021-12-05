@@ -193,7 +193,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := mirror_service.UpdateAddress(ctx.Repo.Mirror, address); err != nil {
+		if err := mirror_service.UpdateAddress(ctx, ctx.Repo.Mirror, address); err != nil {
 			ctx.ServerError("UpdateAddress", err)
 			return
 		}
@@ -269,7 +269,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = mirror_service.RemovePushMirrorRemote(m); err != nil {
+		if err = mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
 			ctx.ServerError("RemovePushMirrorRemote", err)
 			return
 		}
@@ -326,7 +326,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := mirror_service.AddPushMirrorRemote(m, address); err != nil {
+		if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
 			if err := models.DeletePushMirrorByID(m.ID); err != nil {
 				log.Error("DeletePushMirrorByID %v", err)
 			}

@@ -29,30 +29,30 @@ import (
 const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
-func UpdateAddress(m *models.Mirror, addr string) error {
+func UpdateAddress(ctx context.Context, m *models.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
 	repoPath := m.Repo.RepoPath()
 	// Remove old remote
-	_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(repoPath)
+	_, err := git.NewCommandContext(ctx, "remote", "rm", remoteName).RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
-	_, err = git.NewCommand("remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
+	_, err = git.NewCommandContext(ctx, "remote", "add", remoteName, "--mirror=fetch", addr).RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return err
 	}
 
 	if m.Repo.HasWiki() {
 		wikiPath := m.Repo.WikiPath()
-		wikiRemotePath := repo_module.WikiRemoteURL(addr)
+		wikiRemotePath := repo_module.WikiRemoteURL(ctx, addr)
 		// Remove old remote of wiki
-		_, err := git.NewCommand("remote", "rm", remoteName).RunInDir(wikiPath)
+		_, err := git.NewCommandContext(ctx, "remote", "rm", remoteName).RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
 
-		_, err = git.NewCommand("remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
+		_, err = git.NewCommandContext(ctx, "remote", "add", remoteName, "--mirror=fetch", wikiRemotePath).RunInDir(wikiPath)
 		if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 			return err
 		}
@@ -437,12 +437,12 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		}
 
 		// Push commits
-		oldCommitID, err := git.GetFullCommitID(gitRepo.Path, result.oldCommitID)
+		oldCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.oldCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue
 		}
-		newCommitID, err := git.GetFullCommitID(gitRepo.Path, result.newCommitID)
+		newCommitID, err := git.GetFullCommitID(gitRepo.Ctx, gitRepo.Path, result.newCommitID)
 		if err != nil {
 			log.Error("GetFullCommitID [%d]: %v", m.RepoID, err)
 			continue

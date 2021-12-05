@@ -72,7 +72,7 @@ func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit 
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
+func ToCommit(repo *models.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
 
 	var apiAuthor, apiCommitter *api.User
 
@@ -134,7 +134,7 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	// Retrieve files affected by the commit
-	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
+	fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 	if err != nil {
 		return nil, err
 	}

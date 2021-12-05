@@ -34,7 +34,7 @@ const prettyLogFormat = `--pretty=format:%H`
 
 // GetAllCommitsCount returns count of all commits in repository
 func (repo *Repository) GetAllCommitsCount() (int64, error) {
-	return AllCommitsCount(repo.Path, false)
+	return AllCommitsCount(repo.Ctx, repo.Path, false)
 }
 
 func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, error) {
@@ -57,8 +57,8 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 }
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
-func IsRepoURLAccessible(url string) bool {
-	_, err := NewCommand("ls-remote", "-q", "-h", url, "HEAD").Run()
+func IsRepoURLAccessible(ctx context.Context, url string) bool {
+	_, err := NewCommandContext(ctx, "ls-remote", "-q", "-h", url, "HEAD").Run()
 	return err == nil
 }
 
@@ -80,7 +80,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 // IsEmpty Check if repository is empty.
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf strings.Builder
-	if err := NewCommand("log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
+	if err := NewCommandContext(repo.Ctx, "log", "-1").RunInDirPipeline(repo.Path, nil, &errbuf); err != nil {
 		if strings.Contains(errbuf.String(), "fatal: bad default revision 'HEAD'") ||
 			strings.Contains(errbuf.String(), "fatal: your current branch 'master' does not have any commits yet") {
 			return true, nil
