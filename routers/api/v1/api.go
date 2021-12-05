@@ -777,8 +777,8 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				m.Group("/branches", func() {
 					m.Get("", context.ReferencesGitRepo(false), repo.ListBranches)
 					m.Get("/*", context.ReferencesGitRepo(false), repo.GetBranch)
-					m.Delete("/*", context.ReferencesGitRepo(false), reqRepoWriter(unit.TypeCode), repo.DeleteBranch)
-					m.Post("", reqRepoWriter(unit.TypeCode), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
+					m.Delete("/*", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(false), repo.DeleteBranch)
+					m.Post("", reqRepoWriter(unit.TypeCode), context.ReferencesGitRepo(false), bind(api.CreateBranchRepoOption{}), repo.CreateBranch)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/branch_protections", func() {
 					m.Get("", repo.ListBranchProtections)

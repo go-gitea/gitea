@@ -30,6 +30,7 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 			func(ctx *context.Context),
 			func(ctx *context.Context) goctx.CancelFunc,
 			func(*context.APIContext),
+			func(*context.APIContext) goctx.CancelFunc,
 			func(*context.PrivateContext),
 			func(*context.PrivateContext) goctx.CancelFunc,
 			func(http.Handler) http.Handler:
@@ -53,6 +54,15 @@ func Wrap(handlers ...interface{}) http.HandlerFunc {
 				}
 			case func(ctx *context.Context) goctx.CancelFunc:
 				ctx := context.GetContext(req)
+				cancel := t(ctx)
+				if cancel != nil {
+					defer cancel()
+				}
+				if ctx.Written() {
+					return
+				}
+			case func(*context.APIContext) goctx.CancelFunc:
+				ctx := context.GetAPIContext(req)
 				cancel := t(ctx)
 				if cancel != nil {
 					defer cancel()

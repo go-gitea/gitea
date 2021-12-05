@@ -316,35 +316,32 @@ func APIContexter() func(http.Handler) http.Handler {
 }
 
 // ReferencesGitRepo injects the GitRepo into the Context
-func ReferencesGitRepo(allowEmpty bool) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-			ctx := GetAPIContext(req)
-			// Empty repository does not have reference information.
-			if !allowEmpty && ctx.Repo.Repository.IsEmpty {
+func ReferencesGitRepo(allowEmpty bool) func(ctx *APIContext) (cancel context.CancelFunc) {
+	return func(ctx *APIContext) (cancel context.CancelFunc) {
+		// Empty repository does not have reference information.
+		if !allowEmpty && ctx.Repo.Repository.IsEmpty {
+			return
+		}
+
+		// For API calls.
+		if ctx.Repo.GitRepo == nil {
+			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
 				return
 			}
-
-			// For API calls.
-			if ctx.Repo.GitRepo == nil {
-				repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-				gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
-				if err != nil {
-					ctx.Error(http.StatusInternalServerError, "RepoRef Invalid repo "+repoPath, err)
-					return
+			ctx.Repo.GitRepo = gitRepo
+			// We opened it, we should close it
+			return func() {
+				// If it's been set to nil then assume someone else has closed it.
+				if ctx.Repo.GitRepo != nil {
+					ctx.Repo.GitRepo.Close()
 				}
-				ctx.Repo.GitRepo = gitRepo
-				// We opened it, we should close it
-				defer func() {
-					// If it's been set to nil then assume someone else has closed it.
-					if ctx.Repo.GitRepo != nil {
-						ctx.Repo.GitRepo.Close()
-					}
-				}()
 			}
+		}
 
-			next.ServeHTTP(w, req)
-		})
+		return
 	}
 }
 
