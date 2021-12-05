@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -113,14 +114,14 @@ func (aReq *ArchiveRequest) GetArchiveName() string {
 	return strings.ReplaceAll(aReq.refName, "/", "-") + "." + aReq.Type.String()
 }
 
-func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
+func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return nil, err
 	}
 	defer committer.Close()
 
-	archiver, err := models.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, r.RepoID, r.Type, r.CommitID)
 	if err != nil {
 		return nil, err
 	}
@@ -128,17 +129,17 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	if archiver != nil {
 		// FIXME: If another process are generating it, we think it's not ready and just return
 		// Or we should wait until the archive generated.
-		if archiver.Status == models.RepoArchiverGenerating {
+		if archiver.Status == repo_model.ArchiverGenerating {
 			return nil, nil
 		}
 	} else {
-		archiver = &models.RepoArchiver{
+		archiver = &repo_model.RepoArchiver{
 			RepoID:   r.RepoID,
 			Type:     r.Type,
 			CommitID: r.CommitID,
-			Status:   models.RepoArchiverGenerating,
+			Status:   repo_model.ArchiverGenerating,
 		}
-		if err := models.AddRepoArchiver(ctx, archiver); err != nil {
+		if err := repo_model.AddRepoArchiver(ctx, archiver); err != nil {
 			return nil, err
 		}
 	}
@@ -150,9 +151,9 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 
 	_, err = storage.RepoArchives.Stat(rPath)
 	if err == nil {
-		if archiver.Status == models.RepoArchiverGenerating {
-			archiver.Status = models.RepoArchiverReady
-			if err = models.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
+		if archiver.Status == repo_model.ArchiverGenerating {
+			archiver.Status = repo_model.ArchiverReady
+			if err = repo_model.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
 				return nil, err
 			}
 		}
@@ -169,7 +170,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		rd.Close()
 	}()
 	var done = make(chan error)
-	repo, err := archiver.LoadRepo()
+	repo, err := models.LoadArchiverRepo(archiver)
 	if err != nil {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
 	}
@@ -180,7 +181,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 	}
 	defer gitRepo.Close()
 
-	go func(done chan error, w *io.PipeWriter, archiver *models.RepoArchiver, gitRepo *git.Repository) {
+	go func(done chan error, w *io.PipeWriter, archiver *repo_model.RepoArchiver, gitRepo *git.Repository) {
 		defer func() {
 			if r := recover(); r != nil {
 				done <- fmt.Errorf("%v", r)
@@ -218,9 +219,9 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 		return nil, err
 	}
 
-	if archiver.Status == models.RepoArchiverGenerating {
-		archiver.Status = models.RepoArchiverReady
-		if err = models.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
+	if archiver.Status == repo_model.ArchiverGenerating {
+		archiver.Status = repo_model.ArchiverReady
+		if err = repo_model.UpdateRepoArchiverStatus(ctx, archiver); err != nil {
 			return nil, err
 		}
 	}
@@ -234,7 +235,7 @@ func doArchive(r *ArchiveRequest) (*models.RepoArchiver, error) {
 // anything.  In all cases, the caller should be examining the *ArchiveRequest
 // being returned for completion, as it may be different than the one they passed
 // in.
-func ArchiveRepository(request *ArchiveRequest) (*models.RepoArchiver, error) {
+func ArchiveRepository(request *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 	return doArchive(request)
 }
 

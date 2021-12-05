@@ -80,7 +80,7 @@ func registerArchiveCleanup() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		acConfig := config.(*OlderThanConfig)
-		return models.DeleteOldRepositoryArchives(ctx, acConfig.OlderThan)
+		return repository_service.DeleteOldRepositoryArchives(ctx, acConfig.OlderThan)
 	})
 }
 

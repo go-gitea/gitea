@@ -1605,19 +1605,18 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Remove archives
-	var archives []*RepoArchiver
+	var archives []*repo_model.RepoArchiver
 	if err = sess.Where("repo_id=?", repoID).Find(&archives); err != nil {
 		return err
 	}
 
 	var archivePaths = make([]string, 0, len(archives))
 	for _, v := range archives {
-		v.Repo = repo
 		p, _ := v.RelativePath()
 		archivePaths = append(archivePaths, p)
 	}
 
-	if _, err := sess.Delete(&RepoArchiver{RepoID: repoID}); err != nil {
+	if _, err := sess.Delete(&repo_model.RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -1822,52 +1821,6 @@ func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
 // GetPrivateRepositoryCount returns the total number of private repositories of user.
 func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
 	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
-
-// DeleteOldRepositoryArchives deletes old repository archives.
-func DeleteOldRepositoryArchives(ctx context.Context, olderThan time.Duration) error {
-	log.Trace("Doing: ArchiveCleanup")
-
-	for {
-		var archivers []RepoArchiver
-		err := db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).
-			Asc("created_unix").
-			Limit(100).
-			Find(&archivers)
-		if err != nil {
-			log.Trace("Error: ArchiveClean: %v", err)
-			return err
-		}
-
-		for _, archiver := range archivers {
-			if err := deleteOldRepoArchiver(ctx, &archiver); err != nil {
-				return err
-			}
-		}
-		if len(archivers) < 100 {
-			break
-		}
-	}
-
-	log.Trace("Finished: ArchiveCleanup")
-	return nil
-}
-
-var delRepoArchiver = new(RepoArchiver)
-
-func deleteOldRepoArchiver(ctx context.Context, archiver *RepoArchiver) error {
-	p, err := archiver.RelativePath()
-	if err != nil {
-		return err
-	}
-	_, err = db.GetEngine(db.DefaultContext).ID(archiver.ID).Delete(delRepoArchiver)
-	if err != nil {
-		return err
-	}
-	if err := storage.RepoArchives.Delete(p); err != nil {
-		log.Error("delete repo archive file failed: %v", err)
-	}
-	return nil
 }
 
 type repoChecker struct {
