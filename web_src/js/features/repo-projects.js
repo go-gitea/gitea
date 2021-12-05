@@ -1,5 +1,30 @@
 const {csrfToken} = window.config;
 
+function moveIssue({item, from, to, oldIndex}) {
+  const columnCards = to.getElementsByClassName('board-card');
+
+  const columnSorting = {
+    issues: [...columnCards].map((card, i) => ({
+      issueID: $(card).data('issue'),
+      sorting: i
+    }))
+  };
+
+  $.ajax({
+    url: `${to.getAttribute('url')}/move`,
+    data: JSON.stringify(columnSorting),
+    headers: {
+      'X-Csrf-Token': csrfToken,
+      'X-Remote': true
+    },
+    contentType: 'application/json',
+    type: 'POST',
+    error: () => {
+      from.insertBefore(item, from.children[oldIndex]);
+    }
+  });
+}
+
 async function initRepoProjectSortable() {
   const els = document.querySelectorAll('#project-board > .board');
   if (!els.length) return;
@@ -34,31 +59,6 @@ async function initRepoProjectSortable() {
       }
     },
   });
-
-  const moveIssue = ({ item, from, to, oldIndex }) => {
-    const columnCards = to.getElementsByClassName("board-card");
-
-    const columnSorting = {
-      issues: [...columnCards].map((card, i) => ({
-        issueID: $(card).data("issue"),
-        sorting: i
-      }))
-    };
-
-    $.ajax({
-      url: `${to.dataset.url}/move`,
-      data: JSON.stringify(columnSorting),
-      headers: {
-        "X-Csrf-Token": csrf,
-        "X-Remote": true
-      },
-      contentType: "application/json",
-      type: "POST",
-      error: () => {
-        from.insertBefore(item, from.children[oldIndex]);
-      }
-    });
-  };
 
   for (const boardColumn of boardColumns) {
     const boardCardList = boardColumn.getElementsByClassName('board')[0];
