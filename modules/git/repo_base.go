@@ -14,6 +14,7 @@ type contextKey struct {
 // RepositoryContextKey is a context key. It is used with context.Value() to get the current Repository for the context
 var RepositoryContextKey = &contextKey{"repository"}
 
+// RepositoryFromContext attempts to get the repository from the context
 func RepositoryFromContext(ctx context.Context, path string) *Repository {
 	value := ctx.Value(RepositoryContextKey)
 	if value == nil {

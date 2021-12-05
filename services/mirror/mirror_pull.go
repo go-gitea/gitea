@@ -249,7 +249,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	}
 	output := stderrBuilder.String()
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		log.Error("OpenRepository: %v", err)
 		return nil, false

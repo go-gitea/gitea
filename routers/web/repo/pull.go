@@ -879,7 +879,7 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := pull_service.CheckPRReadyToMerge(pr, false); err != nil {
+	if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
 		if !models.IsErrNotAllowedToMerge(err) {
 			ctx.ServerError("Merge PR status", err)
 			return
@@ -1350,7 +1350,7 @@ func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
 
 	binary := ctx.FormBool("binary")
 
-	if err := pull_service.DownloadDiffOrPatch(pr, ctx, patch, binary); err != nil {
+	if err := pull_service.DownloadDiffOrPatch(ctx, pr, ctx, patch, binary); err != nil {
 		ctx.ServerError("DownloadDiffOrPatch", err)
 		return
 	}

@@ -25,17 +25,22 @@ import (
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
-func DownloadDiffOrPatch(pr *models.PullRequest, w io.Writer, patch, binary bool) error {
+func DownloadDiffOrPatch(ctx context.Context, pr *models.PullRequest, w io.Writer, patch, binary bool) error {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
 	}
 
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+	gitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
+	if gitRepo == nil {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("OpenRepository: %v", err)
+		}
+		defer gitRepo.Close()
 	}
-	defer gitRepo.Close()
+
 	if err := gitRepo.GetDiffOrPatch(pr.MergeBase, pr.GetGitRefName(), w, patch, binary); err != nil {
 		log.Error("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
 		return fmt.Errorf("Unable to get patch file from %s to %s in %s Error: %v", pr.MergeBase, pr.HeadBranch, pr.BaseRepo.FullName(), err)
