@@ -361,7 +361,7 @@ export function initRepoIssueComments() {
       isChecked ? 'detach' : 'attach',
       issueId,
       id,
-    ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+    ).then(() => window.location.reload());
   });
 
   $('.dismiss-review-btn').on('click', function (e) {
