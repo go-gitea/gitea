@@ -80,7 +80,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 					OldCommitID: git.EmptySHA,
 					NewCommitID: commit.ID.String(),
 				}, repository.NewPushCommits())
-			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName)
+			notification.NotifyCreateRef(rel.Publisher, rel.Repo, "tag", git.TagPrefix+rel.TagName, commit.ID.String())
 			rel.CreatedUnix = timeutil.TimeStampNow()
 		}
 		commit, err := gitRepo.GetTagCommit(rel.TagName)

@@ -134,7 +134,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, repo_module.NewPushCommits())
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -179,7 +179,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
 					}
-					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
+					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {

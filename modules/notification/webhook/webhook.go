@@ -697,28 +697,14 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 	}
 }
 
-func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName, refID string) {
 	apiPusher := convert.ToUser(pusher, nil)
 	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		log.Error("OpenRepository[%s]: %v", repo.RepoPath(), err)
-		return
-	}
-
-	shaSum, err := gitRepo.GetRefCommitID(refFullName)
-	if err != nil {
-		gitRepo.Close()
-		log.Error("GetRefCommitID[%s]: %v", refFullName, err)
-		return
-	}
-	gitRepo.Close()
-
-	if err = webhook_services.PrepareWebhooks(repo, webhook.HookEventCreate, &api.CreatePayload{
+	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventCreate, &api.CreatePayload{
 		Ref:     refName,
-		Sha:     shaSum,
+		Sha:     refID,
 		RefType: refType,
 		Repo:    apiRepo,
 		Sender:  apiPusher,
@@ -816,8 +802,8 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *m
 	}
 }
 
-func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
-	m.NotifyCreateRef(pusher, repo, refType, refFullName)
+func (m *webhookNotifier) NotifySyncCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName, refID string) {
+	m.NotifyCreateRef(pusher, repo, refType, refFullName, refID)
 }
 
 func (m *webhookNotifier) NotifySyncDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {

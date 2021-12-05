@@ -52,11 +52,11 @@ type Notifier interface {
 	NotifyDeleteRelease(doer *user_model.User, rel *models.Release)
 
 	NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
+	NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName, refID string)
 	NotifyDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
 
 	NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
-	NotifySyncCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
+	NotifySyncCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName, refID string)
 	NotifySyncDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string)
 
 	NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository)

@@ -426,7 +426,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 				OldCommitID: git.EmptySHA,
 				NewCommitID: commitID,
 			}, repo_module.NewPushCommits())
-			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName)
+			notification.NotifySyncCreateRef(m.Repo.MustOwner(), m.Repo, tp, result.refName, commitID)
 			continue
 		}
 
