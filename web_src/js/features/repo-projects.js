@@ -1,42 +1,38 @@
-const { csrfToken } = window.config;
+const {csrfToken} = window.config;
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll("#project-board > .board");
+  const els = document.querySelectorAll('#project-board > .board');
   if (!els.length) return;
 
-  const { Sortable } = await import(
-    /* webpackChunkName: "sortable" */ "sortablejs"
-  );
+  const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
+
   // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
   const mainBoard = els[0];
-  let boardColumns = mainBoard.getElementsByClassName("board-column");
+  let boardColumns = mainBoard.getElementsByClassName('board-column');
   new Sortable(mainBoard, {
-    group: "board-column",
-    draggable: ".board-column",
+    group: 'board-column',
+    draggable: '.board-column',
     filter: '[data-id="0"]',
     animation: 150,
-    ghostClass: "card-ghost",
+    ghostClass: 'card-ghost',
     onSort: () => {
-      boardColumns = mainBoard.getElementsByClassName("board-column");
+      boardColumns = mainBoard.getElementsByClassName('board-column');
       for (let i = 0; i < boardColumns.length; i++) {
         const column = boardColumns[i];
-        if (parseInt($(column).data("sorting")) !== i) {
+        if (parseInt($(column).data('sorting')) !== i) {
           $.ajax({
-            url: $(column).data("url"),
-            data: JSON.stringify({
-              sorting: i,
-              color: rgbToHex($(column).css("backgroundColor"))
-            }),
+            url: $(column).data('url'),
+            data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
             headers: {
-              "X-Csrf-Token": csrfToken,
-              "X-Remote": true
+              'X-Csrf-Token': csrfToken,
+              'X-Remote': true,
             },
-            contentType: "application/json",
-            method: "PUT"
+            contentType: 'application/json',
+            method: 'PUT',
           });
         }
       }
-    }
+    },
   });
 
   const moveIssue = ({ item, from, to, oldIndex }) => {
@@ -64,129 +60,115 @@ async function initRepoProjectSortable() {
     });
   };
 
-  for (const column of boardColumns) {
-    const boardCardList = boardColumn.getElementsByClassName("board")[0];
+  for (const boardColumn of boardColumns) {
+    const boardCardList = boardColumn.getElementsByClassName('board')[0];
     new Sortable(boardCardList, {
-      group: "shared",
+      group: 'shared',
       animation: 150,
-      ghostClass: "card-ghost",
+      ghostClass: 'card-ghost',
       onAdd: moveIssue,
-      onUpdate: moveIssue
+      onUpdate: moveIssue,
     });
   }
 }
 
 export default function initRepoProject() {
-  if (!$(".repository.projects").length) {
+  if (!$('.repository.projects').length) {
     return;
   }
 
   const _promise = initRepoProjectSortable();
 
-  $(".edit-project-board").each(function() {
-    const projectHeader = $(this).closest(".board-column-header");
-    const projectTitleLabel = projectHeader.find(".board-label");
+  $('.edit-project-board').each(function () {
+    const projectHeader = $(this).closest('.board-column-header');
+    const projectTitleLabel = projectHeader.find('.board-label');
     const projectTitleInput = $(this).find(
-      ".content > .form > .field > .project-board-title"
+      '.content > .form > .field > .project-board-title',
     );
-    const projectColorInput = $(this).find(
-      ".content > .form > .field  #new_board_color"
-    );
-    const boardColumn = $(this).closest(".board-column");
+    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
+    const boardColumn = $(this).closest('.board-column');
 
-    if (boardColumn.css("backgroundColor")) {
-      setLabelColor(
-        projectHeader,
-        rgbToHex(boardColumn.css("backgroundColor"))
-      );
+    if (boardColumn.css('backgroundColor')) {
+      setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
     }
 
     $(this)
-      .find(".content > .form > .actions > .red")
-      .on("click", function(e) {
+      .find('.content > .form > .actions > .red')
+      .on('click', function (e) {
         e.preventDefault();
 
         $.ajax({
-          url: $(this).data("url"),
-          data: JSON.stringify({
-            title: projectTitleInput.val(),
-            color: projectColorInput.val()
-          }),
+          url: $(this).data('url'),
+          data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
           headers: {
-            "X-Csrf-Token": csrfToken,
-            "X-Remote": true
+            'X-Csrf-Token': csrfToken,
+            'X-Remote': true,
           },
-          contentType: "application/json",
-          method: "PUT"
+          contentType: 'application/json',
+          method: 'PUT',
         }).done(() => {
           projectTitleLabel.text(projectTitleInput.val());
-          projectTitleInput.closest("form").removeClass("dirty");
+          projectTitleInput.closest('form').removeClass('dirty');
           if (projectColorInput.val()) {
             setLabelColor(projectHeader, projectColorInput.val());
           }
-          boardColumn.attr(
-            "style",
-            `background: ${projectColorInput.val()}!important`
-          );
-          $(".ui.modal").modal("hide");
+          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+          $('.ui.modal').modal('hide');
         });
       });
   });
 
-  $(document).on("click", ".set-default-project-board", async function(e) {
+  $(document).on('click', '.set-default-project-board', async function (e) {
     e.preventDefault();
 
     await $.ajax({
-      method: "POST",
-      url: $(this).data("url"),
+      method: 'POST',
+      url: $(this).data('url'),
       headers: {
-        "X-Csrf-Token": csrfToken,
-        "X-Remote": true
+        'X-Csrf-Token': csrfToken,
+        'X-Remote': true,
       },
-      contentType: "application/json"
+      contentType: 'application/json',
     });
 
     window.location.reload();
   });
 
-  $(".delete-project-board").each(function() {
-    $(this).click(function(e) {
+  $('.delete-project-board').each(function () {
+    $(this).click(function (e) {
       e.preventDefault();
 
       $.ajax({
-        url: $(this).data("url"),
+        url: $(this).data('url'),
         headers: {
-          "X-Csrf-Token": csrfToken,
-          "X-Remote": true
+          'X-Csrf-Token': csrfToken,
+          'X-Remote': true,
         },
-        contentType: "application/json",
-        method: "DELETE"
+        contentType: 'application/json',
+        method: 'DELETE',
       }).done(() => {
         window.location.reload();
       });
     });
   });
 
-  $("#new_board_submit").click(function(e) {
+  $('#new_board_submit').click(function (e) {
     e.preventDefault();
 
-    const boardTitle = $("#new_board");
-    const projectColorInput = $("#new_board_color_picker");
+    const boardTitle = $('#new_board');
+    const projectColorInput = $('#new_board_color_picker');
 
     $.ajax({
-      url: $(this).data("url"),
-      data: JSON.stringify({
-        title: boardTitle.val(),
-        color: projectColorInput.val()
-      }),
+      url: $(this).data('url'),
+      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
       headers: {
-        "X-Csrf-Token": csrfToken,
-        "X-Remote": true
+        'X-Csrf-Token': csrfToken,
+        'X-Remote': true,
       },
-      contentType: "application/json",
-      method: "POST"
+      contentType: 'application/json',
+      method: 'POST',
     }).done(() => {
-      boardTitle.closest("form").removeClass("dirty");
+      boardTitle.closest('form').removeClass('dirty');
       window.location.reload();
     });
   });
@@ -199,9 +181,9 @@ function setLabelColor(label, color) {
   const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 
   if (luminance > 0.179) {
-    label.removeClass("light-label").addClass("dark-label");
+    label.removeClass('light-label').addClass('dark-label');
   } else {
-    label.removeClass("dark-label").addClass("light-label");
+    label.removeClass('dark-label').addClass('light-label');
   }
 }
 
@@ -219,25 +201,6 @@ function rgbToHex(rgb) {
 }
 
 function hex(x) {
-  const hexDigits = [
-    "0",
-    "1",
-    "2",
-    "3",
-    "4",
-    "5",
-    "6",
-    "7",
-    "8",
-    "9",
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f"
-  ];
-  return Number.isNaN(x)
-    ? "00"
-    : hexDigits[(x - (x % 16)) / 16] + hexDigits[x % 16];
+  const hexDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'];
+  return Number.isNaN(x) ? '00' : hexDigits[(x - x % 16) / 16] + hexDigits[x % 16];
 }
