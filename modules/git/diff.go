@@ -30,17 +30,21 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
-	return GetRawDiffForFile(repoPath, "", commitID, diffType, "", writer)
+func GetRawDiff(ctx context.Context, repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRawDiffForFile(ctx, repoPath, "", commitID, diffType, "", writer)
 }
 
 // GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
-func GetRawDiffForFile(repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
-	repo, err := OpenRepository(repoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
+	repo := RepositoryFromContext(ctx, repoPath)
+	if repo == nil {
+		var err error
+		repo, err = OpenRepositoryCtx(ctx, repoPath)
+		if err != nil {
+			return fmt.Errorf("OpenRepository: %v", err)
+		}
+		defer repo.Close()
 	}
-	defer repo.Close()
 
 	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
 }

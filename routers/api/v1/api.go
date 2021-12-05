@@ -953,7 +953,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
-					m.Get("", repo.GetAllCommits)
+					m.Get("", context.ReferencesGitRepo(false), repo.GetAllCommits)
 					m.Group("/{ref}", func() {
 						m.Get("/status", repo.GetCombinedCommitStatusByRef)
 						m.Get("/statuses", repo.GetCommitStatusesByRef)
@@ -961,7 +961,7 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/git", func() {
 					m.Group("/commits", func() {
-						m.Get("/{sha}", repo.GetSingleCommit)
+						m.Get("/{sha}", context.ReferencesGitRepo(false), repo.GetSingleCommit)
 						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					})
 					m.Get("/refs", repo.GetGitAllRefs)

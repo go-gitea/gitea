@@ -89,7 +89,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 }
 
 func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, error) {
-	wikiRepo, err := git.OpenRepository(ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
 	if err != nil {
 		ctx.ServerError("OpenRepository", err)
 		return nil, nil, err

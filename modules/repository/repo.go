@@ -115,7 +115,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("error in MigrateRepositoryGitData(git update-server-info): %v", err)
 	}
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
 		return repo, fmt.Errorf("OpenRepository: %v", err)
 	}

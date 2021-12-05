@@ -264,7 +264,7 @@ func Diff(ctx *context.Context) {
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
+		gitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -385,6 +385,7 @@ func RawDiff(ctx *context.Context) {
 		repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	}
 	if err := git.GetRawDiff(
+		ctx,
 		repoPath,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":ext")),

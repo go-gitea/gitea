@@ -121,7 +121,7 @@ func GetArchive(ctx *context.APIContext) {
 
 	repoPath := models.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := git.OpenRepository(repoPath)
+		gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return
