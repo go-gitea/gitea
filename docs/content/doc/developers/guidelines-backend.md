@@ -38,7 +38,7 @@ To maintain understandable code and avoid circular dependencies it is important 
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
   - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
   - `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
-- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`.
+- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`, in particular those that depend on models because they rely on the database.
   - `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
   - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)

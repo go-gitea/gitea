@@ -80,7 +80,8 @@
 				<td class="message nine wide">
 					<span class="truncate">
 						{{if $commit}}
-							<a href="{{$.RepoLink}}/commit/{{PathEscape $commit.ID.String}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
+							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
+							{{RenderCommitMessageLinkSubject $commit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}
