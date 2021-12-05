@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/json"
@@ -62,7 +62,7 @@ type Context struct {
 
 	Link        string // current request URL
 	EscapedLink string
-	User        *models.User
+	User        *user_model.User
 	IsSigned    bool
 	IsBasicAuth bool
 
@@ -123,7 +123,7 @@ func (ctx *Context) IsUserRepoReaderAny() bool {
 
 // RedirectToUser redirect to a differently-named user
 func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
-	user, err := models.GetUserByID(redirectUserID)
+	user, err := user_model.GetUserByID(redirectUserID)
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
 		return
@@ -560,7 +560,7 @@ func GetContext(req *http.Request) *Context {
 }
 
 // GetContextUser returns context user
-func GetContextUser(req *http.Request) *models.User {
+func GetContextUser(req *http.Request) *user_model.User {
 	if apiContext, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
 		return apiContext.User
 	}
@@ -614,7 +614,10 @@ func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
 		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
 		if ctx.User != nil {
-			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == new(auth.Basic).Name()
+			if ctx.Locale.Language() != ctx.User.Language {
+				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
+			}
+			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
 			ctx.Data["SignedUser"] = ctx.User

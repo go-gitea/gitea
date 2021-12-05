@@ -20,7 +20,7 @@ menu:
 {{< toc >}}
 
 Gitea will verify GPG commit signatures in the provided tree by
-checking if the commits are signed by a key within the gitea database,
+checking if the commits are signed by a key within the Gitea database,
 or if the commit matches the default key for git.
 
 Keys are not checked to determine if they have expired or revoked.

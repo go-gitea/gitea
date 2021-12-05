@@ -8,7 +8,7 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -162,9 +162,9 @@ func TestHook(ctx *context.APIContext) {
 		After:      ctx.Repo.Commit.ID.String(),
 		Commits:    []*api.PayloadCommit{commit},
 		HeadCommit: commit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
-		Pusher:     convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
-		Sender:     convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
+		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:     convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone),
+		Sender:     convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return

@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -103,7 +104,7 @@ func Graph(ctx *context.Context) {
 	copy(realBranches, branches)
 	for i, branch := range realBranches {
 		if strings.HasPrefix(branch, "--") {
-			realBranches[i] = "refs/heads/" + branch
+			realBranches[i] = git.BranchPrefix + branch
 		}
 	}
 	ctx.Data["SelectedBranches"] = realBranches
@@ -262,8 +263,6 @@ func Diff(ctx *context.Context) {
 		err     error
 	)
 
-	fileOnly := ctx.FormBool("file-only")
-
 	if ctx.Data["PageIsWiki"] != nil {
 		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
 		if err != nil {
@@ -288,13 +287,23 @@ func Diff(ctx *context.Context) {
 		commitID = commit.ID.String()
 	}
 
-	diff, err := gitdiff.GetDiffCommitWithWhitespaceBehavior(gitRepo,
-		commitID, ctx.FormString("skip-to"), setting.Git.MaxGitDiffLines,
-		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles,
-		gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		false)
+	fileOnly := ctx.FormBool("file-only")
+	maxLines, maxFiles := setting.Git.MaxGitDiffLines, setting.Git.MaxGitDiffFiles
+	files := ctx.FormStrings("files")
+	if fileOnly && (len(files) == 2 || len(files) == 1) {
+		maxLines, maxFiles = -1, -1
+	}
+
+	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		AfterCommitID:      commitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}, files...)
 	if err != nil {
-		ctx.NotFound("GetDiffCommitWithWhitespaceBehavior", err)
+		ctx.NotFound("GetDiff", err)
 		return
 	}
 
@@ -325,10 +334,6 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Title"] = commit.Summary() + " · " + base.ShortSha(commitID)
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
-	if fileOnly {
-		ctx.HTML(http.StatusOK, tplDiffBox)
-		return
-	}
 
 	statuses, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, db.ListOptions{})
 	if err != nil {
@@ -340,7 +345,7 @@ func Diff(ctx *context.Context) {
 
 	verification := models.ParseCommitWithSignature(commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = models.ValidateCommitWithEmail(commit)
+	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(commit)
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
@@ -354,7 +359,7 @@ func Diff(ctx *context.Context) {
 	if err == nil {
 		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = models.ValidateCommitWithEmail(note.Commit)
+		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(note.Commit)
 	}
 
 	ctx.Data["BranchName"], err = commit.GetBranchName()

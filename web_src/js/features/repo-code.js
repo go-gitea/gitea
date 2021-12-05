@@ -131,12 +131,14 @@ export function initRepoCodeView() {
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
     const box = currentTarget.closest('.file-content');
-    const folded = box.dataset.folded !== 'true';
+    const folded = box.getAttribute('data-folded') !== 'true';
     currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
-    box.dataset.folded = String(folded);
+    box.setAttribute('data-folded', String(folded));
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
-    const {url, query, anchor} = currentTarget.dataset;
+    const url = currentTarget.getAttribute('data-url');
+    const query = currentTarget.getAttribute('data-query');
+    const anchor = currentTarget.getAttribute('data-anchor');
     if (!url) return;
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;

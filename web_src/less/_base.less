@@ -82,6 +82,15 @@
   --color-diff-moved-row-border: #d0e27f;
   --color-diff-added-row-border: #e6ffed;
   --color-diff-inactive: #f2f2f2;
+  --color-error-border: #c29393;
+  --color-error-bg: #fff5f5;
+  --color-error-text: #d64444;
+  --color-success-border: #a3c293;
+  --color-success-bg: #fcfff5;
+  --color-success-text: #6cc644;
+  --color-warning-border: #c2c193;
+  --color-warning-bg: #fffff5;
+  --color-warning-text: #fbbd08;
   /* target-based colors */
   --color-body: #ffffff;
   --color-text-dark: #080808;
@@ -409,6 +418,16 @@ a.muted:hover,
 .ui.menu .ui.dropdown .menu > .active.item {
   color: var(--color-text) !important;
   background: var(--color-active) !important;
+}
+
+.ui.message {
+  background: var(--color-box-body);
+  color: var(--color-text);
+}
+
+.ui.bottom.attached.message {
+  box-shadow: none !important;
+  border: 1px solid var(--color-secondary);
 }
 
 .ui.selection.active.dropdown,
@@ -896,20 +915,6 @@ a.ui.card:hover,
     text-align: left;
   }
 
-  &.bottom.attached.message {
-    text-align: left;
-    color: black;
-
-    .pull-right {
-      color: black;
-    }
-
-    & > span,
-    .pull-right > span {
-      color: var(--color-green);
-    }
-  }
-
   .header > i + .content {
     padding-left: .75rem;
     vertical-align: middle;
@@ -983,6 +988,13 @@ a.ui.card:hover,
     padding: 6px 10px 4px;
     font-weight: normal;
     margin: 0 6px;
+  }
+
+  .button.copy-commit-sha {
+    border: 1px solid var(--color-light-border);
+    margin-right: 3px;
+    padding: 6px 6px 4px;
+    background: var(--color-light);
   }
 
   .button.truncate {
@@ -2097,6 +2109,15 @@ table th[data-sortt-desc] {
   display: flex !important;
 }
 
+.ellipsis-button {
+  padding: 0 5px 8px !important;
+  display: inline-block !important;
+  user-select: none !important;
+  font-weight: 600 !important;
+  line-height: 6px !important;
+  vertical-align: middle !important;
+}
+
 .truncated-item-name {
   line-height: 2em;
   white-space: nowrap;
@@ -2107,10 +2128,10 @@ table th[data-sortt-desc] {
 }
 
 .precolors {
-  padding-left: 0;
-  padding-right: 0;
-  margin: 3px 10px auto;
-  width: 120px;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  margin: 3px 10px auto !important;
+  width: 120px !important;
 
   .color {
     float: left;

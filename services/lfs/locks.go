@@ -168,9 +168,9 @@ func PostLockHandler(ctx *context.Context) {
 	}
 
 	lock, err := models.CreateLFSLock(&models.LFSLock{
-		Repo:  repository,
-		Path:  req.Path,
-		Owner: ctx.User,
+		Repo:    repository,
+		Path:    req.Path,
+		OwnerID: ctx.User.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -249,7 +249,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	lockOursListAPI := make([]*api.LFSLock, 0, len(lockList))
 	lockTheirsListAPI := make([]*api.LFSLock, 0, len(lockList))
 	for _, l := range lockList {
-		if l.Owner.ID == ctx.User.ID {
+		if l.OwnerID == ctx.User.ID {
 			lockOursListAPI = append(lockOursListAPI, convert.ToLFSLock(l))
 		} else {
 			lockTheirsListAPI = append(lockTheirsListAPI, convert.ToLFSLock(l))

@@ -119,6 +119,7 @@ func MirrorsIterate(f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
+		OrderBy("updated_unix ASC").
 		Iterate(new(Mirror), f)
 }
 

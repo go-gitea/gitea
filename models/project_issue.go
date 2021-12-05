@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 )
 
 // ProjectIssue saves relation from issue to a project
@@ -131,7 +132,7 @@ func (p *Project) NumOpenIssues() int {
 }
 
 // ChangeProjectAssign changes the project associated with an issue
-func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
+func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -145,7 +146,7 @@ func ChangeProjectAssign(issue *Issue, doer *User, newProjectID int64) error {
 	return committer.Commit()
 }
 
-func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *User, newProjectID int64) error {
+func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	e := db.GetEngine(ctx)
 	oldProjectID := issue.projectID(e)
 
@@ -186,11 +187,12 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *User, newPro
 
 // MoveIssuesOnProjectBoard moves or keeps issuses in a column and sorts them inside of that column
 func MoveIssuesOnProjectBoard(board *ProjectBoard, issueIDs map[int64]int64) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	ids := make([]int64, len(issueIDs))
 	for _, id := range issueIDs {
@@ -220,7 +222,7 @@ func MoveIssuesOnProjectBoard(board *ProjectBoard, issueIDs map[int64]int64) err
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 func (pb *ProjectBoard) removeIssues(e db.Engine) error {

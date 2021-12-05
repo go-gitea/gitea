@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -195,7 +196,7 @@ Unknown GPG key with good email
 func TestCheckGPGUserEmail(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_ = unittest.AssertExistsAndLoadBean(t, &User{ID: 1}).(*User)
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1

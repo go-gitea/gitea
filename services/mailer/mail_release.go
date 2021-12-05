@@ -8,6 +8,7 @@ import (
 	"bytes"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -34,9 +35,9 @@ func MailNewRelease(rel *models.Release) {
 		return
 	}
 
-	recipients, err := models.GetMaileableUsersByIDs(watcherIDList, false)
+	recipients, err := user_model.GetMaileableUsersByIDs(watcherIDList, false)
 	if err != nil {
-		log.Error("models.GetMaileableUsersByIDs: %v", err)
+		log.Error("user_model.GetMaileableUsersByIDs: %v", err)
 		return
 	}
 

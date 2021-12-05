@@ -4,7 +4,7 @@
   form {
     @input-padding: 320px !important;
 
-    label {
+    .inline.field label {
       text-align: right;
       width: @input-padding;
     }
@@ -20,19 +20,32 @@
         margin-left: @input-padding+15px;
       }
 
-      &.optional .title {
-        margin-left: 38%;
+      &.optional {
+        .title {
+          margin-left: 38%;
+        }
+        .checkbox {
+          margin-left: 40% !important;
+          label {
+            width: auto !important;
+          }
+        }
       }
     }
   }
 
   .ui {
-    .checkbox {
-      margin-left: 40% !important;
-
-      label {
-        width: auto !important;
-      }
+    .reinstall-message {
+      width: 70%;
+      margin: 20px auto;
+      color: red;
+      text-align: left;
+      font-weight: bold;
+    }
+    .reinstall-confirm {
+      width: 70%;
+      text-align: left;
+      margin: 10px auto;
     }
   }
 }

@@ -141,7 +141,7 @@ func CommitChangesWithArgs(repoPath string, args []string, opts CommitChangesOpt
 func AllCommitsCount(repoPath string, hidePRRefs bool, files ...string) (int64, error) {
 	args := []string{"--all", "--count"}
 	if hidePRRefs {
-		args = append([]string{"--exclude=refs/pull/*"}, args...)
+		args = append([]string{"--exclude=" + PullPrefix + "*"}, args...)
 	}
 	cmd := NewCommand("rev-list")
 	cmd.AddArguments(args...)

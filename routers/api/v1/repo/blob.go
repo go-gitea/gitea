@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/repofiles"
+	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
 // GetBlob get the blob of a repository file.
@@ -45,7 +45,7 @@ func GetBlob(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "sha not provided")
 		return
 	}
-	if blob, err := repofiles.GetBlobBySHA(ctx.Repo.Repository, sha); err != nil {
+	if blob, err := files_service.GetBlobBySHA(ctx.Repo.Repository, sha); err != nil {
 		ctx.Error(http.StatusBadRequest, "", err)
 	} else {
 		ctx.JSON(http.StatusOK, blob)

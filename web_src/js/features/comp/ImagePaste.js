@@ -59,7 +59,7 @@ export function initCompImagePaste($target) {
     if (!dropzone) {
       return;
     }
-    const uploadUrl = dropzone.dataset.uploadUrl;
+    const uploadUrl = dropzone.getAttribute('data-upload-url');
     const dropzoneFiles = dropzone.querySelector('.files');
     for (const textarea of this.querySelectorAll('textarea')) {
       textarea.addEventListener('paste', async (e) => {
@@ -77,7 +77,7 @@ export function initCompImagePaste($target) {
 }
 
 export function initSimpleMDEImagePaste(simplemde, dropzone, files) {
-  const uploadUrl = dropzone.dataset.uploadUrl;
+  const uploadUrl = dropzone.getAttribute('data-upload-url');
   simplemde.codemirror.on('paste', async (_, e) => {
     for (const img of clipboardPastedImages(e)) {
       const name = img.name.substr(0, img.name.lastIndexOf('.'));

@@ -5,14 +5,21 @@
 package migrations
 
 import (
+	"fmt"
+
 	"xorm.io/xorm"
 )
 
-func addProjectIssueSorting(x *xorm.Engine) error {
-	// ProjectIssue saves relation from issue to a project
-	type ProjectIssue struct {
-		Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
+func createUserSettingsTable(x *xorm.Engine) error {
+	type UserSetting struct {
+		ID           int64  `xorm:"pk autoincr"`
+		UserID       int64  `xorm:"index unique(key_userid)"`              // to load all of someone's settings
+		SettingKey   string `xorm:"varchar(255) index unique(key_userid)"` // ensure key is always lowercase
+		SettingValue string `xorm:"text"`
 	}
+	if err := x.Sync2(new(UserSetting)); err != nil {
+		return fmt.Errorf("sync2: %v", err)
+	}
+	return nil
 
-	return x.Sync2(new(ProjectIssue))
 }
