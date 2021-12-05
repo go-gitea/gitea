@@ -32,13 +32,13 @@ So it's very important to manage these packages. Please take the below guideline
 To maintain understandable code and avoid circular dependencies it is important to have a good code structure. The Gitea backend is divided into the following parts:
 
 - `build`: Scripts to help build Gitea.
-- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to mantain Gitea.
+- `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by git or openSSH. Other sub commands could help to maintain Gitea.
 - `integrations`: Integration tests
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
   - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.
   - `models/migrations`: Stores database migrations between versions. PRs that change a database structure **MUST** also have a migration step.
-- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`.
+- `modules`: Different modules to handle specific functionality in Gitea. Work in Progress: Some of them should be moved to `services`, in particular those that depend on models because they rely on the database.
   - `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
   - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)

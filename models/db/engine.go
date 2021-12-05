@@ -8,7 +8,6 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -92,8 +91,8 @@ func init() {
 	}
 }
 
-// NewEngine returns a new xorm engine from the configuration
-func NewEngine() (*xorm.Engine, error) {
+// newXORMEngine returns a new XORM engine from the configuration
+func newXORMEngine() (*xorm.Engine, error) {
 	connStr, err := setting.DBConnStr()
 	if err != nil {
 		return nil, err
@@ -126,40 +125,49 @@ func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
 
-// InitEngine sets the xorm.Engine
-func InitEngine(ctx context.Context) (err error) {
-	x, err = NewEngine()
+// InitEngine initializes the xorm.Engine and sets it as db.DefaultContext
+func InitEngine(ctx context.Context) error {
+	xormEngine, err := newXORMEngine()
 	if err != nil {
-		return fmt.Errorf("Failed to connect to database: %v", err)
+		return fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	x.SetMapper(names.GonicMapper{})
+	xormEngine.SetMapper(names.GonicMapper{})
 	// WARNING: for serv command, MUST remove the output to os.stdout,
 	// so use log file to instead print to stdout.
-	x.SetLogger(NewXORMLogger(setting.Database.LogSQL))
-	x.ShowSQL(setting.Database.LogSQL)
-	x.SetMaxOpenConns(setting.Database.MaxOpenConns)
-	x.SetMaxIdleConns(setting.Database.MaxIdleConns)
-	x.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	xormEngine.SetLogger(NewXORMLogger(setting.Database.LogSQL))
+	xormEngine.ShowSQL(setting.Database.LogSQL)
+	xormEngine.SetMaxOpenConns(setting.Database.MaxOpenConns)
+	xormEngine.SetMaxIdleConns(setting.Database.MaxIdleConns)
+	xormEngine.SetConnMaxLifetime(setting.Database.ConnMaxLifetime)
+	xormEngine.SetDefaultContext(ctx)
 
+	SetDefaultEngine(ctx, xormEngine)
+	return nil
+}
+
+// SetDefaultEngine sets the default engine for db
+func SetDefaultEngine(ctx context.Context, eng *xorm.Engine) {
+	x = eng
 	DefaultContext = &Context{
 		Context: ctx,
 		e:       x,
 	}
-	x.SetDefaultContext(ctx)
-	return nil
 }
 
-// SetEngine is used by unit test code
-func SetEngine(eng *xorm.Engine) {
-	x = eng
-	DefaultContext = &Context{
-		Context: context.Background(),
-		e:       x,
+// UnsetDefaultEngine closes and unsets the default engine
+// We hope the SetDefaultEngine and UnsetDefaultEngine can be paired, but it's impossible now,
+// there are many calls to InitEngine -> SetDefaultEngine directly to overwrite the `x` and DefaultContext without close
+// Global database engine related functions are all racy and there is no graceful close right now.
+func UnsetDefaultEngine() {
+	if x != nil {
+		_ = x.Close()
+		x = nil
 	}
+	DefaultContext = nil
 }
 
-// InitEngineWithMigration initializes a new xorm.Engine
+// InitEngineWithMigration initializes a new xorm.Engine and sets it as the db.DefaultContext
 // This function must never call .Sync2() if the provided migration function fails.
 // When called from the "doctor" command, the migration function is a version check
 // that prevents the doctor from fixing anything in the database if the migration level
@@ -226,14 +234,6 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 	return beans, nil
 }
 
-// Ping tests if database is alive
-func Ping() error {
-	if x != nil {
-		return x.Ping()
-	}
-	return errors.New("database not configured")
-}
-
 // DumpDatabase dumps all data from database according the special database SQL syntax to file system.
 func DumpDatabase(filePath, dbType string) error {
 	var tbs []*schemas.Table
@@ -290,12 +290,4 @@ func DeleteAllRecords(tableName string) error {
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return
-}
-
-// FindByMaxID filled results as the condition from database
-func FindByMaxID(maxID int64, limit int, results interface{}) error {
-	return x.Where("id <= ?", maxID).
-		OrderBy("id DESC").
-		Limit(limit).
-		Find(results)
 }

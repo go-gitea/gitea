@@ -25,7 +25,7 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	writeID := func(id string) error {
@@ -76,7 +76,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 				IndexFile:  indexFilename,
 				WorkTree:   worktree,
 			}
-			ctx, cancel := context.WithCancel(DefaultContext)
+			ctx, cancel := context.WithCancel(repo.Ctx)
 			if err := checker.Init(ctx); err != nil {
 				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
 			} else {
@@ -96,6 +96,12 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	var content []byte
 	sizes := make(map[string]int64)
 	for _, f := range entries {
+		select {
+		case <-repo.Ctx.Done():
+			return sizes, repo.Ctx.Err()
+		default:
+		}
+
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 

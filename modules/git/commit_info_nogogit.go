@@ -100,7 +100,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 }
 
 func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
-	wr, rd, cancel := cache.repo.CatFileBatch()
+	wr, rd, cancel := cache.repo.CatFileBatch(ctx)
 	defer cancel()
 
 	var unHitEntryPaths []string
@@ -129,7 +129,7 @@ func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, commit *
 		return nil, err
 	}
 
-	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := commit.repo.CatFileBatch(ctx)
 	defer cancel()
 
 	commitsMap := map[string]*Commit{}
