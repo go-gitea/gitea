@@ -6,6 +6,7 @@
 package pull
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -21,7 +22,7 @@ import (
 )
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
 
 	var (
 		existsReview bool
@@ -47,7 +48,7 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 			return nil, err
 		}
 
-		comment, err := createCodeComment(
+		comment, err := createCodeComment(ctx,
 			doer,
 			issue.Repo,
 			issue,
@@ -87,7 +88,7 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 		}
 	}
 
-	comment, err := createCodeComment(
+	comment, err := createCodeComment(ctx,
 		doer,
 		issue.Repo,
 		issue,
@@ -115,7 +116,7 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(doer *user_model.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(); err != nil {
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
@@ -124,11 +125,15 @@ func createCodeComment(doer *user_model.User, repo *models.Repository, issue *mo
 	if err := pr.LoadBaseRepo(); err != nil {
 		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+	gitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
+	if gitRepo == nil {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		if err != nil {
+			return nil, fmt.Errorf("OpenRepository: %v", err)
+		}
+		defer gitRepo.Close()
 	}
-	defer gitRepo.Close()
 
 	invalidated := false
 	head := pr.GetGitRefName()

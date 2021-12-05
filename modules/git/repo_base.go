@@ -1,0 +1,30 @@
+// Copyright 2021 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package git
+
+import "context"
+
+// contextKey is a value for use with context.WithValue.
+type contextKey struct {
+	name string
+}
+
+// RepositoryContextKey is a context key. It is used with context.Value() to get the current Repository for the context
+var RepositoryContextKey = &contextKey{"repository"}
+
+func RepositoryFromContext(ctx context.Context, path string) *Repository {
+	value := ctx.Value(RepositoryContextKey)
+	if value == nil {
+		return nil
+	}
+
+	if repo, ok := value.(*Repository); ok {
+		if repo.Path == path {
+			return repo
+		}
+	}
+
+	return nil
+}

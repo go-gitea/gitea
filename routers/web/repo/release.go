@@ -327,7 +327,7 @@ func NewReleasePost(ctx *context.Context) {
 		}
 
 		if len(form.TagOnly) > 0 {
-			if err = releaseservice.CreateNewTag(ctx.User, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
+			if err = releaseservice.CreateNewTag(ctx, ctx.User, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
 				if models.IsErrTagAlreadyExists(err) {
 					e := err.(models.ErrTagAlreadyExists)
 					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))

@@ -21,10 +21,16 @@ func CreateCommitStatus(ctx context.Context, repo *models.Repository, creator *u
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
-	if err != nil {
-		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
+	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
+	if gitRepo == nil {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
+		if err != nil {
+			return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
+		}
+		defer gitRepo.Close()
 	}
+
 	if _, err := gitRepo.GetCommit(sha); err != nil {
 		gitRepo.Close()
 		return fmt.Errorf("GetCommit[%s]: %v", sha, err)

@@ -24,6 +24,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -538,6 +539,10 @@ func (ctx *Context) Err() error {
 
 // Value is part of the interface for context.Context and we pass this to the request context
 func (ctx *Context) Value(key interface{}) interface{} {
+	if key == git.RepositoryContextKey && ctx.Repo != nil {
+		return ctx.Repo.GitRepo
+	}
+
 	return ctx.Req.Context().Value(key)
 }
 

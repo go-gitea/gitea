@@ -5,6 +5,7 @@
 package release
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -137,7 +138,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 }
 
 // CreateNewTag creates a new repository tag
-func CreateNewTag(doer *user_model.User, repo *models.Repository, commit, tagName, msg string) error {
+func CreateNewTag(ctx context.Context, doer *user_model.User, repo *models.Repository, commit, tagName, msg string) error {
 	isExist, err := models.IsReleaseExist(repo.ID, tagName)
 	if err != nil {
 		return err
@@ -147,11 +148,14 @@ func CreateNewTag(doer *user_model.User, repo *models.Repository, commit, tagNam
 		}
 	}
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return err
+	gitRepo := git.RepositoryFromContext(ctx, repo.RepoPath())
+	if gitRepo == nil {
+		gitRepo, err = git.OpenRepositoryCtx(ctx, repo.RepoPath())
+		if err != nil {
+			return err
+		}
+		defer gitRepo.Close()
 	}
-	defer gitRepo.Close()
 
 	rel := &models.Release{
 		RepoID:       repo.ID,

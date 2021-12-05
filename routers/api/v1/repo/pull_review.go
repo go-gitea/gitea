@@ -351,7 +351,7 @@ func CreatePullReview(ctx *context.APIContext) {
 			line = c.OldLineNum * -1
 		}
 
-		if _, err := pull_service.CreateCodeComment(
+		if _, err := pull_service.CreateCodeComment(ctx,
 			ctx.User,
 			ctx.Repo.GitRepo,
 			pr.Issue,

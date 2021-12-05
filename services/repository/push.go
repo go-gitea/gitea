@@ -86,9 +86,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 
 	repoPath := repo.RepoPath()
+
 	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	defer gitRepo.Close()
 
@@ -102,7 +103,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {

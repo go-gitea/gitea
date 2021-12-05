@@ -68,7 +68,7 @@ func CreateCodeComment(ctx *context.Context) {
 		signedLine *= -1
 	}
 
-	comment, err := pull_service.CreateCodeComment(
+	comment, err := pull_service.CreateCodeComment(ctx,
 		ctx.User,
 		ctx.Repo.GitRepo,
 		issue,

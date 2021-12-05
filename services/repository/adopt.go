@@ -120,11 +120,14 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 	}
 
 	repo.IsEmpty = false
+
+	// Don't bother looking this repo in the context it won't be there
 	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("openRepository: %v", err)
 	}
 	defer gitRepo.Close()
+
 	if len(opts.DefaultBranch) > 0 {
 		repo.DefaultBranch = opts.DefaultBranch
 
