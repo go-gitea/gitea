@@ -105,7 +105,7 @@ type CanCommitToBranchResults struct {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranchResults, error) {
+func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
 
 	if err != nil {
@@ -118,7 +118,7 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := r.Repository.SignCRUDAction(ctx, doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {

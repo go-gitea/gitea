@@ -5,6 +5,8 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
@@ -14,14 +16,14 @@ import (
 )
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func (pr *PullRequest) SignMerge(u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
+func (pr *PullRequest) SignMerge(ctx context.Context, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", nil, err
 	}
 	repo := pr.BaseRepo
 
-	signingKey, signer := SigningKey(repo.RepoPath())
+	signingKey, signer := SigningKey(ctx, repo.RepoPath())
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
@@ -66,7 +68,7 @@ Loop:
 			}
 		case baseSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(tmpBasePath)
+				gitRepo, err = git.OpenRepositoryCtx(ctx, tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -82,7 +84,7 @@ Loop:
 			}
 		case headSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(tmpBasePath)
+				gitRepo, err = git.OpenRepositoryCtx(ctx, tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}
@@ -98,7 +100,7 @@ Loop:
 			}
 		case commitsSigned:
 			if gitRepo == nil {
-				gitRepo, err = git.OpenRepository(tmpBasePath)
+				gitRepo, err = git.OpenRepositoryCtx(ctx, tmpBasePath)
 				if err != nil {
 					return false, "", nil, err
 				}

@@ -6,6 +6,7 @@ package repo
 
 import (
 	"bufio"
+	gocontext "context"
 	"encoding/csv"
 	"errors"
 	"fmt"
@@ -376,7 +377,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ci.HeadRepo = ctx.Repo.Repository
 		ci.HeadGitRepo = ctx.Repo.GitRepo
 	} else if has {
-		ci.HeadGitRepo, err = git.OpenRepository(ci.HeadRepo.RepoPath())
+		ci.HeadGitRepo, err = git.OpenRepositoryCtx(ctx, ci.HeadRepo.RepoPath())
 		if err != nil {
 			ctx.ServerError("OpenRepository", err)
 			return nil
@@ -436,7 +437,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(rootRepo)
+				branches, tags, err := getBranchesAndTagsForRepo(ctx, rootRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
 					return nil
@@ -461,7 +462,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
-				branches, tags, err := getBranchesAndTagsForRepo(ownForkRepo)
+				branches, tags, err := getBranchesAndTagsForRepo(ctx, ownForkRepo)
 				if err != nil {
 					ctx.ServerError("GetBranchesForRepo", err)
 					return nil
@@ -647,8 +648,8 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(repo *models.Repository) (branches, tags []string, err error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func getBranchesAndTagsForRepo(ctx gocontext.Context, repo *models.Repository) (branches, tags []string, err error) {
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, nil, err
 	}

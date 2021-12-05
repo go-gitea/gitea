@@ -52,7 +52,7 @@ func SigningKey(ctx *context.APIContext) {
 		path = ctx.Repo.Repository.RepoPath()
 	}
 
-	content, err := models.PublicSigningKey(path)
+	content, err := models.PublicSigningKey(ctx, path)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "gpg export", err)
 		return

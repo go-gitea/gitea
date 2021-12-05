@@ -205,7 +205,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if !forcePush {
-			output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunInDirWithEnv(repo.RepoPath(), os.Environ())
+			output, err := git.NewCommandContext(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunInDirWithEnv(repo.RepoPath(), os.Environ())
 			if err != nil {
 				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, opts.NewCommitIDs[i], repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -249,7 +249,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 			})
 			return nil
 		}
-		comment, err := models.CreatePushPullComment(pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := models.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
 			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
 		}

@@ -217,7 +217,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	// Determine if we should sign
 	signArg := ""
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := pr.SignMerge(doer, tmpBasePath, "HEAD", trackingBranch)
+		sign, keyID, signer, _ := pr.SignMerge(ctx, doer, tmpBasePath, "HEAD", trackingBranch)
 		if sign {
 			signArg = "-S" + keyID
 			if pr.BaseRepo.GetTrustModel() == models.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
@@ -543,7 +543,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 }
 
 // IsSignedIfRequired check if merge will be signed if required
-func IsSignedIfRequired(pr *models.PullRequest, doer *user_model.User) (bool, error) {
+func IsSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_model.User) (bool, error) {
 	if err := pr.LoadProtectedBranch(); err != nil {
 		return false, err
 	}
@@ -552,7 +552,7 @@ func IsSignedIfRequired(pr *models.PullRequest, doer *user_model.User) (bool, er
 		return true, nil
 	}
 
-	sign, _, _, err := pr.SignMerge(doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+	sign, _, _, err := pr.SignMerge(ctx, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
 
 	return sign, err
 }

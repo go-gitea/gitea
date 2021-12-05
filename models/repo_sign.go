@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -63,22 +64,22 @@ func signingModeFromStrings(modeStrings []string) []signingMode {
 }
 
 // SigningKey returns the KeyID and git Signature for the repo
-func SigningKey(repoPath string) (string, *git.Signature) {
+func SigningKey(ctx context.Context, repoPath string) (string, *git.Signature) {
 	if setting.Repository.Signing.SigningKey == "none" {
 		return "", nil
 	}
 
 	if setting.Repository.Signing.SigningKey == "default" || setting.Repository.Signing.SigningKey == "" {
 		// Can ignore the error here as it means that commit.gpgsign is not set
-		value, _ := git.NewCommand("config", "--get", "commit.gpgsign").RunInDir(repoPath)
+		value, _ := git.NewCommandContext(ctx, "config", "--get", "commit.gpgsign").RunInDir(repoPath)
 		sign, valid := git.ParseBool(strings.TrimSpace(value))
 		if !sign || !valid {
 			return "", nil
 		}
 
-		signingKey, _ := git.NewCommand("config", "--get", "user.signingkey").RunInDir(repoPath)
-		signingName, _ := git.NewCommand("config", "--get", "user.name").RunInDir(repoPath)
-		signingEmail, _ := git.NewCommand("config", "--get", "user.email").RunInDir(repoPath)
+		signingKey, _ := git.NewCommandContext(ctx, "config", "--get", "user.signingkey").RunInDir(repoPath)
+		signingName, _ := git.NewCommandContext(ctx, "config", "--get", "user.name").RunInDir(repoPath)
+		signingEmail, _ := git.NewCommandContext(ctx, "config", "--get", "user.email").RunInDir(repoPath)
 		return strings.TrimSpace(signingKey), &git.Signature{
 			Name:  strings.TrimSpace(signingName),
 			Email: strings.TrimSpace(signingEmail),
@@ -92,13 +93,13 @@ func SigningKey(repoPath string) (string, *git.Signature) {
 }
 
 // PublicSigningKey gets the public signing key within a provided repository directory
-func PublicSigningKey(repoPath string) (string, error) {
-	signingKey, _ := SigningKey(repoPath)
+func PublicSigningKey(ctx context.Context, repoPath string) (string, error) {
+	signingKey, _ := SigningKey(ctx, repoPath)
 	if signingKey == "" {
 		return "", nil
 	}
 
-	content, stderr, err := process.GetManager().ExecDir(-1, repoPath,
+	content, stderr, err := process.GetManager().ExecDir(ctx, -1, repoPath,
 		"gpg --export -a", "gpg", "--export", "-a", signingKey)
 	if err != nil {
 		log.Error("Unable to get default signing key in %s: %s, %s, %v", repoPath, signingKey, stderr, err)
@@ -108,9 +109,9 @@ func PublicSigningKey(repoPath string) (string, error) {
 }
 
 // SignInitialCommit determines if we should sign the initial commit to this repository
-func SignInitialCommit(repoPath string, u *user_model.User) (bool, string, *git.Signature, error) {
+func SignInitialCommit(ctx context.Context, repoPath string, u *user_model.User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.InitialCommit)
-	signingKey, sig := SigningKey(repoPath)
+	signingKey, sig := SigningKey(ctx, repoPath)
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
@@ -144,9 +145,9 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func (repo *Repository) SignWikiCommit(u *user_model.User) (bool, string, *git.Signature, error) {
+func (repo *Repository) SignWikiCommit(ctx context.Context, u *user_model.User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
-	signingKey, sig := SigningKey(repo.WikiPath())
+	signingKey, sig := SigningKey(ctx, repo.WikiPath())
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
@@ -175,7 +176,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(repo.WikiPath())
+			gitRepo, err := git.OpenRepositoryCtx(ctx, repo.WikiPath())
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -197,9 +198,9 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func (repo *Repository) SignCRUDAction(u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
+func (repo *Repository) SignCRUDAction(ctx context.Context, u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
-	signingKey, sig := SigningKey(repo.RepoPath())
+	signingKey, sig := SigningKey(ctx, repo.RepoPath())
 	if signingKey == "" {
 		return false, "", nil, &ErrWontSign{noKey}
 	}
@@ -228,7 +229,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case parentSigned:
-			gitRepo, err := git.OpenRepository(tmpBasePath)
+			gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
 			if err != nil {
 				return false, "", nil, err
 			}

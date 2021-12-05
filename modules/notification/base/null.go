@@ -141,7 +141,7 @@ func (*NullNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Rep
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName, RefID string) {
+func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName, refID string) {
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers

@@ -74,7 +74,7 @@ func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.I
 	}
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	baseGitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func ChangeTargetBranch(ctx context.Context, pr *models.PullRequest, doer *user_
 	}
 
 	// Check if branches are equal
-	branchesEqual, err := IsHeadEqualWithBranch(pr, targetBranch)
+	branchesEqual, err := IsHeadEqualWithBranch(ctx, pr, targetBranch)
 	if err != nil {
 		return err
 	}
@@ -210,12 +210,12 @@ func ChangeTargetBranch(ctx context.Context, pr *models.PullRequest, doer *user_
 	return nil
 }
 
-func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
+func checkForInvalidation(ctx context.Context, requests models.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
 	repo, err := models.GetRepositoryByID(repoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("git.OpenRepository: %v", err)
 	}
@@ -250,13 +250,13 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			if err = requests.LoadAttributes(); err != nil {
 				log.Error("PullRequestList.LoadAttributes: %v", err)
 			}
-			if invalidationErr := checkForInvalidation(requests, repoID, doer, branch); invalidationErr != nil {
+			if invalidationErr := checkForInvalidation(ctx, requests, repoID, doer, branch); invalidationErr != nil {
 				log.Error("checkForInvalidation: %v", invalidationErr)
 			}
 			if err == nil {
 				for _, pr := range prs {
 					if newCommitID != "" && newCommitID != git.EmptySHA {
-						changed, err := checkIfPRContentChanged(pr, oldCommitID, newCommitID)
+						changed, err := checkIfPRContentChanged(ctx, pr, oldCommitID, newCommitID)
 						if err != nil {
 							log.Error("checkIfPRContentChanged: %v", err)
 						}
@@ -298,7 +298,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 			}
 
 			AddToTaskQueue(pr)
-			comment, err := models.CreatePushPullComment(doer, pr, oldCommitID, newCommitID)
+			comment, err := models.CreatePushPullComment(ctx, doer, pr, oldCommitID, newCommitID)
 			if err == nil && comment != nil {
 				notification.NotifyPullRequestPushCommits(doer, pr, comment)
 			}
@@ -331,7 +331,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 
 // checkIfPRContentChanged checks if diff to target branch has changed by push
 // A commit can be considered to leave the PR untouched if the patch/diff with its merge base is unchanged
-func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
+func checkIfPRContentChanged(ctx context.Context, pr *models.PullRequest, oldCommitID, newCommitID string) (hasChanged bool, err error) {
 	if err = pr.LoadHeadRepo(); err != nil {
 		return false, fmt.Errorf("LoadHeadRepo: %v", err)
 	} else if pr.HeadRepo == nil {
@@ -343,7 +343,7 @@ func checkIfPRContentChanged(pr *models.PullRequest, oldCommitID, newCommitID st
 		return false, fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
+	headGitRepo, err := git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
 	if err != nil {
 		return false, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -562,7 +562,7 @@ func CloseRepoBranchesPulls(ctx context.Context, doer *user_model.User, repo *mo
 var commitMessageTrailersPattern = regexp.MustCompile(`(?:^|\n\n)(?:[\w-]+[ \t]*:[^\n]+\n*(?:[ \t]+[^\n]+\n*)*)+$`)
 
 // GetSquashMergeCommitMessages returns the commit messages between head and merge base (if there is one)
-func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
+func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) string {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
 		return ""
@@ -582,14 +582,20 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 		}
 	}
 
-	gitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		log.Error("Unable to open head repository: Error: %v", err)
-		return ""
+	gitRepo := git.RepositoryFromContext(ctx, pr.HeadRepo.RepoPath())
+	if gitRepo == nil {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+		if err != nil {
+			log.Error("Unable to open head repository: Error: %v", err)
+			return ""
+		}
+		defer gitRepo.Close()
 	}
-	defer gitRepo.Close()
 
 	var headCommit *git.Commit
+	var err error
+
 	if pr.Flow == models.PullRequestFlowGithub {
 		headCommit, err = gitRepo.GetBranchCommit(pr.HeadBranch)
 	} else {
@@ -718,7 +724,7 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 }
 
 // GetIssuesLastCommitStatus returns a map
-func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.CommitStatus, error) {
+func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (map[int64]*models.CommitStatus, error) {
 	if err := issues.LoadPullRequests(); err != nil {
 		return nil, err
 	}
@@ -743,7 +749,7 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 		}
 		gitRepo, ok := gitRepos[issue.RepoID]
 		if !ok {
-			gitRepo, err = git.OpenRepository(issue.Repo.RepoPath())
+			gitRepo, err = git.OpenRepositoryCtx(ctx, issue.Repo.RepoPath())
 			if err != nil {
 				return nil, err
 			}
@@ -758,20 +764,6 @@ func GetIssuesLastCommitStatus(issues models.IssueList) (map[int64]*models.Commi
 		res[issue.PullRequest.ID] = status
 	}
 	return res, nil
-}
-
-// GetLastCommitStatus returns list of commit statuses for latest commit on this pull request.
-func GetLastCommitStatus(pr *models.PullRequest) (status *models.CommitStatus, err error) {
-	if err = pr.LoadBaseRepo(); err != nil {
-		return nil, err
-	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	return getLastCommitStatus(gitRepo, pr)
 }
 
 // getLastCommitStatus get pr's last commit status. PR's last commit status is the head commit id's last commit status
@@ -789,16 +781,20 @@ func getLastCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statu
 }
 
 // IsHeadEqualWithBranch returns if the commits of branchName are available in pull request head
-func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, error) {
+func IsHeadEqualWithBranch(ctx context.Context, pr *models.PullRequest, branchName string) (bool, error) {
 	var err error
 	if err = pr.LoadBaseRepo(); err != nil {
 		return false, err
 	}
-	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		return false, err
+	baseGitRepo := git.RepositoryFromContext(ctx, pr.BaseRepo.RepoPath())
+	if baseGitRepo == nil {
+		var err error
+		baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+		if err != nil {
+			return false, err
+		}
+		defer baseGitRepo.Close()
 	}
-	defer baseGitRepo.Close()
 
 	baseCommit, err := baseGitRepo.GetBranchCommit(branchName)
 	if err != nil {
@@ -808,11 +804,17 @@ func IsHeadEqualWithBranch(pr *models.PullRequest, branchName string) (bool, err
 	if err = pr.LoadHeadRepo(); err != nil {
 		return false, err
 	}
-	headGitRepo, err := git.OpenRepository(pr.HeadRepo.RepoPath())
-	if err != nil {
-		return false, err
+	var headGitRepo *git.Repository
+	if pr.HeadRepoID == pr.BaseRepoID {
+		headGitRepo = baseGitRepo
+	} else if headGitRepo := git.RepositoryFromContext(ctx, pr.HeadRepo.RepoPath()); headGitRepo == nil {
+		var err error
+		headGitRepo, err = git.OpenRepositoryCtx(ctx, pr.HeadRepo.RepoPath())
+		if err != nil {
+			return false, err
+		}
+		defer headGitRepo.Close()
 	}
-	defer headGitRepo.Close()
 
 	var headCommit *git.Commit
 	if pr.Flow == models.PullRequestFlowGithub {

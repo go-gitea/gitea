@@ -224,7 +224,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *models.Rep
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
+	sign, signingKey, signer, _ := repo.SignWikiCommit(ctx, doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
@@ -342,7 +342,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *models.Rep
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
+	sign, signingKey, signer, _ := repo.SignWikiCommit(ctx, doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
 		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {

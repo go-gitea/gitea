@@ -117,7 +117,7 @@ func ListPullRequests(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 			return
 		}
-		apiPrs[i] = convert.ToAPIPullRequest(prs[i], ctx.User)
+		apiPrs[i] = convert.ToAPIPullRequest(ctx, prs[i], ctx.User)
 	}
 
 	ctx.SetLinkHeader(int(maxResults), listOptions.PageSize)
@@ -173,7 +173,7 @@ func GetPullRequest(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(pr, ctx.User))
+	ctx.JSON(http.StatusOK, convert.ToAPIPullRequest(ctx, pr, ctx.User))
 }
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
@@ -419,7 +419,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
-	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr, ctx.User))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(ctx, pr, ctx.User))
 }
 
 // EditPullRequest does what it says
@@ -626,7 +626,7 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// TODO this should be 200, not 201
-	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(pr, ctx.User))
+	ctx.JSON(http.StatusCreated, convert.ToAPIPullRequest(ctx, pr, ctx.User))
 }
 
 // IsPullRequestMerged checks if a PR exists given an index
@@ -808,7 +808,7 @@ func MergePullRequest(ctx *context.APIContext) {
 		}
 	}
 
-	if _, err := pull_service.IsSignedIfRequired(pr, ctx.User); err != nil {
+	if _, err := pull_service.IsSignedIfRequired(ctx, pr, ctx.User); err != nil {
 		if !models.IsErrWontSign(err) {
 			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
 			return

@@ -160,7 +160,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *models.Repository, doer *
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, opts.TreePath); err != nil {
 		return nil, err
 	}
 
@@ -450,7 +450,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *models.Repository, doer *
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, branchName string, treePath string) error {
+func VerifyBranchProtection(ctx context.Context, repo *models.Repository, doer *user_model.User, branchName string, treePath string) error {
 	protectedBranch, err := repo.GetBranchProtection(branchName)
 	if err != nil {
 		return err
@@ -467,7 +467,7 @@ func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, bran
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), branchName)
+			_, _, _, err := repo.SignCRUDAction(ctx, doer, repo.RepoPath(), branchName)
 			if err != nil {
 				if !models.IsErrWontSign(err) {
 					return err

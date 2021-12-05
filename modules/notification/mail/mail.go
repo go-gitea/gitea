@@ -9,8 +9,10 @@ import (
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/services/mailer"
 )
 
@@ -142,6 +144,9 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user
 }
 
 func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment) {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyPullRequestPushCommits Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
+	defer finished()
+
 	var err error
 	if err = comment.LoadIssue(); err != nil {
 		log.Error("comment.LoadIssue: %v", err)
@@ -159,7 +164,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}
-	if err := comment.LoadPushCommits(); err != nil {
+	if err := comment.LoadPushCommits(ctx); err != nil {
 		log.Error("comment.LoadPushCommits: %v", err)
 	}
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment, nil)

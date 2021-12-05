@@ -684,7 +684,7 @@ func (c *Comment) CodeCommentURL() string {
 }
 
 // LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits() (err error) {
+func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
 		return nil
 	}
@@ -706,11 +706,14 @@ func (c *Comment) LoadPushCommits() (err error) {
 		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, err := git.OpenRepository(repoPath)
-		if err != nil {
-			return err
+		gitRepo := git.RepositoryFromContext(ctx, repoPath)
+		if gitRepo == nil {
+			gitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
+			if err != nil {
+				return err
+			}
+			defer gitRepo.Close()
 		}
-		defer gitRepo.Close()
 
 		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
@@ -1278,7 +1281,7 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 }
 
 // CreatePushPullComment create push code to pull base comment
-func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
 	}
@@ -1291,7 +1294,7 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 
 	var data PushActionContent
 
-	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -1313,13 +1316,17 @@ func CreatePushPullComment(pusher *user_model.User, pr *PullRequest, oldCommitID
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
-func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+func getCommitIDsFromRepo(ctx context.Context, repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
-	if err != nil {
-		return nil, false, err
+	gitRepo := git.RepositoryFromContext(ctx, repoPath)
+	if gitRepo == nil {
+		var err error
+		gitRepo, err = git.OpenRepositoryCtx(ctx, repoPath)
+		if err != nil {
+			return nil, false, err
+		}
+		defer gitRepo.Close()
 	}
-	defer gitRepo.Close()
 
 	oldCommit, err := gitRepo.GetCommit(oldCommitID)
 	if err != nil {

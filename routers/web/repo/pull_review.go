@@ -217,7 +217,7 @@ func SubmitReview(ctx *context.Context) {
 		attachments = form.Files
 	}
 
-	_, comm, err := pull_service.SubmitReview(ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
+	_, comm, err := pull_service.SubmitReview(ctx, ctx.User, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
 		if models.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))

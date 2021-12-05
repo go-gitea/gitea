@@ -133,7 +133,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *models.Repository
 	}
 
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := models.SignInitialCommit(tmpPath, u)
+		sign, keyID, signer, _ := models.SignInitialCommit(ctx, tmpPath, u)
 		if sign {
 			args = append(args, "-S"+keyID)
 

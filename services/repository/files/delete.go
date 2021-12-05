@@ -67,7 +67,7 @@ func DeleteRepoFile(ctx context.Context, repo *models.Repository, doer *user_mod
 				BranchName: opts.NewBranch,
 			}
 		}
-	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, opts.TreePath); err != nil {
 		return nil, err
 	}
 
