@@ -27,7 +27,7 @@
 											<span class="icon">{{svg "octicon-repo"}}</span>
 										{{end}}
 										<a class="name" href="{{$repo.Link}}">{{$repo.OwnerName}}/{{$repo.Name}}</a>
-										<span>{{SizeFmt $repo.Size}}</span>
+										<span>{{FileSize $repo.Size}}</span>
 										{{if $repo.IsFork}}
 											{{$.i18n.Tr "repo.forked_from"}}
 											<span><a href="{{$repo.BaseRepo.Link}}">{{$repo.BaseRepo.OwnerName}}/{{$repo.BaseRepo.Name}}</a></span>
@@ -120,7 +120,7 @@
 										<span class="iconFloat">{{svg "octicon-repo"}}</span>
 									{{end}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
-									<span>{{SizeFmt .Size}}</span>
+									<span>{{FileSize .Size}}</span>
 									{{if .IsFork}}
 										{{$.i18n.Tr "repo.forked_from"}}
 										<span><a href="{{.BaseRepo.Link}}">{{.BaseRepo.OwnerName}}/{{.BaseRepo.Name}}</a></span>

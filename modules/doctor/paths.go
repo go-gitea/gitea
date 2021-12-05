@@ -67,7 +67,7 @@ func checkConfigurationFiles(logger log.Logger, autofix bool) error {
 		return err
 	}
 
-	setting.NewContext()
+	setting.LoadFromExisting()
 
 	configurationFiles := []configurationFile{
 		{"Configuration File Path", setting.CustomConf, false, true, false},

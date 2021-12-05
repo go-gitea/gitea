@@ -11,10 +11,11 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/chi-middleware/proxy"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // Middlewares returns common middlewares
@@ -22,7 +23,9 @@ func Middlewares() []func(http.Handler) http.Handler {
 	var handlers = []func(http.Handler) http.Handler{
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-				next.ServeHTTP(context.NewResponse(resp), req)
+				ctx, _, finished := process.GetManager().AddContext(req.Context(), fmt.Sprintf("%s: %s", req.Method, req.RequestURI))
+				defer finished()
+				next.ServeHTTP(context.NewResponse(resp), req.WithContext(ctx))
 			})
 		},
 	}

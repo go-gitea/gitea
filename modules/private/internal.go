@@ -13,14 +13,18 @@ import (
 
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 func newRequest(ctx context.Context, url, method string) *httplib.Request {
+	if setting.InternalToken == "" {
+		log.Fatal(`The INTERNAL_TOKEN setting is missing from the configuration file: %q.
+Ensure you are running in the correct environment or set the correct configuration file with -c.`, setting.CustomConf)
+	}
 	return httplib.NewRequest(url, method).
 		SetContext(ctx).
-		Header("Authorization",
-			fmt.Sprintf("Bearer %s", setting.InternalToken))
+		Header("Authorization", fmt.Sprintf("Bearer %s", setting.InternalToken))
 }
 
 // Response internal request response
@@ -44,9 +48,6 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 	})
 	if setting.Protocol == setting.UnixSocket {
 		req.SetTransport(&http.Transport{
-			Dial: func(_, _ string) (net.Conn, error) {
-				return net.Dial("unix", setting.HTTPAddr)
-			},
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
 				return d.DialContext(ctx, "unix", setting.HTTPAddr)
