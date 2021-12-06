@@ -1,5 +1,5 @@
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
-
+import {initRepoIssueContentHistory} from './repo-issue-content.js';
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
@@ -101,6 +101,7 @@ export function initRepoDiffShowMore() {
       $('#diff-too-many-files-stats').remove();
       $('#diff-files').append($(resp).find('#diff-files li'));
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+      initRepoIssueContentHistory();
     }).fail(() => {
       $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
     });
@@ -126,6 +127,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+      initRepoIssueContentHistory();
     }).fail(() => {
       $target.removeClass('disabled');
     });
