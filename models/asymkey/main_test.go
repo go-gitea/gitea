@@ -16,5 +16,8 @@ func TestMain(m *testing.M) {
 		"gpg_key.yml",
 		"public_key.yml",
 		"deploy_key.yml",
+		"gpg_key_import.yml",
+		"user.yml",
+		"email_address.yml",
 	)
 }
