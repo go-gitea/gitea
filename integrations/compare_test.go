@@ -27,3 +27,15 @@ func TestCompareTag(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusNotFound)
 	assert.False(t, strings.Contains(resp.Body.String(), "/assets/img/500.png"), "expect 404 page not 500")
 }
+
+// Compare with inferred default branch (master)
+func TestCompareDefault(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	selection := htmlDoc.doc.Find(".choose.branch .filter.dropdown")
+	assert.Lenf(t, selection.Nodes, 2, "The template has changed")
+}
