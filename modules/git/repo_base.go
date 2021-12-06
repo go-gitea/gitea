@@ -21,7 +21,7 @@ func RepositoryFromContext(ctx context.Context, path string) *Repository {
 		return nil
 	}
 
-	if repo, ok := value.(*Repository); ok {
+	if repo, ok := value.(*Repository); ok && repo != nil {
 		if repo.Path == path {
 			return repo
 		}

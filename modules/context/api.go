@@ -298,6 +298,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
 

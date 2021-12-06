@@ -49,7 +49,7 @@
 				</div>
 			</div>
 			<div class="description">
-				{{ $description := call .DescriptionHTML $.Context}}
+				{{ $description := .DescriptionHTML $.Context}}
 				{{if $description}}<p>{{$description}}</p>{{end}}
 				{{if .Topics }}
 					<div class="ui tags">
