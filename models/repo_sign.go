@@ -5,9 +5,12 @@
 package models
 
 import (
+	"context"
+	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/login"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -124,7 +127,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
+			keys, err := keys.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -160,7 +163,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
+			keys, err := keys.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -188,7 +191,7 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := ParseCommitWithSignature(commit)
+			verification := keys.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
@@ -213,7 +216,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
+			keys, err := keys.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -241,11 +244,60 @@ Loop:
 			if commit.Signature == nil {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
-			verification := ParseCommitWithSignature(commit)
+			verification := keys.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{parentSigned}
 			}
 		}
 	}
 	return true, signingKey, sig, nil
+}
+
+// DeleteDeployKey delete deploy keys
+func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+	key, err := keys.GetDeployKeyByID(ctx, id)
+	if err != nil {
+		if keys.IsErrDeployKeyNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetDeployKeyByID: %v", err)
+	}
+
+	sess := db.GetEngine(ctx)
+
+	// Check if user has access to delete this key.
+	if !doer.IsAdmin {
+		repo, err := getRepositoryByID(sess, key.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetRepositoryByID: %v", err)
+		}
+		has, err := isUserRepoAdmin(sess, repo, doer)
+		if err != nil {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
+			return keys.ErrKeyAccessDenied{
+				UserID: doer.ID,
+				KeyID:  key.ID,
+				Note:   "deploy",
+			}
+		}
+	}
+
+	if _, err = sess.ID(key.ID).Delete(new(keys.DeployKey)); err != nil {
+		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
+	}
+
+	// Check if this is the last reference to same key content.
+	has, err := sess.
+		Where("key_id = ?", key.KeyID).
+		Get(new(keys.DeployKey))
+	if err != nil {
+		return err
+	} else if !has {
+		if err = keys.DeletePublicKeys(ctx, key.KeyID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

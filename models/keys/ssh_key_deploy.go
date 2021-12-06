@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package keys
 
 import (
 	"context"
@@ -169,13 +169,9 @@ func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey
 }
 
 // GetDeployKeyByID returns deploy key by given ID.
-func GetDeployKeyByID(id int64) (*DeployKey, error) {
-	return getDeployKeyByID(db.GetEngine(db.DefaultContext), id)
-}
-
-func getDeployKeyByID(e db.Engine, id int64) (*DeployKey, error) {
+func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 	key := new(DeployKey)
-	has, err := e.ID(id).Get(key)
+	has, err := db.GetEngine(ctx).ID(id).Get(key)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -300,12 +296,8 @@ func (opt ListDeployKeysOptions) toCond() builder.Cond {
 }
 
 // ListDeployKeys returns a list of deploy keys matching the provided arguments.
-func ListDeployKeys(opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	return listDeployKeys(db.GetEngine(db.DefaultContext), opts)
-}
-
-func listDeployKeys(e db.Engine, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
-	sess := e.Where(opts.toCond())
+func ListDeployKeys(ctx context.Context, opts *ListDeployKeysOptions) ([]*DeployKey, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)

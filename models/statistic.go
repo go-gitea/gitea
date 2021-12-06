@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/login"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -47,8 +48,13 @@ func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = CountOrganizations()
+<<<<<<< HEAD
 	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
 	stats.Counter.Repo = repo_model.CountRepositories(true)
+=======
+	stats.Counter.PublicKey, _ = e.Count(new(keys.PublicKey))
+	stats.Counter.Repo = CountRepositories(true)
+>>>>>>> 3db02666b (Move keys to models/keys)
 	stats.Counter.Watch, _ = e.Count(new(Watch))
 	stats.Counter.Star, _ = e.Count(new(Star))
 	stats.Counter.Action, _ = e.Count(new(Action))

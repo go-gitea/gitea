@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	keys_model "code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -113,9 +114,11 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 			}
 		}
 
-		c.Verification = models.ParseCommitWithSignature(c.Commit)
+		c.Verification = keys_model.ParseCommitWithSignature(c.Commit)
 
-		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
+		_ = keys_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return models.IsUserRepoAdmin(repository, user)
+		}, &keyMap)
 
 		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
@@ -236,7 +239,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
-	Verification *models.CommitVerification
+	Verification *keys_model.CommitVerification
 	Status       *models.CommitStatus
 	Flow         int64
 	Row          int

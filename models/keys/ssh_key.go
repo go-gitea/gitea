@@ -3,9 +3,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package keys
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -247,13 +248,13 @@ func UpdatePublicKeyUpdated(id int64) error {
 	return nil
 }
 
-// deletePublicKeys does the actual key deletion but does not update authorized_keys file.
-func deletePublicKeys(e db.Engine, keyIDs ...int64) error {
+// DeletePublicKeys does the actual key deletion but does not update authorized_keys file.
+func DeletePublicKeys(ctx context.Context, keyIDs ...int64) error {
 	if len(keyIDs) == 0 {
 		return nil
 	}
 
-	_, err := e.In("id", keyIDs).Delete(new(PublicKey))
+	_, err := db.GetEngine(ctx).In("id", keyIDs).Delete(new(PublicKey))
 	return err
 }
 
@@ -325,40 +326,6 @@ func PublicKeyIsExternallyManaged(id int64) (bool, error) {
 	return false, nil
 }
 
-// DeletePublicKey deletes SSH key information both in database and authorized_keys file.
-func DeletePublicKey(doer *user_model.User, id int64) (err error) {
-	key, err := GetPublicKeyByID(id)
-	if err != nil {
-		return err
-	}
-
-	// Check if user has access to delete this key.
-	if !doer.IsAdmin && doer.ID != key.OwnerID {
-		return ErrKeyAccessDenied{doer.ID, key.ID, "public"}
-	}
-
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = deletePublicKeys(db.GetEngine(ctx), id); err != nil {
-		return err
-	}
-
-	if err = committer.Commit(); err != nil {
-		return err
-	}
-	committer.Close()
-
-	if key.Type == KeyTypePrincipal {
-		return RewriteAllPrincipalKeys()
-	}
-
-	return RewriteAllPublicKeys()
-}
-
 // deleteKeysMarkedForDeletion returns true if ssh keys needs update
 func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Start session
@@ -377,7 +344,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue
 		}
-		if err = deletePublicKeys(sess, key.ID); err != nil {
+		if err = DeletePublicKeys(ctx, key.ID); err != nil {
 			log.Error("deletePublicKeys: %v", err)
 			continue
 		}

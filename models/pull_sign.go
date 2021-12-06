@@ -6,6 +6,7 @@ package models
 
 import (
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -38,7 +39,7 @@ Loop:
 		case always:
 			break Loop
 		case pubkey:
-			keys, err := ListGPGKeys(u.ID, db.ListOptions{})
+			keys, err := keys.ListGPGKeys(db.DefaultContext, u.ID, db.ListOptions{})
 			if err != nil {
 				return false, "", nil, err
 			}
@@ -76,7 +77,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := ParseCommitWithSignature(commit)
+			verification := keys.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{baseSigned}
 			}
@@ -92,7 +93,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := ParseCommitWithSignature(commit)
+			verification := keys.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{headSigned}
 			}
@@ -108,7 +109,7 @@ Loop:
 			if err != nil {
 				return false, "", nil, err
 			}
-			verification := ParseCommitWithSignature(commit)
+			verification := keys.ParseCommitWithSignature(commit)
 			if !verification.Verified {
 				return false, "", nil, &ErrWontSign{commitsSigned}
 			}
@@ -122,7 +123,7 @@ Loop:
 				return false, "", nil, err
 			}
 			for _, commit := range commitList {
-				verification := ParseCommitWithSignature(commit)
+				verification := keys.ParseCommitWithSignature(commit)
 				if !verification.Verified {
 					return false, "", nil, &ErrWontSign{commitsSigned}
 				}

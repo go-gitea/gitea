@@ -7,7 +7,7 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	keys_model "code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -17,13 +17,14 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	keys_service "code.gitea.io/gitea/services/keys"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(apiKey *api.PublicKey, key *models.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
-	if key.Type == models.KeyTypeDeploy {
+func appendPrivateInformation(apiKey *api.PublicKey, key *keys_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
+	if key.Type == keys_model.KeyTypeDeploy {
 		apiKey.KeyType = "deploy"
-	} else if key.Type == models.KeyTypeUser {
+	} else if key.Type == keys_model.KeyTypeUser {
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
@@ -47,7 +48,7 @@ func composePublicKeysAPILink() string {
 }
 
 func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
-	var keys []*models.PublicKey
+	var keys []*keys_model.PublicKey
 	var err error
 	var count int
 
@@ -58,14 +59,14 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		// Querying not just listing
 		if username != "" {
 			// Restrict to provided uid
-			keys, err = models.SearchPublicKey(user.ID, fingerprint)
+			keys, err = keys_model.SearchPublicKey(user.ID, fingerprint)
 		} else {
 			// Unrestricted
-			keys, err = models.SearchPublicKey(0, fingerprint)
+			keys, err = keys_model.SearchPublicKey(0, fingerprint)
 		}
 		count = len(keys)
 	} else {
-		total, err2 := models.CountPublicKeys(user.ID)
+		total, err2 := keys_model.CountPublicKeys(user.ID)
 		if err2 != nil {
 			ctx.InternalServerError(err)
 			return
@@ -73,7 +74,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		count = int(total)
 
 		// Use ListPublicKeys
-		keys, err = models.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
+		keys, err = keys_model.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
 	}
 
 	if err != nil {
@@ -177,9 +178,9 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := models.GetPublicKeyByID(ctx.ParamsInt64(":id"))
+	key, err := keys_model.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrKeyNotExist(err) {
+		if keys_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPublicKeyByID", err)
@@ -197,13 +198,13 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
-	content, err := models.CheckPublicKeyString(form.Key)
+	content, err := keys_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
 		return
 	}
 
-	key, err := models.AddPublicKey(uid, form.Title, content, 0)
+	key, err := keys_model.AddPublicKey(uid, form.Title, content, 0)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
@@ -263,7 +264,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
-	externallyManaged, err := models.PublicKeyIsExternallyManaged(id)
+	externallyManaged, err := keys_model.PublicKeyIsExternallyManaged(id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
 	}
@@ -271,10 +272,10 @@ func DeletePublicKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
 	}
 
-	if err := models.DeletePublicKey(ctx.User, id); err != nil {
-		if models.IsErrKeyNotExist(err) {
+	if err := keys_service.DeletePublicKey(ctx.User, id); err != nil {
+		if keys_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
-		} else if models.IsErrKeyAccessDenied(err) {
+		} else if keys_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)

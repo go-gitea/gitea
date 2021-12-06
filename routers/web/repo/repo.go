@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	keys_model "code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -261,7 +262,11 @@ func CreatePost(ctx *context.Context) {
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,
+<<<<<<< HEAD
 			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
+=======
+			TrustModel:    keys_model.ToTrustModel(form.TrustModel),
+>>>>>>> 3db02666b (Move keys to models/keys)
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

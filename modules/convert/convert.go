@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	keys_model "code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -152,7 +153,7 @@ func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 
 // ToVerification convert a git.Commit.Signature to an api.PayloadCommitVerification
 func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
-	verif := models.ParseCommitWithSignature(c)
+	verif := keys_model.ParseCommitWithSignature(c)
 	commitVerification := &api.PayloadCommitVerification{
 		Verified: verif.Verified,
 		Reason:   verif.Reason,
@@ -170,8 +171,8 @@ func ToVerification(c *git.Commit) *api.PayloadCommitVerification {
 	return commitVerification
 }
 
-// ToPublicKey convert models.PublicKey to api.PublicKey
-func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
+// ToPublicKey convert keys_model.PublicKey to api.PublicKey
+func ToPublicKey(apiLink string, key *keys_model.PublicKey) *api.PublicKey {
 	return &api.PublicKey{
 		ID:          key.ID,
 		Key:         key.Content,
@@ -183,7 +184,7 @@ func ToPublicKey(apiLink string, key *models.PublicKey) *api.PublicKey {
 }
 
 // ToGPGKey converts models.GPGKey to api.GPGKey
-func ToGPGKey(key *models.GPGKey) *api.GPGKey {
+func ToGPGKey(key *keys_model.GPGKey) *api.GPGKey {
 	subkeys := make([]*api.GPGKey, len(key.SubsKey))
 	for id, k := range key.SubsKey {
 		subkeys[id] = &api.GPGKey{
@@ -264,8 +265,8 @@ func ToGitHook(h *git.Hook) *api.GitHook {
 	}
 }
 
-// ToDeployKey convert models.DeployKey to api.DeployKey
-func ToDeployKey(apiLink string, key *models.DeployKey) *api.DeployKey {
+// ToDeployKey convert keys_model.DeployKey to api.DeployKey
+func ToDeployKey(apiLink string, key *keys_model.DeployKey) *api.DeployKey {
 	return &api.DeployKey{
 		ID:          key.ID,
 		KeyID:       key.KeyID,

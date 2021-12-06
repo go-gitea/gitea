@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	keys_model "code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -257,7 +258,11 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		IsPrivate:     opt.Private,
 		AutoInit:      opt.AutoInit,
 		DefaultBranch: opt.DefaultBranch,
+<<<<<<< HEAD
 		TrustModel:    repo_model.ToTrustModel(opt.TrustModel),
+=======
+		TrustModel:    keys_model.ToTrustModel(opt.TrustModel),
+>>>>>>> 3db02666b (Move keys to models/keys)
 		IsTemplate:    opt.Template,
 	})
 	if err != nil {
@@ -1023,7 +1028,7 @@ func Delete(ctx *context.APIContext) {
 		ctx.Repo.GitRepo.Close()
 	}
 
-	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
+	if err := repo_service.DeleteRepository(ctx.User, repo, true); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteRepository", err)
 		return
 	}

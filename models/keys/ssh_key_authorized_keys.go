@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package keys
 
 import (
 	"bufio"
@@ -118,10 +118,6 @@ func appendAuthorizedKeysToFile(keys ...*PublicKey) error {
 // Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
 func RewriteAllPublicKeys() error {
-	return rewriteAllPublicKeys(db.GetEngine(db.DefaultContext))
-}
-
-func rewriteAllPublicKeys(e db.Engine) error {
 	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
@@ -169,7 +165,7 @@ func rewriteAllPublicKeys(e db.Engine) error {
 		}
 	}
 
-	if err := regeneratePublicKeys(e, t); err != nil {
+	if err := RegeneratePublicKeys(t); err != nil {
 		return err
 	}
 

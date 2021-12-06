@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package keys
 
 import (
 	"crypto/rsa"
@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
@@ -157,7 +158,7 @@ func parseKeyString(content string) (string, error) {
 // It returns the actual public key line on success.
 func CheckPublicKeyString(content string) (_ string, err error) {
 	if setting.SSH.Disabled {
-		return "", ErrSSHDisabled{}
+		return "", db.ErrSSHDisabled{}
 	}
 
 	content, err = parseKeyString(content)
