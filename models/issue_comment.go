@@ -1147,11 +1147,11 @@ func deleteComment(e db.Engine, comment *Comment) error {
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
 type CodeComments map[string]map[int64][]*Comment
 
-func fetchCodeComments(e db.Engine, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeCommentsByReview(e, issue, currentUser, nil)
+func fetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil)
 }
 
-func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *user_model.User, review *Review) (CodeComments, error) {
+func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review) (CodeComments, error) {
 	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
@@ -1162,7 +1162,7 @@ func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *user_mode
 		ReviewID: review.ID,
 	}
 
-	comments, err := findCodeComments(e, opts, issue, currentUser, review)
+	comments, err := findCodeComments(ctx, opts, issue, currentUser, review)
 	if err != nil {
 		return nil, err
 	}
@@ -1176,7 +1176,8 @@ func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *user_mode
 	return pathToLineToComment, nil
 }
 
-func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
+func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
+	e := db.GetEngine(ctx)
 	var comments []*Comment
 	if review == nil {
 		review = &Review{ID: 0}
@@ -1235,6 +1236,7 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: issue.Repo.Link(),
 			Metas:     issue.Repo.ComposeMetas(),
 		}, comment.Content); err != nil {
@@ -1245,19 +1247,19 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
+func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(db.GetEngine(db.DefaultContext), opts, issue, currentUser, nil)
+	return findCodeComments(ctx, opts, issue, currentUser, nil)
 }
 
 // FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeComments(db.GetEngine(db.DefaultContext), issue, currentUser)
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+	return fetchCodeComments(ctx, issue, currentUser)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id

@@ -152,7 +152,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 }
 
 func renderConversation(ctx *context.Context, comment *models.Comment) {
-	comments, err := models.FetchCodeCommentsByLine(comment.Issue, ctx.User, comment.TreePath, comment.Line)
+	comments, err := models.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.User, comment.TreePath, comment.Line)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -234,7 +234,7 @@ func SubmitReview(ctx *context.Context) {
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
-	comm, err := pull_service.DismissReview(form.ReviewID, form.Message, ctx.User, true)
+	comm, err := pull_service.DismissReview(ctx, form.ReviewID, form.Message, ctx.User, true)
 	if err != nil {
 		ctx.ServerError("pull_service.DismissReview", err)
 		return

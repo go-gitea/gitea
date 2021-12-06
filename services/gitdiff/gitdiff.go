@@ -667,8 +667,8 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(issue *models.Issue, currentUser *user_model.User) error {
-	allComments, err := models.FetchCodeComments(issue, currentUser)
+func (diff *Diff) LoadComments(ctx context.Context, issue *models.Issue, currentUser *user_model.User) error {
+	allComments, err := models.FetchCodeComments(ctx, issue, currentUser)
 	if err != nil {
 		return err
 	}

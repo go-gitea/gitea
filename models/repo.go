@@ -866,8 +866,9 @@ func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode perm.AccessMode
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
-func (repo *Repository) DescriptionHTML() template.HTML {
+func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: repo.HTMLURL(),
 		Metas:     repo.ComposeMetas(),
 	}, repo.Description)

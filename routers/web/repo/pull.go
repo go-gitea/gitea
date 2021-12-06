@@ -663,7 +663,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	if err = diff.LoadComments(issue, ctx.User); err != nil {
+	if err = diff.LoadComments(ctx, issue, ctx.User); err != nil {
 		ctx.ServerError("LoadComments", err)
 		return
 	}

@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -85,20 +86,21 @@ func init() {
 	db.RegisterModel(new(Review))
 }
 
-func (r *Review) loadCodeComments(e db.Engine) (err error) {
+func (r *Review) loadCodeComments(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if r.CodeComments != nil {
 		return
 	}
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
 	return
 }
 
 // LoadCodeComments loads CodeComments
-func (r *Review) LoadCodeComments() error {
-	return r.loadCodeComments(db.GetEngine(db.DefaultContext))
+func (r *Review) LoadCodeComments(ctx context.Context) error {
+	return r.loadCodeComments(ctx)
 }
 
 func (r *Review) loadIssue(e db.Engine) (err error) {
@@ -136,11 +138,12 @@ func (r *Review) LoadReviewerTeam() error {
 	return r.loadReviewerTeam(db.GetEngine(db.DefaultContext))
 }
 
-func (r *Review) loadAttributes(e db.Engine) (err error) {
+func (r *Review) loadAttributes(ctx context.Context) (err error) {
+	e := db.GetEngine(ctx)
 	if err = r.loadIssue(e); err != nil {
 		return
 	}
-	if err = r.loadCodeComments(e); err != nil {
+	if err = r.loadCodeComments(ctx); err != nil {
 		return
 	}
 	if err = r.loadReviewer(e); err != nil {
@@ -153,8 +156,8 @@ func (r *Review) loadAttributes(e db.Engine) (err error) {
 }
 
 // LoadAttributes loads all attributes except CodeComments
-func (r *Review) LoadAttributes() error {
-	return r.loadAttributes(db.GetEngine(db.DefaultContext))
+func (r *Review) LoadAttributes(ctx context.Context) error {
+	return r.loadAttributes(ctx)
 }
 
 func getReviewByID(e db.Engine, id int64) (*Review, error) {
@@ -403,7 +406,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 			return nil, nil, err
 		}
 	} else {
-		if err := review.loadCodeComments(sess); err != nil {
+		if err := review.loadCodeComments(ctx); err != nil {
 			return nil, nil, err
 		}
 		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
