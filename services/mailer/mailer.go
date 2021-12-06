@@ -70,7 +70,7 @@ func (m *Message) ToMessage() *gomail.Message {
 	}
 
 	if len(msg.GetHeader("Message-ID")) == 0 {
-		msg.SetHeader("Message-ID", "<"+m.generateAutoMessageID()+">")
+		msg.SetHeader("Message-ID", m.generateAutoMessageID())
 	}
 	return msg
 }
@@ -88,7 +88,7 @@ func (m *Message) generateAutoMessageID() string {
 	}
 	_, _ = h.Write([]byte(m.Subject))
 	_, _ = h.Write([]byte(m.Body))
-	return fmt.Sprintf("autogen-%d-%016x@%s", dateMs, h.Sum64(), setting.Domain)
+	return fmt.Sprintf("<autogen-%d-%016x@%s>", dateMs, h.Sum64(), setting.Domain)
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
