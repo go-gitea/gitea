@@ -121,7 +121,6 @@
 								</table>
 								{{range $t, $unit := $.Units}}
 									{{if lt $unit.MaxPerms 2}}
-										
 										<div {{if $unit.Type.UnitGlobalDisabled}}class="field tooltip" data-content="{{$.i18n.Tr "repo.unit_disabled"}}"{{else}}class="field"{{end}}>
 											<div class="ui checkbox">
 												<input type="checkbox" class="hidden" name="unit_{{$unit.Type.Value}}" value="1"{{if or (eq $.Team.ID 0) (eq ($.Team.UnitAccessMode $unit.Type) 1)}} checked{{end}} {{if $unit.Type.UnitGlobalDisabled}}disabled{{end}}>
