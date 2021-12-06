@@ -12,9 +12,8 @@ import (
 	"strings"
 	"time"
 
-	keys "code.gitea.io/gitea/models/asymkey"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -330,11 +329,11 @@ func NewCommitStatus(opts NewCommitStatusOptions) error {
 type SignCommitWithStatuses struct {
 	Status   *CommitStatus
 	Statuses []*CommitStatus
-	*keys.SignCommit
+	*asymkey_model.SignCommit
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits []*keys.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ParseCommitsWithStatus(oldCommits []*asymkey_model.SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
 	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
 	for _, c := range oldCommits {

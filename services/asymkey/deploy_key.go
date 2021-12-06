@@ -6,7 +6,7 @@ package asymkey
 
 import (
 	"code.gitea.io/gitea/models"
-	keys "code.gitea.io/gitea/models/asymkey"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 )
@@ -26,5 +26,5 @@ func DeleteDeployKey(doer *user_model.User, id int64) error {
 		return err
 	}
 
-	return keys.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys()
 }

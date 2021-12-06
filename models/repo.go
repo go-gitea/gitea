@@ -20,7 +20,7 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	admin_model "code.gitea.io/gitea/models/admin"
-	keys "code.gitea.io/gitea/models/asymkey"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -127,157 +127,9 @@ func NewRepoContext() {
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
-<<<<<<< HEAD
 // CheckRepoUnitUser check whether user could visit the unit of this repository
 func CheckRepoUnitUser(repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
 	return checkRepoUnitUser(db.DefaultContext, repo, user, unitType)
-=======
-// RepositoryStatus defines the status of repository
-type RepositoryStatus int
-
-// all kinds of RepositoryStatus
-const (
-	RepositoryReady           RepositoryStatus = iota // a normal repository
-	RepositoryBeingMigrated                           // repository is migrating
-	RepositoryPendingTransfer                         // repository pending in ownership transfer state
-	RepositoryBroken                                  // repository is in a permanently broken state
-)
-
-// Repository represents a git repository.
-type Repository struct {
-	ID                  int64 `xorm:"pk autoincr"`
-	OwnerID             int64 `xorm:"UNIQUE(s) index"`
-	OwnerName           string
-	Owner               *user_model.User   `xorm:"-"`
-	LowerName           string             `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Name                string             `xorm:"INDEX NOT NULL"`
-	Description         string             `xorm:"TEXT"`
-	Website             string             `xorm:"VARCHAR(2048)"`
-	OriginalServiceType api.GitServiceType `xorm:"index"`
-	OriginalURL         string             `xorm:"VARCHAR(2048)"`
-	DefaultBranch       string
-
-	NumWatches          int
-	NumStars            int
-	NumForks            int
-	NumIssues           int
-	NumClosedIssues     int
-	NumOpenIssues       int `xorm:"-"`
-	NumPulls            int
-	NumClosedPulls      int
-	NumOpenPulls        int `xorm:"-"`
-	NumMilestones       int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedMilestones int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenMilestones   int `xorm:"-"`
-	NumProjects         int `xorm:"NOT NULL DEFAULT 0"`
-	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
-	NumOpenProjects     int `xorm:"-"`
-
-	IsPrivate   bool `xorm:"INDEX"`
-	IsEmpty     bool `xorm:"INDEX"`
-	IsArchived  bool `xorm:"INDEX"`
-	IsMirror    bool `xorm:"INDEX"`
-	*Mirror     `xorm:"-"`
-	PushMirrors []*PushMirror    `xorm:"-"`
-	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
-
-	RenderingMetas         map[string]string `xorm:"-"`
-	DocumentRenderingMetas map[string]string `xorm:"-"`
-	Units                  []*RepoUnit       `xorm:"-"`
-	PrimaryLanguage        *LanguageStat     `xorm:"-"`
-
-	IsFork                          bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	ForkID                          int64              `xorm:"INDEX"`
-	BaseRepo                        *Repository        `xorm:"-"`
-	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-	TemplateID                      int64              `xorm:"INDEX"`
-	TemplateRepo                    *Repository        `xorm:"-"`
-	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
-	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
-	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
-	IsFsckEnabled                   bool               `xorm:"NOT NULL DEFAULT true"`
-	CloseIssuesViaCommitInAnyBranch bool               `xorm:"NOT NULL DEFAULT false"`
-	Topics                          []string           `xorm:"TEXT JSON"`
-
-	TrustModel keys.TrustModelType
-
-	// Avatar: ID(10-20)-md5(32) - must fit into 64 symbols
-	Avatar string `xorm:"VARCHAR(64)"`
-
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-}
-
-func init() {
-	db.RegisterModel(new(Repository))
-}
-
-// SanitizedOriginalURL returns a sanitized OriginalURL
-func (repo *Repository) SanitizedOriginalURL() string {
-	if repo.OriginalURL == "" {
-		return ""
-	}
-	u, err := url.Parse(repo.OriginalURL)
-	if err != nil {
-		return ""
-	}
-	u.User = nil
-	return u.String()
-}
-
-// ColorFormat returns a colored string to represent this repo
-func (repo *Repository) ColorFormat(s fmt.State) {
-	log.ColorFprintf(s, "%d:%s/%s",
-		log.NewColoredIDValue(repo.ID),
-		repo.OwnerName,
-		repo.Name)
-}
-
-// IsBeingMigrated indicates that repository is being migrated
-func (repo *Repository) IsBeingMigrated() bool {
-	return repo.Status == RepositoryBeingMigrated
-}
-
-// IsBeingCreated indicates that repository is being migrated or forked
-func (repo *Repository) IsBeingCreated() bool {
-	return repo.IsBeingMigrated()
-}
-
-// IsBroken indicates that repository is broken
-func (repo *Repository) IsBroken() bool {
-	return repo.Status == RepositoryBroken
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (repo *Repository) AfterLoad() {
-	// FIXME: use models migration to solve all at once.
-	if len(repo.DefaultBranch) == 0 {
-		repo.DefaultBranch = setting.Repository.DefaultBranch
-	}
-
-	repo.NumOpenIssues = repo.NumIssues - repo.NumClosedIssues
-	repo.NumOpenPulls = repo.NumPulls - repo.NumClosedPulls
-	repo.NumOpenMilestones = repo.NumMilestones - repo.NumClosedMilestones
-	repo.NumOpenProjects = repo.NumProjects - repo.NumClosedProjects
-}
-
-// MustOwner always returns a valid *user_model.User object to avoid
-// conceptually impossible error handling.
-// It creates a fake object that contains error details
-// when error occurs.
-func (repo *Repository) MustOwner() *user_model.User {
-	return repo.mustOwner(db.GetEngine(db.DefaultContext))
-}
-
-// FullName returns the repository full name
-func (repo *Repository) FullName() string {
-	return repo.OwnerName + "/" + repo.Name
-}
-
-// HTMLURL returns the repository HTML URL
-func (repo *Repository) HTMLURL() string {
-	return setting.AppURL + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
->>>>>>> 3db02666b (Move keys to models/keys)
 }
 
 func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
@@ -569,8 +421,12 @@ type CreateRepoOptions struct {
 	TrustModel     repo_model.TrustModelType
 =======
 	Status         RepositoryStatus
+<<<<<<< HEAD
 	TrustModel     keys.TrustModelType
 >>>>>>> 3db02666b (Move keys to models/keys)
+=======
+	TrustModel     asymkey_model.TrustModelType
+>>>>>>> 98e1e13cc (Fix package alias)
 	MirrorInterval string
 }
 
@@ -1010,7 +866,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete Deploy Keys
-	deployKeys, err := keys.ListDeployKeys(ctx, &keys.ListDeployKeysOptions{RepoID: repoID})
+	deployKeys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: repoID})
 	if err != nil {
 		return fmt.Errorf("listDeployKeys: %v", err)
 	}
@@ -1209,7 +1065,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	committer.Close()
 
 	if needRewriteKeysFile {
-		if err := keys.RewriteAllPublicKeys(); err != nil {
+		if err := asymkey_model.RewriteAllPublicKeys(); err != nil {
 			log.Error("RewriteAllPublicKeys failed: %v", err)
 		}
 	}
@@ -1491,12 +1347,12 @@ func UpdateRepositoryCols(repo *repo_model.Repository, cols ...string) error {
 <<<<<<< HEAD
 =======
 // GetTrustModel will get the TrustModel for the repo or the default trust model
-func (repo *Repository) GetTrustModel() keys.TrustModelType {
+func (repo *Repository) GetTrustModel() asymkey_model.TrustModelType {
 	trustModel := repo.TrustModel
-	if trustModel == keys.DefaultTrustModel {
-		trustModel = keys.ToTrustModel(setting.Repository.Signing.DefaultTrustModel)
-		if trustModel == keys.DefaultTrustModel {
-			return keys.CollaboratorTrustModel
+	if trustModel == asymkey_model.DefaultTrustModel {
+		trustModel = asymkey_model.ToTrustModel(setting.Repository.Signing.DefaultTrustModel)
+		if trustModel == asymkey_model.DefaultTrustModel {
+			return asymkey_model.CollaboratorTrustModel
 		}
 	}
 	return trustModel
@@ -1590,9 +1446,9 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 
 // DeleteDeployKey delete deploy keys
 func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
-	key, err := keys.GetDeployKeyByID(ctx, id)
+	key, err := asymkey_model.GetDeployKeyByID(ctx, id)
 	if err != nil {
-		if keys.IsErrDeployKeyNotExist(err) {
+		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			return nil
 		}
 		return fmt.Errorf("GetDeployKeyByID: %v", err)
@@ -1610,7 +1466,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {
-			return keys.ErrKeyAccessDenied{
+			return asymkey_model.ErrKeyAccessDenied{
 				UserID: doer.ID,
 				KeyID:  key.ID,
 				Note:   "deploy",
@@ -1618,18 +1474,18 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		}
 	}
 
-	if _, err = sess.ID(key.ID).Delete(new(keys.DeployKey)); err != nil {
+	if _, err = sess.ID(key.ID).Delete(new(asymkey_model.DeployKey)); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
 	}
 
 	// Check if this is the last reference to same key content.
 	has, err := sess.
 		Where("key_id = ?", key.KeyID).
-		Get(new(keys.DeployKey))
+		Get(new(asymkey_model.DeployKey))
 	if err != nil {
 		return err
 	} else if !has {
-		if err = keys.DeletePublicKeys(ctx, key.KeyID); err != nil {
+		if err = asymkey_model.DeletePublicKeys(ctx, key.KeyID); err != nil {
 			return err
 		}
 	}
