@@ -172,12 +172,12 @@ func (u *Type) CanBeDefault() bool {
 
 // Unit is a section of one repository
 type Unit struct {
-	Type     Type
-	NameKey  string
-	URI      string
-	DescKey  string
-	Idx      int
-	MaxPerms perm.AccessMode
+	Type          Type
+	NameKey       string
+	URI           string
+	DescKey       string
+	Idx           int
+	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
 }
 
 // CanDisable returns if this unit could be disabled.
@@ -317,16 +317,12 @@ func AllUnitKeyNames() []string {
 	return res
 }
 
-// MinUnitPerms returns the minial permission of the permission map
-func MinUnitPerms(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
+// MinUnitAccessMode returns the minial permission of the permission map
+func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
 	var res = perm.AccessModeNone
 	for _, mode := range unitsMap {
-		if mode > perm.AccessModeNone {
-			if res == perm.AccessModeNone {
-				res = mode
-			} else if mode < res {
-				res = mode
-			}
+		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
+			res = mode
 		}
 	}
 	return res
