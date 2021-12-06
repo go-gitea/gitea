@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 	"time"
+	"encoding/base64"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -443,6 +444,7 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		//If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
+			addCommitObjectResponseHeader(ctx, archiver)
 			ctx.Redirect(u.String())
 			return
 		}
@@ -455,7 +457,28 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		return
 	}
 	defer fr.Close()
+	addCommitObjectResponseHeader(ctx, archiver)
 	ctx.ServeStream(fr, downloadName)
+}
+
+// Add X-Commit-Object response header if it was requested.
+// The commit object is needed to verify a downloaded archive by commit hash.
+// We use base64 to ensure a lossless encoding of binary data.
+// test: gitea/integrations/repo_download_test.go
+func addCommitObjectResponseHeader(ctx *context.Context, archiver *repo_model.RepoArchiver) {
+	if ctx.Req.Header.Get("X-Commit-Object") != "1" {
+		return
+	}
+	gitrepo := ctx.Repo.GitRepo
+	bytes, err := gitrepo.GetCommitObject(archiver.CommitID)
+	if err != nil {
+		// CommitID should be valid here, but still, errors can happen
+		ctx.Resp.Header().Set("X-Commit-Object", "")
+		ctx.Resp.Header().Set("X-Commit-Object-Error", "1")
+		return
+	}
+	str64 := base64.StdEncoding.EncodeToString(bytes)
+	ctx.Resp.Header().Set("X-Commit-Object", str64)
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit

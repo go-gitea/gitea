@@ -85,6 +85,17 @@ func (repo *Repository) GetCommitByPath(relpath string) (*Commit, error) {
 	return commits[0], nil
 }
 
+// GetCommitObject returns the raw commit object.
+func (repo *Repository) GetCommitObject(commitID string) ([]byte, error) {
+	// we need a bit-exact copy of the commit object for hash calculation
+	// -p = print
+	stdout, err := NewCommandContext(repo.Ctx, "cat-file", "-p", commitID).RunInDirBytes(repo.Path)
+	if err != nil {
+		return nil, err
+	}
+	return stdout, nil
+}
+
 func (repo *Repository) commitsByRange(id SHA1, page, pageSize int) ([]*Commit, error) {
 	stdout, err := NewCommandContext(repo.Ctx, "log", id.String(), "--skip="+strconv.Itoa((page-1)*pageSize),
 		"--max-count="+strconv.Itoa(pageSize), prettyLogFormat).RunInDirBytes(repo.Path)
