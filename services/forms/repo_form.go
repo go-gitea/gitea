@@ -502,14 +502,6 @@ type EditProjectBoardForm struct {
 	Color   string `binding:"MaxSize(7)"`
 }
 
-// MoveProjectIssuesForm is a form for moving and sorting project-issues in a column
-type MoveProjectIssuesForm struct {
-	Issues []struct {
-		IssueID int64 `binding:"Required"`
-		Sorting int64 `binding:"Required"`
-	} `binding:"Required"`
-}
-
 //    _____  .__.__                   __
 //   /     \ |__|  |   ____   _______/  |_  ____   ____   ____
 //  /  \ /  \|  |  | _/ __ \ /  ___/\   __\/  _ \ /    \_/ __ \

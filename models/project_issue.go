@@ -185,44 +185,31 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 // |_|   |_|  \___// |\___|\___|\__|____/ \___/ \__,_|_|  \__,_|
 //               |__/
 
-// MoveIssuesOnProjectBoard moves or keeps issuses in a column and sorts them inside of that column
-func MoveIssuesOnProjectBoard(board *ProjectBoard, issueIDs map[int64]int64) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-	sess := db.GetEngine(ctx)
+// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
+func MoveIssuesOnProjectBoard(board *ProjectBoard, sortedIssueIDs map[int64]int64) error {
+	return db.WithTx(func(ctx context.Context) error {
+		sess := db.GetEngine(ctx)
 
-	ids := make([]int64, len(issueIDs))
-	for _, id := range issueIDs {
-		ids = append(ids, id)
-	}
-	count, err := sess.Where("project_board_id=?", board.ID, issueIDs).In("issue_id", ids).Count()
-	if err != nil {
-		return err
-	}
-
-	if int(count) != len(issueIDs) {
-		return fmt.Errorf("all issues have to be added to a project first")
-	}
-
-	for sorting, id := range issueIDs {
-		// var pis ProjectIssue
-		// pis.IssueID = id
-		// pis.ProjectBoardID = board.ID
-		// pis.Sorting = sorting
-		_, err := sess.Exec("UPDATE `project_issue` SET project_board_id = ?, sorting = ? WHERE issue_id = ?", board.ID, sorting, id)
+		issueIDs := make([]int64, 0, len(sortedIssueIDs))
+		for _, issueID := range sortedIssueIDs {
+			issueIDs = append(issueIDs, issueID)
+		}
+		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
 		if err != nil {
 			return err
 		}
-
-		if _, err := sess.ID(pis.ID).Cols("project_board_id", "sorting").Update(&pis); err != nil {
-			return err
+		if int(count) != len(sortedIssueIDs) {
+			return fmt.Errorf("all issues have to be added to a project first")
 		}
-	}
 
-	return committer.Commit()
+		for sorting, issueID := range sortedIssueIDs {
+			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (pb *ProjectBoard) removeIssues(e db.Engine) error {

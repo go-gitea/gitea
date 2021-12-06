@@ -5,17 +5,16 @@ function moveIssue({item, from, to, oldIndex}) {
 
   const columnSorting = {
     issues: [...columnCards].map((card, i) => ({
-      issueID: $(card).data('issue'),
+      issueID: parseInt($(card).attr('data-issue')),
       sorting: i
     }))
   };
 
   $.ajax({
-    url: `${to.getAttribute('url')}/move`,
+    url: `${to.getAttribute('data-url')}/move`,
     data: JSON.stringify(columnSorting),
     headers: {
       'X-Csrf-Token': csrfToken,
-      'X-Remote': true
     },
     contentType: 'application/json',
     type: 'POST',

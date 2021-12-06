@@ -897,7 +897,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
 
-						m.Post("/move", bindIgnErr(forms.MoveProjectIssuesForm{}), repo.MoveIssues)
+						m.Post("/move", repo.MoveIssues)
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())
