@@ -180,7 +180,7 @@ func setPort(port string) error {
 	setting.HTTPPort = port
 
 	switch setting.Protocol {
-	case setting.UnixSocket:
+	case setting.HTTPUnix:
 	case setting.FCGI:
 	case setting.FCGIUnix:
 	default:
@@ -202,7 +202,7 @@ func setPort(port string) error {
 
 func listen(m http.Handler, handleRedirector bool) error {
 	listenAddr := setting.HTTPAddr
-	if setting.Protocol != setting.UnixSocket && setting.Protocol != setting.FCGIUnix {
+	if setting.Protocol != setting.HTTPUnix && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
@@ -240,7 +240,7 @@ func listen(m http.Handler, handleRedirector bool) error {
 			NoHTTPRedirector()
 		}
 		err = runFCGI("tcp", listenAddr, "FCGI Web", m)
-	case setting.UnixSocket:
+	case setting.HTTPUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
