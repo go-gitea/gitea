@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	keys "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"

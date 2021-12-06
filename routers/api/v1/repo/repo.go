@@ -12,8 +12,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -259,10 +259,14 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		AutoInit:      opt.AutoInit,
 		DefaultBranch: opt.DefaultBranch,
 <<<<<<< HEAD
+<<<<<<< HEAD
 		TrustModel:    repo_model.ToTrustModel(opt.TrustModel),
 =======
 		TrustModel:    keys_model.ToTrustModel(opt.TrustModel),
 >>>>>>> 3db02666b (Move keys to models/keys)
+=======
+		TrustModel:    asymkey_model.ToTrustModel(opt.TrustModel),
+>>>>>>> c486d0ca6 (Rename models/keys -> models/asymkey)
 		IsTemplate:    opt.Template,
 	})
 	if err != nil {

@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -35,9 +35,9 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results := private.KeyAndOwner{}
 
-	key, err := keys_model.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(keyID)
 	if err != nil {
-		if keys_model.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusUnauthorized, private.Response{
 				Err: fmt.Sprintf("Cannot find key: %d", keyID),
 			})
@@ -51,7 +51,7 @@ func ServNoCommand(ctx *context.PrivateContext) {
 	}
 	results.Key = key
 
-	if key.Type == keys_model.KeyTypeUser || key.Type == keys_model.KeyTypePrincipal {
+	if key.Type == asymkey_model.KeyTypeUser || key.Type == asymkey_model.KeyTypePrincipal {
 		user, err := user_model.GetUserByID(key.OwnerID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
@@ -185,9 +185,9 @@ func ServCommand(ctx *context.PrivateContext) {
 	}
 
 	// Get the Public Key represented by the keyID
-	key, err := keys_model.GetPublicKeyByID(keyID)
+	key, err := asymkey_model.GetPublicKeyByID(keyID)
 	if err != nil {
-		if keys_model.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 				Results: results,
 				Err:     fmt.Sprintf("Cannot find key: %d", keyID),
@@ -206,7 +206,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	results.UserID = key.OwnerID
 
 	// If repo doesn't exist, deploy key doesn't make sense
-	if !repoExist && key.Type == keys_model.KeyTypeDeploy {
+	if !repoExist && key.Type == asymkey_model.KeyTypeDeploy {
 		ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 			Results: results,
 			Err:     fmt.Sprintf("Cannot find repository %s/%s", results.OwnerName, results.RepoName),
@@ -217,15 +217,15 @@ func ServCommand(ctx *context.PrivateContext) {
 	// Deploy Keys have ownerID set to 0 therefore we can't use the owner
 	// So now we need to check if the key is a deploy key
 	// We'll keep hold of the deploy key here for permissions checking
-	var deployKey *keys_model.DeployKey
+	var deployKey *asymkey_model.DeployKey
 	var user *user_model.User
-	if key.Type == keys_model.KeyTypeDeploy {
+	if key.Type == asymkey_model.KeyTypeDeploy {
 		results.IsDeployKey = true
 
 		var err error
-		deployKey, err = keys_model.GetDeployKeyByRepo(key.ID, repo.ID)
+		deployKey, err = asymkey_model.GetDeployKeyByRepo(key.ID, repo.ID)
 		if err != nil {
-			if keys_model.IsErrDeployKeyNotExist(err) {
+			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				ctx.JSON(http.StatusNotFound, private.ErrServCommand{
 					Results: results,
 					Err:     fmt.Sprintf("Public (Deploy) Key: %d:%s is not authorized to %s %s/%s.", key.ID, key.Name, modeString, results.OwnerName, results.RepoName),
@@ -298,7 +298,7 @@ func ServCommand(ctx *context.PrivateContext) {
 			owner.Visibility.IsPrivate() ||
 			(user != nil && user.IsRestricted) || // user will be nil if the key is a deploykey
 			setting.Service.RequireSignInView) {
-		if key.Type == keys_model.KeyTypeDeploy {
+		if key.Type == asymkey_model.KeyTypeDeploy {
 			if deployKey.Mode < mode {
 				ctx.JSON(http.StatusUnauthorized, private.ErrServCommand{
 					Results: results,

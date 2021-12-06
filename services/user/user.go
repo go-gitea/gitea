@@ -14,8 +14,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -66,10 +66,10 @@ func DeleteUser(u *user_model.User) error {
 	}
 	committer.Close()
 
-	if err = keys_model.RewriteAllPublicKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 		return err
 	}
-	if err = keys_model.RewriteAllPrincipalKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPrincipalKeys(); err != nil {
 		return err
 	}
 

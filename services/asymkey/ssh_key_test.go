@@ -2,12 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package keys
+package asymkey
 
 import (
 	"testing"
 
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,8 +65,8 @@ ssh-dss AAAAB3NzaC1kc3MAAACBAOChCC7lf6Uo9n7BmZ6M8St19PZf4Tn59NriyboW2x/DZuYAz3ib
 
 	for i, kase := range testCases {
 		s.ID = int64(i) + 20
-		keys_model.AddPublicKeysBySource(user, s, []string{kase.keyString})
-		keys, err := keys_model.ListPublicKeysBySource(user.ID, s.ID)
+		asymkey_model.AddPublicKeysBySource(user, s, []string{kase.keyString})
+		keys, err := asymkey_model.ListPublicKeysBySource(user.ID, s.ID)
 		assert.NoError(t, err)
 		if err != nil {
 			continue

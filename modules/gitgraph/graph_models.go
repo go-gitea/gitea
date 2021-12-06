@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -114,9 +114,9 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 			}
 		}
 
-		c.Verification = keys_model.ParseCommitWithSignature(c.Commit)
+		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
-		_ = keys_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
 			return models.IsUserRepoAdmin(repository, user)
 		}, &keyMap)
 
@@ -239,7 +239,7 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
-	Verification *keys_model.CommitVerification
+	Verification *asymkey_model.CommitVerification
 	Status       *models.CommitStatus
 	Flow         int64
 	Row          int

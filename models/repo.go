@@ -20,8 +20,8 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	admin_model "code.gitea.io/gitea/models/admin"
+	keys "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -1586,4 +1586,53 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 		return repo, unit.TypeReleases, err
 	}
 	return nil, -1, nil
+}
+
+// DeleteDeployKey delete deploy keys
+func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+	key, err := keys.GetDeployKeyByID(ctx, id)
+	if err != nil {
+		if keys.IsErrDeployKeyNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetDeployKeyByID: %v", err)
+	}
+
+	sess := db.GetEngine(ctx)
+
+	// Check if user has access to delete this key.
+	if !doer.IsAdmin {
+		repo, err := getRepositoryByID(sess, key.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetRepositoryByID: %v", err)
+		}
+		has, err := isUserRepoAdmin(sess, repo, doer)
+		if err != nil {
+			return fmt.Errorf("GetUserRepoPermission: %v", err)
+		} else if !has {
+			return keys.ErrKeyAccessDenied{
+				UserID: doer.ID,
+				KeyID:  key.ID,
+				Note:   "deploy",
+			}
+		}
+	}
+
+	if _, err = sess.ID(key.ID).Delete(new(keys.DeployKey)); err != nil {
+		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
+	}
+
+	// Check if this is the last reference to same key content.
+	has, err := sess.
+		Where("key_id = ?", key.KeyID).
+		Get(new(keys.DeployKey))
+	if err != nil {
+		return err
+	} else if !has {
+		if err = keys.DeletePublicKeys(ctx, key.KeyID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

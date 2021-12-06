@@ -8,7 +8,7 @@ package private
 import (
 	"net/http"
 
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -18,16 +18,16 @@ import (
 func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 	keyID := ctx.ParamsInt64(":id")
 	repoID := ctx.ParamsInt64(":repoid")
-	if err := keys_model.UpdatePublicKeyUpdated(keyID); err != nil {
+	if err := asymkey_model.UpdatePublicKeyUpdated(keyID); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
 		return
 	}
 
-	deployKey, err := keys_model.GetDeployKeyByRepo(keyID, repoID)
+	deployKey, err := asymkey_model.GetDeployKeyByRepo(keyID, repoID)
 	if err != nil {
-		if keys_model.IsErrDeployKeyNotExist(err) {
+		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.PlainText(http.StatusOK, []byte("success"))
 			return
 		}
@@ -37,7 +37,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 	deployKey.UpdatedUnix = timeutil.TimeStampNow()
-	if err = keys_model.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
+	if err = asymkey_model.UpdateDeployKeyCols(deployKey, "updated_unix"); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
 		})
@@ -52,7 +52,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
 
-	publicKey, err := keys_model.SearchPublicKeyByContent(content)
+	publicKey, err := asymkey_model.SearchPublicKeyByContent(content)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),

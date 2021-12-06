@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
@@ -68,7 +68,7 @@ func registerRewriteAllPublicKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return keys_model.RewriteAllPublicKeys()
+		return asymkey_model.RewriteAllPublicKeys()
 	})
 }
 
@@ -78,7 +78,7 @@ func registerRewriteAllPrincipalKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return keys_model.RewriteAllPrincipalKeys()
+		return asymkey_model.RewriteAllPrincipalKeys()
 	})
 }
 

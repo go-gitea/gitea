@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -263,10 +263,14 @@ func CreatePost(ctx *context.Context) {
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,
 <<<<<<< HEAD
+<<<<<<< HEAD
 			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
 =======
 			TrustModel:    keys_model.ToTrustModel(form.TrustModel),
 >>>>>>> 3db02666b (Move keys to models/keys)
+=======
+			TrustModel:    asymkey_model.ToTrustModel(form.TrustModel),
+>>>>>>> c486d0ca6 (Rename models/keys -> models/asymkey)
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

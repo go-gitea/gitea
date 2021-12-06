@@ -14,8 +14,8 @@ import (
 	"text/tabwriter"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -626,7 +626,7 @@ func runRegenerateKeys(_ *cli.Context) error {
 	if err := initDB(ctx); err != nil {
 		return err
 	}
-	return keys_model.RewriteAllPublicKeys()
+	return asymkey_model.RewriteAllPublicKeys()
 }
 
 func parseOAuth2Config(c *cli.Context) *oauth2.Source {

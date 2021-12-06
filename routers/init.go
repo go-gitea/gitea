@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -88,7 +88,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(keys_model.RewriteAllPublicKeys)
+		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
 		return appstate.AppState.Set(runtimeState)

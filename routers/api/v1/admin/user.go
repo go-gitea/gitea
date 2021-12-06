@@ -12,8 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -24,7 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	keys_service "code.gitea.io/gitea/services/keys"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -383,10 +383,10 @@ func DeleteUserPublicKey(ctx *context.APIContext) {
 		return
 	}
 
-	if err := keys_service.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
-		if keys_model.IsErrKeyNotExist(err) {
+	if err := asymkey_service.DeletePublicKey(u, ctx.ParamsInt64(":id")); err != nil {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
-		} else if keys_model.IsErrKeyAccessDenied(err) {
+		} else if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteUserPublicKey", err)

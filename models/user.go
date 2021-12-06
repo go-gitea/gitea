@@ -12,8 +12,8 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	keys_model "code.gitea.io/gitea/models/keys"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -235,23 +235,23 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 
 	// ***** START: PublicKey *****
-	if _, err = e.Delete(&keys_model.PublicKey{OwnerID: u.ID}); err != nil {
+	if _, err = e.Delete(&asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
 	// ***** END: PublicKey *****
 
 	// ***** START: GPGPublicKey *****
-	keys, err := keys_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
+	keys, err := asymkey_model.ListGPGKeys(ctx, u.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("ListGPGKeys: %v", err)
 	}
 	// Delete GPGKeyImport(s).
 	for _, key := range keys {
-		if _, err = e.Delete(&keys_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
+		if _, err = e.Delete(&asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
 			return fmt.Errorf("deleteGPGKeyImports: %v", err)
 		}
 	}
-	if _, err = e.Delete(&keys_model.GPGKey{OwnerID: u.ID}); err != nil {
+	if _, err = e.Delete(&asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
 	// ***** END: GPGPublicKey *****

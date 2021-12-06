@@ -2,12 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package keys
+package asymkey
 
 import (
 	"code.gitea.io/gitea/models"
+	keys "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/keys"
 	user_model "code.gitea.io/gitea/models/user"
 )
 

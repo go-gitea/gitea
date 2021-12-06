@@ -171,7 +171,7 @@ func doArchive(r *ArchiveRequest) (*repo_model.RepoArchiver, error) {
 		rd.Close()
 	}()
 	var done = make(chan error)
-	repo, err := models.LoadArchiverRepo(archiver)
+	repo, err := models.GetRepositoryByID(archiver.RepoID)
 	if err != nil {
 		return nil, fmt.Errorf("archiver.LoadRepo failed: %v", err)
 	}

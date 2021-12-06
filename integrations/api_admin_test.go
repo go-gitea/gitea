@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -34,7 +34,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
-	unittest.AssertExistsAndLoadBean(t, &keys_model.PublicKey{
+	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
 		ID:          newPublicKey.ID,
 		Name:        newPublicKey.Title,
 		Content:     newPublicKey.Key,
@@ -45,7 +45,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	req = NewRequestf(t, "DELETE", "/api/v1/admin/users/%s/keys/%d?token=%s",
 		keyOwner.Name, newPublicKey.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
-	unittest.AssertNotExistsBean(t, &keys_model.PublicKey{ID: newPublicKey.ID})
+	unittest.AssertNotExistsBean(t, &asymkey_model.PublicKey{ID: newPublicKey.ID})
 }
 
 func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {

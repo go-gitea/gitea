@@ -8,7 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -56,7 +56,7 @@ func CountDivergingCommits(repo *repo_model.Repository, branch string) (*git.Div
 // GetPayloadCommitVerification returns the verification information of a commit
 func GetPayloadCommitVerification(commit *git.Commit) *structs.PayloadCommitVerification {
 	verification := &structs.PayloadCommitVerification{}
-	commitVerification := keys_model.ParseCommitWithSignature(commit)
+	commitVerification := asymkey_model.ParseCommitWithSignature(commit)
 	if commit.Signature != nil {
 		verification.Signature = commit.Signature.Signature
 		verification.Payload = commit.Signature.Payload

@@ -7,7 +7,7 @@ package user
 import (
 	"net/http"
 
-	keys_model "code.gitea.io/gitea/models/keys"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -17,14 +17,14 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/repo"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	keys_service "code.gitea.io/gitea/services/keys"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(apiKey *api.PublicKey, key *keys_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
-	if key.Type == keys_model.KeyTypeDeploy {
+func appendPrivateInformation(apiKey *api.PublicKey, key *asymkey_model.PublicKey, defaultUser *user_model.User) (*api.PublicKey, error) {
+	if key.Type == asymkey_model.KeyTypeDeploy {
 		apiKey.KeyType = "deploy"
-	} else if key.Type == keys_model.KeyTypeUser {
+	} else if key.Type == asymkey_model.KeyTypeUser {
 		apiKey.KeyType = "user"
 
 		if defaultUser.ID == key.OwnerID {
@@ -48,7 +48,7 @@ func composePublicKeysAPILink() string {
 }
 
 func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
-	var keys []*keys_model.PublicKey
+	var keys []*asymkey_model.PublicKey
 	var err error
 	var count int
 
@@ -59,14 +59,14 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		// Querying not just listing
 		if username != "" {
 			// Restrict to provided uid
-			keys, err = keys_model.SearchPublicKey(user.ID, fingerprint)
+			keys, err = asymkey_model.SearchPublicKey(user.ID, fingerprint)
 		} else {
 			// Unrestricted
-			keys, err = keys_model.SearchPublicKey(0, fingerprint)
+			keys, err = asymkey_model.SearchPublicKey(0, fingerprint)
 		}
 		count = len(keys)
 	} else {
-		total, err2 := keys_model.CountPublicKeys(user.ID)
+		total, err2 := asymkey_model.CountPublicKeys(user.ID)
 		if err2 != nil {
 			ctx.InternalServerError(err)
 			return
@@ -74,7 +74,7 @@ func listPublicKeys(ctx *context.APIContext, user *user_model.User) {
 		count = int(total)
 
 		// Use ListPublicKeys
-		keys, err = keys_model.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
+		keys, err = asymkey_model.ListPublicKeys(user.ID, utils.GetListOptions(ctx))
 	}
 
 	if err != nil {
@@ -178,9 +178,9 @@ func GetPublicKey(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	key, err := keys_model.GetPublicKeyByID(ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetPublicKeyByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if keys_model.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPublicKeyByID", err)
@@ -198,13 +198,13 @@ func GetPublicKey(ctx *context.APIContext) {
 
 // CreateUserPublicKey creates new public key to given user by ID.
 func CreateUserPublicKey(ctx *context.APIContext, form api.CreateKeyOption, uid int64) {
-	content, err := keys_model.CheckPublicKeyString(form.Key)
+	content, err := asymkey_model.CheckPublicKeyString(form.Key)
 	if err != nil {
 		repo.HandleCheckKeyStringError(ctx, err)
 		return
 	}
 
-	key, err := keys_model.AddPublicKey(uid, form.Title, content, 0)
+	key, err := asymkey_model.AddPublicKey(uid, form.Title, content, 0)
 	if err != nil {
 		repo.HandleAddKeyError(ctx, err)
 		return
@@ -264,7 +264,7 @@ func DeletePublicKey(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
-	externallyManaged, err := keys_model.PublicKeyIsExternallyManaged(id)
+	externallyManaged, err := asymkey_model.PublicKeyIsExternallyManaged(id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "PublicKeyIsExternallyManaged", err)
 	}
@@ -272,10 +272,10 @@ func DeletePublicKey(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "SSH Key is externally managed for this user")
 	}
 
-	if err := keys_service.DeletePublicKey(ctx.User, id); err != nil {
-		if keys_model.IsErrKeyNotExist(err) {
+	if err := asymkey_service.DeletePublicKey(ctx.User, id); err != nil {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			ctx.NotFound()
-		} else if keys_model.IsErrKeyAccessDenied(err) {
+		} else if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeletePublicKey", err)
