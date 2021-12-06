@@ -1595,7 +1595,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["IsPullBranchDeletable"] = canDelete &&
 			pull.HeadRepo != nil &&
-			git.IsBranchExist(pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
+			git.IsBranchExist(ctx, pull.HeadRepo.RepoPath(), pull.HeadBranch) &&
 			(!pull.HasMerged || ctx.Data["HeadBranchCommitID"] == ctx.Data["PullHeadCommitID"])
 
 		stillCanManualMerge := func() bool {
