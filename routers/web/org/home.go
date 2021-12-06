@@ -39,6 +39,7 @@ func Home(ctx *context.Context) {
 	ctx.Data["Title"] = org.DisplayName()
 	if len(org.Description) != 0 {
 		desc, err := markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: ctx.Repo.RepoLink,
 			Metas:     map[string]string{"mode": "document"},
 			GitRepo:   ctx.Repo.GitRepo,

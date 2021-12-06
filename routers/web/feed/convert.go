@@ -180,7 +180,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions []*models.Action) (ite
 					desc += fmt.Sprintf("<a href=\"%s\">%s</a>\n%s",
 						html.EscapeString(fmt.Sprintf("%s/commit/%s", act.GetRepoLink(), commit.Sha1)),
 						commit.Sha1,
-						templates.RenderCommitMessage(commit.Message, repoLink, nil),
+						templates.RenderCommitMessage(ctx, commit.Message, repoLink, nil),
 					)
 				}
 
