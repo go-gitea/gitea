@@ -46,7 +46,7 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 		InsecureSkipVerify: true,
 		ServerName:         setting.Domain,
 	})
-	if setting.Protocol == setting.UnixSocket {
+	if setting.Protocol == setting.HTTPUnix {
 		req.SetTransport(&http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
