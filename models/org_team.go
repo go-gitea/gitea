@@ -164,7 +164,7 @@ func (t *Team) GetUnitsMap() map[string]string {
 		}
 	} else {
 		for _, u := range t.Units {
-			m[u.Unit().NameKey] = u.Authorize.String()
+			m[u.Unit().NameKey] = u.AccessMode.String()
 		}
 	}
 	return m
@@ -484,7 +484,7 @@ func (t *Team) unitAccessMode(e db.Engine, tp unit.Type) perm.AccessMode {
 
 	for _, unit := range t.Units {
 		if unit.Type == tp {
-			return unit.Authorize
+			return unit.AccessMode
 		}
 	}
 	return perm.AccessModeNone
@@ -1056,11 +1056,11 @@ func GetTeamsWithAccessToRepo(orgID, repoID int64, mode perm.AccessMode) ([]*Tea
 
 // TeamUnit describes all units of a repository
 type TeamUnit struct {
-	ID        int64     `xorm:"pk autoincr"`
-	OrgID     int64     `xorm:"INDEX"`
-	TeamID    int64     `xorm:"UNIQUE(s)"`
-	Type      unit.Type `xorm:"UNIQUE(s)"`
-	Authorize perm.AccessMode
+	ID         int64     `xorm:"pk autoincr"`
+	OrgID      int64     `xorm:"INDEX"`
+	TeamID     int64     `xorm:"UNIQUE(s)"`
+	Type       unit.Type `xorm:"UNIQUE(s)"`
+	AccessMode perm.AccessMode
 }
 
 // Unit returns Unit

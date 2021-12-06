@@ -156,9 +156,9 @@ func attachTeamUnits(team *models.Team, units []string) {
 	team.Units = make([]*models.TeamUnit, 0, len(units))
 	for _, tp := range unitTypes {
 		team.Units = append(team.Units, &models.TeamUnit{
-			OrgID:     team.OrgID,
-			Type:      tp,
-			Authorize: team.Authorize,
+			OrgID:      team.OrgID,
+			Type:       tp,
+			AccessMode: team.Authorize,
 		})
 	}
 }
@@ -175,9 +175,9 @@ func attachTeamUnitsMap(team *models.Team, unitsMap map[string]string) {
 	team.Units = make([]*models.TeamUnit, 0, len(unitsMap))
 	for unitKey, p := range unitsMap {
 		team.Units = append(team.Units, &models.TeamUnit{
-			OrgID:     team.OrgID,
-			Type:      unit_model.TypeFromKey(unitKey),
-			Authorize: perm.ParseAccessMode(p),
+			OrgID:      team.OrgID,
+			Type:       unit_model.TypeFromKey(unitKey),
+			AccessMode: perm.ParseAccessMode(p),
 		})
 	}
 }
@@ -210,7 +210,7 @@ func CreateTeam(ctx *context.APIContext) {
 
 	var p = perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-		p = unit_model.MinUnitPerms(convertUnitsMap(form.UnitsMap))
+		p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
 	}
 
 	team := &models.Team{
@@ -294,7 +294,7 @@ func EditTeam(ctx *context.APIContext) {
 		// Validate permission level.
 		var p = perm.ParseAccessMode(form.Permission)
 		if p < perm.AccessModeAdmin && len(form.UnitsMap) > 0 {
-			p = unit_model.MinUnitPerms(convertUnitsMap(form.UnitsMap))
+			p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
 		}
 
 		if team.Authorize != p {

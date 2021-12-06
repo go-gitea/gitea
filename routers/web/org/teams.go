@@ -250,7 +250,7 @@ func NewTeamPost(ctx *context.Context) {
 	var unitPerms = getUnitPerms(ctx.Req.Form)
 	var p = perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin {
-		p = unit_model.MinUnitPerms(unitPerms)
+		p = unit_model.MinUnitAccessMode(unitPerms)
 	}
 
 	t := &models.Team{
@@ -266,9 +266,9 @@ func NewTeamPost(ctx *context.Context) {
 		var units = make([]*models.TeamUnit, 0, len(unitPerms))
 		for tp, perm := range unitPerms {
 			units = append(units, &models.TeamUnit{
-				OrgID:     ctx.Org.Organization.ID,
-				Type:      tp,
-				Authorize: perm,
+				OrgID:      ctx.Org.Organization.ID,
+				Type:       tp,
+				AccessMode: perm,
 			})
 		}
 		t.Units = units
@@ -368,10 +368,10 @@ func EditTeamPost(ctx *context.Context) {
 		var units = make([]models.TeamUnit, 0, len(unitPerms))
 		for tp, perm := range unitPerms {
 			units = append(units, models.TeamUnit{
-				OrgID:     t.OrgID,
-				TeamID:    t.ID,
-				Type:      tp,
-				Authorize: perm,
+				OrgID:      t.OrgID,
+				TeamID:     t.ID,
+				Type:       tp,
+				AccessMode: perm,
 			})
 		}
 		err := models.UpdateTeamUnits(t, units)
