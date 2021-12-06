@@ -57,7 +57,7 @@ var patchErrorSuffices = []string{
 
 // TestPatch will test whether a simple patch will apply
 func TestPatch(pr *models.PullRequest) error {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: %s#%d", pr.BaseRepo.FullName(), pr.Index))
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: Repo[%d]#%d", pr.BaseRepoID, pr.Index))
 	defer finished()
 
 	// Clone base repo.
