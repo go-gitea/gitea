@@ -51,7 +51,7 @@ func GetCommitGraph(r *git.Repository, page int, maxAllowedColors int, hidePRRef
 		args = append(args, files...)
 	}
 
-	graphCmd := git.NewCommand("log")
+	graphCmd := git.NewCommandContext(r.Ctx, "log")
 	graphCmd.AddArguments(args...)
 	graph := NewGraph()
 

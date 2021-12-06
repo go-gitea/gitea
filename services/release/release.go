@@ -283,7 +283,7 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 }
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
-func DeleteReleaseByID(id int64, doer *user_model.User, delTag bool) error {
+func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, delTag bool) error {
 	rel, err := models.GetReleaseByID(id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
@@ -295,7 +295,7 @@ func DeleteReleaseByID(id int64, doer *user_model.User, delTag bool) error {
 	}
 
 	if delTag {
-		if stdout, err := git.NewCommand("tag", "-d", rel.TagName).
+		if stdout, err := git.NewCommandContext(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
 			log.Error("DeleteReleaseByID (git tag -d): %d in %v Failed:\nStdout: %s\nError: %v", rel.ID, repo, stdout, err)

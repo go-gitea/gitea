@@ -54,7 +54,7 @@ func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.I
 	if pr.Flow == models.PullRequestFlowGithub {
 		err = PushToBaseRepo(ctx, pr)
 	} else {
-		err = UpdateRef(pr)
+		err = UpdateRef(ctx, pr)
 	}
 	if err != nil {
 		return err
@@ -463,14 +463,14 @@ func pushToBaseRepoHelper(ctx context.Context, pr *models.PullRequest, prefixHea
 }
 
 // UpdateRef update refs/pull/id/head directly for agit flow pull request
-func UpdateRef(pr *models.PullRequest) (err error) {
+func UpdateRef(ctx context.Context, pr *models.PullRequest) (err error) {
 	log.Trace("UpdateRef[%d]: upgate pull request ref in base repo '%s'", pr.ID, pr.GetGitRefName())
 	if err := pr.LoadBaseRepo(); err != nil {
 		log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		return err
 	}
 
-	_, err = git.NewCommand("update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunInDir(pr.BaseRepo.RepoPath())
+	_, err = git.NewCommandContext(ctx, "update-ref", pr.GetGitRefName(), pr.HeadCommitID).RunInDir(pr.BaseRepo.RepoPath())
 	if err != nil {
 		log.Error("Unable to update ref in base repository for PR[%d] Error: %v", pr.ID, err)
 	}

@@ -520,7 +520,7 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		if isDelTag {

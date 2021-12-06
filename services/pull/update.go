@@ -135,6 +135,6 @@ func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObje
 		}
 	}()
 
-	diff, err := git.GetDivergingCommits(tmpRepo, "base", "tracking")
+	diff, err := git.GetDivergingCommits(ctx, tmpRepo, "base", "tracking")
 	return &diff, err
 }

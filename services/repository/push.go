@@ -186,7 +186,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
 
-					isForce, err := repo_module.IsForcePush(opts)
+					isForce, err := repo_module.IsForcePush(ctx, opts)
 					if err != nil {
 						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}

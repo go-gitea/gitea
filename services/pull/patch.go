@@ -147,7 +147,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 	pr.Status = models.PullRequestStatusChecking
 
 	// 3. Read the base branch in to the index of the temporary repository
-	_, err = git.NewCommand("read-tree", "base").RunInDir(tmpBasePath)
+	_, err = git.NewCommandContext(gitRepo.Ctx, "read-tree", "base").RunInDir(tmpBasePath)
 	if err != nil {
 		return false, fmt.Errorf("git read-tree %s: %v", pr.BaseBranch, err)
 	}
@@ -187,7 +187,7 @@ func checkConflicts(pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath
 
 	// 7. Run the check command
 	conflict := false
-	err = git.NewCommand(args...).
+	err = git.NewCommandContext(gitRepo.Ctx, args...).
 		RunInDirTimeoutEnvFullPipelineFunc(
 			nil, -1, tmpBasePath,
 			nil, stderrWriter, nil,

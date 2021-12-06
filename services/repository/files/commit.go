@@ -50,8 +50,8 @@ func CreateCommitStatus(ctx context.Context, repo *models.Repository, creator *u
 }
 
 // CountDivergingCommits determines how many commits a branch is ahead or behind the repository's base branch
-func CountDivergingCommits(repo *models.Repository, branch string) (*git.DivergeObject, error) {
-	divergence, err := git.GetDivergingCommits(repo.RepoPath(), repo.DefaultBranch, branch)
+func CountDivergingCommits(ctx context.Context, repo *models.Repository, branch string) (*git.DivergeObject, error) {
+	divergence, err := git.GetDivergingCommits(ctx, repo.RepoPath(), repo.DefaultBranch, branch)
 	if err != nil {
 		return nil, err
 	}

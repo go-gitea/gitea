@@ -393,7 +393,7 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 	// I think in the interests of data safety - failures to push to the lfs should prevent
 	// the merge as you can always remerge.
 	if setting.LFS.StartServer {
-		if err := LFSPush(tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
+		if err := LFSPush(ctx, tmpBasePath, mergeHeadSHA, mergeBaseSHA, pr); err != nil {
 			return "", err
 		}
 	}

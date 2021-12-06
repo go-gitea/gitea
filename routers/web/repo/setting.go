@@ -523,7 +523,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repository.CleanUpMigrateInfo(repo); err != nil {
+		if _, err := repository.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = models.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {

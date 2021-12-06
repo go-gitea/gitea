@@ -91,11 +91,11 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	sha, err := getDefaultBranchSha(repo)
+	sha, err := getDefaultBranchSha(ctx, repo)
 	if err != nil {
 		return err
 	}
-	changes, err := getRepoChanges(repo, sha)
+	changes, err := getRepoChanges(ctx, repo, sha)
 	if err != nil {
 		return err
 	} else if changes == nil {

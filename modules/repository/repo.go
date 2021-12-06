@@ -195,7 +195,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.IsMirror = true
 		err = models.UpdateRepository(repo, false)
 	} else {
-		repo, err = CleanUpMigrateInfo(repo)
+		repo, err = CleanUpMigrateInfo(ctx, repo)
 	}
 
 	return repo, err
@@ -216,7 +216,7 @@ func cleanUpMigrateGitConfig(configPath string) error {
 }
 
 // CleanUpMigrateInfo finishes migrating repository and/or wiki with things that don't need to be done for mirrors.
-func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
+func CleanUpMigrateInfo(ctx context.Context, repo *models.Repository) (*models.Repository, error) {
 	repoPath := repo.RepoPath()
 	if err := createDelegateHooks(repoPath); err != nil {
 		return repo, fmt.Errorf("createDelegateHooks: %v", err)
@@ -227,7 +227,7 @@ func CleanUpMigrateInfo(repo *models.Repository) (*models.Repository, error) {
 		}
 	}
 
-	_, err := git.NewCommand("remote", "rm", "origin").RunInDir(repoPath)
+	_, err := git.NewCommandContext(ctx, "remote", "rm", "origin").RunInDir(repoPath)
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {
 		return repo, fmt.Errorf("CleanUpMigrateInfo: %v", err)
 	}

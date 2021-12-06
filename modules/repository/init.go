@@ -38,7 +38,7 @@ func prepareRepoCommit(ctx context.Context, repo *models.Repository, tmpDir, rep
 	)
 
 	// Clone to temporary path and do the init commit.
-	if stdout, err := git.NewCommand("clone", repoPath, tmpDir).
+	if stdout, err := git.NewCommandContext(ctx, "clone", repoPath, tmpDir).
 		SetDescription(fmt.Sprintf("prepareRepoCommit (git clone): %s to %s", repoPath, tmpDir)).
 		RunInDirWithEnv("", env); err != nil {
 		log.Error("Failed to clone from %v into %s: stdout: %s\nError: %v", repo, tmpDir, stdout, err)

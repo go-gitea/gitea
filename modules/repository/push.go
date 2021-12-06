@@ -5,6 +5,7 @@
 package repository
 
 import (
+	"context"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -98,12 +99,12 @@ func (opts *PushUpdateOptions) RepoFullName() string {
 }
 
 // IsForcePush detect if a push is a force push
-func IsForcePush(opts *PushUpdateOptions) (bool, error) {
+func IsForcePush(ctx context.Context, opts *PushUpdateOptions) (bool, error) {
 	if !opts.IsUpdateBranch() {
 		return false, nil
 	}
 
-	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).
+	output, err := git.NewCommandContext(ctx, "rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).
 		RunInDir(models.RepoPath(opts.RepoUserName, opts.RepoName))
 	if err != nil {
 		return false, err

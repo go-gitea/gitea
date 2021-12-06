@@ -669,7 +669,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 			}
 
 			if ok {
-				_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
+				_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {
@@ -693,13 +693,13 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	} else {
 		head = pr.Head.Ref
 		// Ensure the closed PR SHA still points to an existing ref
-		_, err = git.NewCommand("rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		_, err = git.NewCommandContext(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
 		if err != nil {
 			if pr.Head.SHA != "" {
 				// Git update-ref remove bad references with a relative path
 				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
 				relPath := pr.GetGitRefName()
-				_, err = git.NewCommand("update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
+				_, err = git.NewCommandContext(g.ctx, "update-ref", "--no-deref", "-d", relPath).RunInDir(g.repo.RepoPath())
 			} else {
 				// The SHA is empty, remove the head file
 				log.Warn("Empty reference, removing : %v", pullHead)

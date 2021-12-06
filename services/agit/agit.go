@@ -224,7 +224,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
-		if err = pull_service.UpdateRef(pr); err != nil {
+		if err = pull_service.UpdateRef(ctx, pr); err != nil {
 			log.Error("Failed to update pull ref. Error: %v", err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"Err": fmt.Sprintf("Failed to update pull ref. Error: %v", err),

@@ -469,7 +469,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	log.Trace("SyncMirrors [repo: %-v]: done notifying updated branches/tags - now updating last commit time", m.Repo)
 
 	// Get latest commit date and update to current repository updated time
-	commitDate, err := git.GetLatestCommitTime(m.Repo.RepoPath())
+	commitDate, err := git.GetLatestCommitTime(ctx, m.Repo.RepoPath())
 	if err != nil {
 		log.Error("GetLatestCommitDate [%d]: %v", m.RepoID, err)
 		return false

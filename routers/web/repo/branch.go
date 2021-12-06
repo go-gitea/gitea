@@ -242,7 +242,7 @@ func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranche
 		}
 	}
 
-	divergence, divergenceError := files_service.CountDivergingCommits(ctx.Repo.Repository, git.BranchPrefix+branchName)
+	divergence, divergenceError := files_service.CountDivergingCommits(ctx, ctx.Repo.Repository, git.BranchPrefix+branchName)
 	if divergenceError != nil {
 		ctx.ServerError("CountDivergingCommits", divergenceError)
 		return nil
