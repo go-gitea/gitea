@@ -21,8 +21,13 @@ func TestSplitString(t *testing.T) {
 	test := func(tc []*testCase, f func(input string, n int) (left, right string)) {
 		for _, c := range tc {
 			l, r := f(c.input, c.n)
-			assert.Equal(t, c.leftSub+c.ellipsis, l, "test split %s at %d, expected leftSub: %s", c.input, c.n, c.leftSub)
-			assert.Equal(t, c.ellipsis+c.input[len(c.leftSub):], r, "test split %s at %d, expected rightSub: %s", c.input, c.n, c.input[len(c.leftSub):])
+			if c.ellipsis != "" {
+				assert.Equal(t, c.leftSub+c.ellipsis, l, "test split %q at %d, expected leftSub: %q", c.input, c.n, c.leftSub)
+				assert.Equal(t, c.ellipsis+c.input[len(c.leftSub):], r, "test split %s at %d, expected rightSub: %q", c.input, c.n, c.input[len(c.leftSub):])
+			} else {
+				assert.Equal(t, c.leftSub, l, "test split %q at %d, expected leftSub: %q", c.input, c.n, c.leftSub)
+				assert.Equal(t, "", r, "test split %q at %d, expected rightSub: %q", c.input, c.n, "")
+			}
 		}
 	}
 
@@ -32,6 +37,10 @@ func TestSplitString(t *testing.T) {
 		{"abc123xyz", 4, "a", utf8Ellipsis},
 		{"啊bc123xyz", 4, "", utf8Ellipsis},
 		{"啊bc123xyz", 6, "啊", utf8Ellipsis},
+		{"啊bc", 5, "啊bc", ""},
+		{"啊bc", 6, "啊bc", ""},
+		{"abc\xef\x03\xfe", 3, "", asciiEllipsis},
+		{"abc\xef\x03\xfe", 4, "a", asciiEllipsis},
 	}
 	test(tc, SplitStringAtByteN)
 
@@ -41,6 +50,10 @@ func TestSplitString(t *testing.T) {
 		{"abc123xyz", 4, "abc", utf8Ellipsis},
 		{"啊bc123xyz", 4, "啊bc", utf8Ellipsis},
 		{"啊bc123xyz", 6, "啊bc12", utf8Ellipsis},
+		{"啊bc", 3, "啊bc", ""},
+		{"啊bc", 4, "啊bc", ""},
+		{"abc\xef\x03\xfe", 3, "", asciiEllipsis},
+		{"abc\xef\x03\xfe", 4, "a", asciiEllipsis},
 	}
 	test(tc, SplitStringAtRuneN)
 }
