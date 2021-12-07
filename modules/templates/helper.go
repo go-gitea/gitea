@@ -959,10 +959,10 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m models.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())
+	u, err := git.GetRemoteAddress(ctx, m.GetRepository().RepoPath(), m.GetRemoteName())
 	if err != nil {
 		log.Error("GetRemoteAddress %v", err)
 		return a
