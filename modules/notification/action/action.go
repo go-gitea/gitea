@@ -101,14 +101,15 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *m
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	content, truncatedRight := util.SplitStringAtRuneN(comment.Content, 200)
+	truncatedContent, truncatedRight := util.SplitStringAtRuneN(comment.Content, 200)
 	if truncatedRight != "" {
 		// in case the content is in a Latin family language, we remove the last broken word.
-		if lastSpaceIdx := strings.LastIndex(content, " "); lastSpaceIdx != -1 && (len(content)-lastSpaceIdx < 15) {
-			content = comment.Content[:lastSpaceIdx] + "…"
+		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
+		if lastSpaceIdx != -1 && (len(truncatedContent)-lastSpaceIdx < 15) {
+			truncatedContent = truncatedContent[:lastSpaceIdx] + "…"
 		}
 	}
-	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
+	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
 
 	if issue.IsPull {
 		act.OpType = models.ActionCommentPull
