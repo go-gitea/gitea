@@ -69,7 +69,7 @@ Gitea 是從 [Gogs](http://gogs.io) Fork 出來的，請閱讀部落格文章 [G
     - PostgreSQL
     - SQLite3
     - MSSQL
-    - TiDB（實驗中, 不建議使用）
+    - TiDB（MySQL 協議）
   - 設定檔
     - [app.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini)
   - 管理員面板
