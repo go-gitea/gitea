@@ -41,6 +41,7 @@ func TestSplitString(t *testing.T) {
 		{"啊bc", 6, "啊bc", ""},
 		{"abc\xef\x03\xfe", 3, "", asciiEllipsis},
 		{"abc\xef\x03\xfe", 4, "a", asciiEllipsis},
+		{"\xef\x03", 1, "\xef\x03", ""},
 	}
 	test(tc, SplitStringAtByteN)
 
@@ -54,6 +55,7 @@ func TestSplitString(t *testing.T) {
 		{"啊bc", 4, "啊bc", ""},
 		{"abc\xef\x03\xfe", 3, "", asciiEllipsis},
 		{"abc\xef\x03\xfe", 4, "a", asciiEllipsis},
+		{"\xef\x03", 1, "\xef\x03", ""},
 	}
 	test(tc, SplitStringAtRuneN)
 }
