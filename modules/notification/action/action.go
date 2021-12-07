@@ -101,7 +101,7 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *m
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	truncatedContent, truncatedRight := util.SplitStringAtRuneN(comment.Content, 200)
+	truncatedContent, truncatedRight := util.SplitStringAtByteN(comment.Content, 200)
 	if truncatedRight != "" {
 		// in case the content is in a Latin family language, we remove the last broken word.
 		lastSpaceIdx := strings.LastIndex(truncatedContent, " ")
