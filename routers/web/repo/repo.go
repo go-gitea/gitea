@@ -6,12 +6,12 @@
 package repo
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
-	"encoding/base64"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"

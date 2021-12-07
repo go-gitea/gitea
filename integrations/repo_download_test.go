@@ -7,14 +7,15 @@
 package integrations
 
 import (
+	"encoding/base64"
 	"net/http"
 	"path"
 	"testing"
-	"encoding/base64"
 
 	"github.com/stretchr/testify/assert"
-	// gitea/integrations/integration_test.go -> NewRequest
 )
+
+// gitea/integrations/integration_test.go -> NewRequest
 
 // gitea/routers/web/repo/repo.go: addCommitObjectResponseHeader
 func TestRepoDownloadWithCommitObject(t *testing.T) {
@@ -41,7 +42,7 @@ func TestRepoDownloadWithCommitObject(t *testing.T) {
 	bytes, err := base64.StdEncoding.DecodeString(str64)
 	assert.NoError(t, err)
 	str := string(bytes)
-	strExpected := (
+	strExpected := ("" +
 		"tree 2a2f1d4670728a2e10049e345bd7a276468beab6\n" +
 		"author user1 <address1@example.com> 1489956479 -0400\n" +
 		"committer Ethan Koenig <ethantkoenig@gmail.com> 1489956479 -0400\n" +
