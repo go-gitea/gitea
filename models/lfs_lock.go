@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/xorm"
 )
@@ -111,6 +112,24 @@ func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
 	}
 	lfsLocks := make([]*LFSLock, 0, pageSize)
 	return lfsLocks, e.Find(&lfsLocks, &LFSLock{RepoID: repoID})
+}
+
+// GetTreePathLock returns LSF lock for the treePath
+func GetTreePathLock(repoID int64, treePath string) (*LFSLock, error) {
+	if !setting.LFS.StartServer {
+		return nil, nil
+	}
+
+	locks, err := GetLFSLockByRepoID(repoID, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	for _, lock := range locks {
+		if lock.Path == treePath {
+			return lock, nil
+		}
+	}
+	return nil, nil
 }
 
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.

@@ -96,7 +96,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			}
 
 			// Now update the size of the repository
-			if err := repo.UpdateSize(db.DefaultContext); err != nil {
+			if err := models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 				log.Error("Updating size as part of garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
 				desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
 				if err = admin_model.CreateRepositoryNotice(desc); err != nil {

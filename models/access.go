@@ -81,7 +81,7 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 }
 
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func (repo *Repository) refreshAccesses(e db.Engine, accessMap map[int64]*userAccess) (err error) {
+func refreshAccesses(e db.Engine, repo *Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
 		minMode = perm.AccessModeWrite
@@ -115,8 +115,8 @@ func (repo *Repository) refreshAccesses(e db.Engine, accessMap map[int64]*userAc
 }
 
 // refreshCollaboratorAccesses retrieves repository collaborations with their access modes.
-func (repo *Repository) refreshCollaboratorAccesses(e db.Engine, accessMap map[int64]*userAccess) error {
-	collaborators, err := repo.getCollaborators(e, db.ListOptions{})
+func refreshCollaboratorAccesses(e db.Engine, repoID int64, accessMap map[int64]*userAccess) error {
+	collaborators, err := getCollaborators(e, repoID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborations: %v", err)
 	}
@@ -132,7 +132,7 @@ func (repo *Repository) refreshCollaboratorAccesses(e db.Engine, accessMap map[i
 // recalculateTeamAccesses recalculates new accesses for teams of an organization
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
-func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (err error) {
+func recalculateTeamAccesses(e db.Engine, repo *Repository, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
 	if err = repo.getOwner(e); err != nil {
@@ -141,7 +141,7 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
 	}
 
-	if err = repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
+	if err = refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
 
@@ -171,19 +171,19 @@ func (repo *Repository) recalculateTeamAccesses(e db.Engine, ignTeamID int64) (e
 		}
 	}
 
-	return repo.refreshAccesses(e, accessMap)
+	return refreshAccesses(e, repo, accessMap)
 }
 
 // recalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error) {
+func recalculateUserAccess(e db.Engine, repo *Repository, uid int64) (err error) {
 	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
 		minMode = perm.AccessModeWrite
 	}
 
 	accessMode := perm.AccessModeNone
-	collaborator, err := repo.getCollaboration(e, uid)
+	collaborator, err := getCollaboration(e, repo.ID, uid)
 	if err != nil {
 		return err
 	} else if collaborator != nil {
@@ -223,19 +223,19 @@ func (repo *Repository) recalculateUserAccess(e db.Engine, uid int64) (err error
 	return nil
 }
 
-func (repo *Repository) recalculateAccesses(e db.Engine) error {
+func recalculateAccesses(e db.Engine, repo *Repository) error {
 	if repo.Owner.IsOrganization() {
-		return repo.recalculateTeamAccesses(e, 0)
+		return recalculateTeamAccesses(e, repo, 0)
 	}
 
 	accessMap := make(map[int64]*userAccess, 20)
-	if err := repo.refreshCollaboratorAccesses(e, accessMap); err != nil {
+	if err := refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
-	return repo.refreshAccesses(e, accessMap)
+	return refreshAccesses(e, repo, accessMap)
 }
 
 // RecalculateAccesses recalculates all accesses for repository.
-func (repo *Repository) RecalculateAccesses() error {
-	return repo.recalculateAccesses(db.GetEngine(db.DefaultContext))
+func RecalculateAccesses(repo *Repository) error {
+	return recalculateAccesses(db.GetEngine(db.DefaultContext), repo)
 }

@@ -226,7 +226,7 @@ func (t *Team) addRepository(e db.Engine, repo *Repository) (err error) {
 
 	t.NumRepos++
 
-	if err = repo.recalculateTeamAccesses(e, 0); err != nil {
+	if err = recalculateTeamAccesses(e, repo, 0); err != nil {
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
@@ -324,7 +324,7 @@ func (t *Team) RemoveAllRepositories() (err error) {
 func (t *Team) removeAllRepositories(e db.Engine) (err error) {
 	// Delete all accesses.
 	for _, repo := range t.Repos {
-		if err := repo.recalculateTeamAccesses(e, t.ID); err != nil {
+		if err := recalculateTeamAccesses(e, repo, t.ID); err != nil {
 			return err
 		}
 
@@ -377,7 +377,7 @@ func (t *Team) removeRepository(e db.Engine, repo *Repository, recalculate bool)
 
 	// Don't need to recalculate when delete a repository from organization.
 	if recalculate {
-		if err = repo.recalculateTeamAccesses(e, t.ID); err != nil {
+		if err = recalculateTeamAccesses(e, repo, t.ID); err != nil {
 			return err
 		}
 	}
@@ -660,7 +660,7 @@ func UpdateTeam(t *Team, authChanged, includeAllChanged bool) (err error) {
 		}
 
 		for _, repo := range t.Repos {
-			if err = repo.recalculateTeamAccesses(sess, 0); err != nil {
+			if err = recalculateTeamAccesses(sess, repo, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
 		}
@@ -848,7 +848,7 @@ func AddTeamMember(team *Team, userID int64) error {
 
 	// Give access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateUserAccess(sess, userID); err != nil {
+		if err := recalculateUserAccess(sess, repo, userID); err != nil {
 			return err
 		}
 		if setting.Service.AutoWatchNewRepos {
@@ -894,7 +894,7 @@ func removeTeamMember(ctx context.Context, team *Team, userID int64) error {
 
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
-		if err := repo.recalculateUserAccess(e, userID); err != nil {
+		if err := recalculateUserAccess(e, repo, userID); err != nil {
 			return err
 		}
 

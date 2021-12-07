@@ -29,7 +29,7 @@ func ProtectedBranch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsBranches"] = true
 
-	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
+	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return
@@ -123,7 +123,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 	}
 
-	users, err := c.Repo.Repository.GetReaders()
+	users, err := models.GetRepoReaders(c.Repo.Repository)
 	if err != nil {
 		c.ServerError("Repo.Repository.GetReaders", err)
 		return
@@ -279,7 +279,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, util.PathEscapeSegments(branch)))
 	} else {
 		if protectBranch != nil {
-			if err := ctx.Repo.Repository.DeleteProtectedBranch(protectBranch.ID); err != nil {
+			if err := models.DeleteProtectedBranch(ctx.Repo.Repository.ID, protectBranch.ID); err != nil {
 				ctx.ServerError("DeleteProtectedBranch", err)
 				return
 			}

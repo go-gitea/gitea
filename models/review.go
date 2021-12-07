@@ -251,7 +251,7 @@ func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*user_model.User
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
+		official, err := isUserOfficialReviewer(e, pr.ProtectedBranch, reviewer)
 		if official || err != nil {
 			return official, err
 		}

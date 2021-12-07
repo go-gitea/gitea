@@ -23,7 +23,7 @@ import (
 
 // ForkRepository forks a repository
 func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
-	forkedRepo, err := opts.BaseRepo.GetUserFork(owner.ID)
+	forkedRepo, err := models.GetUserFork(opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -131,8 +131,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	ctx := db.DefaultContext
-	if err := repo.UpdateSize(ctx); err != nil {
+	if err := models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 	if err := models.CopyLanguageStat(opts.BaseRepo, repo); err != nil {

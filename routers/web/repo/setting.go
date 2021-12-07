@@ -770,7 +770,7 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := ctx.Repo.Repository.GetCollaborators(db.ListOptions{})
+	users, err := models.GetCollaborators(ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
@@ -1136,7 +1136,7 @@ func UpdateAvatarSetting(ctx *context.Context, form forms.AvatarForm) error {
 	if !(st.IsImage() && !st.IsSvgImage()) {
 		return errors.New(ctx.Tr("settings.uploaded_avatar_not_a_image"))
 	}
-	if err = ctxRepo.UploadAvatar(data); err != nil {
+	if err = models.UploadRepoAvatar(ctxRepo, data); err != nil {
 		return fmt.Errorf("UploadAvatar: %v", err)
 	}
 	return nil
@@ -1156,7 +1156,7 @@ func SettingsAvatar(ctx *context.Context) {
 
 // SettingsDeleteAvatar delete repository avatar
 func SettingsDeleteAvatar(ctx *context.Context) {
-	if err := ctx.Repo.Repository.DeleteAvatar(); err != nil {
+	if err := models.DeleteRepoAvatar(ctx.Repo.Repository); err != nil {
 		ctx.Flash.Error(fmt.Sprintf("DeleteAvatar: %v", err))
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")

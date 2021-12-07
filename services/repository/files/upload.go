@@ -39,7 +39,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if _, err := t.repo.RemoveLFSMetaObjectByOid(info.lfsMetaObject.Oid); err != nil {
+			if _, err := models.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%v, %v", original, err)
 			}
 		}
@@ -63,7 +63,7 @@ func UploadRepoFiles(repo *models.Repository, doer *user_model.User, opts *Uploa
 	for i, upload := range uploads {
 		// Check file is not lfs locked, will return nil if lock setting not enabled
 		filepath := path.Join(opts.TreePath, upload.Name)
-		lfsLock, err := repo.GetTreePathLock(filepath)
+		lfsLock, err := models.GetTreePathLock(repo.ID, filepath)
 		if err != nil {
 			return err
 		}

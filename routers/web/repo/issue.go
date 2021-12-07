@@ -272,7 +272,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatus"] = commitStatus
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo.GetAssignees()
+	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -431,7 +431,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 		return
 	}
 
-	ctx.Data["Assignees"], err = repo.GetAssignees()
+	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -513,13 +513,13 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 			posterID = 0
 		}
 
-		reviewers, err = repo.GetReviewers(ctx.User.ID, posterID)
+		reviewers, err = models.GetReviewers(repo, ctx.User.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
 
-		teamReviewers, err = repo.GetReviewerTeams()
+		teamReviewers, err = models.GetReviewerTeams(repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -887,11 +887,16 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByID(milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
 		}
+		if milestone.RepoID != repo.ID {
+			ctx.ServerError("GetMilestoneByID", err)
+			return nil, nil, 0, 0
+		}
+		ctx.Data["Milestone"] = milestone
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
@@ -1498,7 +1503,7 @@ func ViewIssue(ctx *context.Context) {
 				}
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
-					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
+					if protected, err := models.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
 						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true

@@ -21,7 +21,7 @@ func GetYamlFixturesAccess() (string, error) {
 
 	for _, repo := range repos {
 		repo.MustOwner()
-		if err := repo.RecalculateAccesses(); err != nil {
+		if err := RecalculateAccesses(repo); err != nil {
 			return "", err
 		}
 	}

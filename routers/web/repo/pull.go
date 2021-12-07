@@ -702,7 +702,7 @@ func ViewPullFiles(ctx *context.Context) {
 	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
-	if ctx.Data["Assignees"], err = ctx.Repo.Repository.GetAssignees(); err != nil {
+	if ctx.Data["Assignees"], err = models.GetRepoAssignees(ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
 	}

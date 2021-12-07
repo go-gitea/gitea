@@ -27,7 +27,7 @@ func (repo *Repository) CustomAvatarRelativePath() string {
 }
 
 // generateRandomAvatar generates a random avatar for repository.
-func (repo *Repository) generateRandomAvatar(e db.Engine) error {
+func generateRandomAvatar(e db.Engine, repo *Repository) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
 	seed := idToString
@@ -70,7 +70,7 @@ func RemoveRandomAvatars(ctx context.Context) error {
 				}
 				stringifiedID := strconv.FormatInt(repository.ID, 10)
 				if repository.Avatar == stringifiedID {
-					return repository.DeleteAvatar()
+					return DeleteRepoAvatar(repository)
 				}
 				return nil
 			})
@@ -89,7 +89,7 @@ func (repo *Repository) relAvatarLink(e db.Engine) string {
 		case "image":
 			return setting.RepoAvatar.FallbackImage
 		case "random":
-			if err := repo.generateRandomAvatar(e); err != nil {
+			if err := generateRandomAvatar(e, repo); err != nil {
 				log.Error("generateRandomAvatar: %v", err)
 			}
 		default:
@@ -116,9 +116,9 @@ func (repo *Repository) avatarLink(e db.Engine) string {
 	return link
 }
 
-// UploadAvatar saves custom avatar for repository.
+// UploadRepoAvatar saves custom avatar for repository.
 // FIXME: split uploads to different subdirs in case we have massive number of repos.
-func (repo *Repository) UploadAvatar(data []byte) error {
+func UploadRepoAvatar(repo *Repository, data []byte) error {
 	m, err := avatar.Prepare(data)
 	if err != nil {
 		return err
@@ -162,8 +162,8 @@ func (repo *Repository) UploadAvatar(data []byte) error {
 	return committer.Commit()
 }
 
-// DeleteAvatar deletes the repos's custom avatar.
-func (repo *Repository) DeleteAvatar() error {
+// DeleteRepoAvatar deletes the repos's custom avatar.
+func DeleteRepoAvatar(repo *Repository) error {
 	// Avatar not exists
 	if len(repo.Avatar) == 0 {
 		return nil

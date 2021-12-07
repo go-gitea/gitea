@@ -9,6 +9,7 @@ import (
 	"errors"
 	"net/http"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -48,13 +49,13 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	count, err := ctx.Repo.Repository.CountCollaborators()
+	count, err := models.CountCollaborators(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	collaborators, err := ctx.Repo.Repository.GetCollaborators(utils.GetListOptions(ctx))
+	collaborators, err := models.GetCollaborators(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -254,7 +255,7 @@ func GetReviewers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	reviewers, err := ctx.Repo.Repository.GetReviewers(ctx.User.ID, 0)
+	reviewers, err := models.GetReviewers(ctx.Repo.Repository, ctx.User.ID, 0)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -284,7 +285,7 @@ func GetAssignees(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	assignees, err := ctx.Repo.Repository.GetAssignees()
+	assignees, err := models.GetRepoAssignees(ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return

@@ -73,7 +73,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	if setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := repo.GetLFSMetaObjectByOid(pointer.Oid)
+			meta, err := models.GetLFSMetaObjectByOid(repo.ID, pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				// return default
 				return "UTF-8", false
@@ -413,7 +413,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts
 		}
 		if !exist {
 			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(opts.Content)); err != nil {
-				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := models.RemoveLFSMetaObjectByOid(repo.ID, lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -441,7 +441,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
 func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, branchName string, treePath string) error {
-	protectedBranch, err := repo.GetBranchProtection(branchName)
+	protectedBranch, err := models.GetBranchProtection(repo.ID, branchName)
 	if err != nil {
 		return err
 	}

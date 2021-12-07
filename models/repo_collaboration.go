@@ -50,7 +50,7 @@ func (repo *Repository) addCollaborator(e db.Engine, u *user_model.User) error {
 		return err
 	}
 
-	return repo.recalculateUserAccess(e, u.ID)
+	return recalculateUserAccess(e, repo, u.ID)
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
@@ -68,16 +68,16 @@ func (repo *Repository) AddCollaborator(u *user_model.User) error {
 	return committer.Commit()
 }
 
-func (repo *Repository) getCollaborations(e db.Engine, listOptions db.ListOptions) ([]*Collaboration, error) {
+func getCollaborations(e db.Engine, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
 		collaborations := make([]*Collaboration, 0, 8)
-		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
+		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
 	}
 
 	e = db.SetEnginePagination(e, &listOptions)
 
 	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
-	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repo.ID})
+	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
 }
 
 // Collaborator represents a user with collaboration details.
@@ -86,8 +86,8 @@ type Collaborator struct {
 	Collaboration *Collaboration
 }
 
-func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions) ([]*Collaborator, error) {
-	collaborations, err := repo.getCollaborations(e, listOptions)
+func getCollaborators(e db.Engine, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
+	collaborations, err := getCollaborations(e, repoID, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
@@ -97,7 +97,7 @@ func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions
 		user, err := user_model.GetUserByIDEngine(e, c.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repo)
+				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
 				user = user_model.NewGhostUser()
 			} else {
 				return nil, err
@@ -112,18 +112,18 @@ func (repo *Repository) getCollaborators(e db.Engine, listOptions db.ListOptions
 }
 
 // GetCollaborators returns the collaborators for a repository
-func (repo *Repository) GetCollaborators(listOptions db.ListOptions) ([]*Collaborator, error) {
-	return repo.getCollaborators(db.GetEngine(db.DefaultContext), listOptions)
+func GetCollaborators(repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
+	return getCollaborators(db.GetEngine(db.DefaultContext), repoID, listOptions)
 }
 
 // CountCollaborators returns total number of collaborators for a repository
-func (repo *Repository) CountCollaborators() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repo.ID).Count(&Collaboration{})
+func CountCollaborators(repoID int64) (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repoID).Count(&Collaboration{})
 }
 
-func (repo *Repository) getCollaboration(e db.Engine, uid int64) (*Collaboration, error) {
+func getCollaboration(e db.Engine, repoID, uid int64) (*Collaboration, error) {
 	collaboration := &Collaboration{
-		RepoID: repo.ID,
+		RepoID: repoID,
 		UserID: uid,
 	}
 	has, err := e.Get(collaboration)
@@ -208,7 +208,7 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 
 	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
 		return err
-	} else if err = repo.recalculateAccesses(sess); err != nil {
+	} else if err = recalculateAccesses(sess, repo); err != nil {
 		return err
 	}
 

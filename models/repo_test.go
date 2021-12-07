@@ -126,14 +126,14 @@ func TestGetUserFork(t *testing.T) {
 	repo, err := GetRepositoryByID(10)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo.GetUserFork(13)
+	repo, err = GetUserFork(repo.ID, 13)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
 
 	repo, err = GetRepositoryByID(9)
 	assert.NoError(t, err)
 	assert.NotNil(t, repo)
-	repo, err = repo.GetUserFork(13)
+	repo, err = GetUserFork(repo.ID, 13)
 	assert.NoError(t, err)
 	assert.Nil(t, repo)
 }
@@ -154,7 +154,7 @@ func TestUploadAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
-	err := repo.UploadAvatar(buff.Bytes())
+	err := UploadRepoAvatar(repo, buff.Bytes())
 	assert.NoError(t, err)
 	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
 }
@@ -168,7 +168,7 @@ func TestUploadBigAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
-	err := repo.UploadAvatar(buff.Bytes())
+	err := UploadRepoAvatar(repo, buff.Bytes())
 	assert.Error(t, err)
 }
 
@@ -181,10 +181,10 @@ func TestDeleteAvatar(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
 
-	err := repo.UploadAvatar(buff.Bytes())
+	err := UploadRepoAvatar(repo, buff.Bytes())
 	assert.NoError(t, err)
 
-	err = repo.DeleteAvatar()
+	err = DeleteRepoAvatar(repo)
 	assert.NoError(t, err)
 
 	assert.Equal(t, "", repo.Avatar)
@@ -202,13 +202,13 @@ func TestRepoGetReviewers(t *testing.T) {
 	// test public repo
 	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
-	reviewers, err := repo1.GetReviewers(2, 2)
+	reviewers, err := GetReviewers(repo1, 2, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
 	// test private repo
 	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	reviewers, err = repo2.GetReviewers(2, 2)
+	reviewers, err = GetReviewers(repo2, 2, 2)
 	assert.NoError(t, err)
 	assert.Empty(t, reviewers)
 }
@@ -217,12 +217,12 @@ func TestRepoGetReviewerTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	teams, err := repo2.GetReviewerTeams()
+	teams, err := GetReviewerTeams(repo2)
 	assert.NoError(t, err)
 	assert.Empty(t, teams)
 
 	repo3 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
-	teams, err = repo3.GetReviewerTeams()
+	teams, err = GetReviewerTeams(repo3)
 	assert.NoError(t, err)
 	assert.Len(t, teams, 2)
 }

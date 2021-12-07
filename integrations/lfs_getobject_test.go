@@ -43,7 +43,7 @@ func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, exp
 	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer repo.RemoveLFSMetaObjectByOid(oid)
+	defer models.RemoveLFSMetaObjectByOid(repo.ID, oid)
 
 	session := loginUser(t, "user2")
 

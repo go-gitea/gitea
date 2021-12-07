@@ -536,7 +536,7 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 	return repo.DocumentRenderingMetas
 }
 
-func (repo *Repository) getAssignees(e db.Engine) (_ []*user_model.User, err error) {
+func getRepoAssignees(e db.Engine, repo *Repository) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -568,13 +568,13 @@ func (repo *Repository) getAssignees(e db.Engine) (_ []*user_model.User, err err
 	return users, nil
 }
 
-// GetAssignees returns all users that have write access and can be assigned to issues
+// GetRepoAssignees returns all users that have write access and can be assigned to issues
 // of the repository,
-func (repo *Repository) GetAssignees() (_ []*user_model.User, err error) {
-	return repo.getAssignees(db.GetEngine(db.DefaultContext))
+func GetRepoAssignees(repo *Repository) (_ []*user_model.User, err error) {
+	return getRepoAssignees(db.GetEngine(db.DefaultContext), repo)
 }
 
-func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*user_model.User, error) {
+func getReviewers(e db.Engine, repo *Repository, doerID, posterID int64) ([]*user_model.User, error) {
 	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
 	if err := repo.getOwner(e); err != nil {
 		return nil, err
@@ -622,12 +622,12 @@ func (repo *Repository) getReviewers(e db.Engine, doerID, posterID int64) ([]*us
 // * for public repositories this returns all users that have read access or higher to the repository,
 // all repo watchers and all organization members.
 // TODO: may be we should have a busy choice for users to block review request to them.
-func (repo *Repository) GetReviewers(doerID, posterID int64) ([]*user_model.User, error) {
-	return repo.getReviewers(db.GetEngine(db.DefaultContext), doerID, posterID)
+func GetReviewers(repo *Repository, doerID, posterID int64) ([]*user_model.User, error) {
+	return getReviewers(db.GetEngine(db.DefaultContext), repo, doerID, posterID)
 }
 
 // GetReviewerTeams get all teams can be requested to review
-func (repo *Repository) GetReviewerTeams() ([]*Team, error) {
+func GetReviewerTeams(repo *Repository) ([]*Team, error) {
 	if err := repo.GetOwner(); err != nil {
 		return nil, err
 	}
@@ -641,16 +641,6 @@ func (repo *Repository) GetReviewerTeams() ([]*Team, error) {
 	}
 
 	return teams, err
-}
-
-// GetMilestoneByID returns the milestone belongs to repository by given ID.
-func (repo *Repository) GetMilestoneByID(milestoneID int64) (*Milestone, error) {
-	return GetMilestoneByRepoID(repo.ID, milestoneID)
-}
-
-// IssueStats returns number of open and closed repository issues by given filter mode.
-func (repo *Repository) IssueStats(uid int64, filterMode int, isPull bool) (int64, int64) {
-	return GetRepoIssueStats(repo.ID, uid, filterMode, isPull)
 }
 
 // GetMirror sets the repository mirror, returns an error upon failure
@@ -738,7 +728,7 @@ func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
 }
 
-func (repo *Repository) updateSize(e db.Engine) error {
+func updateRepoSize(e db.Engine, repo *Repository) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
@@ -754,9 +744,9 @@ func (repo *Repository) updateSize(e db.Engine) error {
 	return err
 }
 
-// UpdateSize updates the repository size, calculating it using util.GetDirectorySize
-func (repo *Repository) UpdateSize(ctx context.Context) error {
-	return repo.updateSize(db.GetEngine(ctx))
+// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+func UpdateRepoSize(ctx context.Context, repo *Repository) error {
+	return updateRepoSize(db.GetEngine(ctx), repo)
 }
 
 // CanUserForkRepo returns true if specified user can fork repository.
@@ -816,18 +806,18 @@ func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror
 }
 
-// GetReaders returns all users that have explicit read access or higher to the repository.
-func (repo *Repository) GetReaders() (_ []*user_model.User, err error) {
-	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), perm.AccessModeRead)
+// GetRepoReaders returns all users that have explicit read access or higher to the repository.
+func GetRepoReaders(repo *Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(db.GetEngine(db.DefaultContext), repo, perm.AccessModeRead)
 }
 
-// GetWriters returns all users that have write access to the repository.
-func (repo *Repository) GetWriters() (_ []*user_model.User, err error) {
-	return repo.getUsersWithAccessMode(db.GetEngine(db.DefaultContext), perm.AccessModeWrite)
+// GetRepoWriters returns all users that have write access to the repository.
+func GetRepoWriters(repo *Repository) (_ []*user_model.User, err error) {
+	return getUsersWithAccessMode(db.GetEngine(db.DefaultContext), repo, perm.AccessModeWrite)
 }
 
-// IsReader returns true if user has explicit read access or higher to the repository.
-func (repo *Repository) IsReader(userID int64) (bool, error) {
+// IsRepoReader returns true if user has explicit read access or higher to the repository.
+func IsRepoReader(repo *Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}
@@ -835,7 +825,7 @@ func (repo *Repository) IsReader(userID int64) (bool, error) {
 }
 
 // getUsersWithAccessMode returns users that have at least given access mode to the repository.
-func (repo *Repository) getUsersWithAccessMode(e db.Engine, mode perm.AccessMode) (_ []*user_model.User, err error) {
+func getUsersWithAccessMode(e db.Engine, repo *Repository, mode perm.AccessMode) (_ []*user_model.User, err error) {
 	if err = repo.getOwner(e); err != nil {
 		return nil, err
 	}
@@ -1148,7 +1138,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *Repos
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}
-	} else if err = repo.recalculateAccesses(db.GetEngine(ctx)); err != nil {
+	} else if err = recalculateAccesses(db.GetEngine(ctx), repo); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
@@ -1321,7 +1311,7 @@ func updateRepository(e db.Engine, repo *Repository, visibilityChanged bool) (er
 		return fmt.Errorf("update: %v", err)
 	}
 
-	if err = repo.updateSize(e); err != nil {
+	if err = updateRepoSize(e, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -1331,7 +1321,7 @@ func updateRepository(e db.Engine, repo *Repository, visibilityChanged bool) (er
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
-			if err = repo.recalculateTeamAccesses(e, 0); err != nil {
+			if err = recalculateTeamAccesses(e, repo, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
 		}
@@ -2016,26 +2006,8 @@ func HasForkedRepo(ownerID, repoID int64) bool {
 	return has
 }
 
-// CopyLFS copies LFS data from one repo to another
-func CopyLFS(ctx context.Context, newRepo, oldRepo *Repository) error {
-	var lfsObjects []*LFSMetaObject
-	if err := db.GetEngine(ctx).Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
-		return err
-	}
-
-	for _, v := range lfsObjects {
-		v.ID = 0
-		v.RepositoryID = newRepo.ID
-		if _, err := db.GetEngine(ctx).Insert(v); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // GetForks returns all the forks of the repository
-func (repo *Repository) GetForks(listOptions db.ListOptions) ([]*Repository, error) {
+func GetForks(repo *Repository, listOptions db.ListOptions) ([]*Repository, error) {
 	if listOptions.Page == 0 {
 		forks := make([]*Repository, 0, repo.NumForks)
 		return forks, db.GetEngine(db.DefaultContext).Find(&forks, &Repository{ForkID: repo.ID})
@@ -2047,9 +2019,9 @@ func (repo *Repository) GetForks(listOptions db.ListOptions) ([]*Repository, err
 }
 
 // GetUserFork return user forked repository from this repository, if not forked return nil
-func (repo *Repository) GetUserFork(userID int64) (*Repository, error) {
+func GetUserFork(repoID, userID int64) (*Repository, error) {
 	var forkedRepo Repository
-	has, err := db.GetEngine(db.DefaultContext).Where("fork_id = ?", repo.ID).And("owner_id = ?", userID).Get(&forkedRepo)
+	has, err := db.GetEngine(db.DefaultContext).Where("fork_id = ?", repoID).And("owner_id = ?", userID).Get(&forkedRepo)
 	if err != nil {
 		return nil, err
 	}
@@ -2067,22 +2039,6 @@ func (repo *Repository) GetOriginalURLHostname() string {
 	}
 
 	return u.Host
-}
-
-// GetTreePathLock returns LSF lock for the treePath
-func (repo *Repository) GetTreePathLock(treePath string) (*LFSLock, error) {
-	if setting.LFS.StartServer {
-		locks, err := GetLFSLockByRepoID(repo.ID, 0, 0)
-		if err != nil {
-			return nil, err
-		}
-		for _, lock := range locks {
-			if lock.Path == treePath {
-				return lock, nil
-			}
-		}
-	}
-	return nil, nil
 }
 
 func updateRepositoryCols(e db.Engine, repo *Repository, cols ...string) error {

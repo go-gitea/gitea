@@ -88,7 +88,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = repo.UpdateSize(db.DefaultContext); err != nil {
+	if err = models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -209,7 +209,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
-				if err = models.RemoveDeletedBranch(repo.ID, branch); err != nil {
+				if err = models.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 

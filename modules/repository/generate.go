@@ -229,7 +229,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *models.
 		return err
 	}
 
-	if err := generateRepo.UpdateSize(ctx); err != nil {
+	if err := models.UpdateRepoSize(ctx, generateRepo); err != nil {
 		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 

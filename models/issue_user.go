@@ -25,7 +25,7 @@ func init() {
 }
 
 func newIssueUsers(e db.Engine, repo *Repository, issue *Issue) error {
-	assignees, err := repo.getAssignees(e)
+	assignees, err := getRepoAssignees(e, repo)
 	if err != nil {
 		return fmt.Errorf("getAssignees: %v", err)
 	}

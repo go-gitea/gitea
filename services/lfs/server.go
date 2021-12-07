@@ -195,7 +195,7 @@ func BatchHandler(ctx *context.Context) {
 			return
 		}
 
-		meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
+		meta, err := models.GetLFSMetaObjectByOid(repository.ID, p.Oid)
 		if err != nil && err != models.ErrLFSObjectNotExist {
 			log.Error("Unable to get LFS MetaObject [%s] for %s/%s. Error: %v", p.Oid, rc.User, rc.Repo, err)
 			writeStatus(ctx, http.StatusInternalServerError)
@@ -333,7 +333,7 @@ func UploadHandler(ctx *context.Context) {
 		} else {
 			writeStatus(ctx, http.StatusInternalServerError)
 		}
-		if _, err = repository.RemoveLFSMetaObjectByOid(p.Oid); err != nil {
+		if _, err = models.RemoveLFSMetaObjectByOid(repository.ID, p.Oid); err != nil {
 			log.Error("Error whilst removing metaobject for LFS OID[%s]: %v", p.Oid, err)
 		}
 		return
@@ -396,7 +396,7 @@ func getAuthenticatedMeta(ctx *context.Context, rc *requestContext, p lfs_module
 		return nil
 	}
 
-	meta, err := repository.GetLFSMetaObjectByOid(p.Oid)
+	meta, err := models.GetLFSMetaObjectByOid(repository.ID, p.Oid)
 	if err != nil {
 		log.Error("Unable to get LFS OID[%s] Error: %v", p.Oid, err)
 		writeStatus(ctx, http.StatusNotFound)

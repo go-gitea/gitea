@@ -142,7 +142,7 @@ func setTagsContext(ctx *context.Context) error {
 	}
 	ctx.Data["ProtectedTags"] = protectedTags
 
-	users, err := ctx.Repo.Repository.GetReaders()
+	users, err := models.GetRepoReaders(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("Repo.Repository.GetReaders", err)
 		return err

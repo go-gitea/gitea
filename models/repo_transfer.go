@@ -271,7 +271,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *Reposit
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := repo.getCollaborators(sess, db.ListOptions{})
+	collaborators, err := getCollaborators(sess, repo.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
@@ -321,7 +321,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *Reposit
 				}
 			}
 		}
-	} else if err := repo.recalculateAccesses(sess); err != nil {
+	} else if err := recalculateAccesses(sess, repo); err != nil {
 		// Organization called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}

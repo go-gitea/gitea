@@ -76,7 +76,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 			return nil, err
 		}
 		branch.UserCanPush = bp.CanUserPush(user.ID)
-		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID, permission)
+		branch.UserCanMerge = models.IsUserMergeWhitelisted(bp, user.ID, permission)
 	}
 
 	return branch, nil

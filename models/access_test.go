@@ -100,7 +100,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
-	assert.NoError(t, repo1.RecalculateAccesses())
+	assert.NoError(t, RecalculateAccesses(repo1))
 
 	access := &Access{UserID: 2, RepoID: 3}
 	has, err := db.GetEngine(db.DefaultContext).Get(access)
@@ -117,7 +117,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
-	assert.NoError(t, repo1.RecalculateAccesses())
+	assert.NoError(t, RecalculateAccesses(repo1))
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
