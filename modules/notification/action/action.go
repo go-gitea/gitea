@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type actionNotifier struct {
@@ -100,12 +101,12 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *m
 		IsPrivate: issue.Repo.IsPrivate,
 	}
 
-	content := ""
-
-	if len(comment.Content) > 200 {
-		content = comment.Content[:strings.LastIndex(comment.Content[0:200], " ")] + "…"
-	} else {
-		content = comment.Content
+	content, truncatedRight := util.SplitStringAtRuneN(comment.Content, 200)
+	if truncatedRight != "" {
+		// in case the content is in a Latin family language, we remove the last broken word.
+		if lastSpaceIdx := strings.LastIndex(content, " "); lastSpaceIdx != -1 && (len(content)-lastSpaceIdx < 15) {
+			content = comment.Content[:lastSpaceIdx] + "…"
+		}
 	}
 	act.Content = fmt.Sprintf("%d|%s", issue.Index, content)
 
