@@ -135,7 +135,7 @@ func setTagsContext(ctx *context.Context) error {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsTags"] = true
 
-	protectedTags, err := ctx.Repo.Repository.GetProtectedTags()
+	protectedTags, err := models.GetProtectedTags(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedTags", err)
 		return err

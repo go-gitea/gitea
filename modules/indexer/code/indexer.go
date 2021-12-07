@@ -106,7 +106,7 @@ func index(indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	return repo.UpdateIndexerStatus(models.RepoIndexerTypeCode, sha)
+	return models.UpdateIndexerStatus(repo, models.RepoIndexerTypeCode, sha)
 }
 
 // Init initialize the repo indexer

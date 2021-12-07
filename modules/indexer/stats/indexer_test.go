@@ -34,10 +34,10 @@ func TestRepoStatsIndex(t *testing.T) {
 
 	repo, err := models.GetRepositoryByID(1)
 	assert.NoError(t, err)
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeStats)
+	status, err := models.GetIndexerStatus(repo, models.RepoIndexerTypeStats)
 	assert.NoError(t, err)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", status.CommitSha)
-	langs, err := repo.GetTopLanguageStats(5)
+	langs, err := models.GetTopLanguageStats(repo, 5)
 	assert.NoError(t, err)
 	assert.Empty(t, langs)
 }

@@ -31,7 +31,7 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 				return false, err
 			}
 
-			protectedTags, err := rel.Repo.GetProtectedTags()
+			protectedTags, err := models.GetProtectedTags(rel.Repo.ID)
 			if err != nil {
 				return false, fmt.Errorf("GetProtectedTags: %v", err)
 			}

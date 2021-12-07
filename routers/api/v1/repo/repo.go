@@ -930,14 +930,14 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			return err
 		}
 		if *opts.Archived {
-			if err := repo.SetArchiveRepoState(*opts.Archived); err != nil {
+			if err := models.SetArchiveRepoState(repo, *opts.Archived); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
-			if err := repo.SetArchiveRepoState(*opts.Archived); err != nil {
+			if err := models.SetArchiveRepoState(repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
@@ -958,14 +958,16 @@ func updateMirrorInterval(ctx *context.APIContext, opts api.EditRepoOption) erro
 			ctx.Error(http.StatusUnprocessableEntity, err.Error(), err)
 			return err
 		}
-		if err := repo.GetMirror(); err != nil {
+		mirror, err := models.GetMirrorByRepoID(repo.ID)
+		if err != nil {
 			log.Error("Failed to get mirror: %s", err)
 			ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
 			return err
 		}
 		if interval, err := time.ParseDuration(*opts.MirrorInterval); err == nil {
-			repo.Mirror.Interval = interval
-			if err := models.UpdateMirror(repo.Mirror); err != nil {
+			mirror.Interval = interval
+			mirror.Repo = repo
+			if err := models.UpdateMirror(mirror); err != nil {
 				log.Error("Failed to Set Mirror Interval: %s", err)
 				ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
 				return err
@@ -1007,7 +1009,7 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := repo.CanUserDelete(ctx.User)
+	canDelete, err := models.CanUserDelete(repo, ctx.User)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return

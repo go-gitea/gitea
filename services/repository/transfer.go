@@ -102,10 +102,10 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *models.Repos
 		return err
 	}
 	if !hasAccess {
-		if err := repo.AddCollaborator(newOwner); err != nil {
+		if err := models.AddCollaborator(repo, newOwner); err != nil {
 			return err
 		}
-		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, perm.AccessModeRead); err != nil {
+		if err := models.ChangeCollaborationAccessMode(repo, newOwner.ID, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}

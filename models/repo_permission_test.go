@@ -33,7 +33,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator
-	assert.NoError(t, repo.AddCollaborator(user))
+	assert.NoError(t, AddCollaborator(repo, user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -86,7 +86,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator to default write access
-	assert.NoError(t, repo.AddCollaborator(user))
+	assert.NoError(t, AddCollaborator(repo, user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -94,7 +94,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, perm_model.AccessModeRead))
+	assert.NoError(t, ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -138,7 +138,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator to default write access
-	assert.NoError(t, repo.AddCollaborator(user))
+	assert.NoError(t, AddCollaborator(repo, user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -146,7 +146,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, perm_model.AccessModeRead))
+	assert.NoError(t, ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -200,7 +200,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// change to collaborator to default write access
-	assert.NoError(t, repo.AddCollaborator(user))
+	assert.NoError(t, AddCollaborator(repo, user))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -208,7 +208,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 		assert.True(t, perm.CanWrite(unit.Type))
 	}
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(user.ID, perm_model.AccessModeRead))
+	assert.NoError(t, ChangeCollaborationAccessMode(repo, user.ID, perm_model.AccessModeRead))
 	perm, err = GetUserRepoPermission(repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {

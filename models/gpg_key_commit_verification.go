@@ -493,11 +493,11 @@ func CalculateTrustStatus(verification *CommitVerification, repository *Reposito
 		var has bool
 		isMember, has = (*keyMap)[verification.SigningKey.KeyID]
 		if !has {
-			isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+			isMember, err = IsOwnerMemberCollaborator(repository, verification.SigningUser.ID)
 			(*keyMap)[verification.SigningKey.KeyID] = isMember
 		}
 	} else {
-		isMember, err = repository.IsOwnerMemberCollaborator(verification.SigningUser.ID)
+		isMember, err = IsOwnerMemberCollaborator(repository, verification.SigningUser.ID)
 	}
 
 	if !isMember {

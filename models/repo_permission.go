@@ -168,9 +168,9 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *user_model.User)
 		return
 	}
 
-	var isCollaborator bool
+	var is bool
 	if user != nil {
-		isCollaborator, err = repo.isCollaborator(e, user.ID)
+		is, err = isCollaborator(e, repo.ID, user.ID)
 		if err != nil {
 			return perm, err
 		}
@@ -182,7 +182,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *user_model.User)
 
 	// Prevent strangers from checking out public repo of private organization/users
 	// Allow user if they are collaborator of a repo within a private user or a private organization but not a member of the organization itself
-	if !hasOrgOrUserVisible(e, repo.Owner, user) && !isCollaborator {
+	if !hasOrgOrUserVisible(e, repo.Owner, user) && !is {
 		perm.AccessMode = perm_model.AccessModeNone
 		return
 	}
@@ -221,7 +221,7 @@ func getUserRepoPermission(e db.Engine, repo *Repository, user *user_model.User)
 	perm.UnitsMode = make(map[unit.Type]perm_model.AccessMode)
 
 	// Collaborators on organization
-	if isCollaborator {
+	if is {
 		for _, u := range repo.Units {
 			perm.UnitsMode[u.Type] = perm.AccessMode
 		}

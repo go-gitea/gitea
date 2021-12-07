@@ -97,7 +97,9 @@ func innerToRepo(repo *models.Repository, mode perm.AccessMode, isParent bool) *
 
 	mirrorInterval := ""
 	if repo.IsMirror {
-		if err := repo.GetMirror(); err == nil {
+		var err error
+		repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
+		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
 		}
 	}

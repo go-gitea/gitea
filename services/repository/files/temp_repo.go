@@ -216,7 +216,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(author, committer *user_m
 
 	// Determine if we should sign
 	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := t.repo.SignCRUDAction(author, t.basePath, "HEAD")
+		sign, keyID, signer, _ := models.SignCRUDAction(t.repo, author, t.basePath, "HEAD")
 		if sign {
 			args = append(args, "-S"+keyID)
 			if t.repo.GetTrustModel() == models.CommitterTrustModel || t.repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {

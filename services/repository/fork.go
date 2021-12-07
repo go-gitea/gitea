@@ -108,7 +108,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 

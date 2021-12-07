@@ -106,7 +106,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			}
 		}
 
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 

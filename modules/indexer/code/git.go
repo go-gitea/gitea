@@ -37,7 +37,7 @@ func getDefaultBranchSha(repo *models.Repository) (string, error) {
 
 // getRepoChanges returns changes to repo since last indexer update
 func getRepoChanges(repo *models.Repository, revision string) (*repoChanges, error) {
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeCode)
+	status, err := models.GetIndexerStatus(repo, models.RepoIndexerTypeCode)
 	if err != nil {
 		return nil, err
 	}

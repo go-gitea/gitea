@@ -267,10 +267,10 @@ func createOrUpdateIssueNotifications(e db.Engine, issueID, commentID, notificat
 
 			return err
 		}
-		if issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.TypePullRequests) {
+		if issue.IsPull && !checkUnitUser(e, issue.Repo, user, unit.TypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !issue.Repo.checkUnitUser(e, user, unit.TypeIssues) {
+		if !issue.IsPull && !checkUnitUser(e, issue.Repo, user, unit.TypeIssues) {
 			continue
 		}
 

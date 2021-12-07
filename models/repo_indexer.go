@@ -63,7 +63,7 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 }
 
 // getIndexerStatus loads repo codes indxer status
-func (repo *Repository) getIndexerStatus(e db.Engine, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+func getIndexerStatus(e db.Engine, repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
 	switch indexerType {
 	case RepoIndexerTypeCode:
 		if repo.CodeIndexerStatus != nil {
@@ -91,13 +91,13 @@ func (repo *Repository) getIndexerStatus(e db.Engine, indexerType RepoIndexerTyp
 }
 
 // GetIndexerStatus loads repo codes indxer status
-func (repo *Repository) GetIndexerStatus(indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
-	return repo.getIndexerStatus(db.GetEngine(db.DefaultContext), indexerType)
+func GetIndexerStatus(repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+	return getIndexerStatus(db.GetEngine(db.DefaultContext), repo, indexerType)
 }
 
 // updateIndexerStatus updates indexer status
-func (repo *Repository) updateIndexerStatus(e db.Engine, indexerType RepoIndexerType, sha string) error {
-	status, err := repo.getIndexerStatus(e, indexerType)
+func updateIndexerStatus(e db.Engine, repo *Repository, indexerType RepoIndexerType, sha string) error {
+	status, err := getIndexerStatus(e, repo, indexerType)
 	if err != nil {
 		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
 	}
@@ -120,6 +120,6 @@ func (repo *Repository) updateIndexerStatus(e db.Engine, indexerType RepoIndexer
 }
 
 // UpdateIndexerStatus updates indexer status
-func (repo *Repository) UpdateIndexerStatus(indexerType RepoIndexerType, sha string) error {
-	return repo.updateIndexerStatus(db.GetEngine(db.DefaultContext), indexerType, sha)
+func UpdateIndexerStatus(repo *Repository, indexerType RepoIndexerType, sha string) error {
+	return updateIndexerStatus(db.GetEngine(db.DefaultContext), repo, indexerType, sha)
 }

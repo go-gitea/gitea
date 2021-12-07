@@ -899,12 +899,12 @@ func removeTeamMember(ctx context.Context, team *Team, userID int64) error {
 		}
 
 		// Remove watches from now unaccessible
-		if err := repo.reconsiderWatches(e, userID); err != nil {
+		if err := reconsiderWatches(e, repo, userID); err != nil {
 			return err
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := repo.reconsiderIssueAssignees(e, userID); err != nil {
+		if err := reconsiderIssueAssignees(e, repo, userID); err != nil {
 			return err
 		}
 	}

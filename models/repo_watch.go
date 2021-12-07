@@ -166,9 +166,9 @@ func getRepoWatchersIDs(e db.Engine, repoID int64) ([]int64, error) {
 		Find(&ids)
 }
 
-// GetWatchers returns range of users watching given repository.
-func (repo *Repository) GetWatchers(opts db.ListOptions) ([]*user_model.User, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repo.ID).
+// GetRepoWatchers returns range of users watching given repository.
+func GetRepoWatchers(repoID int64, opts db.ListOptions) ([]*user_model.User, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repoID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {

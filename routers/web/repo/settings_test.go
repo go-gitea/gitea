@@ -128,7 +128,7 @@ func TestCollaborationPost(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	exists, err := re.IsCollaborator(4)
+	exists, err := models.IsCollaborator(re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -188,7 +188,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
 
-	exists, err := re.IsCollaborator(4)
+	exists, err := models.IsCollaborator(re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 

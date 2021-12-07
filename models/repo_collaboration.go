@@ -32,7 +32,7 @@ func init() {
 	db.RegisterModel(new(Collaboration))
 }
 
-func (repo *Repository) addCollaborator(e db.Engine, u *user_model.User) error {
+func addCollaborator(e db.Engine, repo *Repository, u *user_model.User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: u.ID,
@@ -54,14 +54,14 @@ func (repo *Repository) addCollaborator(e db.Engine, u *user_model.User) error {
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
-func (repo *Repository) AddCollaborator(u *user_model.User) error {
+func AddCollaborator(repo *Repository, u *user_model.User) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := repo.addCollaborator(db.GetEngine(ctx), u); err != nil {
+	if err := addCollaborator(db.GetEngine(ctx), repo, u); err != nil {
 		return err
 	}
 
@@ -133,16 +133,16 @@ func getCollaboration(e db.Engine, repoID, uid int64) (*Collaboration, error) {
 	return collaboration, err
 }
 
-func (repo *Repository) isCollaborator(e db.Engine, userID int64) (bool, error) {
-	return e.Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+func isCollaborator(e db.Engine, repoID, userID int64) (bool, error) {
+	return e.Get(&Collaboration{RepoID: repoID, UserID: userID})
 }
 
 // IsCollaborator check if a user is a collaborator of a repository
-func (repo *Repository) IsCollaborator(userID int64) (bool, error) {
-	return repo.isCollaborator(db.GetEngine(db.DefaultContext), userID)
+func IsCollaborator(repoID, userID int64) (bool, error) {
+	return isCollaborator(db.GetEngine(db.DefaultContext), repoID, userID)
 }
 
-func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mode perm.AccessMode) error {
+func changeCollaborationAccessMode(e db.Engine, repo *Repository, uid int64, mode perm.AccessMode) error {
 	// Discard invalid input
 	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
 		return nil
@@ -177,14 +177,14 @@ func (repo *Repository) changeCollaborationAccessMode(e db.Engine, uid int64, mo
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode perm.AccessMode) error {
+func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := repo.changeCollaborationAccessMode(db.GetEngine(ctx), uid, mode); err != nil {
+	if err := changeCollaborationAccessMode(db.GetEngine(ctx), repo, uid, mode); err != nil {
 		return err
 	}
 
@@ -192,7 +192,7 @@ func (repo *Repository) ChangeCollaborationAccessMode(uid int64, mode perm.Acces
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
+func DeleteCollaboration(repo *Repository, uid int64) (err error) {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: uid,
@@ -216,19 +216,19 @@ func (repo *Repository) DeleteCollaboration(uid int64) (err error) {
 		return err
 	}
 
-	if err = repo.reconsiderWatches(sess, uid); err != nil {
+	if err = reconsiderWatches(sess, repo, uid); err != nil {
 		return err
 	}
 
 	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := repo.reconsiderIssueAssignees(sess, uid); err != nil {
+	if err := reconsiderIssueAssignees(sess, repo, uid); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func (repo *Repository) reconsiderIssueAssignees(e db.Engine, uid int64) error {
+func reconsiderIssueAssignees(e db.Engine, repo *Repository, uid int64) error {
 	user, err := user_model.GetUserByIDEngine(e, uid)
 	if err != nil {
 		return err
@@ -246,7 +246,7 @@ func (repo *Repository) reconsiderIssueAssignees(e db.Engine, uid int64) error {
 	return nil
 }
 
-func (repo *Repository) reconsiderWatches(e db.Engine, uid int64) error {
+func reconsiderWatches(e db.Engine, repo *Repository, uid int64) error {
 	if has, err := hasAccess(e, uid, repo); err != nil || has {
 		return err
 	}
@@ -259,7 +259,7 @@ func (repo *Repository) reconsiderWatches(e db.Engine, uid int64) error {
 	return removeIssueWatchersByRepoID(e, uid, repo.ID)
 }
 
-func (repo *Repository) getRepoTeams(e db.Engine) (teams []*Team, err error) {
+func getRepoTeams(e db.Engine, repo *Repository) (teams []*Team, err error) {
 	return teams, e.
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
@@ -269,12 +269,12 @@ func (repo *Repository) getRepoTeams(e db.Engine) (teams []*Team, err error) {
 }
 
 // GetRepoTeams gets the list of teams that has access to the repository
-func (repo *Repository) GetRepoTeams() ([]*Team, error) {
-	return repo.getRepoTeams(db.GetEngine(db.DefaultContext))
+func GetRepoTeams(repo *Repository) ([]*Team, error) {
+	return getRepoTeams(db.GetEngine(db.DefaultContext), repo)
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func (repo *Repository) IsOwnerMemberCollaborator(userID int64) (bool, error) {
+func IsOwnerMemberCollaborator(repo *Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}

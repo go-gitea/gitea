@@ -65,7 +65,7 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	return langPerc
 }
 
-func (repo *Repository) getLanguageStats(e db.Engine) (LanguageStatList, error) {
+func getLanguageStats(e db.Engine, repo *Repository) (LanguageStatList, error) {
 	stats := make(LanguageStatList, 0, 6)
 	if err := e.Where("`repo_id` = ?", repo.ID).Desc("`size`").Find(&stats); err != nil {
 		return nil, err
@@ -74,13 +74,13 @@ func (repo *Repository) getLanguageStats(e db.Engine) (LanguageStatList, error) 
 }
 
 // GetLanguageStats returns the language statistics for a repository
-func (repo *Repository) GetLanguageStats() (LanguageStatList, error) {
-	return repo.getLanguageStats(db.GetEngine(db.DefaultContext))
+func GetLanguageStats(repo *Repository) (LanguageStatList, error) {
+	return getLanguageStats(db.GetEngine(db.DefaultContext), repo)
 }
 
 // GetTopLanguageStats returns the top language statistics for a repository
-func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error) {
-	stats, err := repo.getLanguageStats(db.GetEngine(db.DefaultContext))
+func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) {
+	stats, err := getLanguageStats(db.GetEngine(db.DefaultContext), repo)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (repo *Repository) GetTopLanguageStats(limit int) (LanguageStatList, error)
 }
 
 // UpdateLanguageStats updates the language statistics for repository
-func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]int64) error {
+func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int64) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -119,7 +119,7 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]in
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	oldstats, err := repo.getLanguageStats(sess)
+	oldstats, err := getLanguageStats(sess, repo)
 	if err != nil {
 		return err
 	}
@@ -175,7 +175,7 @@ func (repo *Repository) UpdateLanguageStats(commitID string, stats map[string]in
 	}
 
 	// Update indexer status
-	if err = repo.updateIndexerStatus(sess, RepoIndexerTypeStats, commitID); err != nil {
+	if err = updateIndexerStatus(sess, repo, RepoIndexerTypeStats, commitID); err != nil {
 		return err
 	}
 
@@ -203,7 +203,7 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 		}
 		// update destRepo's indexer status
 		tmpCommitID := RepoLang[0].CommitID
-		if err := destRepo.updateIndexerStatus(sess, RepoIndexerTypeStats, tmpCommitID); err != nil {
+		if err := updateIndexerStatus(sess, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
 			return err
 		}
 		if _, err := sess.Insert(&RepoLang); err != nil {

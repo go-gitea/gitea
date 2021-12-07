@@ -219,13 +219,12 @@ type Repository struct {
 	NumClosedProjects   int `xorm:"NOT NULL DEFAULT 0"`
 	NumOpenProjects     int `xorm:"-"`
 
-	IsPrivate   bool `xorm:"INDEX"`
-	IsEmpty     bool `xorm:"INDEX"`
-	IsArchived  bool `xorm:"INDEX"`
-	IsMirror    bool `xorm:"INDEX"`
-	*Mirror     `xorm:"-"`
-	PushMirrors []*PushMirror    `xorm:"-"`
-	Status      RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
+	IsPrivate  bool `xorm:"INDEX"`
+	IsEmpty    bool `xorm:"INDEX"`
+	IsArchived bool `xorm:"INDEX"`
+	IsMirror   bool `xorm:"INDEX"`
+	*Mirror    `xorm:"-"`
+	Status     RepositoryStatus `xorm:"NOT NULL DEFAULT 0"`
 
 	RenderingMetas         map[string]string `xorm:"-"`
 	DocumentRenderingMetas map[string]string `xorm:"-"`
@@ -237,7 +236,6 @@ type Repository struct {
 	BaseRepo                        *Repository        `xorm:"-"`
 	IsTemplate                      bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	TemplateID                      int64              `xorm:"INDEX"`
-	TemplateRepo                    *Repository        `xorm:"-"`
 	Size                            int64              `xorm:"NOT NULL DEFAULT 0"`
 	CodeIndexerStatus               *RepoIndexerStatus `xorm:"-"`
 	StatsIndexerStatus              *RepoIndexerStatus `xorm:"-"`
@@ -363,11 +361,11 @@ func (repo *Repository) getUnits(e db.Engine) (err error) {
 }
 
 // CheckUnitUser check whether user could visit the unit of this repository
-func (repo *Repository) CheckUnitUser(user *user_model.User, unitType unit.Type) bool {
-	return repo.checkUnitUser(db.GetEngine(db.DefaultContext), user, unitType)
+func CheckUnitUser(repo *Repository, user *user_model.User, unitType unit.Type) bool {
+	return checkUnitUser(db.GetEngine(db.DefaultContext), repo, user, unitType)
 }
 
-func (repo *Repository) checkUnitUser(e db.Engine, user *user_model.User, unitType unit.Type) bool {
+func checkUnitUser(e db.Engine, repo *Repository, user *user_model.User, unitType unit.Type) bool {
 	if user.IsAdmin {
 		return true
 	}
@@ -643,18 +641,6 @@ func GetReviewerTeams(repo *Repository) ([]*Team, error) {
 	return teams, err
 }
 
-// GetMirror sets the repository mirror, returns an error upon failure
-func (repo *Repository) GetMirror() (err error) {
-	repo.Mirror, err = GetMirrorByRepoID(repo.ID)
-	return err
-}
-
-// LoadPushMirrors populates the repository push mirrors.
-func (repo *Repository) LoadPushMirrors() (err error) {
-	repo.PushMirrors, err = GetPushMirrorsByRepoID(repo.ID)
-	return err
-}
-
 // GetBaseRepo populates repo.BaseRepo for a fork repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
@@ -679,17 +665,16 @@ func (repo *Repository) IsGenerated() bool {
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-generated repositories, and TemplateRepo will be left untouched)
-func (repo *Repository) GetTemplateRepo() (err error) {
-	return repo.getTemplateRepo(db.GetEngine(db.DefaultContext))
+func GetTemplateRepo(repo *Repository) (*Repository, error) {
+	return getTemplateRepo(db.GetEngine(db.DefaultContext), repo)
 }
 
-func (repo *Repository) getTemplateRepo(e db.Engine) (err error) {
+func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
-		return nil
+		return nil, nil
 	}
 
-	repo.TemplateRepo, err = getRepositoryByID(e, repo.TemplateID)
-	return err
+	return getRepositoryByID(e, repo.TemplateID)
 }
 
 // RepoPath returns the repository path
@@ -718,7 +703,7 @@ func (repo *Repository) ComposeCompareURL(oldCommitID, newCommitID string) strin
 }
 
 // UpdateDefaultBranch updates the default branch
-func (repo *Repository) UpdateDefaultBranch() error {
+func UpdateDefaultBranch(repo *Repository) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("default_branch").Update(repo)
 	return err
 }
@@ -726,6 +711,11 @@ func (repo *Repository) UpdateDefaultBranch() error {
 // IsOwnedBy returns true when user owns this repository
 func (repo *Repository) IsOwnedBy(userID int64) bool {
 	return repo.OwnerID == userID
+}
+
+// CanCreateBranch returns true if repository meets the requirements for creating new branches.
+func (repo *Repository) CanCreateBranch() bool {
+	return !repo.IsMirror
 }
 
 func updateRepoSize(e db.Engine, repo *Repository) error {
@@ -770,7 +760,7 @@ func CanUserForkRepo(user *user_model.User, repo *Repository) (bool, error) {
 }
 
 // CanUserDelete returns true if user could delete the repository
-func (repo *Repository) CanUserDelete(user *user_model.User) (bool, error) {
+func CanUserDelete(repo *Repository, user *user_model.User) (bool, error) {
 	if user.IsAdmin || user.ID == repo.OwnerID {
 		return true, nil
 	}
@@ -868,9 +858,9 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 	return template.HTML(markup.Sanitize(string(desc)))
 }
 
-// ReadBy sets repo to be visited by given user.
-func (repo *Repository) ReadBy(userID int64) error {
-	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repo.ID)
+// SetRepoReadBy sets repo to be visited by given user.
+func SetRepoReadBy(repoID, userID int64) error {
+	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repoID)
 }
 
 func isRepositoryExist(e db.Engine, u *user_model.User, repoName string) (bool, error) {
@@ -1131,10 +1121,10 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *Repos
 			return fmt.Errorf("isUserRepoAdmin: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wan't assigned automatically
-			if err = repo.addCollaborator(db.GetEngine(ctx), doer); err != nil {
+			if err = addCollaborator(db.GetEngine(ctx), repo, doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
 			}
-			if err = repo.changeCollaborationAccessMode(db.GetEngine(ctx), doer.ID, perm.AccessModeAdmin); err != nil {
+			if err = changeCollaborationAccessMode(db.GetEngine(ctx), repo, doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}
@@ -1157,7 +1147,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *Repos
 }
 
 // CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
-func (repo *Repository) CheckDaemonExportOK(ctx context.Context) error {
+func CheckDaemonExportOK(ctx context.Context, repo *Repository) error {
 	e := db.GetEngine(ctx)
 	if err := repo.getOwner(e); err != nil {
 		return err
@@ -1337,7 +1327,7 @@ func updateRepository(e db.Engine, repo *Repository, visibilityChanged bool) (er
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := repo.CheckDaemonExportOK(db.WithEngine(db.DefaultContext, e)); err != nil {
+		if err := CheckDaemonExportOK(db.WithEngine(db.DefaultContext, e), repo); err != nil {
 			return err
 		}
 
@@ -1972,7 +1962,7 @@ func CheckRepoStats(ctx context.Context) error {
 }
 
 // SetArchiveRepoState sets if a repo is archived
-func (repo *Repository) SetArchiveRepoState(isArchived bool) (err error) {
+func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
 	repo.IsArchived = isArchived
 	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
 	return

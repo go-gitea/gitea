@@ -457,7 +457,7 @@ func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, bran
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), branchName)
+			_, _, _, err := models.SignCRUDAction(repo, doer, repo.RepoPath(), branchName)
 			if err != nil {
 				if !models.IsErrWontSign(err) {
 					return err

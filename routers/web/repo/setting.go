@@ -706,7 +706,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo.SetArchiveRepoState(true); err != nil {
+		if err := models.SetArchiveRepoState(repo, true); err != nil {
 			log.Error("Tried to archive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.archive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -724,7 +724,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err := repo.SetArchiveRepoState(false); err != nil {
+		if err := models.SetArchiveRepoState(repo, false); err != nil {
 			log.Error("Tried to unarchive a repo: %s", err)
 			ctx.Flash.Error(ctx.Tr("repo.settings.unarchive.error"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings")
@@ -777,7 +777,7 @@ func Collaboration(ctx *context.Context) {
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := ctx.Repo.Repository.GetRepoTeams()
+	teams, err := models.GetRepoTeams(ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -824,13 +824,13 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if got, err := ctx.Repo.Repository.IsCollaborator(u.ID); err == nil && got {
+	if got, err := models.IsCollaborator(ctx.Repo.Repository.ID, u.ID); err == nil && got {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
-	if err = ctx.Repo.Repository.AddCollaborator(u); err != nil {
+	if err = models.AddCollaborator(ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -845,7 +845,8 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(
+	if err := models.ChangeCollaborationAccessMode(
+		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
 		log.Error("ChangeCollaborationAccessMode: %v", err)
@@ -854,7 +855,7 @@ func ChangeCollaborationAccessMode(ctx *context.Context) {
 
 // DeleteCollaboration delete a collaboration for a repository
 func DeleteCollaboration(ctx *context.Context) {
-	if err := ctx.Repo.Repository.DeleteCollaboration(ctx.FormInt64("id")); err != nil {
+	if err := models.DeleteCollaboration(ctx.Repo.Repository, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteCollaboration: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.remove_collaborator_success"))
@@ -1168,11 +1169,12 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *models.Repository
 		return nil, err
 	}
 
-	if err = repo.LoadPushMirrors(); err != nil {
+	pushMirrors, err := models.GetPushMirrorsByRepoID(repo.ID)
+	if err != nil {
 		return nil, err
 	}
 
-	for _, m := range repo.PushMirrors {
+	for _, m := range pushMirrors {
 		if m.ID == id {
 			return m, nil
 		}

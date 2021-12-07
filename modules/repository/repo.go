@@ -104,7 +104,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err = repo.CheckDaemonExportOK(ctx); err != nil {
+	if err = models.CheckDaemonExportOK(ctx, repo); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 

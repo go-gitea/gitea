@@ -68,7 +68,7 @@ func GetLanguages(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LanguageStatistics"
 
-	langs, err := ctx.Repo.Repository.GetLanguageStats()
+	langs, err := models.GetLanguageStats(ctx.Repo.Repository)
 	if err != nil {
 		log.Error("GetLanguageStats failed: %v", err)
 		ctx.InternalServerError(err)

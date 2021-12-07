@@ -22,7 +22,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
 		assert.NoError(t, repo.GetOwner())
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
-		assert.NoError(t, repo.AddCollaborator(user))
+		assert.NoError(t, AddCollaborator(repo, user))
 		unittest.CheckConsistencyFor(t, &Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
@@ -55,7 +55,7 @@ func TestRepository_IsCollaborator(t *testing.T) {
 
 	test := func(repoID, userID int64, expected bool) {
 		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		actual, err := repo.IsCollaborator(userID)
+		actual, err := IsCollaborator(repo.ID, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}
@@ -69,7 +69,7 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, perm.AccessModeAdmin))
+	assert.NoError(t, ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &Collaboration{RepoID: repo.ID, UserID: 4}).(*Collaboration)
 	assert.EqualValues(t, perm.AccessModeAdmin, collaboration.Mode)
@@ -77,9 +77,9 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	access := unittest.AssertExistsAndLoadBean(t, &Access{UserID: 4, RepoID: repo.ID}).(*Access)
 	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(4, perm.AccessModeAdmin))
+	assert.NoError(t, ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))
 
-	assert.NoError(t, repo.ChangeCollaborationAccessMode(unittest.NonexistentID, perm.AccessModeAdmin))
+	assert.NoError(t, ChangeCollaborationAccessMode(repo, unittest.NonexistentID, perm.AccessModeAdmin))
 
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
 }
@@ -89,10 +89,10 @@ func TestRepository_DeleteCollaboration(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
 	assert.NoError(t, repo.GetOwner())
-	assert.NoError(t, repo.DeleteCollaboration(4))
+	assert.NoError(t, DeleteCollaboration(repo, 4))
 	unittest.AssertNotExistsBean(t, &Collaboration{RepoID: repo.ID, UserID: 4})
 
-	assert.NoError(t, repo.DeleteCollaboration(4))
+	assert.NoError(t, DeleteCollaboration(repo, 4))
 	unittest.AssertNotExistsBean(t, &Collaboration{RepoID: repo.ID, UserID: 4})
 
 	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})

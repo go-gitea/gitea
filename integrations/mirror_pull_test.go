@@ -73,7 +73,7 @@ func TestMirrorPull(t *testing.T) {
 		IsTag:        true,
 	}, nil, ""))
 
-	err = mirror.GetMirror()
+	_, err = models.GetMirrorByRepoID(mirror.ID)
 	assert.NoError(t, err)
 
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)

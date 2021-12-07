@@ -31,7 +31,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return nil
 	}
 
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeStats)
+	status, err := models.GetIndexerStatus(repo, models.RepoIndexerTypeStats)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (db *DBIndexer) Index(id int64) error {
 		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
-	err = repo.UpdateLanguageStats(commitID, stats)
+	err = models.UpdateLanguageStats(repo, commitID, stats)
 	if err != nil {
 		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err

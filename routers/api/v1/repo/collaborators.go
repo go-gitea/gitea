@@ -110,7 +110,7 @@ func IsCollaborator(ctx *context.APIContext) {
 		}
 		return
 	}
-	isColab, err := ctx.Repo.Repository.IsCollaborator(user.ID)
+	isColab, err := models.IsCollaborator(ctx.Repo.Repository.ID, user.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsCollaborator", err)
 		return
@@ -172,13 +172,13 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.AddCollaborator(collaborator); err != nil {
+	if err := models.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}
 
 	if form.Permission != nil {
-		if err := ctx.Repo.Repository.ChangeCollaborationAccessMode(collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
+		if err := models.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}
@@ -226,7 +226,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.DeleteCollaboration(collaborator.ID); err != nil {
+	if err := models.DeleteCollaboration(ctx.Repo.Repository, collaborator.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteCollaboration", err)
 		return
 	}

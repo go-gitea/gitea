@@ -276,7 +276,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, err
 	}
 
-	if err = generateRepo.CheckDaemonExportOK(ctx); err != nil {
+	if err = models.CheckDaemonExportOK(ctx, generateRepo); err != nil {
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 

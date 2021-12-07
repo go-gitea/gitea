@@ -82,7 +82,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 					return
 				}
 			}
-			if err := repo.UpdateDefaultBranch(); err != nil {
+			if err := models.UpdateDefaultBranch(repo); err != nil {
 				ctx.ServerError("SetDefaultBranch", err)
 				return
 			}

@@ -118,7 +118,7 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := models.SignCRUDAction(r.Repository, doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
 	canCommit := r.CanEnableEditor() && userCanPush
 	if requireSigned {
@@ -261,19 +261,20 @@ func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
 // RetrieveTemplateRepo retrieves template repository used to generate this repository
 func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
 	// Non-generated repository will not return error in this method.
-	if err := repo.GetTemplateRepo(); err != nil {
+	templateRepo, err := models.GetTemplateRepo(repo)
+	if err != nil {
 		if models.IsErrRepoNotExist(err) {
 			repo.TemplateID = 0
 			return
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = repo.TemplateRepo.GetOwner(); err != nil {
+	} else if err = templateRepo.GetOwner(); err != nil {
 		ctx.ServerError("TemplateRepo.GetOwner", err)
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo.TemplateRepo, ctx.User)
+	perm, err := models.GetUserRepoPermission(templateRepo, ctx.User)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -361,21 +362,24 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 
 	if repo.IsMirror {
 		var err error
-		ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
+		mirror, err := models.GetMirrorByRepoID(repo.ID)
 		if err != nil {
 			ctx.ServerError("GetMirrorByRepoID", err)
 			return
 		}
-		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-		ctx.Data["Mirror"] = ctx.Repo.Mirror
+		ctx.Data["MirrorEnablePrune"] = mirror.EnablePrune
+		ctx.Data["MirrorInterval"] = mirror.Interval
+		ctx.Data["Mirror"] = mirror
 	}
-	if err = repo.LoadPushMirrors(); err != nil {
-		ctx.ServerError("LoadPushMirrors", err)
+
+	pushMirrors, err := models.GetPushMirrorsByRepoID(repo.ID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
 	}
 
 	ctx.Repo.Repository = repo
+	ctx.Data["PushMirrors"] = pushMirrors
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
