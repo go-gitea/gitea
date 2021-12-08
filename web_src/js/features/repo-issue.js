@@ -59,7 +59,6 @@ function updateDeadline(deadlineString) {
     }),
     headers: {
       'X-Csrf-Token': csrfToken,
-      'X-Remote': true,
     },
     contentType: 'application/json',
     type: 'POST',
@@ -361,7 +360,7 @@ export function initRepoIssueComments() {
       isChecked ? 'detach' : 'attach',
       issueId,
       id,
-    ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+    ).then(() => window.location.reload());
   });
 
   $('.dismiss-review-btn').on('click', function (e) {

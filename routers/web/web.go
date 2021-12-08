@@ -40,7 +40,7 @@ import (
 
 	"gitea.com/go-chi/captcha"
 	"github.com/NYTimes/gziphandler"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/tstranex/u2f"
@@ -898,7 +898,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Delete("", repo.DeleteProjectBoard)
 						m.Post("/default", repo.SetDefaultProjectBoard)
 
-						m.Post("/{index}", repo.MoveIssueAcrossBoards)
+						m.Post("/move", repo.MoveIssues)
 					})
 				})
 			}, reqRepoProjectsWriter, context.RepoMustNotBeArchived())

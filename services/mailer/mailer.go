@@ -7,9 +7,9 @@ package mailer
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net"
 	"net/smtp"
@@ -68,12 +68,27 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.SetBody("text/plain", plainBody)
 		msg.AddAlternative("text/html", m.Body)
 	}
+
+	if len(msg.GetHeader("Message-ID")) == 0 {
+		msg.SetHeader("Message-ID", m.generateAutoMessageID())
+	}
 	return msg
 }
 
 // SetHeader adds additional headers to a message
 func (m *Message) SetHeader(field string, value ...string) {
 	m.Headers[field] = value
+}
+
+func (m *Message) generateAutoMessageID() string {
+	dateMs := m.Date.UnixNano() / 1e6
+	h := fnv.New64()
+	if len(m.To) > 0 {
+		_, _ = h.Write([]byte(m.To[0]))
+	}
+	_, _ = h.Write([]byte(m.Subject))
+	_, _ = h.Write([]byte(m.Body))
+	return fmt.Sprintf("<autogen-%d-%016x@%s>", dateMs, h.Sum64(), setting.Domain)
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
@@ -258,11 +273,10 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
 
-	pm := process.GetManager()
 	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)
 
-	ctx, cancel := context.WithTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout)
-	defer cancel()
+	ctx, _, finished := process.GetManager().AddContextTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout, desc)
+	defer finished()
 
 	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
@@ -272,10 +286,9 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	}
 
 	if err = cmd.Start(); err != nil {
+		_ = pipe.Close()
 		return err
 	}
-
-	pid := pm.Add(desc, cancel)
 
 	_, err = msg.WriteTo(pipe)
 
@@ -283,7 +296,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
 	waitError = cmd.Wait()
-	pm.Remove(pid)
+
 	if err != nil {
 		return err
 	} else if closeError != nil {

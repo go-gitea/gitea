@@ -125,7 +125,6 @@ func NewFuncMap() []template.FuncMap {
 		"DateFmtShort": func(t time.Time) string {
 			return t.Format("Jan 02, 2006")
 		},
-		"SizeFmt":  base.FileSize,
 		"CountFmt": base.FormatNumberSI,
 		"SubStr": func(str string, start, length int) string {
 			if len(str) == 0 {
@@ -957,7 +956,7 @@ type remoteAddress struct {
 func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(m.GetRepository().RepoPath(), m.GetRemoteName())
+	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())
 	if err != nil {
 		log.Error("GetRemoteAddress %v", err)
 		return a

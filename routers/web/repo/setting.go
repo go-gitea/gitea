@@ -178,7 +178,7 @@ func SettingsPost(ctx *context.Context) {
 			}
 		}
 
-		u, _ := git.GetRemoteAddress(ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		u, _ := git.GetRemoteAddress(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
 		if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
 			form.MirrorPassword, _ = u.User.Password()
 		}

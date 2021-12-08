@@ -360,6 +360,8 @@ var migrations = []Migration{
 	// v202 -> v203
 	NewMigration("Create key/value table for user settings", createUserSettingsTable),
 	// v203 -> v204
+	NewMigration("Add Sorting to ProjectIssue table", addProjectIssueSorting),
+	// v204 -> v205
 	NewMigration("Add private issues", addPrivateIssues),
 }
 

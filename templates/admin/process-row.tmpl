@@ -1,0 +1,20 @@
+<div class="item">
+	<div class="df ac">
+		<div class="content f1">
+			<div class="header">{{.Process.Description}}</div>
+			<div class="description"><span title="{{DateFmtLong .Process.Start}}">{{TimeSince .Process.Start .root.Lang}}</span></div>
+		</div>
+		<div>
+			<a class="delete-button icon" href="" data-url="{{.root.Link}}/cancel/{{.Process.PID}}" data-id="{{.Process.PID}}" data-name="{{.Process.Description}}">{{svg "octicon-trash" 16 "text-red"}}</a>
+		</div>
+	</div>
+
+	{{$children := .Process.Children}}
+	{{if $children}}
+		<div class="divided list">
+			{{range $children}}
+				{{template "admin/process-row" dict "Process" . "root" $.root}}
+			{{end}}
+		</div>
+	{{end}}
+</div>

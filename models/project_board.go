@@ -268,6 +268,7 @@ func (b *ProjectBoard) LoadIssues(opts *LoadIssuesOpts) (IssueList, error) {
 			ProjectID:      b.ProjectID,
 			CanSeePrivate:  opts.CanSeePrivateIssues,
 			UserID:         opts.UserID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -281,6 +282,7 @@ func (b *ProjectBoard) LoadIssues(opts *LoadIssuesOpts) (IssueList, error) {
 			ProjectID:      b.ProjectID,
 			CanSeePrivate:  opts.CanSeePrivateIssues,
 			UserID:         opts.UserID,
+			SortType:       "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err

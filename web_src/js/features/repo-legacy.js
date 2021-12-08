@@ -162,7 +162,7 @@ export function initRepoCommentForm() {
           'clear',
           $listMenu.data('issue-id'),
           '',
-        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+        ).then(() => window.location.reload());
       }
 
       $(this).parent().find('.item').each(function () {
@@ -205,7 +205,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+        ).then(() => window.location.reload());
       }
 
       let icon = '';
@@ -238,7 +238,7 @@ export function initRepoCommentForm() {
           '',
           $menu.data('issue-id'),
           $(this).data('id'),
-        ).then(() => window.location.reload()); // eslint-disable-line github/no-then
+        ).then(() => window.location.reload());
       }
 
       $list.find('.selected').html('');

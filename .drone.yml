@@ -537,7 +537,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.16.x
+    image: techknowlogick/xgo:go-1.17.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
@@ -633,7 +633,7 @@ steps:
 
   - name: static
     pull: always
-    image: techknowlogick/xgo:go-1.16.x
+    image: techknowlogick/xgo:go-1.17.x
     commands:
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
