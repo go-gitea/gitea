@@ -24,9 +24,9 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/web"
-	archiver_service "code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
 const (
@@ -387,12 +387,12 @@ func Download(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("models.GetRepoArchiver", err)
 		return
 	}
-	if archiver != nil && archiver.Status == models.RepoArchiverReady {
+	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 		download(ctx, aReq.GetArchiveName(), archiver)
 		return
 	}
@@ -417,12 +417,12 @@ func Download(ctx *context.Context) {
 				return
 			}
 			times++
-			archiver, err = models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
+			archiver, err = repo_model.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 			if err != nil {
 				ctx.ServerError("archiver_service.StartArchive", err)
 				return
 			}
-			if archiver != nil && archiver.Status == models.RepoArchiverReady {
+			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 				download(ctx, aReq.GetArchiveName(), archiver)
 				return
 			}
@@ -430,7 +430,7 @@ func Download(ctx *context.Context) {
 	}
 }
 
-func download(ctx *context.Context, archiveName string, archiver *models.RepoArchiver) {
+func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath, err := archiver.RelativePath()
@@ -473,12 +473,12 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return
 	}
-	if archiver == nil || archiver.Status != models.RepoArchiverReady {
+	if archiver == nil || archiver.Status != repo_model.ArchiverReady {
 		if err := archiver_service.StartArchive(aReq); err != nil {
 			ctx.ServerError("archiver_service.StartArchive", err)
 			return
@@ -486,7 +486,7 @@ func InitiateDownload(ctx *context.Context) {
 	}
 
 	var completed bool
-	if archiver != nil && archiver.Status == models.RepoArchiverReady {
+	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 		completed = true
 	}
 
