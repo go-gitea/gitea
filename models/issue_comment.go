@@ -109,7 +109,7 @@ const (
 	// 33 Change issue ref
 	CommentTypeChangeIssueRef
 	// 34 Change confidential
-	CommenTypeConfidentialChanged
+	CommentTypeConfidentialChanged
 )
 
 // RoleDescriptor defines comment tag type
