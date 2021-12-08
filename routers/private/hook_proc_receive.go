@@ -10,6 +10,7 @@ import (
 
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/agit"
@@ -23,7 +24,12 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	results := agit.ProcRecive(ctx, opts)
+	results, err := agit.ProcReceive(ctx.Repository, ctx.GitRepo, opts)
+	if err != nil {
+		log.Error("agit.ProcReceive failed: %v", err)
+		ctx.Status(http.StatusInternalServerError)
+		return
+	}
 	if ctx.Written() {
 		return
 	}

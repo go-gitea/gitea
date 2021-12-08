@@ -52,16 +52,14 @@ func RepoAssignment(ctx *gitea_context.PrivateContext) context.CancelFunc {
 		return nil
 	}
 
-	ctx.Repo = &gitea_context.Repository{
-		Repository: repo,
-		GitRepo:    gitRepo,
-	}
+	ctx.Repository = repo
+	ctx.GitRepo = gitRepo
 
 	// We opened it, we should close it
 	cancel := func() {
 		// If it's been set to nil then assume someone else has closed it.
-		if ctx.Repo.GitRepo != nil {
-			ctx.Repo.GitRepo.Close()
+		if ctx.GitRepo != nil {
+			ctx.GitRepo.Close()
 		}
 	}
 

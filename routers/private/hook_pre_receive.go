@@ -142,8 +142,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	repo := ctx.Repo.Repository
-	gitRepo := ctx.Repo.GitRepo
+	repo := ctx.Repository
+	gitRepo := ctx.GitRepo
 	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 
 	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
@@ -363,9 +363,9 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = ctx.Repo.Repository.GetProtectedTags()
+		ctx.protectedTags, err = ctx.Repository.GetProtectedTags()
 		if err != nil {
-			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
+			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: err.Error(),
 			})
@@ -382,7 +382,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 		return
 	}
 	if !isAllowed {
-		log.Warn("Forbidden: Tag %s in %-v is protected", tagName, ctx.Repo.Repository)
+		log.Warn("Forbidden: Tag %s in %-v is protected", tagName, ctx.Repository)
 		ctx.JSON(http.StatusForbidden, private.Response{
 			Err: fmt.Sprintf("Tag %s is protected", tagName),
 		})
@@ -395,7 +395,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 		return
 	}
 
-	if ctx.Repo.Repository.IsEmpty {
+	if ctx.Repository.IsEmpty {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"err": "Can't create pull request for an empty repository.",
 		})
@@ -412,13 +412,13 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 	baseBranchName := refFullName[len(git.PullRequestPrefix):]
 
 	baseBranchExist := false
-	if ctx.Repo.GitRepo.IsBranchExist(baseBranchName) {
+	if ctx.GitRepo.IsBranchExist(baseBranchName) {
 		baseBranchExist = true
 	}
 
 	if !baseBranchExist {
 		for p, v := range baseBranchName {
-			if v == '/' && ctx.Repo.GitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
+			if v == '/' && ctx.GitRepo.IsBranchExist(baseBranchName[:p]) && p != len(baseBranchName)-1 {
 				baseBranchExist = true
 				break
 			}
@@ -460,11 +460,11 @@ func loadUserAndPermission(ctx *gitea_context.PrivateContext, id int64) (user *u
 		return
 	}
 
-	perm, err = models.GetUserRepoPermission(ctx.Repo.Repository, user)
+	perm, err = models.GetUserRepoPermission(ctx.Repository, user)
 	if err != nil {
-		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
+		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repository.OwnerName, ctx.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
+			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repository.OwnerName, ctx.Repository.Name, user.Name, err),
 		})
 		return
 	}

@@ -18,8 +18,8 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-// ProcRecive handle proc receive work
-func ProcRecive(repo *models.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
+// ProcReceive handle proc receive work
+func ProcReceive(repo *models.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	// TODO: Add more options?
 	var (
 		topicBranch string
