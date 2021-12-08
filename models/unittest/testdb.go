@@ -42,6 +42,9 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
 func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
+	setting.SetCustomPathAndConf("", "", "")
+	setting.LoadForTest()
+
 	var err error
 
 	giteaRoot = pathToGiteaRoot

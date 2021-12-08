@@ -14,11 +14,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func init() {
-	setting.SetCustomPathAndConf("", "", "")
-	setting.LoadForTest()
-}
-
 func Test_SSHParsePublicKey(t *testing.T) {
 	testCases := []struct {
 		name          string
