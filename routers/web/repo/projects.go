@@ -564,7 +564,6 @@ func SetDefaultProjectBoard(ctx *context.Context) {
 
 // MoveIssueAcrossBoards move a card from one board to another in a project
 func MoveIssueAcrossBoards(ctx *context.Context) {
-
 	if ctx.User == nil {
 		ctx.JSON(http.StatusForbidden, map[string]string{
 			"message": "Only signed in users are allowed to perform this action.",
@@ -630,7 +629,7 @@ func MoveIssueAcrossBoards(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || issue.IsPoster(ctx.User.ID)) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound("", nil)
 		return
 	}

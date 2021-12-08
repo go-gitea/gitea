@@ -61,7 +61,11 @@ func ListIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -173,7 +177,11 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -296,7 +304,11 @@ func ClearIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -325,7 +337,11 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}

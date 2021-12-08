@@ -1116,11 +1116,11 @@ func ViewIssue(ctx *context.Context) {
 
 	// Check if the issue is private, if so check if the user has enough
 	// permission to view the issue.
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
-		var userID int64
-		if ctx.IsSigned {
-			userID = ctx.User.ID
-		}
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
 			UserID: userID,
 			ID:     issue.ID,
@@ -1692,9 +1692,13 @@ func GetActionIssue(ctx *context.Context) *models.Issue {
 }
 
 func checkIssueRights(ctx *context.Context, issue *models.Issue) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypePullRequests) ||
-		(!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) &&
-			(issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))))) {
+		(!issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues)) ||
+		!(issue.CanSeeIssue(userID, &ctx.Repo.Permission)) {
 		ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 	}
 }
@@ -1721,13 +1725,16 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	// Check access rights for all issues
 	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
 	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
-	canReadPrivateIssues := ctx.Repo.CanReadPrivateIssues()
 	for _, issue := range issues {
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 			return nil
 		}
-		if issue.IsPrivate && !(canReadPrivateIssues || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
+		if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 			ctx.NotFound("IsPrivate", nil)
 			return nil
 		}
@@ -2099,7 +2106,7 @@ func NewComment(ctx *context.Context) {
 		return
 	}
 
-	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) || issue.IsPrivate && !(ctx.User.ID != issue.PosterID || ctx.Repo.CanReadPrivateIssues()) {
+	if !ctx.IsSigned || (ctx.User.ID != issue.PosterID && !ctx.Repo.CanReadIssuesOrPulls(issue.IsPull)) || !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		if log.IsTrace() {
 			if ctx.IsSigned {
 				issueType := "issues"

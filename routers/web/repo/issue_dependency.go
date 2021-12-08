@@ -25,7 +25,11 @@ func AddDependency(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || issue.IsPoster(ctx.User.ID)) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
 			UserID: ctx.User.ID,
 			ID:     issue.ID,
@@ -108,11 +112,11 @@ func RemoveDependency(ctx *context.Context) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
-		var userID int64
-		if ctx.IsSigned {
-			userID = ctx.User.ID
-		}
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
 			UserID: userID,
 			ID:     issue.ID,
@@ -182,7 +186,11 @@ func RemoveDependency(ctx *context.Context) {
 
 func canDepBeLoaded(issue *models.Issue, dep *models.Issue, ctx *context.Context) bool {
 	if issue.RepoID == dep.RepoID {
-		if dep.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || dep.IsPoster(ctx.User.ID)) {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
+		if !dep.CanSeeIssue(userID, &ctx.Repo.Permission) {
 			return false
 		}
 	} else {
@@ -195,7 +203,11 @@ func canDepBeLoaded(issue *models.Issue, dep *models.Issue, ctx *context.Context
 			ctx.ServerError("GetUserRepoPermission", err)
 		}
 
-		if dep.IsPrivate && !(perm.CanReadPrivateIssues() || dep.IsPoster(ctx.User.ID)) {
+		var userID int64
+		if ctx.IsSigned {
+			userID = ctx.User.ID
+		}
+		if !dep.CanSeeIssue(userID, &perm) {
 			return false
 		}
 	}

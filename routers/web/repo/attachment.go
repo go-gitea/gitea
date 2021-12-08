@@ -121,7 +121,11 @@ func GetAttachment(ctx *context.Context) {
 				ctx.Error(http.StatusInternalServerError, "GetIssueByID", err.Error())
 				return
 			}
-			if issue.IsPrivate && !(perm.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+			var userID int64
+			if ctx.IsSigned {
+				userID = ctx.User.ID
+			}
+			if !issue.CanSeeIssue(userID, &perm) {
 				ctx.Error(http.StatusNotFound)
 				return
 			}

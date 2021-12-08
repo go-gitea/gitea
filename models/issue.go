@@ -442,6 +442,14 @@ func (issue *Issue) IsPoster(uid int64) bool {
 	return issue.OriginalAuthorID == 0 && issue.PosterID == uid
 }
 
+// CanSeeIssue returns true when a given user can view the issue.
+func (issue *Issue) CanSeeIssue(userID int64, repoPermission *Permission) bool {
+	if issue.IsPrivate {
+		return repoPermission.CanReadPrivateIssues() || issue.IsPoster(userID)
+	}
+	return true
+}
+
 func (issue *Issue) hasLabel(e db.Engine, labelID int64) bool {
 	return hasIssueLabel(e, issue.ID, labelID)
 }
@@ -2277,7 +2285,7 @@ func (issue *Issue) ResolveMentionsByVisibility(ctx context.Context, doer *user_
 		if err != nil {
 			return nil, fmt.Errorf("getUserRepoPermission [%d]: %v", user.ID, err)
 		}
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) || (issue.IsPrivate && !(issue.IsPoster(user.ID) || perm.CanReadPrivateIssues())) {
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) || !issue.CanSeeIssue(user.ID, &perm) {
 			continue
 		}
 		users = append(users, user)

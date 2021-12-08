@@ -151,7 +151,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.Use
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
 	// 3. Is on a private issue, check if they can access that private issue.
-	if issue.IsPrivate && !(r.CanReadPrivateIssues() || issue.IsPoster(user.ID)) {
+	if !issue.CanSeeIssue(user.ID, &r.Permission) {
 		return false
 	}
 	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)

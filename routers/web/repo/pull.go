@@ -263,11 +263,11 @@ func checkPullInfo(ctx *context.Context) *models.Issue {
 		return nil
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
-		var userID int64
-		if ctx.IsSigned {
-			userID = ctx.User.ID
-		}
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound("CanSeePrivateIssues", models.ErrCannotSeePrivateIssue{
 			UserID: userID,
 			ID:     issue.ID,

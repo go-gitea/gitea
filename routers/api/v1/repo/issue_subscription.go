@@ -115,7 +115,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -201,7 +201,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -272,7 +272,11 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}

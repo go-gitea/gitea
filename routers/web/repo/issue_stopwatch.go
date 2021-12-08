@@ -99,7 +99,7 @@ func GetActiveStopwatch(c *context.Context) {
 		return
 	}
 
-	if issue.IsPrivate && !(perm.CanReadPrivateIssues() || issue.IsPoster(c.User.ID)) {
+	if !issue.CanSeeIssue(c.User.ID, &perm) {
 		return
 	}
 

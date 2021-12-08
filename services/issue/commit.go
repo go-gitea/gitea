@@ -135,7 +135,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *models.Repository, commits 
 				return err
 			}
 
-			if refIssue.IsPrivate && !(perm.CanReadPrivateIssues() || refIssue.IsPoster(doer.ID)) {
+			if !refIssue.CanSeeIssue(doer.ID, &perm) {
 				continue
 			}
 

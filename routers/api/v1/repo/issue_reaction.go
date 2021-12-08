@@ -61,7 +61,11 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	if err := comment.LoadIssue(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue", err)
 	}
-	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !comment.Issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
@@ -194,7 +198,11 @@ func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOp
 		ctx.Error(http.StatusInternalServerError, "comment.LoadIssue() failed", err)
 	}
 
-	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !comment.Issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
@@ -289,7 +297,11 @@ func GetIssueReactions(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -413,7 +425,11 @@ func changeIssueReaction(ctx *context.APIContext, form api.EditReactionOption, i
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}

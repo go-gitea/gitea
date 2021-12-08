@@ -139,7 +139,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 			return err
 		}
 
-		if !perm.CanReadIssuesOrPulls(ctx.Issue.IsPull) || (ctx.Issue.IsPrivate && !(ctx.Issue.PosterID == user.ID || perm.CanReadPrivateIssues())) {
+		if !perm.CanReadIssuesOrPulls(ctx.Issue.IsPull) || !ctx.Issue.CanSeeIssue(user.ID, &perm) {
 			continue
 		}
 

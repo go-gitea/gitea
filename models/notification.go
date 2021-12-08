@@ -272,7 +272,7 @@ func createOrUpdateIssueNotifications(e db.Engine, issueID, commentID, notificat
 			return err
 		}
 
-		if !perm.CanReadIssuesOrPulls(issue.IsPull) || (issue.IsPrivate && !(issue.PosterID == userID || perm.CanReadPrivateIssues())) {
+		if !perm.CanReadIssuesOrPulls(issue.IsPull) || !issue.CanSeeIssue(user.ID, &perm) {
 			continue
 		}
 

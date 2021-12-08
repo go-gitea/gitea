@@ -71,7 +71,11 @@ func ListIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -256,7 +260,11 @@ func CreateIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -326,7 +334,11 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !comment.Issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}
@@ -577,7 +589,11 @@ func deleteIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if comment.Issue.IsPrivate && (!ctx.IsSigned || !comment.Issue.IsPoster(ctx.User.ID) && !ctx.Repo.CanReadPrivateIssues()) {
+	var userID int64
+	if ctx.IsSigned {
+		userID = ctx.User.ID
+	}
+	if !comment.Issue.CanSeeIssue(userID, &ctx.Repo.Permission) {
 		ctx.Status(http.StatusNotFound)
 		return
 	}

@@ -85,7 +85,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -194,7 +194,7 @@ func AddTime(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -280,7 +280,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
@@ -356,7 +356,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	if issue.IsPrivate && !(ctx.Repo.CanReadPrivateIssues() || (ctx.IsSigned && issue.IsPoster(ctx.User.ID))) {
+	if !issue.CanSeeIssue(ctx.User.ID, &ctx.Repo.Permission) {
 		ctx.NotFound()
 		return
 	}
