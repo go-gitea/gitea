@@ -28,10 +28,12 @@ func Packages(ctx *context.Context) {
 	}
 	query := ctx.FormTrim("q")
 	packageType := ctx.FormTrim("type")
+	sort := ctx.FormTrim("sort")
 
 	pvs, total, err := packages_model.SearchVersions(&packages_model.PackageSearchOptions{
 		Query: query,
 		Type:  packageType,
+		Sort:  sort,
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
@@ -59,13 +61,15 @@ func Packages(ctx *context.Context) {
 	ctx.Data["PageIsAdminPackages"] = true
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
+	ctx.Data["SortType"] = sort
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["TotalBlobSize"] = totalBlobSize
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
-	pager.AddParam(ctx, "q", "Query")
-	pager.AddParam(ctx, "type", "PackageType")
+	pager.AddParamString("q", query)
+	pager.AddParamString("type", packageType)
+	pager.AddParamString("sort", sort)
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplPackagesList)

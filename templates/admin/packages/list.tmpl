@@ -29,21 +29,24 @@
 			<table class="ui very basic striped table">
 				<thead>
 					<tr>
-						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" "$.SortType" false}}</th>
+						<th>ID</th>
 						<th>{{.i18n.Tr "admin.packages.owner"}}</th>
 						<th>{{.i18n.Tr "admin.packages.type"}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
 							{{.i18n.Tr "admin.packages.name"}}
-							{{SortArrow "alphabetically" "reversealphabetically" "$.SortType" false}}
+							{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.packages.version"}}</th>
+						<th data-sortt-asc="highestversion" data-sortt-desc="lowestversion">
+							{{.i18n.Tr "admin.packages.version"}}
+							{{SortArrow "highestversion" "lowestversion" .SortType false}}
+						</th>
 						<th>{{.i18n.Tr "admin.packages.creator"}}</th>
 						<th>{{.i18n.Tr "admin.packages.repository"}}</th>
-						<th  data-sortt-asc="size" data-sortt-desc="reversesize">
-							{{.i18n.Tr "admin.packages.size"}}
-							{{SortArrow "size" "reversesize" "$.SortType" false}}
+						<th>{{.i18n.Tr "admin.packages.size"}}</th>
+						<th data-sortt-asc="oldest" data-sortt-desc="newest">
+							{{.i18n.Tr "admin.packages.published"}}
+							{{SortArrow "oldest" "newest" .SortType true}}
 						</th>
-						<th>{{.i18n.Tr "admin.packages.published"}}</th>
 						<th>{{.i18n.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>

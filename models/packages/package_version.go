@@ -168,6 +168,7 @@ type PackageSearchOptions struct {
 	Type       string
 	Query      string
 	Properties map[string]string
+	Sort       string
 	db.Paginator
 }
 
@@ -201,13 +202,31 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	return cond
 }
 
+func (opts *PackageSearchOptions) configureOrderBy(e db.Engine) {
+	switch opts.Sort {
+	case "alphabetically":
+		e.Asc("package.name")
+	case "reversealphabetically":
+		e.Desc("package.name")
+	case "highestversion":
+		e.Desc("package_version.version")
+	case "lowestversion":
+		e.Asc("package_version.version")
+	case "oldest":
+		e.Asc("package_version.created_unix")
+	default:
+		e.Desc("package_version.created_unix")
+	}
+}
+
 // SearchVersions gets all versions of packages matching the search options
 func SearchVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).
 		Where(opts.toConds()).
 		Table("package_version").
-		Join("INNER", "package", "package.id = package_version.package_id").
-		Desc("package_version.created_unix")
+		Join("INNER", "package", "package.id = package_version.package_id")
+
+	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
@@ -227,8 +246,9 @@ func SearchLatestVersions(opts *PackageSearchOptions) ([]*PackageVersion, int64,
 		Table("package_version").
 		Join("LEFT", "package_version pv2", "package_version.package_id = pv2.package_id AND package_version.created_unix < pv2.created_unix").
 		Join("INNER", "package", "package.id = package_version.package_id").
-		Where(cond).
-		Desc("package_version.created_unix")
+		Where(cond)
+
+	opts.configureOrderBy(sess)
 
 	if opts.Paginator != nil {
 		sess = db.SetSessionPagination(sess, opts)
