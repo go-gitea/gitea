@@ -2,8 +2,6 @@ THEME := themes/gitea
 ARCHIVE := https://dl.gitea.io/theme/master.tar.gz
 BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
 DOC_VERSION := $(shell git describe --tags --always | sed 's/-/+/' | sed 's/^v//')
-PUBLIC := public/$(DOC_VERSION)
-BASE_PATH := /$(DOC_VERSION)/
 MAIN_BRANCH := main
 
 ifeq ($(BRANCH), $(MAIN_BRANCH))
@@ -11,6 +9,9 @@ ifeq ($(BRANCH), $(MAIN_BRANCH))
 	PUBLIC := public
 	BASE_PATH := /
 endif
+
+PUBLIC := public/$(DOC_VERSION)
+BASE_PATH := /$(DOC_VERSION)/
 
 .PHONY: all
 all: build
