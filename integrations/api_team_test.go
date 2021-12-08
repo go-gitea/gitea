@@ -114,7 +114,7 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
-		teamRead.Authorize.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
+		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)
@@ -180,7 +180,7 @@ func TestAPITeam(t *testing.T) {
 	DecodeJSON(t, resp, &apiTeam)
 	assert.NoError(t, teamRead.GetUnits())
 	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
-		teamRead.Authorize.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
+		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
 	// Delete team.
 	req = NewRequestf(t, "DELETE", "/api/v1/teams/%d?token="+token, teamID)

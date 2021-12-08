@@ -250,6 +250,8 @@ func NewTeamPost(ctx *context.Context) {
 	var unitPerms = getUnitPerms(ctx.Req.Form)
 	var p = perm.ParseAccessMode(form.Permission)
 	if p < perm.AccessModeAdmin {
+		// if p is less than admin accessmode, then it should be general accessmode,
+		// so we should calculate the minial accessmode from units accessmodes.
 		p = unit_model.MinUnitAccessMode(unitPerms)
 	}
 
@@ -257,12 +259,12 @@ func NewTeamPost(ctx *context.Context) {
 		OrgID:                   ctx.Org.Organization.ID,
 		Name:                    form.TeamName,
 		Description:             form.Description,
-		Authorize:               p,
+		AccessMode:              p,
 		IncludesAllRepositories: includesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
 	}
 
-	if t.Authorize < perm.AccessModeAdmin {
+	if t.AccessMode < perm.AccessModeAdmin {
 		var units = make([]*models.TeamUnit, 0, len(unitPerms))
 		for tp, perm := range unitPerms {
 			units = append(units, &models.TeamUnit{
@@ -281,7 +283,7 @@ func NewTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < perm.AccessModeAdmin && len(unitPerms) == 0 {
+	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
@@ -350,12 +352,17 @@ func EditTeamPost(ctx *context.Context) {
 	var includesAllRepositories = form.RepoAccess == "all"
 	if !t.IsOwnerTeam() {
 		// Validate permission level.
-		auth := perm.ParseAccessMode(form.Permission)
+		newAccessMode := perm.ParseAccessMode(form.Permission)
+		if newAccessMode < perm.AccessModeAdmin {
+			// if p is less than admin accessmode, then it should be general accessmode,
+			// so we should calculate the minial accessmode from units accessmodes.
+			newAccessMode = unit_model.MinUnitAccessMode(unitPerms)
+		}
 
 		t.Name = form.TeamName
-		if t.Authorize != auth {
+		if t.AccessMode != newAccessMode {
 			isAuthChanged = true
-			t.Authorize = auth
+			t.AccessMode = newAccessMode
 		}
 
 		if t.IncludesAllRepositories != includesAllRepositories {
@@ -364,7 +371,7 @@ func EditTeamPost(ctx *context.Context) {
 		}
 	}
 	t.Description = form.Description
-	if t.Authorize < perm.AccessModeAdmin {
+	if t.AccessMode < perm.AccessModeAdmin {
 		var units = make([]models.TeamUnit, 0, len(unitPerms))
 		for tp, perm := range unitPerms {
 			units = append(units, models.TeamUnit{
@@ -387,7 +394,7 @@ func EditTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if t.Authorize < perm.AccessModeAdmin && len(unitPerms) == 0 {
+	if t.AccessMode < perm.AccessModeAdmin && len(unitPerms) == 0 {
 		ctx.RenderWithErr(ctx.Tr("form.team_no_units_error"), tplTeamNew, &form)
 		return
 	}
