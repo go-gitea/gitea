@@ -662,7 +662,8 @@ docs:
 	fi
 	cd docs;
 	git fetch origin
-# git co release/v1.15 && PUBLIC=public/v1.15 make clean trans-copy  build-offline ;
+	git co release/v1.15 && make trans-copy clean build-offline ;
+	mv public/ public/v1.15/
 	git co main && git clean -d -f && PUBLIC=public make clean trans-copy build-offline ;
 
 .PHONY: deps
