@@ -158,7 +158,7 @@ func attachTeamUnits(team *models.Team, units []string) {
 		team.Units = append(team.Units, &models.TeamUnit{
 			OrgID:      team.OrgID,
 			Type:       tp,
-			AccessMode: team.Authorize,
+			AccessMode: team.AccessMode,
 		})
 	}
 }
@@ -219,10 +219,10 @@ func CreateTeam(ctx *context.APIContext) {
 		Description:             form.Description,
 		IncludesAllRepositories: form.IncludesAllRepositories,
 		CanCreateOrgRepo:        form.CanCreateOrgRepo,
-		Authorize:               p,
+		AccessMode:              p,
 	}
 
-	if team.Authorize < perm.AccessModeAdmin {
+	if team.AccessMode < perm.AccessModeAdmin {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {
@@ -297,9 +297,9 @@ func EditTeam(ctx *context.APIContext) {
 			p = unit_model.MinUnitAccessMode(convertUnitsMap(form.UnitsMap))
 		}
 
-		if team.Authorize != p {
+		if team.AccessMode != p {
 			isAuthChanged = true
-			team.Authorize = p
+			team.AccessMode = p
 		}
 
 		if form.IncludesAllRepositories != nil {
@@ -308,7 +308,7 @@ func EditTeam(ctx *context.APIContext) {
 		}
 	}
 
-	if team.Authorize < perm.AccessModeAdmin {
+	if team.AccessMode < perm.AccessModeAdmin {
 		if len(form.UnitsMap) > 0 {
 			attachTeamUnitsMap(team, form.UnitsMap)
 		} else if len(form.Units) > 0 {

@@ -32,7 +32,7 @@ type Team struct {
 	LowerName               string
 	Name                    string
 	Description             string
-	Authorize               perm.AccessMode
+	AccessMode              perm.AccessMode          `xorm:"'authorize'"`
 	Repos                   []*repo_model.Repository `xorm:"-"`
 	Members                 []*user_model.User       `xorm:"-"`
 	NumRepos                int
@@ -126,7 +126,7 @@ func (t *Team) ColorFormat(s fmt.State) {
 		log.NewColoredIDValue(t.ID),
 		t.Name,
 		log.NewColoredIDValue(t.OrgID),
-		t.Authorize)
+		t.AccessMode)
 }
 
 // GetUnits return a list of available units for a team
@@ -145,7 +145,7 @@ func (t *Team) getUnits(e db.Engine) (err error) {
 
 // GetUnitNames returns the team units names
 func (t *Team) GetUnitNames() (res []string) {
-	if t.Authorize >= perm.AccessModeAdmin {
+	if t.AccessMode >= perm.AccessModeAdmin {
 		return unit.AllUnitKeyNames()
 	}
 
@@ -158,9 +158,9 @@ func (t *Team) GetUnitNames() (res []string) {
 // GetUnitsMap returns the team units permissions
 func (t *Team) GetUnitsMap() map[string]string {
 	var m = make(map[string]string)
-	if t.Authorize >= perm.AccessModeAdmin {
+	if t.AccessMode >= perm.AccessModeAdmin {
 		for _, u := range unit.Units {
-			m[u.NameKey] = t.Authorize.String()
+			m[u.NameKey] = t.AccessMode.String()
 		}
 	} else {
 		for _, u := range t.Units {

@@ -265,7 +265,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		OrgID:                   org.ID,
 		LowerName:               strings.ToLower(ownerTeamName),
 		Name:                    ownerTeamName,
-		Authorize:               perm.AccessModeOwner,
+		AccessMode:              perm.AccessModeOwner,
 		NumMembers:              1,
 		IncludesAllRepositories: true,
 		CanCreateOrgRepo:        true,
