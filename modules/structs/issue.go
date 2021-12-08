@@ -135,3 +135,11 @@ type IssueTemplate struct {
 func (it IssueTemplate) Valid() bool {
 	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
 }
+
+// IssueMeta basic issue information
+// swagger:model
+type IssueMeta struct {
+	Index int64  `json:"index"`
+	Owner string `json:"owner"`
+	Name  string `json:"repo"`
+}

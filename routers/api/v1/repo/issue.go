@@ -902,3 +902,403 @@ func UpdateIssueDeadline(ctx *context.APIContext) {
 
 	ctx.JSON(http.StatusCreated, api.IssueDeadline{Deadline: &deadline})
 }
+
+// GetIssueDependencies list an issue's dependencies
+func GetIssueDependencies(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/dependencies issue issueListIssueDependencies
+	// ---
+	// summary: List an issue's dependencies
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueList"
+
+	if !ctx.Repo.Repository.IsDependenciesEnabled() {
+		ctx.NotFound()
+		return
+	}
+
+	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("IsErrIssueNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	deps, err := issue.BlockedByDependencies()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
+		return
+	}
+
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	limit := ctx.FormInt("limit")
+	if limit <= 1 {
+		limit = setting.API.DefaultPagingNum
+	}
+
+	skip := (page - 1) * limit
+	max := page * limit
+
+	var issues []*models.Issue
+	for i, depMeta := range deps {
+		if i < skip || i >= max {
+			continue
+		}
+		depMeta.Issue.Repo = &depMeta.Repository
+		issues = append(issues, &depMeta.Issue)
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
+}
+
+// CreateIssueDependency create a new issue dependencies
+func CreateIssueDependency(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/dependencies issue issueCreateIssueDependencies
+	// ---
+	// summary: Create a new issue dependencies
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/IssueMeta"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Issue"
+	//     description: the issue that was added as dependency
+	//   "404":
+	//     description: the issue does not exist
+
+	createDep(ctx, models.DependencyTypeBlockedBy)
+}
+
+// RemoveIssueDependency remove an issue dependency
+func RemoveIssueDependency(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/dependencies issue issueRemoveIssueDependencies
+	// ---
+	// summary: Remove an issue dependency
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/IssueMeta"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Issue"
+	//     description: the issue that was removed as dependency
+
+	removeDep(ctx, models.DependencyTypeBlockedBy)
+}
+
+// GetIssueBlocks list issues that are blocked by this issue
+func GetIssueBlocks(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/issues/{index}/blocks issue issueListBlocks
+	// ---
+	// summary: List issues that are blocked by this issue
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: string
+	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/IssueList"
+
+	if !ctx.Repo.Repository.IsDependenciesEnabled() {
+		ctx.NotFound()
+		return
+	}
+
+	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("IsErrIssueNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	page := ctx.FormInt("page")
+	if page <= 1 {
+		page = 1
+	}
+	limit := ctx.FormInt("limit")
+	if limit <= 1 {
+		limit = setting.API.DefaultPagingNum
+	}
+
+	skip := (page - 1) * limit
+	max := page * limit
+
+	deps, err := issue.BlockingDependencies()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "BlockingDependencies", err)
+		return
+	}
+
+	var issues []*models.Issue
+	for i, depMeta := range deps {
+		if i < skip || i >= max {
+			continue
+		}
+		depMeta.Issue.Repo = &depMeta.Repository
+		issues = append(issues, &depMeta.Issue)
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToAPIIssueList(issues))
+}
+
+// CreateIssueBlocking block the issue given in the body by the issue in path
+func CreateIssueBlocking(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/issues/{index}/blocks issue issueCreateIssueBlocking
+	// ---
+	// summary: Block the issue given in the body by the issue in path
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/IssueMeta"
+	// responses:
+	//   "201":
+	//     "$ref": "#/responses/Issue"
+	//     description: the issue that was added as dependency
+	//   "404":
+	//     description: the issue does not exist
+
+	createDep(ctx, models.DependencyTypeBlocking)
+}
+
+// RemoveIssueBlocking unblock the issue given in the body by the issue in path
+func RemoveIssueBlocking(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/issues/{index}/blocks issue issueRemoveIssueBlocking
+	// ---
+	// summary: Unblock the issue given in the body by the issue in path
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the issue
+	//   type: string
+	//   required: true
+	// - name: body
+	//   in: body
+	//   schema:
+	//     "$ref": "#/definitions/IssueMeta"
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/Issue"
+	//     description: the issue that was removed as dependency
+
+	removeDep(ctx, models.DependencyTypeBlocking)
+}
+
+func createDep(ctx *context.APIContext, t models.DependencyType) {
+	if !ctx.Repo.Repository.IsDependenciesEnabled() {
+		ctx.NotFound()
+		return
+	}
+
+	dep, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("IsErrIssueNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.IssueMeta)
+	repo, err := models.GetRepositoryByOwnerAndName(form.Owner, form.Name)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.NotFound("IsErrRepoNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+		}
+		return
+	}
+
+	issue, err := models.GetIssueWithAttrsByIndex(repo.ID, form.Index)
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("IsErrIssueNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	if t == models.DependencyTypeBlockedBy {
+		err = models.CreateIssueDependency(ctx.User, issue, dep)
+	} else {
+		err = models.CreateIssueDependency(ctx.User, dep, issue)
+	}
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(dep))
+}
+
+func removeDep(ctx *context.APIContext, t models.DependencyType) {
+	if !ctx.Repo.Repository.IsDependenciesEnabled() {
+		ctx.NotFound()
+		return
+	}
+
+	issue, err := models.GetIssueWithAttrsByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("IsErrIssueNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	form := web.GetForm(ctx).(*api.IssueMeta)
+	repo, err := models.GetRepositoryByOwnerAndName(form.Owner, form.Name)
+	if err != nil {
+		if models.IsErrRepoNotExist(err) {
+			ctx.NotFound("IsErrRepoNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetRepositoryByOwnerAndName", err)
+		}
+		return
+	}
+
+	dep, err := models.GetIssueWithAttrsByIndex(repo.ID, form.Index)
+	if err != nil {
+		if models.IsErrIssueNotExist(err) {
+			ctx.NotFound("IsErrIssueNotExist", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
+		}
+		return
+	}
+
+	err = models.RemoveIssueDependency(ctx.User, issue, dep, t)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToAPIIssue(dep))
+}
