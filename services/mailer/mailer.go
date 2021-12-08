@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net"
 	"net/smtp"
@@ -67,12 +68,27 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.SetBody("text/plain", plainBody)
 		msg.AddAlternative("text/html", m.Body)
 	}
+
+	if len(msg.GetHeader("Message-ID")) == 0 {
+		msg.SetHeader("Message-ID", m.generateAutoMessageID())
+	}
 	return msg
 }
 
 // SetHeader adds additional headers to a message
 func (m *Message) SetHeader(field string, value ...string) {
 	m.Headers[field] = value
+}
+
+func (m *Message) generateAutoMessageID() string {
+	dateMs := m.Date.UnixNano() / 1e6
+	h := fnv.New64()
+	if len(m.To) > 0 {
+		_, _ = h.Write([]byte(m.To[0]))
+	}
+	_, _ = h.Write([]byte(m.Subject))
+	_, _ = h.Write([]byte(m.Body))
+	return fmt.Sprintf("<autogen-%d-%016x@%s>", dateMs, h.Sum64(), setting.Domain)
 }
 
 // NewMessageFrom creates new mail message object with custom From header.

@@ -5,8 +5,10 @@
 package repository
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,7 +22,7 @@ import (
 // CreateNewBranch creates a new repository branch
 func CreateNewBranch(doer *user_model.User, repo *models.Repository, oldBranchName, branchName string) (err error) {
 	// Check if branch name can be used
-	if err := checkBranchName(repo, branchName); err != nil {
+	if err := checkBranchName(git.DefaultContext, repo, branchName); err != nil {
 		return err
 	}
 
@@ -65,44 +67,39 @@ func GetBranches(repo *models.Repository, skip, limit int) ([]*git.Branch, int, 
 }
 
 // checkBranchName validates branch name with existing repository branches
-func checkBranchName(repo *models.Repository, name string) error {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return err
-	}
-	defer gitRepo.Close()
-
-	branches, _, err := GetBranches(repo, 0, 0)
-	if err != nil {
-		return err
-	}
-
-	for _, branch := range branches {
-		if branch.Name == name {
+func checkBranchName(ctx context.Context, repo *models.Repository, name string) error {
+	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(refName string) error {
+		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
+		switch {
+		case branchRefName == name:
 			return models.ErrBranchAlreadyExists{
-				BranchName: branch.Name,
+				BranchName: name,
 			}
-		} else if (len(branch.Name) < len(name) && branch.Name+"/" == name[0:len(branch.Name)+1]) ||
-			(len(branch.Name) > len(name) && name+"/" == branch.Name[0:len(name)+1]) {
+		// If branchRefName like a/b but we want to create a branch named a then we have a conflict
+		case strings.HasPrefix(branchRefName, name+"/"):
 			return models.ErrBranchNameConflict{
-				BranchName: branch.Name,
+				BranchName: branchRefName,
+			}
+			// Conversely if branchRefName like a but we want to create a branch named a/b then we also have a conflict
+		case strings.HasPrefix(name, branchRefName+"/"):
+			return models.ErrBranchNameConflict{
+				BranchName: branchRefName,
+			}
+		case refName == git.TagPrefix+name:
+			return models.ErrTagAlreadyExists{
+				TagName: name,
 			}
 		}
-	}
+		return nil
+	})
 
-	if _, err := gitRepo.GetTag(name); err == nil {
-		return models.ErrTagAlreadyExists{
-			TagName: name,
-		}
-	}
-
-	return nil
+	return err
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
 func CreateNewBranchFromCommit(doer *user_model.User, repo *models.Repository, commit, branchName string) (err error) {
 	// Check if branch name can be used
-	if err := checkBranchName(repo, branchName); err != nil {
+	if err := checkBranchName(git.DefaultContext, repo, branchName); err != nil {
 		return err
 	}
 
