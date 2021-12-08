@@ -3168,6 +3168,7 @@ td.blob-excerpt {
 .code-diff-unified .del-code,
 .code-diff-unified .del-code td,
 .code-diff-split .del-code .lines-num-old,
+.code-diff-split .del-code .lines-escape-old,
 .code-diff-split .del-code .lines-type-marker-old,
 .code-diff-split .del-code .lines-code-old {
   background: var(--color-diff-removed-row-bg);
@@ -3178,9 +3179,11 @@ td.blob-excerpt {
 .code-diff-unified .add-code td,
 .code-diff-split .add-code .lines-num-new,
 .code-diff-split .add-code .lines-type-marker-new,
+.code-diff-split .add-code .lines-escape-new,
 .code-diff-split .add-code .lines-code-new,
 .code-diff-split .del-code .add-code.lines-num-new,
 .code-diff-split .del-code .add-code.lines-type-marker-new,
+.code-diff-split .del-code .add-code.lines-escape-new,
 .code-diff-split .del-code .add-code.lines-code-new {
   background: var(--color-diff-added-row-bg);
   border-color: var(--color-diff-added-row-border);
@@ -3189,7 +3192,9 @@ td.blob-excerpt {
 .code-diff-split .del-code .lines-num-new,
 .code-diff-split .del-code .lines-type-marker-new,
 .code-diff-split .del-code .lines-code-new,
+.code-diff-split .del-code .lines-escape-new,
 .code-diff-split .add-code .lines-num-old,
+.code-diff-split .add-code .lines-escape-old,
 .code-diff-split .add-code .lines-type-marker-old,
 .code-diff-split .add-code .lines-code-old {
   background: var(--color-diff-inactive);
