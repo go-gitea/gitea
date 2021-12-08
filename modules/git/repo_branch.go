@@ -95,7 +95,12 @@ func GetBranchesByPath(path string, skip, limit int) ([]*Branch, int, error) {
 	}
 	defer gitRepo.Close()
 
-	brs, countAll, err := gitRepo.GetBranches(skip, limit)
+	return gitRepo.GetBranches(skip, limit)
+}
+
+// GetBranches returns a slice of *git.Branch
+func (repo *Repository) GetBranches(skip, limit int) ([]*Branch, int, error) {
+	brs, countAll, err := repo.GetBranchNames(skip, limit)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -103,9 +108,9 @@ func GetBranchesByPath(path string, skip, limit int) ([]*Branch, int, error) {
 	branches := make([]*Branch, len(brs))
 	for i := range brs {
 		branches[i] = &Branch{
-			Path:    path,
+			Path:    repo.Path,
 			Name:    brs[i],
-			gitRepo: gitRepo,
+			gitRepo: repo,
 		}
 	}
 
