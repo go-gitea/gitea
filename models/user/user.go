@@ -10,7 +10,6 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -71,11 +70,6 @@ const (
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
-)
-
-var (
-	// ErrUserNameIllegal user name contains illegal characters error
-	ErrUserNameIllegal = errors.New("User name contains illegal characters")
 )
 
 // User represents the object of individual and member of organization.

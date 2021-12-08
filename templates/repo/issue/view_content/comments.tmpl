@@ -43,22 +43,22 @@
 						{{end}}
 					</div>
 					<div class="comment-header-right actions df ac">
+						{{if (.ShowRole.HasRole "Poster")}}
+							<div class="ui basic label">
+								{{$.i18n.Tr "repo.issues.poster"}}
+							</div>
+						{{end}}
+						{{if (.ShowRole.HasRole "Writer")}}
+							<div class="ui basic label">
+								{{$.i18n.Tr "repo.issues.collaborator"}}
+							</div>
+						{{end}}
+						{{if (.ShowRole.HasRole "Owner")}}
+							<div class="ui basic label">
+								{{$.i18n.Tr "repo.issues.owner"}}
+							</div>
+						{{end}}
 						{{if not $.Repository.IsArchived}}
-							{{if (.ShowRole.HasRole "Poster")}}
-								<div class="ui basic label">
-									{{$.i18n.Tr "repo.issues.poster"}}
-								</div>
-							{{end}}
-							{{if (.ShowRole.HasRole "Writer")}}
-								<div class="ui basic label">
-									{{$.i18n.Tr "repo.issues.collaborator"}}
-								</div>
-							{{end}}
-							{{if (.ShowRole.HasRole "Owner")}}
-								<div class="ui basic label">
-									{{$.i18n.Tr "repo.issues.owner"}}
-								</div>
-							{{end}}
 							{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
 							{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" false "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
 						{{end}}
@@ -565,8 +565,10 @@
 																	{{$.i18n.Tr "repo.issues.owner"}}
 																</div>
 															{{end}}
-															{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
-															{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+															{{if not $.Repository.IsArchived}}
+																{{template "repo/issue/view_content/add_reaction" Dict "ctx" $ "ActionURL" (Printf "%s/comments/%d/reactions" $.RepoLink .ID)}}
+																{{template "repo/issue/view_content/context_menu" Dict "ctx" $ "item" . "delete" true "issue" true "diff" true "IsCommentPoster" (and $.IsSigned (eq $.SignedUserID .PosterID))}}
+															{{end}}
 														</div>
 													</div>
 													<div class="text comment-content">

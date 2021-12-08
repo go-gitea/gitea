@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	api "code.gitea.io/gitea/modules/structs"
@@ -761,8 +762,8 @@ func (issue *Issue) ChangeRef(doer *user_model.User, oldRef string) (err error) 
 	if err = issue.loadRepo(db.GetEngine(ctx)); err != nil {
 		return fmt.Errorf("loadRepo: %v", err)
 	}
-	oldRefFriendly := strings.TrimPrefix(oldRef, "refs/heads/")
-	newRefFriendly := strings.TrimPrefix(issue.Ref, "refs/heads/")
+	oldRefFriendly := strings.TrimPrefix(oldRef, git.BranchPrefix)
+	newRefFriendly := strings.TrimPrefix(issue.Ref, git.BranchPrefix)
 
 	opts := &CreateCommentOptions{
 		Type:   CommentTypeChangeIssueRef,
@@ -1218,6 +1219,8 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 				"ELSE issue.deadline_unix END DESC")
 	case "priorityrepo":
 		sess.OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 ELSE 2 END, issue.created_unix DESC")
+	case "project-column-sorting":
+		sess.Asc("project_issue.sorting")
 	default:
 		sess.Desc("issue.created_unix")
 	}

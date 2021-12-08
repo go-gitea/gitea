@@ -64,6 +64,19 @@ func TestAPINotification(t *testing.T) {
 	assert.Len(t, apiNL, 1)
 	assert.EqualValues(t, 4, apiNL[0].ID)
 
+	// -- GET /repos/{owner}/{repo}/notifications -- multiple status-types
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?status-types=unread&status-types=pinned&token=%s", user2.Name, repo1.Name, token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiNL)
+
+	assert.Len(t, apiNL, 2)
+	assert.EqualValues(t, 4, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
+	assert.EqualValues(t, 3, apiNL[1].ID)
+	assert.False(t, apiNL[1].Unread)
+	assert.True(t, apiNL[1].Pinned)
+
 	// -- GET /notifications/threads/{id} --
 	// get forbidden
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", 1, token))
@@ -121,4 +134,58 @@ func TestAPINotification(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &new)
 	assert.True(t, new.New == 0)
+}
+
+func TestAPINotificationPUT(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	assert.NoError(t, thread5.LoadAttributes())
+	session := loginUser(t, user2.Name)
+	token := getTokenForLoggedInUser(t, session)
+
+	// Check notifications are as expected
+	req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=true&token=%s", token))
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiNL []api.NotificationThread
+	DecodeJSON(t, resp, &apiNL)
+
+	assert.Len(t, apiNL, 4)
+	assert.EqualValues(t, 5, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
+	assert.EqualValues(t, 4, apiNL[1].ID)
+	assert.True(t, apiNL[1].Unread)
+	assert.False(t, apiNL[1].Pinned)
+	assert.EqualValues(t, 3, apiNL[2].ID)
+	assert.False(t, apiNL[2].Unread)
+	assert.True(t, apiNL[2].Pinned)
+	assert.EqualValues(t, 2, apiNL[3].ID)
+	assert.False(t, apiNL[3].Unread)
+	assert.False(t, apiNL[3].Pinned)
+
+	//
+	// Notification ID 2 is the only one with status-type read & pinned
+	// change it to unread.
+	//
+	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/notifications?status-types=read&status-type=pinned&to-status=unread&token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusResetContent)
+	DecodeJSON(t, resp, &apiNL)
+	assert.Len(t, apiNL, 1)
+	assert.EqualValues(t, 2, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
+
+	//
+	// Now nofication ID 2 is the first in the list and is unread.
+	//
+	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications?all=true&token=%s", token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &apiNL)
+
+	assert.Len(t, apiNL, 4)
+	assert.EqualValues(t, 2, apiNL[0].ID)
+	assert.True(t, apiNL[0].Unread)
+	assert.False(t, apiNL[0].Pinned)
 }
