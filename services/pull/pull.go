@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	issue_service "code.gitea.io/gitea/services/issue"
 )
@@ -38,7 +39,7 @@ func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.I
 	pr.CommitsAhead = divergence.Ahead
 	pr.CommitsBehind = divergence.Behind
 
-	if err := models.NewPullRequest(repo, pull, labelIDs, uuids, pr); err != nil {
+	if err := models.NewPullRequest(ctx, repo, pull, labelIDs, uuids, pr); err != nil {
 		return err
 	}
 
@@ -51,10 +52,16 @@ func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.I
 	pr.Issue = pull
 	pull.PullRequest = pr
 
+	// Now - even if the request context has been cancelled as the PR has been created
+	// in the db and there is no way to cancel that transaction we have to proceed - therefore
+	// create new context and work from there
+	prCtx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("NewPullRequest: %s:%d", repo.FullName(), pr.Index))
+	defer finished()
+
 	if pr.Flow == models.PullRequestFlowGithub {
-		err = PushToBaseRepo(ctx, pr)
+		err = PushToBaseRepo(prCtx, pr)
 	} else {
-		err = UpdateRef(ctx, pr)
+		err = UpdateRef(prCtx, pr)
 	}
 	if err != nil {
 		return err
@@ -74,7 +81,7 @@ func NewPullRequest(ctx context.Context, repo *models.Repository, pull *models.I
 	}
 
 	// add first push codes comment
-	baseGitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+	baseGitRepo, err := git.OpenRepositoryCtx(prCtx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return err
 	}
