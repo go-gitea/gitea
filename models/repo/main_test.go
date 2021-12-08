@@ -16,9 +16,7 @@ func TestMain(m *testing.M) {
 		"attachment.yml",
 		"repo_archiver.yml",
 		"repository.yml",
-		"mirror.yml",
 		"repo_unit.yml",
 		"repo_indexer_status.yml",
-		"language_stat.yml",
 	)
 }
