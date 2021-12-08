@@ -165,14 +165,14 @@ func redirect(ctx *context.Context) {
 // loadBranches loads branches from the repository limited by page & pageSize.
 // NOTE: May write to context on error.
 func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
-	defaultBranch, err := repo_service.GetBranch(ctx.Repo.Repository, ctx.Repo.Repository.DefaultBranch)
+	defaultBranch, err := ctx.Repo.GitRepo.GetBranch(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
 		log.Error("loadBranches: get default branch: %v", err)
 		ctx.ServerError("GetDefaultBranch", err)
 		return nil, 0
 	}
 
-	rawBranches, totalNumOfBranches, err := repo_service.GetBranches(ctx.Repo.Repository, skip, limit)
+	rawBranches, totalNumOfBranches, err := ctx.Repo.GitRepo.GetBranches(skip, limit)
 	if err != nil {
 		log.Error("GetBranches: %v", err)
 		ctx.ServerError("GetBranches", err)
