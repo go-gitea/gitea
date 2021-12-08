@@ -40,7 +40,7 @@ func (ctx *BaseContext) GetData() map[string]interface{} {
 }
 
 // HasValue returns true if value of given name exists.
-func (ctx *BaseContext) HasValue(name string) bool {
+func (ctx *BaseContext) HasDataKey(name string) bool {
 	_, ok := ctx.Data[name]
 	return ok
 }
