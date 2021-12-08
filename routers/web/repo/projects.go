@@ -563,7 +563,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	p, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := models.GetProjectByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrProjectNotExist(err) {
 			ctx.NotFound("ProjectNotExist", nil)
@@ -572,7 +572,7 @@ func MoveIssues(ctx *context.Context) {
 		}
 		return
 	}
-	if p.RepoID != ctx.Repo.Repository.ID {
+	if project.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound("InvalidRepoID", nil)
 		return
 	}
@@ -580,13 +580,11 @@ func MoveIssues(ctx *context.Context) {
 	var board *models.ProjectBoard
 
 	if ctx.ParamsInt64(":boardID") == 0 {
-
 		board = &models.ProjectBoard{
 			ID:        0,
-			ProjectID: 0,
+			ProjectID: project.ID,
 			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		}
-
 	} else {
 		// column
 		board, err = models.GetProjectBoard(ctx.ParamsInt64(":boardID"))
@@ -598,7 +596,7 @@ func MoveIssues(ctx *context.Context) {
 			}
 			return
 		}
-		if board.ProjectID != p.ID {
+		if board.ProjectID != project.ID {
 			ctx.NotFound("BoardNotInProject", nil)
 			return
 		}
