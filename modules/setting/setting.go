@@ -39,11 +39,11 @@ type Scheme string
 
 // enumerates all the scheme types
 const (
-	HTTP       Scheme = "http"
-	HTTPS      Scheme = "https"
-	FCGI       Scheme = "fcgi"
-	FCGIUnix   Scheme = "fcgi+unix"
-	UnixSocket Scheme = "unix"
+	HTTP     Scheme = "http"
+	HTTPS    Scheme = "https"
+	FCGI     Scheme = "fcgi"
+	FCGIUnix Scheme = "fcgi+unix"
+	HTTPUnix Scheme = "http+unix"
 )
 
 // LandingPage describes the default page
@@ -607,7 +607,8 @@ func loadFromConf(allowEmpty bool) {
 	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
 
 	Protocol = HTTP
-	switch sec.Key("PROTOCOL").String() {
+	protocolCfg := sec.Key("PROTOCOL").String()
+	switch protocolCfg {
 	case "https":
 		Protocol = HTTPS
 		CertFile = sec.Key("CERT_FILE").String()
@@ -620,24 +621,22 @@ func loadFromConf(allowEmpty bool) {
 		}
 	case "fcgi":
 		Protocol = FCGI
-	case "fcgi+unix":
-		Protocol = FCGIUnix
+	case "fcgi+unix", "unix", "http+unix":
+		switch protocolCfg {
+		case "fcgi+unix":
+			Protocol = FCGIUnix
+		case "unix":
+			log.Warn("unix PROTOCOL value is deprecated, please use http+unix")
+			fallthrough
+		case "http+unix":
+			Protocol = HTTPUnix
+		}
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
 		if err != nil || UnixSocketPermissionParsed > 0777 {
 			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
-		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
-		if !filepath.IsAbs(HTTPAddr) {
-			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
-		}
-	case "unix":
-		Protocol = UnixSocket
-		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
-		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
-		if err != nil || UnixSocketPermissionParsed > 0777 {
-			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
-		}
+
 		UnixSocketPermission = uint32(UnixSocketPermissionParsed)
 		if !filepath.IsAbs(HTTPAddr) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
@@ -692,7 +691,7 @@ func loadFromConf(allowEmpty bool) {
 
 	var defaultLocalURL string
 	switch Protocol {
-	case UnixSocket:
+	case HTTPUnix:
 		defaultLocalURL = "http://unix/"
 	case FCGI:
 		defaultLocalURL = AppURL

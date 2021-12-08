@@ -14,5 +14,6 @@ import (
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, filepath.Join("..", ".."),
 		"attachment.yml",
+		"repo_archiver.yml",
 	)
 }

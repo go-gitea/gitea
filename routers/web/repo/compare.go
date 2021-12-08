@@ -186,6 +186,9 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// 1. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headBranch}
 	// 2. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}:{:headBranch}
 	// 3. /{:baseOwner}/{:baseRepoName}/compare/{:baseBranch}...{:headOwner}/{:headRepoName}:{:headBranch}
+	// 4. /{:baseOwner}/{:baseRepoName}/compare/{:headBranch}
+	// 5. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}:{:headBranch}
+	// 6. /{:baseOwner}/{:baseRepoName}/compare/{:headOwner}/{:headRepoName}:{:headBranch}
 	//
 	// Here we obtain the infoPath "{:baseBranch}...[{:headOwner}/{:headRepoName}:]{:headBranch}" as ctx.Params("*")
 	// with the :baseRepo in ctx.Repo.
@@ -213,9 +216,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	infos := strings.SplitN(infoPath, "...", 2)
 
 	if len(infos) != 2 {
-		infos = strings.SplitN(infoPath, "..", 2)
-		ci.DirectComparison = true
-		ctx.Data["PageIsComparePull"] = false
+		infos = []string{baseRepo.DefaultBranch, infoPath}
+		if strings.Contains(infoPath, "..") {
+			infos = strings.SplitN(infoPath, "..", 2)
+			ci.DirectComparison = true
+			ctx.Data["PageIsComparePull"] = false
+		}
 	}
 
 	if len(infos) != 2 {
