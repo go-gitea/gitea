@@ -27,7 +27,7 @@ import (
 const (
 	issueIndexerAnalyzer      = "issueIndexer"
 	issueIndexerDocType       = "issueIndexerDocType"
-	issueIndexerLatestVersion = 1
+	issueIndexerLatestVersion = 2
 )
 
 // indexerID a bleve-compatible unique identifier for an integer id
@@ -127,6 +127,7 @@ func createIssueIndexer(path string, latestVersion int) (bleve.Index, error) {
 	docMapping.AddFieldMappingsAt("Title", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Content", textFieldMapping)
 	docMapping.AddFieldMappingsAt("Comments", textFieldMapping)
+	docMapping.AddFieldMappingsAt("Index", numericFieldMapping)
 
 	if err := addUnicodeNormalizeTokenFilter(mapping); err != nil {
 		return nil, err
@@ -206,11 +207,13 @@ func (b *BleveIndexer) Index(issues []*IndexerData) error {
 			Title    string
 			Content  string
 			Comments []string
+			Index    int64
 		}{
 			RepoID:   issue.RepoID,
 			Title:    issue.Title,
 			Content:  issue.Content,
 			Comments: issue.Comments,
+			Index:    issue.Index,
 		}); err != nil {
 			return err
 		}
@@ -236,6 +239,7 @@ func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int)
 	for _, repoID := range repoIDs {
 		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
 	}
+	index, _ := strconv.ParseInt(keyword, 10, 64)
 	repoQueries := make([]query.Query, len(repoQueriesP))
 	for i, v := range repoQueriesP {
 		repoQueries[i] = query.Query(v)
@@ -244,6 +248,7 @@ func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int)
 	indexerQuery := bleve.NewConjunctionQuery(
 		bleve.NewDisjunctionQuery(repoQueries...),
 		bleve.NewDisjunctionQuery(
+			numericEqualityQuery(index, "Index"),
 			newMatchPhraseQuery(keyword, "Title", issueIndexerAnalyzer),
 			newMatchPhraseQuery(keyword, "Content", issueIndexerAnalyzer),
 			newMatchPhraseQuery(keyword, "Comments", issueIndexerAnalyzer),

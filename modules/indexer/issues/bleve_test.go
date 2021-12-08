@@ -39,6 +39,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 				"test1",
 				"test2",
 			},
+			Index: 1,
 		},
 		{
 			ID:      2,
@@ -49,6 +50,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 				"LGTM",
 				"Good idea",
 			},
+			Index: 14,
 		},
 	})
 	assert.NoError(t, err)
@@ -81,6 +83,10 @@ func TestBleveIndexAndSearch(t *testing.T) {
 			{
 				Keyword: "help",
 				IDs:     []int64{},
+			},
+			{
+				Keyword: "14",
+				IDs:     []int64{2},
 			},
 		}
 	)

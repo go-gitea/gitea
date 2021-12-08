@@ -30,6 +30,7 @@ type IndexerData struct {
 	Comments []string `json:"comments"`
 	IsDelete bool     `json:"is_delete"`
 	IDs      []int64  `json:"ids"`
+	Index    int64    `json:"index"`
 }
 
 // Match represents on search result
@@ -303,6 +304,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 		Title:    issue.Title,
 		Content:  issue.Content,
 		Comments: comments,
+		Index:    issue.Index,
 	}
 	log.Debug("Adding to channel: %v", indexerData)
 	if err := issueIndexerQueue.Push(indexerData); err != nil {

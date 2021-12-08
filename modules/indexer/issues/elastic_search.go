@@ -88,6 +88,10 @@ const (
 					"type" : "text",
 					"index": true
 				}
+				"index": {
+					"type": "integer",
+					"index": true
+				},
 			}
 		}
 	}`
@@ -132,6 +136,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 				"title":    issue.Title,
 				"content":  issue.Content,
 				"comments": issue.Comments,
+				"index":    issue.Index,
 			}).
 			Do(context.Background())
 		return err
@@ -149,6 +154,7 @@ func (b *ElasticSearchIndexer) Index(issues []*IndexerData) error {
 					"title":    issue.Title,
 					"content":  issue.Content,
 					"comments": issue.Comments,
+					"index":    issue.Index,
 				}),
 		)
 	}
@@ -191,7 +197,7 @@ func (b *ElasticSearchIndexer) Delete(ids ...int64) error {
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
 func (b *ElasticSearchIndexer) Search(keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments")
+	kwQuery := elastic.NewMultiMatchQuery(keyword, "title", "content", "comments", "index")
 	query := elastic.NewBoolQuery()
 	query = query.Must(kwQuery)
 	if len(repoIDs) > 0 {
