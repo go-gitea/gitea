@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -55,7 +56,7 @@ type UpdateRepoFileOptions struct {
 	Signoff      bool
 }
 
-func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
+func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (string, bool) {
 	reader, err := entry.Blob().DataAsync()
 	if err != nil {
 		// return default
@@ -123,7 +124,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
+func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -440,7 +441,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, branchName string, treePath string) error {
+func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, branchName string, treePath string) error {
 	protectedBranch, err := models.GetBranchProtection(repo.ID, branchName)
 	if err != nil {
 		return err

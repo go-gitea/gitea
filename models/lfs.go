@@ -9,6 +9,7 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -205,7 +206,7 @@ func IterateLFS(f func(mo *LFSMetaObject) error) error {
 }
 
 // CopyLFS copies LFS data from one repo to another
-func CopyLFS(ctx context.Context, newRepo, oldRepo *Repository) error {
+func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error {
 	var lfsObjects []*LFSMetaObject
 	if err := db.GetEngine(ctx).Where("repository_id=?", oldRepo.ID).Find(&lfsObjects); err != nil {
 		return err

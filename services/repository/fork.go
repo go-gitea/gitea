@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -22,7 +23,7 @@ import (
 )
 
 // ForkRepository forks a repository
-func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
+func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (_ *repo_model.Repository, err error) {
 	forkedRepo, err := models.GetUserFork(opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
@@ -35,7 +36,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 		}
 	}
 
-	repo := &models.Repository{
+	repo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
 		OwnerName:     owner.Name,
@@ -57,7 +58,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 			return
 		}
 
-		repoPath := models.RepoPath(owner.Name, repo.Name)
+		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 
 		if exists, _ := util.IsExist(repoPath); !exists {
 			return
@@ -99,7 +100,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 
 		needsRollback = true
 
-		repoPath := models.RepoPath(owner.Name, repo.Name)
+		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 		if stdout, err := git.NewCommandContext(ctx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
@@ -134,7 +135,7 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 	if err := models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := models.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
+	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
 		log.Error("Copy language stat from oldRepo failed")
 	}
 
@@ -144,9 +145,9 @@ func ForkRepository(doer, owner *user_model.User, opts models.ForkRepoOptions) (
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
-func ConvertForkToNormalRepository(repo *models.Repository) error {
+func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 	err := db.WithTx(func(ctx context.Context) error {
-		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err
 		}

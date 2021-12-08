@@ -6,10 +6,12 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -32,11 +34,12 @@ func init() {
 	db.RegisterModel(new(Collaboration))
 }
 
-func addCollaborator(e db.Engine, repo *Repository, u *user_model.User) error {
+func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User) error {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: u.ID,
 	}
+	e := db.GetEngine(ctx)
 
 	has, err := e.Get(collaboration)
 	if err != nil {
@@ -50,18 +53,18 @@ func addCollaborator(e db.Engine, repo *Repository, u *user_model.User) error {
 		return err
 	}
 
-	return recalculateUserAccess(e, repo, u.ID)
+	return recalculateUserAccess(ctx, repo, u.ID)
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
-func AddCollaborator(repo *Repository, u *user_model.User) error {
+func AddCollaborator(repo *repo_model.Repository, u *user_model.User) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 
-	if err := addCollaborator(db.GetEngine(ctx), repo, u); err != nil {
+	if err := addCollaborator(ctx, repo, u); err != nil {
 		return err
 	}
 
@@ -142,7 +145,7 @@ func IsCollaborator(repoID, userID int64) (bool, error) {
 	return isCollaborator(db.GetEngine(db.DefaultContext), repoID, userID)
 }
 
-func changeCollaborationAccessMode(e db.Engine, repo *Repository, uid int64, mode perm.AccessMode) error {
+func changeCollaborationAccessMode(e db.Engine, repo *repo_model.Repository, uid int64, mode perm.AccessMode) error {
 	// Discard invalid input
 	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
 		return nil
@@ -177,7 +180,7 @@ func changeCollaborationAccessMode(e db.Engine, repo *Repository, uid int64, mod
 }
 
 // ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.AccessMode) error {
+func ChangeCollaborationAccessMode(repo *repo_model.Repository, uid int64, mode perm.AccessMode) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -192,7 +195,7 @@ func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.Access
 }
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
-func DeleteCollaboration(repo *Repository, uid int64) (err error) {
+func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 	collaboration := &Collaboration{
 		RepoID: repo.ID,
 		UserID: uid,
@@ -208,7 +211,7 @@ func DeleteCollaboration(repo *Repository, uid int64) (err error) {
 
 	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
 		return err
-	} else if err = recalculateAccesses(sess, repo); err != nil {
+	} else if err = recalculateAccesses(ctx, repo); err != nil {
 		return err
 	}
 
@@ -216,29 +219,29 @@ func DeleteCollaboration(repo *Repository, uid int64) (err error) {
 		return err
 	}
 
-	if err = reconsiderWatches(sess, repo, uid); err != nil {
+	if err = reconsiderWatches(ctx, repo, uid); err != nil {
 		return err
 	}
 
 	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := reconsiderIssueAssignees(sess, repo, uid); err != nil {
+	if err := reconsiderIssueAssignees(ctx, repo, uid); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func reconsiderIssueAssignees(e db.Engine, repo *Repository, uid int64) error {
-	user, err := user_model.GetUserByIDEngine(e, uid)
+func reconsiderIssueAssignees(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	user, err := user_model.GetUserByIDEngine(db.GetEngine(ctx), uid)
 	if err != nil {
 		return err
 	}
 
-	if canAssigned, err := canBeAssigned(e, user, repo, true); err != nil || canAssigned {
+	if canAssigned, err := canBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
 		return err
 	}
 
-	if _, err := e.Where(builder.Eq{"assignee_id": uid}).
+	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
 		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
 		Delete(&IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
@@ -246,11 +249,11 @@ func reconsiderIssueAssignees(e db.Engine, repo *Repository, uid int64) error {
 	return nil
 }
 
-func reconsiderWatches(e db.Engine, repo *Repository, uid int64) error {
-	if has, err := hasAccess(e, uid, repo); err != nil || has {
+func reconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+	if has, err := hasAccess(ctx, uid, repo); err != nil || has {
 		return err
 	}
-
+	e := db.GetEngine(ctx)
 	if err := watchRepo(e, uid, repo.ID, false); err != nil {
 		return err
 	}
@@ -259,7 +262,7 @@ func reconsiderWatches(e db.Engine, repo *Repository, uid int64) error {
 	return removeIssueWatchersByRepoID(e, uid, repo.ID)
 }
 
-func getRepoTeams(e db.Engine, repo *Repository) (teams []*Team, err error) {
+func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err error) {
 	return teams, e.
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
@@ -269,12 +272,12 @@ func getRepoTeams(e db.Engine, repo *Repository) (teams []*Team, err error) {
 }
 
 // GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(repo *Repository) ([]*Team, error) {
+func GetRepoTeams(repo *repo_model.Repository) ([]*Team, error) {
 	return getRepoTeams(db.GetEngine(db.DefaultContext), repo)
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(repo *Repository, userID int64) (bool, error) {
+func IsOwnerMemberCollaborator(repo *repo_model.Repository, userID int64) (bool, error) {
 	if repo.OwnerID == userID {
 		return true, nil
 	}

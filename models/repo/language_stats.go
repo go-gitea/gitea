@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"math"
@@ -34,7 +34,8 @@ func init() {
 // LanguageStatList defines a list of language statistics
 type LanguageStatList []*LanguageStat
 
-func (stats LanguageStatList) loadAttributes() {
+// LoadAttributes loads attributes
+func (stats LanguageStatList) LoadAttributes() {
 	for i := range stats {
 		stats[i].Color = enry.GetColor(stats[i].Language)
 	}
@@ -106,7 +107,7 @@ func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) 
 			Percentage: float32(math.Round(float64(other)*10) / 10),
 		})
 	}
-	topstats.loadAttributes()
+	topstats.LoadAttributes()
 	return topstats, nil
 }
 

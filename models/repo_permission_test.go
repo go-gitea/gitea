@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	perm_model "code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,8 +21,8 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public non-organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
@@ -73,8 +74,8 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private non-organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
@@ -125,8 +126,8 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 32}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32}).(*repo_model.Repository)
+	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
@@ -187,8 +188,8 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 24}).(*Repository)
-	assert.NoError(t, repo.getUnits(db.GetEngine(db.DefaultContext)))
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24}).(*repo_model.Repository)
+	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/log"
@@ -40,7 +41,7 @@ func DeleteUser(u *user_model.User) error {
 	//	cannot perform delete operation.
 
 	// Check ownership of repository.
-	count, err := models.GetRepositoryCount(ctx, u.ID)
+	count, err := repo_model.GetRepositoryCount(ctx, u.ID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {

@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,8 +18,23 @@ import (
 	"xorm.io/xorm/convert"
 )
 
+// ErrUnitTypeNotExist represents a "UnitTypeNotExist" kind of error.
+type ErrUnitTypeNotExist struct {
+	UT unit.Type
+}
+
+// IsErrUnitTypeNotExist checks if an error is a ErrUnitNotExist.
+func IsErrUnitTypeNotExist(err error) bool {
+	_, ok := err.(ErrUnitTypeNotExist)
+	return ok
+}
+
+func (err ErrUnitTypeNotExist) Error() string {
+	return fmt.Sprintf("Unit type does not exist: %s", err.UT.String())
+}
+
 // RepoUnit describes all units of a repository
-type RepoUnit struct {
+type RepoUnit struct { //revive:disable-line:exported
 	ID          int64
 	RepoID      int64              `xorm:"INDEX(s)"`
 	Type        unit.Type          `xorm:"INDEX(s)"`
@@ -28,6 +44,35 @@ type RepoUnit struct {
 
 func init() {
 	db.RegisterModel(new(RepoUnit))
+}
+
+// JSONUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
+func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
+	err := json.Unmarshal(bs, v)
+	if err != nil {
+		ok := true
+		rs := []byte{}
+		temp := make([]byte, 2)
+		for _, rn := range string(bs) {
+			if rn > 0xffff {
+				ok = false
+				break
+			}
+			binary.LittleEndian.PutUint16(temp, uint16(rn))
+			rs = append(rs, temp...)
+		}
+		if ok {
+			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
+				rs = rs[2:]
+			}
+			err = json.Unmarshal(rs, v)
+		}
+	}
+	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
+		err = json.Unmarshal(bs[2:], v)
+	}
+	return err
 }
 
 // UnitConfig describes common unit config

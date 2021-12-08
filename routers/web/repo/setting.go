@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -171,7 +172,7 @@ func SettingsPost(ctx *context.Context) {
 			} else {
 				ctx.Repo.Mirror.NextUpdateUnix = 0
 			}
-			if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+			if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
 				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
@@ -217,7 +218,7 @@ func SettingsPost(ctx *context.Context) {
 
 		ctx.Repo.Mirror.LFS = form.LFS
 		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := models.UpdateMirror(ctx.Repo.Mirror); err != nil {
+		if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
@@ -274,7 +275,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = models.DeletePushMirrorByID(m.ID); err != nil {
+		if err = repo_model.DeletePushMirrorByID(m.ID); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -315,19 +316,19 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m := &models.PushMirror{
+		m := &repo_model.PushMirror{
 			RepoID:     repo.ID,
 			Repo:       repo,
 			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
 			Interval:   interval,
 		}
-		if err := models.InsertPushMirror(m); err != nil {
+		if err := repo_model.InsertPushMirror(m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
 		}
 
 		if err := mirror_service.AddPushMirrorRemote(m, address); err != nil {
-			if err := models.DeletePushMirrorByID(m.ID); err != nil {
+			if err := repo_model.DeletePushMirrorByID(m.ID); err != nil {
 				log.Error("DeletePushMirrorByID %v", err)
 			}
 			ctx.ServerError("AddPushMirrorRemote", err)
@@ -339,7 +340,7 @@ func SettingsPost(ctx *context.Context) {
 
 	case "advanced":
 		var repoChanged bool
-		var units []models.RepoUnit
+		var units []repo_model.RepoUnit
 		var deleteUnitTypes []unit_model.Type
 
 		// This section doesn't require repo_name/RepoName to be set in the form, don't show it
@@ -358,19 +359,19 @@ func SettingsPost(ctx *context.Context) {
 				return
 			}
 
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeExternalWiki,
-				Config: &models.ExternalWikiConfig{
+				Config: &repo_model.ExternalWikiConfig{
 					ExternalWikiURL: form.ExternalWikiURL,
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeWiki)
 		} else if form.EnableWiki && !form.EnableExternalWiki && !unit_model.TypeWiki.UnitGlobalDisabled() {
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeWiki,
-				Config: new(models.UnitConfig),
+				Config: new(repo_model.UnitConfig),
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeExternalWiki)
 		} else {
@@ -393,10 +394,10 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Redirect(repo.Link() + "/settings")
 				return
 			}
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeExternalTracker,
-				Config: &models.ExternalTrackerConfig{
+				Config: &repo_model.ExternalTrackerConfig{
 					ExternalTrackerURL:    form.ExternalTrackerURL,
 					ExternalTrackerFormat: form.TrackerURLFormat,
 					ExternalTrackerStyle:  form.TrackerIssueStyle,
@@ -404,10 +405,10 @@ func SettingsPost(ctx *context.Context) {
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
 		} else if form.EnableIssues && !form.EnableExternalTracker && !unit_model.TypeIssues.UnitGlobalDisabled() {
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeIssues,
-				Config: &models.IssuesConfig{
+				Config: &repo_model.IssuesConfig{
 					EnableTimetracker:                form.EnableTimetracker,
 					AllowOnlyContributorsToTrackTime: form.AllowOnlyContributorsToTrackTime,
 					EnableDependencies:               form.EnableIssueDependencies,
@@ -424,7 +425,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if form.EnableProjects && !unit_model.TypeProjects.UnitGlobalDisabled() {
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypeProjects,
 			})
@@ -433,10 +434,10 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
-			units = append(units, models.RepoUnit{
+			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   unit_model.TypePullRequests,
-				Config: &models.PullRequestsConfig{
+				Config: &repo_model.PullRequestsConfig{
 					IgnoreWhitespaceConflicts:     form.PullsIgnoreWhitespace,
 					AllowMerge:                    form.PullsAllowMerge,
 					AllowRebase:                   form.PullsAllowRebase,
@@ -445,7 +446,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowManualMerge:              form.PullsAllowManualMerge,
 					AutodetectManualMerge:         form.EnableAutodetectManualMerge,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
-					DefaultMergeStyle:             models.MergeStyle(form.PullsDefaultMergeStyle),
+					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 				},
 			})
 		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
@@ -470,7 +471,7 @@ func SettingsPost(ctx *context.Context) {
 	case "signing":
 		changed := false
 
-		trustModel := models.ToTrustModel(form.TrustModel)
+		trustModel := repo_model.ToTrustModel(form.TrustModel)
 		if trustModel != repo.TrustModel {
 			repo.TrustModel = trustModel
 			changed = true
@@ -526,7 +527,7 @@ func SettingsPost(ctx *context.Context) {
 		if _, err := repository.CleanUpMigrateInfo(repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
-		} else if err = models.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
+		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
 			ctx.ServerError("DeleteMirrorByRepoID", err)
 			return
 		}
@@ -539,7 +540,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		if err := repo.GetOwner(); err != nil {
+		if err := repo.GetOwner(db.DefaultContext); err != nil {
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -938,7 +939,7 @@ func DeleteTeam(ctx *context.Context) {
 }
 
 // parseOwnerAndRepo get repos by owner
-func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *models.Repository) {
+func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *repo_model.Repository) {
 	owner, err := user_model.GetUserByName(ctx.Params(":username"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
@@ -949,9 +950,9 @@ func parseOwnerAndRepo(ctx *context.Context) (*user_model.User, *models.Reposito
 		return nil, nil
 	}
 
-	repo, err := models.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
+	repo, err := repo_model.GetRepositoryByName(owner.ID, ctx.Params(":reponame"))
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			ctx.NotFound("GetRepositoryByName", err)
 		} else {
 			ctx.ServerError("GetRepositoryByName", err)
@@ -1163,13 +1164,13 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
-func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *models.Repository) (*models.PushMirror, error) {
+func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
 	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	pushMirrors, err := models.GetPushMirrorsByRepoID(repo.ID)
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
 	if err != nil {
 		return nil, err
 	}

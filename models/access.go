@@ -6,10 +6,12 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
@@ -27,7 +29,7 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(e db.Engine, user *user_model.User, repo *Repository) (perm.AccessMode, error) {
+func accessLevel(e db.Engine, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
 	mode := perm.AccessModeNone
 	var userID int64
 	restricted := false
@@ -81,7 +83,7 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 }
 
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func refreshAccesses(e db.Engine, repo *Repository, accessMap map[int64]*userAccess) (err error) {
+func refreshAccesses(e db.Engine, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
 		minMode = perm.AccessModeWrite
@@ -132,14 +134,16 @@ func refreshCollaboratorAccesses(e db.Engine, repoID int64, accessMap map[int64]
 // recalculateTeamAccesses recalculates new accesses for teams of an organization
 // except the team whose ID is given. It is used to assign a team ID when
 // remove repository from that team.
-func recalculateTeamAccesses(e db.Engine, repo *Repository, ignTeamID int64) (err error) {
+func recalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, ignTeamID int64) (err error) {
 	accessMap := make(map[int64]*userAccess, 20)
 
-	if err = repo.getOwner(e); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		return err
 	} else if !repo.Owner.IsOrganization() {
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
 	}
+
+	e := db.GetEngine(ctx)
 
 	if err = refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
@@ -176,13 +180,14 @@ func recalculateTeamAccesses(e db.Engine, repo *Repository, ignTeamID int64) (er
 
 // recalculateUserAccess recalculates new access for a single user
 // Usable if we know access only affected one user
-func recalculateUserAccess(e db.Engine, repo *Repository, uid int64) (err error) {
+func recalculateUserAccess(ctx context.Context, repo *repo_model.Repository, uid int64) (err error) {
 	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
 		minMode = perm.AccessModeWrite
 	}
 
 	accessMode := perm.AccessModeNone
+	e := db.GetEngine(ctx)
 	collaborator, err := getCollaboration(e, repo.ID, uid)
 	if err != nil {
 		return err
@@ -190,7 +195,7 @@ func recalculateUserAccess(e db.Engine, repo *Repository, uid int64) (err error)
 		accessMode = collaborator.Mode
 	}
 
-	if err = repo.getOwner(e); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		return err
 	} else if repo.Owner.IsOrganization() {
 		var teams []Team
@@ -223,11 +228,12 @@ func recalculateUserAccess(e db.Engine, repo *Repository, uid int64) (err error)
 	return nil
 }
 
-func recalculateAccesses(e db.Engine, repo *Repository) error {
+func recalculateAccesses(ctx context.Context, repo *repo_model.Repository) error {
 	if repo.Owner.IsOrganization() {
-		return recalculateTeamAccesses(e, repo, 0)
+		return recalculateTeamAccesses(ctx, repo, 0)
 	}
 
+	e := db.GetEngine(ctx)
 	accessMap := make(map[int64]*userAccess, 20)
 	if err := refreshCollaboratorAccesses(e, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
@@ -236,6 +242,6 @@ func recalculateAccesses(e db.Engine, repo *Repository) error {
 }
 
 // RecalculateAccesses recalculates all accesses for repository.
-func RecalculateAccesses(repo *Repository) error {
-	return recalculateAccesses(db.GetEngine(db.DefaultContext), repo)
+func RecalculateAccesses(repo *repo_model.Repository) error {
+	return recalculateAccesses(db.DefaultContext, repo)
 }

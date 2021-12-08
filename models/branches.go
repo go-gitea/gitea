@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -74,8 +75,8 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		if user, err := user_model.GetUserByID(userID); err != nil {
 			log.Error("GetUserByID: %v", err)
 			return false
-		} else if repo, err := GetRepositoryByID(protectBranch.RepoID); err != nil {
-			log.Error("GetRepositoryByID: %v", err)
+		} else if repo, err := repo_model.GetRepositoryByID(protectBranch.RepoID); err != nil {
+			log.Error("repo_model.GetRepositoryByID: %v", err)
 			return false
 		} else if writeAccess, err := HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
@@ -126,18 +127,18 @@ func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permis
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
 func IsUserOfficialReviewer(protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	return isUserOfficialReviewer(db.GetEngine(db.DefaultContext), protectBranch, user)
+	return isUserOfficialReviewer(db.DefaultContext, protectBranch, user)
 }
 
-func isUserOfficialReviewer(e db.Engine, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	repo, err := getRepositoryByID(e, protectBranch.RepoID)
+func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
+	repo, err := repo_model.GetRepositoryByIDCtx(ctx, protectBranch.RepoID)
 	if err != nil {
 		return false, err
 	}
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := hasAccessUnit(e, user, repo, unit.TypeCode, perm.AccessModeWrite)
+		writeAccess, err := hasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -148,7 +149,7 @@ func isUserOfficialReviewer(e db.Engine, protectBranch *ProtectedBranch, user *u
 		return true, nil
 	}
 
-	inTeam, err := isUserInTeams(e, user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
+	inTeam, err := isUserInTeams(db.GetEngine(ctx), user.ID, protectBranch.ApprovalsWhitelistTeamIDs)
 	if err != nil {
 		return false, err
 	}
@@ -335,8 +336,8 @@ type WhitelistOptions struct {
 // If ID is 0, it creates a new record. Otherwise, updates existing record.
 // This function also performs check if whitelist user and team's IDs have been changed
 // to avoid unnecessary whitelist delete and regenerate.
-func UpdateProtectBranch(repo *Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
-	if err = repo.GetOwner(); err != nil {
+func UpdateProtectBranch(repo *repo_model.Repository, protectBranch *ProtectedBranch, opts WhitelistOptions) (err error) {
+	if err = repo.GetOwner(db.DefaultContext); err != nil {
 		return fmt.Errorf("GetOwner: %v", err)
 	}
 
@@ -419,7 +420,7 @@ func IsProtectedBranch(repoID int64, branchName string) (bool, error) {
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have explicit read or write access to the repo.
-func updateApprovalWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateApprovalWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -440,7 +441,7 @@ func updateApprovalWhitelist(repo *Repository, currentWhitelist, newWhitelist []
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
 // the users from newWhitelist which have write access to the repo.
-func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateUserWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasUsersChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasUsersChanged {
 		return currentWhitelist, nil
@@ -469,7 +470,7 @@ func updateUserWhitelist(repo *Repository, currentWhitelist, newWhitelist []int6
 
 // updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
 // the teams from newWhitelist which have write access to the repo.
-func updateTeamWhitelist(repo *Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
+func updateTeamWhitelist(repo *repo_model.Repository, currentWhitelist, newWhitelist []int64) (whitelist []int64, err error) {
 	hasTeamsChanged := !util.IsSliceInt64Eq(currentWhitelist, newWhitelist)
 	if !hasTeamsChanged {
 		return currentWhitelist, nil
@@ -615,7 +616,7 @@ func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist 
 }
 
 // RenameBranch rename a branch
-func RenameBranch(repo *Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
+func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(isDefault bool) error) (err error) {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err

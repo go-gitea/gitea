@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	api "code.gitea.io/gitea/modules/structs"
 
@@ -19,7 +20,7 @@ func TestAPIPullCommits(t *testing.T) {
 	defer prepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
 	assert.NoError(t, pullIssue.LoadIssue())
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: pullIssue.HeadRepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.HeadRepoID}).(*repo_model.Repository)
 
 	session := loginUser(t, "user2")
 	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/commits", repo.OwnerName, repo.Name, pullIssue.Index)

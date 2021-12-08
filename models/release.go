@@ -25,12 +25,12 @@ import (
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64            `xorm:"pk autoincr"`
-	RepoID           int64            `xorm:"INDEX UNIQUE(n)"`
-	Repo             *Repository      `xorm:"-"`
-	PublisherID      int64            `xorm:"INDEX"`
-	Publisher        *user_model.User `xorm:"-"`
-	TagName          string           `xorm:"INDEX UNIQUE(n)"`
+	ID               int64                  `xorm:"pk autoincr"`
+	RepoID           int64                  `xorm:"INDEX UNIQUE(n)"`
+	Repo             *repo_model.Repository `xorm:"-"`
+	PublisherID      int64                  `xorm:"INDEX"`
+	Publisher        *user_model.User       `xorm:"-"`
+	TagName          string                 `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
@@ -55,7 +55,7 @@ func init() {
 func (r *Release) loadAttributes(e db.Engine) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(r.RepoID)
+		r.Repo, err = repo_model.GetRepositoryByID(r.RepoID)
 		if err != nil {
 			return err
 		}

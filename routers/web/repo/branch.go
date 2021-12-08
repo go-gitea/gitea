@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -185,7 +186,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		return nil, 0
 	}
 
-	repoIDToRepo := map[int64]*models.Repository{}
+	repoIDToRepo := map[int64]*repo_model.Repository{}
 	repoIDToRepo[ctx.Repo.Repository.ID] = ctx.Repo.Repository
 
 	repoIDToGitRepo := map[int64]*git.Repository{}
@@ -223,7 +224,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
-	repoIDToRepo map[int64]*models.Repository,
+	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository) *Branch {
 	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
 

@@ -215,8 +215,7 @@ func LFSLockFile(ctx *context.Context) {
 		return
 	}
 
-	_, err := models.CreateLFSLock(&models.LFSLock{
-		Repo:    ctx.Repo.Repository,
+	_, err := models.CreateLFSLock(ctx.Repo.Repository, &models.LFSLock{
 		Path:    lockPath,
 		OwnerID: ctx.User.ID,
 	})
@@ -238,7 +237,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.User, true)
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.User, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return

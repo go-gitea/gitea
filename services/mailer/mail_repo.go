@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
@@ -16,7 +17,7 @@ import (
 )
 
 // SendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created
-func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *models.Repository) error {
+func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *repo_model.Repository) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -46,7 +47,7 @@ func SendRepoTransferNotifyMail(doer, newOwner *user_model.User, repo *models.Re
 }
 
 // sendRepoTransferNotifyMail triggers a notification e-mail when a pending repository transfer was created for each language
-func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.User, emails []string, repo *models.Repository) error {
+func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.User, emails []string, repo *repo_model.Repository) error {
 	var (
 		locale  = translation.NewLocale(lang)
 		content bytes.Buffer

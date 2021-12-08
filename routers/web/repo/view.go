@@ -21,6 +21,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -808,7 +809,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 }
 
 func renderLanguageStats(ctx *context.Context) {
-	langs, err := models.GetTopLanguageStats(ctx.Repo.Repository, 5)
+	langs, err := repo_model.GetTopLanguageStats(ctx.Repo.Repository, 5)
 	if err != nil {
 		ctx.ServerError("Repo.GetTopLanguageStats", err)
 		return
@@ -963,7 +964,7 @@ func Forks(ctx *context.Context) {
 	}
 
 	for _, fork := range forks {
-		if err = fork.GetOwner(); err != nil {
+		if err = fork.GetOwner(db.DefaultContext); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -33,17 +34,17 @@ func TestWatchRepo(t *testing.T) {
 
 	assert.NoError(t, WatchRepo(userID, repoID, true))
 	unittest.AssertExistsAndLoadBean(t, &Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &Repository{ID: repoID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
 
 	assert.NoError(t, WatchRepo(userID, repoID, false))
 	unittest.AssertNotExistsBean(t, &Watch{RepoID: repoID, UserID: userID})
-	unittest.CheckConsistencyFor(t, &Repository{ID: repoID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
 }
 
 func TestGetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	watches, err := GetWatchers(repo.ID)
 	assert.NoError(t, err)
 	// One watchers are inactive, thus minus 1
@@ -60,7 +61,7 @@ func TestGetWatchers(t *testing.T) {
 func TestRepository_GetWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	watchers, err := GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)
@@ -68,7 +69,7 @@ func TestRepository_GetWatchers(t *testing.T) {
 		unittest.AssertExistsAndLoadBean(t, &Watch{UserID: watcher.ID, RepoID: repo.ID})
 	}
 
-	repo = unittest.AssertExistsAndLoadBean(t, &Repository{ID: 9}).(*Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 9}).(*repo_model.Repository)
 	watchers, err = GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, 0)
@@ -114,7 +115,7 @@ func TestNotifyWatchers(t *testing.T) {
 func TestWatchIfAuto(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	watchers, err := GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, repo.NumWatches)

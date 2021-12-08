@@ -5,8 +5,8 @@
 package oauth2
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -33,7 +33,7 @@ type Source struct {
 
 // FromDB fills up an OAuth2Config from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalHandleDoubleEncode(bs, &source)
+	return repo_model.JSONUnmarshalHandleDoubleEncode(bs, &source)
 }
 
 // ToDB exports an SMTPConfig to a serialized format.

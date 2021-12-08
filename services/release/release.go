@@ -137,7 +137,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 }
 
 // CreateNewTag creates a new repository tag
-func CreateNewTag(doer *user_model.User, repo *models.Repository, commit, tagName, msg string) error {
+func CreateNewTag(doer *user_model.User, repo *repo_model.Repository, commit, tagName, msg string) error {
 	isExist, err := models.IsReleaseExist(repo.ID, tagName)
 	if err != nil {
 		return err
@@ -285,7 +285,7 @@ func DeleteReleaseByID(id int64, doer *user_model.User, delTag bool) error {
 		return fmt.Errorf("GetReleaseByID: %v", err)
 	}
 
-	repo, err := models.GetRepositoryByID(rel.RepoID)
+	repo, err := repo_model.GetRepositoryByID(rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}

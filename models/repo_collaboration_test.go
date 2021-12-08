@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -19,11 +20,11 @@ func TestRepository_AddCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(repoID, userID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		assert.NoError(t, repo.GetOwner())
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+		assert.NoError(t, repo.GetOwner(db.DefaultContext))
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
 		assert.NoError(t, AddCollaborator(repo, user))
-		unittest.CheckConsistencyFor(t, &Repository{ID: repoID}, &user_model.User{ID: userID})
+		unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID}, &user_model.User{ID: userID})
 	}
 	testSuccess(1, 4)
 	testSuccess(1, 4)
@@ -33,7 +34,7 @@ func TestRepository_AddCollaborator(t *testing.T) {
 func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		collaborators, err := GetCollaborators(repo.ID, db.ListOptions{})
 		assert.NoError(t, err)
 		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&Collaboration{RepoID: repoID})
@@ -54,7 +55,7 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(repoID, userID int64, expected bool) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		actual, err := IsCollaborator(repo.ID, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
@@ -68,7 +69,7 @@ func TestRepository_IsCollaborator(t *testing.T) {
 func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
 	assert.NoError(t, ChangeCollaborationAccessMode(repo, 4, perm.AccessModeAdmin))
 
 	collaboration := unittest.AssertExistsAndLoadBean(t, &Collaboration{RepoID: repo.ID, UserID: 4}).(*Collaboration)
@@ -81,19 +82,19 @@ func TestRepository_ChangeCollaborationAccessMode(t *testing.T) {
 
 	assert.NoError(t, ChangeCollaborationAccessMode(repo, unittest.NonexistentID, perm.AccessModeAdmin))
 
-	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }
 
 func TestRepository_DeleteCollaboration(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 4}).(*Repository)
-	assert.NoError(t, repo.GetOwner())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	assert.NoError(t, repo.GetOwner(db.DefaultContext))
 	assert.NoError(t, DeleteCollaboration(repo, 4))
 	unittest.AssertNotExistsBean(t, &Collaboration{RepoID: repo.ID, UserID: 4})
 
 	assert.NoError(t, DeleteCollaboration(repo, 4))
 	unittest.AssertNotExistsBean(t, &Collaboration{RepoID: repo.ID, UserID: 4})
 
-	unittest.CheckConsistencyFor(t, &Repository{ID: repo.ID})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repo.ID})
 }

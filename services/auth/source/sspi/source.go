@@ -5,8 +5,8 @@
 package sspi
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -28,7 +28,7 @@ type Source struct {
 
 // FromDB fills up an SSPIConfig from serialized format.
 func (cfg *Source) FromDB(bs []byte) error {
-	return models.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	return repo_model.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports an SSPIConfig to a serialized format.

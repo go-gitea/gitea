@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ import (
 )
 
 // RepoIndexerType specifies the repository indexer type
-type RepoIndexerType int
+type RepoIndexerType int //revive:disable-line:exported
 
 const (
 	// RepoIndexerTypeCode code indexer
@@ -24,7 +24,7 @@ const (
 
 // RepoIndexerStatus status of a repo's entry in the repo indexer
 // For now, implicitly refers to default branch
-type RepoIndexerStatus struct {
+type RepoIndexerStatus struct { //revive:disable-line:exported
 	ID          int64           `xorm:"pk autoincr"`
 	RepoID      int64           `xorm:"INDEX(s)"`
 	CommitSha   string          `xorm:"VARCHAR(40)"`

@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -582,7 +583,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		t.Run("SuccessfullyPushAndCreateTestRepository", doGitPushTestRepository(tmpDir, "origin", "master"))
 
 		// Finally, fetch repo from database and ensure the correct repository has been created
-		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
 		assert.NoError(t, err)
 		assert.False(t, repo.IsEmpty)
 		assert.True(t, repo.IsPrivate)
@@ -628,7 +629,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			pr1, pr2 *models.PullRequest
 			commit   string
 		)
-		repo, err := models.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
+		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
 		if !assert.NoError(t, err) {
 			return
 		}

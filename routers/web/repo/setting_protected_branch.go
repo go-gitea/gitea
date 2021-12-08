@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -82,7 +83,7 @@ func ProtectedBranchPost(ctx *context.Context) {
 					return
 				}
 			}
-			if err := models.UpdateDefaultBranch(repo); err != nil {
+			if err := repo_model.UpdateDefaultBranch(repo); err != nil {
 				ctx.ServerError("SetDefaultBranch", err)
 				return
 			}

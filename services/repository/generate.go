@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -16,14 +17,14 @@ import (
 )
 
 // GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *user_model.User, templateRepo *models.Repository, opts models.GenerateRepoOptions) (_ *models.Repository, err error) {
+func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.Repository, opts models.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	if !doer.IsAdmin && !owner.CanCreateRepo() {
 		return nil, models.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
 		}
 	}
 
-	var generateRepo *models.Repository
+	var generateRepo *repo_model.Repository
 	if err = db.WithTx(func(ctx context.Context) error {
 		generateRepo, err = repo_module.GenerateRepository(ctx, doer, owner, templateRepo, opts)
 		if err != nil {

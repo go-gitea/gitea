@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getCreateRepoFileOptions(repo *models.Repository) *files_service.UpdateRepoFileOptions {
+func getCreateRepoFileOptions(repo *repo_model.Repository) *files_service.UpdateRepoFileOptions {
 	return &files_service.UpdateRepoFileOptions{
 		OldBranch: repo.DefaultBranch,
 		NewBranch: repo.DefaultBranch,
@@ -33,7 +33,7 @@ func getCreateRepoFileOptions(repo *models.Repository) *files_service.UpdateRepo
 	}
 }
 
-func getUpdateRepoFileOptions(repo *models.Repository) *files_service.UpdateRepoFileOptions {
+func getUpdateRepoFileOptions(repo *repo_model.Repository) *files_service.UpdateRepoFileOptions {
 	return &files_service.UpdateRepoFileOptions{
 		OldBranch: repo.DefaultBranch,
 		NewBranch: repo.DefaultBranch,
