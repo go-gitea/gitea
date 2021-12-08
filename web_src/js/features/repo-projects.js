@@ -49,7 +49,6 @@ async function initRepoProjectSortable() {
             data: JSON.stringify({sorting: i, color: rgbToHex($(column).css('backgroundColor'))}),
             headers: {
               'X-Csrf-Token': csrfToken,
-              'X-Remote': true,
             },
             contentType: 'application/json',
             method: 'PUT',
@@ -101,7 +100,6 @@ export default function initRepoProject() {
           data: JSON.stringify({title: projectTitleInput.val(), color: projectColorInput.val()}),
           headers: {
             'X-Csrf-Token': csrfToken,
-            'X-Remote': true,
           },
           contentType: 'application/json',
           method: 'PUT',
@@ -125,7 +123,6 @@ export default function initRepoProject() {
       url: $(this).data('url'),
       headers: {
         'X-Csrf-Token': csrfToken,
-        'X-Remote': true,
       },
       contentType: 'application/json',
     });
@@ -141,7 +138,6 @@ export default function initRepoProject() {
         url: $(this).data('url'),
         headers: {
           'X-Csrf-Token': csrfToken,
-          'X-Remote': true,
         },
         contentType: 'application/json',
         method: 'DELETE',
@@ -162,7 +158,6 @@ export default function initRepoProject() {
       data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
       headers: {
         'X-Csrf-Token': csrfToken,
-        'X-Remote': true,
       },
       contentType: 'application/json',
       method: 'POST',
