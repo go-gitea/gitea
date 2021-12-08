@@ -1013,7 +1013,6 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//     description: the issue that was added as dependency
 	//   "404":
 	//     description: the issue does not exist
 
@@ -1050,7 +1049,6 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//     description: the issue that was removed as dependency
 
 	removeDep(ctx, models.DependencyTypeBlockedBy)
 }
@@ -1165,7 +1163,6 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Issue"
-	//     description: the issue that was added as dependency
 	//   "404":
 	//     description: the issue does not exist
 
@@ -1202,7 +1199,6 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/Issue"
-	//     description: the issue that was removed as dependency
 
 	removeDep(ctx, models.DependencyTypeBlocking)
 }
