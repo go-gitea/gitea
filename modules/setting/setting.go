@@ -548,17 +548,17 @@ func SetCustomPathAndConf(providedCustom, providedConf, providedWorkPath string)
 
 // LoadFromExisting initializes setting options from an existing config file (app.ini)
 func LoadFromExisting() {
-	loadFromConf(false)
+	loadFromConf(false, "")
 }
 
 // LoadAllowEmpty initializes setting options, it's also fine that if the config file (app.ini) doesn't exist
 func LoadAllowEmpty() {
-	loadFromConf(true)
+	loadFromConf(true, "")
 }
 
 // LoadForTest initializes setting options for tests
-func LoadForTest() {
-	loadFromConf(true)
+func LoadForTest(extraConfigs ...string) {
+	loadFromConf(true, strings.Join(extraConfigs, "\n"))
 	if err := PrepareAppDataPath(); err != nil {
 		log.Fatal("Can not prepare APP_DATA_PATH: %v", err)
 	}
@@ -566,7 +566,7 @@ func LoadForTest() {
 
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
-func loadFromConf(allowEmpty bool) {
+func loadFromConf(allowEmpty bool, extraConfig string) {
 	Cfg = ini.Empty()
 
 	if WritePIDFile && len(PIDFile) > 0 {
@@ -584,6 +584,12 @@ func loadFromConf(allowEmpty bool) {
 	} else if !allowEmpty {
 		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
 	} // else: no config file, a config file might be created at CustomConf later (might not)
+
+	if extraConfig != "" {
+		if err = Cfg.Append([]byte(extraConfig)); err != nil {
+			log.Fatal("Unable to append more config: %v", err)
+		}
+	}
 
 	Cfg.NameMapper = ini.SnackCase
 
