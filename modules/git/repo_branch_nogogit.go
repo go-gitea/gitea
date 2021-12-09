@@ -61,14 +61,29 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return repo.IsReferenceExist(BranchPrefix + name)
 }
 
-// GetBranches returns branches from the repository, skipping skip initial branches and
+// GetBranchNames returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
-func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
+func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, "--heads", skip, limit)
+}
+
+// WalkReferences walks all the references from the repository
+func WalkReferences(ctx context.Context, repoPath string, walkfn func(string) error) (int, error) {
+	return walkShowRef(ctx, repoPath, "", 0, 0, walkfn)
 }
 
 // callShowRef return refs, if limit = 0 it will not limit
 func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit int) (branchNames []string, countAll int, err error) {
+	countAll, err = walkShowRef(ctx, repoPath, arg, skip, limit, func(branchName string) error {
+		branchName = strings.TrimPrefix(branchName, prefix)
+		branchNames = append(branchNames, branchName)
+
+		return nil
+	})
+	return
+}
+
+func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, walkfn func(string) error) (countAll int, err error) {
 	stdoutReader, stdoutWriter := io.Pipe()
 	defer func() {
 		_ = stdoutReader.Close()
@@ -77,7 +92,11 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		err := NewCommandContext(ctx, "show-ref", arg).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
+		args := []string{"show-ref"}
+		if arg != "" {
+			args = append(args, arg)
+		}
+		err := NewCommandContext(ctx, args...).RunInDirPipeline(repoPath, stdoutWriter, stderrBuilder)
 		if err != nil {
 			if stderrBuilder.Len() == 0 {
 				_ = stdoutWriter.Close()
@@ -94,10 +113,10 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 	for i < skip {
 		_, isPrefix, err := bufReader.ReadLine()
 		if err == io.EOF {
-			return branchNames, i, nil
+			return i, nil
 		}
 		if err != nil {
-			return nil, 0, err
+			return 0, err
 		}
 		if !isPrefix {
 			i++
@@ -112,39 +131,42 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 			_, err = bufReader.ReadSlice(' ')
 		}
 		if err == io.EOF {
-			return branchNames, i, nil
+			return i, nil
 		}
 		if err != nil {
-			return nil, 0, err
+			return 0, err
 		}
 
 		branchName, err := bufReader.ReadString('\n')
 		if err == io.EOF {
 			// This shouldn't happen... but we'll tolerate it for the sake of peace
-			return branchNames, i, nil
+			return i, nil
 		}
 		if err != nil {
-			return nil, i, err
+			return i, err
 		}
-		branchName = strings.TrimPrefix(branchName, prefix)
+
 		if len(branchName) > 0 {
 			branchName = branchName[:len(branchName)-1]
 		}
-		branchNames = append(branchNames, branchName)
+		err = walkfn(branchName)
+		if err != nil {
+			return i, err
+		}
 		i++
 	}
 	// count all refs
 	for limit != 0 {
 		_, isPrefix, err := bufReader.ReadLine()
 		if err == io.EOF {
-			return branchNames, i, nil
+			return i, nil
 		}
 		if err != nil {
-			return nil, 0, err
+			return 0, err
 		}
 		if !isPrefix {
 			i++
 		}
 	}
-	return branchNames, i, nil
+	return i, nil
 }
