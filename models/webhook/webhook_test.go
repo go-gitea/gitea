@@ -207,7 +207,6 @@ func TestHookTasks(t *testing.T) {
 func TestCreateHookTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:    3,
 		HookID:    3,
 		Payloader: &api.PushPayload{},
 	}
@@ -231,7 +230,6 @@ func TestUpdateHookTask(t *testing.T) {
 func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:      3,
 		HookID:      3,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
@@ -248,7 +246,6 @@ func TestCleanupHookTaskTable_PerWebhook_DeletesDelivered(t *testing.T) {
 func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:      2,
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
@@ -264,7 +261,6 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesUndelivered(t *testing.T) {
 func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:      2,
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
@@ -281,7 +277,6 @@ func TestCleanupHookTaskTable_PerWebhook_LeavesMostRecentTask(t *testing.T) {
 func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:      3,
 		HookID:      3,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,
@@ -298,7 +293,6 @@ func TestCleanupHookTaskTable_OlderThan_DeletesDelivered(t *testing.T) {
 func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:      2,
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: false,
@@ -314,7 +308,6 @@ func TestCleanupHookTaskTable_OlderThan_LeavesUndelivered(t *testing.T) {
 func TestCleanupHookTaskTable_OlderThan_LeavesTaskEarlierThanAgeToDelete(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	hookTask := &HookTask{
-		RepoID:      2,
 		HookID:      4,
 		Payloader:   &api.PushPayload{},
 		IsDelivered: true,

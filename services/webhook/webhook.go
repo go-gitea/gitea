@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -99,12 +100,12 @@ func getPayloadBranch(p api.Payloader) string {
 }
 
 // PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhook(w, repo, event, p); err != nil {
+func PrepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
+	if err := prepareWebhook(w, event, p); err != nil {
 		return err
 	}
 
-	go hookQueue.Add(repo.ID)
+	go hookQueue.Add("dummy")
 	return nil
 }
 
@@ -123,7 +124,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -169,7 +170,6 @@ func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event web
 	}
 
 	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
-		RepoID:    repo.ID,
 		HookID:    w.ID,
 		Payloader: payloader,
 		EventType: event,
@@ -179,34 +179,48 @@ func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event web
 	return nil
 }
 
+// SourceContext represents the source of a webhook action. Repository and/or Owner must be set.
+type SourceContext struct {
+	Repository *models.Repository
+	Owner      *user_model.User
+}
+
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhooks(repo, event, p); err != nil {
+func PrepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api.Payloader) error {
+	if err := prepareWebhooks(ctx, event, p); err != nil {
 		return err
 	}
 
-	go hookQueue.Add(repo.ID)
+	go hookQueue.Add("dummy")
 	return nil
 }
 
-func prepareWebhooks(repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	ws, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
-		RepoID:   repo.ID,
-		IsActive: util.OptionalBoolTrue,
-	})
-	if err != nil {
-		return fmt.Errorf("GetActiveWebhooksByRepoID: %v", err)
-	}
+func prepareWebhooks(ctx SourceContext, event webhook_model.HookEventType, p api.Payloader) error {
+	owner := ctx.Owner
 
-	// check if repo belongs to org and append additional webhooks
-	if repo.MustOwner().IsOrganization() {
-		// get hooks for org
-		orgHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
-			OrgID:    repo.OwnerID,
+	var ws []*webhook_model.Webhook
+
+	if ctx.Repository != nil {
+		repoHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
+			RepoID:   ctx.Repository.ID,
 			IsActive: util.OptionalBoolTrue,
 		})
 		if err != nil {
-			return fmt.Errorf("GetActiveWebhooksByOrgID: %v", err)
+			return fmt.Errorf("ListWebhooksByOpts: %v", err)
+		}
+		ws = append(ws, repoHooks...)
+
+		owner = ctx.Repository.MustOwner()
+	}
+
+	// check if owner is an org and append additional webhooks
+	if owner.IsOrganization() {
+		orgHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
+			OrgID:    owner.ID,
+			IsActive: util.OptionalBoolTrue,
+		})
+		if err != nil {
+			return fmt.Errorf("ListWebhooksByOpts: %v", err)
 		}
 		ws = append(ws, orgHooks...)
 	}
@@ -223,7 +237,7 @@ func prepareWebhooks(repo *models.Repository, event webhook_model.HookEventType,
 	}
 
 	for _, w := range ws {
-		if err = prepareWebhook(w, repo, event, p); err != nil {
+		if err = prepareWebhook(w, event, p); err != nil {
 			return err
 		}
 	}

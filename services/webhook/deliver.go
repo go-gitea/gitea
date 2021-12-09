@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -43,7 +42,7 @@ func Deliver(t *webhook_model.HookTask) error {
 			return
 		}
 		// There was a panic whilst delivering a hook...
-		log.Error("PANIC whilst trying to deliver webhook[%d] for repo[%d] to %s Panic: %v\nStacktrace: %s", t.ID, t.RepoID, w.URL, err, log.Stack(2))
+		log.Error("PANIC whilst trying to deliver webhook[%d] to %s Panic: %v\nStacktrace: %s", t.ID, w.URL, err, log.Stack(2))
 	}()
 
 	t.IsDelivered = true
@@ -228,19 +227,13 @@ func DeliverHooks(ctx context.Context) {
 		case <-ctx.Done():
 			hookQueue.Close()
 			return
-		case repoIDStr := <-hookQueue.Queue():
-			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
-			hookQueue.Remove(repoIDStr)
+		case dummy := <-hookQueue.Queue():
+			log.Trace("DeliverHooks")
+			hookQueue.Remove(dummy)
 
-			repoID, err := strconv.ParseInt(repoIDStr, 10, 64)
+			tasks, err := webhook_model.FindUndeliveredHookTasks()
 			if err != nil {
-				log.Error("Invalid repo ID: %s", repoIDStr)
-				continue
-			}
-
-			tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
-			if err != nil {
-				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
+				log.Error("Get hook tasks: %v", err)
 				continue
 			}
 			for _, t := range tasks {

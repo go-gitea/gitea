@@ -1515,7 +1515,6 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&Comment{RefRepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&DeletedBranch{RepoID: repoID},
-		&webhook.HookTask{RepoID: repoID},
 		&LFSLock{RepoID: repoID},
 		&LanguageStat{RepoID: repoID},
 		&Milestone{RepoID: repoID},

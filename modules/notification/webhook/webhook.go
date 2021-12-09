@@ -52,7 +52,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *user_model.User, issue *m
 			return
 		}
 
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequestLabel, &api.PullRequestPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelCleared,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
@@ -60,7 +60,7 @@ func (m *webhookNotifier) NotifyIssueClearLabels(doer *user_model.User, issue *m
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssueLabel, &api.IssuePayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelCleared,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),
@@ -78,7 +78,7 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 	mode, _ := models.AccessLevel(doer, repo)
 
 	// forked webhook
-	if err := webhook_services.PrepareWebhooks(oldRepo, webhook.HookEventFork, &api.ForkPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: oldRepo}, webhook.HookEventFork, &api.ForkPayload{
 		Forkee: convert.ToRepo(oldRepo, oldMode),
 		Repo:   convert.ToRepo(repo, mode),
 		Sender: convert.ToUser(doer, nil),
@@ -90,7 +90,7 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 
 	// Add to hook queue for created repo after session commit.
 	if u.IsOrganization() {
-		if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
+		if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventRepository, &api.RepositoryPayload{
 			Action:       api.HookRepoCreated,
 			Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 			Organization: convert.ToUser(u, nil),
@@ -103,7 +103,7 @@ func (m *webhookNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, r
 
 func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
 	// Add to hook queue for created repo after session commit.
-	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
 		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
@@ -116,7 +116,7 @@ func (m *webhookNotifier) NotifyCreateRepository(doer *user_model.User, u *user_
 func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
 	u := repo.MustOwner()
 
-	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoDeleted,
 		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
@@ -128,7 +128,7 @@ func (m *webhookNotifier) NotifyDeleteRepository(doer *user_model.User, repo *mo
 
 func (m *webhookNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
 	// Add to hook queue for created repo after session commit.
-	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventRepository, &api.RepositoryPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventRepository, &api.RepositoryPayload{
 		Action:       api.HookRepoCreated,
 		Repository:   convert.ToRepo(repo, perm.AccessModeOwner),
 		Organization: convert.ToUser(u, nil),
@@ -159,7 +159,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue
 			apiPullRequest.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
-		if err := webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequestAssign, apiPullRequest); err != nil {
+		if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequestAssign, apiPullRequest); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return
 		}
@@ -177,7 +177,7 @@ func (m *webhookNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue
 			apiIssue.Action = api.HookIssueAssigned
 		}
 		// Assignee comment triggers a webhook
-		if err := webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssueAssign, apiIssue); err != nil {
+		if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssueAssign, apiIssue); err != nil {
 			log.Error("PrepareWebhooks [is_pull: %v, remove_assignee: %v]: %v", issue.IsPull, removed, err)
 			return
 		}
@@ -193,7 +193,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *m
 			return
 		}
 		issue.PullRequest.Issue = issue
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
 			Changes: &api.ChangesPayload{
@@ -206,7 +206,7 @@ func (m *webhookNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *m
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssues, &api.IssuePayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssues, &api.IssuePayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
 			Changes: &api.ChangesPayload{
@@ -245,7 +245,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *
 		} else {
 			apiPullRequest.Action = api.HookIssueReOpened
 		}
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequest, apiPullRequest)
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequest, apiPullRequest)
 	} else {
 		apiIssue := &api.IssuePayload{
 			Index:      issue.Index,
@@ -258,7 +258,7 @@ func (m *webhookNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *
 		} else {
 			apiIssue.Action = api.HookIssueReOpened
 		}
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssues, apiIssue)
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssues, apiIssue)
 	}
 	if err != nil {
 		log.Error("PrepareWebhooks [is_pull: %v, is_closed: %v]: %v", issue.IsPull, isClosed, err)
@@ -276,7 +276,7 @@ func (m *webhookNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_m
 	}
 
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	if err := webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssues, &api.IssuePayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssues, &api.IssuePayload{
 		Action:     api.HookIssueOpened,
 		Index:      issue.Index,
 		Issue:      convert.ToAPIIssue(issue),
@@ -302,7 +302,7 @@ func (m *webhookNotifier) NotifyNewPullRequest(pull *models.PullRequest, mention
 	}
 
 	mode, _ := models.AccessLevel(pull.Issue.Poster, pull.Issue.Repo)
-	if err := webhook_services.PrepareWebhooks(pull.Issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: pull.Issue.Repo}, webhook.HookEventPullRequest, &api.PullRequestPayload{
 		Action:      api.HookIssueOpened,
 		Index:       pull.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pull, nil),
@@ -318,7 +318,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *user_model.User, issue 
 	var err error
 	if issue.IsPull {
 		issue.PullRequest.Issue = issue
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequest, &api.PullRequestPayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
 			Changes: &api.ChangesPayload{
@@ -331,7 +331,7 @@ func (m *webhookNotifier) NotifyIssueChangeContent(doer *user_model.User, issue 
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssues, &api.IssuePayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssues, &api.IssuePayload{
 			Action: api.HookIssueEdited,
 			Index:  issue.Index,
 			Changes: &api.ChangesPayload{
@@ -368,7 +368,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *user_model.User, c *models.C
 
 	mode, _ := models.AccessLevel(doer, c.Issue.Repo)
 	if c.Issue.IsPull {
-		err = webhook_services.PrepareWebhooks(c.Issue.Repo, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: c.Issue.Repo}, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:  api.HookIssueCommentEdited,
 			Issue:   convert.ToAPIIssue(c.Issue),
 			Comment: convert.ToComment(c),
@@ -382,7 +382,7 @@ func (m *webhookNotifier) NotifyUpdateComment(doer *user_model.User, c *models.C
 			IsPull:     true,
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(c.Issue.Repo, webhook.HookEventIssueComment, &api.IssueCommentPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: c.Issue.Repo}, webhook.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:  api.HookIssueCommentEdited,
 			Issue:   convert.ToAPIIssue(c.Issue),
 			Comment: convert.ToComment(c),
@@ -408,7 +408,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *
 
 	var err error
 	if issue.IsPull {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(issue),
 			Comment:    convert.ToComment(comment),
@@ -417,7 +417,7 @@ func (m *webhookNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *
 			IsPull:     true,
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssueComment, &api.IssueCommentPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentCreated,
 			Issue:      convert.ToAPIIssue(issue),
 			Comment:    convert.ToComment(comment),
@@ -452,7 +452,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *user_model.User, comment *mo
 	mode, _ := models.AccessLevel(doer, comment.Issue.Repo)
 
 	if comment.Issue.IsPull {
-		err = webhook_services.PrepareWebhooks(comment.Issue.Repo, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: comment.Issue.Repo}, webhook.HookEventPullRequestComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentDeleted,
 			Issue:      convert.ToAPIIssue(comment.Issue),
 			Comment:    convert.ToComment(comment),
@@ -461,7 +461,7 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *user_model.User, comment *mo
 			IsPull:     true,
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(comment.Issue.Repo, webhook.HookEventIssueComment, &api.IssueCommentPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: comment.Issue.Repo}, webhook.HookEventIssueComment, &api.IssueCommentPayload{
 			Action:     api.HookIssueCommentDeleted,
 			Issue:      convert.ToAPIIssue(comment.Issue),
 			Comment:    convert.ToComment(comment),
@@ -501,7 +501,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequestLabel, &api.PullRequestPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequestLabel, &api.PullRequestPayload{
 			Action:      api.HookIssueLabelUpdated,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
@@ -509,7 +509,7 @@ func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssueLabel, &api.IssuePayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssueLabel, &api.IssuePayload{
 			Action:     api.HookIssueLabelUpdated,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),
@@ -543,7 +543,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issu
 			log.Error("LoadIssue: %v", err)
 			return
 		}
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequestMilestone, &api.PullRequestPayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequestMilestone, &api.PullRequestPayload{
 			Action:      hookAction,
 			Index:       issue.Index,
 			PullRequest: convert.ToAPIPullRequest(issue.PullRequest, nil),
@@ -551,7 +551,7 @@ func (m *webhookNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issu
 			Sender:      convert.ToUser(doer, nil),
 		})
 	} else {
-		err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventIssueMilestone, &api.IssuePayload{
+		err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventIssueMilestone, &api.IssuePayload{
 			Action:     hookAction,
 			Index:      issue.Index,
 			Issue:      convert.ToAPIIssue(issue),
@@ -572,7 +572,7 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *model
 		return
 	}
 
-	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventPush, &api.PushPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventPush, &api.PushPayload{
 		Ref:        opts.RefFullName,
 		Before:     opts.OldCommitID,
 		After:      opts.NewCommitID,
@@ -619,7 +619,7 @@ func (*webhookNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *use
 		Action:      api.HookIssueClosed,
 	}
 
-	err = webhook_services.PrepareWebhooks(pr.Issue.Repo, webhook.HookEventPullRequest, apiPullRequest)
+	err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: pr.Issue.Repo}, webhook.HookEventPullRequest, apiPullRequest)
 	if err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
@@ -638,7 +638,7 @@ func (m *webhookNotifier) NotifyPullRequestChangeTargetBranch(doer *user_model.U
 	}
 	issue.PullRequest.Issue = issue
 	mode, _ := models.AccessLevel(issue.Poster, issue.Repo)
-	err = webhook_services.PrepareWebhooks(issue.Repo, webhook.HookEventPullRequest, &api.PullRequestPayload{
+	err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: issue.Repo}, webhook.HookEventPullRequest, &api.PullRequestPayload{
 		Action: api.HookIssueEdited,
 		Index:  issue.Index,
 		Changes: &api.ChangesPayload{
@@ -682,7 +682,7 @@ func (m *webhookNotifier) NotifyPullRequestReview(pr *models.PullRequest, review
 		log.Error("models.AccessLevel: %v", err)
 		return
 	}
-	if err := webhook_services.PrepareWebhooks(review.Issue.Repo, reviewHookType, &api.PullRequestPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: review.Issue.Repo}, reviewHookType, &api.PullRequestPayload{
 		Action:      api.HookIssueReviewed,
 		Index:       review.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr, nil),
@@ -716,7 +716,7 @@ func (m *webhookNotifier) NotifyCreateRef(pusher *user_model.User, repo *models.
 	}
 	gitRepo.Close()
 
-	if err = webhook_services.PrepareWebhooks(repo, webhook.HookEventCreate, &api.CreatePayload{
+	if err = webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventCreate, &api.CreatePayload{
 		Ref:     refName,
 		Sha:     shaSum,
 		RefType: refType,
@@ -737,7 +737,7 @@ func (m *webhookNotifier) NotifyPullRequestSynchronized(doer *user_model.User, p
 		return
 	}
 
-	if err := webhook_services.PrepareWebhooks(pr.Issue.Repo, webhook.HookEventPullRequestSync, &api.PullRequestPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: pr.Issue.Repo}, webhook.HookEventPullRequestSync, &api.PullRequestPayload{
 		Action:      api.HookIssueSynchronized,
 		Index:       pr.Issue.Index,
 		PullRequest: convert.ToAPIPullRequest(pr, nil),
@@ -753,7 +753,7 @@ func (m *webhookNotifier) NotifyDeleteRef(pusher *user_model.User, repo *models.
 	apiRepo := convert.ToRepo(repo, perm.AccessModeNone)
 	refName := git.RefEndName(refFullName)
 
-	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventDelete, &api.DeletePayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventDelete, &api.DeletePayload{
 		Ref:        refName,
 		RefType:    refType,
 		PusherType: api.PusherTypeUser,
@@ -771,7 +771,7 @@ func sendReleaseHook(doer *user_model.User, rel *models.Release, action api.Hook
 	}
 
 	mode, _ := models.AccessLevel(doer, rel.Repo)
-	if err := webhook_services.PrepareWebhooks(rel.Repo, webhook.HookEventRelease, &api.ReleasePayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: rel.Repo}, webhook.HookEventRelease, &api.ReleasePayload{
 		Action:     action,
 		Release:    convert.ToRelease(rel),
 		Repository: convert.ToRepo(rel.Repo, mode),
@@ -801,7 +801,7 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *m
 		return
 	}
 
-	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventPush, &api.PushPayload{
+	if err := webhook_services.PrepareWebhooks(webhook_services.SourceContext{Repository: repo}, webhook.HookEventPush, &api.PushPayload{
 		Ref:        opts.RefFullName,
 		Before:     opts.OldCommitID,
 		After:      opts.NewCommitID,

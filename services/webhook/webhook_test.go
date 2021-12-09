@@ -32,12 +32,12 @@ func TestPrepareWebhooks(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
 	hookTasks := []*webhook_model.HookTask{
-		{RepoID: repo.ID, HookID: 1, EventType: webhook_model.HookEventPush},
+		{HookID: 1, EventType: webhook_model.HookEventPush},
 	}
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(repo, webhook_model.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
+	assert.NoError(t, PrepareWebhooks(SourceContext{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		unittest.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -48,13 +48,13 @@ func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	hookTasks := []*webhook_model.HookTask{
-		{RepoID: repo.ID, HookID: 4, EventType: webhook_model.HookEventPush},
+		{HookID: 4, EventType: webhook_model.HookEventPush},
 	}
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
 	// this test also ensures that * doesn't handle / in any special way (like shell would)
-	assert.NoError(t, PrepareWebhooks(repo, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
+	assert.NoError(t, PrepareWebhooks(SourceContext{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/feature/7791", Commits: []*api.PayloadCommit{{}}}))
 	for _, hookTask := range hookTasks {
 		unittest.AssertExistsAndLoadBean(t, hookTask)
 	}
@@ -65,12 +65,12 @@ func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
 	hookTasks := []*webhook_model.HookTask{
-		{RepoID: repo.ID, HookID: 4, EventType: webhook_model.HookEventPush},
+		{HookID: 4, EventType: webhook_model.HookEventPush},
 	}
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)
 	}
-	assert.NoError(t, PrepareWebhooks(repo, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
+	assert.NoError(t, PrepareWebhooks(SourceContext{Repository: repo}, webhook_model.HookEventPush, &api.PushPayload{Ref: "refs/heads/fix_weird_bug"}))
 
 	for _, hookTask := range hookTasks {
 		unittest.AssertNotExistsBean(t, hookTask)

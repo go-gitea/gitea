@@ -100,7 +100,6 @@ type HookResponse struct {
 // HookTask represents a hook task.
 type HookTask struct {
 	ID              int64 `xorm:"pk autoincr"`
-	RepoID          int64 `xorm:"INDEX"`
 	HookID          int64
 	UUID            string
 	api.Payloader   `xorm:"-"`
@@ -199,15 +198,6 @@ func UpdateHookTask(t *HookTask) error {
 func FindUndeliveredHookTasks() ([]*HookTask, error) {
 	tasks := make([]*HookTask, 0, 10)
 	if err := db.GetEngine(db.DefaultContext).Where("is_delivered=?", false).Find(&tasks); err != nil {
-		return nil, err
-	}
-	return tasks, nil
-}
-
-// FindRepoUndeliveredHookTasks represents find the undelivered hook tasks of one repository
-func FindRepoUndeliveredHookTasks(repoID int64) ([]*HookTask, error) {
-	tasks := make([]*HookTask, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND is_delivered=?", repoID, false).Find(&tasks); err != nil {
 		return nil, err
 	}
 	return tasks, nil
