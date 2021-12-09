@@ -22,7 +22,7 @@
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write">
-					<a class="active item" data-tab="write"><i class="octicon octicon-code"></i> {{.i18n.Tr "repo.editor.new_patch"}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code" 16 "mr-2"}}{{.i18n.Tr "repo.editor.new_patch"}}</a>
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
 					<textarea id="edit_area" name="content" class="hide" data-id="repo-{{.Repository.Name}}-patch"
