@@ -77,7 +77,7 @@ func TestMain(m *testing.M) {
 	if err := removeAllWithRetry(setting.RepoRootPath); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
-	if err := removeAllWithRetry(setting.AppDataPath); err != nil {
+	if err := removeAllWithRetry(tmpDataPath); err != nil {
 		fmt.Fprintf(os.Stderr, "os.RemoveAll: %v\n", err)
 	}
 	os.Exit(exitStatus)
