@@ -909,7 +909,7 @@ func removeTeamMember(ctx context.Context, team *Team, userID int64) error {
 		}
 
 		// Remove issue assignments from now unaccessible
-		if err := reconsiderIssueAssignees(ctx, repo, userID); err != nil {
+		if err := reconsiderRepoIssuesAssignee(ctx, repo, userID); err != nil {
 			return err
 		}
 	}

@@ -224,14 +224,14 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 	}
 
 	// Unassign a user from any issue (s)he has been assigned to in the repository
-	if err := reconsiderIssueAssignees(ctx, repo, uid); err != nil {
+	if err := reconsiderRepoIssuesAssignee(ctx, repo, uid); err != nil {
 		return err
 	}
 
 	return committer.Commit()
 }
 
-func reconsiderIssueAssignees(ctx context.Context, repo *repo_model.Repository, uid int64) error {
+func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
 	user, err := user_model.GetUserByIDEngine(db.GetEngine(ctx), uid)
 	if err != nil {
 		return err

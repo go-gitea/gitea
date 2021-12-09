@@ -126,12 +126,12 @@ func NewRepoContext() {
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up repository temporary data", filepath.Join(setting.AppDataPath, "tmp"))
 }
 
-// CheckUnitUser check whether user could visit the unit of this repository
-func CheckUnitUser(repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	return checkUnitUser(db.DefaultContext, repo, user, unitType)
+// CheckRepoUnitUser check whether user could visit the unit of this repository
+func CheckRepoUnitUser(repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
+	return checkRepoUnitUser(db.DefaultContext, repo, user, unitType)
 }
 
-func checkUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
+func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
 	if user.IsAdmin {
 		return true
 	}

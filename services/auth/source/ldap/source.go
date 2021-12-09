@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/login"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
@@ -62,7 +61,7 @@ type Source struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	err := repo_model.JSONUnmarshalHandleDoubleEncode(bs, &source)
+	err := json.UnmarshalHandleDoubleEncode(bs, &source)
 	if err != nil {
 		return err
 	}

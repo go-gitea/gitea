@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -37,7 +38,7 @@ func parseBool16961(bs []byte) (bool, error) {
 }
 
 func fixUnitConfig16961(bs []byte, cfg *repo_model.UnitConfig) (fixed bool, err error) {
-	err = repo_model.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -51,7 +52,7 @@ func fixUnitConfig16961(bs []byte, cfg *repo_model.UnitConfig) (fixed bool, err 
 }
 
 func fixExternalWikiConfig16961(bs []byte, cfg *repo_model.ExternalWikiConfig) (fixed bool, err error) {
-	err = repo_model.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -67,7 +68,7 @@ func fixExternalWikiConfig16961(bs []byte, cfg *repo_model.ExternalWikiConfig) (
 }
 
 func fixExternalTrackerConfig16961(bs []byte, cfg *repo_model.ExternalTrackerConfig) (fixed bool, err error) {
-	err = repo_model.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -92,7 +93,7 @@ func fixExternalTrackerConfig16961(bs []byte, cfg *repo_model.ExternalTrackerCon
 }
 
 func fixPullRequestsConfig16961(bs []byte, cfg *repo_model.PullRequestsConfig) (fixed bool, err error) {
-	err = repo_model.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}
@@ -174,7 +175,7 @@ func fixPullRequestsConfig16961(bs []byte, cfg *repo_model.PullRequestsConfig) (
 }
 
 func fixIssuesConfig16961(bs []byte, cfg *repo_model.IssuesConfig) (fixed bool, err error) {
-	err = repo_model.JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	err = json.UnmarshalHandleDoubleEncode(bs, &cfg)
 	if err == nil {
 		return
 	}

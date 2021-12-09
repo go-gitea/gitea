@@ -5,7 +5,6 @@
 package repo
 
 import (
-	"encoding/binary"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -46,41 +45,12 @@ func init() {
 	db.RegisterModel(new(RepoUnit))
 }
 
-// JSONUnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
-// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
-func JSONUnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
-	err := json.Unmarshal(bs, v)
-	if err != nil {
-		ok := true
-		rs := []byte{}
-		temp := make([]byte, 2)
-		for _, rn := range string(bs) {
-			if rn > 0xffff {
-				ok = false
-				break
-			}
-			binary.LittleEndian.PutUint16(temp, uint16(rn))
-			rs = append(rs, temp...)
-		}
-		if ok {
-			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
-				rs = rs[2:]
-			}
-			err = json.Unmarshal(rs, v)
-		}
-	}
-	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
-		err = json.Unmarshal(bs[2:], v)
-	}
-	return err
-}
-
 // UnitConfig describes common unit config
 type UnitConfig struct{}
 
 // FromDB fills up a UnitConfig from serialized format.
 func (cfg *UnitConfig) FromDB(bs []byte) error {
-	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a UnitConfig to a serialized format.
@@ -95,7 +65,7 @@ type ExternalWikiConfig struct {
 
 // FromDB fills up a ExternalWikiConfig from serialized format.
 func (cfg *ExternalWikiConfig) FromDB(bs []byte) error {
-	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a ExternalWikiConfig to a serialized format.
@@ -112,7 +82,7 @@ type ExternalTrackerConfig struct {
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
 func (cfg *ExternalTrackerConfig) FromDB(bs []byte) error {
-	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a ExternalTrackerConfig to a serialized format.
@@ -129,7 +99,7 @@ type IssuesConfig struct {
 
 // FromDB fills up a IssuesConfig from serialized format.
 func (cfg *IssuesConfig) FromDB(bs []byte) error {
-	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a IssuesConfig to a serialized format.
@@ -152,7 +122,7 @@ type PullRequestsConfig struct {
 
 // FromDB fills up a PullRequestsConfig from serialized format.
 func (cfg *PullRequestsConfig) FromDB(bs []byte) error {
-	return JSONUnmarshalHandleDoubleEncode(bs, &cfg)
+	return json.UnmarshalHandleDoubleEncode(bs, &cfg)
 }
 
 // ToDB exports a PullRequestsConfig to a serialized format.
