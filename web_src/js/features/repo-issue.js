@@ -59,7 +59,6 @@ function updateDeadline(deadlineString) {
     }),
     headers: {
       'X-Csrf-Token': csrfToken,
-      'X-Remote': true,
     },
     contentType: 'application/json',
     type: 'POST',
