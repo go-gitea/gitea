@@ -215,7 +215,7 @@ export function initRepoIssueStatusButton() {
   const $statusButton = $('#status-button');
   $('#comment-form textarea').on('keyup', function () {
     const easyMDE = getAttachedEasyMDE(this);
-    const value = (easyMDE && easyMDE.value()) ? easyMDE.value() : $(this).val();
+    const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', () => {
