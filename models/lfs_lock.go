@@ -48,6 +48,7 @@ func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error)
 	}
 
 	lock.Path = cleanPath(lock.Path)
+	lock.RepoID = repo.ID
 
 	l, err := GetLFSLock(repo, lock.Path)
 	if err == nil {

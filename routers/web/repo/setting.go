@@ -65,6 +65,12 @@ func Settings(ctx *context.Context) {
 	signing, _ := models.SigningKey(ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorsByRepoID", err)
+		return
+	}
+	ctx.Data["PushMirrors"] = pushMirrors
 
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }

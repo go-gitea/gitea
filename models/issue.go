@@ -628,7 +628,7 @@ func (issue *Issue) changeStatus(ctx context.Context, doer *user_model.User, isC
 func (issue *Issue) doChangeStatus(ctx context.Context, doer *user_model.User, isMergePull bool) (*Comment, error) {
 	e := db.GetEngine(ctx)
 	// Check for open dependencies
-	if issue.IsClosed && issue.Repo.IsDependenciesEnabled(ctx) {
+	if issue.IsClosed && issue.Repo.IsDependenciesEnabledCtx(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
 		noDeps, err := issueNoDependenciesLeft(e, issue)
 		if err != nil {

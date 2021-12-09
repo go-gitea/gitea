@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -50,7 +51,12 @@ func (repo *Repository) AllowOnlyContributorsToTrackTime() bool {
 }
 
 // IsDependenciesEnabled returns if dependencies are enabled and returns the default setting if not set.
-func (repo *Repository) IsDependenciesEnabled(ctx context.Context) bool {
+func (repo *Repository) IsDependenciesEnabled() bool {
+	return repo.IsDependenciesEnabledCtx(db.DefaultContext)
+}
+
+// IsDependenciesEnabledCtx returns if dependencies are enabled and returns the default setting if not set.
+func (repo *Repository) IsDependenciesEnabledCtx(ctx context.Context) bool {
 	var u *RepoUnit
 	var err error
 	if u, err = repo.getUnit(ctx, unit.TypeIssues); err != nil {
