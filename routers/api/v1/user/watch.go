@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -201,6 +202,6 @@ func Unwatch(ctx *context.APIContext) {
 }
 
 // subscriptionURL returns the URL of the subscription API endpoint of a repo
-func subscriptionURL(repo *models.Repository) string {
+func subscriptionURL(repo *repo_model.Repository) string {
 	return repo.APIURL() + "/subscription"
 }

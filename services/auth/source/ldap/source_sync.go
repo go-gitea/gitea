@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -68,7 +68,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			log.Warn("SyncExternalUsers: Cancelled at update of %s before completed update of users", source.loginSource.Name)
 			// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 			if sshKeysNeedUpdate {
-				err = models.RewriteAllPublicKeys()
+				err = asymkey_model.RewriteAllPublicKeys()
 				if err != nil {
 					log.Error("RewriteAllPublicKeys: %v", err)
 				}
@@ -119,7 +119,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 			if err == nil && isAttributeSSHPublicKeySet {
 				log.Trace("SyncExternalUsers[%s]: Adding LDAP Public SSH Keys for user %s", source.loginSource.Name, usr.Name)
-				if models.AddPublicKeysBySource(usr, source.loginSource, su.SSHPublicKey) {
+				if asymkey_model.AddPublicKeysBySource(usr, source.loginSource, su.SSHPublicKey) {
 					sshKeysNeedUpdate = true
 				}
 			}
@@ -129,7 +129,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 			}
 		} else if updateExisting {
 			// Synchronize SSH Public Key if that attribute is set
-			if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(usr, source.loginSource, su.SSHPublicKey) {
+			if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(usr, source.loginSource, su.SSHPublicKey) {
 				sshKeysNeedUpdate = true
 			}
 
@@ -171,7 +171,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 
 	// Rewrite authorized_keys file if LDAP Public SSH Key attribute is set and any key was added or removed
 	if sshKeysNeedUpdate {
-		err = models.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys()
 		if err != nil {
 			log.Error("RewriteAllPublicKeys: %v", err)
 		}

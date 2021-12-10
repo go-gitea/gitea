@@ -6,17 +6,19 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToRepo converts a Repository to api.Repository
-func ToRepo(repo *models.Repository, mode perm.AccessMode) *api.Repository {
+func ToRepo(repo *repo_model.Repository, mode perm.AccessMode) *api.Repository {
 	return innerToRepo(repo, mode, false)
 }
 
-func innerToRepo(repo *models.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
+func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent bool) *api.Repository {
 	var parent *api.Repository
 
 	cloneLink := repo.CloneLink()
@@ -73,7 +75,7 @@ func innerToRepo(repo *models.Repository, mode perm.AccessMode, isParent bool) *
 	allowRebase := false
 	allowRebaseMerge := false
 	allowSquash := false
-	defaultMergeStyle := models.MergeStyleMerge
+	defaultMergeStyle := repo_model.MergeStyleMerge
 	if unit, err := repo.GetUnit(unit_model.TypePullRequests); err == nil {
 		config := unit.PullRequestsConfig()
 		hasPullRequests = true
@@ -89,7 +91,7 @@ func innerToRepo(repo *models.Repository, mode perm.AccessMode, isParent bool) *
 		hasProjects = true
 	}
 
-	if err := repo.GetOwner(); err != nil {
+	if err := repo.GetOwner(db.DefaultContext); err != nil {
 		return nil
 	}
 
@@ -97,7 +99,9 @@ func innerToRepo(repo *models.Repository, mode perm.AccessMode, isParent bool) *
 
 	mirrorInterval := ""
 	if repo.IsMirror {
-		if err := repo.GetMirror(); err == nil {
+		var err error
+		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
 		}
 	}

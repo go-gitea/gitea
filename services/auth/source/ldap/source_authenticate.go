@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
 	user_model "code.gitea.io/gitea/models/user"
@@ -59,8 +59,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if user != nil {
-		if isAttributeSSHPublicKeySet && models.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
-			return user, models.RewriteAllPublicKeys()
+		if isAttributeSSHPublicKeySet && asymkey_model.SynchronizePublicKeys(user, source.loginSource, sr.SSHPublicKey) {
+			return user, asymkey_model.RewriteAllPublicKeys()
 		}
 
 		return user, nil
@@ -95,8 +95,8 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 
 	mailer.SendRegisterNotifyMail(user)
 
-	if isAttributeSSHPublicKeySet && models.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
-		err = models.RewriteAllPublicKeys()
+	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.loginSource, sr.SSHPublicKey) {
+		err = asymkey_model.RewriteAllPublicKeys()
 	}
 
 	if err == nil && len(source.AttributeAvatar) > 0 {

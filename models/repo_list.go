@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -25,7 +26,7 @@ import (
 const RepositoryListDefaultPageSize = 64
 
 // RepositoryList contains a list of repositories
-type RepositoryList []*Repository
+type RepositoryList []*repo_model.Repository
 
 func (repos RepositoryList) Len() int {
 	return len(repos)
@@ -40,7 +41,7 @@ func (repos RepositoryList) Swap(i, j int) {
 }
 
 // RepositoryListOfMap make list from values of map
-func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
+func RepositoryListOfMap(repoMap map[int64]*repo_model.Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))
 }
 
@@ -69,14 +70,14 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 	}
 
 	// Load primary language.
-	stats := make(LanguageStatList, 0, len(repos))
+	stats := make(repo_model.LanguageStatList, 0, len(repos))
 	if err := e.
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
 		In("`repo_id`", repoIDs).
 		Find(&stats); err != nil {
 		return fmt.Errorf("find primary languages: %v", err)
 	}
-	stats.loadAttributes()
+	stats.LoadAttributes()
 	for i := range repos {
 		for _, st := range stats {
 			if st.RepoID == repos[i].ID {
@@ -91,46 +92,6 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
-}
-
-// MirrorRepositoryList contains the mirror repositories
-type MirrorRepositoryList []*Repository
-
-func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
-	if len(repos) == 0 {
-		return nil
-	}
-
-	// Load mirrors.
-	repoIDs := make([]int64, 0, len(repos))
-	for i := range repos {
-		if !repos[i].IsMirror {
-			continue
-		}
-
-		repoIDs = append(repoIDs, repos[i].ID)
-	}
-	mirrors := make([]*Mirror, 0, len(repoIDs))
-	if err := e.
-		Where("id > 0").
-		In("repo_id", repoIDs).
-		Find(&mirrors); err != nil {
-		return fmt.Errorf("find mirrors: %v", err)
-	}
-
-	set := make(map[int64]*Mirror)
-	for i := range mirrors {
-		set[mirrors[i].RepoID] = mirrors[i]
-	}
-	for i := range repos {
-		repos[i].Mirror = set[repos[i].ID]
-	}
-	return nil
-}
-
-// LoadAttributes loads the attributes for the given MirrorRepositoryList
-func (repos MirrorRepositoryList) LoadAttributes() error {
 	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }
 
@@ -392,7 +353,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db
 		var err error
 		count, err = sess.
 			Where(cond).
-			Count(new(Repository))
+			Count(new(repo_model.Repository))
 		if err != nil {
 			return nil, 0, fmt.Errorf("Count: %v", err)
 		}
@@ -501,4 +462,32 @@ func FindUserAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
 		return nil, fmt.Errorf("FindUserAccesibleRepoIDs: %v", err)
 	}
 	return repoIDs, nil
+}
+
+// GetUserRepositories returns a list of repositories of given user.
+func GetUserRepositories(opts *SearchRepoOptions) ([]*repo_model.Repository, int64, error) {
+	if len(opts.OrderBy) == 0 {
+		opts.OrderBy = "updated_unix DESC"
+	}
+
+	cond := builder.NewCond()
+	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
+	if !opts.Private {
+		cond = cond.And(builder.Eq{"is_private": false})
+	}
+
+	if opts.LowerNames != nil && len(opts.LowerNames) > 0 {
+		cond = cond.And(builder.In("lower_name", opts.LowerNames))
+	}
+
+	sess := db.GetEngine(db.DefaultContext)
+
+	count, err := sess.Where(cond).Count(new(repo_model.Repository))
+	if err != nil {
+		return nil, 0, fmt.Errorf("Count: %v", err)
+	}
+
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	repos := make([]*repo_model.Repository, 0, opts.PageSize)
+	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }

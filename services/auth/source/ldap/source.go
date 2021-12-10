@@ -7,7 +7,6 @@ package ldap
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/secret"
@@ -62,7 +61,7 @@ type Source struct {
 
 // FromDB fills up a LDAPConfig from serialized format.
 func (source *Source) FromDB(bs []byte) error {
-	err := models.JSONUnmarshalHandleDoubleEncode(bs, &source)
+	err := json.UnmarshalHandleDoubleEncode(bs, &source)
 	if err != nil {
 		return err
 	}
