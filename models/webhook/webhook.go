@@ -429,8 +429,10 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	return cond
 }
 
-func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := e.Where(opts.toCond())
+// ListWebhooksByOptsCtx return webhooks based on options
+func ListWebhooksByOptsCtx(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
+	sess := db.GetEngine(ctx).
+		Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -446,7 +448,7 @@ func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, erro
 
 // ListWebhooksByOpts return webhooks based on options
 func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
-	return listWebhooksByOpts(db.GetEngine(db.DefaultContext), opts)
+	return ListWebhooksByOptsCtx(db.DefaultContext, opts)
 }
 
 // CountWebhooksByOpts count webhooks based on options and ignore pagination

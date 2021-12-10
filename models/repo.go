@@ -1508,6 +1508,16 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
+	hooks, err := webhook.ListWebhooksByOptsCtx(ctx, &webhook.ListWebhookOptions{RepoID: repoID})
+	if err != nil {
+		return err
+	}
+	for _, hook := range hooks {
+		if err := deleteBeans(sess, &webhook.HookTask{HookID: hook.ID}); err != nil {
+			return err
+		}
+	}
+
 	if err := deleteBeans(sess,
 		&Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
