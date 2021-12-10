@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -253,7 +254,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, err
 	}
 
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+	if _, err := sess.ID(repoID).Cols("topics").Update(&repo_model.Repository{
 		Topics: topicNames,
 	}); err != nil {
 		return nil, err
@@ -347,7 +348,7 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
+	if _, err := sess.ID(repoID).Cols("topics").Update(&repo_model.Repository{
 		Topics: topicNames,
 	}); err != nil {
 		return err

@@ -5,11 +5,13 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -221,13 +223,14 @@ func DeleteDeployKey(doer *user_model.User, id int64) error {
 	}
 	defer committer.Close()
 
-	if err := deleteDeployKey(db.GetEngine(ctx), doer, id); err != nil {
+	if err := deleteDeployKey(ctx, doer, id); err != nil {
 		return err
 	}
 	return committer.Commit()
 }
 
-func deleteDeployKey(sess db.Engine, doer *user_model.User, id int64) error {
+func deleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error {
+	sess := db.GetEngine(ctx)
 	key, err := getDeployKeyByID(sess, id)
 	if err != nil {
 		if IsErrDeployKeyNotExist(err) {
@@ -238,9 +241,9 @@ func deleteDeployKey(sess db.Engine, doer *user_model.User, id int64) error {
 
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
-		repo, err := getRepositoryByID(sess, key.RepoID)
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
 		if err != nil {
-			return fmt.Errorf("GetRepositoryByID: %v", err)
+			return fmt.Errorf("repo_model.GetRepositoryByID: %v", err)
 		}
 		has, err := isUserRepoAdmin(sess, repo, doer)
 		if err != nil {

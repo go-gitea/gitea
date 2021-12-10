@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/login"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -144,7 +145,7 @@ Loop:
 }
 
 // SignWikiCommit determines if we should sign the commits to this repository wiki
-func (repo *Repository) SignWikiCommit(u *user_model.User) (bool, string, *git.Signature, error) {
+func SignWikiCommit(repo *repo_model.Repository, u *user_model.User) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.Wiki)
 	signingKey, sig := SigningKey(repo.WikiPath())
 	if signingKey == "" {
@@ -197,7 +198,7 @@ Loop:
 }
 
 // SignCRUDAction determines if we should sign a CRUD commit to this repository
-func (repo *Repository) SignCRUDAction(u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
+func SignCRUDAction(repo *repo_model.Repository, u *user_model.User, tmpBasePath, parentCommit string) (bool, string, *git.Signature, error) {
 	rules := signingModeFromStrings(setting.Repository.Signing.CRUDActions)
 	signingKey, sig := SigningKey(repo.RepoPath())
 	if signingKey == "" {

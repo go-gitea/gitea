@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -79,7 +80,7 @@ func runMigrateTask(t *models.Task) (err error) {
 	}
 
 	// if repository is ready, then just finish the task
-	if t.Repo.Status == models.RepositoryReady {
+	if t.Repo.Status == repo_model.RepositoryReady {
 		return nil
 	}
 

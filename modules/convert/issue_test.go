@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -21,7 +22,7 @@ import (
 func TestLabel_ToLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	label := unittest.AssertExistsAndLoadBean(t, &models.Label{ID: 1}).(*models.Label)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: label.RepoID}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: label.RepoID}).(*repo_model.Repository)
 	assert.Equal(t, &api.Label{
 		ID:    label.ID,
 		Name:  label.Name,

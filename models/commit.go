@@ -5,12 +5,13 @@
 package models
 
 import (
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 )
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(commits []*git.Commit, repo *Repository) []*SignCommitWithStatuses {
+func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
 	return ParseCommitsWithStatus(
 		ParseCommitsWithSignature(
 			user_model.ValidateCommitsWithEmails(commits),

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -286,7 +287,7 @@ func (list ReactionList) getUserIDs() []int64 {
 	return keysInt64(userIDs)
 }
 
-func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*user_model.User, error) {
+func (list ReactionList) loadUsers(e db.Engine, repo *repo_model.Repository) ([]*user_model.User, error) {
 	if len(list) == 0 {
 		return nil, nil
 	}
@@ -313,7 +314,7 @@ func (list ReactionList) loadUsers(e db.Engine, repo *Repository) ([]*user_model
 }
 
 // LoadUsers loads reactions' all users
-func (list ReactionList) LoadUsers(repo *Repository) ([]*user_model.User, error) {
+func (list ReactionList) LoadUsers(repo *repo_model.Repository) ([]*user_model.User, error) {
 	return list.loadUsers(db.GetEngine(db.DefaultContext), repo)
 }
 

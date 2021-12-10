@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -25,7 +26,7 @@ import (
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*models.Repository, error) {
+func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, models.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -36,7 +37,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 		opts.DefaultBranch = setting.Repository.DefaultBranch
 	}
 
-	repo := &models.Repository{
+	repo := &repo_model.Repository{
 		OwnerID:                         u.ID,
 		Owner:                           u,
 		OwnerName:                       u.Name,
@@ -53,14 +54,14 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 	}
 
 	if err := db.WithTx(func(ctx context.Context) error {
-		repoPath := models.RepoPath(u.Name, repo.Name)
+		repoPath := repo_model.RepoPath(u.Name, repo.Name)
 		isExist, err := util.IsExist(repoPath)
 		if err != nil {
 			log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 			return err
 		}
 		if !isExist {
-			return models.ErrRepoNotExist{
+			return repo_model.ErrRepoNotExist{
 				OwnerName: u.Name,
 				Name:      repo.Name,
 			}
@@ -72,7 +73,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
 			return fmt.Errorf("createDelegateHooks: %v", err)
 		}
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
@@ -99,7 +100,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *models.Repository, opts models.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts models.CreateRepoOptions) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -115,7 +116,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 	// Re-fetch the repository from database before updating it (else it would
 	// override changes that were done earlier with sql)
-	if repo, err = models.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
+	if repo, err = repo_model.GetRepositoryByIDCtx(ctx, repo.ID); err != nil {
 		return fmt.Errorf("getRepositoryByID: %v", err)
 	}
 
@@ -191,20 +192,20 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 		return err
 	}
 
-	repoPath := models.RepoPath(u.Name, repoName)
+	repoPath := repo_model.RepoPath(u.Name, repoName)
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
 		return err
 	}
 	if !isExist {
-		return models.ErrRepoNotExist{
+		return repo_model.ErrRepoNotExist{
 			OwnerName: u.Name,
 			Name:      repoName,
 		}
 	}
 
-	if exist, err := models.IsRepositoryExist(u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryExist(u, repoName); err != nil {
 		return err
 	} else if exist {
 		return models.ErrRepoAlreadyExist{

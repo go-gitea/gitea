@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -258,15 +259,15 @@ func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	externalTracker := RepoUnit{
+	externalTracker := repo_model.RepoUnit{
 		Type: unit.TypeExternalTracker,
-		Config: &ExternalTrackerConfig{
+		Config: &repo_model.ExternalTrackerConfig{
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
 	}
-	baseRepo := &Repository{Name: "testRepo", ID: 1}
+	baseRepo := &repo_model.Repository{Name: "testRepo", ID: 1}
 	baseRepo.Owner = &user_model.User{Name: "testOwner"}
-	baseRepo.Units = []*RepoUnit{&externalTracker}
+	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
 
 	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2, BaseRepo: baseRepo}).(*PullRequest)
 

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 
@@ -42,7 +43,7 @@ type ActivityStats struct {
 }
 
 // GetActivityStats return stats for repository at given time range
-func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+func GetActivityStats(repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
@@ -79,7 +80,7 @@ func GetActivityStats(repo *Repository, timeFrom time.Time, releases, issues, pr
 }
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
-func GetActivityStatsTopAuthors(repo *Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
+func GetActivityStatsTopAuthors(repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)

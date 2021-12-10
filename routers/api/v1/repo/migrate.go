@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -173,7 +174,7 @@ func Migrate(ctx *context.APIContext) {
 		GitServiceType: gitServiceType,
 		IsPrivate:      opts.Private,
 		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
+		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		handleMigrateError(ctx, repoOwner, remoteAddr, err)

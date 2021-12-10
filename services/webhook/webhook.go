@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -99,7 +99,7 @@ func getPayloadBranch(p api.Payloader) string {
 }
 
 // PrepareWebhook adds special webhook to task queue for given payload.
-func PrepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	if err := prepareWebhook(w, repo, event, p); err != nil {
 		return err
 	}
@@ -123,7 +123,7 @@ func checkBranch(w *webhook_model.Webhook, branch string) bool {
 	return g.Match(branch)
 }
 
-func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	// Skip sending if webhooks are disabled.
 	if setting.DisableWebhooks {
 		return nil
@@ -180,7 +180,7 @@ func prepareWebhook(w *webhook_model.Webhook, repo *models.Repository, event web
 }
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
-func PrepareWebhooks(repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func PrepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	if err := prepareWebhooks(repo, event, p); err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func PrepareWebhooks(repo *models.Repository, event webhook_model.HookEventType,
 	return nil
 }
 
-func prepareWebhooks(repo *models.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	ws, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
 		RepoID:   repo.ID,
 		IsActive: util.OptionalBoolTrue,

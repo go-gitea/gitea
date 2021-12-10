@@ -2,10 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
+	"context"
+
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -44,4 +48,20 @@ func (repo *Repository) AllowOnlyContributorsToTrackTime() bool {
 		return setting.Service.DefaultAllowOnlyContributorsToTrackTime
 	}
 	return u.IssuesConfig().AllowOnlyContributorsToTrackTime
+}
+
+// IsDependenciesEnabled returns if dependencies are enabled and returns the default setting if not set.
+func (repo *Repository) IsDependenciesEnabled() bool {
+	return repo.IsDependenciesEnabledCtx(db.DefaultContext)
+}
+
+// IsDependenciesEnabledCtx returns if dependencies are enabled and returns the default setting if not set.
+func (repo *Repository) IsDependenciesEnabledCtx(ctx context.Context) bool {
+	var u *RepoUnit
+	var err error
+	if u, err = repo.getUnit(ctx, unit.TypeIssues); err != nil {
+		log.Trace("%s", err)
+		return setting.Service.DefaultEnableDependencies
+	}
+	return u.IssuesConfig().EnableDependencies
 }

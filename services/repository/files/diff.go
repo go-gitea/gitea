@@ -7,12 +7,12 @@ package files
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // GetDiffPreview produces and returns diff result of a file which is not yet committed.
-func GetDiffPreview(repo *models.Repository, branch, treePath, content string) (*gitdiff.Diff, error) {
+func GetDiffPreview(repo *repo_model.Repository, branch, treePath, content string) (*gitdiff.Diff, error) {
 	if branch == "" {
 		branch = repo.DefaultBranch
 	}

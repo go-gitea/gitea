@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -763,10 +764,10 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	// handle manually-merged mark
-	if models.MergeStyle(form.Do) == models.MergeStyleManuallyMerged {
+	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
 		if err = pull_service.MergedManually(pr, ctx.User, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
-				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", models.MergeStyle(form.Do)))
+				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
 			}
 			if strings.Contains(err.Error(), "Wrong commit ID") {
@@ -818,15 +819,15 @@ func MergePullRequest(ctx *context.APIContext) {
 	}
 
 	if len(form.Do) == 0 {
-		form.Do = string(models.MergeStyleMerge)
+		form.Do = string(repo_model.MergeStyleMerge)
 	}
 
 	message := strings.TrimSpace(form.MergeTitleField)
 	if len(message) == 0 {
-		if models.MergeStyle(form.Do) == models.MergeStyleMerge {
+		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
 			message = pr.GetDefaultMergeMessage()
 		}
-		if models.MergeStyle(form.Do) == models.MergeStyleSquash {
+		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
 			message = pr.GetDefaultSquashMessage()
 		}
 	}
@@ -836,9 +837,9 @@ func MergePullRequest(ctx *context.APIContext) {
 		message += "\n\n" + form.MergeMessageField
 	}
 
-	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, models.MergeStyle(form.Do), message); err != nil {
+	if err := pull_service.Merge(pr, ctx.User, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
-			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", models.MergeStyle(form.Do)))
+			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
@@ -901,7 +902,7 @@ func MergePullRequest(ctx *context.APIContext) {
 	ctx.Status(http.StatusOK)
 }
 
-func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*user_model.User, *models.Repository, *git.Repository, *git.CompareInfo, string, string) {
+func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption) (*user_model.User, *repo_model.Repository, *git.Repository, *git.CompareInfo, string, string) {
 	baseRepo := ctx.Repo.Repository
 
 	// Get compared branches information
@@ -966,7 +967,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headRepo = ctx.Repo.Repository
 		headGitRepo = ctx.Repo.GitRepo
 	} else {
-		headGitRepo, err = git.OpenRepository(models.RepoPath(headUser.Name, headRepo.Name))
+		headGitRepo, err = git.OpenRepository(repo_model.RepoPath(headUser.Name, headRepo.Name))
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return nil, nil, nil, nil, "", ""
@@ -1018,7 +1019,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		return nil, nil, nil, nil, "", ""
 	}
 
-	compareInfo, err := headGitRepo.GetCompareInfo(models.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch, true, false)
+	compareInfo, err := headGitRepo.GetCompareInfo(repo_model.RepoPath(baseRepo.Owner.Name, baseRepo.Name), baseBranch, headBranch, true, false)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetCompareInfo", err)

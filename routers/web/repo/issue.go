@@ -272,7 +272,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatus"] = commitStatus
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = repo.GetAssignees()
+	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -412,7 +412,7 @@ func Issues(ctx *context.Context) {
 }
 
 // RetrieveRepoMilestonesAndAssignees find all the milestones and assignees of a repository
-func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repository) {
+func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 	ctx.Data["OpenMilestones"], _, err = models.GetMilestones(models.GetMilestonesOption{
 		RepoID: repo.ID,
@@ -431,7 +431,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 		return
 	}
 
-	ctx.Data["Assignees"], err = repo.GetAssignees()
+	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -440,7 +440,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *models.Repos
 	handleTeamMentions(ctx)
 }
 
-func retrieveProjects(ctx *context.Context, repo *models.Repository) {
+func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 
 	var err error
 
@@ -479,7 +479,7 @@ type repoReviewerSelection struct {
 }
 
 // RetrieveRepoReviewers find all reviewers of a repository
-func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue *models.Issue, canChooseReviewer bool) {
+func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, issue *models.Issue, canChooseReviewer bool) {
 	ctx.Data["CanChooseReviewer"] = canChooseReviewer
 
 	originalAuthorReviews, err := models.GetReviewersFromOriginalAuthorsByIssueID(issue.ID)
@@ -513,13 +513,13 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 			posterID = 0
 		}
 
-		reviewers, err = repo.GetReviewers(ctx.User.ID, posterID)
+		reviewers, err = models.GetReviewers(repo, ctx.User.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
 
-		teamReviewers, err = repo.GetReviewerTeams()
+		teamReviewers, err = models.GetReviewerTeams(repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -659,7 +659,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *models.Repository, issue 
 }
 
 // RetrieveRepoMetas find all the meta information of a repository
-func RetrieveRepoMetas(ctx *context.Context, repo *models.Repository, isPull bool) []*models.Label {
+func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull bool) []*models.Label {
 	if !ctx.Repo.CanWriteIssuesOrPulls(isPull) {
 		return nil
 	}
@@ -887,11 +887,16 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	// Check milestone.
 	milestoneID := form.MilestoneID
 	if milestoneID > 0 {
-		ctx.Data["Milestone"], err = repo.GetMilestoneByID(milestoneID)
+		milestone, err := models.GetMilestoneByID(milestoneID)
 		if err != nil {
 			ctx.ServerError("GetMilestoneByID", err)
 			return nil, nil, 0, 0
 		}
+		if milestone.RepoID != repo.ID {
+			ctx.ServerError("GetMilestoneByID", err)
+			return nil, nil, 0, 0
+		}
+		ctx.Data["Milestone"] = milestone
 		ctx.Data["milestone_id"] = milestoneID
 	}
 
@@ -1019,7 +1024,7 @@ func NewIssuePost(ctx *context.Context) {
 }
 
 // roleDescriptor returns the Role Decriptor for a comment in/with the given repo, poster and issue
-func roleDescriptor(repo *models.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
+func roleDescriptor(repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
 	perm, err := models.GetUserRepoPermission(repo, poster)
 	if err != nil {
 		return models.RoleDescriptorNone, err
@@ -1085,7 +1090,7 @@ func ViewIssue(ctx *context.Context) {
 				ctx.Redirect(com.Expand(extIssueUnit.ExternalTrackerConfig().ExternalTrackerFormat, metas))
 				return
 			}
-		} else if err != nil && !models.IsErrUnitTypeNotExist(err) {
+		} else if err != nil && !repo_model.IsErrUnitTypeNotExist(err) {
 			ctx.ServerError("GetUnit", err)
 			return
 		}
@@ -1498,7 +1503,7 @@ func ViewIssue(ctx *context.Context) {
 				}
 				if perm.CanWrite(unit.TypeCode) {
 					// Check if branch is not protected
-					if protected, err := pull.HeadRepo.IsProtectedBranch(pull.HeadBranch); err != nil {
+					if protected, err := models.IsProtectedBranch(pull.HeadRepo.ID, pull.HeadBranch); err != nil {
 						log.Error("IsProtectedBranch: %v", err)
 					} else if !protected {
 						canDelete = true
@@ -1535,21 +1540,21 @@ func ViewIssue(ctx *context.Context) {
 		prConfig := prUnit.PullRequestsConfig()
 
 		// Check correct values and select default
-		if ms, ok := ctx.Data["MergeStyle"].(models.MergeStyle); !ok ||
+		if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
 			defaultMergeStyle := prConfig.GetDefaultMergeStyle()
 			if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
 				ctx.Data["MergeStyle"] = defaultMergeStyle
 			} else if prConfig.AllowMerge {
-				ctx.Data["MergeStyle"] = models.MergeStyleMerge
+				ctx.Data["MergeStyle"] = repo_model.MergeStyleMerge
 			} else if prConfig.AllowRebase {
-				ctx.Data["MergeStyle"] = models.MergeStyleRebase
+				ctx.Data["MergeStyle"] = repo_model.MergeStyleRebase
 			} else if prConfig.AllowRebaseMerge {
-				ctx.Data["MergeStyle"] = models.MergeStyleRebaseMerge
+				ctx.Data["MergeStyle"] = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
-				ctx.Data["MergeStyle"] = models.MergeStyleSquash
+				ctx.Data["MergeStyle"] = repo_model.MergeStyleSquash
 			} else if prConfig.AllowManualMerge {
-				ctx.Data["MergeStyle"] = models.MergeStyleManuallyMerged
+				ctx.Data["MergeStyle"] = repo_model.MergeStyleManuallyMerged
 			} else {
 				ctx.Data["MergeStyle"] = ""
 			}
@@ -1897,7 +1902,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 		}
 		if reviewID < 0 {
 			// negative reviewIDs represent team requests
-			if err := issue.Repo.GetOwner(); err != nil {
+			if err := issue.Repo.GetOwner(db.DefaultContext); err != nil {
 				ctx.ServerError("issue.Repo.GetOwner", err)
 				return
 			}
@@ -2467,7 +2472,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 		if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issue.RepoID && c.RefRepoID != 0 {
 			var err error
 			// Set RefRepo for description in template
-			c.RefRepo, err = models.GetRepositoryByID(c.RefRepoID)
+			c.RefRepo, err = repo_model.GetRepositoryByID(c.RefRepoID)
 			if err != nil {
 				return err
 			}
