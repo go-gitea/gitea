@@ -146,8 +146,8 @@ func Create(ctx *context.Context) {
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
-		templateRepo, err := models.GetRepositoryByID(templateID)
-		if err == nil && templateRepo.CheckUnitUser(ctxUser, unit.TypeCode) {
+		templateRepo, err := repo_model.GetRepositoryByID(templateID)
+		if err == nil && models.CheckRepoUnitUser(templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -213,7 +213,7 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
-	var repo *models.Repository
+	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
@@ -261,7 +261,7 @@ func CreatePost(ctx *context.Context) {
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,
-			TrustModel:    models.ToTrustModel(form.TrustModel),
+			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)

@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -43,7 +44,7 @@ func ListSubscribers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	subscribers, err := ctx.Repo.Repository.GetWatchers(utils.GetListOptions(ctx))
+	subscribers, err := models.GetRepoWatchers(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetWatchers", err)
 		return

@@ -69,7 +69,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branchName)
+	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -210,7 +210,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branch.Name)
+	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -270,7 +270,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := ctx.Repo.Repository.GetBranchProtection(branches[i].Name)
+		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branches[i].Name)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
@@ -354,7 +354,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	//     "$ref": "#/responses/BranchProtectionList"
 
 	repo := ctx.Repo.Repository
-	bps, err := repo.GetProtectedBranches()
+	bps, err := models.GetProtectedBranches(repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranches", err)
 		return
@@ -811,7 +811,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	if err := ctx.Repo.Repository.DeleteProtectedBranch(bp.ID); err != nil {
+	if err := models.DeleteProtectedBranch(ctx.Repo.Repository.ID, bp.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteProtectedBranch", err)
 		return
 	}

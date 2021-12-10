@@ -17,6 +17,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -165,7 +167,7 @@ func setCsvCompareContext(ctx *context.Context) {
 // CompareInfo represents the collected results from ParseCompareInfo
 type CompareInfo struct {
 	HeadUser         *user_model.User
-	HeadRepo         *models.Repository
+	HeadRepo         *repo_model.Repository
 	HeadGitRepo      *git.Repository
 	CompareInfo      *git.CompareInfo
 	BaseBranch       string
@@ -259,16 +261,16 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 				ci.HeadRepo = baseRepo
 			}
 		} else {
-			ci.HeadRepo, err = models.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
+			ci.HeadRepo, err = repo_model.GetRepositoryByOwnerAndName(headInfosSplit[0], headInfosSplit[1])
 			if err != nil {
-				if models.IsErrRepoNotExist(err) {
+				if repo_model.IsErrRepoNotExist(err) {
 					ctx.NotFound("GetRepositoryByOwnerAndName", nil)
 				} else {
 					ctx.ServerError("GetRepositoryByOwnerAndName", err)
 				}
 				return nil
 			}
-			if err := ci.HeadRepo.GetOwner(); err != nil {
+			if err := ci.HeadRepo.GetOwner(db.DefaultContext); err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
 				} else {
@@ -320,11 +322,11 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 
 	// 1. First if the baseRepo is a fork get the "RootRepo" it was
 	// forked from
-	var rootRepo *models.Repository
+	var rootRepo *repo_model.Repository
 	if baseRepo.IsFork {
 		err = baseRepo.GetBaseRepo()
 		if err != nil {
-			if !models.IsErrRepoNotExist(err) {
+			if !repo_model.IsErrRepoNotExist(err) {
 				ctx.ServerError("Unable to find root repo", err)
 				return nil
 			}
@@ -336,7 +338,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// 2. Now if the current user is not the owner of the baseRepo,
 	// check if they have a fork of the base repo and offer that as
 	// "OwnForkRepo"
-	var ownForkRepo *models.Repository
+	var ownForkRepo *repo_model.Repository
 	if ctx.User != nil && baseRepo.OwnerID != ctx.User.ID {
 		repo := models.GetForkedRepo(ctx.User.ID, baseRepo.ID)
 		if repo != nil {
@@ -438,7 +440,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := rootRepo.CheckUnitUser(ctx.User, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(rootRepo, ctx.User, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -463,7 +465,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := ownForkRepo.CheckUnitUser(ctx.User, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(ownForkRepo, ctx.User, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -653,7 +655,7 @@ func PrepareCompareDiff(
 	return false
 }
 
-func getBranchesAndTagsForRepo(repo *models.Repository) (branches, tags []string, err error) {
+func getBranchesAndTagsForRepo(repo *repo_model.Repository) (branches, tags []string, err error) {
 	gitRepo, err := git.OpenRepository(repo.RepoPath())
 	if err != nil {
 		return nil, nil, err
@@ -759,7 +761,7 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled

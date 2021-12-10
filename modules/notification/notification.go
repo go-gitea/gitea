@@ -6,6 +6,7 @@ package notification
 
 import (
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification/action"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -39,7 +40,7 @@ func NewContext() {
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
-func NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	for _, notifier := range notifiers {
 		notifier.NotifyCreateIssueComment(doer, repo, issue, comment, mentions)
@@ -209,91 +210,91 @@ func NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
 }
 
 // NotifyCreateRepository notifies create repository to notifiers
-func NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyCreateRepository(doer, u, repo)
 	}
 }
 
 // NotifyMigrateRepository notifies create repository to notifiers
-func NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyMigrateRepository(doer, u, repo)
 	}
 }
 
 // NotifyTransferRepository notifies create repository to notifiers
-func NotifyTransferRepository(doer *user_model.User, repo *models.Repository, newOwnerName string) {
+func NotifyTransferRepository(doer *user_model.User, repo *repo_model.Repository, newOwnerName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyTransferRepository(doer, repo, newOwnerName)
 	}
 }
 
 // NotifyDeleteRepository notifies delete repository to notifiers
-func NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
+func NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyDeleteRepository(doer, repo)
 	}
 }
 
 // NotifyForkRepository notifies fork repository to notifiers
-func NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository) {
+func NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyForkRepository(doer, oldRepo, repo)
 	}
 }
 
 // NotifyRenameRepository notifies repository renamed
-func NotifyRenameRepository(doer *user_model.User, repo *models.Repository, oldName string) {
+func NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyRenameRepository(doer, repo, oldName)
 	}
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifyPushCommits(pusher, repo, opts, commits)
 	}
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func NotifyCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func NotifyCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyCreateRef(pusher, repo, refType, refFullName)
 	}
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
-func NotifyDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func NotifyDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifyDeleteRef(pusher, repo, refType, refFullName)
 	}
 }
 
 // NotifySyncPushCommits notifies commits pushed to notifiers
-func NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 	for _, notifier := range notifiers {
 		notifier.NotifySyncPushCommits(pusher, repo, opts, commits)
 	}
 }
 
 // NotifySyncCreateRef notifies branch or tag creation to notifiers
-func NotifySyncCreateRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func NotifySyncCreateRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifySyncCreateRef(pusher, repo, refType, refFullName)
 	}
 }
 
 // NotifySyncDeleteRef notifies branch or tag deletion to notifiers
-func NotifySyncDeleteRef(pusher *user_model.User, repo *models.Repository, refType, refFullName string) {
+func NotifySyncDeleteRef(pusher *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 	for _, notifier := range notifiers {
 		notifier.NotifySyncDeleteRef(pusher, repo, refType, refFullName)
 	}
 }
 
 // NotifyRepoPendingTransfer notifies creation of pending transfer to notifiers
-func NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository) {
+func NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
 	for _, notifier := range notifiers {
 		notifier.NotifyRepoPendingTransfer(doer, newOwner, repo)
 	}

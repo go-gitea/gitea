@@ -12,7 +12,7 @@ import (
 	"io"
 	"os"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -97,7 +97,7 @@ func readAndVerifyCommit(sha string, repo *git.Repository, env []string) error {
 				if err != nil {
 					return err
 				}
-				verification := models.ParseCommitWithSignature(commit)
+				verification := asymkey_model.ParseCommitWithSignature(commit)
 				if !verification.Verified {
 					cancel()
 					return &errUnverifiedCommit{

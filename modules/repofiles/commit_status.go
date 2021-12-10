@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 )
@@ -15,7 +16,7 @@ import (
 // CreateCommitStatus creates a new CommitStatus given a bunch of parameters
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
-func CreateCommitStatus(repo *models.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
+func CreateCommitStatus(repo *repo_model.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist

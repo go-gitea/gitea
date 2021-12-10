@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
@@ -29,7 +30,7 @@ import (
 const gitShortEmptySha = "0000000"
 
 // UpdateAddress writes new address to Git repository and database
-func UpdateAddress(m *models.Mirror, addr string) error {
+func UpdateAddress(m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
 	repoPath := m.Repo.RepoPath()
 	// Remove old remote
@@ -144,7 +145,7 @@ func parseRemoteUpdateOutput(output string) []*mirrorSyncResult {
 }
 
 func pruneBrokenReferences(ctx context.Context,
-	m *models.Mirror,
+	m *repo_model.Mirror,
 	repoPath string,
 	timeout time.Duration,
 	stdoutBuilder, stderrBuilder *strings.Builder,
@@ -181,7 +182,7 @@ func pruneBrokenReferences(ctx context.Context,
 }
 
 // runSync returns true if sync finished without error.
-func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) {
+func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bool) {
 	repoPath := m.Repo.RepoPath()
 	wikiPath := m.Repo.WikiPath()
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
@@ -271,7 +272,7 @@ func runSync(ctx context.Context, m *models.Mirror) ([]*mirrorSyncResult, bool) 
 	gitRepo.Close()
 
 	log.Trace("SyncMirrors [repo: %-v]: updating size of repository", m.Repo)
-	if err := m.Repo.UpdateSize(db.DefaultContext); err != nil {
+	if err := models.UpdateRepoSize(db.DefaultContext, m.Repo); err != nil {
 		log.Error("Failed to update size for mirror repository: %v", err)
 	}
 
@@ -362,7 +363,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("PANIC whilst syncMirrors[%d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
 
-	m, err := models.GetMirrorByRepoID(repoID)
+	m, err := repo_model.GetMirrorByRepoID(repoID)
 	if err != nil {
 		log.Error("GetMirrorByRepoID [%d]: %v", repoID, err)
 		return false
@@ -379,7 +380,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
-	if err = models.UpdateMirror(m); err != nil {
+	if err = repo_model.UpdateMirror(m); err != nil {
 		log.Error("UpdateMirror [%d]: %v", m.RepoID, err)
 		return false
 	}
@@ -485,7 +486,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 	return true
 }
 
-func checkAndUpdateEmptyRepository(m *models.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
+func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository, results []*mirrorSyncResult) bool {
 	if !m.Repo.IsEmpty {
 		return true
 	}

@@ -16,29 +16,29 @@ func TestIsUserAllowed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	pt := &ProtectedTag{}
-	allowed, err := pt.IsUserAllowed(1)
+	allowed, err := IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.False(t, allowed)
 
 	pt = &ProtectedTag{
 		AllowlistUserIDs: []int64{1},
 	}
-	allowed, err = pt.IsUserAllowed(1)
+	allowed, err = IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 
-	allowed, err = pt.IsUserAllowed(2)
+	allowed, err = IsUserAllowedModifyTag(pt, 2)
 	assert.NoError(t, err)
 	assert.False(t, allowed)
 
 	pt = &ProtectedTag{
 		AllowlistTeamIDs: []int64{1},
 	}
-	allowed, err = pt.IsUserAllowed(1)
+	allowed, err = IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.False(t, allowed)
 
-	allowed, err = pt.IsUserAllowed(2)
+	allowed, err = IsUserAllowedModifyTag(pt, 2)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 
@@ -46,11 +46,11 @@ func TestIsUserAllowed(t *testing.T) {
 		AllowlistUserIDs: []int64{1},
 		AllowlistTeamIDs: []int64{1},
 	}
-	allowed, err = pt.IsUserAllowed(1)
+	allowed, err = IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 
-	allowed, err = pt.IsUserAllowed(2)
+	allowed, err = IsUserAllowedModifyTag(pt, 2)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 }

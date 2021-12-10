@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -181,7 +181,7 @@ func prepareWebhook(w *webhook_model.Webhook, event webhook_model.HookEventType,
 
 // SourceContext represents the source of a webhook action. Repository and/or Owner must be set.
 type SourceContext struct {
-	Repository *models.Repository
+	Repository *repo_model.Repository
 	Owner      *user_model.User
 }
 

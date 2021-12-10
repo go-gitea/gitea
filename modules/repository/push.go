@@ -7,7 +7,7 @@ package repository
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 )
 
@@ -104,7 +104,7 @@ func IsForcePush(opts *PushUpdateOptions) (bool, error) {
 	}
 
 	output, err := git.NewCommand("rev-list", "--max-count=1", opts.OldCommitID, "^"+opts.NewCommitID).
-		RunInDir(models.RepoPath(opts.RepoUserName, opts.RepoName))
+		RunInDir(repo_model.RepoPath(opts.RepoUserName, opts.RepoName))
 	if err != nil {
 		return false, err
 	} else if len(output) > 0 {
