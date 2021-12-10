@@ -7,6 +7,7 @@ package models
 import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"xorm.io/builder"
@@ -158,12 +159,12 @@ func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
 func CountNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(repo_model.Repository))
 }
 
 // FixNullArchivedRepository sets is_archived to false where it is null
 func FixNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&repo_model.Repository{
 		IsArchived: false,
 	})
 }

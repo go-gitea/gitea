@@ -139,7 +139,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 

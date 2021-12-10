@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -70,7 +71,7 @@ func FilenameToName(filename string) (string, error) {
 
 // InitWiki initializes a wiki for repository,
 // it does nothing when repository already has wiki.
-func InitWiki(repo *models.Repository) error {
+func InitWiki(repo *repo_model.Repository) error {
 	if repo.HasWiki() {
 		return nil
 	}
@@ -117,7 +118,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 }
 
 // updateWikiPage adds a new page to the repository wiki.
-func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
+func updateWikiPage(doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
 	}
@@ -224,10 +225,10 @@ func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName,
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
+	sign, signingKey, signer, _ := models.SignWikiCommit(repo, doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
-		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
@@ -265,18 +266,18 @@ func updateWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName,
 }
 
 // AddWikiPage adds a new wiki page with a given wikiPath.
-func AddWikiPage(doer *user_model.User, repo *models.Repository, wikiName, content, message string) error {
+func AddWikiPage(doer *user_model.User, repo *repo_model.Repository, wikiName, content, message string) error {
 	return updateWikiPage(doer, repo, "", wikiName, content, message, true)
 }
 
 // EditWikiPage updates a wiki page identified by its wikiPath,
 // optionally also changing wikiPath.
-func EditWikiPage(doer *user_model.User, repo *models.Repository, oldWikiName, newWikiName, content, message string) error {
+func EditWikiPage(doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string) error {
 	return updateWikiPage(doer, repo, oldWikiName, newWikiName, content, message, false)
 }
 
 // DeleteWikiPage deletes a wiki page identified by its path.
-func DeleteWikiPage(doer *user_model.User, repo *models.Repository, wikiName string) (err error) {
+func DeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, wikiName string) (err error) {
 	wikiWorkingPool.CheckIn(fmt.Sprint(repo.ID))
 	defer wikiWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
@@ -342,10 +343,10 @@ func DeleteWikiPage(doer *user_model.User, repo *models.Repository, wikiName str
 
 	committer := doer.NewGitSig()
 
-	sign, signingKey, signer, _ := repo.SignWikiCommit(doer)
+	sign, signingKey, signer, _ := models.SignWikiCommit(repo, doer)
 	if sign {
 		commitTreeOpts.KeyID = signingKey
-		if repo.GetTrustModel() == models.CommitterTrustModel || repo.GetTrustModel() == models.CollaboratorCommitterTrustModel {
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
 			committer = signer
 		}
 	} else {
@@ -372,7 +373,7 @@ func DeleteWikiPage(doer *user_model.User, repo *models.Repository, wikiName str
 }
 
 // DeleteWiki removes the actual and local copy of repository wiki.
-func DeleteWiki(repo *models.Repository) error {
+func DeleteWiki(repo *repo_model.Repository) error {
 	if err := models.UpdateRepositoryUnits(repo, nil, []unit.Type{unit.TypeWiki}); err != nil {
 		return err
 	}

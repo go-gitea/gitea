@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -112,7 +113,7 @@ func Transfer(ctx *context.APIContext) {
 		return
 	}
 
-	if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
+	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
 		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
 		return

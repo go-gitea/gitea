@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/login"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -34,7 +35,7 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var err error
@@ -76,7 +77,7 @@ func ToBranch(repo *models.Repository, b *git.Branch, c *git.Commit, bp *models.
 			return nil, err
 		}
 		branch.UserCanPush = bp.CanUserPush(user.ID)
-		branch.UserCanMerge = bp.IsUserMergeWhitelisted(user.ID, permission)
+		branch.UserCanMerge = models.IsUserMergeWhitelisted(bp, user.ID, permission)
 	}
 
 	return branch, nil
@@ -138,7 +139,7 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 }
 
 // ToTag convert a git.Tag to an api.Tag
-func ToTag(repo *models.Repository, t *git.Tag) *api.Tag {
+func ToTag(repo *repo_model.Repository, t *git.Tag) *api.Tag {
 	return &api.Tag{
 		Name:       t.Name,
 		Message:    strings.TrimSpace(t.Message),
@@ -310,7 +311,7 @@ func ToTeam(team *models.Team) *api.Team {
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
-func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
+func ToAnnotatedTag(repo *repo_model.Repository, t *git.Tag, c *git.Commit) *api.AnnotatedTag {
 	return &api.AnnotatedTag{
 		Tag:          t.Name,
 		SHA:          t.ID.String(),
@@ -323,7 +324,7 @@ func ToAnnotatedTag(repo *models.Repository, t *git.Tag, c *git.Commit) *api.Ann
 }
 
 // ToAnnotatedTagObject convert a git.Commit to an api.AnnotatedTagObject
-func ToAnnotatedTagObject(repo *models.Repository, commit *git.Commit) *api.AnnotatedTagObject {
+func ToAnnotatedTagObject(repo *repo_model.Repository, commit *git.Commit) *api.AnnotatedTagObject {
 	return &api.AnnotatedTagObject{
 		SHA:  commit.ID.String(),
 		Type: string(git.ObjectCommit),

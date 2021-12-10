@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -117,7 +118,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
 
-	deletedBranch, err := ctx.Repo.Repository.GetDeletedBranchByID(branchID)
+	deletedBranch, err := models.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
@@ -179,13 +180,13 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 		return nil, 0
 	}
 
-	protectedBranches, err := ctx.Repo.Repository.GetProtectedBranches()
+	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return nil, 0
 	}
 
-	repoIDToRepo := map[int64]*models.Repository{}
+	repoIDToRepo := map[int64]*repo_model.Repository{}
 	repoIDToRepo[ctx.Repo.Repository.ID] = ctx.Repo.Repository
 
 	repoIDToGitRepo := map[int64]*git.Repository{}
@@ -223,7 +224,7 @@ func loadBranches(ctx *context.Context, skip, limit int) ([]*Branch, int) {
 }
 
 func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
-	repoIDToRepo map[int64]*models.Repository,
+	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository) *Branch {
 	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
 
@@ -311,7 +312,7 @@ func loadOneBranch(ctx *context.Context, rawBranch *git.Branch, protectedBranche
 func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	branches := []*Branch{}
 
-	deletedBranches, err := ctx.Repo.Repository.GetDeletedBranches()
+	deletedBranches, err := models.GetDeletedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		return branches, err
 	}

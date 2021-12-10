@@ -11,6 +11,7 @@ import (
 	texttmpl "text/template"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -41,7 +42,7 @@ const bodyTpl = `
 </html>
 `
 
-func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *models.Repository, issue *models.Issue, comment *models.Comment) {
+func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, comment *models.Comment) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	var mailService = setting.Mailer{
 		From: "test@gitea.com",
@@ -51,7 +52,7 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *models.Reposi
 	setting.Domain = "localhost"
 
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1, Owner: doer}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer}).(*repo_model.Repository)
 	issue = unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
 	assert.NoError(t, issue.LoadRepo())
 	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)

@@ -43,7 +43,7 @@ type GiteaLocalUploader struct {
 	doer           *user_model.User
 	repoOwner      string
 	repoName       string
-	repo           *models.Repository
+	repo           *repo_model.Repository
 	labels         sync.Map
 	milestones     sync.Map
 	issues         sync.Map
@@ -93,7 +93,7 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 		return err
 	}
 
-	var r *models.Repository
+	var r *repo_model.Repository
 	if opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
 			Name:           g.repoName,
@@ -102,10 +102,10 @@ func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.Migrate
 			GitServiceType: opts.GitServiceType,
 			IsPrivate:      opts.Private,
 			IsMirror:       opts.Mirror,
-			Status:         models.RepositoryBeingMigrated,
+			Status:         repo_model.RepositoryBeingMigrated,
 		})
 	} else {
-		r, err = models.GetRepositoryByID(opts.MigrateToRepoID)
+		r, err = repo_model.GetRepositoryByID(opts.MigrateToRepoID)
 	}
 	if err != nil {
 		return err
@@ -979,6 +979,6 @@ func (g *GiteaLocalUploader) Finish() error {
 		return err
 	}
 
-	g.repo.Status = models.RepositoryReady
+	g.repo.Status = repo_model.RepositoryReady
 	return models.UpdateRepositoryCols(g.repo, "status")
 }
