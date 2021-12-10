@@ -48,7 +48,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.User = user_model.CountUsers()
 	stats.Counter.Org = CountOrganizations()
 	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
-	stats.Counter.Repo = CountRepositories(true)
+	stats.Counter.Repo = repo_model.CountRepositories(true)
 	stats.Counter.Watch, _ = e.Count(new(Watch))
 	stats.Counter.Star, _ = e.Count(new(Star))
 	stats.Counter.Action, _ = e.Count(new(Action))
@@ -95,7 +95,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Comment, _ = e.Count(new(Comment))
 	stats.Counter.Oauth = 0
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
-	stats.Counter.Mirror, _ = e.Count(new(Mirror))
+	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(Release))
 	stats.Counter.LoginSource = login.CountSources()
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))

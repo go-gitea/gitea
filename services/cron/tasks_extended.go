@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -36,7 +37,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return repo_service.DeleteRepositoryArchives(ctx)
+		return archiver_service.DeleteRepositoryArchives(ctx)
 	})
 }
 

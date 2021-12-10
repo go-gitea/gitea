@@ -37,8 +37,8 @@
 								<div class="download df ac">
 									{{if $.Permission.CanRead $.UnitTypeCode}}
 										<a class="mr-3 mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
-										<a class="archive-link mr-3" data-url="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
-										<a class="archive-link mr-3" data-url="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
+										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
+										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
 										{{if (and $.CanCreateRelease $release.IsTag)}}
 											<a class="mr-3" href="{{$.RepoLink}}/releases/new?tag={{.TagName | PathEscapeSegments}}">{{svg "octicon-tag" 16 "mr-2"}}{{$.i18n.Tr "repo.release.new_release"}}</a>
 										{{end}}
@@ -104,8 +104,8 @@
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
 								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
-								<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-								<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+								<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+								<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
 							{{end}}
 							</div>
 						{{else}}
@@ -148,10 +148,10 @@
 								<ul class="list">
 									{{if and (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
 										<li>
-											<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
+											<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 										</li>
 										<li>
-											<a class="archive-link" data-url="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
+											<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.i18n.Tr "repo.release.source_code"}} (TAR.GZ)</strong></a>
 										</li>
 									{{end}}
 									{{if .Attachments}}

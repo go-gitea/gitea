@@ -18,7 +18,8 @@ import (
 
 var fixtures *testfixtures.Loader
 
-func getXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
+// GetXORMEngine gets the XORM engine
+func GetXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
 	if len(engine) == 1 {
 		return engine[0]
 	}
@@ -27,7 +28,7 @@ func getXORMEngine(engine ...*xorm.Engine) (x *xorm.Engine) {
 
 // InitFixtures initialize test fixtures for a test database
 func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
-	e := getXORMEngine(engine...)
+	e := GetXORMEngine(engine...)
 	var testfiles func(*testfixtures.Loader) error
 	if opts.Dir != "" {
 		testfiles = testfixtures.Directory(opts.Dir)
@@ -69,7 +70,7 @@ func InitFixtures(opts FixturesOptions, engine ...*xorm.Engine) (err error) {
 
 // LoadFixtures load fixtures for a test database
 func LoadFixtures(engine ...*xorm.Engine) error {
-	e := getXORMEngine(engine...)
+	e := GetXORMEngine(engine...)
 	var err error
 	// Database transaction conflicts could occur and result in ROLLBACK
 	// As a simple workaround, we just retry 20 times.

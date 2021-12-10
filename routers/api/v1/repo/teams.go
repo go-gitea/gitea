@@ -41,7 +41,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	teams, err := ctx.Repo.Repository.GetRepoTeams()
+	teams, err := models.GetRepoTeams(ctx.Repo.Repository)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

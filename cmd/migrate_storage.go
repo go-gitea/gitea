@@ -102,7 +102,7 @@ func migrateAvatars(dstStorage storage.ObjectStorage) error {
 }
 
 func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
-	return models.IterateRepository(func(repo *models.Repository) error {
+	return models.IterateRepository(func(repo *repo_model.Repository) error {
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
 		return err
 	})
@@ -121,7 +121,6 @@ func runMigrateStorage(ctx *cli.Context) error {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	setting.InitDBConfig()
 
 	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)

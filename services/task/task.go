@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -110,7 +111,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		GitServiceType: opts.GitServiceType,
 		IsPrivate:      opts.Private,
 		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
+		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()

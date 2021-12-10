@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 
@@ -23,10 +23,10 @@ func SyncRepositoryHooks(ctx context.Context) error {
 
 	if err := db.Iterate(
 		db.DefaultContext,
-		new(models.Repository),
+		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
-			repo := bean.(*models.Repository)
+			repo := bean.(*repo_model.Repository)
 			select {
 			case <-ctx.Done():
 				return db.ErrCancelledf("before sync repository hooks for %s", repo.FullName())

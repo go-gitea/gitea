@@ -6,6 +6,7 @@ package ui
 
 import (
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -51,7 +52,7 @@ func (ns *notificationService) Run() {
 	graceful.GetManager().RunWithShutdownFns(ns.issueQueue.Run)
 }
 
-func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (ns *notificationService) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 	var opts = issueNotificationOpts{
 		IssueID:              issue.ID,
@@ -233,7 +234,7 @@ func (ns *notificationService) NotifyPullReviewRequest(doer *user_model.User, is
 	}
 }
 
-func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository) {
+func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
 	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
 		log.Error("NotifyRepoPendingTransfer: %v", err)
 	}

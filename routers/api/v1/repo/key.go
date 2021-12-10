@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,12 +22,12 @@ import (
 )
 
 // appendPrivateInformation appends the owner and key type information to api.PublicKey
-func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *models.Repository) (*api.DeployKey, error) {
+func appendPrivateInformation(apiKey *api.DeployKey, key *models.DeployKey, repository *repo_model.Repository) (*api.DeployKey, error) {
 	apiKey.ReadOnly = key.Mode == perm.AccessModeRead
 	if repository.ID == key.RepoID {
 		apiKey.Repository = convert.ToRepo(repository, key.Mode)
 	} else {
-		repo, err := models.GetRepositoryByID(key.RepoID)
+		repo, err := repo_model.GetRepositoryByID(key.RepoID)
 		if err != nil {
 			return apiKey, err
 		}

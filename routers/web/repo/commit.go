@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -104,7 +105,7 @@ func Graph(ctx *context.Context) {
 	copy(realBranches, branches)
 	for i, branch := range realBranches {
 		if strings.HasPrefix(branch, "--") {
-			realBranches[i] = "refs/heads/" + branch
+			realBranches[i] = git.BranchPrefix + branch
 		}
 	}
 	ctx.Data["SelectedBranches"] = realBranches
@@ -252,7 +253,7 @@ func FileHistory(ctx *context.Context) {
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
 	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["RequireSimpleMDE"] = true
+	ctx.Data["RequireEasyMDE"] = true
 	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
@@ -382,7 +383,7 @@ func RawDiff(ctx *context.Context) {
 	if ctx.Data["PageIsWiki"] != nil {
 		repoPath = ctx.Repo.Repository.WikiPath()
 	} else {
-		repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		repoPath = repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	}
 	if err := git.GetRawDiff(
 		repoPath,

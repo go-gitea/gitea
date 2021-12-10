@@ -1303,8 +1303,9 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(git.DefaultContext, time.Duration(setting.Git.Timeout.Default)*time.Second)
-	defer cancel()
+	timeout := time.Duration(setting.Git.Timeout.Default) * time.Second
+	ctx, _, finished := process.GetManager().AddContextTimeout(gitRepo.Ctx, timeout, fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath))
+	defer finished()
 
 	argsLength := 6
 	if len(opts.WhitespaceBehavior) > 0 {
@@ -1368,9 +1369,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	if err = cmd.Start(); err != nil {
 		return nil, fmt.Errorf("error during Start: %w", err)
 	}
-
-	pid := process.GetManager().Add(fmt.Sprintf("GetDiffRange [repo_path: %s]", repoPath), cancel)
-	defer process.GetManager().Remove(pid)
 
 	diff, err := ParsePatch(opts.MaxLines, opts.MaxLineCharacters, opts.MaxFiles, stdout, parsePatchSkipToFile)
 	if err != nil {

@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"crypto/sha1"
 	"fmt"
 	"net/url"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -23,17 +25,17 @@ import (
 
 // CommitStatus holds a single Status of a single Commit
 type CommitStatus struct {
-	ID          int64                 `xorm:"pk autoincr"`
-	Index       int64                 `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	RepoID      int64                 `xorm:"INDEX UNIQUE(repo_sha_index)"`
-	Repo        *Repository           `xorm:"-"`
-	State       api.CommitStatusState `xorm:"VARCHAR(7) NOT NULL"`
-	SHA         string                `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
-	TargetURL   string                `xorm:"TEXT"`
-	Description string                `xorm:"TEXT"`
-	ContextHash string                `xorm:"char(40) index"`
-	Context     string                `xorm:"TEXT"`
-	Creator     *user_model.User      `xorm:"-"`
+	ID          int64                  `xorm:"pk autoincr"`
+	Index       int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	RepoID      int64                  `xorm:"INDEX UNIQUE(repo_sha_index)"`
+	Repo        *repo_model.Repository `xorm:"-"`
+	State       api.CommitStatusState  `xorm:"VARCHAR(7) NOT NULL"`
+	SHA         string                 `xorm:"VARCHAR(64) NOT NULL INDEX UNIQUE(repo_sha_index)"`
+	TargetURL   string                 `xorm:"TEXT"`
+	Description string                 `xorm:"TEXT"`
+	ContextHash string                 `xorm:"char(40) index"`
+	Context     string                 `xorm:"TEXT"`
+	Creator     *user_model.User       `xorm:"-"`
 	CreatorID   int64
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -120,15 +122,15 @@ func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 	return curIdx, nil
 }
 
-func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
+func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 	if status.Repo == nil {
-		status.Repo, err = getRepositoryByID(e, status.RepoID)
+		status.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, status.RepoID)
 		if err != nil {
 			return fmt.Errorf("getRepositoryByID [%d]: %v", status.RepoID, err)
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = user_model.GetUserByIDEngine(e, status.CreatorID)
+		status.Creator, err = user_model.GetUserByIDEngine(db.GetEngine(ctx), status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", status.CreatorID, err)
 		}
@@ -138,7 +140,7 @@ func (status *CommitStatus) loadAttributes(e db.Engine) (err error) {
 
 // APIURL returns the absolute APIURL to this commit-status.
 func (status *CommitStatus) APIURL() string {
-	_ = status.loadAttributes(db.GetEngine(db.DefaultContext))
+	_ = status.loadAttributes(db.DefaultContext)
 	return status.Repo.APIURL() + "/statuses/" + url.PathEscape(status.SHA)
 }
 
@@ -170,7 +172,7 @@ type CommitStatusOptions struct {
 }
 
 // GetCommitStatuses returns all statuses for a given commit.
-func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
+func GetCommitStatuses(repo *repo_model.Repository, sha string, opts *CommitStatusOptions) ([]*CommitStatus, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -193,7 +195,7 @@ func GetCommitStatuses(repo *Repository, sha string, opts *CommitStatusOptions) 
 	return statuses, maxResults, findSession.Find(&statuses)
 }
 
-func listCommitStatusesStatement(repo *Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
+func listCommitStatusesStatement(repo *repo_model.Repository, sha string, opts *CommitStatusOptions) *xorm.Session {
 	sess := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repo.ID).And("sha = ?", sha)
 	switch opts.State {
 	case "pending", "success", "error", "failure", "warning":
@@ -274,7 +276,7 @@ func FindRepoRecentCommitStatusContexts(repoID int64, before time.Duration) ([]s
 
 // NewCommitStatusOptions holds options for creating a CommitStatus
 type NewCommitStatusOptions struct {
-	Repo         *Repository
+	Repo         *repo_model.Repository
 	Creator      *user_model.User
 	SHA          string
 	CommitStatus *CommitStatus
@@ -330,7 +332,7 @@ type SignCommitWithStatuses struct {
 }
 
 // ParseCommitsWithStatus checks commits latest statuses and calculates its worst status state
-func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *Repository) []*SignCommitWithStatuses {
+func ParseCommitsWithStatus(oldCommits []*SignCommit, repo *repo_model.Repository) []*SignCommitWithStatuses {
 	newCommits := make([]*SignCommitWithStatuses, 0, len(oldCommits))
 
 	for _, c := range oldCommits {

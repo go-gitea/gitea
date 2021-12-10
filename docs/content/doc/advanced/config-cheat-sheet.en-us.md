@@ -98,6 +98,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_MERGE_MESSAGE_MAX_APPROVERS`: **10**: In default merge messages limit the number of approvers listed as `Reviewed-by:`. Set to `-1` to include all.
 - `DEFAULT_MERGE_MESSAGE_OFFICIAL_APPROVERS_ONLY`: **true**: In default merge messages only include approvers who are officially allowed to review.
 - `POPULATE_SQUASH_COMMENT_WITH_COMMIT_MESSAGES`: **false**: In default squash-merge messages include the commit message of all commits comprising the pull request.
+- `ADD_CO_COMMITTER_TRAILERS`: **true**: Add co-authored-by and co-committed-by trailers to merge commit messages if committer does not match author.
 
 ### Repository - Issue (`repository.issue`)
 
@@ -232,7 +233,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 
 ## Server (`server`)
 
-- `PROTOCOL`: **http**: \[http, https, fcgi, unix, fcgi+unix\]
+- `PROTOCOL`: **http**: \[http, https, fcgi, http+unix, fcgi+unix\]
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
@@ -247,7 +248,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
-   - If `PROTOCOL` is set to `unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the AppWorkPath.
+   - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the AppWorkPath.
 - `HTTP_PORT`: **3000**: HTTP listen port.
    - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
@@ -256,7 +257,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    (DMZ) URL for Gitea workers (such as SSH update) accessing web service. In
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
-   if `PROTOCOL` is set to `unix`.
+   if `PROTOCOL` is set to `http+unix`.
 - `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to 0 to
    disable all timeouts.)
 - `PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to connections.

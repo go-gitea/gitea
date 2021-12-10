@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -41,7 +42,7 @@ func Repos(ctx *context.Context) {
 
 // DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
-	repo, err := models.GetRepositoryByID(ctx.FormInt64("id"))
+	repo, err := repo_model.GetRepositoryByID(ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -134,12 +135,12 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	}
-	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return
