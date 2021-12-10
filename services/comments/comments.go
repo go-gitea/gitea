@@ -71,6 +71,13 @@ func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) 
 	return nil
 }
 
+// ResolveComment hides/unhides the comment
+func ResolveComment(c *models.Comment, doer *user_model.User, isResolve bool) error {
+	return models.ResolveComment(doer, c, isResolve)
+
+	// Add NotifyResolveComment here?
+}
+
 // DeleteComment deletes the comment
 func DeleteComment(doer *user_model.User, comment *models.Comment) error {
 	if err := models.DeleteComment(comment); err != nil {

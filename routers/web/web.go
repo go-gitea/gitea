@@ -763,6 +763,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/comments/{id}", func() {
 			m.Post("", repo.UpdateCommentContent)
 			m.Post("/delete", repo.DeleteComment)
+			m.Post("/hide", repo.HideComment)
 			m.Post("/reactions/{action}", bindIgnErr(forms.ReactionForm{}), repo.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {

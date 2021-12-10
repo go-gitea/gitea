@@ -1141,6 +1141,46 @@ func deleteComment(e db.Engine, comment *Comment) error {
 	return deleteReaction(e, &ReactionOptions{Comment: comment})
 }
 
+// ResolveComment hides/unhides the comment
+func ResolveComment(doer *user_model.User, comment *Comment, isResolve bool) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := resolveComment(db.GetEngine(ctx), doer, comment, isResolve); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func resolveComment(e db.Engine, doer *user_model.User, comment *Comment, isResolve bool) (err error) {
+	if !(comment.Type == CommentTypeCode || comment.Type == CommentTypeComment) {
+		return nil
+	}
+
+	if isResolve {
+		if comment.ResolveDoerID != 0 {
+			return nil
+		}
+		if _, err = e.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", doer.ID, comment.ID); err != nil {
+			return err
+		}
+	} else {
+		if comment.ResolveDoerID == 0 {
+			return nil
+		}
+
+		if _, err = e.Exec("UPDATE `comment` SET resolve_doer_id=? WHERE id=?", 0, comment.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
 type CodeComments map[string]map[int64][]*Comment
 
