@@ -399,11 +399,6 @@ func GetProtectedBranches(repoID int64) ([]*ProtectedBranch, error) {
 	return protectedBranches, db.GetEngine(db.DefaultContext).Find(&protectedBranches, &ProtectedBranch{RepoID: repoID})
 }
 
-// GetBranchProtection get the branch protection of a branch
-func GetBranchProtection(repoID int64, branchName string) (*ProtectedBranch, error) {
-	return GetProtectedBranchBy(repoID, branchName)
-}
-
 // IsProtectedBranch checks if branch is protected
 func IsProtectedBranch(repoID int64, branchName string) (bool, error) {
 	protectedBranch := &ProtectedBranch{

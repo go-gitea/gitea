@@ -69,7 +69,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := models.GetBranchProtection(ctx.Repo.Repository.ID, branchName)
+	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -210,7 +210,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := models.GetBranchProtection(ctx.Repo.Repository.ID, branch.Name)
+	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -270,7 +270,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := models.GetBranchProtection(ctx.Repo.Repository.ID, branches[i].Name)
+		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branches[i].Name)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
