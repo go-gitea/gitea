@@ -8,13 +8,14 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *user_model.User, repo *models.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
+func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
 	comment, err := models.CreateComment(&models.CreateCommentOptions{
 		Type:        models.CommentTypeComment,
 		Doer:        doer,

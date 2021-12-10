@@ -20,7 +20,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -269,7 +271,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 		if isTextFile && setting.LFS.StartServer {
 			pointer, _ := lfs.ReadPointerFromBuffer(buf)
 			if pointer.IsValid() {
-				meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+				meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 				if err != nil && err != models.ErrLFSObjectNotExist {
 					ctx.ServerError("GetLFSMetaObject", err)
 					return
@@ -394,7 +396,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := ctx.Repo.Repository.GetLFSMetaObjectByOid(pointer.Oid)
+			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
@@ -443,7 +445,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	// Check LFS Lock
-	lfsLock, err := ctx.Repo.Repository.GetTreePathLock(ctx.Repo.TreePath)
+	lfsLock, err := models.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)
@@ -641,7 +643,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := ctx.Repo.Repository.ReadBy(ctx.User.ID); err != nil {
+			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.User.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}
@@ -776,9 +778,11 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	ctx.Data["LatestCommit"] = latestCommit
 	if latestCommit != nil {
 
-		verification := models.ParseCommitWithSignature(latestCommit)
+		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
-		if err := models.CalculateTrustStatus(verification, ctx.Repo.Repository, nil); err != nil {
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
 		}
@@ -808,7 +812,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 }
 
 func renderLanguageStats(ctx *context.Context) {
-	langs, err := ctx.Repo.Repository.GetTopLanguageStats(5)
+	langs, err := repo_model.GetTopLanguageStats(ctx.Repo.Repository, 5)
 	if err != nil {
 		ctx.ServerError("Repo.GetTopLanguageStats", err)
 		return
@@ -926,7 +930,9 @@ func Watchers(ctx *context.Context) {
 	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
 	ctx.Data["PageIsWatchers"] = true
 
-	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, ctx.Repo.Repository.GetWatchers, tplWatchers)
+	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
+		return models.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+	}, tplWatchers)
 }
 
 // Stars render repository's starred users
@@ -951,7 +957,7 @@ func Forks(ctx *context.Context) {
 	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
-	forks, err := ctx.Repo.Repository.GetForks(db.ListOptions{
+	forks, err := models.GetForks(ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
 		PageSize: models.ItemsPerPage,
 	})
@@ -961,7 +967,7 @@ func Forks(ctx *context.Context) {
 	}
 
 	for _, fork := range forks {
-		if err = fork.GetOwner(); err != nil {
+		if err = fork.GetOwner(db.DefaultContext); err != nil {
 			ctx.ServerError("GetOwner", err)
 			return
 		}

@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -103,7 +103,7 @@ func RefBlame(ctx *context.Context) {
 		return
 	}
 
-	blameReader, err := git.CreateBlameReader(ctx, models.RepoPath(userName, repoName), commitID, fileName)
+	blameReader, err := git.CreateBlameReader(ctx, repo_model.RepoPath(userName, repoName), commitID, fileName)
 	if err != nil {
 		ctx.NotFound("CreateBlameReader", err)
 		return

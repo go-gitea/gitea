@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -17,12 +18,12 @@ import (
 func Update(pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	var (
 		pr    *models.PullRequest
-		style models.MergeStyle
+		style repo_model.MergeStyle
 	)
 
 	if rebase {
 		pr = pull
-		style = models.MergeStyleRebaseUpdate
+		style = repo_model.MergeStyleRebaseUpdate
 	} else {
 		//use merge functions but switch repo's and branch's
 		pr = &models.PullRequest{
@@ -31,7 +32,7 @@ func Update(pull *models.PullRequest, doer *user_model.User, message string, reb
 			HeadBranch: pull.BaseBranch,
 			BaseBranch: pull.HeadBranch,
 		}
-		style = models.MergeStyleMerge
+		style = repo_model.MergeStyleMerge
 	}
 
 	if pull.Flow == models.PullRequestFlowAGit {

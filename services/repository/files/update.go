@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 
 	stdcharset "golang.org/x/net/html/charset"
@@ -55,7 +57,7 @@ type UpdateRepoFileOptions struct {
 	Signoff      bool
 }
 
-func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string, bool) {
+func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (string, bool) {
 	reader, err := entry.Blob().DataAsync()
 	if err != nil {
 		// return default
@@ -73,7 +75,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 	if setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := repo.GetLFSMetaObjectByOid(pointer.Oid)
+			meta, err := models.GetLFSMetaObjectByOid(repo.ID, pointer.Oid)
 			if err != nil && err != models.ErrLFSObjectNotExist {
 				// return default
 				return "UTF-8", false
@@ -123,7 +125,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *models.Repository) (string
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
+func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -413,7 +415,7 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts
 		}
 		if !exist {
 			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(opts.Content)); err != nil {
-				if _, err2 := repo.RemoveLFSMetaObjectByOid(lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := models.RemoveLFSMetaObjectByOid(repo.ID, lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err
@@ -440,8 +442,8 @@ func CreateOrUpdateRepoFile(repo *models.Repository, doer *user_model.User, opts
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, branchName string, treePath string) error {
-	protectedBranch, err := repo.GetBranchProtection(branchName)
+func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, branchName string, treePath string) error {
+	protectedBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
 	if err != nil {
 		return err
 	}
@@ -457,9 +459,9 @@ func VerifyBranchProtection(repo *models.Repository, doer *user_model.User, bran
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), branchName)
 			if err != nil {
-				if !models.IsErrWontSign(err) {
+				if !asymkey_service.IsErrWontSign(err) {
 					return err
 				}
 				return models.ErrUserCannotCommit{

@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
@@ -19,12 +19,12 @@ import (
 
 // KeyAndOwner is the response from ServNoCommand
 type KeyAndOwner struct {
-	Key   *models.PublicKey `json:"key"`
-	Owner *user_model.User  `json:"user"`
+	Key   *asymkey_model.PublicKey `json:"key"`
+	Owner *user_model.User         `json:"user"`
 }
 
 // ServNoCommand returns information about the provided key
-func ServNoCommand(ctx context.Context, keyID int64) (*models.PublicKey, *user_model.User, error) {
+func ServNoCommand(ctx context.Context, keyID int64) (*asymkey_model.PublicKey, *user_model.User, error) {
 	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/serv/none/%d",
 		keyID)
 	resp, err := newInternalRequest(ctx, reqURL, "GET").Response()

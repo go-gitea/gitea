@@ -5,9 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -166,9 +168,9 @@ func getRepoWatchersIDs(e db.Engine, repoID int64) ([]int64, error) {
 		Find(&ids)
 }
 
-// GetWatchers returns range of users watching given repository.
-func (repo *Repository) GetWatchers(opts db.ListOptions) ([]*user_model.User, error) {
-	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repo.ID).
+// GetRepoWatchers returns range of users watching given repository.
+func GetRepoWatchers(repoID int64, opts db.ListOptions) ([]*user_model.User, error) {
+	sess := db.GetEngine(db.DefaultContext).Where("watch.repo_id=?", repoID).
 		Join("LEFT", "watch", "`user`.id=`watch`.user_id").
 		And("`watch`.mode<>?", RepoWatchModeDont)
 	if opts.Page > 0 {
@@ -182,13 +184,15 @@ func (repo *Repository) GetWatchers(opts db.ListOptions) ([]*user_model.User, er
 	return users, sess.Find(&users)
 }
 
-func notifyWatchers(e db.Engine, actions ...*Action) error {
+func notifyWatchers(ctx context.Context, actions ...*Action) error {
 	var watchers []*Watch
-	var repo *Repository
+	var repo *repo_model.Repository
 	var err error
 	var permCode []bool
 	var permIssue []bool
 	var permPR []bool
+
+	e := db.GetEngine(ctx)
 
 	for _, act := range actions {
 		repoChanged := repo == nil || repo.ID != act.RepoID
@@ -212,7 +216,7 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 			repo = act.Repo
 
 			// check repo owner exist.
-			if err := act.Repo.getOwner(e); err != nil {
+			if err := act.Repo.GetOwner(ctx); err != nil {
 				return fmt.Errorf("can't get repo owner: %v", err)
 			}
 		} else if act.Repo == nil {
@@ -240,7 +244,7 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				perm, err := getUserRepoPermission(e, repo, user)
+				perm, err := getUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
@@ -286,7 +290,7 @@ func notifyWatchers(e db.Engine, actions ...*Action) error {
 
 // NotifyWatchers creates batch of actions for every watcher.
 func NotifyWatchers(actions ...*Action) error {
-	return notifyWatchers(db.GetEngine(db.DefaultContext), actions...)
+	return notifyWatchers(db.DefaultContext, actions...)
 }
 
 // NotifyWatchersActions creates batch of actions for every watcher.
@@ -297,7 +301,7 @@ func NotifyWatchersActions(acts []*Action) error {
 	}
 	defer committer.Close()
 	for _, act := range acts {
-		if err := notifyWatchers(db.GetEngine(ctx), act); err != nil {
+		if err := notifyWatchers(ctx, act); err != nil {
 			return err
 		}
 	}

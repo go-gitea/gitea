@@ -24,6 +24,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -581,7 +582,7 @@ func AvatarByAction(action *models.Action, others ...interface{}) template.HTML 
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
-func RepoAvatar(repo *models.Repository, others ...interface{}) template.HTML {
+func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
 	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
 
 	src := repo.RelAvatarLink()
@@ -953,7 +954,7 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(m models.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(m repo_model.RemoteMirrorer) remoteAddress {
 	a := remoteAddress{}
 
 	u, err := git.GetRemoteAddress(git.DefaultContext, m.GetRepository().RepoPath(), m.GetRemoteName())

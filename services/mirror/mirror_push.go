@@ -12,7 +12,7 @@ import (
 	"regexp"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -26,7 +26,7 @@ import (
 var stripExitStatus = regexp.MustCompile(`exit status \d+ - `)
 
 // AddPushMirrorRemote registers the push mirror remote.
-func AddPushMirrorRemote(m *models.PushMirror, addr string) error {
+func AddPushMirrorRemote(m *repo_model.PushMirror, addr string) error {
 	addRemoteAndConfig := func(addr, path string) error {
 		if _, err := git.NewCommand("remote", "add", "--mirror=push", m.RemoteName, addr).RunInDir(path); err != nil {
 			return err
@@ -57,7 +57,7 @@ func AddPushMirrorRemote(m *models.PushMirror, addr string) error {
 }
 
 // RemovePushMirrorRemote removes the push mirror remote.
-func RemovePushMirrorRemote(m *models.PushMirror) error {
+func RemovePushMirrorRemote(m *repo_model.PushMirror) error {
 	cmd := git.NewCommand("remote", "rm", m.RemoteName)
 
 	if _, err := cmd.RunInDir(m.Repo.RepoPath()); err != nil {
@@ -86,7 +86,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	m, err := models.GetPushMirrorByID(mirrorID)
+	m, err := repo_model.GetPushMirrorByID(mirrorID)
 	if err != nil {
 		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
@@ -106,7 +106,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
 
-	if err := models.UpdatePushMirror(m); err != nil {
+	if err := repo_model.UpdatePushMirror(m); err != nil {
 		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
 
 		return false
@@ -117,7 +117,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 	return err == nil
 }
 
-func runPushSync(ctx context.Context, m *models.PushMirror) error {
+func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {
