@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -18,7 +19,7 @@ func TestFixturesAreConsistent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	unittest.CheckConsistencyFor(t,
 		&user_model.User{},
-		&Repository{},
+		&repo_model.Repository{},
 		&Issue{},
 		&PullRequest{},
 		&Milestone{},

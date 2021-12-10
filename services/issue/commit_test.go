@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
@@ -46,7 +47,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repo.Owner = user
 
 	commentBean := &models.Comment{
@@ -75,7 +76,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			Message:        "close #1",
 		},
 	}
-	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	commentBean = &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -101,7 +102,7 @@ func TestUpdateIssuesCommit(t *testing.T) {
 			Message:        "close " + setting.AppURL + repo.FullName() + "/pulls/1",
 		},
 	}
-	repo = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 3}).(*models.Repository)
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	commentBean = &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef3",
@@ -132,7 +133,7 @@ func TestUpdateIssuesCommit_Colon(t *testing.T) {
 	}
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	repo.Owner = user
 
 	issueBean := &models.Issue{RepoID: repo.ID, Index: 4}
@@ -159,7 +160,7 @@ func TestUpdateIssuesCommit_Issue5957(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -194,7 +195,7 @@ func TestUpdateIssuesCommit_AnotherRepo(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -229,7 +230,7 @@ func TestUpdateIssuesCommit_AnotherRepo_FullAddress(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 2}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef1",
@@ -272,7 +273,7 @@ func TestUpdateIssuesCommit_AnotherRepoNoPermission(t *testing.T) {
 		},
 	}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 6}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 6}).(*repo_model.Repository)
 	commentBean := &models.Comment{
 		Type:      models.CommentTypeCommitRef,
 		CommitSHA: "abcdef3",

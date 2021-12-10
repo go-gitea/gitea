@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -382,7 +383,7 @@ func RawDiff(ctx *context.Context) {
 	if ctx.Data["PageIsWiki"] != nil {
 		repoPath = ctx.Repo.Repository.WikiPath()
 	} else {
-		repoPath = models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		repoPath = repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	}
 	if err := git.GetRawDiff(
 		repoPath,

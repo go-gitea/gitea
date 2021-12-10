@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -126,9 +127,9 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// Now get the Repository and set the results section
 	repoExist := true
-	repo, err := models.GetRepositoryByName(owner.ID, results.RepoName)
+	repo, err := repo_model.GetRepositoryByName(owner.ID, results.RepoName)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			repoExist = false
 			for _, verb := range ctx.FormStrings("verb") {
 				if "git-upload-pack" == verb {
@@ -374,7 +375,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	if results.IsWiki {
 		// Ensure the wiki is enabled before we allow access to it
 		if _, err := repo.GetUnit(unit.TypeWiki); err != nil {
-			if models.IsErrUnitTypeNotExist(err) {
+			if repo_model.IsErrUnitTypeNotExist(err) {
 				ctx.JSON(http.StatusForbidden, private.ErrServCommand{
 					Results: results,
 					Err:     "repository wiki is disabled",

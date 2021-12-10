@@ -3,9 +3,11 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
+	"errors"
+	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -13,6 +15,11 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
+)
+
+var (
+	// ErrMirrorNotExist mirror does not exist error
+	ErrMirrorNotExist = errors.New("Mirror does not exist")
 )
 
 // RemoteMirrorer defines base methods for pull/push mirrors.
@@ -127,4 +134,44 @@ func MirrorsIterate(f func(idx int, bean interface{}) error) error {
 func InsertMirror(mirror *Mirror) error {
 	_, err := db.GetEngine(db.DefaultContext).Insert(mirror)
 	return err
+}
+
+// MirrorRepositoryList contains the mirror repositories
+type MirrorRepositoryList []*Repository
+
+func (repos MirrorRepositoryList) loadAttributes(e db.Engine) error {
+	if len(repos) == 0 {
+		return nil
+	}
+
+	// Load mirrors.
+	repoIDs := make([]int64, 0, len(repos))
+	for i := range repos {
+		if !repos[i].IsMirror {
+			continue
+		}
+
+		repoIDs = append(repoIDs, repos[i].ID)
+	}
+	mirrors := make([]*Mirror, 0, len(repoIDs))
+	if err := e.
+		Where("id > 0").
+		In("repo_id", repoIDs).
+		Find(&mirrors); err != nil {
+		return fmt.Errorf("find mirrors: %v", err)
+	}
+
+	set := make(map[int64]*Mirror)
+	for i := range mirrors {
+		set[mirrors[i].RepoID] = mirrors[i]
+	}
+	for i := range repos {
+		repos[i].Mirror = set[repos[i].ID]
+	}
+	return nil
+}
+
+// LoadAttributes loads the attributes for the given MirrorRepositoryList
+func (repos MirrorRepositoryList) LoadAttributes() error {
+	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
 }

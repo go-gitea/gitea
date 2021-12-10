@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"

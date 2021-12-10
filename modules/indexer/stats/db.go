@@ -7,7 +7,7 @@ package stats
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -23,7 +23,7 @@ func (db *DBIndexer) Index(id int64) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().ShutdownContext(), fmt.Sprintf("Stats.DB Index Repo[%d]", id))
 	defer finished()
 
-	repo, err := models.GetRepositoryByID(id)
+	repo, err := repo_model.GetRepositoryByID(id)
 	if err != nil {
 		return err
 	}
@@ -31,7 +31,7 @@ func (db *DBIndexer) Index(id int64) error {
 		return nil
 	}
 
-	status, err := repo.GetIndexerStatus(models.RepoIndexerTypeStats)
+	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeStats)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (db *DBIndexer) Index(id int64) error {
 		log.Error("Unable to get language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
 	}
-	err = repo.UpdateLanguageStats(commitID, stats)
+	err = repo_model.UpdateLanguageStats(repo, commitID, stats)
 	if err != nil {
 		log.Error("Unable to update language stats for ID %s for default branch %s in %s. Error: %v", commitID, repo.DefaultBranch, repo.RepoPath(), err)
 		return err
