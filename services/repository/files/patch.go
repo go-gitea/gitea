@@ -9,10 +9,13 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/asymkey"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	repo_service "code.gitea.io/gitea/services/repository"
 )
 
@@ -31,7 +34,7 @@ type ApplyDiffPatchOptions struct {
 }
 
 // ApplyDiffPatch applies a patch to the given repository
-func ApplyDiffPatch(repo *models.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
+func ApplyDiffPatch(repo *repo_model.Repository, doer *user_model.User, opts *ApplyDiffPatchOptions) (*structs.FileResponse, error) {
 	// If no branch name is set, assume master
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -59,7 +62,7 @@ func ApplyDiffPatch(repo *models.Repository, doer *user_model.User, opts *ApplyD
 			return nil, err
 		}
 	} else {
-		protectedBranch, err := repo.GetBranchProtection(opts.OldBranch)
+		protectedBranch, err := models.GetProtectedBranchBy(repo.ID, opts.OldBranch)
 		if err != nil {
 			return nil, err
 		}
@@ -69,9 +72,9 @@ func ApplyDiffPatch(repo *models.Repository, doer *user_model.User, opts *ApplyD
 			}
 		}
 		if protectedBranch != nil && protectedBranch.RequireSignedCommits {
-			_, _, _, err := repo.SignCRUDAction(doer, repo.RepoPath(), opts.OldBranch)
+			_, _, _, err := asymkey.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), opts.OldBranch)
 			if err != nil {
-				if !models.IsErrWontSign(err) {
+				if !asymkey_service.IsErrWontSign(err) {
 					return nil, err
 				}
 				return nil, models.ErrUserCannotCommit{
