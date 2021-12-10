@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"

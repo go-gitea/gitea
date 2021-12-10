@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -31,7 +31,7 @@ func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
 func TestSearchRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo, err := models.GetRepositoryByOwnerAndName("user2", "repo1")
+	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
@@ -41,7 +41,7 @@ func TestSearchRepo(t *testing.T) {
 	setting.Indexer.IncludePatterns = setting.IndexerGlobFromString("**.txt")
 	setting.Indexer.ExcludePatterns = setting.IndexerGlobFromString("**/y/**")
 
-	repo, err = models.GetRepositoryByOwnerAndName("user2", "glob")
+	repo, err = repo_model.GetRepositoryByOwnerAndName("user2", "glob")
 	assert.NoError(t, err)
 
 	executeIndexer(t, repo, code_indexer.UpdateRepoIndexer)
@@ -60,6 +60,6 @@ func testSearch(t *testing.T, url string, expected []string) {
 	assert.EqualValues(t, expected, filenames)
 }
 
-func executeIndexer(t *testing.T, repo *models.Repository, op func(*models.Repository)) {
+func executeIndexer(t *testing.T, repo *repo_model.Repository, op func(*repo_model.Repository)) {
 	op(repo)
 }

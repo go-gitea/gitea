@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -34,7 +35,7 @@ func TestNewMilestone(t *testing.T) {
 
 	assert.NoError(t, NewMilestone(milestone))
 	unittest.AssertExistsAndLoadBean(t, milestone)
-	unittest.CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: milestone.RepoID}, &Milestone{})
 }
 
 func TestGetMilestoneByRepoID(t *testing.T) {
@@ -52,7 +53,7 @@ func TestGetMilestoneByRepoID(t *testing.T) {
 func TestGetMilestonesByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64, state api.StateType) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		milestones, _, err := GetMilestones(GetMilestonesOption{
 			RepoID: repo.ID,
 			State:  state,
@@ -100,7 +101,7 @@ func TestGetMilestonesByRepoID(t *testing.T) {
 
 func TestGetMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
 			milestones, _, err := GetMilestones(GetMilestonesOption{
@@ -174,7 +175,7 @@ func TestUpdateMilestone(t *testing.T) {
 func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		count, err := countRepoMilestones(db.GetEngine(db.DefaultContext), repoID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones, count)
@@ -191,7 +192,7 @@ func TestCountRepoMilestones(t *testing.T) {
 func TestCountRepoClosedMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		count, err := CountRepoClosedMilestones(repoID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumClosedMilestones, count)
@@ -211,11 +212,11 @@ func TestChangeMilestoneStatus(t *testing.T) {
 
 	assert.NoError(t, ChangeMilestoneStatus(milestone, true))
 	unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}, "is_closed=1")
-	unittest.CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: milestone.RepoID}, &Milestone{})
 
 	assert.NoError(t, ChangeMilestoneStatus(milestone, false))
 	unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}, "is_closed=0")
-	unittest.CheckConsistencyFor(t, &Repository{ID: milestone.RepoID}, &Milestone{})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: milestone.RepoID}, &Milestone{})
 }
 
 func TestUpdateMilestoneCounters(t *testing.T) {
@@ -261,7 +262,7 @@ func TestDeleteMilestoneByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	assert.NoError(t, DeleteMilestoneByRepoID(1, 1))
 	unittest.AssertNotExistsBean(t, &Milestone{ID: 1})
-	unittest.CheckConsistencyFor(t, &Repository{ID: 1})
+	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: 1})
 
 	assert.NoError(t, DeleteMilestoneByRepoID(unittest.NonexistentID, unittest.NonexistentID))
 }
@@ -280,7 +281,7 @@ func TestMilestoneList_LoadTotalTrackedTimes(t *testing.T) {
 func TestCountMilestonesByRepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	milestonesCount := func(repoID int64) (int, int) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		return repo.NumOpenMilestones, repo.NumClosedMilestones
 	}
 	repo1OpenCount, repo1ClosedCount := milestonesCount(1)
@@ -299,8 +300,8 @@ func TestCountMilestonesByRepoIDs(t *testing.T) {
 
 func TestGetMilestonesByRepoIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	test := func(sortType string, sortCond func(*Milestone) int) {
 		for _, page := range []int{0, 1} {
 			openMilestones, err := GetMilestonesByRepoIDs([]int64{repo1.ID, repo2.ID}, page, false, sortType)
@@ -355,7 +356,7 @@ func TestGetMilestonesStats(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 		stats, err := GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"repo_id": repoID}))
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones-repo.NumClosedMilestones, stats.OpenCount)
@@ -370,8 +371,8 @@ func TestGetMilestonesStats(t *testing.T) {
 	assert.EqualValues(t, 0, stats.OpenCount)
 	assert.EqualValues(t, 0, stats.ClosedCount)
 
-	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 
 	milestoneStats, err := GetMilestonesStatsByRepoCond(builder.In("repo_id", []int64{repo1.ID, repo2.ID}))
 	assert.NoError(t, err)

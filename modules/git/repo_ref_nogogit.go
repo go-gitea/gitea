@@ -66,7 +66,7 @@ func (repo *Repository) GetRefsFiltered(pattern string) ([]*Reference, error) {
 		refName = refName[:len(refName)-1]
 
 		// refName cannot be HEAD but can be remotes or stash
-		if strings.HasPrefix(refName, "/refs/remotes/") || refName == "/refs/stash" {
+		if strings.HasPrefix(refName, RemotePrefix) || refName == "/refs/stash" {
 			continue
 		}
 

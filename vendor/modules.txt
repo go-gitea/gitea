@@ -272,13 +272,10 @@ github.com/gliderlabs/ssh
 # github.com/go-asn1-ber/asn1-ber v1.5.3
 ## explicit
 github.com/go-asn1-ber/asn1-ber
-# github.com/go-chi/chi v1.5.4
-## explicit
-github.com/go-chi/chi
-github.com/go-chi/chi/middleware
 # github.com/go-chi/chi/v5 v5.0.4
 ## explicit
 github.com/go-chi/chi/v5
+github.com/go-chi/chi/v5/middleware
 # github.com/go-chi/cors v1.2.0
 ## explicit
 github.com/go-chi/cors

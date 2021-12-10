@@ -14,6 +14,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -54,7 +56,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 // LoadRepo load a repo into a test context.
 func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo = &context.Repository{}
-	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: repoID}).(*models.Repository)
+	ctx.Repo.Repository = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
 	var err error
 	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
@@ -85,7 +87,7 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner())
+	assert.NoError(t, ctx.Repo.Repository.GetOwner(db.DefaultContext))
 	var err error
 	ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)

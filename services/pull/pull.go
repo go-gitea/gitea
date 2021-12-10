@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -26,7 +27,7 @@ import (
 )
 
 // NewPullRequest creates new pull request with labels for repository.
-func NewPullRequest(repo *models.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
+func NewPullRequest(repo *repo_model.Repository, pull *models.Issue, labelIDs []int64, uuids []string, pr *models.PullRequest, assigneeIDs []int64) error {
 	if err := TestPatch(pr); err != nil {
 		return err
 	}
@@ -211,7 +212,7 @@ func ChangeTargetBranch(pr *models.PullRequest, doer *user_model.User, targetBra
 }
 
 func checkForInvalidation(requests models.PullRequestList, repoID int64, doer *user_model.User, branch string) error {
-	repo, err := models.GetRepositoryByID(repoID)
+	repo, err := repo_model.GetRepositoryByID(repoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}
@@ -451,8 +452,8 @@ func pushToBaseRepoHelper(pr *models.PullRequest, prefixHeadBranch string) (err 
 				log.Info("Can't push with %s%s", prefixHeadBranch, pr.HeadBranch)
 				return err
 			}
-			log.Info("Retrying to push with refs/heads/%s", pr.HeadBranch)
-			err = pushToBaseRepoHelper(pr, "refs/heads/")
+			log.Info("Retrying to push with "+git.BranchPrefix+"%s", pr.HeadBranch)
+			err = pushToBaseRepoHelper(pr, git.BranchPrefix)
 			return err
 		}
 		log.Error("Unable to push PR head for %s#%d (%-v:%s) due to Error: %v", pr.BaseRepo.FullName(), pr.Index, pr.BaseRepo, gitRefName, err)
@@ -524,7 +525,7 @@ func CloseBranchPulls(doer *user_model.User, repoID int64, branch string) error 
 }
 
 // CloseRepoBranchesPulls close all pull requests which head branches are in the given repository, but only whose base repo is not in the given repository
-func CloseRepoBranchesPulls(doer *user_model.User, repo *models.Repository) error {
+func CloseRepoBranchesPulls(doer *user_model.User, repo *repo_model.Repository) error {
 	branches, _, err := git.GetBranchesByPath(repo.RepoPath(), 0, 0)
 	if err != nil {
 		return err
@@ -575,7 +576,7 @@ func GetSquashMergeCommitMessages(pr *models.PullRequest) string {
 
 	if pr.HeadRepo == nil {
 		var err error
-		pr.HeadRepo, err = models.GetRepositoryByID(pr.HeadRepoID)
+		pr.HeadRepo, err = repo_model.GetRepositoryByID(pr.HeadRepoID)
 		if err != nil {
 			log.Error("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
 			return ""

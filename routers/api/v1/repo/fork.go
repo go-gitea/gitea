@@ -50,7 +50,7 @@ func ListForks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	forks, err := ctx.Repo.Repository.GetForks(utils.GetListOptions(ctx))
+	forks, err := models.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return

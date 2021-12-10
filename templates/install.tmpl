@@ -13,22 +13,22 @@
 				<form class="ui form" action="{{AppSubUrl}}/" method="post">
 					<!-- Database Settings -->
 					<h4 class="ui dividing header">{{.i18n.Tr "install.db_title"}}</h4>
-					<p>{{.i18n.Tr "install.requite_db_desc"}}</p>
+					<p>{{.i18n.Tr "install.require_db_desc"}}</p>
 					<div class="inline required field {{if .Err_DbType}}error{{end}}">
 						<label>{{.i18n.Tr "install.db_type"}}</label>
 						<div class="ui selection database type dropdown">
-							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbOption}}">
-							<div class="text">{{.CurDbOption}}</div>
+							<input type="hidden" id="db_type" name="db_type" value="{{.CurDbType}}">
+							<div class="text">{{.CurDbType}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
-								{{range .DbOptions}}
-									<div class="item" data-value="{{.}}">{{.}}</div>
+								{{range .DbTypeNames}}
+									<div class="item" data-value="{{.type}}">{{.name}}</div>
 								{{end}}
 							</div>
 						</div>
 					</div>
 
-					<div id="sql_settings" class="{{if or (eq .CurDbOption "SQLite3")}}hide{{end}}">
+					<div class="hide" data-db-setting-for="common-host">
 						<div class="inline required field {{if .Err_DbSetting}}error{{end}}">
 							<label for="db_host">{{.i18n.Tr "install.host"}}</label>
 							<input id="db_host" name="db_host" value="{{.db_host}}">
@@ -48,7 +48,7 @@
 						</div>
 					</div>
 
-					<div id="pgsql_settings" class="{{if not (eq .CurDbOption "PostgreSQL")}}hide{{end}}">
+					<div class="hide" data-db-setting-for="postgres">
 						<div class="inline required field">
 							<label>{{.i18n.Tr "install.ssl_mode"}}</label>
 							<div class="ui selection database type dropdown">
@@ -69,7 +69,7 @@
 						</div>
 					</div>
 
-					<div id="mysql_settings" class="{{if not (eq .CurDbOption "MySQL")}}hide{{end}}">
+					<div class="hide" data-db-setting-for="mysql">
 						<div class="inline required field">
 							<label>{{.i18n.Tr "install.charset"}}</label>
 							<div class="ui selection database type dropdown">
@@ -83,7 +83,7 @@
 						</div>
 					</div>
 
-					<div id="sqlite_settings" class="{{if not (or (eq .CurDbOption "SQLite3") (eq .CurDbOption "TiDB"))}}hide{{end}}">
+					<div class="hide" data-db-setting-for="sqlite3">
 						<div class="inline required field {{if or .Err_DbPath .Err_DbSetting}}error{{end}}">
 							<label for="db_path">{{.i18n.Tr "install.path"}}</label>
 							<input id="db_path" name="db_path" value="{{.db_path}}">

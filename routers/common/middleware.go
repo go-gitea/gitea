@@ -15,7 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/chi-middleware/proxy"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // Middlewares returns common middlewares

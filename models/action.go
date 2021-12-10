@@ -6,6 +6,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"path"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -64,13 +66,13 @@ type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
 	UserID      int64 `xorm:"INDEX"` // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64            `xorm:"INDEX"` // Action user id.
-	ActUser     *user_model.User `xorm:"-"`
-	RepoID      int64            `xorm:"INDEX"`
-	Repo        *Repository      `xorm:"-"`
-	CommentID   int64            `xorm:"INDEX"`
-	Comment     *Comment         `xorm:"-"`
-	IsDeleted   bool             `xorm:"INDEX NOT NULL DEFAULT false"`
+	ActUserID   int64                  `xorm:"INDEX"` // Action user id.
+	ActUser     *user_model.User       `xorm:"-"`
+	RepoID      int64                  `xorm:"INDEX"`
+	Repo        *repo_model.Repository `xorm:"-"`
+	CommentID   int64                  `xorm:"INDEX"`
+	Comment     *Comment               `xorm:"-"`
+	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
@@ -107,9 +109,9 @@ func (a *Action) loadRepo() {
 		return
 	}
 	var err error
-	a.Repo, err = GetRepositoryByID(a.RepoID)
+	a.Repo, err = repo_model.GetRepositoryByID(a.RepoID)
 	if err != nil {
-		log.Error("GetRepositoryByID(%d): %v", a.RepoID, err)
+		log.Error("repo_model.GetRepositoryByID(%d): %v", a.RepoID, err)
 	}
 }
 
@@ -191,16 +193,16 @@ func (a *Action) GetRepoLink() string {
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
-// GetRepositoryFromMatch returns a *Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
+// GetRepositoryFromMatch returns a *repo_model.Repository from a username and repo strings
+func GetRepositoryFromMatch(ownerName, repoName string) (*repo_model.Repository, error) {
 	var err error
-	refRepo, err := GetRepositoryByOwnerAndName(ownerName, repoName)
+	refRepo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
 	if err != nil {
-		if IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			log.Warn("Repository referenced in commit but does not exist: %v", err)
 			return nil, err
 		}
-		log.Error("GetRepositoryByOwnerAndName: %v", err)
+		log.Error("repo_model.GetRepositoryByOwnerAndName: %v", err)
 		return nil, err
 	}
 	return refRepo, nil
@@ -208,13 +210,14 @@ func GetRepositoryFromMatch(ownerName, repoName string) (*Repository, error) {
 
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
-	return a.getCommentLink(db.GetEngine(db.DefaultContext))
+	return a.getCommentLink(db.DefaultContext)
 }
 
-func (a *Action) getCommentLink(e db.Engine) string {
+func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
+	e := db.GetEngine(ctx)
 	if a.Comment == nil && a.CommentID != 0 {
 		a.Comment, _ = getCommentByID(e, a.CommentID)
 	}
@@ -236,7 +239,7 @@ func (a *Action) getCommentLink(e db.Engine) string {
 		return "#"
 	}
 
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.loadRepo(ctx); err != nil {
 		return "#"
 	}
 

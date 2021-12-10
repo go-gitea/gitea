@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -69,16 +70,16 @@ func Code(ctx *context.Context) {
 
 	// if non-admin login user, we need check UnitTypeCode at first
 	if ctx.User != nil && len(repoIDs) > 0 {
-		repoMaps, err := models.GetRepositoriesMapByIDs(repoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
 		}
 
-		var rightRepoMap = make(map[int64]*models.Repository, len(repoMaps))
+		var rightRepoMap = make(map[int64]*repo_model.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if repo.CheckUnitUser(ctx.User, unit.TypeCode) {
+			if models.CheckRepoUnitUser(repo, ctx.User, unit.TypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}
@@ -113,7 +114,7 @@ func Code(ctx *context.Context) {
 			}
 		}
 
-		repoMaps, err := models.GetRepositoriesMapByIDs(loadRepoIDs)
+		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
