@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -50,7 +51,7 @@ func ListForks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	forks, err := models.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
+	forks, err := repo_model.GetForks(ctx.Repo.Repository, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetForks", err)
 		return
@@ -125,7 +126,7 @@ func CreateFork(ctx *context.APIContext) {
 		forker = org.AsUser()
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.User, forker, models.ForkRepoOptions{
+	fork, err := repo_service.ForkRepository(ctx.User, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        repo.Name,
 		Description: repo.Description,

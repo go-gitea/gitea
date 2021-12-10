@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -112,8 +113,8 @@ func GetPendingRepositoryTransfer(repo *repo_model.Repository) (*RepoTransfer, e
 	return transfer, nil
 }
 
-func deleteRepositoryTransfer(e db.Engine, repoID int64) error {
-	_, err := e.Where("repo_id = ?", repoID).Delete(&RepoTransfer{})
+func deleteRepositoryTransfer(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Delete(&RepoTransfer{})
 	return err
 }
 
@@ -125,14 +126,13 @@ func CancelRepositoryTransfer(repo *repo_model.Repository) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	repo.Status = repo_model.RepositoryReady
-	if err := updateRepositoryCols(sess, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
 		return err
 	}
 
-	if err := deleteRepositoryTransfer(sess, repo.ID); err != nil {
+	if err := deleteRepositoryTransfer(ctx, repo.ID); err != nil {
 		return err
 	}
 
@@ -158,7 +158,6 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	repo, err := repo_model.GetRepositoryByIDCtx(ctx, repoID)
 	if err != nil {
@@ -171,7 +170,7 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 	}
 
 	repo.Status = repo_model.RepositoryPendingTransfer
-	if err := updateRepositoryCols(sess, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
 		return err
 	}
 
@@ -179,7 +178,10 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
-		return ErrRepoAlreadyExist{newOwner.LowerName, repo.Name}
+		return repo_model.ErrRepoAlreadyExist{
+			Uname: newOwner.LowerName,
+			Name:  repo.Name,
+		}
 	}
 
 	transfer := &RepoTransfer{
@@ -256,7 +258,10 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
-		return ErrRepoAlreadyExist{newOwnerName, repo.Name}
+		return repo_model.ErrRepoAlreadyExist{
+			Uname: newOwnerName,
+			Name:  repo.Name,
+		}
 	}
 
 	oldOwner := repo.Owner
@@ -336,13 +341,13 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
-	if err := watchRepo(sess, doer.ID, repo.ID, true); err != nil {
+	if err := repo_model.WatchRepoCtx(ctx, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	}
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err := watchRepo(sess, oldOwner.ID, repo.ID, false); err != nil {
+		if err := repo_model.WatchRepoCtx(ctx, oldOwner.ID, repo.ID, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %v", err)
 		}
 	}
@@ -399,21 +404,21 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		wikiRenamed = true
 	}
 
-	if err := deleteRepositoryTransfer(sess, repo.ID); err != nil {
+	if err := deleteRepositoryTransfer(ctx, repo.ID); err != nil {
 		return fmt.Errorf("deleteRepositoryTransfer: %v", err)
 	}
 	repo.Status = repo_model.RepositoryReady
-	if err := updateRepositoryCols(sess, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
 		return err
 	}
 
 	// If there was previously a redirect at this location, remove it.
-	if err := deleteRepoRedirect(sess, newOwner.ID, repo.Name); err != nil {
+	if err := repo_model.DeleteRedirect(ctx, newOwner.ID, repo.Name); err != nil {
 		return fmt.Errorf("delete repo redirect: %v", err)
 	}
 
-	if err := newRepoRedirect(sess, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
-		return fmt.Errorf("newRepoRedirect: %v", err)
+	if err := repo_model.NewRedirect(ctx, oldOwner.ID, repo.ID, repo.Name, repo.Name); err != nil {
+		return fmt.Errorf("repo_model.NewRedirect: %v", err)
 	}
 
 	return committer.Commit()

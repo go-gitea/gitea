@@ -110,7 +110,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	ctx.Data["repo_name"] = forkRepo.Name
 	ctx.Data["description"] = forkRepo.Description
 	ctx.Data["IsPrivate"] = forkRepo.IsPrivate || forkRepo.Owner.Visibility == structs.VisibleTypePrivate
-	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !models.HasForkedRepo(ctx.User.ID, forkRepo.ID)
+	canForkToUser := forkRepo.OwnerID != ctx.User.ID && !repo_model.HasForkedRepo(ctx.User.ID, forkRepo.ID)
 
 	ctx.Data["ForkRepo"] = forkRepo
 
@@ -121,7 +121,7 @@ func getForkRepository(ctx *context.Context) *repo_model.Repository {
 	}
 	var orgs []*models.Organization
 	for _, org := range ownedOrgs {
-		if forkRepo.OwnerID != org.ID && !models.HasForkedRepo(org.ID, forkRepo.ID) {
+		if forkRepo.OwnerID != org.ID && !repo_model.HasForkedRepo(org.ID, forkRepo.ID) {
 			orgs = append(orgs, org)
 		}
 	}
@@ -202,7 +202,7 @@ func ForkPost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 			return
 		}
-		repo := models.GetForkedRepo(ctxUser.ID, traverseParentRepo.ID)
+		repo := repo_model.GetForkedRepo(ctxUser.ID, traverseParentRepo.ID)
 		if repo != nil {
 			ctx.Redirect(ctxUser.HomeLink() + "/" + url.PathEscape(repo.Name))
 			return
@@ -229,7 +229,7 @@ func ForkPost(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, models.ForkRepoOptions{
+	repo, err := repo_service.ForkRepository(ctx.User, ctxUser, repo_service.ForkRepoOptions{
 		BaseRepo:    forkRepo,
 		Name:        form.RepoName,
 		Description: form.Description,
@@ -237,7 +237,7 @@ func ForkPost(ctx *context.Context) {
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true
 		switch {
-		case models.IsErrRepoAlreadyExist(err):
+		case repo_model.IsErrRepoAlreadyExist(err):
 			ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplFork, &form)
 		case db.IsErrNameReserved(err):
 			ctx.RenderWithErr(ctx.Tr("repo.form.name_reserved", err.(db.ErrNameReserved).Name), tplFork, &form)

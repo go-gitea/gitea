@@ -161,10 +161,10 @@ func repoAssignment() func(ctx *context.APIContext) {
 		repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 		if err != nil {
 			if repo_model.IsErrRepoNotExist(err) {
-				redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+				redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 				if err == nil {
 					context.RedirectToRepo(ctx.Context, redirectRepoID)
-				} else if models.IsErrRepoRedirectNotExist(err) {
+				} else if repo_model.IsErrRedirectNotExist(err) {
 					ctx.NotFound()
 				} else {
 					ctx.Error(http.StatusInternalServerError, "LookupRepoRedirect", err)

@@ -28,7 +28,7 @@ import (
 // AdoptRepository adopts pre-existing repository files for the user/organization.
 func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
-		return nil, models.ErrReachLimitOfRepo{
+		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
 		}
 	}
@@ -188,7 +188,7 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 
 // DeleteUnadoptedRepository deletes unadopted repository files from the filesystem
 func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error {
-	if err := models.IsUsableRepoName(repoName); err != nil {
+	if err := repo_model.IsUsableRepoName(repoName); err != nil {
 		return err
 	}
 
@@ -208,7 +208,7 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 	if exist, err := repo_model.IsRepositoryExist(u, repoName); err != nil {
 		return err
 	} else if exist {
-		return models.ErrRepoAlreadyExist{
+		return repo_model.ErrRepoAlreadyExist{
 			Uname: u.Name,
 			Name:  repoName,
 		}
@@ -312,7 +312,7 @@ func ListUnadoptedRepositories(query string, opts *db.ListOptions) ([]string, in
 			return filepath.SkipDir
 		}
 		name = name[:len(name)-4]
-		if models.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
+		if repo_model.IsUsableRepoName(name) != nil || strings.ToLower(name) != name || !globRepo.Match(name) {
 			return filepath.SkipDir
 		}
 		if count < end {

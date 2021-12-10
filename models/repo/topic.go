@@ -2,15 +2,15 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -33,7 +33,7 @@ type Topic struct {
 }
 
 // RepoTopic represents associated repositories and topics
-type RepoTopic struct {
+type RepoTopic struct { //revive:disable-line:exported
 	RepoID  int64 `xorm:"pk"`
 	TopicID int64 `xorm:"pk"`
 }
@@ -145,8 +145,9 @@ func removeTopicFromRepo(e db.Engine, repoID int64, topic *Topic) error {
 	return nil
 }
 
-// removeTopicsFromRepo remove all topics from the repo and decrements respective topics repo count
-func removeTopicsFromRepo(e db.Engine, repoID int64) error {
+// RemoveTopicsFromRepo remove all topics from the repo and decrements respective topics repo count
+func RemoveTopicsFromRepo(ctx context.Context, repoID int64) error {
+	e := db.GetEngine(ctx)
 	_, err := e.Where(
 		builder.In("id",
 			builder.Select("topic_id").From("repo_topic").Where(builder.Eq{"repo_id": repoID}),
@@ -254,7 +255,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 		return nil, err
 	}
 
-	if _, err := sess.ID(repoID).Cols("topics").Update(&repo_model.Repository{
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
 		Topics: topicNames,
 	}); err != nil {
 		return nil, err
@@ -348,11 +349,21 @@ func SaveTopics(repoID int64, topicNames ...string) error {
 		return err
 	}
 
-	if _, err := sess.ID(repoID).Cols("topics").Update(&repo_model.Repository{
+	if _, err := sess.ID(repoID).Cols("topics").Update(&Repository{
 		Topics: topicNames,
 	}); err != nil {
 		return err
 	}
 
 	return committer.Commit()
+}
+
+// GenerateTopics generates topics from a template repository
+func GenerateTopics(ctx context.Context, templateRepo, generateRepo *Repository) error {
+	for _, topic := range templateRepo.Topics {
+		if _, err := addTopicByNameToRepo(db.GetEngine(ctx), generateRepo.ID, topic); err != nil {
+			return err
+		}
+	}
+	return nil
 }

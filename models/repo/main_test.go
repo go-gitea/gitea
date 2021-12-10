@@ -18,5 +18,9 @@ func TestMain(m *testing.M) {
 		"repository.yml",
 		"repo_unit.yml",
 		"repo_indexer_status.yml",
+		"repo_redirect.yml",
+		"watch.yml",
+		"star.yml",
+		"topic.yml",
 	)
 }

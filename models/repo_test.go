@@ -5,70 +5,15 @@
 package models
 
 import (
-	"bytes"
-	"crypto/md5"
-	"fmt"
-	"image"
-	"image/png"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/markup"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMetas(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	repo := &repo_model.Repository{Name: "testRepo"}
-	repo.Owner = &user_model.User{Name: "testOwner"}
-	repo.OwnerName = repo.Owner.Name
-
-	repo.Units = nil
-
-	metas := repo.ComposeMetas()
-	assert.Equal(t, "testRepo", metas["repo"])
-	assert.Equal(t, "testOwner", metas["user"])
-
-	externalTracker := repo_model.RepoUnit{
-		Type: unit.TypeExternalTracker,
-		Config: &repo_model.ExternalTrackerConfig{
-			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
-		},
-	}
-
-	testSuccess := func(expectedStyle string) {
-		repo.Units = []*repo_model.RepoUnit{&externalTracker}
-		repo.RenderingMetas = nil
-		metas := repo.ComposeMetas()
-		assert.Equal(t, expectedStyle, metas["style"])
-		assert.Equal(t, "testRepo", metas["repo"])
-		assert.Equal(t, "testOwner", metas["user"])
-		assert.Equal(t, "https://someurl.com/{user}/{repo}/{issue}", metas["format"])
-	}
-
-	testSuccess(markup.IssueNameStyleNumeric)
-
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleAlphanumeric
-	testSuccess(markup.IssueNameStyleAlphanumeric)
-
-	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
-	testSuccess(markup.IssueNameStyleNumeric)
-
-	repo, err := repo_model.GetRepositoryByID(3)
-	assert.NoError(t, err)
-
-	metas = repo.ComposeMetas()
-	assert.Contains(t, metas, "org")
-	assert.Contains(t, metas, "teams")
-	assert.Equal(t, "user3", metas["org"])
-	assert.Equal(t, ",owners,team1,", metas["teams"])
-}
 
 func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
@@ -88,77 +33,6 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.True(t, act.IsPrivate)
-}
-
-func TestGetUserFork(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// User13 has repo 11 forked from repo10
-	repo, err := repo_model.GetRepositoryByID(10)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	repo, err = GetUserFork(repo.ID, 13)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-
-	repo, err = repo_model.GetRepositoryByID(9)
-	assert.NoError(t, err)
-	assert.NotNil(t, repo)
-	repo, err = GetUserFork(repo.ID, 13)
-	assert.NoError(t, err)
-	assert.Nil(t, repo)
-}
-
-func TestRepoAPIURL(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
-}
-
-func TestUploadAvatar(t *testing.T) {
-	// Generate image
-	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	err := UploadRepoAvatar(repo, buff.Bytes())
-	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf("%d-%x", 10, md5.Sum(buff.Bytes())), repo.Avatar)
-}
-
-func TestUploadBigAvatar(t *testing.T) {
-	// Generate BIG image
-	myImage := image.NewRGBA(image.Rect(0, 0, 5000, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	err := UploadRepoAvatar(repo, buff.Bytes())
-	assert.Error(t, err)
-}
-
-func TestDeleteAvatar(t *testing.T) {
-	// Generate image
-	myImage := image.NewRGBA(image.Rect(0, 0, 1, 1))
-	var buff bytes.Buffer
-	png.Encode(&buff, myImage)
-
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-
-	err := UploadRepoAvatar(repo, buff.Bytes())
-	assert.NoError(t, err)
-
-	err = DeleteRepoAvatar(repo)
-	assert.NoError(t, err)
-
-	assert.Equal(t, "", repo.Avatar)
 }
 
 func TestDoctorUserStarNum(t *testing.T) {

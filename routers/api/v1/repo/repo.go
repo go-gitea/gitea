@@ -261,7 +261,7 @@ func CreateUserRepo(ctx *context.APIContext, owner *user_model.User, opt api.Cre
 		IsTemplate:    opt.Template,
 	})
 	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
@@ -410,7 +410,7 @@ func Generate(ctx *context.APIContext) {
 
 	repo, err := repo_service.GenerateRepository(ctx.User, ctxUser, ctx.Repo.Repository, opts)
 	if err != nil {
-		if models.IsErrRepoAlreadyExist(err) {
+		if repo_model.IsErrRepoAlreadyExist(err) {
 			ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 		} else if db.IsErrNameReserved(err) ||
 			db.IsErrNamePatternNotAllowed(err) {
@@ -650,7 +650,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 	if repo.LowerName != strings.ToLower(newRepoName) {
 		if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
 			switch {
-			case models.IsErrRepoAlreadyExist(err):
+			case repo_model.IsErrRepoAlreadyExist(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is already taken [name: %s]", newRepoName), err)
 			case db.IsErrNameReserved(err):
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("repo name is reserved [name: %s]", newRepoName), err)
@@ -911,7 +911,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 		}
 	}
 
-	if err := models.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
+	if err := repo_model.UpdateRepositoryUnits(repo, units, deleteUnitTypes); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepositoryUnits", err)
 		return err
 	}
@@ -931,14 +931,14 @@ func updateRepoArchivedState(ctx *context.APIContext, opts api.EditRepoOption) e
 			return err
 		}
 		if *opts.Archived {
-			if err := models.SetArchiveRepoState(repo, *opts.Archived); err != nil {
+			if err := repo_model.SetArchiveRepoState(repo, *opts.Archived); err != nil {
 				log.Error("Tried to archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err
 			}
 			log.Trace("Repository was archived: %s/%s", ctx.Repo.Owner.Name, repo.Name)
 		} else {
-			if err := models.SetArchiveRepoState(repo, *opts.Archived); err != nil {
+			if err := repo_model.SetArchiveRepoState(repo, *opts.Archived); err != nil {
 				log.Error("Tried to un-archive a repo: %s", err)
 				ctx.Error(http.StatusInternalServerError, "ArchiveRepoState", err)
 				return err

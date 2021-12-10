@@ -207,15 +207,13 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 	}
 	defer committer.Close()
 
-	sess := db.GetEngine(ctx)
-
-	if has, err := sess.Delete(collaboration); err != nil || has == 0 {
+	if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil || has == 0 {
 		return err
 	} else if err = recalculateAccesses(ctx, repo); err != nil {
 		return err
 	}
 
-	if err = watchRepo(sess, uid, repo.ID, false); err != nil {
+	if err = repo_model.WatchRepoCtx(ctx, uid, repo.ID, false); err != nil {
 		return err
 	}
 
@@ -253,13 +251,12 @@ func reconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int
 	if has, err := hasAccess(ctx, uid, repo); err != nil || has {
 		return err
 	}
-	e := db.GetEngine(ctx)
-	if err := watchRepo(e, uid, repo.ID, false); err != nil {
+	if err := repo_model.WatchRepoCtx(ctx, uid, repo.ID, false); err != nil {
 		return err
 	}
 
 	// Remove all IssueWatches a user has subscribed to in the repository
-	return removeIssueWatchersByRepoID(e, uid, repo.ID)
+	return removeIssueWatchersByRepoID(db.GetEngine(ctx), uid, repo.ID)
 }
 
 func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err error) {
