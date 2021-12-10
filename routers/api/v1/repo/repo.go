@@ -574,6 +574,7 @@ func GetByID(ctx *context.APIContext) {
 	}
 	ctx.JSON(http.StatusOK, convert.ToRepo(repo, perm.AccessMode))
 }
+
 //TODO pin repo
 // Edit edit repository properties
 func Edit(ctx *context.APIContext) {
