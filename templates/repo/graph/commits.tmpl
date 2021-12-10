@@ -28,7 +28,7 @@
 							{{- end -}}
 						</a>
 					</span>
-					<span class="message df ac mr-2">{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+					<span class="message dib ellipsis mr-2">{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
 					<span class="tags df ac">
 						{{range $commit.Refs}}
 							{{$refGroup := .RefGroup}}
